@@ -1,0 +1,55 @@
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { HandbookSubsection } from "@/hooks/useHandbookContent";
+import { HandbookSignature } from "@/components/HandbookSignature";
+
+interface HandbookSectionProps {
+  section: {
+    id: string;
+    section_key: string;
+    title: string;
+    subsections: HandbookSubsection[];
+  };
+}
+
+const parseContentWithBold = (content: string) => {
+  const parts = content.split(/(\*\*.*?\*\*)/g);
+  
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const boldText = part.slice(2, -2);
+      return <strong key={index}>{boldText}</strong>;
+    }
+    return part;
+  });
+};
+
+export const HandbookSection = ({ section }: HandbookSectionProps) => {
+  return (
+    <AccordionItem value={section.id} className="bg-card border rounded-lg px-6">
+      <AccordionTrigger className="hover:no-underline">
+        <h2 className="text-xl font-semibold">{section.title}</h2>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="pt-4 space-y-6">
+          {section.subsections.map((subsection) => (
+            <div 
+              key={subsection.id} 
+              id={`${section.id}-${subsection.subsection_key}`}
+              className="scroll-mt-24"
+            >
+              <h3 className="text-lg font-semibold mb-2">{subsection.title}</h3>
+              <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                {parseContentWithBold(subsection.content)}
+              </p>
+            </div>
+          ))}
+          {section.section_key === "handbook_receipt" && <HandbookSignature />}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+};
