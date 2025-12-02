@@ -11,6 +11,7 @@ import { Plus, Trash2, Edit } from "lucide-react";
 import { HandbookSignaturesList } from "@/components/HandbookSignaturesList";
 import { HRContactSettings } from "@/components/HRContactSettings";
 import { UserManagement } from "@/components/UserManagement";
+import { RAMSBuilder } from "@/components/RAMSBuilder";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -213,8 +214,9 @@ export const AdminContent = () => {
       </div>
 
       <Tabs defaultValue="content" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="content">Content Management</TabsTrigger>
+          <TabsTrigger value="rams">RAMS Builder</TabsTrigger>
           <TabsTrigger value="signatures">Handbook Signatures</TabsTrigger>
           <TabsTrigger value="hr-contact">HR Contact</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -392,6 +394,10 @@ export const AdminContent = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </TabsContent>
+
+        <TabsContent value="rams">
+          <RAMSBuilder />
         </TabsContent>
 
         <TabsContent value="signatures">
