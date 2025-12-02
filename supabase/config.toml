@@ -2,3 +2,6 @@ project_id = "atblyrrczwcmnyhcdkto"
 
 [functions.parse-rams-document]
 verify_jwt = false
+
+[functions.translate-rams]
+verify_jwt = false
