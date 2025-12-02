@@ -213,18 +213,24 @@ export const AdminContent = () => {
         <p className="text-muted-foreground">Manage handbook sections and content in all languages</p>
       </div>
 
-      <Tabs defaultValue="content" className="space-y-6">
+      <Tabs defaultValue="handbook" className="space-y-6">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="content">Content Management</TabsTrigger>
+          <TabsTrigger value="handbook">Handbook Builder</TabsTrigger>
           <TabsTrigger value="rams">RAMS Builder</TabsTrigger>
-          <TabsTrigger value="signatures">Handbook Signatures</TabsTrigger>
           <TabsTrigger value="hr-contact">HR Contact</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="content" className="space-y-6">
-          <div className="flex justify-end">
-            <Button 
+        <TabsContent value="handbook" className="space-y-6">
+          <Tabs defaultValue="content" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="content">Content Management</TabsTrigger>
+              <TabsTrigger value="signatures">Signatures</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="content" className="space-y-6">
+              <div className="flex justify-end">
+                <Button
               onClick={handleTranslate} 
               disabled={isTranslating}
               size="lg"
@@ -394,14 +400,16 @@ export const AdminContent = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+            </TabsContent>
+
+            <TabsContent value="signatures">
+              <HandbookSignaturesList />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="rams">
           <RAMSBuilder />
-        </TabsContent>
-
-        <TabsContent value="signatures">
-          <HandbookSignaturesList />
         </TabsContent>
 
         <TabsContent value="hr-contact">
