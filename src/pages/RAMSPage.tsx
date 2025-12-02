@@ -59,6 +59,13 @@ const RAMSPage = () => {
   const [language, setLanguage] = useState('EN');
   const [isDownloading, setIsDownloading] = useState(false);
   const [loadingRAMS, setLoadingRAMS] = useState(true);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState<{
+    title: string;
+    applicableTo: string[];
+    noticeToDrivers: string;
+    hazards: { activity: string; potentialHazard: string; whoAtRisk: string; controlMeasures: string; notes: string }[];
+  } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,6 +84,56 @@ const RAMSPage = () => {
       fetchHazards(selectedRAMS.id);
     }
   }, [selectedRAMS]);
+
+  // Translate content when language changes
+  useEffect(() => {
+    const translateContent = async () => {
+      if (!selectedRAMS || language === 'EN') {
+        setTranslatedContent(null);
+        return;
+      }
+
+      setIsTranslating(true);
+      try {
+        const textsToTranslate = [
+          selectedRAMS.title,
+          ...selectedRAMS.applicable_to,
+          selectedRAMS.notice_to_drivers || '',
+          ...hazards.flatMap(h => [
+            h.activity,
+            h.potential_hazard,
+            h.who_at_risk,
+            h.control_measures,
+            h.notes || '',
+          ]),
+        ];
+
+        const translated = await translateTexts(textsToTranslate);
+        
+        let i = 0;
+        setTranslatedContent({
+          title: translated[i++],
+          applicableTo: selectedRAMS.applicable_to.map(() => translated[i++]),
+          noticeToDrivers: translated[i++],
+          hazards: hazards.map(() => ({
+            activity: translated[i++],
+            potentialHazard: translated[i++],
+            whoAtRisk: translated[i++],
+            controlMeasures: translated[i++],
+            notes: translated[i++],
+          })),
+        });
+      } catch (error) {
+        console.error('Translation error:', error);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    if (selectedRAMS && hazards.length >= 0) {
+      translateContent();
+    }
+  }, [language, selectedRAMS, hazards]);
 
   const fetchRAMSList = async () => {
     setLoadingRAMS(true);
@@ -579,7 +636,10 @@ const RAMSPage = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle>{selectedRAMS.reference_code} - {selectedRAMS.title}</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      {selectedRAMS.reference_code} - {translatedContent?.title || selectedRAMS.title}
+                      {isTranslating && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </CardTitle>
                     <CardDescription>
                       Created: {format(new Date(selectedRAMS.created_date), "PPP")} | 
                       Review: {format(new Date(selectedRAMS.review_date), "PPP")}
@@ -612,7 +672,7 @@ const RAMSPage = () => {
                     <h4 className="font-semibold mb-2">Applicable To:</h4>
                     <ul className="list-disc list-inside text-muted-foreground">
                       {selectedRAMS.applicable_to.map((item, i) => (
-                        <li key={i}>{item}</li>
+                        <li key={i}>{translatedContent?.applicableTo[i] || item}</li>
                       ))}
                     </ul>
                   </div>
@@ -621,7 +681,7 @@ const RAMSPage = () => {
                 {selectedRAMS.notice_to_drivers && (
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200">
                     <h4 className="font-semibold mb-2">Notice to Drivers:</h4>
-                    <p className="text-muted-foreground">{selectedRAMS.notice_to_drivers}</p>
+                    <p className="text-muted-foreground">{translatedContent?.noticeToDrivers || selectedRAMS.notice_to_drivers}</p>
                   </div>
                 )}
 
@@ -629,17 +689,17 @@ const RAMSPage = () => {
                   <div>
                     <h4 className="font-semibold mb-4 text-lg">Risk Assessment ({hazards.length} hazards)</h4>
                     <div className="space-y-4">
-                      {hazards.map((hazard) => (
+                      {hazards.map((hazard, idx) => (
                         <Card key={hazard.id} className="p-4">
-                          <h5 className="font-semibold mb-3">{hazard.activity}</h5>
+                          <h5 className="font-semibold mb-3">{translatedContent?.hazards[idx]?.activity || hazard.activity}</h5>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-muted-foreground">Potential Hazard:</span>
-                              <p>{hazard.potential_hazard}</p>
+                              <p>{translatedContent?.hazards[idx]?.potentialHazard || hazard.potential_hazard}</p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Who at Risk:</span>
-                              <p>{hazard.who_at_risk}</p>
+                              <p>{translatedContent?.hazards[idx]?.whoAtRisk || hazard.who_at_risk}</p>
                             </div>
                           </div>
                           <div className="flex gap-4 mt-3">
@@ -668,11 +728,11 @@ const RAMSPage = () => {
                           </div>
                           <div className="mt-3">
                             <span className="text-muted-foreground text-sm">Control Measures:</span>
-                            <p className="text-sm mt-1">{hazard.control_measures}</p>
+                            <p className="text-sm mt-1">{translatedContent?.hazards[idx]?.controlMeasures || hazard.control_measures}</p>
                           </div>
                           {hazard.notes && (
                             <div className="mt-2 text-sm text-muted-foreground italic">
-                              Note: {hazard.notes}
+                              Note: {translatedContent?.hazards[idx]?.notes || hazard.notes}
                             </div>
                           )}
                         </Card>
