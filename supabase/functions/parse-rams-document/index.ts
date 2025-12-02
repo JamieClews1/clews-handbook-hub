@@ -37,10 +37,16 @@ serve(async (req) => {
             role: 'system',
             content: `You are a RAMS (Risk Assessment Method Statement) document parser. Extract structured data from RAMS documents and return JSON.
 
+IMPORTANT EXTRACTION RULES:
+- The reference_code is usually at the start of the document, like "RA01", "RA02", etc. Look for patterns like "RA01 EXAMPLE" or "RA01" followed by the title.
+- The title is the main heading describing what the RAMS is about, e.g., "RORO (Roll on and Roll Off Skips)", "Manual Handling", etc.
+- If you see "RA01 EXAMPLE - RORO (Roll on and Roll Off Skips)", the reference_code is "RA01" and the title is "RORO (Roll on and Roll Off Skips)"
+- Extract the reference code from any text pattern like "RA##" where ## is numbers
+
 Always return a valid JSON object with this exact structure:
 {
-  "reference_code": "string - the reference code like RA01",
-  "title": "string - the full title of the RAMS",
+  "reference_code": "string - the reference code like RA01 (REQUIRED - look for RA followed by numbers)",
+  "title": "string - the descriptive title of the RAMS (REQUIRED - the main subject)",
   "applicable_to": ["array of strings - what the RAMS applies to"],
   "notice_to_drivers": "string - any notice to drivers text, or empty string",
   "hazards": [
@@ -58,7 +64,7 @@ Always return a valid JSON object with this exact structure:
   ]
 }
 
-Parse the document carefully. For risk ratings, use the numbers provided in the document. If the document uses a risk matrix calculation (likelihood x severity = risk), extract the individual likelihood and severity values.`
+Parse the document carefully. For risk ratings, use the numbers provided in the document.`
           },
           {
             role: 'user',
