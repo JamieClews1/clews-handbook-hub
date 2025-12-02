@@ -293,16 +293,168 @@ export const RAMSBuilder = () => {
     if (!file) return;
 
     setIsUploading(true);
-    toast({ title: "Processing", description: "Parsing document... This feature will be available soon." });
+    toast({ title: "Processing", description: "Reading and parsing document..." });
     
-    // For now, just show a message - full document parsing would require backend integration
-    setTimeout(() => {
-      setIsUploading(false);
-      toast({ 
-        title: "Info", 
-        description: "Document upload feature requires backend integration. Please enter data manually for now.",
+    try {
+      // Read file as text
+      const text = await readFileAsText(file);
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error("Could not read document content");
+      }
+
+      console.log("Document content length:", text.length);
+
+      // Call the edge function to parse with AI
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-rams-document`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ documentContent: text }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to parse document");
+      }
+
+      const data = result.data;
+
+      // Populate the form with parsed data
+      setEditForm({
+        ...emptyRAMS,
+        reference_code: data.reference_code || "",
+        title: data.title || "",
+        applicable_to: data.applicable_to || [],
+        notice_to_drivers: data.notice_to_drivers || "",
+        created_date: format(new Date(), "yyyy-MM-dd"),
+        review_date: format(addMonths(new Date(), 12), "yyyy-MM-dd"),
       });
-    }, 1000);
+
+      // Populate hazards
+      if (data.hazards && data.hazards.length > 0) {
+        setEditHazards(data.hazards.map((h: any, idx: number) => ({
+          activity: h.activity || "",
+          potential_hazard: h.potential_hazard || "",
+          who_at_risk: h.who_at_risk || "",
+          initial_likelihood: h.initial_likelihood || 1,
+          initial_severity: h.initial_severity || 1,
+          control_measures: h.control_measures || "",
+          residual_likelihood: h.residual_likelihood || 1,
+          residual_severity: h.residual_severity || 1,
+          notes: h.notes || "",
+          display_order: idx,
+        })));
+      } else {
+        setEditHazards([{ ...emptyHazard }]);
+      }
+
+      setSelectedRAMS(null);
+      setIsEditing(true);
+
+      toast({ 
+        title: "Success", 
+        description: `Parsed ${data.hazards?.length || 0} hazards from document`,
+      });
+    } catch (error) {
+      console.error("Error parsing document:", error);
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to parse document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset the input
+      e.target.value = "";
+    }
+  };
+
+  // Helper to read file content
+  const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        // For .docx/.docm files, we need to extract text from the XML
+        if (file.name.endsWith('.docx') || file.name.endsWith('.docm') || file.name.endsWith('.doc')) {
+          extractTextFromDocx(arrayBuffer).then(resolve).catch(reject);
+        } else {
+          // For plain text files
+          const decoder = new TextDecoder('utf-8');
+          resolve(decoder.decode(arrayBuffer));
+        }
+      };
+      
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  // Extract text from DOCX/DOCM files (they are ZIP files with XML inside)
+  const extractTextFromDocx = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+    try {
+      // Import JSZip dynamically
+      const JSZip = (await import('jszip')).default;
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      
+      // Get the main document content
+      const documentXml = await zip.file('word/document.xml')?.async('text');
+      
+      if (!documentXml) {
+        throw new Error("Could not find document content");
+      }
+
+      // Parse XML and extract text content
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(documentXml, 'text/xml');
+      
+      // Extract all text nodes from <w:t> elements
+      const textNodes = xmlDoc.getElementsByTagName('w:t');
+      const textContent: string[] = [];
+      
+      for (let i = 0; i < textNodes.length; i++) {
+        const text = textNodes[i].textContent;
+        if (text) {
+          textContent.push(text);
+        }
+      }
+
+      // Also check for table content
+      const tableRows = xmlDoc.getElementsByTagName('w:tr');
+      const tableContent: string[] = [];
+      
+      for (let i = 0; i < tableRows.length; i++) {
+        const cells = tableRows[i].getElementsByTagName('w:tc');
+        const rowContent: string[] = [];
+        
+        for (let j = 0; j < cells.length; j++) {
+          const cellTexts = cells[j].getElementsByTagName('w:t');
+          const cellContent: string[] = [];
+          for (let k = 0; k < cellTexts.length; k++) {
+            if (cellTexts[k].textContent) {
+              cellContent.push(cellTexts[k].textContent);
+            }
+          }
+          rowContent.push(cellContent.join(' '));
+        }
+        tableContent.push(rowContent.join(' | '));
+      }
+
+      const finalContent = textContent.join(' ') + '\n\nTable Data:\n' + tableContent.join('\n');
+      console.log("Extracted document content:", finalContent.substring(0, 500));
+      
+      return finalContent;
+    } catch (error) {
+      console.error("Error extracting text from DOCX:", error);
+      throw new Error("Could not extract text from document");
+    }
   };
 
   const getRiskColor = (risk: number) => {
