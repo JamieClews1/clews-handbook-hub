@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import Index from "./pages/Index";
+import HandbookPage from "./pages/HandbookPage";
+import RAMSPage from "./pages/RAMSPage";
+import ToolboxTalksPage from "./pages/ToolboxTalksPage";
 import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
@@ -21,6 +24,9 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/handbook" element={<HandbookPage />} />
+            <Route path="/rams" element={<RAMSPage />} />
+            <Route path="/toolbox-talks" element={<ToolboxTalksPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/admin" element={<AdminPage />} />
