@@ -1,1 +1,4 @@
 project_id = "atblyrrczwcmnyhcdkto"
+
+[functions.parse-rams-document]
+verify_jwt = false
