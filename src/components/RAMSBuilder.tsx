@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, FileUp, Save, X, Upload } from "lucide-react";
+import { Plus, Trash2, Edit, FileUp, Save, X, Upload, Download } from "lucide-react";
 import { format, addMonths } from "date-fns";
 import { SignaturePad } from "@/components/SignaturePad";
 import {
@@ -953,8 +953,168 @@ interface RAMSViewProps {
 }
 
 const RAMSView = ({ rams, hazards, getRiskColor }: RAMSViewProps) => {
+  const handleDownload = () => {
+    const getRiskColorHex = (risk: number) => {
+      if (risk <= 4) return "#22c55e";
+      if (risk <= 8) return "#eab308";
+      if (risk <= 12) return "#f97316";
+      return "#ef4444";
+    };
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${rams.reference_code} - ${rams.title}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+    .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
+    .header h1 { color: #2563eb; font-size: 24px; margin-bottom: 5px; }
+    .header h2 { font-size: 18px; color: #666; font-weight: normal; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+    .meta-item label { font-size: 12px; color: #666; display: block; margin-bottom: 3px; }
+    .meta-item p { font-weight: 500; }
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 25px; }
+    .badge { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .badge-mandatory { background: #fee2e2; color: #dc2626; }
+    .badge-type { background: #e0e7ff; color: #4338ca; }
+    .section { margin-bottom: 25px; }
+    .section-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #374151; }
+    .notice { background: #fef9c3; border: 1px solid #fde047; padding: 12px; border-radius: 6px; font-size: 14px; }
+    .hazard-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; page-break-inside: avoid; }
+    .hazard-title { font-weight: 600; margin-bottom: 12px; color: #1f2937; }
+    .hazard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .hazard-item label { font-size: 11px; color: #6b7280; display: block; margin-bottom: 2px; }
+    .hazard-item p { font-size: 13px; }
+    .risk-row { display: flex; gap: 20px; margin-bottom: 12px; }
+    .risk-badge { padding: 4px 10px; border-radius: 4px; color: white; font-weight: bold; font-size: 12px; }
+    .control-measures { background: #f9fafb; padding: 10px; border-radius: 4px; font-size: 13px; }
+    .signature-section { border-top: 2px solid #e5e7eb; padding-top: 20px; margin-top: 30px; }
+    .signature-section img { max-height: 60px; border: 1px solid #e5e7eb; border-radius: 4px; }
+    .signature-info { margin-top: 8px; font-size: 13px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 4px; font-size: 14px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${rams.reference_code}</h1>
+    <h2>${rams.title}</h2>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <label>Created Date</label>
+      <p>${format(new Date(rams.created_date), "PPP")}</p>
+    </div>
+    <div class="meta-item">
+      <label>Review Date</label>
+      <p>${format(new Date(rams.review_date), "PPP")}</p>
+    </div>
+  </div>
+
+  <div class="badges">
+    ${rams.is_mandatory ? '<span class="badge badge-mandatory">Mandatory</span>' : ''}
+    ${rams.user_types.map(type => `<span class="badge badge-type">${type}</span>`).join('')}
+  </div>
+
+  ${rams.applicable_to.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Applicable To</div>
+    <ul>
+      ${rams.applicable_to.map(item => `<li>${item}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+
+  ${rams.notice_to_drivers ? `
+  <div class="section">
+    <div class="section-title">Notice to Drivers</div>
+    <div class="notice">${rams.notice_to_drivers}</div>
+  </div>
+  ` : ''}
+
+  ${hazards.length > 0 ? `
+  <div class="section">
+    <div class="section-title" style="font-size: 16px; margin-bottom: 16px;">Risk Assessment</div>
+    ${hazards.map(hazard => `
+    <div class="hazard-card">
+      <div class="hazard-title">${hazard.activity}</div>
+      <div class="hazard-grid">
+        <div class="hazard-item">
+          <label>Potential Hazard</label>
+          <p>${hazard.potential_hazard}</p>
+        </div>
+        <div class="hazard-item">
+          <label>Who at Risk</label>
+          <p>${hazard.who_at_risk}</p>
+        </div>
+      </div>
+      <div class="risk-row">
+        <div>
+          <span style="font-size: 12px; color: #6b7280;">Initial Risk: </span>
+          <span class="risk-badge" style="background: ${getRiskColorHex(hazard.initial_likelihood * hazard.initial_severity)}">
+            ${hazard.initial_likelihood} × ${hazard.initial_severity} = ${hazard.initial_likelihood * hazard.initial_severity}
+          </span>
+        </div>
+        <div>
+          <span style="font-size: 12px; color: #6b7280;">Residual Risk: </span>
+          <span class="risk-badge" style="background: ${getRiskColorHex(hazard.residual_likelihood * hazard.residual_severity)}">
+            ${hazard.residual_likelihood} × ${hazard.residual_severity} = ${hazard.residual_likelihood * hazard.residual_severity}
+          </span>
+        </div>
+      </div>
+      <div class="hazard-item">
+        <label>Control Measures</label>
+        <div class="control-measures">${hazard.control_measures}</div>
+      </div>
+      ${hazard.notes ? `
+      <div class="hazard-item" style="margin-top: 10px;">
+        <label>Notes</label>
+        <p>${hazard.notes}</p>
+      </div>
+      ` : ''}
+    </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  ${rams.creator_signature ? `
+  <div class="signature-section">
+    <div class="section-title">Creator Signature</div>
+    <img src="${rams.creator_signature}" alt="Signature" />
+    <div class="signature-info">
+      <strong>${rams.creator_name || ''}</strong>
+      ${rams.signed_at ? `<br/>Signed: ${format(new Date(rams.signed_at), "PPP")}` : ''}
+    </div>
+  </div>
+  ` : ''}
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${rams.reference_code}-${rams.title.replace(/[^a-zA-Z0-9]/g, '-')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+      <div className="flex justify-end">
+        <Button onClick={handleDownload} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Download
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-muted-foreground">Reference Code</Label>
