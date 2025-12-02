@@ -193,6 +193,116 @@ export type Database = {
         }
         Relationships: []
       }
+      rams: {
+        Row: {
+          applicable_to: string[] | null
+          created_at: string
+          created_date: string
+          creator_name: string | null
+          creator_signature: string | null
+          id: string
+          is_mandatory: boolean
+          notice_to_drivers: string | null
+          reference_code: string
+          review_date: string
+          signed_at: string | null
+          title: string
+          updated_at: string
+          user_types: string[]
+        }
+        Insert: {
+          applicable_to?: string[] | null
+          created_at?: string
+          created_date?: string
+          creator_name?: string | null
+          creator_signature?: string | null
+          id?: string
+          is_mandatory?: boolean
+          notice_to_drivers?: string | null
+          reference_code: string
+          review_date?: string
+          signed_at?: string | null
+          title: string
+          updated_at?: string
+          user_types?: string[]
+        }
+        Update: {
+          applicable_to?: string[] | null
+          created_at?: string
+          created_date?: string
+          creator_name?: string | null
+          creator_signature?: string | null
+          id?: string
+          is_mandatory?: boolean
+          notice_to_drivers?: string | null
+          reference_code?: string
+          review_date?: string
+          signed_at?: string | null
+          title?: string
+          updated_at?: string
+          user_types?: string[]
+        }
+        Relationships: []
+      }
+      rams_hazards: {
+        Row: {
+          activity: string
+          control_measures: string
+          created_at: string
+          display_order: number
+          id: string
+          initial_likelihood: number
+          initial_severity: number
+          notes: string | null
+          potential_hazard: string
+          rams_id: string
+          residual_likelihood: number
+          residual_severity: number
+          updated_at: string
+          who_at_risk: string
+        }
+        Insert: {
+          activity: string
+          control_measures: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          initial_likelihood?: number
+          initial_severity?: number
+          notes?: string | null
+          potential_hazard: string
+          rams_id: string
+          residual_likelihood?: number
+          residual_severity?: number
+          updated_at?: string
+          who_at_risk: string
+        }
+        Update: {
+          activity?: string
+          control_measures?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          initial_likelihood?: number
+          initial_severity?: number
+          notes?: string | null
+          potential_hazard?: string
+          rams_id?: string
+          residual_likelihood?: number
+          residual_severity?: number
+          updated_at?: string
+          who_at_risk?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rams_hazards_rams_id_fkey"
+            columns: ["rams_id"]
+            isOneToOne: false
+            referencedRelation: "rams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
