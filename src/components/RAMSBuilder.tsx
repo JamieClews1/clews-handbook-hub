@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, FileUp, Save, X, Upload, Download } from "lucide-react";
 import { format, addMonths } from "date-fns";
+import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import {
   Dialog,
@@ -953,165 +954,213 @@ interface RAMSViewProps {
 }
 
 const RAMSView = ({ rams, hazards, getRiskColor }: RAMSViewProps) => {
-  const handleDownload = () => {
-    const getRiskColorHex = (risk: number) => {
-      if (risk <= 4) return "#22c55e";
-      if (risk <= 8) return "#eab308";
-      if (risk <= 12) return "#f97316";
-      return "#ef4444";
+  const handleDownloadPDF = () => {
+    const getRiskColorRGB = (risk: number): [number, number, number] => {
+      if (risk <= 4) return [34, 197, 94];
+      if (risk <= 8) return [234, 179, 8];
+      if (risk <= 12) return [249, 115, 22];
+      return [239, 68, 68];
     };
 
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${rams.reference_code} - ${rams.title}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-    .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-    .header h1 { color: #2563eb; font-size: 24px; margin-bottom: 5px; }
-    .header h2 { font-size: 18px; color: #666; font-weight: normal; }
-    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-    .meta-item label { font-size: 12px; color: #666; display: block; margin-bottom: 3px; }
-    .meta-item p { font-weight: 500; }
-    .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 25px; }
-    .badge { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-    .badge-mandatory { background: #fee2e2; color: #dc2626; }
-    .badge-type { background: #e0e7ff; color: #4338ca; }
-    .section { margin-bottom: 25px; }
-    .section-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #374151; }
-    .notice { background: #fef9c3; border: 1px solid #fde047; padding: 12px; border-radius: 6px; font-size: 14px; }
-    .hazard-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; page-break-inside: avoid; }
-    .hazard-title { font-weight: 600; margin-bottom: 12px; color: #1f2937; }
-    .hazard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .hazard-item label { font-size: 11px; color: #6b7280; display: block; margin-bottom: 2px; }
-    .hazard-item p { font-size: 13px; }
-    .risk-row { display: flex; gap: 20px; margin-bottom: 12px; }
-    .risk-badge { padding: 4px 10px; border-radius: 4px; color: white; font-weight: bold; font-size: 12px; }
-    .control-measures { background: #f9fafb; padding: 10px; border-radius: 4px; font-size: 13px; }
-    .signature-section { border-top: 2px solid #e5e7eb; padding-top: 20px; margin-top: 30px; }
-    .signature-section img { max-height: 60px; border: 1px solid #e5e7eb; border-radius: 4px; }
-    .signature-info { margin-top: 8px; font-size: 13px; }
-    ul { padding-left: 20px; }
-    li { margin-bottom: 4px; font-size: 14px; }
-    @media print { body { padding: 20px; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${rams.reference_code}</h1>
-    <h2>${rams.title}</h2>
-  </div>
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let y = 20;
 
-  <div class="meta-grid">
-    <div class="meta-item">
-      <label>Created Date</label>
-      <p>${format(new Date(rams.created_date), "PPP")}</p>
-    </div>
-    <div class="meta-item">
-      <label>Review Date</label>
-      <p>${format(new Date(rams.review_date), "PPP")}</p>
-    </div>
-  </div>
+    const addText = (text: string, x: number, yPos: number, options?: { fontSize?: number; fontStyle?: string; maxWidth?: number }) => {
+      doc.setFontSize(options?.fontSize || 10);
+      doc.setFont('helvetica', options?.fontStyle === 'bold' ? 'bold' : 'normal');
+      
+      if (options?.maxWidth) {
+        const lines = doc.splitTextToSize(text, options.maxWidth);
+        doc.text(lines, x, yPos);
+        return lines.length * (options?.fontSize || 10) * 0.4;
+      }
+      doc.text(text, x, yPos);
+      return (options?.fontSize || 10) * 0.4;
+    };
 
-  <div class="badges">
-    ${rams.is_mandatory ? '<span class="badge badge-mandatory">Mandatory</span>' : ''}
-    ${rams.user_types.map(type => `<span class="badge badge-type">${type}</span>`).join('')}
-  </div>
+    const checkNewPage = (needed: number) => {
+      if (y + needed > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        y = 20;
+      }
+    };
 
-  ${rams.applicable_to.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Applicable To</div>
-    <ul>
-      ${rams.applicable_to.map(item => `<li>${item}</li>`).join('')}
-    </ul>
-  </div>
-  ` : ''}
+    // Header
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    addText(rams.reference_code, margin, 18, { fontSize: 20, fontStyle: 'bold' });
+    addText(rams.title, margin, 28, { fontSize: 12 });
+    
+    y = 45;
+    doc.setTextColor(0, 0, 0);
 
-  ${rams.notice_to_drivers ? `
-  <div class="section">
-    <div class="section-title">Notice to Drivers</div>
-    <div class="notice">${rams.notice_to_drivers}</div>
-  </div>
-  ` : ''}
+    // Meta info
+    doc.setFillColor(245, 245, 245);
+    doc.rect(margin, y, pageWidth - 2 * margin, 25, 'F');
+    y += 8;
+    
+    doc.setTextColor(100, 100, 100);
+    addText('Created Date', margin + 5, y, { fontSize: 8 });
+    addText('Review Date', margin + 70, y, { fontSize: 8 });
+    y += 5;
+    doc.setTextColor(0, 0, 0);
+    addText(format(new Date(rams.created_date), "PPP"), margin + 5, y, { fontSize: 10, fontStyle: 'bold' });
+    addText(format(new Date(rams.review_date), "PPP"), margin + 70, y, { fontSize: 10, fontStyle: 'bold' });
+    
+    y += 18;
 
-  ${hazards.length > 0 ? `
-  <div class="section">
-    <div class="section-title" style="font-size: 16px; margin-bottom: 16px;">Risk Assessment</div>
-    ${hazards.map(hazard => `
-    <div class="hazard-card">
-      <div class="hazard-title">${hazard.activity}</div>
-      <div class="hazard-grid">
-        <div class="hazard-item">
-          <label>Potential Hazard</label>
-          <p>${hazard.potential_hazard}</p>
-        </div>
-        <div class="hazard-item">
-          <label>Who at Risk</label>
-          <p>${hazard.who_at_risk}</p>
-        </div>
-      </div>
-      <div class="risk-row">
-        <div>
-          <span style="font-size: 12px; color: #6b7280;">Initial Risk: </span>
-          <span class="risk-badge" style="background: ${getRiskColorHex(hazard.initial_likelihood * hazard.initial_severity)}">
-            ${hazard.initial_likelihood} × ${hazard.initial_severity} = ${hazard.initial_likelihood * hazard.initial_severity}
-          </span>
-        </div>
-        <div>
-          <span style="font-size: 12px; color: #6b7280;">Residual Risk: </span>
-          <span class="risk-badge" style="background: ${getRiskColorHex(hazard.residual_likelihood * hazard.residual_severity)}">
-            ${hazard.residual_likelihood} × ${hazard.residual_severity} = ${hazard.residual_likelihood * hazard.residual_severity}
-          </span>
-        </div>
-      </div>
-      <div class="hazard-item">
-        <label>Control Measures</label>
-        <div class="control-measures">${hazard.control_measures}</div>
-      </div>
-      ${hazard.notes ? `
-      <div class="hazard-item" style="margin-top: 10px;">
-        <label>Notes</label>
-        <p>${hazard.notes}</p>
-      </div>
-      ` : ''}
-    </div>
-    `).join('')}
-  </div>
-  ` : ''}
+    // Badges
+    if (rams.is_mandatory) {
+      doc.setFillColor(254, 226, 226);
+      doc.setTextColor(220, 38, 38);
+      doc.roundedRect(margin, y, 30, 7, 2, 2, 'F');
+      addText('Mandatory', margin + 3, y + 5, { fontSize: 8, fontStyle: 'bold' });
+    }
+    
+    let badgeX = rams.is_mandatory ? margin + 35 : margin;
+    doc.setTextColor(67, 56, 202);
+    rams.user_types.forEach(type => {
+      doc.setFillColor(224, 231, 255);
+      doc.roundedRect(badgeX, y, 25, 7, 2, 2, 'F');
+      addText(type, badgeX + 3, y + 5, { fontSize: 8 });
+      badgeX += 28;
+    });
+    
+    y += 15;
+    doc.setTextColor(0, 0, 0);
 
-  ${rams.creator_signature ? `
-  <div class="signature-section">
-    <div class="section-title">Creator Signature</div>
-    <img src="${rams.creator_signature}" alt="Signature" />
-    <div class="signature-info">
-      <strong>${rams.creator_name || ''}</strong>
-      ${rams.signed_at ? `<br/>Signed: ${format(new Date(rams.signed_at), "PPP")}` : ''}
-    </div>
-  </div>
-  ` : ''}
-</body>
-</html>`;
+    // Applicable To
+    if (rams.applicable_to.length > 0) {
+      checkNewPage(30);
+      addText('Applicable To', margin, y, { fontSize: 10, fontStyle: 'bold' });
+      y += 6;
+      rams.applicable_to.forEach(item => {
+        addText(`• ${item}`, margin + 5, y, { fontSize: 9 });
+        y += 5;
+      });
+      y += 5;
+    }
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${rams.reference_code}-${rams.title.replace(/[^a-zA-Z0-9]/g, '-')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Notice to Drivers
+    if (rams.notice_to_drivers) {
+      checkNewPage(25);
+      addText('Notice to Drivers', margin, y, { fontSize: 10, fontStyle: 'bold' });
+      y += 6;
+      doc.setFillColor(254, 249, 195);
+      const noticeLines = doc.splitTextToSize(rams.notice_to_drivers, pageWidth - 2 * margin - 10);
+      const noticeHeight = noticeLines.length * 4 + 8;
+      doc.roundedRect(margin, y, pageWidth - 2 * margin, noticeHeight, 3, 3, 'F');
+      doc.setTextColor(100, 100, 100);
+      doc.text(noticeLines, margin + 5, y + 6);
+      y += noticeHeight + 8;
+      doc.setTextColor(0, 0, 0);
+    }
+
+    // Risk Assessment
+    if (hazards.length > 0) {
+      checkNewPage(20);
+      addText('Risk Assessment', margin, y, { fontSize: 14, fontStyle: 'bold' });
+      y += 10;
+
+      hazards.forEach((hazard) => {
+        checkNewPage(70);
+        
+        doc.setDrawColor(229, 231, 235);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(margin, y, pageWidth - 2 * margin, 60, 3, 3, 'FD');
+        
+        y += 8;
+        addText(hazard.activity, margin + 5, y, { fontSize: 11, fontStyle: 'bold', maxWidth: pageWidth - 2 * margin - 10 });
+        y += 8;
+        
+        doc.setTextColor(100, 100, 100);
+        addText('Potential Hazard', margin + 5, y, { fontSize: 8 });
+        addText('Who at Risk', margin + 85, y, { fontSize: 8 });
+        y += 4;
+        doc.setTextColor(0, 0, 0);
+        const hazardHeight = addText(hazard.potential_hazard, margin + 5, y, { fontSize: 9, maxWidth: 75 });
+        addText(hazard.who_at_risk, margin + 85, y, { fontSize: 9, maxWidth: 75 });
+        y += Math.max(hazardHeight, 8);
+
+        y += 4;
+        const initialRisk = hazard.initial_likelihood * hazard.initial_severity;
+        const residualRisk = hazard.residual_likelihood * hazard.residual_severity;
+        
+        doc.setTextColor(100, 100, 100);
+        addText('Initial Risk:', margin + 5, y, { fontSize: 8 });
+        const [ir, ig, ib] = getRiskColorRGB(initialRisk);
+        doc.setFillColor(ir, ig, ib);
+        doc.setTextColor(255, 255, 255);
+        doc.roundedRect(margin + 35, y - 4, 30, 6, 2, 2, 'F');
+        addText(`${hazard.initial_likelihood}×${hazard.initial_severity}=${initialRisk}`, margin + 37, y, { fontSize: 8, fontStyle: 'bold' });
+
+        doc.setTextColor(100, 100, 100);
+        addText('Residual Risk:', margin + 85, y, { fontSize: 8 });
+        const [rr, rg, rb] = getRiskColorRGB(residualRisk);
+        doc.setFillColor(rr, rg, rb);
+        doc.setTextColor(255, 255, 255);
+        doc.roundedRect(margin + 120, y - 4, 30, 6, 2, 2, 'F');
+        addText(`${hazard.residual_likelihood}×${hazard.residual_severity}=${residualRisk}`, margin + 122, y, { fontSize: 8, fontStyle: 'bold' });
+        
+        y += 8;
+        doc.setTextColor(100, 100, 100);
+        addText('Control Measures', margin + 5, y, { fontSize: 8 });
+        y += 4;
+        doc.setTextColor(0, 0, 0);
+        const cmHeight = addText(hazard.control_measures, margin + 5, y, { fontSize: 9, maxWidth: pageWidth - 2 * margin - 15 });
+        y += cmHeight + 5;
+
+        if (hazard.notes) {
+          doc.setTextColor(100, 100, 100);
+          addText('Notes', margin + 5, y, { fontSize: 8 });
+          y += 4;
+          doc.setTextColor(0, 0, 0);
+          addText(hazard.notes, margin + 5, y, { fontSize: 9, maxWidth: pageWidth - 2 * margin - 15 });
+          y += 8;
+        }
+        
+        y += 10;
+      });
+    }
+
+    // Signature
+    if (rams.creator_signature) {
+      checkNewPage(40);
+      doc.setDrawColor(229, 231, 235);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+      addText('Creator Signature', margin, y, { fontSize: 10, fontStyle: 'bold' });
+      y += 8;
+      
+      try {
+        doc.addImage(rams.creator_signature, 'PNG', margin, y, 50, 20);
+      } catch (e) {
+        // Signature failed
+      }
+      
+      y += 25;
+      if (rams.creator_name) {
+        addText(rams.creator_name, margin, y, { fontSize: 10, fontStyle: 'bold' });
+        y += 5;
+      }
+      if (rams.signed_at) {
+        doc.setTextColor(100, 100, 100);
+        addText(`Signed: ${format(new Date(rams.signed_at), "PPP")}`, margin, y, { fontSize: 9 });
+      }
+    }
+
+    doc.save(`${rams.reference_code}.pdf`);
   };
 
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
       <div className="flex justify-end">
-        <Button onClick={handleDownload} variant="outline" className="gap-2">
+        <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
           <Download className="h-4 w-4" />
-          Download
+          Download PDF
         </Button>
       </div>
 
