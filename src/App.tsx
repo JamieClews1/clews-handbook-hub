@@ -12,6 +12,11 @@ import ToolboxTalksPage from "./pages/ToolboxTalksPage";
 import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
+import AdminHandbookPage from "./pages/AdminHandbookPage";
+import AdminRAMSPage from "./pages/AdminRAMSPage";
+import AdminToolboxTalksPage from "./pages/AdminToolboxTalksPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MassSignOffPage from "./pages/MassSignOffPage";
 import NotFound from "./pages/NotFound";
@@ -34,6 +39,11 @@ const App = () => (
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/handbook" element={<AdminHandbookPage />} />
+            <Route path="/admin/rams" element={<AdminRAMSPage />} />
+            <Route path="/admin/toolbox-talks" element={<AdminToolboxTalksPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/my-profile" element={<MyProfilePage />} />
             <Route path="/mass-sign-off" element={<MassSignOffPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
