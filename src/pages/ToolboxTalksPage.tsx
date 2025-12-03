@@ -54,10 +54,11 @@ const ToolboxTalksPage = () => {
         const types = profile?.user_types || [];
         setUserTypes(types);
 
-        // Fetch all toolbox talks
+        // Fetch published toolbox talks
         const { data: talks } = await supabase
           .from("toolbox_talks")
           .select("*")
+          .eq("is_published", true)
           .order("created_date", { ascending: false });
 
         // Filter by user types
