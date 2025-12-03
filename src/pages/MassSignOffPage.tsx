@@ -193,14 +193,21 @@ const MassSignOffPage = () => {
 
   const selectedRams = rams.find(r => r.id === selectedRamsId);
   
+  // Normalize user type for comparison (handles "Drivers" vs "driver", "Office" vs "office", etc.)
+  const normalizeUserType = (type: string): string => {
+    const normalized = type.toLowerCase().replace(/s$/, ''); // Remove trailing 's' and lowercase
+    return normalized === 'driver' ? 'driver' : normalized; // Ensure 'drivers' -> 'driver'
+  };
+
   // Group users by user_type, only showing those applicable to selected RAMS
   const groupedUsers = users.reduce((acc, userProfile) => {
     if (!userProfile.user_types || userProfile.user_types.length === 0) return acc;
     
     // If RAMS is selected, filter users by applicable user_types
     if (selectedRams) {
+      const ramsTypesNormalized = selectedRams.user_types.map(normalizeUserType);
       const hasApplicableType = userProfile.user_types.some(
-        type => selectedRams.user_types.includes(type)
+        type => ramsTypesNormalized.includes(normalizeUserType(type))
       );
       if (!hasApplicableType) return acc;
     }
