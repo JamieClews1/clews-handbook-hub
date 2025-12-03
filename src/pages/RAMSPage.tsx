@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,8 +49,6 @@ const LANGUAGES = [
 ];
 
 const RAMSPage = () => {
-  const navigate = useNavigate();
-  const { user, loading } = useAuth();
   const { toast } = useToast();
   const [ramsList, setRamsList] = useState<RAMS[]>([]);
   const [selectedRAMS, setSelectedRAMS] = useState<RAMS | null>(null);
@@ -68,16 +65,8 @@ const RAMSPage = () => {
   } | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchRAMSList();
-    }
-  }, [user]);
+    fetchRAMSList();
+  }, []);
 
   useEffect(() => {
     if (selectedRAMS) {
@@ -504,7 +493,7 @@ const RAMSPage = () => {
     }
   };
 
-  if (loading) {
+  if (loadingRAMS) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -513,10 +502,6 @@ const RAMSPage = () => {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
