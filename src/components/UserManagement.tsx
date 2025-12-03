@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { UserComplianceView } from "./UserComplianceView";
 
 interface UserProfile {
   id: string;
@@ -266,6 +267,7 @@ export const UserManagement = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Full Name</TableHead>
                 <TableHead>User Types</TableHead>
+                <TableHead>RAMS Compliance</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -287,6 +289,13 @@ export const UserManagement = () => {
                         <span className="text-muted-foreground text-sm">None</span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <UserComplianceView 
+                      userId={user.id} 
+                      userTypes={user.user_types} 
+                      userName={user.full_name || user.email}
+                    />
                   </TableCell>
                   <TableCell>
                     {user.isAdmin ? (
