@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Save, Trash2, Edit, Printer } from "lucide-react";
+import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
 
@@ -17,6 +17,7 @@ interface ToolboxTalk {
   content: string;
   user_types: string[];
   is_mandatory: boolean;
+  is_published: boolean;
   created_date: string;
 }
 
@@ -36,6 +37,7 @@ export const ToolboxTalkBuilder = () => {
   const [content, setContent] = useState("");
   const [userTypes, setUserTypes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
 
   useEffect(() => {
     fetchToolboxTalks();
@@ -67,6 +69,7 @@ export const ToolboxTalkBuilder = () => {
     setContent("");
     setUserTypes([]);
     setIsMandatory(false);
+    setIsPublished(false);
     setEditingTalk(null);
     setIsCreating(false);
   };
@@ -77,6 +80,7 @@ export const ToolboxTalkBuilder = () => {
     setContent(talk.content);
     setUserTypes(talk.user_types);
     setIsMandatory(talk.is_mandatory);
+    setIsPublished(talk.is_published);
     setIsCreating(true);
   };
 
@@ -123,6 +127,7 @@ export const ToolboxTalkBuilder = () => {
             content,
             user_types: userTypes,
             is_mandatory: isMandatory,
+            is_published: isPublished,
           })
           .eq("id", editingTalk.id);
 
@@ -155,6 +160,7 @@ export const ToolboxTalkBuilder = () => {
           content,
           user_types: userTypes,
           is_mandatory: isMandatory,
+          is_published: isPublished,
         });
 
         if (error) throw error;
@@ -258,13 +264,23 @@ export const ToolboxTalkBuilder = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Switch
-              id="mandatory"
-              checked={isMandatory}
-              onCheckedChange={setIsMandatory}
-            />
-            <Label htmlFor="mandatory">Mandatory</Label>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="mandatory"
+                checked={isMandatory}
+                onCheckedChange={setIsMandatory}
+              />
+              <Label htmlFor="mandatory">Mandatory</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="published"
+                checked={isPublished}
+                onCheckedChange={setIsPublished}
+              />
+              <Label htmlFor="published">Published</Label>
+            </div>
           </div>
 
           <Button onClick={handleSave} className="gap-2">
@@ -316,6 +332,9 @@ export const ToolboxTalkBuilder = () => {
                           Mandatory
                         </span>
                       )}
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${talk.is_published ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>
+                        {talk.is_published ? 'Published' : 'Draft'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
