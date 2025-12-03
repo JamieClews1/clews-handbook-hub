@@ -176,6 +176,7 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string
+          user_types: Database["public"]["Enums"]["user_type"][] | null
         }
         Insert: {
           created_at?: string
@@ -183,6 +184,7 @@ export type Database = {
           full_name?: string | null
           id: string
           updated_at?: string
+          user_types?: Database["public"]["Enums"]["user_type"][] | null
         }
         Update: {
           created_at?: string
@@ -190,6 +192,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+          user_types?: Database["public"]["Enums"]["user_type"][] | null
         }
         Relationships: []
       }
@@ -303,6 +306,48 @@ export type Database = {
           },
         ]
       }
+      rams_user_signatures: {
+        Row: {
+          created_at: string
+          id: string
+          rams_id: string
+          signature_image: string | null
+          signed_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rams_id: string
+          signature_image?: string | null
+          signed_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rams_id?: string
+          signature_image?: string | null
+          signed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rams_user_signatures_rams_id_fkey"
+            columns: ["rams_id"]
+            isOneToOne: false
+            referencedRelation: "rams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rams_user_signatures_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -339,6 +384,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      user_type: "driver" | "yard" | "office" | "management"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -467,6 +513,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      user_type: ["driver", "yard", "office", "management"],
     },
   },
 } as const

@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Download, Languages, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Download, Languages, Loader2, CheckCircle, PenTool } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import jsPDF from "jspdf";
+import { SignaturePad } from "@/components/SignaturePad";
 
 interface RAMS {
   id: string;
@@ -42,6 +44,11 @@ interface Hazard {
   display_order: number;
 }
 
+interface RAMSSignature {
+  rams_id: string;
+  signed_at: string;
+}
+
 const LANGUAGES = [
   { code: 'EN', label: 'English' },
   { code: 'PL', label: 'Polski' },
@@ -60,6 +67,10 @@ const RAMSPage = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [loadingRAMS, setLoadingRAMS] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [userSignatures, setUserSignatures] = useState<RAMSSignature[]>([]);
+  const [showSignDialog, setShowSignDialog] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<{
     title: string;
     applicableTo: string[];
@@ -76,6 +87,7 @@ const RAMSPage = () => {
   useEffect(() => {
     if (user) {
       fetchRAMSList();
+      fetchUserSignatures();
     }
   }, [user]);
 
@@ -159,6 +171,62 @@ const RAMSPage = () => {
 
     if (!error) {
       setHazards((data as Hazard[]) || []);
+    }
+  };
+
+  const fetchUserSignatures = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from("rams_user_signatures")
+      .select("rams_id, signed_at")
+      .eq("user_id", user.id);
+
+    if (!error) {
+      setUserSignatures(data || []);
+    }
+  };
+
+  const isRamsSigned = (ramsId: string) => {
+    return userSignatures.some(sig => sig.rams_id === ramsId);
+  };
+
+  const getSignatureDate = (ramsId: string) => {
+    const sig = userSignatures.find(s => s.rams_id === ramsId);
+    return sig ? new Date(sig.signed_at) : null;
+  };
+
+  const handleSignRAMS = async () => {
+    if (!selectedRAMS || !signatureData || !user) return;
+    
+    setIsSigning(true);
+    try {
+      const { error } = await supabase
+        .from("rams_user_signatures")
+        .insert({
+          rams_id: selectedRAMS.id,
+          user_id: user.id,
+          signature_image: signatureData,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "RAMS Signed",
+        description: `You have successfully signed ${selectedRAMS.reference_code}`,
+      });
+
+      setShowSignDialog(false);
+      setSignatureData(null);
+      fetchUserSignatures();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSigning(false);
     }
   };
 
@@ -612,12 +680,17 @@ const RAMSPage = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {ramsList.map((rams) => (
+                  {ramsList.map((rams) => {
+                    const signed = isRamsSigned(rams.id);
+                    const signedDate = getSignatureDate(rams.id);
+                    return (
                     <div
                       key={rams.id}
                       className={`p-4 rounded-lg border cursor-pointer transition-all ${
                         selectedRAMS?.id === rams.id 
                           ? 'border-primary bg-accent shadow-md' 
+                          : signed
+                          ? 'border-primary/30 bg-primary/5'
                           : 'hover:bg-accent/50 hover:border-primary/50'
                       }`}
                       onClick={() => setSelectedRAMS(rams)}
@@ -629,6 +702,12 @@ const RAMSPage = () => {
                             {rams.is_mandatory && (
                               <Badge variant="destructive" className="text-xs">Mandatory</Badge>
                             )}
+                            {signed && (
+                              <Badge variant="default" className="text-xs gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Signed
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-muted-foreground">{rams.title}</p>
                           <div className="flex gap-1 flex-wrap">
@@ -636,27 +715,49 @@ const RAMSPage = () => {
                               <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
                             ))}
                           </div>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedRAMS(rams);
-                            setTimeout(() => handleDownloadPDF(rams), 100);
-                          }}
-                          disabled={isDownloading}
-                          className="gap-2"
-                        >
-                          {isDownloading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
+                          {signed && signedDate && (
+                            <p className="text-xs text-muted-foreground">
+                              Signed on {format(signedDate, "PPP")}
+                            </p>
                           )}
-                          PDF
-                        </Button>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRAMS(rams);
+                              setTimeout(() => handleDownloadPDF(rams), 100);
+                            }}
+                            disabled={isDownloading}
+                            className="gap-2"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            PDF
+                          </Button>
+                          {!signed && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedRAMS(rams);
+                                setShowSignDialog(true);
+                              }}
+                              className="gap-2"
+                            >
+                              <PenTool className="h-4 w-4" />
+                              Sign
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </CardContent>
@@ -676,10 +777,22 @@ const RAMSPage = () => {
                       Created: {format(new Date(selectedRAMS.created_date), "PPP")} | 
                       Review: {format(new Date(selectedRAMS.review_date), "PPP")}
                     </CardDescription>
-                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {!isRamsSigned(selectedRAMS.id) && (
+                    <Button 
+                      onClick={() => setShowSignDialog(true)}
+                      variant="default"
+                      className="gap-2"
+                    >
+                      <PenTool className="h-4 w-4" />
+                      Sign RAMS
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => handleDownloadPDF(selectedRAMS)}
                     disabled={isDownloading}
+                    variant="outline"
                     className="gap-2"
                   >
                     {isDownloading ? (
@@ -690,14 +803,23 @@ const RAMSPage = () => {
                     Download PDF ({LANGUAGES.find(l => l.code === language)?.label})
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex gap-2 flex-wrap">
-                  {selectedRAMS.is_mandatory && <Badge variant="destructive">Mandatory</Badge>}
-                  {selectedRAMS.user_types.map(type => (
-                    <Badge key={type} variant="secondary">{type}</Badge>
-                  ))}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isRamsSigned(selectedRAMS.id) && (
+                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                  <span className="font-medium text-primary">
+                    You signed this RAMS on {format(getSignatureDate(selectedRAMS.id)!, "PPP")}
+                  </span>
                 </div>
+              )}
+              <div className="flex gap-2 flex-wrap">
+                {selectedRAMS.is_mandatory && <Badge variant="destructive">Mandatory</Badge>}
+                {selectedRAMS.user_types.map(type => (
+                  <Badge key={type} variant="secondary">{type}</Badge>
+                ))}
+              </div>
 
                 {selectedRAMS.applicable_to.length > 0 && (
                   <div>
@@ -801,6 +923,50 @@ const RAMSPage = () => {
           )}
         </div>
       </main>
+
+      {/* Sign RAMS Dialog */}
+      <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sign RAMS Document</DialogTitle>
+            <DialogDescription>
+              {selectedRAMS && (
+                <>Sign to confirm you have read and understood <strong>{selectedRAMS.reference_code} - {selectedRAMS.title}</strong></>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              By signing below, you acknowledge that you have read, understood, and will comply with the safety procedures outlined in this RAMS document.
+            </p>
+            <SignaturePad
+              onSave={setSignatureData}
+              onCancel={() => setSignatureData(null)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowSignDialog(false);
+              setSignatureData(null);
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSignRAMS} 
+              disabled={!signatureData || isSigning}
+            >
+              {isSigning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Signing...
+                </>
+              ) : (
+                "Confirm Signature"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
