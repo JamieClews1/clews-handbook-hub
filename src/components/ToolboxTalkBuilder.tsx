@@ -12,6 +12,7 @@ import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
 
 interface ToolboxTalk {
   id: string;
+  reference_code: string;
   title: string;
   content: string;
   user_types: string[];
@@ -45,7 +46,7 @@ export const ToolboxTalkBuilder = () => {
       const { data, error } = await supabase
         .from("toolbox_talks")
         .select("*")
-        .order("created_date", { ascending: false });
+        .order("reference_code", { ascending: false });
 
       if (error) throw error;
       setToolboxTalks(data || []);
@@ -132,7 +133,24 @@ export const ToolboxTalkBuilder = () => {
           description: "Toolbox Talk updated successfully",
         });
       } else {
+        // Generate next reference code
+        const { data: lastTalk } = await supabase
+          .from("toolbox_talks")
+          .select("reference_code")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let nextNumber = 1;
+        if (lastTalk?.reference_code) {
+          const match = lastTalk.reference_code.match(/TBT-(\d+)/);
+          if (match) {
+            nextNumber = parseInt(match[1], 10) + 1;
+          }
+        }
+
         const { error } = await supabase.from("toolbox_talks").insert({
+          reference_code: `TBT-${nextNumber}`,
           title,
           content,
           user_types: userTypes,
@@ -281,7 +299,9 @@ export const ToolboxTalkBuilder = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg">{talk.title}</CardTitle>
+                    <CardTitle className="text-lg">
+                      <span className="text-muted-foreground font-normal">{talk.reference_code}</span> - {talk.title}
+                    </CardTitle>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {talk.user_types.map((type) => (
                         <span
