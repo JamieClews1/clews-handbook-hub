@@ -637,7 +637,7 @@ const RAMSPage = () => {
               <Link to="/mass-sign-off">
                 <Button variant="default" size="sm" className="gap-2">
                   <ClipboardSignature className="h-4 w-4" />
-                  <span className="hidden md:inline">Mass Sign-Off</span>
+                  <span>Mass Sign-Off</span>
                 </Button>
               </Link>
             )}

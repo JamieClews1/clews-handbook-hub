@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Settings, Home, LogOut } from "lucide-react";
+import { BookOpen, Home, LogOut, ClipboardSignature } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,6 +39,16 @@ export const AdminNavigation = () => {
             >
               <BookOpen className="h-4 w-4" />
               Manage Content
+            </Button>
+          </Link>
+          <Link to="/mass-sign-off">
+            <Button
+              variant={location.pathname === "/mass-sign-off" ? "default" : "ghost"}
+              size="sm"
+              className="gap-2"
+            >
+              <ClipboardSignature className="h-4 w-4" />
+              Mass Sign-Off
             </Button>
           </Link>
         </div>
