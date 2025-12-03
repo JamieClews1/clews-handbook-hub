@@ -457,7 +457,39 @@ const RAMSPage = () => {
           doc.setTextColor(100, 100, 100);
           addText(`${t.signed}: ${format(new Date(rams.signed_at), "PPP")}`, margin, y, { fontSize: 9 });
         }
+        y += 10;
       }
+
+      // Risk Key Footer
+      checkNewPage(35);
+      y += 5;
+      doc.setDrawColor(229, 231, 235);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+      
+      doc.setTextColor(0, 0, 0);
+      addText('Risk Key', margin, y, { fontSize: 10, fontStyle: 'bold' });
+      y += 5;
+      doc.setTextColor(100, 100, 100);
+      addText('Risk = Likelihood × Severity', margin, y, { fontSize: 8 });
+      y += 8;
+      
+      // Risk color boxes
+      const riskLevels = [
+        { label: 'Low (1-4)', color: [34, 197, 94] },
+        { label: 'Medium (5-8)', color: [234, 179, 8] },
+        { label: 'High (9-12)', color: [249, 115, 22] },
+        { label: 'Very High (13+)', color: [239, 68, 68] },
+      ];
+      
+      let keyX = margin;
+      riskLevels.forEach(level => {
+        doc.setFillColor(level.color[0], level.color[1], level.color[2]);
+        doc.roundedRect(keyX, y, 8, 6, 1, 1, 'F');
+        doc.setTextColor(60, 60, 60);
+        addText(level.label, keyX + 10, y + 4, { fontSize: 8 });
+        keyX += 40;
+      });
 
       // Save
       const langSuffix = language !== 'EN' ? `-${language}` : '';
@@ -737,6 +769,30 @@ const RAMSPage = () => {
                           )}
                         </Card>
                       ))}
+                    </div>
+
+                    {/* Risk Key */}
+                    <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+                      <h5 className="font-semibold mb-3 text-sm">Risk Key</h5>
+                      <p className="text-xs text-muted-foreground mb-3">Risk = Likelihood × Severity</p>
+                      <div className="flex flex-wrap gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(34, 197, 94)' }}></div>
+                          <span className="text-xs">Low (1-4)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(234, 179, 8)' }}></div>
+                          <span className="text-xs">Medium (5-8)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(249, 115, 22)' }}></div>
+                          <span className="text-xs">High (9-12)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(239, 68, 68)' }}></div>
+                          <span className="text-xs">Very High (13+)</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
