@@ -390,6 +390,7 @@ export type Database = {
           created_date: string
           id: string
           is_mandatory: boolean
+          is_published: boolean
           reference_code: string
           title: string
           updated_at: string
@@ -401,6 +402,7 @@ export type Database = {
           created_date?: string
           id?: string
           is_mandatory?: boolean
+          is_published?: boolean
           reference_code: string
           title: string
           updated_at?: string
@@ -412,6 +414,7 @@ export type Database = {
           created_date?: string
           id?: string
           is_mandatory?: boolean
+          is_published?: boolean
           reference_code?: string
           title?: string
           updated_at?: string
