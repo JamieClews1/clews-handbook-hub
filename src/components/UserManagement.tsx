@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff, UserCog } from "lucide-react";
+import { Shield, ShieldOff, UserCog, UserPlus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +34,11 @@ export const UserManagement = () => {
   const [actionType, setActionType] = useState<"grant" | "revoke" | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserTypes, setNewUserTypes] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -131,6 +137,58 @@ export const UserManagement = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: newUserEmail.trim(),
+          full_name: newUserName.trim() || null,
+          user_types: newUserTypes,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "User Created",
+        description: `${newUserEmail} has been created. They can use password reset to set their password.`,
+      });
+
+      setShowCreateDialog(false);
+      setNewUserEmail("");
+      setNewUserName("");
+      setNewUserTypes([]);
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleNewUserTypeToggle = (type: string) => {
+    setNewUserTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
   const confirmAction = async () => {
     if (!selectedUser || !actionType) return;
 
@@ -190,9 +248,15 @@ export const UserManagement = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">User Management</h2>
-          <Button onClick={fetchUsers} variant="outline" size="sm">
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowCreateDialog(true)} size="sm" className="gap-1">
+              <UserPlus className="h-4 w-4" />
+              Create User
+            </Button>
+            <Button onClick={fetchUsers} variant="outline" size="sm">
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="border rounded-lg overflow-x-auto">
@@ -330,6 +394,64 @@ export const UserManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+            <DialogDescription>
+              Add a new user to the system. They will receive an email to set their password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="user@example.com"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                placeholder="John Smith"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>User Types</Label>
+              <div className="space-y-2">
+                {USER_TYPES.map(type => (
+                  <div key={type.value} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`new-${type.value}`}
+                      checked={newUserTypes.includes(type.value)}
+                      onCheckedChange={() => handleNewUserTypeToggle(type.value)}
+                    />
+                    <Label htmlFor={`new-${type.value}`} className="cursor-pointer">
+                      {type.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateUser} disabled={creating}>
+              {creating ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
