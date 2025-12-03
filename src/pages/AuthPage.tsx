@@ -37,7 +37,7 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate("/portal");
     }
   }, [user, navigate]);
 
@@ -69,7 +69,7 @@ const AuthPage = () => {
           title: "Success",
           description: "Signed in successfully!",
         });
-        navigate("/");
+        navigate("/portal");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
