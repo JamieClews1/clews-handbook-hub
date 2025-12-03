@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Download, Languages, Loader2, CheckCircle, PenTool } from "lucide-react";
+import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Download, Languages, Loader2, CheckCircle, PenTool, User } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -599,7 +599,7 @@ const RAMSPage = () => {
               <p className="text-sm text-muted-foreground">RAMS</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger className="w-[140px]">
                 <Languages className="h-4 w-4 mr-2" />
@@ -611,10 +611,16 @@ const RAMSPage = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Link to="/">
+            <Link to="/my-profile">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">My Profile</span>
+              </Button>
+            </Link>
+            <Link to="/portal">
               <Button variant="outline" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Portal
+                <span className="hidden sm:inline">Back to Portal</span>
               </Button>
             </Link>
           </div>
