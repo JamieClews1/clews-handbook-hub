@@ -16,10 +16,11 @@ import {
   Undo,
   Redo,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -38,12 +39,21 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disable default extensions that we're configuring separately
+      }),
       Link.configure({
         openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline',
+        },
       }),
       Image.configure({
-        inline: true,
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto',
+        },
       }),
     ],
     content,
@@ -51,6 +61,13 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       onChange(editor.getHTML());
     },
   });
+
+  // Sync content when it changes externally (e.g., loading existing data)
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;
@@ -152,6 +169,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Link</DialogTitle>
+              <DialogDescription>Enter a URL to create a hyperlink.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Input
@@ -173,6 +191,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Image</DialogTitle>
+              <DialogDescription>Upload an image file or enter a URL.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
