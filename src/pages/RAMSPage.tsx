@@ -72,6 +72,7 @@ const RAMSPage = () => {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isManagement, setIsManagement] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<{
     title: string;
     applicableTo: string[];
@@ -95,13 +96,21 @@ const RAMSPage = () => {
 
   const checkAdminRole = async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data: adminData } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
       .maybeSingle();
-    setIsAdmin(!!data);
+    setIsAdmin(!!adminData);
+
+    // Also check if management user
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('user_types')
+      .eq('id', user.id)
+      .single();
+    setIsManagement(profileData?.user_types?.includes('management') || false);
   };
 
   useEffect(() => {
@@ -624,11 +633,11 @@ const RAMSPage = () => {
                 ))}
               </SelectContent>
             </Select>
-            {isAdmin && (
+            {(isAdmin || isManagement) && (
               <Link to="/mass-sign-off">
                 <Button variant="default" size="sm" className="gap-2">
                   <ClipboardSignature className="h-4 w-4" />
-                  <span className="hidden sm:inline">Mass Sign-Off</span>
+                  <span className="hidden md:inline">Mass Sign-Off</span>
                 </Button>
               </Link>
             )}
