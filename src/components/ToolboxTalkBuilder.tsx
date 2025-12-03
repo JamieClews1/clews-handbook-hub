@@ -1,0 +1,344 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Save, Trash2, Edit, Printer } from "lucide-react";
+import { RichTextEditor } from "./RichTextEditor";
+import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
+
+interface ToolboxTalk {
+  id: string;
+  title: string;
+  content: string;
+  user_types: string[];
+  is_mandatory: boolean;
+  created_date: string;
+}
+
+const USER_TYPES = ["driver", "yard", "office", "management"];
+
+export const ToolboxTalkBuilder = () => {
+  const { toast } = useToast();
+  const [toolboxTalks, setToolboxTalks] = useState<ToolboxTalk[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingTalk, setEditingTalk] = useState<ToolboxTalk | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [selectedTalkForPrint, setSelectedTalkForPrint] = useState<ToolboxTalk | null>(null);
+
+  // Form state
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [userTypes, setUserTypes] = useState<string[]>([]);
+  const [isMandatory, setIsMandatory] = useState(false);
+
+  useEffect(() => {
+    fetchToolboxTalks();
+  }, []);
+
+  const fetchToolboxTalks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("toolbox_talks")
+        .select("*")
+        .order("created_date", { ascending: false });
+
+      if (error) throw error;
+      setToolboxTalks(data || []);
+    } catch (error) {
+      console.error("Error fetching toolbox talks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch toolbox talks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setContent("");
+    setUserTypes([]);
+    setIsMandatory(false);
+    setEditingTalk(null);
+    setIsCreating(false);
+  };
+
+  const handleEdit = (talk: ToolboxTalk) => {
+    setEditingTalk(talk);
+    setTitle(talk.title);
+    setContent(talk.content);
+    setUserTypes(talk.user_types);
+    setIsMandatory(talk.is_mandatory);
+    setIsCreating(true);
+  };
+
+  const handleUserTypeToggle = (type: string) => {
+    setUserTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!content.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Content is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (userTypes.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "At least one user type must be selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (editingTalk) {
+        const { error } = await supabase
+          .from("toolbox_talks")
+          .update({
+            title,
+            content,
+            user_types: userTypes,
+            is_mandatory: isMandatory,
+          })
+          .eq("id", editingTalk.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Toolbox Talk updated successfully",
+        });
+      } else {
+        const { error } = await supabase.from("toolbox_talks").insert({
+          title,
+          content,
+          user_types: userTypes,
+          is_mandatory: isMandatory,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Toolbox Talk created successfully",
+        });
+      }
+
+      resetForm();
+      fetchToolboxTalks();
+    } catch (error) {
+      console.error("Error saving toolbox talk:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save toolbox talk",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this Toolbox Talk?")) return;
+
+    try {
+      const { error } = await supabase.from("toolbox_talks").delete().eq("id", id);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Toolbox Talk deleted successfully",
+      });
+      fetchToolboxTalks();
+    } catch (error) {
+      console.error("Error deleting toolbox talk:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete toolbox talk",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrint = (talk: ToolboxTalk) => {
+    setSelectedTalkForPrint(talk);
+    setPrintDialogOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isCreating) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">
+            {editingTalk ? "Edit Toolbox Talk" : "Create Toolbox Talk"}
+          </h3>
+          <Button variant="outline" onClick={resetForm}>
+            Cancel
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter toolbox talk title"
+            />
+          </div>
+
+          <div>
+            <Label>Content</Label>
+            <RichTextEditor content={content} onChange={setContent} />
+          </div>
+
+          <div>
+            <Label>User Types</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {USER_TYPES.map((type) => (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={userTypes.includes(type) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleUserTypeToggle(type)}
+                  className="capitalize"
+                >
+                  {type}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Switch
+              id="mandatory"
+              checked={isMandatory}
+              onCheckedChange={setIsMandatory}
+            />
+            <Label htmlFor="mandatory">Mandatory</Label>
+          </div>
+
+          <Button onClick={handleSave} className="gap-2">
+            <Save className="h-4 w-4" />
+            {editingTalk ? "Update" : "Create"} Toolbox Talk
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Toolbox Talks ({toolboxTalks.length})</h3>
+        <Button onClick={() => setIsCreating(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create Toolbox Talk
+        </Button>
+      </div>
+
+      {toolboxTalks.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No toolbox talks created yet. Click "Create Toolbox Talk" to get started.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {toolboxTalks.map((talk) => (
+            <Card key={talk.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{talk.title}</CardTitle>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {talk.user_types.map((type) => (
+                        <span
+                          key={type}
+                          className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize"
+                        >
+                          {type}
+                        </span>
+                      ))}
+                      {talk.is_mandatory && (
+                        <span className="px-2 py-0.5 bg-destructive/10 text-destructive text-xs rounded-full">
+                          Mandatory
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePrint(talk)}
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(talk)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(talk.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Created: {new Date(talk.created_date).toLocaleDateString()}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <ToolboxTalkPrintDialog
+        open={printDialogOpen}
+        onOpenChange={setPrintDialogOpen}
+        toolboxTalk={selectedTalkForPrint}
+      />
+    </div>
+  );
+};

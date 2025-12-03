@@ -348,6 +348,74 @@ export type Database = {
           },
         ]
       }
+      toolbox_talk_signatures: {
+        Row: {
+          created_at: string
+          id: string
+          signature_image: string | null
+          signed_at: string
+          toolbox_talk_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          signature_image?: string | null
+          signed_at?: string
+          toolbox_talk_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          signature_image?: string | null
+          signed_at?: string
+          toolbox_talk_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolbox_talk_signatures_toolbox_talk_id_fkey"
+            columns: ["toolbox_talk_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_talks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      toolbox_talks: {
+        Row: {
+          content: string
+          created_at: string
+          created_date: string
+          id: string
+          is_mandatory: boolean
+          title: string
+          updated_at: string
+          user_types: string[]
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_date?: string
+          id?: string
+          is_mandatory?: boolean
+          title: string
+          updated_at?: string
+          user_types?: string[]
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_date?: string
+          id?: string
+          is_mandatory?: boolean
+          title?: string
+          updated_at?: string
+          user_types?: string[]
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

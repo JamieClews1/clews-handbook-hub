@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.translate-rams]
 verify_jwt = false
+
+[functions.translate-toolbox-talk]
+verify_jwt = false
+
+[functions.translate-handbook]
+verify_jwt = false
+
+[functions.create-user]
+verify_jwt = false
