@@ -186,50 +186,53 @@ const ToolboxTalksPage = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {toolboxTalks.map(talk => {
               const isSigned = signedTalkIds.has(talk.id);
               return (
-                <Card key={talk.id} className={isSigned ? "border-green-500/30" : ""}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-lg">
-                          <span className="text-muted-foreground font-normal">{talk.reference_code}</span> - {talk.title}
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {new Date(talk.created_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
+                <Card key={talk.id} className={`flex flex-col h-full ${isSigned ? "border-green-500/30" : ""}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
+                        {talk.reference_code}
+                      </span>
+                      <div className="flex gap-1">
                         {talk.is_mandatory && (
-                          <Badge variant="destructive">Mandatory</Badge>
+                          <Badge variant="destructive" className="text-xs">Mandatory</Badge>
                         )}
-                        {isSigned ? (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                        {isSigned && (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Signed
                           </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedTalk(talk);
-                              setShowSignDialog(true);
-                            }}
-                          >
-                            Sign Off
-                          </Button>
                         )}
                       </div>
                     </div>
+                    <CardTitle className="text-base mt-2 line-clamp-2">{talk.title}</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(talk.created_date).toLocaleDateString()}
+                    </p>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-1 pb-3">
                     <div
-                      className="prose prose-sm max-w-none text-muted-foreground"
+                      className="prose prose-sm max-w-none text-muted-foreground line-clamp-4 text-sm"
                       dangerouslySetInnerHTML={{ __html: talk.content }}
                     />
                   </CardContent>
+                  <div className="px-6 pb-4 mt-auto">
+                    {!isSigned && (
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setSelectedTalk(talk);
+                          setShowSignDialog(true);
+                        }}
+                      >
+                        Sign Off
+                      </Button>
+                    )}
+                  </div>
                 </Card>
               );
             })}
