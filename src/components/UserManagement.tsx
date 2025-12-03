@@ -3,22 +3,36 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff } from "lucide-react";
+import { Shield, ShieldOff, UserCog } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
   created_at: string;
+  user_types: string[];
   isAdmin: boolean;
 }
+
+const USER_TYPES = [
+  { value: "driver", label: "Driver" },
+  { value: "yard", label: "Yard" },
+  { value: "office", label: "Office" },
+  { value: "management", label: "Management" },
+];
 
 export const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [actionType, setActionType] = useState<"grant" | "revoke" | null>(null);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,6 +63,7 @@ export const UserManagement = () => {
       const adminUserIds = new Set(roles?.map(r => r.user_id) || []);
       const usersWithRoles = profiles?.map(profile => ({
         ...profile,
+        user_types: profile.user_types || [],
         isAdmin: adminUserIds.has(profile.id),
       })) || [];
 
@@ -72,6 +87,48 @@ export const UserManagement = () => {
   const handleRevokeAdmin = (user: UserProfile) => {
     setSelectedUser(user);
     setActionType("revoke");
+  };
+
+  const handleEditTypes = (user: UserProfile) => {
+    setEditingUser(user);
+    setSelectedTypes(user.user_types || []);
+  };
+
+  const handleTypeToggle = (type: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  const saveUserTypes = async () => {
+    if (!editingUser) return;
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[] })
+        .eq("id", editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User types updated for ${editingUser.email}`,
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEditingUser(null);
+      setSelectedTypes([]);
+    }
   };
 
   const confirmAction = async () => {
@@ -138,13 +195,13 @@ export const UserManagement = () => {
           </Button>
         </div>
 
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Full Name</TableHead>
-                <TableHead>Created At</TableHead>
+                <TableHead>User Types</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -155,7 +212,17 @@ export const UserManagement = () => {
                   <TableCell className="font-medium">{user.email}</TableCell>
                   <TableCell>{user.full_name || "-"}</TableCell>
                   <TableCell>
-                    {new Date(user.created_at).toLocaleDateString()}
+                    <div className="flex flex-wrap gap-1">
+                      {user.user_types && user.user_types.length > 0 ? (
+                        user.user_types.map(type => (
+                          <Badge key={type} variant="secondary" className="text-xs">
+                            {USER_TYPES.find(t => t.value === type)?.label || type}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-sm">None</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {user.isAdmin ? (
@@ -168,27 +235,38 @@ export const UserManagement = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {user.isAdmin ? (
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRevokeAdmin(user)}
-                        className="gap-2"
+                        onClick={() => handleEditTypes(user)}
+                        className="gap-1"
                       >
-                        <ShieldOff className="h-4 w-4" />
-                        Revoke Admin
+                        <UserCog className="h-4 w-4" />
+                        Types
                       </Button>
-                    ) : (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleGrantAdmin(user)}
-                        className="gap-2"
-                      >
-                        <Shield className="h-4 w-4" />
-                        Grant Admin
-                      </Button>
-                    )}
+                      {user.isAdmin ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRevokeAdmin(user)}
+                          className="gap-1"
+                        >
+                          <ShieldOff className="h-4 w-4" />
+                          Revoke
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleGrantAdmin(user)}
+                          className="gap-1"
+                        >
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -197,6 +275,41 @@ export const UserManagement = () => {
         </div>
       </div>
 
+      {/* Edit User Types Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User Types</DialogTitle>
+            <DialogDescription>
+              Assign roles to {editingUser?.email}. These determine which RAMS and Toolbox Talks are relevant to them.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {USER_TYPES.map(type => (
+              <div key={type.value} className="flex items-center space-x-3">
+                <Checkbox
+                  id={type.value}
+                  checked={selectedTypes.includes(type.value)}
+                  onCheckedChange={() => handleTypeToggle(type.value)}
+                />
+                <Label htmlFor={type.value} className="cursor-pointer">
+                  {type.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveUserTypes}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Role Confirmation Dialog */}
       <AlertDialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
