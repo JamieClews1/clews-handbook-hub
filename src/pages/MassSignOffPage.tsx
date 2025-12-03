@@ -5,9 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, ClipboardList, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, CheckCircle, ClipboardList, Users, MessageSquare } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -19,16 +20,16 @@ interface UserProfile {
   user_types: string[] | null;
 }
 
-interface RAMS {
+interface Document {
   id: string;
   title: string;
-  reference_code: string;
+  reference_code?: string;
   user_types: string[];
 }
 
 interface SignatureRecord {
   user_id: string;
-  rams_id: string;
+  document_id: string;
 }
 
 const USER_TYPE_LABELS: Record<string, string> = {
@@ -43,8 +44,10 @@ const MassSignOffPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const [rams, setRams] = useState<RAMS[]>([]);
-  const [selectedRamsId, setSelectedRamsId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"rams" | "toolbox">("rams");
+  const [rams, setRams] = useState<Document[]>([]);
+  const [toolboxTalks, setToolboxTalks] = useState<Document[]>([]);
+  const [selectedDocId, setSelectedDocId] = useState<string>("");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [existingSignatures, setExistingSignatures] = useState<SignatureRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +55,6 @@ const MassSignOffPage = () => {
   const [signingUser, setSigningUser] = useState<UserProfile | null>(null);
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
-
-  // Check if user has management role
   const [isManagement, setIsManagement] = useState(false);
 
   useEffect(() => {
@@ -69,7 +70,6 @@ const MassSignOffPage = () => {
       if (profile?.user_types?.includes("management")) {
         setIsManagement(true);
       } else {
-        // Also check if admin
         const { data: adminRole } = await supabase
           .from("user_roles")
           .select("role")
@@ -88,7 +88,6 @@ const MassSignOffPage = () => {
     const fetchData = async () => {
       setLoading(true);
       
-      // Fetch all RAMS
       const { data: ramsData } = await supabase
         .from("rams")
         .select("id, title, reference_code, user_types")
@@ -98,7 +97,15 @@ const MassSignOffPage = () => {
         setRams(ramsData);
       }
 
-      // Fetch all users with profiles
+      const { data: toolboxData } = await supabase
+        .from("toolbox_talks")
+        .select("id, title, user_types")
+        .order("title");
+
+      if (toolboxData) {
+        setToolboxTalks(toolboxData);
+      }
+
       const { data: usersData } = await supabase
         .from("profiles")
         .select("id, email, full_name, user_types")
@@ -117,35 +124,50 @@ const MassSignOffPage = () => {
   }, [user]);
 
   useEffect(() => {
+    setSelectedDocId("");
+    setExistingSignatures([]);
+  }, [activeTab]);
+
+  useEffect(() => {
     const fetchSignatures = async () => {
-      if (!selectedRamsId) {
+      if (!selectedDocId) {
         setExistingSignatures([]);
         return;
       }
 
-      const { data } = await supabase
-        .from("rams_user_signatures")
-        .select("user_id, rams_id")
-        .eq("rams_id", selectedRamsId);
+      if (activeTab === "rams") {
+        const { data } = await supabase
+          .from("rams_user_signatures")
+          .select("user_id, rams_id")
+          .eq("rams_id", selectedDocId);
 
-      if (data) {
-        setExistingSignatures(data);
+        if (data) {
+          setExistingSignatures(data.map(d => ({ user_id: d.user_id, document_id: d.rams_id })));
+        }
+      } else {
+        const { data } = await supabase
+          .from("toolbox_talk_signatures")
+          .select("user_id, toolbox_talk_id")
+          .eq("toolbox_talk_id", selectedDocId);
+
+        if (data) {
+          setExistingSignatures(data.map(d => ({ user_id: d.user_id, document_id: d.toolbox_talk_id })));
+        }
       }
     };
 
     fetchSignatures();
-  }, [selectedRamsId]);
+  }, [selectedDocId, activeTab]);
 
   const handleUserTap = (userProfile: UserProfile) => {
-    // Check if already signed
     const alreadySigned = existingSignatures.some(
-      sig => sig.user_id === userProfile.id && sig.rams_id === selectedRamsId
+      sig => sig.user_id === userProfile.id && sig.document_id === selectedDocId
     );
 
     if (alreadySigned) {
       toast({
         title: "Already Signed",
-        description: `${userProfile.full_name || userProfile.email} has already signed this RAMS.`,
+        description: `${userProfile.full_name || userProfile.email} has already signed this document.`,
       });
       return;
     }
@@ -155,17 +177,30 @@ const MassSignOffPage = () => {
   };
 
   const handleSignatureComplete = async (signatureData: string) => {
-    if (!signingUser || !selectedRamsId) return;
+    if (!signingUser || !selectedDocId) return;
 
     setIsSigning(true);
     
-    const { error } = await supabase
-      .from("rams_user_signatures")
-      .insert({
-        user_id: signingUser.id,
-        rams_id: selectedRamsId,
-        signature_image: signatureData,
-      });
+    let error;
+    if (activeTab === "rams") {
+      const result = await supabase
+        .from("rams_user_signatures")
+        .insert({
+          user_id: signingUser.id,
+          rams_id: selectedDocId,
+          signature_image: signatureData,
+        });
+      error = result.error;
+    } else {
+      const result = await supabase
+        .from("toolbox_talk_signatures")
+        .insert({
+          user_id: signingUser.id,
+          toolbox_talk_id: selectedDocId,
+          signature_image: signatureData,
+        });
+      error = result.error;
+    }
 
     if (error) {
       toast({
@@ -176,13 +211,12 @@ const MassSignOffPage = () => {
     } else {
       toast({
         title: "Signed Successfully",
-        description: `${signingUser.full_name || signingUser.email} has signed the RAMS.`,
+        description: `${signingUser.full_name || signingUser.email} has signed the document.`,
       });
       
-      // Update local state
       setExistingSignatures(prev => [...prev, { 
         user_id: signingUser.id, 
-        rams_id: selectedRamsId 
+        document_id: selectedDocId 
       }]);
     }
 
@@ -191,30 +225,27 @@ const MassSignOffPage = () => {
     setSigningUser(null);
   };
 
-  const selectedRams = rams.find(r => r.id === selectedRamsId);
+  const currentDocs = activeTab === "rams" ? rams : toolboxTalks;
+  const selectedDoc = currentDocs.find(d => d.id === selectedDocId);
   
-  // Normalize user type for comparison (handles "Drivers" vs "driver", "Office" vs "office", etc.)
   const normalizeUserType = (type: string): string => {
-    const normalized = type.toLowerCase().replace(/s$/, ''); // Remove trailing 's' and lowercase
-    return normalized === 'driver' ? 'driver' : normalized; // Ensure 'drivers' -> 'driver'
+    const normalized = type.toLowerCase().replace(/s$/, '');
+    return normalized === 'driver' ? 'driver' : normalized;
   };
 
-  // Group users by user_type, only showing those applicable to selected RAMS
   const groupedUsers = users.reduce((acc, userProfile) => {
     if (!userProfile.user_types || userProfile.user_types.length === 0) return acc;
     
-    // If RAMS is selected, filter users by applicable user_types
-    if (selectedRams) {
-      const ramsTypesNormalized = selectedRams.user_types.map(normalizeUserType);
+    if (selectedDoc) {
+      const docTypesNormalized = selectedDoc.user_types.map(normalizeUserType);
       const hasApplicableType = userProfile.user_types.some(
-        type => ramsTypesNormalized.includes(normalizeUserType(type))
+        type => docTypesNormalized.includes(normalizeUserType(type))
       );
       if (!hasApplicableType) return acc;
     }
 
     userProfile.user_types.forEach(type => {
       if (!acc[type]) acc[type] = [];
-      // Avoid duplicates
       if (!acc[type].find(u => u.id === userProfile.id)) {
         acc[type].push(userProfile);
       }
@@ -225,7 +256,7 @@ const MassSignOffPage = () => {
 
   const isUserSigned = (userId: string) => {
     return existingSignatures.some(
-      sig => sig.user_id === userId && sig.rams_id === selectedRamsId
+      sig => sig.user_id === userId && sig.document_id === selectedDocId
     );
   };
 
@@ -260,14 +291,13 @@ const MassSignOffPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - Compact for tablet */}
       <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={clewsLogo} alt="Clews Logo" className="h-10 w-auto" />
             <div>
               <h1 className="text-lg font-bold">Mass Sign-Off</h1>
-              <p className="text-xs text-muted-foreground">RAMS Documents</p>
+              <p className="text-xs text-muted-foreground">Documents</p>
             </div>
           </div>
           <Link to="/portal">
@@ -280,28 +310,46 @@ const MassSignOffPage = () => {
       </header>
 
       <main className="p-4 max-w-4xl mx-auto">
-        {/* RAMS Selector */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rams" | "toolbox")} className="mb-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="rams" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              RAMS
+            </TabsTrigger>
+            <TabsTrigger value="toolbox" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Toolbox Talks
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <Card className="p-4 mb-4">
           <div className="flex items-center gap-3 mb-3">
-            <ClipboardList className="h-5 w-5 text-primary" />
-            <span className="font-medium">Select RAMS Document</span>
+            {activeTab === "rams" ? (
+              <ClipboardList className="h-5 w-5 text-primary" />
+            ) : (
+              <MessageSquare className="h-5 w-5 text-primary" />
+            )}
+            <span className="font-medium">
+              Select {activeTab === "rams" ? "RAMS Document" : "Toolbox Talk"}
+            </span>
           </div>
-          <Select value={selectedRamsId} onValueChange={setSelectedRamsId}>
+          <Select value={selectedDocId} onValueChange={setSelectedDocId}>
             <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Choose a RAMS to sign..." />
+              <SelectValue placeholder={`Choose a ${activeTab === "rams" ? "RAMS" : "Toolbox Talk"} to sign...`} />
             </SelectTrigger>
             <SelectContent>
-              {rams.map(r => (
-                <SelectItem key={r.id} value={r.id} className="text-base py-3">
-                  {r.reference_code} - {r.title}
+              {currentDocs.map(doc => (
+                <SelectItem key={doc.id} value={doc.id} className="text-base py-3">
+                  {doc.reference_code ? `${doc.reference_code} - ` : ""}{doc.title}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {selectedRams && (
+          {selectedDoc && (
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="text-sm text-muted-foreground">Applies to:</span>
-              {selectedRams.user_types.map(type => (
+              {selectedDoc.user_types.map(type => (
                 <Badge key={type} variant="secondary">
                   {USER_TYPE_LABELS[type] || type}
                 </Badge>
@@ -310,8 +358,7 @@ const MassSignOffPage = () => {
           )}
         </Card>
 
-        {/* User List by Type */}
-        {selectedRamsId ? (
+        {selectedDocId ? (
           <div className="space-y-6">
             {Object.entries(groupedUsers).map(([type, typeUsers]) => (
               <div key={type}>
@@ -361,22 +408,25 @@ const MassSignOffPage = () => {
             {Object.keys(groupedUsers).length === 0 && (
               <Card className="p-8 text-center">
                 <p className="text-muted-foreground">
-                  No users found with the applicable user types for this RAMS.
+                  No users found with the applicable user types for this document.
                 </p>
               </Card>
             )}
           </div>
         ) : (
           <Card className="p-8 text-center">
-            <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            {activeTab === "rams" ? (
+              <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            ) : (
+              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            )}
             <p className="text-muted-foreground">
-              Select a RAMS document above to begin the mass sign-off process.
+              Select a {activeTab === "rams" ? "RAMS document" : "Toolbox Talk"} above to begin the mass sign-off process.
             </p>
           </Card>
         )}
       </main>
 
-      {/* Signature Dialog */}
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -386,7 +436,10 @@ const MassSignOffPage = () => {
             <DialogDescription className="text-base">
               {signingUser?.full_name || signingUser?.email} is signing:
               <br />
-              <strong>{selectedRams?.reference_code} - {selectedRams?.title}</strong>
+              <strong>
+                {selectedDoc?.reference_code ? `${selectedDoc.reference_code} - ` : ""}
+                {selectedDoc?.title}
+              </strong>
             </DialogDescription>
           </DialogHeader>
           

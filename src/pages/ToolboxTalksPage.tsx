@@ -1,14 +1,37 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Users, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ArrowLeft, MessageSquare, CheckCircle, AlertTriangle } from "lucide-react";
+import { SignaturePad } from "@/components/SignaturePad";
+import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
+
+interface ToolboxTalk {
+  id: string;
+  title: string;
+  content: string;
+  user_types: string[];
+  is_mandatory: boolean;
+  created_date: string;
+}
 
 const ToolboxTalksPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { toast } = useToast();
+
+  const [toolboxTalks, setToolboxTalks] = useState<ToolboxTalk[]>([]);
+  const [userTypes, setUserTypes] = useState<string[]>([]);
+  const [signedTalkIds, setSignedTalkIds] = useState<Set<string>>(new Set());
+  const [loadingData, setLoadingData] = useState(true);
+  const [selectedTalk, setSelectedTalk] = useState<ToolboxTalk | null>(null);
+  const [showSignDialog, setShowSignDialog] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -16,7 +39,84 @@ const ToolboxTalksPage = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+
+      try {
+        // Fetch user profile to get user_types
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_types")
+          .eq("id", user.id)
+          .single();
+
+        const types = profile?.user_types || [];
+        setUserTypes(types);
+
+        // Fetch all toolbox talks
+        const { data: talks } = await supabase
+          .from("toolbox_talks")
+          .select("*")
+          .order("created_date", { ascending: false });
+
+        // Filter by user types
+        const applicableTalks = (talks || []).filter(talk =>
+          types.some((ut: string) => talk.user_types.includes(ut))
+        );
+
+        setToolboxTalks(applicableTalks);
+
+        // Fetch user's signatures
+        const { data: signatures } = await supabase
+          .from("toolbox_talk_signatures")
+          .select("toolbox_talk_id")
+          .eq("user_id", user.id);
+
+        setSignedTalkIds(new Set(signatures?.map(s => s.toolbox_talk_id) || []));
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
+  const handleSign = async (signatureData: string) => {
+    if (!selectedTalk || !user) return;
+
+    setIsSigning(true);
+
+    const { error } = await supabase
+      .from("toolbox_talk_signatures")
+      .insert({
+        toolbox_talk_id: selectedTalk.id,
+        user_id: user.id,
+        signature_image: signatureData,
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save signature. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed Successfully",
+        description: `You have signed "${selectedTalk.title}".`,
+      });
+      setSignedTalkIds(prev => new Set([...prev, selectedTalk.id]));
+    }
+
+    setIsSigning(false);
+    setShowSignDialog(false);
+    setSelectedTalk(null);
+  };
+
+  if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -31,9 +131,12 @@ const ToolboxTalksPage = () => {
     return null;
   }
 
+  const pendingMandatory = toolboxTalks.filter(
+    t => t.is_mandatory && !signedTalkIds.has(t.id)
+  ).length;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -52,7 +155,6 @@ const ToolboxTalksPage = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-accent py-12">
         <div className="container mx-auto px-4 text-center">
           <MessageSquare className="h-16 w-16 text-primary-foreground mx-auto mb-4" />
@@ -62,51 +164,101 @@ const ToolboxTalksPage = () => {
           <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
             Short safety briefings to reinforce workplace safety awareness and best practices.
           </p>
+          {pendingMandatory > 0 && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-destructive/20 text-destructive-foreground px-4 py-2 rounded-full">
+              <AlertTriangle className="h-5 w-5" />
+              <span>{pendingMandatory} mandatory talk{pendingMandatory > 1 ? "s" : ""} pending signature</span>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                What are Toolbox Talks?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-muted-foreground">
-              <p>
-                <strong>Toolbox Talks</strong> are short, informal safety meetings that focus on 
-                specific safety topics related to your daily work activities.
-              </p>
-              <p>
-                These talks typically last 5-15 minutes and are designed to keep safety at the 
-                forefront of everyone's mind, reinforce training, and address specific hazards.
+      <main className="container mx-auto px-4 py-8">
+        {toolboxTalks.length === 0 ? (
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="py-12 text-center">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                No Toolbox Talks are currently assigned to your user type.
               </p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                Available Topics
-              </CardTitle>
-              <CardDescription>
-                Toolbox talk materials will be available here for supervisors and team leaders.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Toolbox Talk materials coming soon.</p>
-                <p className="text-sm mt-2">Check back regularly for new safety topics.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        ) : (
+          <div className="grid gap-6 max-w-4xl mx-auto">
+            {toolboxTalks.map(talk => {
+              const isSigned = signedTalkIds.has(talk.id);
+              return (
+                <Card key={talk.id} className={isSigned ? "border-green-500/30" : ""}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-lg">{talk.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Date(talk.created_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {talk.is_mandatory && (
+                          <Badge variant="destructive">Mandatory</Badge>
+                        )}
+                        {isSigned ? (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Signed
+                          </Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTalk(talk);
+                              setShowSignDialog(true);
+                            }}
+                          >
+                            Sign Off
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div
+                      className="prose prose-sm max-w-none text-muted-foreground"
+                      dangerouslySetInnerHTML={{ __html: talk.content }}
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </main>
+
+      <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sign Toolbox Talk</DialogTitle>
+            <DialogDescription>
+              By signing, you confirm that you have read and understood:
+              <br />
+              <strong>{selectedTalk?.title}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <SignaturePad
+            onSave={handleSign}
+            onCancel={() => {
+              setShowSignDialog(false);
+              setSelectedTalk(null);
+            }}
+          />
+
+          {isSigning && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
