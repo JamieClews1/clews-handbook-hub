@@ -13,6 +13,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 
 interface ToolboxTalk {
   id: string;
+  reference_code: string;
   title: string;
   content: string;
   user_types: string[];
@@ -193,7 +194,9 @@ const ToolboxTalksPage = () => {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <CardTitle className="text-lg">{talk.title}</CardTitle>
+                        <CardTitle className="text-lg">
+                          <span className="text-muted-foreground font-normal">{talk.reference_code}</span> - {talk.title}
+                        </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
                           {new Date(talk.created_date).toLocaleDateString()}
                         </p>
