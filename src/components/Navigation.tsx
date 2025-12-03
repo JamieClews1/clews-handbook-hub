@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Phone } from "lucide-react";
+import { Home, Phone } from "lucide-react";
 
 interface NavigationProps {
   language: string;
@@ -32,13 +32,22 @@ export const Navigation = ({ language }: NavigationProps) => {
   return (
     <nav className="bg-card border-b border-border">
       <div className="container mx-auto px-4 py-2 flex gap-2">
-        <Link to="/">
+        <Link to="/portal">
           <Button
-            variant={location.pathname === "/" ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
             className="gap-2"
           >
-            <BookOpen className="h-4 w-4" />
+            <Home className="h-4 w-4" />
+            Home
+          </Button>
+        </Link>
+        <Link to="/handbook">
+          <Button
+            variant={location.pathname === "/handbook" ? "default" : "ghost"}
+            size="sm"
+            className="gap-2"
+          >
             {t.handbook}
           </Button>
         </Link>

@@ -43,7 +43,7 @@ const ToolboxTalksPage = () => {
               <p className="text-sm text-muted-foreground">Toolbox Talks</p>
             </div>
           </div>
-          <Link to="/">
+          <Link to="/portal">
             <Button variant="outline" size="sm" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back to Portal
