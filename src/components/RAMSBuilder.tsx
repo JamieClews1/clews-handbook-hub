@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, FileUp, Save, X, Upload, Download } from "lucide-react";
-import { format, addMonths } from "date-fns";
+import { Plus, Trash2, Edit, FileUp, Save, X, Upload, Download, FileDown, Circle } from "lucide-react";
+import { format, addMonths, differenceInDays, isBefore, isAfter } from "date-fns";
 import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import {
@@ -465,6 +465,139 @@ export const RAMSBuilder = () => {
     return "bg-red-500";
   };
 
+  const getExpiryStatus = (reviewDate: string): { color: string; label: string; daysRemaining: number } => {
+    const today = new Date();
+    const review = new Date(reviewDate);
+    const daysRemaining = differenceInDays(review, today);
+    
+    if (daysRemaining < 0) {
+      return { color: 'bg-red-500', label: 'Expired', daysRemaining };
+    } else if (daysRemaining <= 30) {
+      return { color: 'bg-red-500', label: 'Expiring', daysRemaining };
+    } else if (daysRemaining <= 90) {
+      return { color: 'bg-amber-500', label: 'Due Soon', daysRemaining };
+    }
+    return { color: 'bg-green-500', label: 'Valid', daysRemaining };
+  };
+
+  const handleDownloadExpiryReport = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let y = 20;
+
+    // Header
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 0, pageWidth, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RAMS Expiry Report', margin, 20);
+    
+    y = 40;
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${format(new Date(), "PPP")}`, margin, y);
+    y += 15;
+
+    // Sort RAMS by days remaining
+    const sortedRams = [...ramsList].sort((a, b) => {
+      const daysA = differenceInDays(new Date(a.review_date), new Date());
+      const daysB = differenceInDays(new Date(b.review_date), new Date());
+      return daysA - daysB;
+    });
+
+    // Section: Expired & Expiring Soon (red)
+    const expired = sortedRams.filter(r => {
+      const days = differenceInDays(new Date(r.review_date), new Date());
+      return days <= 30;
+    });
+
+    // Section: Due Soon (amber)
+    const dueSoon = sortedRams.filter(r => {
+      const days = differenceInDays(new Date(r.review_date), new Date());
+      return days > 30 && days <= 90;
+    });
+
+    // Section: Valid (green)
+    const valid = sortedRams.filter(r => {
+      const days = differenceInDays(new Date(r.review_date), new Date());
+      return days > 90;
+    });
+
+    const addSection = (title: string, items: RAMS[], bgColor: [number, number, number]) => {
+      if (items.length === 0) return;
+      
+      doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+      doc.roundedRect(margin, y, pageWidth - 2 * margin, 8, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${title} (${items.length})`, margin + 4, y + 6);
+      y += 14;
+
+      doc.setTextColor(0, 0, 0);
+      items.forEach((rams) => {
+        const status = getExpiryStatus(rams.review_date);
+        
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(rams.reference_code, margin, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(` - ${rams.title.substring(0, 50)}${rams.title.length > 50 ? '...' : ''}`, margin + 25, y);
+        
+        y += 5;
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        const daysText = status.daysRemaining < 0 
+          ? `Expired ${Math.abs(status.daysRemaining)} days ago`
+          : `${status.daysRemaining} days remaining`;
+        doc.text(`Review: ${format(new Date(rams.review_date), "PPP")} (${daysText})`, margin + 5, y);
+        doc.setTextColor(0, 0, 0);
+        y += 8;
+      });
+      y += 5;
+    };
+
+    addSection('Expired / Expiring Within 30 Days', expired, [239, 68, 68]);
+    addSection('Due Within 90 Days', dueSoon, [245, 158, 11]);
+    addSection('Valid', valid, [34, 197, 94]);
+
+    // Summary
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+    y += 10;
+    doc.setDrawColor(229, 231, 235);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary:', margin, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total RAMS: ${ramsList.length}`, margin + 5, y);
+    y += 5;
+    doc.setTextColor(239, 68, 68);
+    doc.text(`Requiring Immediate Attention: ${expired.length}`, margin + 5, y);
+    y += 5;
+    doc.setTextColor(245, 158, 11);
+    doc.text(`Review Within 90 Days: ${dueSoon.length}`, margin + 5, y);
+    y += 5;
+    doc.setTextColor(34, 197, 94);
+    doc.text(`Valid: ${valid.length}`, margin + 5, y);
+
+    doc.save(`RAMS-Expiry-Report-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    toast({ title: "Success", description: "Expiry report downloaded" });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -473,6 +606,10 @@ export const RAMSBuilder = () => {
           <p className="text-muted-foreground">Create and manage Risk Assessment Method Statements</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleDownloadExpiryReport}>
+            <FileDown className="h-4 w-4" />
+            Expiry Report
+          </Button>
           <label htmlFor="file-upload">
             <Button variant="outline" className="gap-2" asChild disabled={isUploading}>
               <span>
@@ -506,59 +643,71 @@ export const RAMSBuilder = () => {
             {ramsList.length === 0 ? (
               <p className="text-muted-foreground text-sm">No RAMS documents yet</p>
             ) : (
-              ramsList.map((rams) => (
-                <div
-                  key={rams.id}
-                  className={cn(
-                    "p-3 rounded-lg border cursor-pointer transition-colors",
-                    selectedRAMS?.id === rams.id ? "bg-accent border-primary" : "hover:bg-accent/50"
-                  )}
-                  onClick={() => {
-                    setSelectedRAMS(rams);
-                    setIsEditing(false);
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <p className="font-medium">{rams.reference_code}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-1">{rams.title}</p>
-                      <div className="flex gap-1 flex-wrap">
-                        {rams.is_mandatory && (
-                          <Badge variant="destructive" className="text-xs">Mandatory</Badge>
-                        )}
-                        {rams.user_types.map(type => (
-                          <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                        ))}
+              ramsList.map((rams) => {
+                const expiryStatus = getExpiryStatus(rams.review_date);
+                return (
+                  <div
+                    key={rams.id}
+                    className={cn(
+                      "p-3 rounded-lg border cursor-pointer transition-colors",
+                      selectedRAMS?.id === rams.id ? "bg-accent border-primary" : "hover:bg-accent/50"
+                    )}
+                    onClick={() => {
+                      setSelectedRAMS(rams);
+                      setIsEditing(false);
+                    }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        {/* Traffic Light Indicator */}
+                        <div className="flex flex-col items-center gap-0.5 pt-1" title={`${expiryStatus.label}: ${expiryStatus.daysRemaining < 0 ? 'Expired' : `${expiryStatus.daysRemaining} days remaining`}`}>
+                          <div className={cn("w-3 h-3 rounded-full", expiryStatus.color)} />
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {expiryStatus.daysRemaining < 0 ? 'Exp' : `${expiryStatus.daysRemaining}d`}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-medium">{rams.reference_code}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-1">{rams.title}</p>
+                          <div className="flex gap-1 flex-wrap">
+                            {rams.is_mandatory && (
+                              <Badge variant="destructive" className="text-xs">Mandatory</Badge>
+                            )}
+                            {rams.user_types.map(type => (
+                              <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRAMS(rams);
+                            fetchHazards(rams.id);
+                            setTimeout(() => handleEdit(rams), 100);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setItemToDelete(rams.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRAMS(rams);
-                          fetchHazards(rams.id);
-                          setTimeout(() => handleEdit(rams), 100);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setItemToDelete(rams.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>
