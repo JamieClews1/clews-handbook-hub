@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -11,12 +12,26 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading, signOut } = useAuth();
   const { toast } = useToast();
+  const [isManagement, setIsManagement] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const checkManagement = async () => {
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_types")
+        .eq("id", user.id)
+        .single();
+      setIsManagement(profile?.user_types?.includes("management") || isAdmin);
+    };
+    checkManagement();
+  }, [user, isAdmin]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -85,6 +100,14 @@ const Index = () => {
                   <span className="hidden sm:inline">My Profile</span>
                 </Button>
               </Link>
+              {isManagement && (
+                <Link to="/mass-sign-off">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <ClipboardSignature className="h-4 w-4" />
+                    <span className="hidden sm:inline">Mass Sign-Off</span>
+                  </Button>
+                </Link>
+              )}
               {isAdmin && (
                 <Link to="/admin">
                   <Button variant="ghost" size="sm" className="gap-2">
