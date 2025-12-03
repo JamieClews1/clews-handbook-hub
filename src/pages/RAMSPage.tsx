@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Download, Languages, Loader2, CheckCircle, PenTool, User } from "lucide-react";
+import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Download, Languages, Loader2, CheckCircle, PenTool, User, ClipboardSignature } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -71,6 +71,7 @@ const RAMSPage = () => {
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<{
     title: string;
     applicableTo: string[];
@@ -88,8 +89,20 @@ const RAMSPage = () => {
     if (user) {
       fetchRAMSList();
       fetchUserSignatures();
+      checkAdminRole();
     }
   }, [user]);
+
+  const checkAdminRole = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+    setIsAdmin(!!data);
+  };
 
   useEffect(() => {
     if (selectedRAMS) {
@@ -611,6 +624,14 @@ const RAMSPage = () => {
                 ))}
               </SelectContent>
             </Select>
+            {isAdmin && (
+              <Link to="/mass-sign-off">
+                <Button variant="default" size="sm" className="gap-2">
+                  <ClipboardSignature className="h-4 w-4" />
+                  <span className="hidden sm:inline">Mass Sign-Off</span>
+                </Button>
+              </Link>
+            )}
             <Link to="/my-profile">
               <Button variant="ghost" size="sm" className="gap-2">
                 <User className="h-4 w-4" />
