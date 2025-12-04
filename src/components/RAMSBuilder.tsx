@@ -11,6 +11,7 @@ import { Plus, Trash2, Edit, FileUp, Save, X, Upload, Download, FileDown, Circle
 import { format, addMonths, differenceInDays, isBefore, isAfter } from "date-fns";
 import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
+import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
 import {
   Dialog,
   DialogContent,
@@ -1105,11 +1106,11 @@ const RAMSForm = ({
 
             <div className="space-y-2">
               <Label>Control Measures</Label>
-              <Textarea
-                value={hazard.control_measures}
-                onChange={(e) => updateHazard(idx, "control_measures", e.target.value)}
+              <CompactRichTextEditor
+                content={hazard.control_measures}
+                onChange={(content) => updateHazard(idx, "control_measures", content)}
                 placeholder="Enter control measures..."
-                rows={3}
+                minHeight="100px"
               />
             </div>
 
@@ -1147,10 +1148,11 @@ const RAMSForm = ({
 
             <div className="space-y-2">
               <Label>Notes</Label>
-              <Input
-                value={hazard.notes || ""}
-                onChange={(e) => updateHazard(idx, "notes", e.target.value)}
+              <CompactRichTextEditor
+                content={hazard.notes || ""}
+                onChange={(content) => updateHazard(idx, "notes", content)}
                 placeholder="Additional notes..."
+                minHeight="60px"
               />
             </div>
           </Card>
