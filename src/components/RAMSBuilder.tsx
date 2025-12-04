@@ -428,9 +428,14 @@ export const RAMSBuilder = () => {
       
       reader.onload = (event) => {
         const arrayBuffer = event.target?.result as ArrayBuffer;
-        // For .docx/.docm files, we need to extract text from the XML
-        if (file.name.endsWith('.docx') || file.name.endsWith('.docm') || file.name.endsWith('.doc')) {
+        const fileName = file.name.toLowerCase();
+        
+        // For .docx/.docm files, we need to extract text from the XML (ZIP format)
+        if (fileName.endsWith('.docx') || fileName.endsWith('.docm')) {
           extractTextFromDocx(arrayBuffer).then(resolve).catch(reject);
+        } else if (fileName.endsWith('.doc')) {
+          // For .doc files (legacy binary format), extract text differently
+          extractTextFromDoc(arrayBuffer).then(resolve).catch(reject);
         } else {
           // For plain text files
           const decoder = new TextDecoder('utf-8');
@@ -441,6 +446,75 @@ export const RAMSBuilder = () => {
       reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsArrayBuffer(file);
     });
+  };
+
+  // Extract text from legacy .doc files (OLE Compound Document format)
+  const extractTextFromDoc = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+    try {
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const textChunks: string[] = [];
+      
+      // Method 1: Extract UTF-16LE encoded text (common in .doc files)
+      // Look for runs of readable text
+      let i = 0;
+      while (i < uint8Array.length - 1) {
+        // Check for UTF-16LE encoded text (every other byte is often 0 for ASCII)
+        if (uint8Array[i] >= 32 && uint8Array[i] <= 126 && uint8Array[i + 1] === 0) {
+          let text = '';
+          while (i < uint8Array.length - 1 && 
+                 uint8Array[i] >= 32 && uint8Array[i] <= 126 && 
+                 uint8Array[i + 1] === 0) {
+            text += String.fromCharCode(uint8Array[i]);
+            i += 2;
+          }
+          if (text.length >= 3) { // Only keep text chunks of 3+ chars
+            textChunks.push(text);
+          }
+        }
+        i++;
+      }
+      
+      // Method 2: Also extract plain ASCII text runs
+      const asciiChunks: string[] = [];
+      let asciiRun = '';
+      for (let j = 0; j < uint8Array.length; j++) {
+        const byte = uint8Array[j];
+        // Printable ASCII range plus common whitespace
+        if ((byte >= 32 && byte <= 126) || byte === 10 || byte === 13 || byte === 9) {
+          asciiRun += String.fromCharCode(byte);
+        } else {
+          if (asciiRun.length >= 10) { // Keep runs of 10+ chars
+            asciiChunks.push(asciiRun.trim());
+          }
+          asciiRun = '';
+        }
+      }
+      if (asciiRun.length >= 10) {
+        asciiChunks.push(asciiRun.trim());
+      }
+      
+      // Combine and deduplicate
+      const allText = [...textChunks, ...asciiChunks].join('\n');
+      
+      // Clean up: remove duplicate lines and very short lines
+      const lines = allText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length >= 3)
+        .filter((line, index, self) => self.indexOf(line) === index);
+      
+      const result = lines.join('\n');
+      console.log("Extracted .doc content length:", result.length);
+      console.log("First 500 chars:", result.substring(0, 500));
+      
+      if (result.length < 50) {
+        throw new Error("Could not extract sufficient text from .doc file. Please convert to .docx format.");
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error extracting text from .doc:", error);
+      throw new Error("Failed to read .doc file. Please convert to .docx format for better results.");
+    }
   };
 
   // Extract text from DOCX/DOCM files (they are ZIP files with XML inside)
