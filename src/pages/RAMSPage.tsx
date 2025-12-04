@@ -918,11 +918,15 @@ const RAMSPage = () => {
                           </div>
                           <div className="mt-3">
                             <span className="text-muted-foreground text-sm">Control Measures:</span>
-                            <p className="text-sm mt-1">{translatedContent?.hazards[idx]?.controlMeasures || hazard.control_measures}</p>
+                            <div 
+                              className="text-sm mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
+                              dangerouslySetInnerHTML={{ __html: translatedContent?.hazards[idx]?.controlMeasures || hazard.control_measures }}
+                            />
                           </div>
                           {hazard.notes && (
                             <div className="mt-2 text-sm text-muted-foreground italic">
-                              Note: {translatedContent?.hazards[idx]?.notes || hazard.notes}
+                              <span>Note: </span>
+                              <span dangerouslySetInnerHTML={{ __html: translatedContent?.hazards[idx]?.notes || hazard.notes }} />
                             </div>
                           )}
                         </Card>

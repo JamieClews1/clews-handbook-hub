@@ -1521,12 +1521,18 @@ const RAMSView = ({ rams, hazards, getRiskColor }: RAMSViewProps) => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Control Measures</Label>
-                  <p className="text-sm">{hazard.control_measures}</p>
+                  <div 
+                    className="text-sm prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
+                    dangerouslySetInnerHTML={{ __html: hazard.control_measures }}
+                  />
                 </div>
                 {hazard.notes && (
                   <div>
                     <Label className="text-muted-foreground">Notes</Label>
-                    <p className="text-sm">{hazard.notes}</p>
+                    <div 
+                      className="text-sm prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
+                      dangerouslySetInnerHTML={{ __html: hazard.notes }}
+                    />
                   </div>
                 )}
               </div>
