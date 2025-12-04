@@ -290,83 +290,128 @@ export const RAMSBuilder = () => {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    toast({ title: "Processing", description: "Reading and parsing document..." });
+    const totalFiles = files.length;
+    let successCount = 0;
+    let errorCount = 0;
+    
+    toast({ title: "Processing", description: `Reading and parsing ${totalFiles} document(s)...` });
     
     try {
-      // Read file as text
-      const text = await readFileAsText(file);
-      
-      if (!text || text.trim().length === 0) {
-        throw new Error("Could not read document content");
-      }
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          // Read file as text
+          const text = await readFileAsText(file);
+          
+          if (!text || text.trim().length === 0) {
+            throw new Error(`Could not read content from ${file.name}`);
+          }
 
-      console.log("Document content length:", text.length);
+          console.log(`Document ${file.name} content length:`, text.length);
 
-      // Call the edge function to parse with AI
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-rams-document`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ documentContent: text }),
+          // Call the edge function to parse with AI
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-rams-document`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ documentContent: text }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            throw new Error(result.error || `Failed to parse ${file.name}`);
+          }
+
+          const data = result.data;
+
+          // Save directly to database for each document
+          const ramsData = {
+            reference_code: data.reference_code || "",
+            title: data.title || "",
+            applicable_to: data.applicable_to || [],
+            notice_to_drivers: data.notice_to_drivers || "",
+            created_date: format(new Date(), "yyyy-MM-dd"),
+            review_date: format(addMonths(new Date(), 12), "yyyy-MM-dd"),
+            is_mandatory: false,
+            user_types: [],
+            creator_signature: null,
+            creator_name: "",
+            signed_at: null,
+          };
+
+          const { data: newRams, error: ramsError } = await supabase
+            .from("rams")
+            .insert(ramsData)
+            .select()
+            .single();
+
+          if (ramsError) throw ramsError;
+
+          // Insert hazards
+          if (data.hazards && data.hazards.length > 0) {
+            const hazardsToInsert = data.hazards.map((h: any, idx: number) => ({
+              rams_id: newRams.id,
+              activity: h.activity || "",
+              potential_hazard: h.potential_hazard || "",
+              who_at_risk: h.who_at_risk || "",
+              initial_likelihood: h.initial_likelihood || 1,
+              initial_severity: h.initial_severity || 1,
+              control_measures: h.control_measures || "",
+              residual_likelihood: h.residual_likelihood || 1,
+              residual_severity: h.residual_severity || 1,
+              notes: h.notes || "",
+              display_order: idx,
+            }));
+
+            const { error: hazardError } = await supabase
+              .from("rams_hazards")
+              .insert(hazardsToInsert);
+
+            if (hazardError) throw hazardError;
+          }
+
+          successCount++;
+        } catch (fileError) {
+          console.error(`Error processing ${file.name}:`, fileError);
+          errorCount++;
         }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to parse document");
       }
 
-      const data = result.data;
+      // Refresh the RAMS list
+      await fetchRAMSList();
 
-      // Populate the form with parsed data
-      setEditForm({
-        ...emptyRAMS,
-        reference_code: data.reference_code || "",
-        title: data.title || "",
-        applicable_to: data.applicable_to || [],
-        notice_to_drivers: data.notice_to_drivers || "",
-        created_date: format(new Date(), "yyyy-MM-dd"),
-        review_date: format(addMonths(new Date(), 12), "yyyy-MM-dd"),
-      });
-
-      // Populate hazards
-      if (data.hazards && data.hazards.length > 0) {
-        setEditHazards(data.hazards.map((h: any, idx: number) => ({
-          activity: h.activity || "",
-          potential_hazard: h.potential_hazard || "",
-          who_at_risk: h.who_at_risk || "",
-          initial_likelihood: h.initial_likelihood || 1,
-          initial_severity: h.initial_severity || 1,
-          control_measures: h.control_measures || "",
-          residual_likelihood: h.residual_likelihood || 1,
-          residual_severity: h.residual_severity || 1,
-          notes: h.notes || "",
-          display_order: idx,
-        })));
+      if (successCount > 0 && errorCount === 0) {
+        toast({ 
+          title: "Success", 
+          description: `Successfully created ${successCount} RAMS document(s)`,
+        });
+      } else if (successCount > 0 && errorCount > 0) {
+        toast({ 
+          title: "Partial Success", 
+          description: `Created ${successCount} RAMS, ${errorCount} failed`,
+          variant: "destructive",
+        });
       } else {
-        setEditHazards([{ ...emptyHazard }]);
+        toast({ 
+          title: "Error", 
+          description: "Failed to process all documents",
+          variant: "destructive",
+        });
       }
-
-      setSelectedRAMS(null);
-      setIsEditing(true);
-
-      toast({ 
-        title: "Success", 
-        description: `Parsed ${data.hazards?.length || 0} hazards from document`,
-      });
     } catch (error) {
-      console.error("Error parsing document:", error);
+      console.error("Error parsing documents:", error);
       toast({ 
         title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to parse document",
+        description: error instanceof Error ? error.message : "Failed to parse documents",
         variant: "destructive",
       });
     } finally {
@@ -614,7 +659,7 @@ export const RAMSBuilder = () => {
             <Button variant="outline" className="gap-2" asChild disabled={isUploading}>
               <span>
                 <Upload className="h-4 w-4" />
-                {isUploading ? "Processing..." : "Upload Document"}
+                {isUploading ? "Processing..." : "Upload Document(s)"}
               </span>
             </Button>
           </label>
@@ -622,6 +667,7 @@ export const RAMSBuilder = () => {
             id="file-upload"
             type="file"
             accept=".doc,.docx,.docm"
+            multiple
             className="hidden"
             onChange={handleFileUpload}
           />
