@@ -43,12 +43,21 @@ IMPORTANT EXTRACTION RULES:
 - If you see "RA01 EXAMPLE - RORO (Roll on and Roll Off Skips)", the reference_code is "RA01" and the title is "RORO (Roll on and Roll Off Skips)"
 - Extract the reference code from any text pattern like "RA##" where ## is numbers
 
+BULLET POINT PRESERVATION:
+- CRITICAL: Preserve bullet points and numbered lists in control_measures, notes, and notice_to_drivers fields
+- Convert bullet points to HTML list format: use <ul><li>item</li></ul> for unordered lists
+- Convert numbered lists to HTML format: use <ol><li>item</li></ol> for ordered lists
+- Look for bullet indicators like: •, -, *, ○, ►, ➢, numbers followed by periods (1., 2., etc.), or letters (a., b., etc.)
+- Each bullet item should be wrapped in <li> tags
+- Preserve the hierarchy if there are nested bullets (use nested <ul> or <ol> tags)
+- If text appears as a list in the original document, format it as HTML list even if bullet characters are missing
+
 Always return a valid JSON object with this exact structure:
 {
   "reference_code": "string - the reference code like RA01 (REQUIRED - look for RA followed by numbers)",
   "title": "string - the descriptive title of the RAMS (REQUIRED - the main subject)",
   "applicable_to": ["array of strings - what the RAMS applies to"],
-  "notice_to_drivers": "string - any notice to drivers text, or empty string",
+  "notice_to_drivers": "string - any notice to drivers text with HTML bullet formatting if applicable, or empty string",
   "hazards": [
     {
       "activity": "string - the activity/task",
@@ -56,10 +65,10 @@ Always return a valid JSON object with this exact structure:
       "who_at_risk": "string - who is at risk",
       "initial_likelihood": number (1-5),
       "initial_severity": number (1-5),
-      "control_measures": "string - control measures",
+      "control_measures": "string - control measures WITH HTML bullet formatting (<ul><li>...</li></ul>) if the original has bullet points",
       "residual_likelihood": number (1-5),
       "residual_severity": number (1-5),
-      "notes": "string - any notes, or empty string"
+      "notes": "string - any notes WITH HTML bullet formatting if applicable, or empty string"
     }
   ]
 }
