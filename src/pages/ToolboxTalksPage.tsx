@@ -32,6 +32,7 @@ const ToolboxTalksPage = () => {
   const [signedTalkIds, setSignedTalkIds] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
   const [selectedTalk, setSelectedTalk] = useState<ToolboxTalk | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
@@ -96,7 +97,7 @@ const ToolboxTalksPage = () => {
         const talk = toolboxTalks.find(t => t.id === talkId);
         if (talk) {
           setSelectedTalk(talk);
-          setShowSignDialog(true);
+          setShowViewDialog(true);
           setHasAutoOpened(true);
         }
       }
@@ -212,7 +213,7 @@ const ToolboxTalksPage = () => {
                   className={`flex flex-col h-full cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70 ${isSigned ? "border-green-500/30" : ""}`}
                   onClick={() => {
                     setSelectedTalk(talk);
-                    setShowSignDialog(true);
+                    setShowViewDialog(true);
                   }}
                 >
                   <CardHeader className="pb-3">
@@ -251,10 +252,10 @@ const ToolboxTalksPage = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedTalk(talk);
-                          setShowSignDialog(true);
+                          setShowViewDialog(true);
                         }}
                       >
-                        Sign Off
+                        View & Sign
                       </Button>
                     )}
                   </div>
@@ -265,6 +266,53 @@ const ToolboxTalksPage = () => {
         )}
       </main>
 
+      {/* View Dialog - Shows full content */}
+      <Dialog open={showViewDialog} onOpenChange={(open) => {
+        setShowViewDialog(open);
+        if (!open) setSelectedTalk(null);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className="text-xs">{selectedTalk?.reference_code}</Badge>
+              {selectedTalk?.is_mandatory && (
+                <Badge variant="destructive" className="text-xs">Mandatory</Badge>
+              )}
+              {selectedTalk && signedTalkIds.has(selectedTalk.id) && (
+                <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Signed
+                </Badge>
+              )}
+            </div>
+            <DialogTitle className="text-xl">{selectedTalk?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedTalk && new Date(selectedTalk.created_date).toLocaleDateString()}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div 
+            className="prose prose-sm max-w-none mt-4"
+            dangerouslySetInnerHTML={{ __html: selectedTalk?.content || '' }}
+          />
+
+          {selectedTalk && !signedTalkIds.has(selectedTalk.id) && (
+            <div className="mt-6 pt-4 border-t">
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  setShowViewDialog(false);
+                  setShowSignDialog(true);
+                }}
+              >
+                Sign Off This Toolbox Talk
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Sign Dialog */}
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
