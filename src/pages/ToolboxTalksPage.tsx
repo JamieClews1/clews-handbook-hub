@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ interface ToolboxTalk {
 
 const ToolboxTalksPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const { toast } = useToast();
 
@@ -33,6 +34,7 @@ const ToolboxTalksPage = () => {
   const [selectedTalk, setSelectedTalk] = useState<ToolboxTalk | null>(null);
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -85,6 +87,21 @@ const ToolboxTalksPage = () => {
 
     fetchData();
   }, [user]);
+
+  // Auto-open specific talk from URL query param
+  useEffect(() => {
+    if (!loadingData && toolboxTalks.length > 0 && !hasAutoOpened) {
+      const talkId = searchParams.get('id');
+      if (talkId) {
+        const talk = toolboxTalks.find(t => t.id === talkId);
+        if (talk) {
+          setSelectedTalk(talk);
+          setShowSignDialog(true);
+          setHasAutoOpened(true);
+        }
+      }
+    }
+  }, [loadingData, toolboxTalks, searchParams, hasAutoOpened]);
 
   const handleSign = async (signatureData: string) => {
     if (!selectedTalk || !user) return;
