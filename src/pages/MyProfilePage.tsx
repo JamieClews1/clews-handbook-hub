@@ -540,11 +540,14 @@ const DocumentItem = ({ item, status, type, signedAt }: DocumentItemProps) => {
   const linkTo = type === "rams" ? "/rams" : "/toolbox-talks";
   
   return (
-    <div className={`flex items-center justify-between p-4 rounded-lg border ${
-      status === "mandatory" ? "border-destructive/50 bg-destructive/5" :
-      status === "completed" ? "border-primary/50 bg-primary/5" :
-      "border-border bg-muted/30"
-    }`}>
+    <Link 
+      to={linkTo}
+      className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70 ${
+        status === "mandatory" ? "border-destructive/50 bg-destructive/5 hover:bg-destructive/10" :
+        status === "completed" ? "border-primary/50 bg-primary/5 hover:bg-primary/10" :
+        "border-border bg-muted/30"
+      }`}
+    >
       <div className="flex items-center gap-3">
         {status === "completed" ? (
           <CheckCircle className="h-5 w-5 text-primary" />
@@ -565,12 +568,10 @@ const DocumentItem = ({ item, status, type, signedAt }: DocumentItemProps) => {
           </div>
         </div>
       </div>
-      <Link to={linkTo}>
-        <Button variant={status === "mandatory" ? "destructive" : "outline"} size="sm">
-          {status === "completed" ? "View" : "Sign"}
-        </Button>
-      </Link>
-    </div>
+      <Button variant={status === "mandatory" ? "destructive" : "outline"} size="sm" asChild>
+        <span>{status === "completed" ? "View" : "Sign"}</span>
+      </Button>
+    </Link>
   );
 };
 
