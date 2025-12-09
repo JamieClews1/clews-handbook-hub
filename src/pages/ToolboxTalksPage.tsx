@@ -190,7 +190,14 @@ const ToolboxTalksPage = () => {
             {toolboxTalks.map(talk => {
               const isSigned = signedTalkIds.has(talk.id);
               return (
-                <Card key={talk.id} className={`flex flex-col h-full ${isSigned ? "border-green-500/30" : ""}`}>
+                <Card 
+                  key={talk.id} 
+                  className={`flex flex-col h-full cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70 ${isSigned ? "border-green-500/30" : ""}`}
+                  onClick={() => {
+                    setSelectedTalk(talk);
+                    setShowSignDialog(true);
+                  }}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -224,7 +231,8 @@ const ToolboxTalksPage = () => {
                       <Button
                         size="sm"
                         className="w-full"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedTalk(talk);
                           setShowSignDialog(true);
                         }}
