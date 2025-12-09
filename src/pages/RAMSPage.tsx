@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +58,7 @@ const LANGUAGES = [
 
 const RAMSPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const [ramsList, setRamsList] = useState<RAMS[]>([]);
@@ -73,6 +74,7 @@ const RAMSPage = () => {
   const [isSigning, setIsSigning] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isManagement, setIsManagement] = useState(false);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<{
     title: string;
     applicableTo: string[];
@@ -118,6 +120,20 @@ const RAMSPage = () => {
       fetchHazards(selectedRAMS.id);
     }
   }, [selectedRAMS]);
+
+  // Auto-open specific RAMS from URL query param
+  useEffect(() => {
+    if (!loadingRAMS && ramsList.length > 0 && !hasAutoOpened) {
+      const ramsId = searchParams.get('id');
+      if (ramsId) {
+        const rams = ramsList.find(r => r.id === ramsId);
+        if (rams) {
+          setSelectedRAMS(rams);
+          setHasAutoOpened(true);
+        }
+      }
+    }
+  }, [loadingRAMS, ramsList, searchParams, hasAutoOpened]);
 
   // Translate content when language changes
   useEffect(() => {

@@ -537,7 +537,8 @@ interface DocumentItemProps {
 }
 
 const DocumentItem = ({ item, status, type, signedAt }: DocumentItemProps) => {
-  const linkTo = type === "rams" ? "/rams" : "/toolbox-talks";
+  const basePath = type === "rams" ? "/rams" : "/toolbox-talks";
+  const linkTo = `${basePath}?id=${item.id}`;
   
   return (
     <Link 
