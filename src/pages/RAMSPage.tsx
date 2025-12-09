@@ -69,6 +69,7 @@ const RAMSPage = () => {
   const [loadingRAMS, setLoadingRAMS] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
   const [userSignatures, setUserSignatures] = useState<RAMSSignature[]>([]);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
@@ -129,6 +130,7 @@ const RAMSPage = () => {
         const rams = ramsList.find(r => r.id === ramsId);
         if (rams) {
           setSelectedRAMS(rams);
+          setShowViewDialog(true);
           setHasAutoOpened(true);
         }
       }
@@ -739,13 +741,14 @@ const RAMSPage = () => {
                     <div
                       key={rams.id}
                       className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                        selectedRAMS?.id === rams.id 
-                          ? 'border-primary bg-accent shadow-md' 
-                          : signed
-                          ? 'border-primary/30 bg-primary/5'
+                        signed
+                          ? 'border-primary/30 bg-primary/5 hover:bg-primary/10'
                           : 'hover:bg-accent/50 hover:border-primary/50'
                       }`}
-                      onClick={() => setSelectedRAMS(rams)}
+                      onClick={() => {
+                        setSelectedRAMS(rams);
+                        setShowViewDialog(true);
+                      }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="space-y-2">
@@ -815,63 +818,54 @@ const RAMSPage = () => {
             </CardContent>
           </Card>
 
-          {/* Selected RAMS Details */}
+        </div>
+      </main>
+
+      {/* View RAMS Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={(open) => {
+        setShowViewDialog(open);
+        if (!open) {
+          setSelectedRAMS(null);
+          setTranslatedContent(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedRAMS && (
-            <Card className="mt-8">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {selectedRAMS.reference_code} - {translatedContent?.title || selectedRAMS.title}
-                      {isTranslating && <Loader2 className="h-4 w-4 animate-spin" />}
-                    </CardTitle>
-                    <CardDescription>
-                      Created: {format(new Date(selectedRAMS.created_date), "PPP")} | 
-                      Review: {format(new Date(selectedRAMS.review_date), "PPP")}
-                    </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  {!isRamsSigned(selectedRAMS.id) && (
-                    <Button 
-                      onClick={() => setShowSignDialog(true)}
-                      variant="default"
-                      className="gap-2"
-                    >
-                      <PenTool className="h-4 w-4" />
-                      Sign RAMS
-                    </Button>
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <Badge variant="outline" className="text-xs">{selectedRAMS.reference_code}</Badge>
+                  {selectedRAMS.is_mandatory && (
+                    <Badge variant="destructive" className="text-xs">Mandatory</Badge>
                   )}
-                  <Button 
-                    onClick={() => handleDownloadPDF(selectedRAMS)}
-                    disabled={isDownloading}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    Download PDF ({LANGUAGES.find(l => l.code === language)?.label})
-                  </Button>
+                  {selectedRAMS.user_types.map(type => (
+                    <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                  ))}
+                  {isRamsSigned(selectedRAMS.id) && (
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Signed
+                    </Badge>
+                  )}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {isRamsSigned(selectedRAMS.id) && (
-                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/30">
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                  <span className="font-medium text-primary">
-                    You signed this RAMS on {format(getSignatureDate(selectedRAMS.id)!, "PPP")}
-                  </span>
-                </div>
-              )}
-              <div className="flex gap-2 flex-wrap">
-                {selectedRAMS.is_mandatory && <Badge variant="destructive">Mandatory</Badge>}
-                {selectedRAMS.user_types.map(type => (
-                  <Badge key={type} variant="secondary">{type}</Badge>
-                ))}
-              </div>
+                <DialogTitle className="text-xl flex items-center gap-2">
+                  {translatedContent?.title || selectedRAMS.title}
+                  {isTranslating && <Loader2 className="h-4 w-4 animate-spin" />}
+                </DialogTitle>
+                <DialogDescription>
+                  Created: {format(new Date(selectedRAMS.created_date), "PPP")} | Review: {format(new Date(selectedRAMS.review_date), "PPP")}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {isRamsSigned(selectedRAMS.id) && (
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <span className="font-medium text-primary">
+                      You signed this RAMS on {format(getSignatureDate(selectedRAMS.id)!, "PPP")}
+                    </span>
+                  </div>
+                )}
 
                 {selectedRAMS.applicable_to.length > 0 && (
                   <div>
@@ -974,11 +968,39 @@ const RAMSPage = () => {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button 
+                    onClick={() => handleDownloadPDF(selectedRAMS)}
+                    disabled={isDownloading}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    Download PDF ({LANGUAGES.find(l => l.code === language)?.label})
+                  </Button>
+                  {!isRamsSigned(selectedRAMS.id) && (
+                    <Button 
+                      onClick={() => {
+                        setShowViewDialog(false);
+                        setShowSignDialog(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <PenTool className="h-4 w-4" />
+                      Sign This RAMS
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
           )}
-        </div>
-      </main>
+        </DialogContent>
+      </Dialog>
 
       {/* Sign RAMS Dialog */}
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
