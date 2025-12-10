@@ -15,8 +15,28 @@ interface HandbookSectionProps {
   };
 }
 
+const stripHtmlAndFormat = (content: string) => {
+  // Convert HTML list items to bullet points
+  let cleaned = content
+    .replace(/<li>/gi, '• ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<ul>/gi, '\n')
+    .replace(/<\/ul>/gi, '')
+    .replace(/<ol>/gi, '\n')
+    .replace(/<\/ol>/gi, '')
+    .replace(/<p>/gi, '')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
+    .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines
+    .trim();
+  
+  return cleaned;
+};
+
 const parseContentWithBold = (content: string) => {
-  const parts = content.split(/(\*\*.*?\*\*)/g);
+  const cleanedContent = stripHtmlAndFormat(content);
+  const parts = cleanedContent.split(/(\*\*.*?\*\*)/g);
   
   return parts.map((part, index) => {
     if (part.startsWith('**') && part.endsWith('**')) {
