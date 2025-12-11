@@ -79,12 +79,7 @@ const AdminPage = () => {
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-foreground">Admin Dashboard</h1>
-              </div>
-            </div>
+            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
             <div className="flex items-center gap-2">
               <Link to="/portal">
                 <Button variant="ghost" size="sm" className="gap-2">

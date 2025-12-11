@@ -159,13 +159,7 @@ const ToolboxTalksPage = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-12 w-auto" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Clews Recycling</h1>
-              <p className="text-sm text-muted-foreground">Toolbox Talks</p>
-            </div>
-          </div>
+          <img src={clewsLogo} alt="Clews Recycling" className="h-12 w-auto" />
           <Link to="/portal">
             <Button variant="outline" size="sm" className="gap-2">
               <ArrowLeft className="h-4 w-4" />

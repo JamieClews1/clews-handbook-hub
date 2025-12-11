@@ -26,9 +26,7 @@ export const Header = ({ language, onLanguageChange }: HeaderProps) => {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <img src={logo} alt="Clews Recycling" className="h-12 md:h-16" />
-        </div>
+        <img src={logo} alt="Clews Recycling" className="h-12 md:h-16" />
         
         <div className="flex items-center gap-4">
           {isAdmin && (

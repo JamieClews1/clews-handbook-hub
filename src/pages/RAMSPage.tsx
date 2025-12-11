@@ -632,13 +632,7 @@ const RAMSPage = () => {
       {/* Header */}
       <header className="bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-12 w-auto" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Clews Recycling</h1>
-              <p className="text-sm text-muted-foreground">RAMS</p>
-            </div>
-          </div>
+          <img src={clewsLogo} alt="Clews Recycling" className="h-12 w-auto" />
           {/* Desktop controls */}
           <div className="hidden md:flex items-center gap-2">
             <Select value={language} onValueChange={setLanguage}>
