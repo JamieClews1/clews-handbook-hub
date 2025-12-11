@@ -639,7 +639,8 @@ const RAMSPage = () => {
               <p className="text-sm text-muted-foreground">RAMS</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Desktop controls */}
+          <div className="hidden md:flex items-center gap-2">
             <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger className="w-[140px]">
                 <Languages className="h-4 w-4 mr-2" />
@@ -662,18 +663,56 @@ const RAMSPage = () => {
             <Link to="/my-profile">
               <Button variant="ghost" size="sm" className="gap-2">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">My Profile</span>
+                <span>My Profile</span>
               </Button>
             </Link>
             <Link to="/portal">
               <Button variant="outline" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Portal</span>
+                <span>Back to Portal</span>
+              </Button>
+            </Link>
+          </div>
+          {/* Mobile nav buttons only */}
+          <div className="flex md:hidden items-center gap-2">
+            <Link to="/my-profile">
+              <Button variant="ghost" size="sm">
+                <User className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/portal">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
           </div>
         </div>
       </header>
+
+      {/* Mobile controls bar */}
+      <div className="md:hidden bg-card border-b border-border px-4 py-3">
+        <div className="flex items-center justify-center gap-3">
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="w-[140px]">
+              <Languages className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map(lang => (
+                <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(isAdmin || isManagement) && (
+            <Link to="/mass-sign-off">
+              <Button variant="default" size="sm" className="gap-2">
+                <ClipboardSignature className="h-4 w-4" />
+                <span>Mass Sign-Off</span>
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-accent to-primary py-12">
