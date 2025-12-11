@@ -293,13 +293,7 @@ const MassSignOffPage = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={clewsLogo} alt="Clews Logo" className="h-10 w-auto" />
-            <div>
-              <h1 className="text-lg font-bold">Mass Sign-Off</h1>
-              <p className="text-xs text-muted-foreground">Documents</p>
-            </div>
-          </div>
+          <img src={clewsLogo} alt="Clews Logo" className="h-10 w-auto" />
           <Link to="/portal">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-1" />
