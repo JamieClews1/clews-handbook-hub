@@ -69,7 +69,6 @@ const RAMSPage = () => {
   const [loadingRAMS, setLoadingRAMS] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
   const [userSignatures, setUserSignatures] = useState<RAMSSignature[]>([]);
-  const [showViewDialog, setShowViewDialog] = useState(false);
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
@@ -130,7 +129,6 @@ const RAMSPage = () => {
         const rams = ramsList.find(r => r.id === ramsId);
         if (rams) {
           setSelectedRAMS(rams);
-          setShowViewDialog(true);
           setHasAutoOpened(true);
         }
       }
@@ -770,80 +768,240 @@ const RAMSPage = () => {
                   {ramsList.map((rams) => {
                     const signed = isRamsSigned(rams.id);
                     const signedDate = getSignatureDate(rams.id);
+                    const isExpanded = selectedRAMS?.id === rams.id;
                     return (
-                    <div
-                      key={rams.id}
-                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                        signed
-                          ? 'border-primary/30 bg-primary/5 hover:bg-primary/10'
-                          : 'hover:bg-accent/50 hover:border-primary/50'
-                      }`}
-                      onClick={() => {
-                        setSelectedRAMS(rams);
-                        setShowViewDialog(true);
-                      }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-lg">{rams.reference_code}</span>
-                            {rams.is_mandatory && (
-                              <Badge variant="destructive" className="text-xs">Mandatory</Badge>
-                            )}
-                            {signed && (
-                              <Badge variant="default" className="text-xs gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                Signed
-                              </Badge>
+                    <div key={rams.id} className="space-y-0">
+                      {/* Card Header */}
+                      <div
+                        className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                          isExpanded
+                            ? 'bg-primary text-primary-foreground rounded-b-none border-primary'
+                            : signed
+                              ? 'border-primary/30 bg-primary/5 hover:bg-primary/10'
+                              : 'hover:bg-accent/50 hover:border-primary/50'
+                        }`}
+                        onClick={() => {
+                          if (isExpanded) {
+                            setSelectedRAMS(null);
+                            setTranslatedContent(null);
+                          } else {
+                            setSelectedRAMS(rams);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-lg">{rams.reference_code}</span>
+                              {rams.is_mandatory && (
+                                <Badge variant={isExpanded ? "secondary" : "destructive"} className="text-xs">Mandatory</Badge>
+                              )}
+                              {signed && (
+                                <Badge variant={isExpanded ? "secondary" : "default"} className="text-xs gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Signed
+                                </Badge>
+                              )}
+                            </div>
+                            <p className={isExpanded ? "text-primary-foreground/90" : "text-muted-foreground"}>{rams.title}</p>
+                            <div className="flex gap-1 flex-wrap">
+                              {rams.user_types.map(type => (
+                                <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                              ))}
+                            </div>
+                            {signed && signedDate && (
+                              <p className={`text-xs ${isExpanded ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                                Signed on {format(signedDate, "PPP")}
+                              </p>
                             )}
                           </div>
-                          <p className="text-muted-foreground">{rams.title}</p>
-                          <div className="flex gap-1 flex-wrap">
-                            {rams.user_types.map(type => (
-                              <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                            ))}
-                          </div>
-                          {signed && signedDate && (
-                            <p className="text-xs text-muted-foreground">
-                              Signed on {format(signedDate, "PPP")}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedRAMS(rams);
-                              setTimeout(() => handleDownloadPDF(rams), 100);
-                            }}
-                            disabled={isDownloading}
-                            className="gap-2"
-                          >
-                            {isDownloading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                            PDF
-                          </Button>
-                          {!signed && (
-                            <Button
-                              size="sm"
-                              variant="outline"
+                          <div className="flex flex-col gap-2">
+                            <Button 
+                              size="sm" 
+                              variant={isExpanded ? "secondary" : "default"}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedRAMS(rams);
-                                setShowSignDialog(true);
+                                setTimeout(() => handleDownloadPDF(rams), 100);
                               }}
+                              disabled={isDownloading}
                               className="gap-2"
                             >
-                              <PenTool className="h-4 w-4" />
-                              Sign
+                              {isDownloading && selectedRAMS?.id === rams.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              PDF
                             </Button>
-                          )}
+                            {!signed && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedRAMS(rams);
+                                  setShowSignDialog(true);
+                                }}
+                                className={`gap-2 ${isExpanded ? "border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10" : ""}`}
+                              >
+                                <PenTool className="h-4 w-4" />
+                                Sign
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="border border-t-0 border-primary/30 rounded-b-lg p-6 bg-card space-y-6 animate-fade-up">
+                          <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                              <h3 className="text-xl font-semibold">{translatedContent?.title || rams.title}</h3>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Created: {format(new Date(rams.created_date), "PPP")} | Review: {format(new Date(rams.review_date), "PPP")}
+                              </p>
+                            </div>
+                            <Button 
+                              onClick={() => handleDownloadPDF(rams)}
+                              disabled={isDownloading}
+                              variant="outline"
+                              className="gap-2"
+                            >
+                              {isDownloading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              Download PDF ({LANGUAGES.find(l => l.code === language)?.label})
+                            </Button>
+                          </div>
+
+                          {signed && (
+                            <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                              <CheckCircle className="h-5 w-5 text-primary" />
+                              <span className="font-medium text-primary">
+                                You signed this RAMS on {format(getSignatureDate(rams.id)!, "PPP")}
+                              </span>
+                            </div>
+                          )}
+
+                          {rams.applicable_to && rams.applicable_to.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold mb-2">Applicable To:</h4>
+                              <ul className="list-disc list-inside text-muted-foreground">
+                                {rams.applicable_to.map((item, i) => (
+                                  <li key={i}>{translatedContent?.applicableTo?.[i] || item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {rams.notice_to_drivers && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200">
+                              <h4 className="font-semibold mb-2">Notice to Drivers:</h4>
+                              <p className="text-muted-foreground">{translatedContent?.noticeToDrivers || rams.notice_to_drivers}</p>
+                            </div>
+                          )}
+
+                          {hazards.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold mb-4 text-lg">Risk Assessment ({hazards.length} hazards)</h4>
+                              <div className="space-y-4">
+                                {hazards.map((hazard, idx) => (
+                                  <Card key={hazard.id} className="p-4">
+                                    <h5 className="font-semibold mb-3">{translatedContent?.hazards?.[idx]?.activity || hazard.activity}</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <span className="text-muted-foreground">Potential Hazard:</span>
+                                        <p>{translatedContent?.hazards?.[idx]?.potentialHazard || hazard.potential_hazard}</p>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground">Who at Risk:</span>
+                                        <p>{translatedContent?.hazards?.[idx]?.whoAtRisk || hazard.who_at_risk}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-4 mt-3 flex-wrap">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">Initial:</span>
+                                        <Badge 
+                                          className="text-white"
+                                          style={{ 
+                                            backgroundColor: `rgb(${getRiskColor(hazard.initial_likelihood * hazard.initial_severity).join(',')})` 
+                                          }}
+                                        >
+                                          {hazard.initial_likelihood}×{hazard.initial_severity}={hazard.initial_likelihood * hazard.initial_severity}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">Residual:</span>
+                                        <Badge 
+                                          className="text-white"
+                                          style={{ 
+                                            backgroundColor: `rgb(${getRiskColor(hazard.residual_likelihood * hazard.residual_severity).join(',')})` 
+                                          }}
+                                        >
+                                          {hazard.residual_likelihood}×{hazard.residual_severity}={hazard.residual_likelihood * hazard.residual_severity}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                    <div className="mt-3">
+                                      <span className="text-muted-foreground text-sm">Control Measures:</span>
+                                      <div 
+                                        className="text-sm mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
+                                        dangerouslySetInnerHTML={{ __html: translatedContent?.hazards?.[idx]?.controlMeasures || hazard.control_measures }}
+                                      />
+                                    </div>
+                                    {hazard.notes && (
+                                      <div className="mt-2 text-sm text-muted-foreground italic">
+                                        <span>Note: </span>
+                                        <span dangerouslySetInnerHTML={{ __html: translatedContent?.hazards?.[idx]?.notes || hazard.notes }} />
+                                      </div>
+                                    )}
+                                  </Card>
+                                ))}
+                              </div>
+
+                              {/* Risk Key */}
+                              <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+                                <h5 className="font-semibold mb-3 text-sm">Risk Key</h5>
+                                <p className="text-xs text-muted-foreground mb-3">Risk = Likelihood × Severity</p>
+                                <div className="flex flex-wrap gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(34, 197, 94)' }}></div>
+                                    <span className="text-xs">Low (1-4)</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(234, 179, 8)' }}></div>
+                                    <span className="text-xs">Medium (5-8)</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(249, 115, 22)' }}></div>
+                                    <span className="text-xs">High (9-12)</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(239, 68, 68)' }}></div>
+                                    <span className="text-xs">Very High (13+)</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {!signed && (
+                            <div className="pt-4 border-t">
+                              <Button 
+                                onClick={() => setShowSignDialog(true)}
+                                className="gap-2"
+                              >
+                                <PenTool className="h-4 w-4" />
+                                Sign This RAMS
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )})}
                 </div>
@@ -854,186 +1012,6 @@ const RAMSPage = () => {
         </div>
       </main>
 
-      {/* View RAMS Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={(open) => {
-        setShowViewDialog(open);
-        if (!open) {
-          setSelectedRAMS(null);
-          setTranslatedContent(null);
-        }
-      }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {selectedRAMS && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <Badge variant="outline" className="text-xs">{selectedRAMS.reference_code}</Badge>
-                  {selectedRAMS.is_mandatory && (
-                    <Badge variant="destructive" className="text-xs">Mandatory</Badge>
-                  )}
-                  {selectedRAMS.user_types.map(type => (
-                    <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                  ))}
-                  {isRamsSigned(selectedRAMS.id) && (
-                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Signed
-                    </Badge>
-                  )}
-                </div>
-                <DialogTitle className="text-xl flex items-center gap-2">
-                  {translatedContent?.title || selectedRAMS.title}
-                  {isTranslating && <Loader2 className="h-4 w-4 animate-spin" />}
-                </DialogTitle>
-                <DialogDescription>
-                  Created: {format(new Date(selectedRAMS.created_date), "PPP")} | Review: {format(new Date(selectedRAMS.review_date), "PPP")}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-6 mt-4">
-                {isRamsSigned(selectedRAMS.id) && (
-                  <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/30">
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                    <span className="font-medium text-primary">
-                      You signed this RAMS on {format(getSignatureDate(selectedRAMS.id)!, "PPP")}
-                    </span>
-                  </div>
-                )}
-
-                {selectedRAMS.applicable_to.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Applicable To:</h4>
-                    <ul className="list-disc list-inside text-muted-foreground">
-                      {selectedRAMS.applicable_to.map((item, i) => (
-                        <li key={i}>{translatedContent?.applicableTo[i] || item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {selectedRAMS.notice_to_drivers && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200">
-                    <h4 className="font-semibold mb-2">Notice to Drivers:</h4>
-                    <p className="text-muted-foreground">{translatedContent?.noticeToDrivers || selectedRAMS.notice_to_drivers}</p>
-                  </div>
-                )}
-
-                {hazards.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-4 text-lg">Risk Assessment ({hazards.length} hazards)</h4>
-                    <div className="space-y-4">
-                      {hazards.map((hazard, idx) => (
-                        <Card key={hazard.id} className="p-4">
-                          <h5 className="font-semibold mb-3">{translatedContent?.hazards[idx]?.activity || hazard.activity}</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Potential Hazard:</span>
-                              <p>{translatedContent?.hazards[idx]?.potentialHazard || hazard.potential_hazard}</p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Who at Risk:</span>
-                              <p>{translatedContent?.hazards[idx]?.whoAtRisk || hazard.who_at_risk}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-4 mt-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">Initial:</span>
-                              <Badge 
-                                className="text-white"
-                                style={{ 
-                                  backgroundColor: `rgb(${getRiskColor(hazard.initial_likelihood * hazard.initial_severity).join(',')})` 
-                                }}
-                              >
-                                {hazard.initial_likelihood}×{hazard.initial_severity}={hazard.initial_likelihood * hazard.initial_severity}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">Residual:</span>
-                              <Badge 
-                                className="text-white"
-                                style={{ 
-                                  backgroundColor: `rgb(${getRiskColor(hazard.residual_likelihood * hazard.residual_severity).join(',')})` 
-                                }}
-                              >
-                                {hazard.residual_likelihood}×{hazard.residual_severity}={hazard.residual_likelihood * hazard.residual_severity}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="mt-3">
-                            <span className="text-muted-foreground text-sm">Control Measures:</span>
-                            <div 
-                              className="text-sm mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
-                              dangerouslySetInnerHTML={{ __html: translatedContent?.hazards[idx]?.controlMeasures || hazard.control_measures }}
-                            />
-                          </div>
-                          {hazard.notes && (
-                            <div className="mt-2 text-sm text-muted-foreground italic">
-                              <span>Note: </span>
-                              <span dangerouslySetInnerHTML={{ __html: translatedContent?.hazards[idx]?.notes || hazard.notes }} />
-                            </div>
-                          )}
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Risk Key */}
-                    <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
-                      <h5 className="font-semibold mb-3 text-sm">Risk Key</h5>
-                      <p className="text-xs text-muted-foreground mb-3">Risk = Likelihood × Severity</p>
-                      <div className="flex flex-wrap gap-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(34, 197, 94)' }}></div>
-                          <span className="text-xs">Low (1-4)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(234, 179, 8)' }}></div>
-                          <span className="text-xs">Medium (5-8)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(249, 115, 22)' }}></div>
-                          <span className="text-xs">High (9-12)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgb(239, 68, 68)' }}></div>
-                          <span className="text-xs">Very High (13+)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-4 border-t">
-                  <Button 
-                    onClick={() => handleDownloadPDF(selectedRAMS)}
-                    disabled={isDownloading}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    Download PDF ({LANGUAGES.find(l => l.code === language)?.label})
-                  </Button>
-                  {!isRamsSigned(selectedRAMS.id) && (
-                    <Button 
-                      onClick={() => {
-                        setShowViewDialog(false);
-                        setShowSignDialog(true);
-                      }}
-                      className="gap-2"
-                    >
-                      <PenTool className="h-4 w-4" />
-                      Sign This RAMS
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Sign RAMS Dialog */}
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
