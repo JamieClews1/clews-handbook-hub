@@ -189,13 +189,18 @@ const RAMSPage = () => {
     setLoadingRAMS(true);
     const { data, error } = await supabase
       .from("rams")
-      .select("*")
-      .order("reference_code");
+      .select("*");
 
     if (error) {
       toast({ title: "Error", description: "Failed to load RAMS", variant: "destructive" });
     } else {
-      setRamsList((data as RAMS[]) || []);
+      // Sort by reference code numerically (e.g., RA 01, RA 02, ..., RA 10)
+      const sortedData = ((data as RAMS[]) || []).sort((a, b) => {
+        const numA = parseInt(a.reference_code.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.reference_code.replace(/\D/g, '')) || 0;
+        return numA - numB;
+      });
+      setRamsList(sortedData);
     }
     setLoadingRAMS(false);
   };
