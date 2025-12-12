@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff, UserCog, UserPlus } from "lucide-react";
+import { Shield, ShieldOff, UserCog, UserPlus, Key } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,6 +40,9 @@ export const UserManagement = () => {
   const [newUserName, setNewUserName] = useState("");
   const [newUserTypes, setNewUserTypes] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [passwordUser, setPasswordUser] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -190,6 +193,53 @@ export const UserManagement = () => {
     );
   };
 
+  const handleSetPassword = (user: UserProfile) => {
+    setPasswordUser(user);
+    setNewPassword("");
+  };
+
+  const savePassword = async () => {
+    if (!passwordUser || !newPassword) return;
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSettingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("set-user-password", {
+        body: {
+          user_id: passwordUser.id,
+          password: newPassword,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Success",
+        description: `Password updated for ${passwordUser.email}`,
+      });
+
+      setPasswordUser(null);
+      setNewPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSettingPassword(false);
+    }
+  };
+
   const confirmAction = async () => {
     if (!selectedUser || !actionType) return;
 
@@ -317,6 +367,15 @@ export const UserManagement = () => {
                       >
                         <UserCog className="h-4 w-4" />
                         Types
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSetPassword(user)}
+                        className="gap-1"
+                      >
+                        <Key className="h-4 w-4" />
+                        Password
                       </Button>
                       {user.isAdmin ? (
                         <Button
@@ -457,6 +516,38 @@ export const UserManagement = () => {
             </Button>
             <Button onClick={handleCreateUser} disabled={creating}>
               {creating ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Password Dialog */}
+      <Dialog open={!!passwordUser} onOpenChange={() => setPasswordUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {passwordUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Enter new password (min 6 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordUser(null)}>
+              Cancel
+            </Button>
+            <Button onClick={savePassword} disabled={settingPassword || newPassword.length < 6}>
+              {settingPassword ? "Saving..." : "Set Password"}
             </Button>
           </DialogFooter>
         </DialogContent>
