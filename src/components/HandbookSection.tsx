@@ -16,21 +16,19 @@ interface HandbookSectionProps {
 }
 
 const stripHtmlAndFormat = (content: string) => {
-  // Convert HTML list items to bullet points on single lines
+  // Convert HTML list items to bullet points - each on its own line
   let cleaned = content
     .replace(/<li>/gi, '• ')
-    .replace(/<\/li>/gi, ' ')
+    .replace(/<\/li>/gi, '\n')
     .replace(/<ul>/gi, '')
-    .replace(/<\/ul>/gi, '\n')
+    .replace(/<\/ul>/gi, '')
     .replace(/<ol>/gi, '')
-    .replace(/<\/ol>/gi, '\n')
+    .replace(/<\/ol>/gi, '')
     .replace(/<p>/gi, '')
     .replace(/<\/p>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
-    .replace(/•\s+/g, '• ') // Normalize bullet spacing
-    .replace(/\s{2,}/g, ' ') // Reduce multiple spaces to single
-    .replace(/\n{2,}/g, '\n') // Reduce multiple newlines to single
+    .replace(/\n{2,}/g, '\n') // Reduce multiple newlines to single (no double spacing)
     .trim();
   
   return cleaned;
