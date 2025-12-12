@@ -199,6 +199,7 @@ export type Database = {
       rams: {
         Row: {
           applicable_to: string[] | null
+          assigned_users: string[] | null
           created_at: string
           created_date: string
           creator_name: string | null
@@ -215,6 +216,7 @@ export type Database = {
         }
         Insert: {
           applicable_to?: string[] | null
+          assigned_users?: string[] | null
           created_at?: string
           created_date?: string
           creator_name?: string | null
@@ -231,6 +233,7 @@ export type Database = {
         }
         Update: {
           applicable_to?: string[] | null
+          assigned_users?: string[] | null
           created_at?: string
           created_date?: string
           creator_name?: string | null
@@ -385,6 +388,7 @@ export type Database = {
       }
       toolbox_talks: {
         Row: {
+          assigned_users: string[] | null
           content: string
           created_at: string
           created_date: string
@@ -397,6 +401,7 @@ export type Database = {
           user_types: string[]
         }
         Insert: {
+          assigned_users?: string[] | null
           content: string
           created_at?: string
           created_date?: string
@@ -409,6 +414,7 @@ export type Database = {
           user_types?: string[]
         }
         Update: {
+          assigned_users?: string[] | null
           content?: string
           created_at?: string
           created_date?: string

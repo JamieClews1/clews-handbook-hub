@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
+import { UserSelector } from "./UserSelector";
 
 interface ToolboxTalk {
   id: string;
@@ -19,6 +20,7 @@ interface ToolboxTalk {
   is_mandatory: boolean;
   is_published: boolean;
   created_date: string;
+  assigned_users: string[];
 }
 
 const USER_TYPES = ["driver", "yard", "office", "management"];
@@ -37,6 +39,7 @@ export const ToolboxTalkBuilder = () => {
   const [content, setContent] = useState("");
   const [userTypes, setUserTypes] = useState<string[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
+  const [assignedUsers, setAssignedUsers] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export const ToolboxTalkBuilder = () => {
     setUserTypes([]);
     setIsMandatory(false);
     setIsPublished(false);
+    setAssignedUsers([]);
     setEditingTalk(null);
     setIsCreating(false);
   };
@@ -81,6 +85,7 @@ export const ToolboxTalkBuilder = () => {
     setUserTypes(talk.user_types);
     setIsMandatory(talk.is_mandatory);
     setIsPublished(talk.is_published);
+    setAssignedUsers(talk.assigned_users || []);
     setIsCreating(true);
   };
 
@@ -109,10 +114,11 @@ export const ToolboxTalkBuilder = () => {
       return;
     }
 
-    if (userTypes.length === 0) {
+    // Require either user types or assigned users
+    if (userTypes.length === 0 && assignedUsers.length === 0) {
       toast({
         title: "Validation Error",
-        description: "At least one user type must be selected",
+        description: "Select user types or assign specific users",
         variant: "destructive",
       });
       return;
@@ -128,6 +134,7 @@ export const ToolboxTalkBuilder = () => {
             user_types: userTypes,
             is_mandatory: isMandatory,
             is_published: isPublished,
+            assigned_users: assignedUsers,
           })
           .eq("id", editingTalk.id);
 
@@ -161,6 +168,7 @@ export const ToolboxTalkBuilder = () => {
           user_types: userTypes,
           is_mandatory: isMandatory,
           is_published: isPublished,
+          assigned_users: assignedUsers,
         });
 
         if (error) throw error;
@@ -263,6 +271,12 @@ export const ToolboxTalkBuilder = () => {
               ))}
             </div>
           </div>
+
+          <UserSelector
+            selectedUsers={assignedUsers}
+            onSelectionChange={setAssignedUsers}
+            label="Assign Specific Users (optional)"
+          />
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
