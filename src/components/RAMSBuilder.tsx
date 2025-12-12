@@ -12,6 +12,7 @@ import { format, addMonths, differenceInDays, isBefore, isAfter } from "date-fns
 import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
+import { UserSelector } from "@/components/UserSelector";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ interface RAMS {
   signed_at: string | null;
   is_mandatory: boolean;
   user_types: string[];
+  assigned_users: string[];
 }
 
 interface Hazard {
@@ -79,6 +81,7 @@ const emptyRAMS: Omit<RAMS, "id"> = {
   signed_at: null,
   is_mandatory: false,
   user_types: [],
+  assigned_users: [],
 };
 
 const emptyHazard: Omit<Hazard, "id" | "rams_id"> = {
@@ -164,6 +167,7 @@ export const RAMSBuilder = () => {
       signed_at: rams.signed_at,
       is_mandatory: rams.is_mandatory,
       user_types: rams.user_types,
+      assigned_users: rams.assigned_users || [],
     });
     setEditHazards(hazards.map(h => ({ ...h })));
     setIsEditing(true);
@@ -993,6 +997,13 @@ const RAMSForm = ({
             ))}
           </div>
         </div>
+        
+        <UserSelector
+          selectedUsers={form.assigned_users || []}
+          onSelectionChange={(users) => setForm({ ...form, assigned_users: users })}
+          label="Assign Specific Users (optional)"
+        />
+        
         <div className="flex items-center gap-2">
           <Switch
             checked={form.is_mandatory}
