@@ -13,6 +13,7 @@ import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
 import { UserSelector } from "@/components/UserSelector";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import {
   Dialog,
   DialogContent,
@@ -319,12 +320,14 @@ export const RAMSBuilder = () => {
           console.log(`Document ${file.name} content length:`, text.length);
 
           // Call the edge function to parse with AI
+          const { data: { session } } = await supabase.auth.getSession();
           const response = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-rams-document`,
             {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
               },
               body: JSON.stringify({ documentContent: text }),
             }
@@ -1536,7 +1539,7 @@ const RAMSView = ({ rams, hazards, getRiskColor }: RAMSViewProps) => {
                   <Label className="text-muted-foreground">Control Measures</Label>
                   <div 
                     className="text-sm prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
-                    dangerouslySetInnerHTML={{ __html: hazard.control_measures }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(hazard.control_measures) }}
                   />
                 </div>
                 {hazard.notes && (
@@ -1544,7 +1547,7 @@ const RAMSView = ({ rams, hazards, getRiskColor }: RAMSViewProps) => {
                     <Label className="text-muted-foreground">Notes</Label>
                     <div 
                       className="text-sm prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
-                      dangerouslySetInnerHTML={{ __html: hazard.notes }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(hazard.notes) }}
                     />
                   </div>
                 )}

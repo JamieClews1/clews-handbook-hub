@@ -1,16 +1,19 @@
 project_id = "atblyrrczwcmnyhcdkto"
 
 [functions.parse-rams-document]
-verify_jwt = false
+verify_jwt = true
 
 [functions.translate-rams]
-verify_jwt = false
+verify_jwt = true
 
 [functions.translate-toolbox-talk]
-verify_jwt = false
+verify_jwt = true
 
 [functions.translate-handbook]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-user]
+verify_jwt = false
+
+[functions.set-user-password]
 verify_jwt = false

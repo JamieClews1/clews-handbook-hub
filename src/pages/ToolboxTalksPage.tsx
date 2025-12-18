@@ -10,6 +10,7 @@ import { ArrowLeft, MessageSquare, CheckCircle, AlertTriangle } from "lucide-rea
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface ToolboxTalk {
   id: string;
@@ -235,7 +236,7 @@ const ToolboxTalksPage = () => {
                   <CardContent className="flex-1 pb-3">
                     <div
                       className="prose prose-sm max-w-none text-muted-foreground line-clamp-4 text-sm"
-                      dangerouslySetInnerHTML={{ __html: talk.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(talk.content) }}
                     />
                   </CardContent>
                   <div className="px-6 pb-4 mt-auto">
@@ -287,7 +288,7 @@ const ToolboxTalksPage = () => {
 
           <div 
             className="prose prose-sm max-w-none mt-4"
-            dangerouslySetInnerHTML={{ __html: selectedTalk?.content || '' }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedTalk?.content) }}
           />
 
           {selectedTalk && !signedTalkIds.has(selectedTalk.id) && (
