@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { UserComplianceView } from "./UserComplianceView";
+import { usernameToEmail, emailToUsername } from "@/lib/auth-utils";
 
 interface UserProfile {
   id: string;
@@ -36,7 +37,7 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUsername, setNewUsername] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserTypes, setNewUserTypes] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -125,7 +126,7 @@ export const UserManagement = () => {
 
       toast({
         title: "Success",
-        description: `User types updated for ${editingUser.email}`,
+        description: `User types updated for ${emailToUsername(editingUser.email)}`,
       });
 
       fetchUsers();
@@ -142,10 +143,20 @@ export const UserManagement = () => {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserEmail.trim()) {
+    if (!newUsername.trim()) {
       toast({
         title: "Error",
-        description: "Email is required",
+        description: "Username is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9._-]+$/.test(newUsername.trim())) {
+      toast({
+        title: "Error",
+        description: "Username can only contain letters, numbers, dots, underscores, and hyphens",
         variant: "destructive",
       });
       return;
@@ -153,9 +164,10 @@ export const UserManagement = () => {
 
     setCreating(true);
     try {
+      const email = usernameToEmail(newUsername);
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
-          email: newUserEmail.trim(),
+          email: email,
           full_name: newUserName.trim() || null,
           user_types: newUserTypes,
         },
@@ -166,11 +178,11 @@ export const UserManagement = () => {
 
       toast({
         title: "User Created",
-        description: `${newUserEmail} has been created. They can use password reset to set their password.`,
+        description: `User "${newUsername}" has been created. Set their password using the Password button.`,
       });
 
       setShowCreateDialog(false);
-      setNewUserEmail("");
+      setNewUsername("");
       setNewUserName("");
       setNewUserTypes([]);
       fetchUsers();
@@ -224,7 +236,7 @@ export const UserManagement = () => {
 
       toast({
         title: "Success",
-        description: `Password updated for ${passwordUser.email}`,
+        description: `Password updated for ${emailToUsername(passwordUser.email)}`,
       });
 
       setPasswordUser(null);
@@ -256,7 +268,7 @@ export const UserManagement = () => {
 
         toast({
           title: "Success",
-          description: `Admin rights granted to ${selectedUser.email}`,
+          description: `Admin rights granted to ${emailToUsername(selectedUser.email)}`,
         });
       } else {
         const { error } = await supabase
@@ -269,7 +281,7 @@ export const UserManagement = () => {
 
         toast({
           title: "Success",
-          description: `Admin rights revoked from ${selectedUser.email}`,
+          description: `Admin rights revoked from ${emailToUsername(selectedUser.email)}`,
         });
       }
 
@@ -314,7 +326,7 @@ export const UserManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
+                <TableHead>Username</TableHead>
                 <TableHead>Full Name</TableHead>
                 <TableHead>User Types</TableHead>
                 <TableHead>RAMS Compliance</TableHead>
@@ -325,7 +337,7 @@ export const UserManagement = () => {
             <TableBody>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
+                  <TableCell className="font-medium">{emailToUsername(user.email)}</TableCell>
                   <TableCell>{user.full_name || "-"}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -413,7 +425,7 @@ export const UserManagement = () => {
           <DialogHeader>
             <DialogTitle>Edit User Types</DialogTitle>
             <DialogDescription>
-              Assign roles to {editingUser?.email}. These determine which RAMS and Toolbox Talks are relevant to them.
+              Assign roles to {editingUser ? emailToUsername(editingUser.email) : ""}. These determine which RAMS and Toolbox Talks are relevant to them.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -450,8 +462,8 @@ export const UserManagement = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionType === "grant"
-                ? `Are you sure you want to grant admin rights to ${selectedUser?.email}? They will have full access to manage content and users.`
-                : `Are you sure you want to revoke admin rights from ${selectedUser?.email}? They will no longer be able to access the admin area.`}
+                ? `Are you sure you want to grant admin rights to ${selectedUser ? emailToUsername(selectedUser.email) : ""}? They will have full access to manage content and users.`
+                : `Are you sure you want to revoke admin rights from ${selectedUser ? emailToUsername(selectedUser.email) : ""}? They will no longer be able to access the admin area.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -469,19 +481,22 @@ export const UserManagement = () => {
           <DialogHeader>
             <DialogTitle>Create New User</DialogTitle>
             <DialogDescription>
-              Add a new user to the system. They will receive an email to set their password.
+              Add a new user to the system. Set their password after creation.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="username">Username *</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="user@example.com"
-                value={newUserEmail}
-                onChange={(e) => setNewUserEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="john.smith"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Letters, numbers, dots, underscores, and hyphens only
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
