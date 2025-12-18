@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ArrowLeft, MessageSquare, CheckCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MessageSquare, CheckCircle, AlertTriangle, ClipboardSignature } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -37,6 +37,7 @@ const ToolboxTalksPage = () => {
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -49,6 +50,15 @@ const ToolboxTalksPage = () => {
       if (!user) return;
 
       try {
+        // Check admin role
+        const { data: adminRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        setIsAdmin(!!adminRole);
+
         // Fetch user profile to get user_types
         const { data: profile } = await supabase
           .from("profiles")
@@ -292,15 +302,37 @@ const ToolboxTalksPage = () => {
           />
 
           {selectedTalk && !signedTalkIds.has(selectedTalk.id) && (
-            <div className="mt-6 pt-4 border-t">
+            <div className="mt-6 pt-4 border-t flex gap-2">
               <Button 
-                className="w-full" 
+                className="flex-1" 
                 onClick={() => {
                   setShowViewDialog(false);
                   setShowSignDialog(true);
                 }}
               >
                 Sign Off This Toolbox Talk
+              </Button>
+              {isAdmin && (
+                <Button 
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => navigate(`/mass-sign-off?type=toolbox&id=${selectedTalk.id}`)}
+                >
+                  <ClipboardSignature className="h-4 w-4" />
+                  Mass Sign Off
+                </Button>
+              )}
+            </div>
+          )}
+          {selectedTalk && signedTalkIds.has(selectedTalk.id) && isAdmin && (
+            <div className="mt-6 pt-4 border-t">
+              <Button 
+                variant="outline"
+                className="gap-2"
+                onClick={() => navigate(`/mass-sign-off?type=toolbox&id=${selectedTalk.id}`)}
+              >
+                <ClipboardSignature className="h-4 w-4" />
+                Mass Sign Off
               </Button>
             </div>
           )}
