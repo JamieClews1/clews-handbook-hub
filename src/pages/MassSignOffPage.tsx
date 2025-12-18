@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ const USER_TYPE_LABELS: Record<string, string> = {
 
 const MassSignOffPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
@@ -51,6 +52,7 @@ const MassSignOffPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [existingSignatures, setExistingSignatures] = useState<SignatureRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
   
   const [signingUser, setSigningUser] = useState<UserProfile | null>(null);
   const [showSignDialog, setShowSignDialog] = useState(false);
@@ -123,9 +125,30 @@ const MassSignOffPage = () => {
     }
   }, [user]);
 
+  // Handle URL params for pre-selection (only once after data loads)
   useEffect(() => {
-    setSelectedDocId("");
-    setExistingSignatures([]);
+    if (hasInitialized || loading) return;
+    
+    const typeParam = searchParams.get('type');
+    const idParam = searchParams.get('id');
+    
+    if (typeParam && idParam) {
+      if (typeParam === 'toolbox' && toolboxTalks.some(t => t.id === idParam)) {
+        setActiveTab('toolbox');
+        setSelectedDocId(idParam);
+      } else if (typeParam === 'rams' && rams.some(r => r.id === idParam)) {
+        setActiveTab('rams');
+        setSelectedDocId(idParam);
+      }
+    }
+    setHasInitialized(true);
+  }, [loading, hasInitialized, searchParams, rams, toolboxTalks]);
+
+  useEffect(() => {
+    if (hasInitialized) {
+      setSelectedDocId("");
+      setExistingSignatures([]);
+    }
   }, [activeTab]);
 
   useEffect(() => {

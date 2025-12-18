@@ -1000,13 +1000,35 @@ const RAMSPage = () => {
                           )}
 
                           {!signed && (
-                            <div className="pt-4 border-t">
+                            <div className="pt-4 border-t flex gap-2 flex-wrap">
                               <Button 
                                 onClick={() => setShowSignDialog(true)}
                                 className="gap-2"
                               >
                                 <PenTool className="h-4 w-4" />
                                 Sign This RAMS
+                              </Button>
+                              {isAdmin && (
+                                <Button 
+                                  variant="outline"
+                                  className="gap-2"
+                                  onClick={() => navigate(`/mass-sign-off?type=rams&id=${rams.id}`)}
+                                >
+                                  <ClipboardSignature className="h-4 w-4" />
+                                  Mass Sign Off
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                          {signed && isAdmin && (
+                            <div className="pt-4 border-t">
+                              <Button 
+                                variant="outline"
+                                className="gap-2"
+                                onClick={() => navigate(`/mass-sign-off?type=rams&id=${rams.id}`)}
+                              >
+                                <ClipboardSignature className="h-4 w-4" />
+                                Mass Sign Off
                               </Button>
                             </div>
                           )}
