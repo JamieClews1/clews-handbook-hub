@@ -8,14 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { usernameToEmail } from "@/lib/auth-utils";
 
 const signInSchema = z.object({
-  email: z.string().trim().email({ message: "Invalid email address" }),
+  username: z.string().trim().min(1, { message: "Username is required" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
 const signUpSchema = z.object({
-  email: z.string().trim().email({ message: "Invalid email address" }),
+  username: z.string().trim().min(1, { message: "Username is required" })
+    .regex(/^[a-zA-Z0-9._-]+$/, { message: "Username can only contain letters, numbers, dots, underscores, and hyphens" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   fullName: z.string().trim().min(1, { message: "Full name is required" }),
 });
@@ -27,11 +29,11 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Sign in form state
-  const [signInEmail, setSignInEmail] = useState("");
+  const [signInUsername, setSignInUsername] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
 
   // Sign up form state
-  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpUsername, setSignUpUsername] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
@@ -45,16 +47,17 @@ const AuthPage = () => {
     e.preventDefault();
     
     try {
-      const validated = signInSchema.parse({ email: signInEmail, password: signInPassword });
+      const validated = signInSchema.parse({ username: signInUsername, password: signInPassword });
       setIsLoading(true);
 
-      const { error } = await signIn(validated.email, validated.password);
+      const email = usernameToEmail(validated.username);
+      const { error } = await signIn(email, validated.password);
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
           toast({
             title: "Login failed",
-            description: "Invalid email or password. Please try again.",
+            description: "Invalid username or password. Please try again.",
             variant: "destructive",
           });
         } else {
@@ -89,19 +92,20 @@ const AuthPage = () => {
     
     try {
       const validated = signUpSchema.parse({ 
-        email: signUpEmail, 
+        username: signUpUsername, 
         password: signUpPassword, 
         fullName 
       });
       setIsLoading(true);
 
-      const { error } = await signUp(validated.email, validated.password, validated.fullName);
+      const email = usernameToEmail(validated.username);
+      const { error } = await signUp(email, validated.password, validated.fullName);
 
       if (error) {
         if (error.message.includes("already registered")) {
           toast({
             title: "Sign up failed",
-            description: "This email is already registered. Please sign in instead.",
+            description: "This username is already taken. Please choose another.",
             variant: "destructive",
           });
         } else {
@@ -117,7 +121,7 @@ const AuthPage = () => {
           description: "Account created successfully! You can now sign in.",
         });
         // Switch to sign in tab
-        setSignInEmail(validated.email);
+        setSignInUsername(validated.username);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -137,7 +141,7 @@ const AuthPage = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Employee Handbook</CardTitle>
-          <CardDescription>Sign in to access admin features</CardDescription>
+          <CardDescription>Sign in to access the portal</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin">
@@ -149,12 +153,13 @@ const AuthPage = () => {
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
+                  <Label htmlFor="signin-username">Username</Label>
                   <Input
-                    id="signin-email"
-                    type="email"
-                    value={signInEmail}
-                    onChange={(e) => setSignInEmail(e.target.value)}
+                    id="signin-username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={signInUsername}
+                    onChange={(e) => setSignInUsername(e.target.value)}
                     required
                   />
                 </div>
@@ -187,14 +192,18 @@ const AuthPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-username">Username</Label>
                   <Input
-                    id="signup-email"
-                    type="email"
-                    value={signUpEmail}
-                    onChange={(e) => setSignUpEmail(e.target.value)}
+                    id="signup-username"
+                    type="text"
+                    placeholder="Choose a username"
+                    value={signUpUsername}
+                    onChange={(e) => setSignUpUsername(e.target.value)}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Letters, numbers, dots, underscores, and hyphens only
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
