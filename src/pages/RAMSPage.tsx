@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface RAMS {
   id: string;
@@ -277,11 +278,15 @@ const RAMSPage = () => {
     if (language === 'EN') return texts;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-rams`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
           body: JSON.stringify({ texts, target_lang: language }),
         }
       );
@@ -955,13 +960,13 @@ const RAMSPage = () => {
                                       <span className="text-muted-foreground text-sm">Control Measures:</span>
                                       <div 
                                         className="text-sm mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1"
-                                        dangerouslySetInnerHTML={{ __html: translatedContent?.hazards?.[idx]?.controlMeasures || hazard.control_measures }}
+                                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(translatedContent?.hazards?.[idx]?.controlMeasures || hazard.control_measures) }}
                                       />
                                     </div>
                                     {hazard.notes && (
                                       <div className="mt-2 text-sm text-muted-foreground italic">
                                         <span>Note: </span>
-                                        <span dangerouslySetInnerHTML={{ __html: translatedContent?.hazards?.[idx]?.notes || hazard.notes }} />
+                                        <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(translatedContent?.hazards?.[idx]?.notes || hazard.notes) }} />
                                       </div>
                                     )}
                                   </Card>
