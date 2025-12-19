@@ -30,6 +30,80 @@ const LANGUAGES = [
   { code: "RO", label: "Romanian" },
 ];
 
+interface ParsedBlock {
+  type: "paragraph" | "heading" | "list-item" | "numbered-item";
+  text: string;
+  level?: number;
+}
+
+const parseHtmlToBlocks = (html: string): ParsedBlock[] => {
+  const blocks: ParsedBlock[] = [];
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+
+  const processNode = (node: Node, listCounter = { value: 0 }) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as Element;
+      const tagName = el.tagName.toLowerCase();
+
+      if (tagName === "h1" || tagName === "h2" || tagName === "h3") {
+        const level = parseInt(tagName.charAt(1));
+        blocks.push({ type: "heading", text: el.textContent?.trim() || "", level });
+      } else if (tagName === "p") {
+        const text = el.textContent?.trim();
+        if (text) {
+          blocks.push({ type: "paragraph", text });
+        }
+      } else if (tagName === "ul") {
+        el.querySelectorAll(":scope > li").forEach((li) => {
+          const text = li.textContent?.trim();
+          if (text) {
+            blocks.push({ type: "list-item", text });
+          }
+        });
+      } else if (tagName === "ol") {
+        listCounter.value = 0;
+        el.querySelectorAll(":scope > li").forEach((li) => {
+          listCounter.value++;
+          const text = li.textContent?.trim();
+          if (text) {
+            blocks.push({ type: "numbered-item", text, level: listCounter.value });
+          }
+        });
+      } else if (tagName === "li") {
+        // Skip - handled by parent ul/ol
+      } else if (tagName === "br") {
+        // Skip line breaks
+      } else if (tagName === "strong" || tagName === "b" || tagName === "em" || tagName === "i") {
+        // These are inline elements, handled by parent
+      } else {
+        // For divs and other containers, process children
+        el.childNodes.forEach((child) => processNode(child, listCounter));
+      }
+    } else if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text && node.parentElement?.tagName.toLowerCase() === "div") {
+        blocks.push({ type: "paragraph", text });
+      }
+    }
+  };
+
+  tempDiv.childNodes.forEach((child) => processNode(child));
+
+  // If no blocks found, treat as plain text with line breaks
+  if (blocks.length === 0) {
+    const plainText = tempDiv.textContent || "";
+    plainText.split(/\n+/).forEach((line) => {
+      const text = line.trim();
+      if (text) {
+        blocks.push({ type: "paragraph", text });
+      }
+    });
+  }
+
+  return blocks;
+};
+
 export const ToolboxTalkPrintDialog = ({
   open,
   onOpenChange,
@@ -45,38 +119,43 @@ export const ToolboxTalkPrintDialog = ({
     );
   };
 
-  const stripHtml = (html: string): string => {
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
-  };
-
   const translateContent = async (
     title: string,
-    content: string,
+    blocks: ParsedBlock[],
     targetLang: string
-  ): Promise<{ title: string; content: string }> => {
+  ): Promise<{ title: string; blocks: ParsedBlock[] }> => {
     if (targetLang === "EN") {
-      return { title, content: stripHtml(content) };
+      return { title, blocks };
     }
 
     try {
+      const textsToTranslate = [title, ...blocks.map((b) => b.text)];
+      
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+
       const { data, error } = await supabase.functions.invoke("translate-toolbox-talk", {
         body: {
-          texts: [title, stripHtml(content)],
+          texts: textsToTranslate,
           target_lang: targetLang,
         },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
       if (error) throw error;
 
+      const translatedBlocks = blocks.map((block, index) => ({
+        ...block,
+        text: data.translations[index + 1] || block.text,
+      }));
+
       return {
         title: data.translations[0] || title,
-        content: data.translations[1] || stripHtml(content),
+        blocks: translatedBlocks,
       };
     } catch (error) {
       console.error("Translation error:", error);
-      return { title, content: stripHtml(content) };
+      return { title, blocks };
     }
   };
 
@@ -88,6 +167,7 @@ export const ToolboxTalkPrintDialog = ({
     try {
       const pdf = new jsPDF();
       let isFirstPage = true;
+      const blocks = parseHtmlToBlocks(toolboxTalk.content);
 
       for (const langCode of selectedLanguages) {
         if (!isFirstPage) {
@@ -95,13 +175,14 @@ export const ToolboxTalkPrintDialog = ({
         }
         isFirstPage = false;
 
-        const { title, content } = await translateContent(
+        const { title, blocks: translatedBlocks } = await translateContent(
           toolboxTalk.title,
-          toolboxTalk.content,
+          blocks,
           langCode
         );
 
         const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
         const margin = 20;
         const contentWidth = pageWidth - margin * 2;
 
@@ -115,33 +196,70 @@ export const ToolboxTalkPrintDialog = ({
         pdf.setFontSize(18);
         pdf.setTextColor(0);
         pdf.setFont("helvetica", "bold");
-        pdf.text(title, margin, 30);
+        const titleLines = pdf.splitTextToSize(title, contentWidth);
+        pdf.text(titleLines, margin, 30);
 
-        // Content
-        pdf.setFontSize(11);
-        pdf.setFont("helvetica", "normal");
-        const lines = pdf.splitTextToSize(content, contentWidth);
-        let yPosition = 45;
+        let yPosition = 30 + titleLines.length * 8 + 10;
 
-        for (const line of lines) {
-          if (yPosition > pdf.internal.pageSize.getHeight() - 60) {
+        // Content blocks
+        for (const block of translatedBlocks) {
+          // Check if we need a new page
+          if (yPosition > pageHeight - 100) {
             pdf.addPage();
             yPosition = 20;
           }
-          pdf.text(line, margin, yPosition);
-          yPosition += 6;
+
+          if (block.type === "heading") {
+            pdf.setFontSize(block.level === 1 ? 16 : block.level === 2 ? 14 : 12);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(0);
+            const headingLines = pdf.splitTextToSize(block.text, contentWidth);
+            pdf.text(headingLines, margin, yPosition);
+            yPosition += headingLines.length * 7 + 4;
+          } else if (block.type === "paragraph") {
+            pdf.setFontSize(11);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(40);
+            const paraLines = pdf.splitTextToSize(block.text, contentWidth);
+            pdf.text(paraLines, margin, yPosition);
+            yPosition += paraLines.length * 5 + 4;
+          } else if (block.type === "list-item") {
+            pdf.setFontSize(11);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(40);
+            const bulletText = `•  ${block.text}`;
+            const listLines = pdf.splitTextToSize(bulletText, contentWidth - 10);
+            pdf.text(listLines, margin + 5, yPosition);
+            yPosition += listLines.length * 5 + 2;
+          } else if (block.type === "numbered-item") {
+            pdf.setFontSize(11);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(40);
+            const numberedText = `${block.level}.  ${block.text}`;
+            const listLines = pdf.splitTextToSize(numberedText, contentWidth - 10);
+            pdf.text(listLines, margin + 5, yPosition);
+            yPosition += listLines.length * 5 + 2;
+          }
         }
 
-        // Signature section
-        const signatureY = Math.max(yPosition + 20, pdf.internal.pageSize.getHeight() - 80);
-        
+        // Signature section - ensure it fits on current page or start new page
+        const signatureSectionHeight = 85;
+        if (yPosition + signatureSectionHeight > pageHeight - 20) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        const signatureY = yPosition + 15;
+
         pdf.setFontSize(12);
         pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(0);
         pdf.text("Toolbox Talk Declaration:", margin, signatureY);
-        
+
         pdf.setFontSize(10);
         pdf.setFont("helvetica", "normal");
-        const declaration = "I have listened to, understood and confirm I will follow the rules and guidelines as set out in this Toolbox Talk.";
+        const declaration =
+          "I have listened to, understood and confirm I will follow the rules and guidelines as set out in this Toolbox Talk.";
         const declarationLines = pdf.splitTextToSize(declaration, contentWidth);
         pdf.text(declarationLines, margin, signatureY + 8);
 
@@ -186,7 +304,7 @@ export const ToolboxTalkPrintDialog = ({
           <div>
             <Label className="text-base font-medium">Select Languages</Label>
             <p className="text-sm text-muted-foreground mb-3">
-              Choose which languages to include in the PDF
+              Choose which languages to include in the PDF. Non-English languages will be auto-translated.
             </p>
             <div className="space-y-2">
               {LANGUAGES.map((lang) => (
