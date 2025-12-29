@@ -31,6 +31,7 @@ const stripHtmlAndFormat = (content: string) => {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
     .replace(/\n{3,}/g, '\n\n') // Reduce 3+ newlines to double (for h4 spacing)
+    .replace(/(• [^\n]+\n)\n+(?=• )/g, '$1') // Remove extra newlines between bullet points
     .replace(/^\n+/, '') // Remove leading newlines
     .trim();
   
