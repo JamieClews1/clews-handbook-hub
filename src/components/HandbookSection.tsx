@@ -16,8 +16,10 @@ interface HandbookSectionProps {
 }
 
 const stripHtmlAndFormat = (content: string) => {
-  // Convert HTML list items to bullet points - each on its own line
+  // Convert h4 headings to bold markdown with proper spacing
   let cleaned = content
+    .replace(/<h4>(.*?)<\/h4>/gi, '\n\n**$1**\n')
+    // Convert HTML list items to bullet points - each on its own line
     .replace(/<li>/gi, '• ')
     .replace(/<\/li>/gi, '\n')
     .replace(/<ul>/gi, '')
@@ -28,7 +30,8 @@ const stripHtmlAndFormat = (content: string) => {
     .replace(/<\/p>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
-    .replace(/\n{2,}/g, '\n') // Reduce multiple newlines to single (no double spacing)
+    .replace(/\n{3,}/g, '\n\n') // Reduce 3+ newlines to double (for h4 spacing)
+    .replace(/^\n+/, '') // Remove leading newlines
     .trim();
   
   return cleaned;
