@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Users, LogOut, ArrowRight, Home, ClipboardSignature, Settings } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Users, LogOut, ArrowRight, Home, ClipboardSignature, Settings, FileQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -63,6 +63,13 @@ const AdminPage = () => {
       icon: MessageSquare,
       href: "/admin/toolbox-talks",
       gradient: "from-warning to-warning/80",
+    },
+    {
+      title: "Partner Questionnaires",
+      description: "Manage partner onboarding forms and compliance questionnaires.",
+      icon: FileQuestion,
+      href: "/admin/questionnaires",
+      gradient: "from-amber-500 to-amber-600",
     },
     {
       title: "Users Admin",

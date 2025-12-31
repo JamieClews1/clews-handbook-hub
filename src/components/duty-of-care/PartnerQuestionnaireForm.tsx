@@ -269,6 +269,7 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
   };
 
   const isSubmitted = formData.status !== 'pending';
+  // Admins can always edit, public users can only edit pending forms
   const isReadOnly = isPublic && isSubmitted;
 
   if (isLoading) {
@@ -956,7 +957,12 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
       {/* Actions */}
       {!isReadOnly && (
         <div className="flex flex-wrap gap-3 justify-end pt-4">
-          {!isSubmitted && (
+          {isAdmin && isSubmitted ? (
+            <Button onClick={() => handleSave(false)} disabled={isSaving} className="gap-2">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Changes
+            </Button>
+          ) : !isSubmitted ? (
             <>
               <Button variant="outline" onClick={() => handleSave(false)} disabled={isSaving} className="gap-2">
                 <Save className="h-4 w-4" />
@@ -967,7 +973,7 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
                 Submit Questionnaire
               </Button>
             </>
-          )}
+          ) : null}
         </div>
       )}
 

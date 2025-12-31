@@ -17,6 +17,7 @@ import AdminRAMSPage from "./pages/AdminRAMSPage";
 import AdminToolboxTalksPage from "./pages/AdminToolboxTalksPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
+import AdminQuestionnairesPage from "./pages/AdminQuestionnairesPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MassSignOffPage from "./pages/MassSignOffPage";
 import DutyOfCarePage from "./pages/DutyOfCarePage";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/admin/toolbox-talks" element={<AdminToolboxTalksPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            <Route path="/admin/questionnaires" element={<AdminQuestionnairesPage />} />
             <Route path="/my-profile" element={<MyProfilePage />} />
             <Route path="/mass-sign-off" element={<MassSignOffPage />} />
             <Route path="/duty-of-care" element={<DutyOfCarePage />} />
