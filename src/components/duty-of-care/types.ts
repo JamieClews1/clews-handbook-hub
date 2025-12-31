@@ -1,7 +1,7 @@
 export interface DocumentType {
   id: string;
   name: string;
-  category: 'company' | 'partner';
+  category: string;
   created_at: string;
   updated_at: string;
 }
