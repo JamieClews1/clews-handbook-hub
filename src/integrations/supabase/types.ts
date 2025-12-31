@@ -469,6 +469,335 @@ export type Database = {
           },
         ]
       }
+      partner_questionnaires: {
+        Row: {
+          additional_notes: string | null
+          address_line1: string | null
+          address_line2: string | null
+          can_provide_prices_by_postcode: boolean | null
+          city: string | null
+          community_programme_details: string | null
+          community_responsible_email: string | null
+          community_responsible_name: string | null
+          community_responsible_phone: string | null
+          company_name: string
+          company_registration_number: string | null
+          complies_loler: boolean | null
+          complies_puwer: boolean | null
+          complies_skip_container_safety: boolean | null
+          complies_skip_loader_guidance: boolean | null
+          created_at: string
+          created_by: string | null
+          email_orders: string | null
+          email_remittances: string | null
+          h_and_s_proceedings_details: string | null
+          has_anti_bribery_policy: boolean | null
+          has_bs_8555: boolean | null
+          has_community_programmes: boolean | null
+          has_emas_certification: boolean | null
+          has_employee_handbook: boolean | null
+          has_employers_liability_insurance: boolean | null
+          has_environmental_policy: boolean | null
+          has_epr_car_report: boolean | null
+          has_equality_diversity_policy: boolean | null
+          has_fors_clocs: boolean | null
+          has_gdpr_policy: boolean | null
+          has_h_and_s_proceedings: boolean | null
+          has_health_safety_policy: boolean | null
+          has_iso_14001: boolean | null
+          has_iso_9001: boolean | null
+          has_minimum_wage_policy: boolean | null
+          has_modern_slavery_policy: boolean | null
+          has_pda_system: boolean | null
+          has_public_liability_insurance: boolean | null
+          has_quality_policy: boolean | null
+          has_quarterly_return: boolean | null
+          has_riddor_incidents: boolean | null
+          has_sample_wtn: boolean | null
+          has_slavery_investigation: boolean | null
+          has_social_media_policy: boolean | null
+          has_social_value_policy: boolean | null
+          has_sustainability_policy: boolean | null
+          has_waste_carriers_licence: boolean | null
+          has_waste_management_licence: boolean | null
+          has_weighbridge_certificate: boolean | null
+          has_whistle_blowing_policy: boolean | null
+          id: string
+          investigates_accidents: boolean | null
+          invoice_day: string | null
+          invoicing_software: string | null
+          issues_zero_hour_contracts: boolean | null
+          operating_systems_used: string | null
+          partner_id: string | null
+          partner_ranking: string | null
+          postcode: string | null
+          price_validity_dates: string | null
+          provides_ppe: boolean | null
+          provides_risk_assessments: boolean | null
+          provides_weekly_invoices_wtns: boolean | null
+          provides_weights_breakdowns: boolean | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_position: string | null
+          reviewed_signature: string | null
+          riddor_details: string | null
+          services_asbestos: boolean | null
+          services_chain_lifts: boolean | null
+          services_enclosed_skips: boolean | null
+          services_grab_hire: boolean | null
+          services_man_in_van: boolean | null
+          services_road_sweeper: boolean | null
+          services_roll_on_roll_offs: boolean | null
+          services_wheelie_bin: boolean | null
+          share_token: string
+          sheq_responsible_email: string | null
+          sheq_responsible_name: string | null
+          sheq_responsible_qualification: string | null
+          sic_code: string | null
+          signatory_name: string | null
+          signatory_position: string | null
+          signatory_signature: string | null
+          signed_at: string | null
+          slavery_investigation_details: string | null
+          status: string
+          submitted_at: string | null
+          telephone: string | null
+          transfers_waste_to_other_sites: boolean | null
+          updated_at: string
+          vat_number: string | null
+          waste_carriers_licence_number: string | null
+          waste_reporting_email: string | null
+          waste_reporting_name: string | null
+          waste_reporting_phone: string | null
+          waste_transfer_details: string | null
+          weekly_reporting_notes: string | null
+          weights_breakdowns_format: string | null
+          wtn_delivery_method: string | null
+          wtn_delivery_timing: string | null
+          zero_hour_explanation: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          can_provide_prices_by_postcode?: boolean | null
+          city?: string | null
+          community_programme_details?: string | null
+          community_responsible_email?: string | null
+          community_responsible_name?: string | null
+          community_responsible_phone?: string | null
+          company_name: string
+          company_registration_number?: string | null
+          complies_loler?: boolean | null
+          complies_puwer?: boolean | null
+          complies_skip_container_safety?: boolean | null
+          complies_skip_loader_guidance?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          email_orders?: string | null
+          email_remittances?: string | null
+          h_and_s_proceedings_details?: string | null
+          has_anti_bribery_policy?: boolean | null
+          has_bs_8555?: boolean | null
+          has_community_programmes?: boolean | null
+          has_emas_certification?: boolean | null
+          has_employee_handbook?: boolean | null
+          has_employers_liability_insurance?: boolean | null
+          has_environmental_policy?: boolean | null
+          has_epr_car_report?: boolean | null
+          has_equality_diversity_policy?: boolean | null
+          has_fors_clocs?: boolean | null
+          has_gdpr_policy?: boolean | null
+          has_h_and_s_proceedings?: boolean | null
+          has_health_safety_policy?: boolean | null
+          has_iso_14001?: boolean | null
+          has_iso_9001?: boolean | null
+          has_minimum_wage_policy?: boolean | null
+          has_modern_slavery_policy?: boolean | null
+          has_pda_system?: boolean | null
+          has_public_liability_insurance?: boolean | null
+          has_quality_policy?: boolean | null
+          has_quarterly_return?: boolean | null
+          has_riddor_incidents?: boolean | null
+          has_sample_wtn?: boolean | null
+          has_slavery_investigation?: boolean | null
+          has_social_media_policy?: boolean | null
+          has_social_value_policy?: boolean | null
+          has_sustainability_policy?: boolean | null
+          has_waste_carriers_licence?: boolean | null
+          has_waste_management_licence?: boolean | null
+          has_weighbridge_certificate?: boolean | null
+          has_whistle_blowing_policy?: boolean | null
+          id?: string
+          investigates_accidents?: boolean | null
+          invoice_day?: string | null
+          invoicing_software?: string | null
+          issues_zero_hour_contracts?: boolean | null
+          operating_systems_used?: string | null
+          partner_id?: string | null
+          partner_ranking?: string | null
+          postcode?: string | null
+          price_validity_dates?: string | null
+          provides_ppe?: boolean | null
+          provides_risk_assessments?: boolean | null
+          provides_weekly_invoices_wtns?: boolean | null
+          provides_weights_breakdowns?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_position?: string | null
+          reviewed_signature?: string | null
+          riddor_details?: string | null
+          services_asbestos?: boolean | null
+          services_chain_lifts?: boolean | null
+          services_enclosed_skips?: boolean | null
+          services_grab_hire?: boolean | null
+          services_man_in_van?: boolean | null
+          services_road_sweeper?: boolean | null
+          services_roll_on_roll_offs?: boolean | null
+          services_wheelie_bin?: boolean | null
+          share_token?: string
+          sheq_responsible_email?: string | null
+          sheq_responsible_name?: string | null
+          sheq_responsible_qualification?: string | null
+          sic_code?: string | null
+          signatory_name?: string | null
+          signatory_position?: string | null
+          signatory_signature?: string | null
+          signed_at?: string | null
+          slavery_investigation_details?: string | null
+          status?: string
+          submitted_at?: string | null
+          telephone?: string | null
+          transfers_waste_to_other_sites?: boolean | null
+          updated_at?: string
+          vat_number?: string | null
+          waste_carriers_licence_number?: string | null
+          waste_reporting_email?: string | null
+          waste_reporting_name?: string | null
+          waste_reporting_phone?: string | null
+          waste_transfer_details?: string | null
+          weekly_reporting_notes?: string | null
+          weights_breakdowns_format?: string | null
+          wtn_delivery_method?: string | null
+          wtn_delivery_timing?: string | null
+          zero_hour_explanation?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          can_provide_prices_by_postcode?: boolean | null
+          city?: string | null
+          community_programme_details?: string | null
+          community_responsible_email?: string | null
+          community_responsible_name?: string | null
+          community_responsible_phone?: string | null
+          company_name?: string
+          company_registration_number?: string | null
+          complies_loler?: boolean | null
+          complies_puwer?: boolean | null
+          complies_skip_container_safety?: boolean | null
+          complies_skip_loader_guidance?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          email_orders?: string | null
+          email_remittances?: string | null
+          h_and_s_proceedings_details?: string | null
+          has_anti_bribery_policy?: boolean | null
+          has_bs_8555?: boolean | null
+          has_community_programmes?: boolean | null
+          has_emas_certification?: boolean | null
+          has_employee_handbook?: boolean | null
+          has_employers_liability_insurance?: boolean | null
+          has_environmental_policy?: boolean | null
+          has_epr_car_report?: boolean | null
+          has_equality_diversity_policy?: boolean | null
+          has_fors_clocs?: boolean | null
+          has_gdpr_policy?: boolean | null
+          has_h_and_s_proceedings?: boolean | null
+          has_health_safety_policy?: boolean | null
+          has_iso_14001?: boolean | null
+          has_iso_9001?: boolean | null
+          has_minimum_wage_policy?: boolean | null
+          has_modern_slavery_policy?: boolean | null
+          has_pda_system?: boolean | null
+          has_public_liability_insurance?: boolean | null
+          has_quality_policy?: boolean | null
+          has_quarterly_return?: boolean | null
+          has_riddor_incidents?: boolean | null
+          has_sample_wtn?: boolean | null
+          has_slavery_investigation?: boolean | null
+          has_social_media_policy?: boolean | null
+          has_social_value_policy?: boolean | null
+          has_sustainability_policy?: boolean | null
+          has_waste_carriers_licence?: boolean | null
+          has_waste_management_licence?: boolean | null
+          has_weighbridge_certificate?: boolean | null
+          has_whistle_blowing_policy?: boolean | null
+          id?: string
+          investigates_accidents?: boolean | null
+          invoice_day?: string | null
+          invoicing_software?: string | null
+          issues_zero_hour_contracts?: boolean | null
+          operating_systems_used?: string | null
+          partner_id?: string | null
+          partner_ranking?: string | null
+          postcode?: string | null
+          price_validity_dates?: string | null
+          provides_ppe?: boolean | null
+          provides_risk_assessments?: boolean | null
+          provides_weekly_invoices_wtns?: boolean | null
+          provides_weights_breakdowns?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_position?: string | null
+          reviewed_signature?: string | null
+          riddor_details?: string | null
+          services_asbestos?: boolean | null
+          services_chain_lifts?: boolean | null
+          services_enclosed_skips?: boolean | null
+          services_grab_hire?: boolean | null
+          services_man_in_van?: boolean | null
+          services_road_sweeper?: boolean | null
+          services_roll_on_roll_offs?: boolean | null
+          services_wheelie_bin?: boolean | null
+          share_token?: string
+          sheq_responsible_email?: string | null
+          sheq_responsible_name?: string | null
+          sheq_responsible_qualification?: string | null
+          sic_code?: string | null
+          signatory_name?: string | null
+          signatory_position?: string | null
+          signatory_signature?: string | null
+          signed_at?: string | null
+          slavery_investigation_details?: string | null
+          status?: string
+          submitted_at?: string | null
+          telephone?: string | null
+          transfers_waste_to_other_sites?: boolean | null
+          updated_at?: string
+          vat_number?: string | null
+          waste_carriers_licence_number?: string | null
+          waste_reporting_email?: string | null
+          waste_reporting_name?: string | null
+          waste_reporting_phone?: string | null
+          waste_transfer_details?: string | null
+          weekly_reporting_notes?: string | null
+          weights_breakdowns_format?: string | null
+          wtn_delivery_method?: string | null
+          wtn_delivery_timing?: string | null
+          zero_hour_explanation?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_questionnaires_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partners: {
         Row: {
           company_name: string

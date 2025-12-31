@@ -23,6 +23,7 @@ import DutyOfCarePage from "./pages/DutyOfCarePage";
 import WasteReportingPage from "./pages/WasteReportingPage";
 import PoliciesPage from "./pages/PoliciesPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
+import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/waste-reporting" element={<WasteReportingPage />} />
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
+            <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
