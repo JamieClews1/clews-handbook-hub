@@ -19,6 +19,9 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MassSignOffPage from "./pages/MassSignOffPage";
+import DutyOfCarePage from "./pages/DutyOfCarePage";
+import WasteReportingPage from "./pages/WasteReportingPage";
+import PoliciesPage from "./pages/PoliciesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +49,9 @@ const App = () => (
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/my-profile" element={<MyProfilePage />} />
             <Route path="/mass-sign-off" element={<MassSignOffPage />} />
+            <Route path="/duty-of-care" element={<DutyOfCarePage />} />
+            <Route path="/waste-reporting" element={<WasteReportingPage />} />
+            <Route path="/policies" element={<PoliciesPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
