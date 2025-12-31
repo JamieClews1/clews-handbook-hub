@@ -1,13 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, FileCheck, Building2, Settings } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import clewsLogo from "@/assets/clews-logo.png";
+import { DashboardOverview } from "@/components/duty-of-care/DashboardOverview";
+import { CompanyDocumentsSection } from "@/components/duty-of-care/CompanyDocumentsSection";
+import { PartnersList } from "@/components/duty-of-care/PartnersList";
+import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSettings";
+import { CompanyDocument, Partner, PartnerDocument, PartnerDocumentRequirement, DocumentType } from "@/components/duty-of-care/types";
 
 const DutyOfCarePage = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
+  
+  const [companyDocuments, setCompanyDocuments] = useState<CompanyDocument[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [partnerDocuments, setPartnerDocuments] = useState<PartnerDocument[]>([]);
+  const [requirements, setRequirements] = useState<PartnerDocumentRequirement[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -15,7 +30,35 @@ const DutyOfCarePage = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  const fetchData = async () => {
+    try {
+      const [docsRes, partnersRes, partnerDocsRes, reqsRes, typesRes] = await Promise.all([
+        supabase.from('company_documents').select('*').order('expiry_date', { ascending: true }),
+        supabase.from('partners').select('*').order('company_name'),
+        supabase.from('partner_documents').select('*'),
+        supabase.from('partner_document_requirements').select('*').order('partner_type'),
+        supabase.from('document_types').select('*').order('name'),
+      ]);
+
+      if (docsRes.data) setCompanyDocuments(docsRes.data);
+      if (partnersRes.data) setPartners(partnersRes.data);
+      if (partnerDocsRes.data) setPartnerDocuments(partnerDocsRes.data);
+      if (reqsRes.data) setRequirements(reqsRes.data);
+      if (typesRes.data) setDocumentTypes(typesRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -26,9 +69,7 @@ const DutyOfCarePage = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -48,21 +89,85 @@ const DutyOfCarePage = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <FileCheck className="h-10 w-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Duty of Care</h1>
-          <p className="text-muted-foreground text-lg mb-8">
-            Duty of Care documentation and compliance tracking coming soon.
-          </p>
-          <div className="bg-muted/50 rounded-lg p-8 border border-border">
-            <p className="text-muted-foreground">
-              This section will contain waste transfer notes, carrier licenses, and duty of care compliance documentation.
-            </p>
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+              <FileCheck className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Duty of Care</h1>
+              <p className="text-muted-foreground">Manage compliance documents and partner records</p>
+            </div>
           </div>
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
+            <TabsTrigger value="overview" className="gap-2">
+              <FileCheck className="h-4 w-4 hidden sm:inline" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="company" className="gap-2">
+              <FileCheck className="h-4 w-4 hidden sm:inline" />
+              Company
+            </TabsTrigger>
+            <TabsTrigger value="partners" className="gap-2">
+              <Building2 className="h-4 w-4 hidden sm:inline" />
+              Partners
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="settings" className="gap-2">
+                <Settings className="h-4 w-4 hidden sm:inline" />
+                Settings
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <DashboardOverview
+              companyDocuments={companyDocuments}
+              partners={partners}
+              partnerDocuments={partnerDocuments}
+            />
+            <CompanyDocumentsSection
+              documents={companyDocuments}
+              documentTypes={documentTypes}
+              isAdmin={isAdmin}
+              onRefresh={fetchData}
+            />
+          </TabsContent>
+
+          <TabsContent value="company">
+            <CompanyDocumentsSection
+              documents={companyDocuments}
+              documentTypes={documentTypes}
+              isAdmin={isAdmin}
+              onRefresh={fetchData}
+            />
+          </TabsContent>
+
+          <TabsContent value="partners">
+            <PartnersList
+              partners={partners}
+              partnerDocuments={partnerDocuments}
+              requirements={requirements}
+              isAdmin={isAdmin}
+              onRefresh={fetchData}
+            />
+          </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="settings">
+              <RequirementsSettings
+                requirements={requirements}
+                documentTypes={documentTypes}
+                isAdmin={isAdmin}
+                onRefresh={fetchData}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
       </main>
     </div>
   );

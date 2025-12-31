@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          document_type_id: string | null
+          document_type_name: string
+          expiry_date: string
+          file_name: string
+          file_path: string
+          id: string
+          issue_date: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          document_type_id?: string | null
+          document_type_name: string
+          expiry_date: string
+          file_name: string
+          file_path: string
+          id?: string
+          issue_date: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          document_type_id?: string | null
+          document_type_name?: string
+          expiry_date?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          issue_date?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_documents_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "document_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_types: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       handbook_sections: {
         Row: {
           created_at: string
@@ -165,6 +239,119 @@ export type Database = {
           id?: string
           office_address?: string | null
           office_hours?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_document_requirements: {
+        Row: {
+          created_at: string
+          document_type: string
+          id: string
+          is_mandatory: boolean
+          partner_type: string
+          requires_expiry: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          id?: string
+          is_mandatory?: boolean
+          partner_type: string
+          requires_expiry?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          id?: string
+          is_mandatory?: boolean
+          partner_type?: string
+          requires_expiry?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          document_type: string
+          expiry_date: string | null
+          file_name: string
+          file_path: string
+          id: string
+          partner_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          document_type: string
+          expiry_date?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          partner_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          document_type?: string
+          expiry_date?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          partner_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_documents_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          company_name: string
+          contact_name: string
+          contact_role: string
+          created_at: string
+          email: string
+          id: string
+          partner_types: string[]
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_name: string
+          contact_role: string
+          created_at?: string
+          email: string
+          id?: string
+          partner_types?: string[]
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string
+          contact_role?: string
+          created_at?: string
+          email?: string
+          id?: string
+          partner_types?: string[]
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []
