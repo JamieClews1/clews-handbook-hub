@@ -536,6 +536,7 @@ export type Database = {
           provides_risk_assessments: boolean | null
           provides_weekly_invoices_wtns: boolean | null
           provides_weights_breakdowns: boolean | null
+          responses: Json | null
           reviewed_at: string | null
           reviewed_by: string | null
           reviewed_position: string | null
@@ -562,6 +563,7 @@ export type Database = {
           status: string
           submitted_at: string | null
           telephone: string | null
+          template_id: string | null
           transfers_waste_to_other_sites: boolean | null
           updated_at: string
           vat_number: string | null
@@ -642,6 +644,7 @@ export type Database = {
           provides_risk_assessments?: boolean | null
           provides_weekly_invoices_wtns?: boolean | null
           provides_weights_breakdowns?: boolean | null
+          responses?: Json | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_position?: string | null
@@ -668,6 +671,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           telephone?: string | null
+          template_id?: string | null
           transfers_waste_to_other_sites?: boolean | null
           updated_at?: string
           vat_number?: string | null
@@ -748,6 +752,7 @@ export type Database = {
           provides_risk_assessments?: boolean | null
           provides_weekly_invoices_wtns?: boolean | null
           provides_weights_breakdowns?: boolean | null
+          responses?: Json | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           reviewed_position?: string | null
@@ -774,6 +779,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           telephone?: string | null
+          template_id?: string | null
           transfers_waste_to_other_sites?: boolean | null
           updated_at?: string
           vat_number?: string | null
@@ -794,6 +800,13 @@ export type Database = {
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_questionnaires_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -858,6 +871,130 @@ export type Database = {
           id?: string
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null
+        }
+        Relationships: []
+      }
+      questionnaire_fields: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_key: string
+          field_type: string
+          helper_text: string | null
+          id: string
+          is_required: boolean
+          label: string
+          options: string[] | null
+          placeholder: string | null
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_key: string
+          field_type: string
+          helper_text?: string | null
+          id?: string
+          is_required?: boolean
+          label: string
+          options?: string[] | null
+          placeholder?: string | null
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_key?: string
+          field_type?: string
+          helper_text?: string | null
+          id?: string
+          is_required?: boolean
+          label?: string
+          options?: string[] | null
+          placeholder?: string | null
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_fields_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_sections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
