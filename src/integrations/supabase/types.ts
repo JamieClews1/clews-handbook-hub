@@ -64,6 +64,27 @@ export type Database = {
           },
         ]
       }
+      default_waste_types: {
+        Row: {
+          display_order: number
+          ewc_code: string | null
+          id: string
+          waste_type: string
+        }
+        Insert: {
+          display_order?: number
+          ewc_code?: string | null
+          id?: string
+          waste_type: string
+        }
+        Update: {
+          display_order?: number
+          ewc_code?: string | null
+          id?: string
+          waste_type?: string
+        }
+        Relationships: []
+      }
       document_types: {
         Row: {
           category: string
@@ -87,6 +108,134 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      facility_recycling_forms: {
+        Row: {
+          additional_comments: string | null
+          average_recovery_rate: number | null
+          average_recycling_rate: number | null
+          can_skips_be_weighed: string | null
+          can_waste_breakdown_per_skip: string | null
+          company_name: string
+          completed_by: string
+          created_at: string
+          created_by: string | null
+          desktop_audit: boolean | null
+          desktop_audit_checked_by: string | null
+          desktop_audit_completed_by: string | null
+          facility_name: string
+          form_date: string
+          id: string
+          share_token: string
+          skips_weighed_notes: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          visual_audit: boolean | null
+          waste_breakdown_notes: string | null
+          wml_license_number: string | null
+        }
+        Insert: {
+          additional_comments?: string | null
+          average_recovery_rate?: number | null
+          average_recycling_rate?: number | null
+          can_skips_be_weighed?: string | null
+          can_waste_breakdown_per_skip?: string | null
+          company_name: string
+          completed_by: string
+          created_at?: string
+          created_by?: string | null
+          desktop_audit?: boolean | null
+          desktop_audit_checked_by?: string | null
+          desktop_audit_completed_by?: string | null
+          facility_name: string
+          form_date?: string
+          id?: string
+          share_token?: string
+          skips_weighed_notes?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          visual_audit?: boolean | null
+          waste_breakdown_notes?: string | null
+          wml_license_number?: string | null
+        }
+        Update: {
+          additional_comments?: string | null
+          average_recovery_rate?: number | null
+          average_recycling_rate?: number | null
+          can_skips_be_weighed?: string | null
+          can_waste_breakdown_per_skip?: string | null
+          company_name?: string
+          completed_by?: string
+          created_at?: string
+          created_by?: string | null
+          desktop_audit?: boolean | null
+          desktop_audit_checked_by?: string | null
+          desktop_audit_completed_by?: string | null
+          facility_name?: string
+          form_date?: string
+          id?: string
+          share_token?: string
+          skips_weighed_notes?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          visual_audit?: boolean | null
+          waste_breakdown_notes?: string | null
+          wml_license_number?: string | null
+        }
+        Relationships: []
+      }
+      facility_recycling_waste_entries: {
+        Row: {
+          created_at: string
+          display_order: number
+          ewc_code: string | null
+          final_destination_info: string | null
+          form_id: string
+          id: string
+          percent_landfill: number | null
+          percent_recovered: number | null
+          percent_recycled: number | null
+          updated_at: string
+          waste_type: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          ewc_code?: string | null
+          final_destination_info?: string | null
+          form_id: string
+          id?: string
+          percent_landfill?: number | null
+          percent_recovered?: number | null
+          percent_recycled?: number | null
+          updated_at?: string
+          waste_type: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          ewc_code?: string | null
+          final_destination_info?: string | null
+          form_id?: string
+          id?: string
+          percent_landfill?: number | null
+          percent_recovered?: number | null
+          percent_recycled?: number | null
+          updated_at?: string
+          waste_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_recycling_waste_entries_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "facility_recycling_forms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       handbook_sections: {
         Row: {
