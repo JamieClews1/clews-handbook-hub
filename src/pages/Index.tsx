@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -57,27 +57,45 @@ const Index = () => {
     return null;
   }
 
-  const portalSections = [
+  const complianceHubSections = [
+    {
+      title: "Duty of Care",
+      description: "Waste transfer notes, carrier licenses, and duty of care compliance documentation.",
+      icon: FileCheck,
+      href: "/duty-of-care",
+    },
+    {
+      title: "Waste Reporting",
+      description: "Waste data reporting, tonnage tracking, and environmental compliance.",
+      icon: Recycle,
+      href: "/waste-reporting",
+    },
+    {
+      title: "Policies",
+      description: "Environmental policies, quality policies, and compliance certificates.",
+      icon: ScrollText,
+      href: "/policies",
+    },
+  ];
+
+  const teamToolsSections = [
     {
       title: "Employee Handbook",
       description: "Company policies, procedures, health & safety guidelines, and essential workplace information.",
       icon: BookOpen,
       href: "/handbook",
-      gradient: "from-primary to-primary/80",
     },
     {
       title: "RAMS",
       description: "Risk Assessments and Method Statements for safe work practices and compliance.",
       icon: FileText,
       href: "/rams",
-      gradient: "from-secondary to-secondary/80",
     },
     {
       title: "Toolbox Talks",
       description: "Short safety briefings and discussions to reinforce workplace safety awareness.",
       icon: MessageSquare,
       href: "/toolbox-talks",
-      gradient: "from-warning to-warning/80",
     },
   ];
 
@@ -121,7 +139,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 lg:py-28">
+      <section className="relative overflow-hidden py-16 lg:py-20">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
         
@@ -150,35 +168,80 @@ const Index = () => {
 
       {/* Portal Sections */}
       <main className="container mx-auto px-4 pb-20">
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
-          {portalSections.map((section, index) => (
-            <Link 
-              key={section.href} 
-              to={section.href} 
-              className="group animate-fade-up"
-              style={{ animationDelay: `${0.3 + index * 0.1}s` }}
-            >
-              <Card className="h-full bg-card border-border/50 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-primary/30 overflow-hidden">
-                <CardHeader className="pb-4">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${section.gradient} flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 shadow-lg`}>
-                    <section.icon className="h-7 w-7 text-primary-foreground" />
-                  </div>
-                  <CardTitle className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {section.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <CardDescription className="text-base text-muted-foreground mb-4">
-                    {section.description}
-                  </CardDescription>
-                  <div className="flex items-center text-primary font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span>Explore</span>
-                    <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        {/* Compliance Hub Section */}
+        <div className="max-w-6xl mx-auto mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-2 h-8 bg-amber-500 rounded-full" />
+            <h3 className="text-2xl font-bold text-foreground">Compliance Hub</h3>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {complianceHubSections.map((section, index) => (
+              <Link 
+                key={section.href} 
+                to={section.href} 
+                className="group animate-fade-up"
+                style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+              >
+                <Card className="h-full bg-card border-amber-500/30 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-amber-500/50 overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 shadow-lg">
+                      <section.icon className="h-7 w-7 text-white" />
+                    </div>
+                    <CardTitle className="text-xl font-semibold text-foreground group-hover:text-amber-500 transition-colors">
+                      {section.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <CardDescription className="text-base text-muted-foreground mb-4">
+                      {section.description}
+                    </CardDescription>
+                    <div className="flex items-center text-amber-500 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span>Explore</span>
+                      <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Team Tools Section */}
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-2 h-8 bg-primary rounded-full" />
+            <h3 className="text-2xl font-bold text-foreground">Team Tools</h3>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {teamToolsSections.map((section, index) => (
+              <Link 
+                key={section.href} 
+                to={section.href} 
+                className="group animate-fade-up"
+                style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+              >
+                <Card className="h-full bg-card border-border/50 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-primary/30 overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 shadow-lg">
+                      <section.icon className="h-7 w-7 text-primary-foreground" />
+                    </div>
+                    <CardTitle className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {section.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <CardDescription className="text-base text-muted-foreground mb-4">
+                      {section.description}
+                    </CardDescription>
+                    <div className="flex items-center text-primary font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span>Explore</span>
+                      <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
       </main>
 
