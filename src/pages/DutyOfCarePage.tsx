@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import clewsLogo from "@/assets/clews-logo.png";
 import { DashboardOverview } from "@/components/duty-of-care/DashboardOverview";
 import { CompanyDocumentsSection } from "@/components/duty-of-care/CompanyDocumentsSection";
+import { CompanyProfile } from "@/components/duty-of-care/CompanyProfile";
 import { PartnersList } from "@/components/duty-of-care/PartnersList";
 import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSettings";
 import { PartnerQuestionnairesList } from "@/components/duty-of-care/PartnerQuestionnairesList";
@@ -147,7 +148,8 @@ const DutyOfCarePage = () => {
             />
           </TabsContent>
 
-          <TabsContent value="company">
+          <TabsContent value="company" className="space-y-6">
+            <CompanyProfile isAdmin={isAdmin} />
             <CompanyDocumentsSection
               documents={companyDocuments}
               documentTypes={documentTypes}
