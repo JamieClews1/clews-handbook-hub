@@ -64,6 +64,111 @@ export type Database = {
           },
         ]
       }
+      company_profile: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_iban: string | null
+          bank_name: string | null
+          bank_sort_code: string | null
+          bank_swift_bic: string | null
+          company_name: string
+          company_registration_number: string | null
+          created_at: string
+          credit_terms: string | null
+          date_of_incorporation: string | null
+          email: string | null
+          employers_liability_insurance_expiry: string | null
+          employers_liability_insurance_provider: string | null
+          environment_agency_reference: string | null
+          environmental_policy: boolean | null
+          health_safety_policy: boolean | null
+          id: string
+          iso_14001_certified: boolean | null
+          iso_9001_certified: boolean | null
+          operational_address: string | null
+          public_liability_insurance_expiry: string | null
+          public_liability_insurance_provider: string | null
+          registered_address: string | null
+          sic_code: string | null
+          telephone: string | null
+          trading_name: string | null
+          updated_at: string
+          vat_number: string | null
+          waste_carriers_licence_expiry: string | null
+          waste_carriers_licence_number: string | null
+          website: string | null
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          bank_sort_code?: string | null
+          bank_swift_bic?: string | null
+          company_name?: string
+          company_registration_number?: string | null
+          created_at?: string
+          credit_terms?: string | null
+          date_of_incorporation?: string | null
+          email?: string | null
+          employers_liability_insurance_expiry?: string | null
+          employers_liability_insurance_provider?: string | null
+          environment_agency_reference?: string | null
+          environmental_policy?: boolean | null
+          health_safety_policy?: boolean | null
+          id?: string
+          iso_14001_certified?: boolean | null
+          iso_9001_certified?: boolean | null
+          operational_address?: string | null
+          public_liability_insurance_expiry?: string | null
+          public_liability_insurance_provider?: string | null
+          registered_address?: string | null
+          sic_code?: string | null
+          telephone?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          waste_carriers_licence_expiry?: string | null
+          waste_carriers_licence_number?: string | null
+          website?: string | null
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          bank_sort_code?: string | null
+          bank_swift_bic?: string | null
+          company_name?: string
+          company_registration_number?: string | null
+          created_at?: string
+          credit_terms?: string | null
+          date_of_incorporation?: string | null
+          email?: string | null
+          employers_liability_insurance_expiry?: string | null
+          employers_liability_insurance_provider?: string | null
+          environment_agency_reference?: string | null
+          environmental_policy?: boolean | null
+          health_safety_policy?: boolean | null
+          id?: string
+          iso_14001_certified?: boolean | null
+          iso_9001_certified?: boolean | null
+          operational_address?: string | null
+          public_liability_insurance_expiry?: string | null
+          public_liability_insurance_provider?: string | null
+          registered_address?: string | null
+          sic_code?: string | null
+          telephone?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          waste_carriers_licence_expiry?: string | null
+          waste_carriers_licence_number?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       default_waste_types: {
         Row: {
           display_order: number
