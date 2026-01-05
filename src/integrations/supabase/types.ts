@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_contacts: {
+        Row: {
+          contact_type: string
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_type: string
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_type?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_documents: {
         Row: {
           created_at: string
@@ -1257,6 +1290,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      riddor_incidents: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          incident_date: string
+          notes: string | null
+          reported_by: string | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          incident_date: string
+          notes?: string | null
+          reported_by?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          incident_date?: string
+          notes?: string | null
+          reported_by?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       toolbox_talk_signatures: {
         Row: {

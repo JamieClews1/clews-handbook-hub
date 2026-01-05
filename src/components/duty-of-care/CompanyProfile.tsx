@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Building2, CreditCard, Shield, Edit2, X } from "lucide-react";
+import { Save, Building2, CreditCard, Shield, Edit2, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { CompanyContacts } from "./CompanyContacts";
+import { RiddorIncidents } from "./RiddorIncidents";
 
 interface CompanyProfileData {
   id: string;
@@ -201,7 +203,7 @@ export function CompanyProfile({ isAdmin }: CompanyProfileProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="key-info" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="key-info" className="gap-2">
               <Building2 className="h-4 w-4 hidden sm:inline" />
               Key Info
@@ -213,6 +215,10 @@ export function CompanyProfile({ isAdmin }: CompanyProfileProps) {
             <TabsTrigger value="duty-of-care" className="gap-2">
               <Shield className="h-4 w-4 hidden sm:inline" />
               Duty of Care
+            </TabsTrigger>
+            <TabsTrigger value="health-safety" className="gap-2">
+              <AlertTriangle className="h-4 w-4 hidden sm:inline" />
+              H&S
             </TabsTrigger>
           </TabsList>
 
@@ -233,6 +239,10 @@ export function CompanyProfile({ isAdmin }: CompanyProfileProps) {
               {renderField("Telephone", "telephone", "tel")}
               {renderField("Email", "email", "email")}
               {renderField("Website", "website", "url")}
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <CompanyContacts isAdmin={isAdmin} />
             </div>
           </TabsContent>
 
@@ -276,6 +286,10 @@ export function CompanyProfile({ isAdmin }: CompanyProfileProps) {
                 {renderField("Employers Liability Expiry", "employers_liability_insurance_expiry", "date")}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="health-safety" className="space-y-6">
+            <RiddorIncidents isAdmin={isAdmin} />
           </TabsContent>
         </Tabs>
       </CardContent>
