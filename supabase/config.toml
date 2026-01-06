@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.set-user-password]
 verify_jwt = false
+
+[functions.process-form-email]
+verify_jwt = false
