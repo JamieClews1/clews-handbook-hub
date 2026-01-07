@@ -253,8 +253,17 @@ serve(async (req) => {
     const analysis = await analyzeFormWithAI(contentToAnalyze, companyProfile);
     console.log("AI analysis complete");
 
-    // Extract sender email
-    const senderEmail = webhookData.from.match(/<(.+)>/)?.[1] || webhookData.from || webhookData.sender;
+    // Extract sender email - handle various formats safely
+    const fromField = webhookData.from || webhookData.sender || "";
+    const emailMatch = fromField.match(/<(.+)>/);
+    const senderEmail = emailMatch?.[1] || fromField;
+    
+    if (!senderEmail) {
+      console.log("No sender email found, cannot send response");
+      return new Response(JSON.stringify({ success: true, message: "Processed but no sender to reply to" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     console.log("Sending response to:", senderEmail);
 
     // Send response email
