@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
@@ -255,12 +255,15 @@ serve(async (req) => {
 
     // Extract sender email - handle various formats safely
     const fromField = webhookData.from || webhookData.sender || "";
-    const emailMatch = fromField.match(/<(.+)>/);
-    const senderEmail = emailMatch?.[1] || fromField;
+    // Try to extract email from "Name <email@example.com>" format
+    const emailMatch = fromField.match(/<([^>]+)>/);
+    // Also try a simple email pattern match as fallback
+    const simpleEmailMatch = fromField.match(/[\w.-]+@[\w.-]+\.\w+/);
+    const senderEmail = emailMatch?.[1] || simpleEmailMatch?.[0] || "";
     
-    if (!senderEmail) {
-      console.log("No sender email found, cannot send response");
-      return new Response(JSON.stringify({ success: true, message: "Processed but no sender to reply to" }), {
+    if (!senderEmail || !senderEmail.includes("@")) {
+      console.log("No valid sender email found, cannot send response. From field:", fromField);
+      return new Response(JSON.stringify({ success: true, message: "Processed but no valid sender email to reply to" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
