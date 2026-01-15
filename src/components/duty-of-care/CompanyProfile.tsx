@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { CompanyContacts } from "./CompanyContacts";
 import { RiddorIncidents } from "./RiddorIncidents";
+import { CompanyDocumentUploadCards } from "./CompanyDocumentUploadCards";
 
 interface CompanyProfileData {
   id: string;
@@ -285,6 +286,10 @@ export function CompanyProfile({ isAdmin }: CompanyProfileProps) {
                 {renderField("Employers Liability Insurance Provider", "employers_liability_insurance_provider")}
                 {renderField("Employers Liability Expiry", "employers_liability_insurance_expiry", "date")}
               </div>
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <CompanyDocumentUploadCards isAdmin={isAdmin} />
             </div>
           </TabsContent>
 
