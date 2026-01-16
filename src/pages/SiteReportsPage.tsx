@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
+import MonthlyInspectionForm from "@/components/site-reports/MonthlyInspectionForm";
 
 const SiteReportsPage = () => {
   const navigate = useNavigate();
@@ -32,45 +33,33 @@ const SiteReportsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/portal">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Portal
-                </Button>
-              </Link>
-            </div>
+            <Link to="/portal">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Portal
+              </Button>
+            </Link>
             <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6">
         <div className="max-w-4xl mx-auto">
-          {/* Page Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
-              <ClipboardList className="h-7 w-7 text-white" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+              <ClipboardList className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Site Reports</h1>
-              <p className="text-muted-foreground">Weekly and monthly site reports for operational compliance</p>
+              <h1 className="text-2xl font-bold text-foreground">Monthly Site Inspection</h1>
+              <p className="text-muted-foreground text-sm">Complete the inspection checklist below</p>
             </div>
           </div>
 
-          {/* Placeholder Content */}
-          <div className="bg-card border border-amber-500/30 rounded-lg p-8 text-center">
-            <ClipboardList className="h-16 w-16 text-amber-500/50 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">Site Reports Coming Soon</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              This section will house weekly and monthly site reports for operational compliance and monitoring.
-            </p>
-          </div>
+          <MonthlyInspectionForm />
         </div>
       </main>
     </div>
