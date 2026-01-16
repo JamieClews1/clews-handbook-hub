@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, FileSignature } from "lucide-react";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { HandbookSignaturesList } from "@/components/HandbookSignaturesList";
 import {
   AlertDialog,
@@ -613,13 +613,10 @@ const EditSubsectionDialog = ({ subsection, onClose, onSave }: { subsection: Sub
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content_en">Content (English)</Label>
-                  <Textarea
-                    id="content_en"
-                    value={formData.content_en}
-                    onChange={(e) => setFormData({ ...formData, content_en: e.target.value })}
-                    rows={10}
-                    required
+                  <Label>Content (English)</Label>
+                  <RichTextEditor
+                    content={formData.content_en}
+                    onChange={(content) => setFormData({ ...formData, content_en: content })}
                   />
                 </div>
               </TabsContent>
@@ -634,12 +631,10 @@ const EditSubsectionDialog = ({ subsection, onClose, onSave }: { subsection: Sub
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content_pl">Content (Polish)</Label>
-                  <Textarea
-                    id="content_pl"
-                    value={formData.content_pl || ""}
-                    onChange={(e) => setFormData({ ...formData, content_pl: e.target.value || null })}
-                    rows={10}
+                  <Label>Content (Polish)</Label>
+                  <RichTextEditor
+                    content={formData.content_pl || ""}
+                    onChange={(content) => setFormData({ ...formData, content_pl: content || null })}
                   />
                 </div>
               </TabsContent>
@@ -654,12 +649,10 @@ const EditSubsectionDialog = ({ subsection, onClose, onSave }: { subsection: Sub
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content_uk">Content (Ukrainian)</Label>
-                  <Textarea
-                    id="content_uk"
-                    value={formData.content_uk || ""}
-                    onChange={(e) => setFormData({ ...formData, content_uk: e.target.value || null })}
-                    rows={10}
+                  <Label>Content (Ukrainian)</Label>
+                  <RichTextEditor
+                    content={formData.content_uk || ""}
+                    onChange={(content) => setFormData({ ...formData, content_uk: content || null })}
                   />
                 </div>
               </TabsContent>
@@ -674,12 +667,10 @@ const EditSubsectionDialog = ({ subsection, onClose, onSave }: { subsection: Sub
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content_ro">Content (Romanian)</Label>
-                  <Textarea
-                    id="content_ro"
-                    value={formData.content_ro || ""}
-                    onChange={(e) => setFormData({ ...formData, content_ro: e.target.value || null })}
-                    rows={10}
+                  <Label>Content (Romanian)</Label>
+                  <RichTextEditor
+                    content={formData.content_ro || ""}
+                    onChange={(content) => setFormData({ ...formData, content_ro: content || null })}
                   />
                 </div>
               </TabsContent>
