@@ -58,9 +58,12 @@ const parseHtmlToBlocks = (html: string): ParsedBlock[] => {
       const el = node as Element;
       const tagName = el.tagName.toLowerCase();
 
-      if (tagName === "h1" || tagName === "h2" || tagName === "h3") {
+      if (tagName === "h1" || tagName === "h2" || tagName === "h3" || tagName === "h4") {
         const level = parseInt(tagName.charAt(1));
-        blocks.push({ type: "heading", text: el.textContent?.trim() || "", level });
+        const text = el.textContent?.trim();
+        if (text) {
+          blocks.push({ type: "heading", text, level });
+        }
       } else if (tagName === "p") {
         const text = el.textContent?.trim();
         if (text) {
@@ -337,7 +340,6 @@ export const HandbookPrintDialog = ({
 
             // Subsection title - use pre-translated content from DB
             const subsectionTitle = transliterateForPDF(getTitle(subsection, langCode));
-            const content = transliterateForPDF(getContent(subsection, langCode));
 
             pdf.setFontSize(14);
             pdf.setFont("helvetica", "bold");
@@ -346,10 +348,13 @@ export const HandbookPrintDialog = ({
             pdf.text(subTitleLines, margin, yPosition);
             yPosition += subTitleLines.length * 6 + 5;
 
-            // Parse and render content
-            const blocks = parseHtmlToBlocks(content);
+            // Parse content first, then transliterate text in blocks
+            const blocks = parseHtmlToBlocks(getContent(subsection, langCode));
 
             for (const block of blocks) {
+              // Transliterate block text for PDF
+              const blockText = transliterateForPDF(block.text);
+              
               // Check if we need a new page
               if (yPosition > pageHeight - 30) {
                 pdf.addPage();
@@ -357,17 +362,17 @@ export const HandbookPrintDialog = ({
               }
 
               if (block.type === "heading") {
-                pdf.setFontSize(block.level === 1 ? 14 : block.level === 2 ? 12 : 11);
+                pdf.setFontSize(block.level === 1 ? 14 : block.level === 2 ? 12 : block.level === 3 ? 11 : 10);
                 pdf.setFont("helvetica", "bold");
                 pdf.setTextColor(40);
-                const headingLines = pdf.splitTextToSize(block.text, contentWidth);
+                const headingLines = pdf.splitTextToSize(blockText, contentWidth);
                 pdf.text(headingLines, margin, yPosition);
                 yPosition += headingLines.length * lineHeight + paragraphSpacing + 1;
               } else if (block.type === "paragraph") {
                 pdf.setFontSize(10);
                 pdf.setFont("helvetica", "normal");
                 pdf.setTextColor(60);
-                const paraLines = pdf.splitTextToSize(block.text, contentWidth);
+                const paraLines = pdf.splitTextToSize(blockText, contentWidth);
                 pdf.text(paraLines, margin, yPosition);
                 yPosition += paraLines.length * lineHeight + paragraphSpacing;
               } else if (block.type === "list-item") {
@@ -376,9 +381,9 @@ export const HandbookPrintDialog = ({
                 pdf.setTextColor(60);
                 const bulletIndent = 8;
                 const bulletContentWidth = contentWidth - bulletIndent;
-                const listLines = pdf.splitTextToSize(block.text, bulletContentWidth);
+                const listLines = pdf.splitTextToSize(blockText, bulletContentWidth);
                 // Draw bullet point
-                pdf.text("•", margin, yPosition);
+                pdf.text("-", margin, yPosition);
                 // Draw text with proper indent
                 pdf.text(listLines, margin + bulletIndent, yPosition);
                 yPosition += listLines.length * lineHeight + 2;
@@ -388,7 +393,7 @@ export const HandbookPrintDialog = ({
                 pdf.setTextColor(60);
                 const numIndent = 10;
                 const numContentWidth = contentWidth - numIndent;
-                const listLines = pdf.splitTextToSize(block.text, numContentWidth);
+                const listLines = pdf.splitTextToSize(blockText, numContentWidth);
                 // Draw number
                 pdf.text(`${block.level}.`, margin, yPosition);
                 // Draw text with proper indent
