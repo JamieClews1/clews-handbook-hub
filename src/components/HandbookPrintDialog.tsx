@@ -223,6 +223,31 @@ export const HandbookPrintDialog = ({
     }
   };
 
+  // Function to transliterate special characters for PDF compatibility
+  const transliterateForPDF = (text: string): string => {
+    const charMap: Record<string, string> = {
+      // Polish
+      '\u0105': 'a', '\u0107': 'c', '\u0119': 'e', '\u0142': 'l', '\u0144': 'n', '\u00f3': 'o', '\u015b': 's', '\u017a': 'z', '\u017c': 'z',
+      '\u0104': 'A', '\u0106': 'C', '\u0118': 'E', '\u0141': 'L', '\u0143': 'N', '\u00d3': 'O', '\u015a': 'S', '\u0179': 'Z', '\u017b': 'Z',
+      // Ukrainian Cyrillic
+      '\u0430': 'a', '\u0431': 'b', '\u0432': 'v', '\u0433': 'h', '\u0491': 'g', '\u0434': 'd', '\u0435': 'e', '\u0454': 'ye', '\u0436': 'zh',
+      '\u0437': 'z', '\u0438': 'y', '\u0456': 'i', '\u0457': 'yi', '\u0439': 'y', '\u043a': 'k', '\u043b': 'l', '\u043c': 'm', '\u043d': 'n',
+      '\u043e': 'o', '\u043f': 'p', '\u0440': 'r', '\u0441': 's', '\u0442': 't', '\u0443': 'u', '\u0444': 'f', '\u0445': 'kh', '\u0446': 'ts',
+      '\u0447': 'ch', '\u0448': 'sh', '\u0449': 'shch', '\u044c': '', '\u044e': 'yu', '\u044f': 'ya', '\u044b': 'y', '\u044d': 'e', '\u0451': 'yo',
+      '\u0410': 'A', '\u0411': 'B', '\u0412': 'V', '\u0413': 'H', '\u0490': 'G', '\u0414': 'D', '\u0415': 'E', '\u0404': 'Ye', '\u0416': 'Zh',
+      '\u0417': 'Z', '\u0418': 'Y', '\u0406': 'I', '\u0407': 'Yi', '\u0419': 'Y', '\u041a': 'K', '\u041b': 'L', '\u041c': 'M', '\u041d': 'N',
+      '\u041e': 'O', '\u041f': 'P', '\u0420': 'R', '\u0421': 'S', '\u0422': 'T', '\u0423': 'U', '\u0424': 'F', '\u0425': 'Kh', '\u0426': 'Ts',
+      '\u0427': 'Ch', '\u0428': 'Sh', '\u0429': 'Shch', '\u042c': '', '\u042e': 'Yu', '\u042f': 'Ya', '\u042b': 'Y', '\u042d': 'E', '\u0401': 'Yo',
+      // Romanian
+      '\u0103': 'a', '\u00e2': 'a', '\u00ee': 'i', '\u0219': 's', '\u021b': 't',
+      '\u0102': 'A', '\u00c2': 'A', '\u00ce': 'I', '\u0218': 'S', '\u021a': 'T',
+      // Common typographic characters
+      '\u201c': '"', '\u201d': '"', '\u2018': "'", '\u2019': "'", '\u2013': '-', '\u2014': '-', '\u2026': '...',
+    };
+    
+    return text.split('').map(char => charMap[char] || char).join('');
+  };
+
   const generatePDF = async () => {
     if (sections.length === 0 || selectedLanguages.length === 0) return;
 
@@ -234,6 +259,8 @@ export const HandbookPrintDialog = ({
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - margin * 2;
+      const lineHeight = 5;
+      const paragraphSpacing = 3;
 
       for (let langIndex = 0; langIndex < selectedLanguages.length; langIndex++) {
         const langCode = selectedLanguages[langIndex];
@@ -252,7 +279,7 @@ export const HandbookPrintDialog = ({
         pdf.setFontSize(16);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(100);
-        pdf.text(`Clews Recycling`, pageWidth / 2, 100, { align: "center" });
+        pdf.text("Clews Recycling", pageWidth / 2, 100, { align: "center" });
 
         pdf.setFontSize(14);
         pdf.text(langLabel, pageWidth / 2, 120, { align: "center" });
@@ -270,7 +297,7 @@ export const HandbookPrintDialog = ({
           pdf.setFont("helvetica", "bold");
           pdf.setTextColor(0);
           
-          const sectionTitle = getTitle(section, langCode);
+          const sectionTitle = transliterateForPDF(getTitle(section, langCode));
 
           const sectionTitleLines = pdf.splitTextToSize(sectionTitle, contentWidth);
           pdf.text(sectionTitleLines, margin, yPosition);
@@ -290,8 +317,8 @@ export const HandbookPrintDialog = ({
             }
 
             // Subsection title - use pre-translated content from DB
-            const subsectionTitle = getTitle(subsection, langCode);
-            const content = getContent(subsection, langCode);
+            const subsectionTitle = transliterateForPDF(getTitle(subsection, langCode));
+            const content = transliterateForPDF(getContent(subsection, langCode));
 
             pdf.setFontSize(14);
             pdf.setFont("helvetica", "bold");
@@ -316,30 +343,38 @@ export const HandbookPrintDialog = ({
                 pdf.setTextColor(40);
                 const headingLines = pdf.splitTextToSize(block.text, contentWidth);
                 pdf.text(headingLines, margin, yPosition);
-                yPosition += headingLines.length * 5 + 4;
+                yPosition += headingLines.length * lineHeight + paragraphSpacing + 1;
               } else if (block.type === "paragraph") {
                 pdf.setFontSize(10);
                 pdf.setFont("helvetica", "normal");
                 pdf.setTextColor(60);
                 const paraLines = pdf.splitTextToSize(block.text, contentWidth);
                 pdf.text(paraLines, margin, yPosition);
-                yPosition += paraLines.length * 4.5 + 3;
+                yPosition += paraLines.length * lineHeight + paragraphSpacing;
               } else if (block.type === "list-item") {
                 pdf.setFontSize(10);
                 pdf.setFont("helvetica", "normal");
                 pdf.setTextColor(60);
-                const bulletText = `•  ${block.text}`;
-                const listLines = pdf.splitTextToSize(bulletText, contentWidth - 10);
-                pdf.text(listLines, margin + 5, yPosition);
-                yPosition += listLines.length * 4.5 + 2;
+                const bulletIndent = 8;
+                const bulletContentWidth = contentWidth - bulletIndent;
+                const listLines = pdf.splitTextToSize(block.text, bulletContentWidth);
+                // Draw bullet point
+                pdf.text("•", margin, yPosition);
+                // Draw text with proper indent
+                pdf.text(listLines, margin + bulletIndent, yPosition);
+                yPosition += listLines.length * lineHeight + 2;
               } else if (block.type === "numbered-item") {
                 pdf.setFontSize(10);
                 pdf.setFont("helvetica", "normal");
                 pdf.setTextColor(60);
-                const numberedText = `${block.level}.  ${block.text}`;
-                const listLines = pdf.splitTextToSize(numberedText, contentWidth - 10);
-                pdf.text(listLines, margin + 5, yPosition);
-                yPosition += listLines.length * 4.5 + 2;
+                const numIndent = 10;
+                const numContentWidth = contentWidth - numIndent;
+                const listLines = pdf.splitTextToSize(block.text, numContentWidth);
+                // Draw number
+                pdf.text(`${block.level}.`, margin, yPosition);
+                // Draw text with proper indent
+                pdf.text(listLines, margin + numIndent, yPosition);
+                yPosition += listLines.length * lineHeight + 2;
               }
             }
 
