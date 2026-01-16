@@ -1327,6 +1327,153 @@ export type Database = {
         }
         Relationships: []
       }
+      site_inspection_reports: {
+        Row: {
+          actions_required: string | null
+          created_at: string
+          electrical_cables_secure: string | null
+          electrical_comments: string | null
+          electrical_equipment_condition: string | null
+          electrical_pat_testing: string | null
+          environmental_comments: string | null
+          environmental_drainage: string | null
+          environmental_spill_kits: string | null
+          environmental_waste_segregation: string | null
+          equipment_comments: string | null
+          equipment_condition: string | null
+          equipment_guarding: string | null
+          equipment_maintenance_records: string | null
+          fire_assembly_point_clear: string | null
+          fire_exits_clear: string | null
+          fire_extinguishers_accessible: string | null
+          fire_safety_comments: string | null
+          fire_signage_visible: string | null
+          first_aid_comments: string | null
+          first_aid_kit_stocked: string | null
+          first_aid_signage: string | null
+          first_aid_trained_personnel: string | null
+          housekeeping_comments: string | null
+          housekeeping_general_cleanliness: string | null
+          housekeeping_storage_areas: string | null
+          housekeeping_walkways_clear: string | null
+          housekeeping_waste_disposal: string | null
+          id: string
+          inspector_name: string
+          overall_comments: string | null
+          ppe_available: string | null
+          ppe_being_worn: string | null
+          ppe_comments: string | null
+          ppe_condition: string | null
+          report_date: string
+          signature_image: string | null
+          site_location: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+          welfare_comments: string | null
+          welfare_drinking_water: string | null
+          welfare_rest_areas: string | null
+          welfare_toilets_clean: string | null
+        }
+        Insert: {
+          actions_required?: string | null
+          created_at?: string
+          electrical_cables_secure?: string | null
+          electrical_comments?: string | null
+          electrical_equipment_condition?: string | null
+          electrical_pat_testing?: string | null
+          environmental_comments?: string | null
+          environmental_drainage?: string | null
+          environmental_spill_kits?: string | null
+          environmental_waste_segregation?: string | null
+          equipment_comments?: string | null
+          equipment_condition?: string | null
+          equipment_guarding?: string | null
+          equipment_maintenance_records?: string | null
+          fire_assembly_point_clear?: string | null
+          fire_exits_clear?: string | null
+          fire_extinguishers_accessible?: string | null
+          fire_safety_comments?: string | null
+          fire_signage_visible?: string | null
+          first_aid_comments?: string | null
+          first_aid_kit_stocked?: string | null
+          first_aid_signage?: string | null
+          first_aid_trained_personnel?: string | null
+          housekeeping_comments?: string | null
+          housekeeping_general_cleanliness?: string | null
+          housekeeping_storage_areas?: string | null
+          housekeeping_walkways_clear?: string | null
+          housekeeping_waste_disposal?: string | null
+          id?: string
+          inspector_name: string
+          overall_comments?: string | null
+          ppe_available?: string | null
+          ppe_being_worn?: string | null
+          ppe_comments?: string | null
+          ppe_condition?: string | null
+          report_date?: string
+          signature_image?: string | null
+          site_location: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+          welfare_comments?: string | null
+          welfare_drinking_water?: string | null
+          welfare_rest_areas?: string | null
+          welfare_toilets_clean?: string | null
+        }
+        Update: {
+          actions_required?: string | null
+          created_at?: string
+          electrical_cables_secure?: string | null
+          electrical_comments?: string | null
+          electrical_equipment_condition?: string | null
+          electrical_pat_testing?: string | null
+          environmental_comments?: string | null
+          environmental_drainage?: string | null
+          environmental_spill_kits?: string | null
+          environmental_waste_segregation?: string | null
+          equipment_comments?: string | null
+          equipment_condition?: string | null
+          equipment_guarding?: string | null
+          equipment_maintenance_records?: string | null
+          fire_assembly_point_clear?: string | null
+          fire_exits_clear?: string | null
+          fire_extinguishers_accessible?: string | null
+          fire_safety_comments?: string | null
+          fire_signage_visible?: string | null
+          first_aid_comments?: string | null
+          first_aid_kit_stocked?: string | null
+          first_aid_signage?: string | null
+          first_aid_trained_personnel?: string | null
+          housekeeping_comments?: string | null
+          housekeeping_general_cleanliness?: string | null
+          housekeeping_storage_areas?: string | null
+          housekeeping_walkways_clear?: string | null
+          housekeeping_waste_disposal?: string | null
+          id?: string
+          inspector_name?: string
+          overall_comments?: string | null
+          ppe_available?: string | null
+          ppe_being_worn?: string | null
+          ppe_comments?: string | null
+          ppe_condition?: string | null
+          report_date?: string
+          signature_image?: string | null
+          site_location?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          welfare_comments?: string | null
+          welfare_drinking_water?: string | null
+          welfare_rest_areas?: string | null
+          welfare_toilets_clean?: string | null
+        }
+        Relationships: []
+      }
       toolbox_talk_signatures: {
         Row: {
           created_at: string

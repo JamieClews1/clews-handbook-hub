@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.process-form-email]
 verify_jwt = false
+
+[functions.send-inspection-report]
+verify_jwt = true
