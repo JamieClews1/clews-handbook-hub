@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -75,6 +75,12 @@ const Index = () => {
       description: "Environmental policies, quality policies, and compliance certificates.",
       icon: ScrollText,
       href: "/policies",
+    },
+    {
+      title: "Site Reports",
+      description: "Weekly and monthly site reports for operational compliance and monitoring.",
+      icon: ClipboardList,
+      href: "/site-reports",
     },
   ];
 
