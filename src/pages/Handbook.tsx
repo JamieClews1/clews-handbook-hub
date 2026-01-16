@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { HandbookSearch } from "@/components/HandbookSearch";
 import { HandbookSection } from "@/components/HandbookSection";
+import { HandbookPrintDialog } from "@/components/HandbookPrintDialog";
 import { useHandbookContent } from "@/hooks/useHandbookContent";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Download } from "lucide-react";
 
 interface HandbookProps {
   language: string;
@@ -20,6 +23,7 @@ const introductions = {
 export const Handbook = ({ language }: HandbookProps) => {
   const { sections, loading, error } = useHandbookContent(language);
   const [expandedSection, setExpandedSection] = useState<string>("");
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   const handleSearchResultClick = (sectionId: string, subsectionId: string) => {
     setExpandedSection(sectionId);
@@ -72,9 +76,13 @@ export const Handbook = ({ language }: HandbookProps) => {
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">Employee Handbook</h1>
         <p className="text-muted-foreground mb-4">Last updated: {new Date().toLocaleDateString()}</p>
-        <p className="text-foreground max-w-2xl mx-auto leading-relaxed">
+        <p className="text-foreground max-w-2xl mx-auto leading-relaxed mb-6">
           {introductions[language as keyof typeof introductions] || introductions.en}
         </p>
+        <Button onClick={() => setShowPrintDialog(true)} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Download PDF
+        </Button>
       </div>
 
         <HandbookSearch data={sections} onResultClick={handleSearchResultClick} />
@@ -92,6 +100,13 @@ export const Handbook = ({ language }: HandbookProps) => {
             ))}
           </Accordion>
         )}
+
+        <HandbookPrintDialog
+          open={showPrintDialog}
+          onOpenChange={setShowPrintDialog}
+          sections={sections}
+          language={language}
+        />
       </div>
     </main>
   );
