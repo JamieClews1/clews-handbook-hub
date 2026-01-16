@@ -231,26 +231,183 @@ export const HandbookPrintDialog = ({
   const transliterateForPDF = (text: string): string => {
     const charMap: Record<string, string> = {
       // Polish
-      '\u0105': 'a', '\u0107': 'c', '\u0119': 'e', '\u0142': 'l', '\u0144': 'n', '\u00f3': 'o', '\u015b': 's', '\u017a': 'z', '\u017c': 'z',
-      '\u0104': 'A', '\u0106': 'C', '\u0118': 'E', '\u0141': 'L', '\u0143': 'N', '\u00d3': 'O', '\u015a': 'S', '\u0179': 'Z', '\u017b': 'Z',
+      "\u0105": "a",
+      "\u0107": "c",
+      "\u0119": "e",
+      "\u0142": "l",
+      "\u0144": "n",
+      "\u00f3": "o",
+      "\u015b": "s",
+      "\u017a": "z",
+      "\u017c": "z",
+      "\u0104": "A",
+      "\u0106": "C",
+      "\u0118": "E",
+      "\u0141": "L",
+      "\u0143": "N",
+      "\u00d3": "O",
+      "\u015a": "S",
+      "\u0179": "Z",
+      "\u017b": "Z",
+
       // Ukrainian Cyrillic
-      '\u0430': 'a', '\u0431': 'b', '\u0432': 'v', '\u0433': 'h', '\u0491': 'g', '\u0434': 'd', '\u0435': 'e', '\u0454': 'ye', '\u0436': 'zh',
-      '\u0437': 'z', '\u0438': 'y', '\u0456': 'i', '\u0457': 'yi', '\u0439': 'y', '\u043a': 'k', '\u043b': 'l', '\u043c': 'm', '\u043d': 'n',
-      '\u043e': 'o', '\u043f': 'p', '\u0440': 'r', '\u0441': 's', '\u0442': 't', '\u0443': 'u', '\u0444': 'f', '\u0445': 'kh', '\u0446': 'ts',
-      '\u0447': 'ch', '\u0448': 'sh', '\u0449': 'shch', '\u044c': '', '\u044e': 'yu', '\u044f': 'ya', '\u044b': 'y', '\u044d': 'e', '\u0451': 'yo',
-      '\u0410': 'A', '\u0411': 'B', '\u0412': 'V', '\u0413': 'H', '\u0490': 'G', '\u0414': 'D', '\u0415': 'E', '\u0404': 'Ye', '\u0416': 'Zh',
-      '\u0417': 'Z', '\u0418': 'Y', '\u0406': 'I', '\u0407': 'Yi', '\u0419': 'Y', '\u041a': 'K', '\u041b': 'L', '\u041c': 'M', '\u041d': 'N',
-      '\u041e': 'O', '\u041f': 'P', '\u0420': 'R', '\u0421': 'S', '\u0422': 'T', '\u0423': 'U', '\u0424': 'F', '\u0425': 'Kh', '\u0426': 'Ts',
-      '\u0427': 'Ch', '\u0428': 'Sh', '\u0429': 'Shch', '\u042c': '', '\u042e': 'Yu', '\u042f': 'Ya', '\u042b': 'Y', '\u042d': 'E', '\u0401': 'Yo',
+      "\u0430": "a",
+      "\u0431": "b",
+      "\u0432": "v",
+      "\u0433": "h",
+      "\u0491": "g",
+      "\u0434": "d",
+      "\u0435": "e",
+      "\u0454": "ye",
+      "\u0436": "zh",
+      "\u0437": "z",
+      "\u0438": "y",
+      "\u0456": "i",
+      "\u0457": "yi",
+      "\u0439": "y",
+      "\u043a": "k",
+      "\u043b": "l",
+      "\u043c": "m",
+      "\u043d": "n",
+      "\u043e": "o",
+      "\u043f": "p",
+      "\u0440": "r",
+      "\u0441": "s",
+      "\u0442": "t",
+      "\u0443": "u",
+      "\u0444": "f",
+      "\u0445": "kh",
+      "\u0446": "ts",
+      "\u0447": "ch",
+      "\u0448": "sh",
+      "\u0449": "shch",
+      "\u044c": "",
+      "\u044e": "yu",
+      "\u044f": "ya",
+      "\u044b": "y",
+      "\u044d": "e",
+      "\u0451": "yo",
+      "\u0410": "A",
+      "\u0411": "B",
+      "\u0412": "V",
+      "\u0413": "H",
+      "\u0490": "G",
+      "\u0414": "D",
+      "\u0415": "E",
+      "\u0404": "Ye",
+      "\u0416": "Zh",
+      "\u0417": "Z",
+      "\u0418": "Y",
+      "\u0406": "I",
+      "\u0407": "Yi",
+      "\u0419": "Y",
+      "\u041a": "K",
+      "\u041b": "L",
+      "\u041c": "M",
+      "\u041d": "N",
+      "\u041e": "O",
+      "\u041f": "P",
+      "\u0420": "R",
+      "\u0421": "S",
+      "\u0422": "T",
+      "\u0423": "U",
+      "\u0424": "F",
+      "\u0425": "Kh",
+      "\u0426": "Ts",
+      "\u0427": "Ch",
+      "\u0428": "Sh",
+      "\u0429": "Shch",
+      "\u042c": "",
+      "\u042e": "Yu",
+      "\u042f": "Ya",
+      "\u042b": "Y",
+      "\u042d": "E",
+      "\u0401": "Yo",
+
       // Romanian
-      '\u0103': 'a', '\u00e2': 'a', '\u00ee': 'i', '\u0219': 's', '\u021b': 't',
-      '\u0102': 'A', '\u00c2': 'A', '\u00ce': 'I', '\u0218': 'S', '\u021a': 'T',
+      "\u0103": "a",
+      "\u00e2": "a",
+      "\u00ee": "i",
+      "\u0219": "s",
+      "\u021b": "t",
+      "\u0102": "A",
+      "\u00c2": "A",
+      "\u00ce": "I",
+      "\u0218": "S",
+      "\u021a": "T",
+
       // Common typographic characters
-      '\u201c': '"', '\u201d': '"', '\u2018': "'", '\u2019': "'", '\u2013': '-', '\u2014': '-', '\u2026': '...',
+      "\u201c": '"',
+      "\u201d": '"',
+      "\u2018": "'",
+      "\u2019": "'",
+      "\u2013": "-",
+      "\u2014": "-",
+      "\u2026": "...",
     };
-    
-    return text.split('').map(char => charMap[char] || char).join('');
+
+    return text
+      .split("")
+      .map((char) => charMap[char] || char)
+      .join("");
   };
+
+  // Fix odd spacing (e.g., content copied with &nbsp; between letters) and normalize whitespace
+  const normalizeTextForPDF = (text: string): string => {
+    let t = text
+      .replace(/[\u00A0\u2007\u202F]/g, " ") // NBSP variants
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!t) return t;
+
+    const tokens = t.split(" ");
+    const out: string[] = [];
+
+    let buffer: string[] = [];
+    let bufferLetterCount = 0;
+
+    const flush = () => {
+      if (buffer.length === 0) return;
+
+      // Only join when it's clearly an "every-letter-separated" situation
+      if (bufferLetterCount >= 3) {
+        out.push(buffer.join(""));
+      } else {
+        out.push(...buffer);
+      }
+
+      buffer = [];
+      bufferLetterCount = 0;
+    };
+
+    const isJoinableToken = (tok: string) =>
+      tok === "'" ||
+      tok === "’" ||
+      (tok.length === 1 && /[A-Za-z0-9]/.test(tok));
+
+    for (const tok of tokens) {
+      if (isJoinableToken(tok)) {
+        buffer.push(tok);
+        if (tok.length === 1 && /[A-Za-z0-9]/.test(tok)) bufferLetterCount++;
+      } else {
+        flush();
+        out.push(tok);
+      }
+    }
+    flush();
+
+    t = out.join(" ");
+
+    // Remove spaces before common punctuation
+    t = t.replace(/\s+([,.;:!?])/g, "$1");
+    t = t.replace(/\(\s+/g, "(").replace(/\s+\)/g, ")");
+
+    return t;
+  };
+
+  const prepareTextForPDF = (text: string): string => normalizeTextForPDF(transliterateForPDF(text));
+
 
   const generatePDF = async () => {
     if (sections.length === 0 || selectedLanguages.length === 0) return;
@@ -284,10 +441,19 @@ export const HandbookPrintDialog = ({
 
         // Add logo to cover page
         try {
-          const logoWidth = 60;
-          const logoHeight = 30;
+          const maxLogoWidth = Math.min(90, contentWidth);
+          const maxLogoHeight = 40;
+
+          const ratio =
+            logoImg.naturalWidth && logoImg.naturalHeight
+              ? logoImg.naturalWidth / logoImg.naturalHeight
+              : 2;
+
+          const logoWidth = Math.min(maxLogoWidth, maxLogoHeight * ratio);
+          const logoHeight = logoWidth / ratio;
           const logoX = (pageWidth - logoWidth) / 2;
-          pdf.addImage(logoImg, 'PNG', logoX, 30, logoWidth, logoHeight);
+
+          pdf.addImage(logoImg, "PNG", logoX, 26, logoWidth, logoHeight);
         } catch (e) {
           console.warn("Could not add logo to PDF:", e);
         }
@@ -319,7 +485,7 @@ export const HandbookPrintDialog = ({
           pdf.setFont("helvetica", "bold");
           pdf.setTextColor(0);
           
-          const sectionTitle = transliterateForPDF(getTitle(section, langCode));
+          const sectionTitle = prepareTextForPDF(getTitle(section, langCode));
 
           const sectionTitleLines = pdf.splitTextToSize(sectionTitle, contentWidth);
           pdf.text(sectionTitleLines, margin, yPosition);
@@ -338,8 +504,8 @@ export const HandbookPrintDialog = ({
               yPosition = 25;
             }
 
-            // Subsection title - use pre-translated content from DB
-            const subsectionTitle = transliterateForPDF(getTitle(subsection, langCode));
+             // Subsection title - use pre-translated content from DB
+             const subsectionTitle = prepareTextForPDF(getTitle(subsection, langCode));
 
             pdf.setFontSize(14);
             pdf.setFont("helvetica", "bold");
@@ -352,9 +518,9 @@ export const HandbookPrintDialog = ({
             const blocks = parseHtmlToBlocks(getContent(subsection, langCode));
 
             for (const block of blocks) {
-              // Transliterate block text for PDF
-              const blockText = transliterateForPDF(block.text);
-              
+               // Transliterate + normalize block text for PDF
+               const blockText = prepareTextForPDF(block.text);
+               
               // Check if we need a new page
               if (yPosition > pageHeight - 30) {
                 pdf.addPage();
