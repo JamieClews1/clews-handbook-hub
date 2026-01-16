@@ -341,6 +341,9 @@ export const HandbookPrintDialog = ({
       "\u201d": '"',
       "\u2018": "'",
       "\u2019": "'",
+      "\u02BC": "'", // MODIFIER LETTER APOSTROPHE
+      "\u02B9": "'", // MODIFIER LETTER PRIME
+      "\u2032": "'", // PRIME
       "\u2013": "-",
       "\u2014": "-",
       "\u2026": "...",
@@ -348,7 +351,7 @@ export const HandbookPrintDialog = ({
 
     return text
       .split("")
-      .map((char) => charMap[char] || char)
+      .map((char) => (Object.prototype.hasOwnProperty.call(charMap, char) ? charMap[char] : char))
       .join("");
   };
 
