@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,12 +10,21 @@ import jsPDF from "jspdf";
 
 interface HandbookSection {
   id: string;
-  title: string;
+  title_en: string;
+  title_pl?: string | null;
+  title_uk?: string | null;
+  title_ro?: string | null;
   section_key: string;
   subsections: {
     id: string;
-    title: string;
-    content: string;
+    title_en: string;
+    title_pl?: string | null;
+    title_uk?: string | null;
+    title_ro?: string | null;
+    content_en: string;
+    content_pl?: string | null;
+    content_uk?: string | null;
+    content_ro?: string | null;
     subsection_key: string;
   }[];
 }
@@ -23,8 +32,6 @@ interface HandbookSection {
 interface HandbookPrintDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sections: HandbookSection[];
-  language: string;
 }
 
 const LANGUAGES = [
@@ -111,12 +118,72 @@ const parseHtmlToBlocks = (html: string): ParsedBlock[] => {
 export const HandbookPrintDialog = ({
   open,
   onOpenChange,
-  sections,
-  language,
 }: HandbookPrintDialogProps) => {
   const { toast } = useToast();
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([language]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["en"]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sections, setSections] = useState<HandbookSection[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch sections with all language variants when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchSectionsWithTranslations();
+    }
+  }, [open]);
+
+  const fetchSectionsWithTranslations = async () => {
+    setIsLoading(true);
+    try {
+      const { data: sectionsData, error: sectionsError } = await supabase
+        .from("handbook_sections")
+        .select("*")
+        .order("display_order");
+
+      if (sectionsError) throw sectionsError;
+
+      const { data: subsectionsData, error: subsectionsError } = await supabase
+        .from("handbook_subsections")
+        .select("*")
+        .order("display_order");
+
+      if (subsectionsError) throw subsectionsError;
+
+      const formattedSections: HandbookSection[] = (sectionsData || []).map((section) => ({
+        id: section.id,
+        title_en: section.title_en,
+        title_pl: section.title_pl,
+        title_uk: section.title_uk,
+        title_ro: section.title_ro,
+        section_key: section.section_key,
+        subsections: (subsectionsData || [])
+          .filter((sub) => sub.section_id === section.id)
+          .map((sub) => ({
+            id: sub.id,
+            title_en: sub.title_en,
+            title_pl: sub.title_pl,
+            title_uk: sub.title_uk,
+            title_ro: sub.title_ro,
+            content_en: sub.content_en,
+            content_pl: sub.content_pl,
+            content_uk: sub.content_uk,
+            content_ro: sub.content_ro,
+            subsection_key: sub.subsection_key,
+          })),
+      }));
+
+      setSections(formattedSections);
+    } catch (error) {
+      console.error("Error fetching sections:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load handbook content",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLanguageToggle = (code: string) => {
     setSelectedLanguages((prev) =>
@@ -124,32 +191,35 @@ export const HandbookPrintDialog = ({
     );
   };
 
-  const translateContent = async (
-    texts: string[],
-    targetLang: string
-  ): Promise<string[]> => {
-    if (targetLang === "en") {
-      return texts;
+  const getTitle = (
+    item: { title_en: string; title_pl?: string | null; title_uk?: string | null; title_ro?: string | null },
+    langCode: string
+  ): string => {
+    switch (langCode) {
+      case "pl":
+        return item.title_pl || item.title_en;
+      case "uk":
+        return item.title_uk || item.title_en;
+      case "ro":
+        return item.title_ro || item.title_en;
+      default:
+        return item.title_en;
     }
+  };
 
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-
-      const { data, error } = await supabase.functions.invoke("translate-handbook", {
-        body: {
-          texts,
-          target_lang: targetLang.toUpperCase(),
-        },
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-
-      if (error) throw error;
-
-      return data.translations || texts;
-    } catch (error) {
-      console.error("Translation error:", error);
-      return texts;
+  const getContent = (
+    item: { content_en: string; content_pl?: string | null; content_uk?: string | null; content_ro?: string | null },
+    langCode: string
+  ): string => {
+    switch (langCode) {
+      case "pl":
+        return item.content_pl || item.content_en;
+      case "uk":
+        return item.content_uk || item.content_en;
+      case "ro":
+        return item.content_ro || item.content_en;
+      default:
+        return item.content_en;
     }
   };
 
@@ -195,18 +265,12 @@ export const HandbookPrintDialog = ({
           pdf.addPage();
           let yPosition = 25;
 
-          // Section header
+          // Section header - use pre-translated content from DB
           pdf.setFontSize(18);
           pdf.setFont("helvetica", "bold");
           pdf.setTextColor(0);
           
-          let sectionTitle = section.title;
-          
-          // Translate section title if not English
-          if (langCode !== "en") {
-            const translatedTitles = await translateContent([section.title], langCode);
-            sectionTitle = translatedTitles[0] || section.title;
-          }
+          const sectionTitle = getTitle(section, langCode);
 
           const sectionTitleLines = pdf.splitTextToSize(sectionTitle, contentWidth);
           pdf.text(sectionTitleLines, margin, yPosition);
@@ -225,16 +289,9 @@ export const HandbookPrintDialog = ({
               yPosition = 25;
             }
 
-            // Subsection title
-            let subsectionTitle = subsection.title;
-            let content = subsection.content;
-
-            // Translate if not English
-            if (langCode !== "en") {
-              const textsToTranslate = [subsection.title];
-              const translatedTexts = await translateContent(textsToTranslate, langCode);
-              subsectionTitle = translatedTexts[0] || subsection.title;
-            }
+            // Subsection title - use pre-translated content from DB
+            const subsectionTitle = getTitle(subsection, langCode);
+            const content = getContent(subsection, langCode);
 
             pdf.setFontSize(14);
             pdf.setFont("helvetica", "bold");
@@ -245,19 +302,8 @@ export const HandbookPrintDialog = ({
 
             // Parse and render content
             const blocks = parseHtmlToBlocks(content);
-            
-            // Translate content blocks if not English
-            let translatedBlocks = blocks;
-            if (langCode !== "en" && blocks.length > 0) {
-              const blockTexts = blocks.map(b => b.text);
-              const translatedTexts = await translateContent(blockTexts, langCode);
-              translatedBlocks = blocks.map((block, idx) => ({
-                ...block,
-                text: translatedTexts[idx] || block.text,
-              }));
-            }
 
-            for (const block of translatedBlocks) {
+            for (const block of blocks) {
               // Check if we need a new page
               if (yPosition > pageHeight - 30) {
                 pdf.addPage();
@@ -333,7 +379,7 @@ export const HandbookPrintDialog = ({
           <div>
             <Label className="text-base font-medium">Select Languages</Label>
             <p className="text-sm text-muted-foreground mb-3">
-              Choose which languages to include. Non-English content will be auto-translated.
+              Choose which languages to include in the PDF.
             </p>
             <div className="space-y-2">
               {LANGUAGES.map((lang) => (
@@ -353,13 +399,18 @@ export const HandbookPrintDialog = ({
 
           <Button
             onClick={generatePDF}
-            disabled={selectedLanguages.length === 0 || isGenerating}
+            disabled={selectedLanguages.length === 0 || isGenerating || isLoading}
             className="w-full gap-2"
           >
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Generating PDF...
+              </>
+            ) : isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
               </>
             ) : (
               <>

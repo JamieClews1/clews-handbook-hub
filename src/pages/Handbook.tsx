@@ -104,8 +104,6 @@ export const Handbook = ({ language }: HandbookProps) => {
         <HandbookPrintDialog
           open={showPrintDialog}
           onOpenChange={setShowPrintDialog}
-          sections={sections}
-          language={language}
         />
       </div>
     </main>
