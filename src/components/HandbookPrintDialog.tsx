@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download } from "lucide-react";
 import jsPDF from "jspdf";
+import clewsLogo from "@/assets/clews-logo.png";
 
 interface HandbookSection {
   id: string;
@@ -262,6 +263,14 @@ export const HandbookPrintDialog = ({
       const lineHeight = 5;
       const paragraphSpacing = 3;
 
+      // Load logo image
+      const logoImg = new Image();
+      logoImg.src = clewsLogo;
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve; // Continue even if logo fails
+      });
+
       for (let langIndex = 0; langIndex < selectedLanguages.length; langIndex++) {
         const langCode = selectedLanguages[langIndex];
         const langLabel = LANGUAGES.find((l) => l.code === langCode)?.label || langCode;
@@ -270,22 +279,32 @@ export const HandbookPrintDialog = ({
           pdf.addPage();
         }
 
+        // Add logo to cover page
+        try {
+          const logoWidth = 60;
+          const logoHeight = 30;
+          const logoX = (pageWidth - logoWidth) / 2;
+          pdf.addImage(logoImg, 'PNG', logoX, 30, logoWidth, logoHeight);
+        } catch (e) {
+          console.warn("Could not add logo to PDF:", e);
+        }
+
         // Title page for this language
         pdf.setFontSize(28);
         pdf.setFont("helvetica", "bold");
         pdf.setTextColor(0);
-        pdf.text("Employee Handbook", pageWidth / 2, 80, { align: "center" });
+        pdf.text("Employee Handbook", pageWidth / 2, 90, { align: "center" });
 
         pdf.setFontSize(16);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(100);
-        pdf.text("Clews Recycling", pageWidth / 2, 100, { align: "center" });
+        pdf.text("Clews Recycling", pageWidth / 2, 110, { align: "center" });
 
         pdf.setFontSize(14);
-        pdf.text(langLabel, pageWidth / 2, 120, { align: "center" });
+        pdf.text(langLabel, pageWidth / 2, 130, { align: "center" });
 
         pdf.setFontSize(12);
-        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 140, { align: "center" });
+        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 150, { align: "center" });
 
         // Process each section
         for (const section of sections) {
