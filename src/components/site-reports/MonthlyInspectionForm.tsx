@@ -275,9 +275,10 @@ export default function MonthlyInspectionForm({ reportId, onSave }: MonthlyInspe
         todo_items: [],
       });
       
-      // Load todo items if they exist
-      if (data.todo_items && Array.isArray(data.todo_items)) {
-        setTodoItems(data.todo_items as unknown as TodoItem[]);
+      // Load todo items if they exist (cast to any to handle types before regeneration)
+      const reportData = data as unknown as { todo_items?: TodoItem[] };
+      if (reportData.todo_items && Array.isArray(reportData.todo_items)) {
+        setTodoItems(reportData.todo_items);
       }
     }
   };
@@ -348,20 +349,21 @@ export default function MonthlyInspectionForm({ reportId, onSave }: MonthlyInspe
         signature_image: formData.signature_image || null,
         status: submit ? 'submitted' : 'draft',
         submitted_at: submit ? new Date().toISOString() : null,
-      };
+        todo_items: todoItems,
+      } as Record<string, unknown>;
 
       let savedId = formData.id;
 
       if (formData.id) {
         const { error } = await supabase
           .from('site_inspection_reports')
-          .update(payload)
+          .update(payload as never)
           .eq('id', formData.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('site_inspection_reports')
-          .insert(payload)
+          .insert(payload as never)
           .select()
           .single();
         if (error) throw error;

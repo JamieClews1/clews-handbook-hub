@@ -1369,6 +1369,7 @@ export type Database = {
           site_location: string
           status: string
           submitted_at: string | null
+          todo_items: Json | null
           updated_at: string
           user_id: string
           welfare_comments: string | null
@@ -1417,6 +1418,7 @@ export type Database = {
           site_location: string
           status?: string
           submitted_at?: string | null
+          todo_items?: Json | null
           updated_at?: string
           user_id: string
           welfare_comments?: string | null
@@ -1465,6 +1467,7 @@ export type Database = {
           site_location?: string
           status?: string
           submitted_at?: string | null
+          todo_items?: Json | null
           updated_at?: string
           user_id?: string
           welfare_comments?: string | null
