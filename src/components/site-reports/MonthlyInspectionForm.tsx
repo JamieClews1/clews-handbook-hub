@@ -8,8 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Loader2, Save, Send, CheckCircle, AlertTriangle, XCircle, MinusCircle } from "lucide-react";
+import { Loader2, Save, Send, CheckCircle, AlertTriangle, XCircle, MinusCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
+import InspectionTodoList, { generateTodoItems } from "./InspectionTodoList";
+
+interface TodoItem {
+  id: string;
+  category: string;
+  item: string;
+  priority: 'high' | 'medium';
+  comment?: string;
+  completed: boolean;
+}
 
 type Rating = 'good' | 'acceptable' | 'poor' | 'n/a' | null;
 
@@ -74,6 +84,9 @@ interface FormData {
   overall_comments: string;
   signature_image: string;
   status: string;
+  
+  // Todo items (stored as JSON)
+  todo_items?: TodoItem[];
 }
 
 const defaultFormData: FormData = {
@@ -118,6 +131,7 @@ const defaultFormData: FormData = {
   overall_comments: "",
   signature_image: "",
   status: "draft",
+  todo_items: [],
 };
 
 interface RatingFieldProps {
@@ -176,6 +190,8 @@ export default function MonthlyInspectionForm({ reportId, onSave }: MonthlyInspe
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [currentPart, setCurrentPart] = useState<1 | 2>(1);
+  const [todoItems, setTodoItems] = useState<TodoItem[]>([]);
 
   useEffect(() => {
     if (reportId) {
@@ -256,7 +272,13 @@ export default function MonthlyInspectionForm({ reportId, onSave }: MonthlyInspe
         overall_comments: data.overall_comments || "",
         signature_image: data.signature_image || "",
         status: data.status,
+        todo_items: [],
       });
+      
+      // Load todo items if they exist
+      if (data.todo_items && Array.isArray(data.todo_items)) {
+        setTodoItems(data.todo_items as unknown as TodoItem[]);
+      }
     }
   };
 
@@ -381,13 +403,57 @@ export default function MonthlyInspectionForm({ reportId, onSave }: MonthlyInspe
   };
 
   const isSubmitted = formData.status === 'submitted';
+  
+  const goToPart2 = () => {
+    // Auto-generate todo items from inspection ratings
+    const generated = generateTodoItems(formData);
+    setTodoItems(prev => {
+      // Preserve completion status from existing items
+      return generated.map(gen => {
+        const existing = prev.find(p => p.id === gen.id);
+        return existing ? { ...gen, completed: existing.completed } : gen;
+      });
+    });
+    setCurrentPart(2);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Step Indicator */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        <button
+          type="button"
+          onClick={() => setCurrentPart(1)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            currentPart === 1 
+              ? 'bg-primary text-primary-foreground' 
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          <span className="w-6 h-6 rounded-full bg-background/20 flex items-center justify-center text-sm font-medium">1</span>
+          <span className="font-medium">Inspection</span>
+        </button>
+        <div className="w-8 h-0.5 bg-border" />
+        <button
+          type="button"
+          onClick={goToPart2}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            currentPart === 2 
+              ? 'bg-primary text-primary-foreground' 
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          <span className="w-6 h-6 rounded-full bg-background/20 flex items-center justify-center text-sm font-medium">2</span>
+          <span className="font-medium">Action Items</span>
+        </button>
+      </div>
+      
+      {currentPart === 1 && (
+        <>
       {/* Header Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Report Details</CardTitle>
+          <CardTitle>Part 1: Inspection Checklist</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
@@ -723,92 +789,144 @@ export default function MonthlyInspectionForm({ reportId, onSave }: MonthlyInspe
               rows={3}
             />
           </div>
-          
-          {/* Signature */}
-          <div className="space-y-2">
-            <Label>Inspector Signature</Label>
-            {formData.signature_image ? (
-              <div className="border rounded-lg p-4 bg-white">
-                <img 
-                  src={formData.signature_image} 
-                  alt="Signature" 
-                  className="max-h-24 mx-auto"
-                />
-                {!isSubmitted && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full"
-                    onClick={() => setShowSignaturePad(true)}
-                  >
-                    Change Signature
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={() => setShowSignaturePad(true)}
-                disabled={isSubmitted}
-                className="w-full"
-              >
-                Add Signature
-              </Button>
-            )}
-          </div>
         </CardContent>
       </Card>
 
-      {/* Signature Pad Modal */}
-      {showSignaturePad && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg">
-            <SignaturePad
-              onSave={handleSignatureSave}
-              onCancel={() => setShowSignaturePad(false)}
-            />
+      {/* Continue to Part 2 Button */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          onClick={goToPart2}
+          className="gap-2"
+        >
+          Continue to Action Items
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+      </>
+      )}
+
+      {currentPart === 2 && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Part 2: Action Items & Sign-off</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Review and track action items generated from your inspection
+              </p>
+            </CardHeader>
+          </Card>
+
+          <InspectionTodoList
+            formData={formData}
+            todoItems={todoItems}
+            onTodoChange={setTodoItems}
+            isSubmitted={isSubmitted}
+          />
+
+          {/* Signature */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Inspector Signature</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {formData.signature_image ? (
+                  <div className="border rounded-lg p-4 bg-white">
+                    <img 
+                      src={formData.signature_image} 
+                      alt="Signature" 
+                      className="max-h-24 mx-auto"
+                    />
+                    {!isSubmitted && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => setShowSignaturePad(true)}
+                      >
+                        Change Signature
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSignaturePad(true)}
+                    disabled={isSubmitted}
+                    className="w-full"
+                  >
+                    Add Signature
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Signature Pad Modal */}
+          {showSignaturePad && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+              <div className="w-full max-w-lg">
+                <SignaturePad
+                  onSave={handleSignatureSave}
+                  onCancel={() => setShowSignaturePad(false)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Navigation & Action Buttons */}
+          <div className="flex flex-col gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCurrentPart(1)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Inspection
+            </Button>
+            
+            {!isSubmitted && (
+              <div className="flex flex-col sm:flex-row gap-3 sticky bottom-4">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSave(false)}
+                  disabled={saving || submitting}
+                  className="flex-1"
+                >
+                  {saving && !submitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Draft
+                </Button>
+                <Button
+                  onClick={() => handleSave(true)}
+                  disabled={saving || submitting}
+                  className="flex-1"
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Submit & Email Report
+                </Button>
+              </div>
+            )}
+
+            {isSubmitted && (
+              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <p className="text-green-800 dark:text-green-200 font-medium">
+                  This report has been submitted
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      {!isSubmitted && (
-        <div className="flex flex-col sm:flex-row gap-3 sticky bottom-4">
-          <Button
-            variant="outline"
-            onClick={() => handleSave(false)}
-            disabled={saving || submitting}
-            className="flex-1"
-          >
-            {saving && !submitting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Draft
-          </Button>
-          <Button
-            onClick={() => handleSave(true)}
-            disabled={saving || submitting}
-            className="flex-1"
-          >
-            {submitting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4 mr-2" />
-            )}
-            Submit & Email Report
-          </Button>
-        </div>
-      )}
-
-      {isSubmitted && (
-        <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-          <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-          <p className="text-green-800 dark:text-green-200 font-medium">
-            This report has been submitted
-          </p>
-        </div>
+        </>
       )}
     </div>
   );
