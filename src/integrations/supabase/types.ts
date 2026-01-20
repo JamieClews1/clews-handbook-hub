@@ -530,6 +530,130 @@ export type Database = {
         }
         Relationships: []
       }
+      load_line_items: {
+        Row: {
+          avg_weight_kg: number
+          created_at: string
+          display_order: number
+          id: string
+          load_report_id: string
+          pallet_count: number
+          total_weight_kg: number
+          updated_at: string
+          waste_type: string
+        }
+        Insert: {
+          avg_weight_kg?: number
+          created_at?: string
+          display_order?: number
+          id?: string
+          load_report_id: string
+          pallet_count?: number
+          total_weight_kg?: number
+          updated_at?: string
+          waste_type: string
+        }
+        Update: {
+          avg_weight_kg?: number
+          created_at?: string
+          display_order?: number
+          id?: string
+          load_report_id?: string
+          pallet_count?: number
+          total_weight_kg?: number
+          updated_at?: string
+          waste_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "load_line_items_load_report_id_fkey"
+            columns: ["load_report_id"]
+            isOneToOne: false
+            referencedRelation: "load_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      load_reports: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          operator_id: string | null
+          operator_name: string
+          report_date: string
+          status: string
+          submitted_at: string | null
+          total_pallets: number
+          total_weight_kg: number
+          updated_at: string
+          vehicle_reg: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_name: string
+          report_date?: string
+          status?: string
+          submitted_at?: string | null
+          total_pallets?: number
+          total_weight_kg?: number
+          updated_at?: string
+          vehicle_reg?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_name?: string
+          report_date?: string
+          status?: string
+          submitted_at?: string | null
+          total_pallets?: number
+          total_weight_kg?: number
+          updated_at?: string
+          vehicle_reg?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "load_reports_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      load_waste_types: {
+        Row: {
+          created_at: string
+          default_avg_weight_kg: number
+          display_order: number
+          id: string
+          is_active: boolean
+          waste_type: string
+        }
+        Insert: {
+          created_at?: string
+          default_avg_weight_kg?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          waste_type: string
+        }
+        Update: {
+          created_at?: string
+          default_avg_weight_kg?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          waste_type?: string
+        }
+        Relationships: []
+      }
       partner_document_requirements: {
         Row: {
           created_at: string

@@ -24,6 +24,7 @@ import DutyOfCarePage from "./pages/DutyOfCarePage";
 import WasteReportingPage from "./pages/WasteReportingPage";
 import PoliciesPage from "./pages/PoliciesPage";
 import SiteReportsPage from "./pages/SiteReportsPage";
+import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import NotFound from "./pages/NotFound";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/waste-reporting" element={<WasteReportingPage />} />
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/site-reports" element={<SiteReportsPage />} />
+            <Route path="/load-reports" element={<LoadReportsPage />} />
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
