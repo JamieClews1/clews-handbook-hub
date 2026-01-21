@@ -110,21 +110,38 @@ export const LoadReviewScreen = ({
                 <TableHead className="text-right font-bold text-foreground">
                   Total Weight (KG)
                 </TableHead>
+                <TableHead className="text-right font-bold text-foreground">
+                  Total Pallet Weight (KG)
+                </TableHead>
+                <TableHead className="text-right font-bold text-foreground">
+                  Actual Recyclable/ Waste Weight (KG)
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lineItems.map((item) => (
-                <TableRow key={item.waste_type} className={getRowBgColor(item.waste_type)}>
-                  <TableCell className="font-medium">{item.waste_type}</TableCell>
-                  <TableCell className="text-center text-lg font-semibold">
-                    {item.pallet_count}
-                  </TableCell>
-                  <TableCell className="text-center">{item.avg_weight_kg}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {(item.pallet_count * item.avg_weight_kg).toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {lineItems.map((item) => {
+                const totalWeight = item.pallet_count * item.avg_weight_kg;
+                const totalPalletWeight = item.pallet_count * (item.pallet_weight_kg || 0);
+                const actualWeight = totalWeight - totalPalletWeight;
+                return (
+                  <TableRow key={item.waste_type} className={getRowBgColor(item.waste_type)}>
+                    <TableCell className="font-medium">{item.waste_type}</TableCell>
+                    <TableCell className="text-center text-lg font-semibold">
+                      {item.pallet_count}
+                    </TableCell>
+                    <TableCell className="text-center">{item.avg_weight_kg}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {totalWeight.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {totalPalletWeight.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {actualWeight.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {/* Total Row */}
               <TableRow className="bg-primary/10 border-t-2 border-primary/30">
                 <TableCell className="font-bold text-primary">TOTAL</TableCell>
@@ -134,6 +151,12 @@ export const LoadReviewScreen = ({
                 <TableCell />
                 <TableCell className="text-right text-xl font-bold text-primary">
                   {totalWeight.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right text-xl font-bold text-primary">
+                  {lineItems.reduce((sum, item) => sum + item.pallet_count * (item.pallet_weight_kg || 0), 0).toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right text-xl font-bold text-primary">
+                  {lineItems.reduce((sum, item) => sum + (item.pallet_count * item.avg_weight_kg) - (item.pallet_count * (item.pallet_weight_kg || 0)), 0).toLocaleString()}
                 </TableCell>
               </TableRow>
             </TableBody>

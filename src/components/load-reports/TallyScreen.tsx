@@ -8,6 +8,7 @@ export interface LineItem {
   avg_weight_kg: number;
   total_weight_kg: number;
   display_order: number;
+  pallet_weight_kg: number;
 }
 
 interface TallyScreenProps {
