@@ -33,6 +33,7 @@ const LoadReportsPage = () => {
   const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [defaultPalletWeight, setDefaultPalletWeight] = useState(20);
 
   // Form state
   const [operatorName, setOperatorName] = useState("");
@@ -49,7 +50,20 @@ const LoadReportsPage = () => {
 
   useEffect(() => {
     fetchWasteTypes();
+    fetchDefaultPalletWeight();
   }, []);
+
+  const fetchDefaultPalletWeight = async () => {
+    const { data, error } = await supabase
+      .from("load_report_settings")
+      .select("setting_value")
+      .eq("setting_key", "default_pallet_weight_kg")
+      .single();
+    
+    if (!error && data) {
+      setDefaultPalletWeight(Number(data.setting_value) || 20);
+    }
+  };
 
   useEffect(() => {
     // Prefill operator name from profile
@@ -91,7 +105,7 @@ const LoadReportsPage = () => {
       avg_weight_kg: Number(wt.default_avg_weight_kg),
       total_weight_kg: 0,
       display_order: wt.display_order,
-      pallet_weight_kg: Number(wt.pallet_weight_kg) || 0,
+      pallet_weight_kg: defaultPalletWeight,
     }));
     setLineItems(items);
   };
@@ -118,7 +132,7 @@ const LoadReportsPage = () => {
         avg_weight_kg: Number(wt.default_avg_weight_kg),
         total_weight_kg: 0,
         display_order: wt.display_order,
-        pallet_weight_kg: Number(wt.pallet_weight_kg) || 0,
+        pallet_weight_kg: defaultPalletWeight,
       }));
       setLineItems(items);
     } else {
@@ -157,8 +171,6 @@ const LoadReportsPage = () => {
       setReportDate(report.report_date);
       
       if (items && items.length > 0) {
-        // Need to get pallet weights from waste types
-        const wasteTypeMap = new Map(wasteTypes.map(wt => [wt.waste_type, Number(wt.pallet_weight_kg) || 0]));
         setLineItems(
           items.map((item) => ({
             waste_type: item.waste_type,
@@ -166,7 +178,7 @@ const LoadReportsPage = () => {
             avg_weight_kg: Number(item.avg_weight_kg),
             total_weight_kg: Number(item.total_weight_kg),
             display_order: item.display_order,
-            pallet_weight_kg: wasteTypeMap.get(item.waste_type) || 0,
+            pallet_weight_kg: defaultPalletWeight,
           }))
         );
       } else {
