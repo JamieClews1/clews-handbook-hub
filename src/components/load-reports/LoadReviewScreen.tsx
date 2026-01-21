@@ -120,9 +120,9 @@ export const LoadReviewScreen = ({
             </TableHeader>
             <TableBody>
               {lineItems.map((item) => {
-                const totalPalletWeight = item.pallet_count * item.avg_weight_kg;
-                const palletDeduction = item.pallet_count * (item.pallet_weight_kg || 0);
-                const actualWeight = totalPalletWeight - palletDeduction;
+                const totalWeight = item.pallet_count * item.avg_weight_kg;
+                const totalPalletWeight = item.pallet_count * (item.pallet_weight_kg || 0);
+                const actualWeight = totalWeight - totalPalletWeight;
                 return (
                   <TableRow key={item.waste_type} className={getRowBgColor(item.waste_type)}>
                     <TableCell className="font-medium">{item.waste_type}</TableCell>
@@ -131,7 +131,7 @@ export const LoadReviewScreen = ({
                     </TableCell>
                     <TableCell className="text-center">{item.avg_weight_kg}</TableCell>
                     <TableCell className="text-right font-semibold">
-                      {totalPalletWeight.toLocaleString()}
+                      {totalWeight.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {totalPalletWeight.toLocaleString()}
