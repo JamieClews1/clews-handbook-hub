@@ -14,7 +14,7 @@ import { LineItem } from "./TallyScreen";
 interface LoadReviewScreenProps {
   operatorName: string;
   vehicleReg: string;
-  notes: string;
+  jobNumber: string;
   reportDate: string;
   lineItems: LineItem[];
   onBack: () => void;
@@ -27,7 +27,7 @@ interface LoadReviewScreenProps {
 export const LoadReviewScreen = ({
   operatorName,
   vehicleReg,
-  notes,
+  jobNumber,
   reportDate,
   lineItems,
   onBack,
@@ -83,10 +83,10 @@ export const LoadReviewScreen = ({
               <span className="font-medium">{vehicleReg}</span>
             </div>
           )}
-          {notes && (
-            <div className="pt-2 border-t">
-              <span className="text-muted-foreground">Notes:</span>
-              <p className="mt-1 text-foreground">{notes}</p>
+          {jobNumber && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Job Number:</span>
+              <span className="font-medium">{jobNumber}</span>
             </div>
           )}
         </CardContent>

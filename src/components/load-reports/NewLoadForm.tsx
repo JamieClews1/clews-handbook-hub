@@ -1,18 +1,16 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Truck, ArrowRight } from "lucide-react";
 
 interface NewLoadFormProps {
   operatorName: string;
   vehicleReg: string;
-  notes: string;
+  jobNumber: string;
   onOperatorNameChange: (value: string) => void;
   onVehicleRegChange: (value: string) => void;
-  onNotesChange: (value: string) => void;
+  onJobNumberChange: (value: string) => void;
   onStartTally: () => void;
   isValid: boolean;
 }
@@ -20,10 +18,10 @@ interface NewLoadFormProps {
 export const NewLoadForm = ({
   operatorName,
   vehicleReg,
-  notes,
+  jobNumber,
   onOperatorNameChange,
   onVehicleRegChange,
-  onNotesChange,
+  onJobNumberChange,
   onStartTally,
   isValid,
 }: NewLoadFormProps) => {
@@ -68,15 +66,16 @@ export const NewLoadForm = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-base font-medium">
-              Notes (Optional)
+            <Label htmlFor="jobNumber" className="text-base font-medium">
+              Job Number
             </Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              placeholder="Any additional notes about this load..."
-              className="min-h-[100px] text-base"
+            <Input
+              id="jobNumber"
+              value={jobNumber}
+              onChange={(e) => onJobNumberChange(e.target.value)}
+              placeholder="Enter job number"
+              className="h-14 text-lg"
+              autoComplete="off"
             />
           </div>
 
