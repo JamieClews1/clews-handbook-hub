@@ -1,6 +1,21 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -12,7 +27,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Package, Scale, Plus, Trash2 } from "lucide-react";
+import { Save, Package, Scale, Plus } from "lucide-react";
+import { SortableWasteTypeItem } from "./SortableWasteTypeItem";
 
 interface WasteType {
   id: string;
@@ -37,6 +53,30 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
   const [newWasteTypeName, setNewWasteTypeName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setWasteTypes((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const reordered = arrayMove(items, oldIndex, newIndex);
+        // Update display_order for each item
+        return reordered.map((item, index) => ({
+          ...item,
+          display_order: index,
+        }));
+      });
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -133,7 +173,7 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
         if (error) throw error;
       }
 
-      // Update existing waste types
+      // Update existing waste types (including display_order)
       const existingTypes = wasteTypes.filter((wt) => !wt.isNew);
       for (const wt of existingTypes) {
         const { error } = await supabase
@@ -142,6 +182,7 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
             waste_type: wt.waste_type,
             default_avg_weight_kg: wt.default_avg_weight_kg,
             pallet_weight_kg: wt.pallet_weight_kg,
+            display_order: wt.display_order,
           })
           .eq("id", wt.id);
 
@@ -231,70 +272,27 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
                   Configure the default average weight for each waste type. This will be used as the starting value when creating new reports.
                 </p>
                 
-                <div className="space-y-3">
-                  {wasteTypes.map((wt) => (
-                    <div
-                      key={wt.id}
-                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/50 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <Input
-                          value={wt.waste_type}
-                          onChange={(e) =>
-                            handleWasteTypeChange(wt.id, "waste_type", e.target.value)
-                          }
-                          className="font-medium"
-                          placeholder="Waste type name"
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={wasteTypes.map((wt) => wt.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-3">
+                      {wasteTypes.map((wt) => (
+                        <SortableWasteTypeItem
+                          key={wt.id}
+                          wasteType={wt}
+                          onFieldChange={handleWasteTypeChange}
+                          onDelete={handleDeleteWasteType}
                         />
-                        {wt.isNew && (
-                          <span className="ml-2 text-xs text-primary">(new)</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-3 items-center">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs text-muted-foreground whitespace-nowrap">
-                            Avg Weight (KG):
-                          </Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="10"
-                            value={wt.default_avg_weight_kg}
-                            onChange={(e) =>
-                              handleWasteTypeChange(wt.id, "default_avg_weight_kg", Number(e.target.value))
-                            }
-                            className="w-24 h-9"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs text-muted-foreground whitespace-nowrap">
-                            Pallet Deduct (KG):
-                          </Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={wt.pallet_weight_kg}
-                            onChange={(e) =>
-                              handleWasteTypeChange(wt.id, "pallet_weight_kg", Number(e.target.value))
-                            }
-                            className="w-24 h-9"
-                          />
-                        </div>
-                        {wt.isNew && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteWasteType(wt.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
 
                 {/* Add new waste type */}
                 {showAddForm ? (
