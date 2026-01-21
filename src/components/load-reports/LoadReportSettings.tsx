@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Package, Scale } from "lucide-react";
+import { Save, Package, Scale, Plus, Trash2 } from "lucide-react";
 
 interface WasteType {
   id: string;
@@ -21,6 +21,7 @@ interface WasteType {
   pallet_weight_kg: number;
   display_order: number;
   is_active: boolean;
+  isNew?: boolean;
 }
 
 interface LoadReportSettingsProps {
@@ -33,6 +34,8 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
   const [defaultPalletWeight, setDefaultPalletWeight] = useState("20");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [newWasteTypeName, setNewWasteTypeName] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,6 +81,36 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
     }
   };
 
+  const handleAddWasteType = () => {
+    if (!newWasteTypeName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter a name for the waste type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxOrder = wasteTypes.reduce((max, wt) => Math.max(max, wt.display_order), 0);
+    const newType: WasteType = {
+      id: `new-${Date.now()}`,
+      waste_type: newWasteTypeName.trim(),
+      default_avg_weight_kg: 300,
+      pallet_weight_kg: Number(defaultPalletWeight),
+      display_order: maxOrder + 1,
+      is_active: true,
+      isNew: true,
+    };
+
+    setWasteTypes((prev) => [...prev, newType]);
+    setNewWasteTypeName("");
+    setShowAddForm(false);
+  };
+
+  const handleDeleteWasteType = (id: string) => {
+    setWasteTypes((prev) => prev.filter((wt) => wt.id !== id));
+  };
+
   const handleWasteTypeChange = (id: string, field: keyof WasteType, value: number) => {
     setWasteTypes((prev) =>
       prev.map((wt) => (wt.id === id ? { ...wt, [field]: value } : wt))
@@ -87,8 +120,22 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Update each waste type
-      for (const wt of wasteTypes) {
+      // Handle new waste types (insert)
+      const newTypes = wasteTypes.filter((wt) => wt.isNew);
+      for (const wt of newTypes) {
+        const { error } = await supabase.from("load_waste_types").insert({
+          waste_type: wt.waste_type,
+          default_avg_weight_kg: wt.default_avg_weight_kg,
+          pallet_weight_kg: wt.pallet_weight_kg,
+          display_order: wt.display_order,
+          is_active: true,
+        });
+        if (error) throw error;
+      }
+
+      // Update existing waste types
+      const existingTypes = wasteTypes.filter((wt) => !wt.isNew);
+      for (const wt of existingTypes) {
         const { error } = await supabase
           .from("load_waste_types")
           .update({
@@ -189,8 +236,13 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
                       key={wt.id}
                       className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/50 rounded-lg"
                     >
-                      <div className="flex-1 font-medium">{wt.waste_type}</div>
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1 font-medium">
+                        {wt.waste_type}
+                        {wt.isNew && (
+                          <span className="ml-2 text-xs text-primary">(new)</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-3 items-center">
                         <div className="flex items-center gap-2">
                           <Label className="text-xs text-muted-foreground whitespace-nowrap">
                             Avg Weight (KG):
@@ -221,10 +273,62 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
                             className="w-24 h-9"
                           />
                         </div>
+                        {wt.isNew && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteWasteType(wt.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Add new waste type */}
+                {showAddForm ? (
+                  <div className="flex items-center gap-3 p-3 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
+                    <Input
+                      placeholder="Enter waste type name..."
+                      value={newWasteTypeName}
+                      onChange={(e) => setNewWasteTypeName(e.target.value)}
+                      className="flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddWasteType();
+                        if (e.key === "Escape") {
+                          setShowAddForm(false);
+                          setNewWasteTypeName("");
+                        }
+                      }}
+                    />
+                    <Button onClick={handleAddWasteType} size="sm">
+                      Add
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setNewWasteTypeName("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAddForm(true)}
+                    className="w-full gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add waste type
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
