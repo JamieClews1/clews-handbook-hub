@@ -38,7 +38,7 @@ const LoadReportsPage = () => {
   // Form state
   const [operatorName, setOperatorName] = useState("");
   const [vehicleReg, setVehicleReg] = useState("");
-  const [notes, setNotes] = useState("");
+  const [jobNumber, setJobNumber] = useState("");
   const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
 
@@ -114,7 +114,7 @@ const LoadReportsPage = () => {
     setCurrentReportId(null);
     setOperatorName("");
     setVehicleReg("");
-    setNotes("");
+    setJobNumber("");
     setReportDate(new Date().toISOString().split("T")[0]);
     
     // Fetch latest waste types to ensure we have current default weights
@@ -167,7 +167,7 @@ const LoadReportsPage = () => {
       setCurrentReportId(reportId);
       setOperatorName(report.operator_name);
       setVehicleReg(report.vehicle_reg || "");
-      setNotes(report.notes || "");
+      setJobNumber(report.notes || ""); // Using notes field for job number temporarily
       setReportDate(report.report_date);
       
       if (items && items.length > 0) {
@@ -233,7 +233,7 @@ const LoadReportsPage = () => {
         operator_id: user.id,
         operator_name: operatorName,
         vehicle_reg: vehicleReg || null,
-        notes: notes || null,
+        notes: jobNumber || null, // Storing job number in notes field
         report_date: reportDate,
         total_pallets: totalPallets,
         total_weight_kg: totalWeight,
@@ -419,10 +419,10 @@ const LoadReportsPage = () => {
             <NewLoadForm
               operatorName={operatorName}
               vehicleReg={vehicleReg}
-              notes={notes}
+              jobNumber={jobNumber}
               onOperatorNameChange={setOperatorName}
               onVehicleRegChange={setVehicleReg}
-              onNotesChange={setNotes}
+              onJobNumberChange={setJobNumber}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
             />
@@ -441,7 +441,7 @@ const LoadReportsPage = () => {
             <LoadReviewScreen
               operatorName={operatorName}
               vehicleReg={vehicleReg}
-              notes={notes}
+              jobNumber={jobNumber}
               reportDate={reportDate}
               lineItems={lineItems}
               onBack={handleBack}
