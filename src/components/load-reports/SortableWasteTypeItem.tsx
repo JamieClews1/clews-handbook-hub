@@ -45,7 +45,7 @@ export const SortableWasteTypeItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/50 rounded-lg"
+      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
     >
       <div
         {...attributes}
@@ -54,57 +54,56 @@ export const SortableWasteTypeItem = ({
       >
         <GripVertical className="h-5 w-5" />
       </div>
-      <div className="flex-1">
+      
+      <div className="flex-1 min-w-0">
         <Input
           value={wasteType.waste_type}
           onChange={(e) => onFieldChange(wasteType.id, "waste_type", e.target.value)}
           className="font-medium"
           placeholder="Waste type name"
         />
-        {wasteType.isNew && (
-          <span className="ml-2 text-xs text-primary">(new)</span>
-        )}
       </div>
-      <div className="flex flex-col sm:flex-row gap-3 items-center">
-        <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">
-            Avg Weight (KG):
-          </Label>
-          <Input
-            type="number"
-            min="0"
-            step="10"
-            value={wasteType.default_avg_weight_kg}
-            onChange={(e) =>
-              onFieldChange(wasteType.id, "default_avg_weight_kg", Number(e.target.value))
-            }
-            className="w-24 h-9"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">
-            Pallet Deduct (KG):
-          </Label>
-          <Input
-            type="number"
-            min="0"
-            step="1"
-            value={wasteType.pallet_weight_kg}
-            onChange={(e) =>
-              onFieldChange(wasteType.id, "pallet_weight_kg", Number(e.target.value))
-            }
-            className="w-24 h-9"
-          />
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-destructive hover:text-destructive"
-          onClick={() => onDelete(wasteType.id)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+
+      <div className="flex items-center gap-2">
+        <Label className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+          Avg (KG):
+        </Label>
+        <Input
+          type="number"
+          min="0"
+          step="10"
+          value={wasteType.default_avg_weight_kg}
+          onChange={(e) =>
+            onFieldChange(wasteType.id, "default_avg_weight_kg", Number(e.target.value))
+          }
+          className="w-20 h-9"
+        />
       </div>
+
+      <div className="flex items-center gap-2">
+        <Label className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+          Pallet (KG):
+        </Label>
+        <Input
+          type="number"
+          min="0"
+          step="1"
+          value={wasteType.pallet_weight_kg}
+          onChange={(e) =>
+            onFieldChange(wasteType.id, "pallet_weight_kg", Number(e.target.value))
+          }
+          className="w-20 h-9"
+        />
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
+        onClick={() => onDelete(wasteType.id)}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
     </div>
   );
 };
