@@ -12,8 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Download, Truck, Filter } from "lucide-react";
+import { Plus, Search, Eye, Download, Truck, Filter, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 interface LoadReport {
@@ -38,6 +39,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport }: LoadReportsListPr
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -109,6 +111,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport }: LoadReportsListPr
 
   return (
     <div className="space-y-4">
+      {/* Settings Dialog */}
+      <LoadReportSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Button onClick={onNewReport} size="lg" className="gap-2 h-12">
@@ -118,6 +123,10 @@ export const LoadReportsList = ({ onNewReport, onViewReport }: LoadReportsListPr
         <Button variant="outline" onClick={exportCSV} className="gap-2 h-12">
           <Download className="h-5 w-5" />
           Export CSV
+        </Button>
+        <Button variant="outline" onClick={() => setSettingsOpen(true)} className="gap-2 h-12">
+          <Settings className="h-5 w-5" />
+          Settings
         </Button>
       </div>
 
