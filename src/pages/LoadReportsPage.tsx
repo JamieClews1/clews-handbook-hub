@@ -20,6 +20,7 @@ interface WasteType {
   waste_type: string;
   default_avg_weight_kg: number;
   display_order: number;
+  pallet_weight_kg: number;
 }
 
 const LoadReportsPage = () => {
@@ -90,6 +91,7 @@ const LoadReportsPage = () => {
       avg_weight_kg: Number(wt.default_avg_weight_kg),
       total_weight_kg: 0,
       display_order: wt.display_order,
+      pallet_weight_kg: Number(wt.pallet_weight_kg) || 0,
     }));
     setLineItems(items);
   };
@@ -116,6 +118,7 @@ const LoadReportsPage = () => {
         avg_weight_kg: Number(wt.default_avg_weight_kg),
         total_weight_kg: 0,
         display_order: wt.display_order,
+        pallet_weight_kg: Number(wt.pallet_weight_kg) || 0,
       }));
       setLineItems(items);
     } else {
@@ -154,6 +157,8 @@ const LoadReportsPage = () => {
       setReportDate(report.report_date);
       
       if (items && items.length > 0) {
+        // Need to get pallet weights from waste types
+        const wasteTypeMap = new Map(wasteTypes.map(wt => [wt.waste_type, Number(wt.pallet_weight_kg) || 0]));
         setLineItems(
           items.map((item) => ({
             waste_type: item.waste_type,
@@ -161,6 +166,7 @@ const LoadReportsPage = () => {
             avg_weight_kg: Number(item.avg_weight_kg),
             total_weight_kg: Number(item.total_weight_kg),
             display_order: item.display_order,
+            pallet_weight_kg: wasteTypeMap.get(item.waste_type) || 0,
           }))
         );
       } else {
