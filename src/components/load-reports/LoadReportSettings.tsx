@@ -111,7 +111,7 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
     setWasteTypes((prev) => prev.filter((wt) => wt.id !== id));
   };
 
-  const handleWasteTypeChange = (id: string, field: keyof WasteType, value: number) => {
+  const handleWasteTypeChange = (id: string, field: keyof WasteType, value: number | string) => {
     setWasteTypes((prev) =>
       prev.map((wt) => (wt.id === id ? { ...wt, [field]: value } : wt))
     );
@@ -139,6 +139,7 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
         const { error } = await supabase
           .from("load_waste_types")
           .update({
+            waste_type: wt.waste_type,
             default_avg_weight_kg: wt.default_avg_weight_kg,
             pallet_weight_kg: wt.pallet_weight_kg,
           })
@@ -236,8 +237,15 @@ export const LoadReportSettings = ({ open, onOpenChange }: LoadReportSettingsPro
                       key={wt.id}
                       className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/50 rounded-lg"
                     >
-                      <div className="flex-1 font-medium">
-                        {wt.waste_type}
+                      <div className="flex-1">
+                        <Input
+                          value={wt.waste_type}
+                          onChange={(e) =>
+                            handleWasteTypeChange(wt.id, "waste_type", e.target.value)
+                          }
+                          className="font-medium"
+                          placeholder="Waste type name"
+                        />
                         {wt.isNew && (
                           <span className="ml-2 text-xs text-primary">(new)</span>
                         )}
