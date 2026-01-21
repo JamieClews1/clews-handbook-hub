@@ -7,12 +7,13 @@ import { ArrowLeft, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 
+import { CustomerTypeSelector, CustomerType } from "@/components/load-reports/CustomerTypeSelector";
 import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
 import { TallyScreen, LineItem } from "@/components/load-reports/TallyScreen";
 import { LoadReviewScreen } from "@/components/load-reports/LoadReviewScreen";
 import { LoadReportsList } from "@/components/load-reports/LoadReportsList";
 
-type ViewMode = "list" | "new" | "tally" | "review";
+type ViewMode = "customer" | "list" | "new" | "tally" | "review";
 
 interface WasteType {
   id: string;
@@ -26,7 +27,8 @@ const LoadReportsPage = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("customer");
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
   const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
@@ -263,6 +265,10 @@ const LoadReportsPage = () => {
 
   const handleBack = () => {
     switch (viewMode) {
+      case "list":
+        setViewMode("customer");
+        setSelectedCustomer(null);
+        break;
       case "new":
         setViewMode("list");
         break;
@@ -273,8 +279,13 @@ const LoadReportsPage = () => {
         setViewMode("tally");
         break;
       default:
-        setViewMode("list");
+        setViewMode("customer");
     }
+  };
+
+  const handleCustomerSelect = (customer: CustomerType) => {
+    setSelectedCustomer(customer);
+    setViewMode("list");
   };
 
   if (loading) {
@@ -294,6 +305,10 @@ const LoadReportsPage = () => {
 
   const getHeaderTitle = () => {
     switch (viewMode) {
+      case "customer":
+        return "Load Reports";
+      case "list":
+        return selectedCustomer ? `${selectedCustomer.toUpperCase()} Reports` : "Load Reports";
       case "new":
         return "New Load";
       case "tally":
@@ -312,7 +327,7 @@ const LoadReportsPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {viewMode === "list" ? (
+              {viewMode === "customer" ? (
                 <Link to="/portal">
                   <Button variant="ghost" size="sm" className="gap-2">
                     <ArrowLeft className="h-4 w-4" />
@@ -338,6 +353,10 @@ const LoadReportsPage = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-5xl mx-auto">
+          {viewMode === "customer" && (
+            <CustomerTypeSelector onSelect={handleCustomerSelect} />
+          )}
+
           {viewMode === "list" && (
             <>
               <div className="flex items-center gap-4 mb-6">
@@ -345,7 +364,9 @@ const LoadReportsPage = () => {
                   <Truck className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Load Reports</h1>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {selectedCustomer?.toUpperCase()} Load Reports
+                  </h1>
                   <p className="text-muted-foreground text-sm">
                     Track pallet loads and weights for recyclables
                   </p>
