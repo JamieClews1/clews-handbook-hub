@@ -94,13 +94,34 @@ const LoadReportsPage = () => {
     setLineItems(items);
   };
 
-  const handleNewReport = () => {
+  const handleNewReport = async () => {
     setCurrentReportId(null);
     setOperatorName("");
     setVehicleReg("");
     setNotes("");
     setReportDate(new Date().toISOString().split("T")[0]);
-    initializeLineItems();
+    
+    // Fetch latest waste types to ensure we have current default weights
+    const { data, error } = await supabase
+      .from("load_waste_types")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order");
+
+    if (!error && data) {
+      setWasteTypes(data);
+      const items: LineItem[] = data.map((wt) => ({
+        waste_type: wt.waste_type,
+        pallet_count: 0,
+        avg_weight_kg: Number(wt.default_avg_weight_kg),
+        total_weight_kg: 0,
+        display_order: wt.display_order,
+      }));
+      setLineItems(items);
+    } else {
+      initializeLineItems();
+    }
+    
     fetchUserProfile();
     setViewMode("new");
   };
