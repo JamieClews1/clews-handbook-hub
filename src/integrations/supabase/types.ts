@@ -574,6 +574,30 @@ export type Database = {
           },
         ]
       }
+      load_report_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       load_reports: {
         Row: {
           created_at: string
@@ -634,6 +658,7 @@ export type Database = {
           display_order: number
           id: string
           is_active: boolean
+          pallet_weight_kg: number
           waste_type: string
         }
         Insert: {
@@ -642,6 +667,7 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean
+          pallet_weight_kg?: number
           waste_type: string
         }
         Update: {
@@ -650,6 +676,7 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean
+          pallet_weight_kg?: number
           waste_type?: string
         }
         Relationships: []
