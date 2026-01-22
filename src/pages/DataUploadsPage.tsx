@@ -129,6 +129,10 @@ const DataUploadsPage = () => {
   const [rawScrollLeft, setRawScrollLeft] = useState(0);
   const [rawScrollMax, setRawScrollMax] = useState(0);
 
+  const resultsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [resultsScrollLeft, setResultsScrollLeft] = useState(0);
+  const [resultsScrollMax, setResultsScrollMax] = useState(0);
+
   const [isManagement, setIsManagement] = useState(false);
   const canUpload = isAdmin || isManagement;
 
@@ -249,6 +253,31 @@ const DataUploadsPage = () => {
       window.removeEventListener("resize", recompute);
     };
   }, [lastParsedPreview]);
+
+  useEffect(() => {
+    const el = resultsScrollRef.current;
+    if (!el) return;
+
+    const recompute = () => {
+      const max = Math.max(0, el.scrollWidth - el.clientWidth);
+      setResultsScrollMax(max);
+      setResultsScrollLeft((prev) => Math.min(prev, max));
+    };
+
+    const onScroll = () => setResultsScrollLeft(el.scrollLeft);
+
+    recompute();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    window.addEventListener("resize", recompute);
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+  }, [filters, jobs.length]);
 
   const parseFileToJobs = async (file: File, source: DataSource): Promise<DataHubJobRow[]> => {
     const buf = await file.arrayBuffer();
@@ -575,28 +604,6 @@ const DataUploadsPage = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pb-3">
-                  <span className="text-xs text-muted-foreground tabular-nums w-12 text-right">
-                    {Math.round(rawScrollLeft).toLocaleString()}
-                  </span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={rawScrollMax}
-                    value={Math.min(rawScrollLeft, rawScrollMax)}
-                    onChange={(e) => {
-                      const next = Number(e.target.value);
-                      setRawScrollLeft(next);
-                      rawPreviewScrollRef.current?.scrollTo({ left: next, behavior: "auto" });
-                    }}
-                    className="w-full"
-                    aria-label="Horizontal scroll control"
-                  />
-                  <span className="text-xs text-muted-foreground tabular-nums w-12">
-                    {Math.round(rawScrollMax).toLocaleString()}
-                  </span>
-                </div>
-
                 <div
                   ref={rawPreviewScrollRef}
                   className="rounded-md border border-border overflow-x-auto max-w-full"
@@ -668,8 +675,30 @@ const DataUploadsPage = () => {
                 <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
 
-              <div className="rounded-md border border-border overflow-hidden">
-                <Table>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground tabular-nums w-12 text-right">
+                  {Math.round(resultsScrollLeft).toLocaleString()}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={resultsScrollMax}
+                  value={Math.min(resultsScrollLeft, resultsScrollMax)}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    setResultsScrollLeft(next);
+                    resultsScrollRef.current?.scrollTo({ left: next, behavior: "auto" });
+                  }}
+                  className="w-full"
+                  aria-label="Results horizontal scroll control"
+                />
+                <span className="text-xs text-muted-foreground tabular-nums w-12">
+                  {Math.round(resultsScrollMax).toLocaleString()}
+                </span>
+              </div>
+
+              <div ref={resultsScrollRef} className="rounded-md border border-border overflow-x-auto max-w-full">
+                <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Ticket</TableHead>
