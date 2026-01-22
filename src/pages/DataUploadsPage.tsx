@@ -44,6 +44,20 @@ type ListedJob = {
   updated_at: string;
 };
 
+type ExistingJobFields = {
+  job_number: string;
+  job_date: string | null;
+  customer: string | null;
+  site: string | null;
+  ewc: string | null;
+  waste_description: string | null;
+  category: string | null;
+  movement_type: string | null;
+  container_type: string | null;
+  weight_t: number | null;
+  vehicle_registration: string | null;
+};
+
 function normalizeHeaderKey(key: unknown) {
   return String(key ?? "")
     .trim()
@@ -59,6 +73,12 @@ function getFirstMatchingValue(row: Record<string, any>, candidates: string[]) {
     if (v !== undefined && v !== null && String(v).trim() !== "") return v;
   }
   return null;
+}
+
+function toCleanString(value: any): string | null {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length ? s : null;
 }
 
 function excelValueToISODate(value: any): string | null {
@@ -216,15 +236,49 @@ const DataUploadsPage = () => {
         job_number: ticket,
         source,
         job_date: excelValueToISODate(jobDateVal),
-        customer: (getFirstMatchingValue(r, ["Customer", "customer"]) ?? null) as any,
-        site: (getFirstMatchingValue(r, ["Site", "site", "Location"]) ?? null) as any,
-        ewc: (getFirstMatchingValue(r, ["EWC", "EWC Code", "ewc"]) ?? null) as any,
-        waste_description: (getFirstMatchingValue(r, ["Waste Description", "Description", "waste_description"]) ?? null) as any,
-        category: (getFirstMatchingValue(r, ["Category", "category"]) ?? null) as any,
-        movement_type: (getFirstMatchingValue(r, ["Movement Type", "movement_type"]) ?? null) as any,
-        container_type: (getFirstMatchingValue(r, ["Container", "Container Type", "container_type"]) ?? null) as any,
+        customer: toCleanString(
+          getFirstMatchingValue(r, [
+            "Customer",
+            "Customer Name",
+            "Customer/Producer",
+            "Client",
+            "Account",
+            "Account Name",
+            "Producer",
+            "Company",
+          ]),
+        ),
+        site: toCleanString(
+          getFirstMatchingValue(r, [
+            "Site",
+            "Site Name",
+            "Location",
+            "Delivery Site",
+            "Collection Site",
+            "Job Site",
+            "Address",
+          ]),
+        ),
+        ewc: toCleanString(getFirstMatchingValue(r, ["EWC", "EWC Code", "EWC Code (6)", "ewc"])),
+        waste_description: toCleanString(
+          getFirstMatchingValue(r, [
+            "Waste Description",
+            "Waste",
+            "Waste Type",
+            "Waste Type Description",
+            "Material",
+            "Description",
+            "waste_description",
+            "Waste_Description",
+          ]),
+        ),
+        category: toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])) ,
+        movement_type: toCleanString(getFirstMatchingValue(r, ["Movement Type", "Movement", "movement_type"])),
+        container_type: toCleanString(getFirstMatchingValue(r, ["Container", "Container Type", "container_type", "Skip Type"])),
         weight_t: Number.isFinite(weightNum as number) ? (weightNum as number) : null,
-        vehicle_registration: (getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Reg", "vehicle_registration"]) ?? null) as any,
+        vehicle_registration: toCleanString(
+          getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Vehicle Reg", "Reg", "Registration", "vehicle_registration"]),
+        ),
         raw: r,
       });
     }
@@ -255,12 +309,40 @@ const DataUploadsPage = () => {
         return;
       }
 
-      // Upsert in chunks to keep request sizes safe
-      const chunks = chunk(jobsToUpsert, 500);
-      for (const c of chunks) {
-        const { error } = await supabase
+      // Avoid overwriting existing non-empty fields with blanks.
+      // (Some sources don't include Customer / Waste Description columns.)
+      const jobNumbers = jobsToUpsert.map((j) => j.job_number);
+      const existingByJob = new Map<string, ExistingJobFields>();
+      for (const ids of chunk(jobNumbers, 500)) {
+        const { data: existing, error } = await supabase
           .from("data_hub_jobs")
-          .upsert(c as any, { onConflict: "job_number" });
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date")
+          .in("job_number", ids);
+        if (error) throw error;
+        (existing ?? []).forEach((row: any) => existingByJob.set(String(row.job_number), row as ExistingJobFields));
+      }
+
+      const mergedJobs = jobsToUpsert.map((j) => {
+        const existing = existingByJob.get(j.job_number);
+        return {
+          ...j,
+          job_date: j.job_date ?? (existing?.job_date as any) ?? null,
+          customer: j.customer ?? (existing?.customer as any) ?? null,
+          site: j.site ?? (existing?.site as any) ?? null,
+          ewc: j.ewc ?? (existing?.ewc as any) ?? null,
+          waste_description: j.waste_description ?? (existing?.waste_description as any) ?? null,
+          category: j.category ?? (existing?.category as any) ?? null,
+          movement_type: j.movement_type ?? (existing?.movement_type as any) ?? null,
+          container_type: j.container_type ?? (existing?.container_type as any) ?? null,
+          weight_t: j.weight_t ?? (existing?.weight_t as any) ?? null,
+          vehicle_registration: j.vehicle_registration ?? (existing?.vehicle_registration as any) ?? null,
+        } satisfies DataHubJobRow;
+      });
+
+      // Upsert in chunks to keep request sizes safe
+      const chunks = chunk(mergedJobs, 500);
+      for (const c of chunks) {
+        const { error } = await supabase.from("data_hub_jobs").upsert(c as any, { onConflict: "job_number" });
         if (error) throw error;
       }
 
@@ -438,19 +520,20 @@ const DataUploadsPage = () => {
                       <TableHead>Customer</TableHead>
                       <TableHead>Site</TableHead>
                       <TableHead>EWC</TableHead>
+                      <TableHead>Waste</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-muted-foreground">
+                        <TableCell colSpan={8} className="text-muted-foreground">
                           Loading…
                         </TableCell>
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-muted-foreground">
+                        <TableCell colSpan={8} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
@@ -463,6 +546,9 @@ const DataUploadsPage = () => {
                           <TableCell>{j.customer ?? "—"}</TableCell>
                           <TableCell>{j.site ?? "—"}</TableCell>
                           <TableCell>{j.ewc ?? "—"}</TableCell>
+                          <TableCell className="max-w-[24rem] truncate" title={j.waste_description ?? ""}>
+                            {j.waste_description ?? "—"}
+                          </TableCell>
                           <TableCell className="text-right">{j.weight_t ?? "—"}</TableCell>
                         </TableRow>
                       ))
