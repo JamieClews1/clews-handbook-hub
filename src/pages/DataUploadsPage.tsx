@@ -138,6 +138,16 @@ const DataUploadsPage = () => {
   const [jobs, setJobs] = useState<ListedJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
 
+  const [lastParsedPreview, setLastParsedPreview] = useState<
+    | null
+    | {
+        source: DataSource;
+        fileName: string;
+        headers: string[];
+        rows: Record<string, unknown>[];
+      }
+  >(null);
+
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
@@ -304,6 +314,17 @@ const DataUploadsPage = () => {
     setLastUploadSummary(null);
     try {
       const jobsToUpsert = await parseFileToJobs(file, source);
+
+      // Keep a raw preview (all columns) from the uploaded document for debugging/verification.
+      const rawRows = jobsToUpsert.map((j) => j.raw ?? {}).filter(Boolean) as Record<string, unknown>[];
+      const headers = Array.from(
+        rawRows.reduce((set, r) => {
+          Object.keys(r).forEach((k) => set.add(k));
+          return set;
+        }, new Set<string>()),
+      );
+      setLastParsedPreview({ source, fileName: file.name, headers, rows: rawRows });
+
       if (jobsToUpsert.length === 0) {
         toast({
           title: "No rows found",
@@ -486,6 +507,62 @@ const DataUploadsPage = () => {
                 <CardTitle>Last upload</CardTitle>
                 <CardDescription>{lastUploadSummary}</CardDescription>
               </CardHeader>
+            </Card>
+          )}
+
+          {lastParsedPreview && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Uploaded file columns (raw preview)</CardTitle>
+                <CardDescription>
+                  {lastParsedPreview.source.toUpperCase()} · {lastParsedPreview.fileName} · Showing first{" "}
+                  {Math.min(50, lastParsedPreview.rows.length).toLocaleString()} of{" "}
+                  {lastParsedPreview.rows.length.toLocaleString()} rows · {lastParsedPreview.headers.length} columns
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {lastParsedPreview.headers.map((h) => (
+                            <TableHead key={h} className="whitespace-nowrap">
+                              {h}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lastParsedPreview.rows.slice(0, 50).map((r, idx) => (
+                          <TableRow key={idx}>
+                            {lastParsedPreview.headers.map((h) => {
+                              const v = (r as any)?.[h];
+                              const text =
+                                v == null
+                                  ? ""
+                                  : typeof v === "object"
+                                    ? (() => {
+                                        try {
+                                          return JSON.stringify(v);
+                                        } catch {
+                                          return String(v);
+                                        }
+                                      })()
+                                    : String(v);
+                              return (
+                                <TableCell key={h} className="whitespace-nowrap max-w-[22rem] truncate" title={text}>
+                                  {text || "—"}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           )}
 
