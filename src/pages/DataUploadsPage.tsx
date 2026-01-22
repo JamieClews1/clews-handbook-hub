@@ -1,0 +1,481 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
+
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import clewsLogo from "@/assets/clews-logo.png";
+
+import { ArrowLeft, Upload } from "lucide-react";
+
+type DataSource = "skiptrak" | "midweigh";
+
+type DataHubJobRow = {
+  job_number: string;
+  source: string;
+  job_date?: string | null;
+  customer?: string | null;
+  site?: string | null;
+  ewc?: string | null;
+  waste_description?: string | null;
+  category?: string | null;
+  movement_type?: string | null;
+  container_type?: string | null;
+  weight_t?: number | null;
+  vehicle_registration?: string | null;
+  raw: Record<string, unknown>;
+};
+
+type ListedJob = {
+  job_number: string;
+  source: string;
+  job_date: string | null;
+  customer: string | null;
+  site: string | null;
+  ewc: string | null;
+  waste_description: string | null;
+  weight_t: number | null;
+  vehicle_registration: string | null;
+  updated_at: string;
+};
+
+function normalizeHeaderKey(key: unknown) {
+  return String(key ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function getFirstMatchingValue(row: Record<string, any>, candidates: string[]) {
+  const normalized = new Map<string, any>();
+  Object.keys(row).forEach((k) => normalized.set(normalizeHeaderKey(k), row[k]));
+  for (const c of candidates) {
+    const v = normalized.get(normalizeHeaderKey(c));
+    if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+  }
+  return null;
+}
+
+function excelValueToISODate(value: any): string | null {
+  if (value == null || value === "") return null;
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  if (typeof value === "number") {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (!parsed) return null;
+    const d = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
+    return d.toISOString().slice(0, 10);
+  }
+
+  if (typeof value === "string") {
+    const s = value.trim();
+    // Handle dd/mm/yyyy or dd-mm-yyyy common exports
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (m) {
+      const day = Number(m[1]);
+      const month = Number(m[2]);
+      const year = Number(m[3].length === 2 ? `20${m[3]}` : m[3]);
+      const d = new Date(Date.UTC(year, month - 1, day));
+      return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+    }
+
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  }
+
+  return null;
+}
+
+function chunk<T>(items: T[], size: number) {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+const DataUploadsPage = () => {
+  const navigate = useNavigate();
+  const { user, loading, isAdmin } = useAuth();
+  const { toast } = useToast();
+
+  const [isManagement, setIsManagement] = useState(false);
+  const canUpload = isAdmin || isManagement;
+
+  const [isUploading, setIsUploading] = useState<DataSource | null>(null);
+  const [lastUploadSummary, setLastUploadSummary] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | DataSource>("all");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const [jobs, setJobs] = useState<ListedJob[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+
+  useEffect(() => {
+    if (!loading && !user) navigate("/auth");
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const checkManagement = async () => {
+      if (!user) return;
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("user_types")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        setIsManagement(false);
+        return;
+      }
+
+      setIsManagement(Boolean(profile?.user_types?.includes("management")));
+    };
+    checkManagement();
+  }, [user]);
+
+  const filters = useMemo(
+    () => ({ search: search.trim(), source: sourceFilter, fromDate, toDate }),
+    [search, sourceFilter, fromDate, toDate],
+  );
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      if (!user) return;
+      setLoadingJobs(true);
+      try {
+        let q = supabase
+          .from("data_hub_jobs")
+          .select(
+            "job_number,source,job_date,customer,site,ewc,waste_description,weight_t,vehicle_registration,updated_at",
+          )
+          .order("job_date", { ascending: false, nullsFirst: false })
+          .order("updated_at", { ascending: false })
+          .limit(200);
+
+        if (filters.source !== "all") q = q.eq("source", filters.source);
+        if (filters.fromDate) q = q.gte("job_date", filters.fromDate);
+        if (filters.toDate) q = q.lte("job_date", filters.toDate);
+
+        if (filters.search) {
+          const term = filters.search.replace(/,/g, "");
+          q = q.or(
+            `job_number.ilike.%${term}%,customer.ilike.%${term}%,site.ilike.%${term}%,ewc.ilike.%${term}%`,
+          );
+        }
+
+        const { data, error } = await q;
+        if (error) throw error;
+        setJobs((data ?? []) as ListedJob[]);
+      } catch (e: any) {
+        console.error(e);
+        toast({
+          title: "Could not load jobs",
+          description: e?.message ?? "Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+
+    loadJobs();
+  }, [user, toast, filters]);
+
+  const parseFileToJobs = async (file: File, source: DataSource): Promise<DataHubJobRow[]> => {
+    const buf = await file.arrayBuffer();
+    const workbook = XLSX.read(buf, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null });
+
+    const mapped: DataHubJobRow[] = [];
+    for (const r of rows) {
+      const ticketVal = getFirstMatchingValue(r, ["Ticket", "ticket", "Job Number", "job number"]);
+      const ticket = String(ticketVal ?? "").trim();
+      if (!ticket) continue;
+
+      const jobDateVal = getFirstMatchingValue(r, ["Date", "Job Date", "job_date"]);
+      const weightVal = getFirstMatchingValue(r, ["Weight (t)", "Weight", "Weight_t", "weight_t", "Tonnes"]);
+
+      const weightNum =
+        weightVal == null || weightVal === ""
+          ? null
+          : typeof weightVal === "number"
+            ? weightVal
+            : Number(String(weightVal).replace(/,/g, ""));
+
+      mapped.push({
+        job_number: ticket,
+        source,
+        job_date: excelValueToISODate(jobDateVal),
+        customer: (getFirstMatchingValue(r, ["Customer", "customer"]) ?? null) as any,
+        site: (getFirstMatchingValue(r, ["Site", "site", "Location"]) ?? null) as any,
+        ewc: (getFirstMatchingValue(r, ["EWC", "EWC Code", "ewc"]) ?? null) as any,
+        waste_description: (getFirstMatchingValue(r, ["Waste Description", "Description", "waste_description"]) ?? null) as any,
+        category: (getFirstMatchingValue(r, ["Category", "category"]) ?? null) as any,
+        movement_type: (getFirstMatchingValue(r, ["Movement Type", "movement_type"]) ?? null) as any,
+        container_type: (getFirstMatchingValue(r, ["Container", "Container Type", "container_type"]) ?? null) as any,
+        weight_t: Number.isFinite(weightNum as number) ? (weightNum as number) : null,
+        vehicle_registration: (getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Reg", "vehicle_registration"]) ?? null) as any,
+        raw: r,
+      });
+    }
+
+    return mapped;
+  };
+
+  const handleUpload = async (source: DataSource, file: File) => {
+    if (!canUpload) {
+      toast({
+        title: "No permission",
+        description: "Only Admin or Management can upload Data Hub files.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(source);
+    setLastUploadSummary(null);
+    try {
+      const jobsToUpsert = await parseFileToJobs(file, source);
+      if (jobsToUpsert.length === 0) {
+        toast({
+          title: "No rows found",
+          description: "We couldn't find a Ticket/Job Number column with values.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Upsert in chunks to keep request sizes safe
+      const chunks = chunk(jobsToUpsert, 500);
+      for (const c of chunks) {
+        const { error } = await supabase
+          .from("data_hub_jobs")
+          .upsert(c as any, { onConflict: "job_number" });
+        if (error) throw error;
+      }
+
+      const summary = `${source.toUpperCase()}: processed ${jobsToUpsert.length.toLocaleString()} rows (deduped by Ticket)`;
+      setLastUploadSummary(summary);
+      toast({
+        title: "Upload complete",
+        description: summary,
+      });
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: "Upload failed",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 glass border-b border-border/50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link to="/portal">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Back to Portal</span>
+                </Button>
+              </Link>
+              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+              <Upload className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Data Hub · Data Uploads</h1>
+              <p className="text-muted-foreground">
+                Upload Skiptrak and Midweigh XLSX files. Records are upserted by Ticket.
+              </p>
+            </div>
+          </div>
+
+          {!canUpload && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Access restricted</CardTitle>
+                <CardDescription>Only Admin or Management users can upload/overwrite Data Hub records.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="secondary" onClick={() => navigate("/portal")}>Back to Portal</Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Skiptrak upload</CardTitle>
+                <CardDescription>Upload the exported XLSX. Ticket column will be used as the unique key.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  disabled={!canUpload || isUploading !== null}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    void handleUpload("skiptrak", file);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled
+                  className="w-full"
+                >
+                  Select a file above to upload
+                </Button>
+                {isUploading === "skiptrak" && <p className="text-sm text-muted-foreground">Uploading…</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Midweigh upload</CardTitle>
+                <CardDescription>Upload the exported XLSX. Ticket column will be used as the unique key.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  disabled={!canUpload || isUploading !== null}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    void handleUpload("midweigh", file);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <Button type="button" variant="secondary" disabled className="w-full">
+                  Select a file above to upload
+                </Button>
+                {isUploading === "midweigh" && <p className="text-sm text-muted-foreground">Uploading…</p>}
+              </CardContent>
+            </Card>
+          </div>
+
+          {lastUploadSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Last upload</CardTitle>
+                <CardDescription>{lastUploadSummary}</CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Search & results</CardTitle>
+              <CardDescription>Latest records in the Data Hub table.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-4 gap-3">
+                <Input
+                  placeholder="Search Ticket, customer, site, EWC…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <Input
+                  placeholder="Source (all / skiptrak / midweigh)"
+                  value={sourceFilter}
+                  onChange={(e) => {
+                    const v = e.target.value.trim().toLowerCase();
+                    if (v === "skiptrak" || v === "midweigh") setSourceFilter(v);
+                    else setSourceFilter("all");
+                  }}
+                />
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              </div>
+
+              <div className="rounded-md border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ticket</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Site</TableHead>
+                      <TableHead>EWC</TableHead>
+                      <TableHead className="text-right">Weight (t)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loadingJobs ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-muted-foreground">
+                          Loading…
+                        </TableCell>
+                      </TableRow>
+                    ) : jobs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-muted-foreground">
+                          No results.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      jobs.map((j) => (
+                        <TableRow key={`${j.source}-${j.job_number}-${j.updated_at}`}>
+                          <TableCell className="font-medium">{j.job_number}</TableCell>
+                          <TableCell>{j.source}</TableCell>
+                          <TableCell>{j.job_date ?? "—"}</TableCell>
+                          <TableCell>{j.customer ?? "—"}</TableCell>
+                          <TableCell>{j.site ?? "—"}</TableCell>
+                          <TableCell>{j.ewc ?? "—"}</TableCell>
+                          <TableCell className="text-right">{j.weight_t ?? "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default DataUploadsPage;

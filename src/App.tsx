@@ -27,6 +27,7 @@ import SiteReportsPage from "./pages/SiteReportsPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
+import DataUploadsPage from "./pages/DataUploadsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/load-reports" element={<LoadReportsPage />} />
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
+             <Route path="/data-hub/uploads" element={<DataUploadsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

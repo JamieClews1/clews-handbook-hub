@@ -98,8 +98,7 @@ const Index = () => {
       title: "Data Uploads",
       description: "Upload and manage operational data files and reports.",
       icon: Upload,
-      href: "#",
-      comingSoon: true,
+      href: "/data-hub/uploads",
     },
     {
       title: "Customer Setup",
