@@ -111,8 +111,7 @@ const Index = () => {
       title: "Rebate Values",
       description: "Manage rebate rates, pricing structures, and value calculations.",
       icon: DollarSign,
-      href: "#",
-      comingSoon: true,
+      href: "/rebate-values",
     },
   ];
 

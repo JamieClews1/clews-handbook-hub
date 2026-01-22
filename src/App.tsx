@@ -28,6 +28,7 @@ import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import DataUploadsPage from "./pages/DataUploadsPage";
+import RebateValuesPage from "./pages/RebateValuesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
              <Route path="/data-hub/uploads" element={<DataUploadsPage />} />
+             <Route path="/rebate-values" element={<RebateValuesPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
