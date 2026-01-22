@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -124,6 +124,8 @@ const DataUploadsPage = () => {
   const navigate = useNavigate();
   const { user, loading, isAdmin } = useAuth();
   const { toast } = useToast();
+
+  const rawPreviewScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [isManagement, setIsManagement] = useState(false);
   const canUpload = isAdmin || isManagement;
@@ -521,7 +523,34 @@ const DataUploadsPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border border-border overflow-x-auto max-w-full">
+                <div className="flex items-center justify-between gap-2 pb-2">
+                  <p className="text-sm text-muted-foreground">Scroll left/right to view all columns.</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => rawPreviewScrollRef.current?.scrollBy({ left: -600, behavior: "smooth" })}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span className="hidden sm:inline">Left</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => rawPreviewScrollRef.current?.scrollBy({ left: 600, behavior: "smooth" })}
+                    >
+                      <span className="hidden sm:inline">Right</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div
+                  ref={rawPreviewScrollRef}
+                  className="rounded-md border border-border overflow-x-auto max-w-full"
+                >
                   <Table className="min-w-max">
                       <TableHeader>
                         <TableRow>
