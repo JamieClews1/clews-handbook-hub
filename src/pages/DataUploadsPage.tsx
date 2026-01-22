@@ -246,6 +246,8 @@ const DataUploadsPage = () => {
             "Account Name",
             "Producer",
             "Company",
+            "Company /Surname",
+            "Company/Surname",
           ]),
         ),
         site: toCleanString(
@@ -268,6 +270,8 @@ const DataUploadsPage = () => {
             "Waste Type Description",
             "Material",
             "Description",
+            "EWC Desc",
+            "EWC Description",
             "waste_description",
             "Waste_Description",
           ]),
