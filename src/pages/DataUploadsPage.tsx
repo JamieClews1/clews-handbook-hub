@@ -521,9 +521,8 @@ const DataUploadsPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border border-border overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <Table>
+                <div className="rounded-md border border-border overflow-x-auto max-w-full">
+                  <Table className="min-w-max">
                       <TableHeader>
                         <TableRow>
                           {lastParsedPreview.headers.map((h) => (
@@ -559,8 +558,7 @@ const DataUploadsPage = () => {
                           </TableRow>
                         ))}
                       </TableBody>
-                    </Table>
-                  </div>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
