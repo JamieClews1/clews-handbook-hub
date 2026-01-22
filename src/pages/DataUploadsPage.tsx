@@ -97,6 +97,13 @@ function excelValueToISODate(value: any): string | null {
 
   if (typeof value === "string") {
     const s = value.trim();
+
+    // If a date has been stored/formatted as an Excel serial number string, convert it.
+    if (/^\d+(?:\.\d+)?$/.test(s)) {
+      const n = Number(s);
+      if (Number.isFinite(n)) return excelValueToISODate(n);
+    }
+
     // Handle dd/mm/yyyy or dd-mm-yyyy common exports
     const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if (m) {
@@ -281,7 +288,8 @@ const DataUploadsPage = () => {
 
   const parseFileToJobs = async (file: File, source: DataSource): Promise<DataHubJobRow[]> => {
     const buf = await file.arrayBuffer();
-    const workbook = XLSX.read(buf, { type: "array" });
+    // Ensure date cells come through as actual JS Date objects whenever possible.
+    const workbook = XLSX.read(buf, { type: "array", cellDates: true });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null });
 
@@ -729,7 +737,7 @@ const DataUploadsPage = () => {
                         <TableRow key={`${j.source}-${j.job_number}-${j.updated_at}`}>
                           <TableCell className="font-medium">{j.job_number}</TableCell>
                           <TableCell>{j.source}</TableCell>
-                          <TableCell>{j.job_date ?? "—"}</TableCell>
+                          <TableCell>{excelValueToISODate(j.job_date) ?? "—"}</TableCell>
                           <TableCell>{j.customer ?? "—"}</TableCell>
                           <TableCell>{j.site ?? "—"}</TableCell>
                           <TableCell>{j.ewc ?? "—"}</TableCell>
