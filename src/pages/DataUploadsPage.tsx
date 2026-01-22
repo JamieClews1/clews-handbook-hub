@@ -52,6 +52,9 @@ type ListedJob = {
   site: string | null;
   ewc: string | null;
   waste_description: string | null;
+  category: string | null;
+  movement_type: string | null;
+  container_type: string | null;
   weight_t: number | null;
   vehicle_registration: string | null;
   updated_at: string;
@@ -149,6 +152,8 @@ const DataUploadsPage = () => {
   const [rawScrollLeft, setRawScrollLeft] = useState(0);
   const [rawScrollMax, setRawScrollMax] = useState(0);
 
+  // Results table scroll is handled by the shadcn Table wrapper div (not the outer border container).
+  const resultsViewportRef = useRef<HTMLDivElement | null>(null);
   const resultsScrollRef = useRef<HTMLDivElement | null>(null);
   const [resultsScrollLeft, setResultsScrollLeft] = useState(0);
   const [resultsScrollMax, setResultsScrollMax] = useState(0);
@@ -216,7 +221,7 @@ const DataUploadsPage = () => {
         let q = supabase
           .from("data_hub_jobs")
           .select(
-            "id,job_number,source,job_date,customer,site,ewc,waste_description,weight_t,vehicle_registration,updated_at",
+            "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,updated_at",
           )
           .order("job_date", { ascending: false, nullsFirst: false })
           .order("updated_at", { ascending: false })
@@ -324,30 +329,36 @@ const DataUploadsPage = () => {
   }, [lastParsedPreview]);
 
   useEffect(() => {
-    const el = resultsScrollRef.current;
-    if (!el) return;
+    const viewport = resultsViewportRef.current;
+    if (!viewport) return;
+
+    // shadcn Table renders: <div class="relative w-full overflow-auto"><table ... /></div>
+    // The inner div is the actual scroll container.
+    const scroller = (viewport.firstElementChild as HTMLDivElement | null) ?? null;
+    if (!scroller) return;
+    resultsScrollRef.current = scroller;
 
     const recompute = () => {
-      const max = Math.max(0, el.scrollWidth - el.clientWidth);
+      const max = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
       setResultsScrollMax(max);
       setResultsScrollLeft((prev) => Math.min(prev, max));
     };
 
-    const onScroll = () => setResultsScrollLeft(el.scrollLeft);
+    const onScroll = () => setResultsScrollLeft(scroller.scrollLeft);
 
     // Recompute after layout/paint as scrollWidth can be incorrect on the first pass.
     recompute();
     const raf1 = requestAnimationFrame(recompute);
     const raf2 = requestAnimationFrame(recompute);
-    el.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("scroll", onScroll, { passive: true });
     const ro = new ResizeObserver(recompute);
     // Observe the table itself (preferred) so width changes update scroll metrics reliably.
-    const tableEl = el.querySelector("table");
-    ro.observe(tableEl ?? el);
+    const tableEl = scroller.querySelector("table");
+    ro.observe(tableEl ?? scroller);
     window.addEventListener("resize", recompute);
 
     return () => {
-      el.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
       ro.disconnect();
@@ -850,46 +861,54 @@ const DataUploadsPage = () => {
                 </span>
               </div>
 
-              <div ref={resultsScrollRef} className="rounded-md border border-border overflow-x-auto max-w-full">
+              <div ref={resultsViewportRef} className="rounded-md border border-border max-w-full">
                 <Table className="min-w-max">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ticket</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Site</TableHead>
-                      <TableHead>EWC</TableHead>
-                      <TableHead>Waste</TableHead>
-                      <TableHead className="text-right">Weight (t)</TableHead>
+                      <TableHead className="whitespace-nowrap">Ticket</TableHead>
+                      <TableHead className="whitespace-nowrap">Source</TableHead>
+                      <TableHead className="whitespace-nowrap">Date</TableHead>
+                      <TableHead className="whitespace-nowrap">Customer</TableHead>
+                      <TableHead className="whitespace-nowrap">Site</TableHead>
+                      <TableHead className="whitespace-nowrap">EWC</TableHead>
+                      <TableHead className="whitespace-nowrap">Waste</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Weight (t)</TableHead>
+                      <TableHead className="whitespace-nowrap">Vehicle</TableHead>
+                      <TableHead className="whitespace-nowrap">Category</TableHead>
+                      <TableHead className="whitespace-nowrap">Movement</TableHead>
+                      <TableHead className="whitespace-nowrap">Container</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-muted-foreground">
+                        <TableCell colSpan={12} className="text-muted-foreground">
                           Loading…
                         </TableCell>
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-muted-foreground">
+                        <TableCell colSpan={12} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
                     ) : (
                       jobs.map((j) => (
                         <TableRow key={j.id}>
-                          <TableCell className="font-medium">{j.job_number}</TableCell>
-                          <TableCell>{j.source}</TableCell>
-                          <TableCell>{excelValueToISODate(j.job_date) ?? "—"}</TableCell>
-                          <TableCell>{j.customer ?? "—"}</TableCell>
-                          <TableCell>{j.site ?? "—"}</TableCell>
-                          <TableCell>{j.ewc ?? "—"}</TableCell>
+                          <TableCell className="font-medium whitespace-nowrap">{j.job_number}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.source}</TableCell>
+                          <TableCell className="whitespace-nowrap">{excelValueToISODate(j.job_date) ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.customer ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.site ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.ewc ?? "—"}</TableCell>
                           <TableCell className="max-w-[24rem] truncate" title={j.waste_description ?? ""}>
                             {j.waste_description ?? "—"}
                           </TableCell>
-                          <TableCell className="text-right">{j.weight_t ?? "—"}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">{j.weight_t ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.vehicle_registration ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.container_type ?? "—"}</TableCell>
                         </TableRow>
                       ))
                     )}
