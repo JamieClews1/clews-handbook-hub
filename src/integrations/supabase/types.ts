@@ -202,6 +202,63 @@ export type Database = {
         }
         Relationships: []
       }
+      data_hub_jobs: {
+        Row: {
+          category: string | null
+          container_type: string | null
+          created_at: string
+          customer: string | null
+          ewc: string | null
+          id: string
+          job_date: string | null
+          job_number: string
+          movement_type: string | null
+          raw: Json
+          site: string | null
+          source: string
+          updated_at: string
+          vehicle_registration: string | null
+          waste_description: string | null
+          weight_t: number | null
+        }
+        Insert: {
+          category?: string | null
+          container_type?: string | null
+          created_at?: string
+          customer?: string | null
+          ewc?: string | null
+          id?: string
+          job_date?: string | null
+          job_number: string
+          movement_type?: string | null
+          raw?: Json
+          site?: string | null
+          source: string
+          updated_at?: string
+          vehicle_registration?: string | null
+          waste_description?: string | null
+          weight_t?: number | null
+        }
+        Update: {
+          category?: string | null
+          container_type?: string | null
+          created_at?: string
+          customer?: string | null
+          ewc?: string | null
+          id?: string
+          job_date?: string | null
+          job_number?: string
+          movement_type?: string | null
+          raw?: Json
+          site?: string | null
+          source?: string
+          updated_at?: string
+          vehicle_registration?: string | null
+          waste_description?: string | null
+          weight_t?: number | null
+        }
+        Relationships: []
+      }
       default_waste_types: {
         Row: {
           display_order: number
