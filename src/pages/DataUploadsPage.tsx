@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -731,15 +732,27 @@ const DataUploadsPage = () => {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <Input
-                  placeholder="Source (all / skiptrak / midweigh)"
-                  value={sourceFilter}
-                  onChange={(e) => {
-                    const v = e.target.value.trim().toLowerCase();
-                    if (v === "skiptrak" || v === "midweigh") setSourceFilter(v);
-                    else setSourceFilter("all");
-                  }}
-                />
+                <div className="flex items-center">
+                  <ToggleGroup
+                    type="single"
+                    value={sourceFilter}
+                    onValueChange={(v) => {
+                      if (v === "skiptrak" || v === "midweigh" || v === "all") setSourceFilter(v);
+                    }}
+                    className="w-full justify-start"
+                    aria-label="Source view"
+                  >
+                    <ToggleGroupItem value="midweigh" aria-label="Midweigh">
+                      Midweigh
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="skiptrak" aria-label="Skiptrak">
+                      Skiptrak
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="all" aria-label="Combined">
+                      Combined
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
                 <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
                 <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
