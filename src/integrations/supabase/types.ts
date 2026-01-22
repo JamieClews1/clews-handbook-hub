@@ -1499,6 +1499,68 @@ export type Database = {
           },
         ]
       }
+      rebate_items: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rebate_monthly_values: {
+        Row: {
+          created_at: string
+          higher_range: number | null
+          id: string
+          item_id: string
+          lower_range: number | null
+          month_start: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          higher_range?: number | null
+          id?: string
+          item_id: string
+          lower_range?: number | null
+          month_start: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          higher_range?: number | null
+          id?: string
+          item_id?: string
+          lower_range?: number | null
+          month_start?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rebate_monthly_values_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       riddor_incidents: {
         Row: {
           created_at: string
