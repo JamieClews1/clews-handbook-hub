@@ -126,6 +126,8 @@ const DataUploadsPage = () => {
   const { toast } = useToast();
 
   const rawPreviewScrollRef = useRef<HTMLDivElement | null>(null);
+  const [rawScrollLeft, setRawScrollLeft] = useState(0);
+  const [rawScrollMax, setRawScrollMax] = useState(0);
 
   const [isManagement, setIsManagement] = useState(false);
   const canUpload = isAdmin || isManagement;
@@ -221,6 +223,32 @@ const DataUploadsPage = () => {
 
     loadJobs();
   }, [user, toast, filters]);
+
+  useEffect(() => {
+    const el = rawPreviewScrollRef.current;
+    if (!el) return;
+
+    const recompute = () => {
+      const max = Math.max(0, el.scrollWidth - el.clientWidth);
+      setRawScrollMax(max);
+      setRawScrollLeft((prev) => Math.min(prev, max));
+    };
+
+    const onScroll = () => setRawScrollLeft(el.scrollLeft);
+
+    recompute();
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    window.addEventListener("resize", recompute);
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+  }, [lastParsedPreview]);
 
   const parseFileToJobs = async (file: File, source: DataSource): Promise<DataHubJobRow[]> => {
     const buf = await file.arrayBuffer();
@@ -545,6 +573,28 @@ const DataUploadsPage = () => {
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-3 pb-3">
+                  <span className="text-xs text-muted-foreground tabular-nums w-12 text-right">
+                    {Math.round(rawScrollLeft).toLocaleString()}
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={rawScrollMax}
+                    value={Math.min(rawScrollLeft, rawScrollMax)}
+                    onChange={(e) => {
+                      const next = Number(e.target.value);
+                      setRawScrollLeft(next);
+                      rawPreviewScrollRef.current?.scrollTo({ left: next, behavior: "auto" });
+                    }}
+                    className="w-full"
+                    aria-label="Horizontal scroll control"
+                  />
+                  <span className="text-xs text-muted-foreground tabular-nums w-12">
+                    {Math.round(rawScrollMax).toLocaleString()}
+                  </span>
                 </div>
 
                 <div
