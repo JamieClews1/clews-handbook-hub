@@ -7,6 +7,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -32,6 +43,7 @@ type DataHubJobRow = {
 };
 
 type ListedJob = {
+  id: string;
   job_number: string;
   source: string;
   job_date: string | null;
@@ -152,6 +164,9 @@ const DataUploadsPage = () => {
   const [toDate, setToDate] = useState<string>("");
   const [jobs, setJobs] = useState<ListedJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [lastParsedPreview, setLastParsedPreview] = useState<
     | null
@@ -200,7 +215,7 @@ const DataUploadsPage = () => {
         let q = supabase
           .from("data_hub_jobs")
           .select(
-            "job_number,source,job_date,customer,site,ewc,waste_description,weight_t,vehicle_registration,updated_at",
+            "id,job_number,source,job_date,customer,site,ewc,waste_description,weight_t,vehicle_registration,updated_at",
           )
           .order("job_date", { ascending: false, nullsFirst: false })
           .order("updated_at", { ascending: false })
@@ -234,6 +249,52 @@ const DataUploadsPage = () => {
 
     loadJobs();
   }, [user, toast, filters]);
+
+  const handleDeleteFiltered = async () => {
+    if (!canUpload) {
+      toast({
+        title: "No permission",
+        description: "Only Admin or Management can delete Data Hub records.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const ids = jobs.map((j) => j.id).filter(Boolean);
+    if (ids.length === 0) {
+      toast({ title: "Nothing to delete", description: "There are no rows in the current filtered results." });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // Delete the currently displayed results (up to 200) to match what the user is seeing.
+      for (const idChunk of chunk(ids, 200)) {
+        const { error } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Deleted",
+        description: `Deleted ${ids.length.toLocaleString()} record(s) from the current filtered results.`,
+      });
+
+      setDeleteConfirmText("");
+      setDeleteDialogOpen(false);
+
+      // Refresh list
+      setJobs((prev) => prev.filter((j) => !ids.includes(j.id)));
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: "Delete failed",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const el = rawPreviewScrollRef.current;
@@ -683,6 +744,64 @@ const DataUploadsPage = () => {
                 <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               </div>
 
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Showing up to {jobs.length.toLocaleString()} rows (based on current filters).
+                </p>
+
+                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={!canUpload || jobs.length === 0}>
+                      Delete filtered results
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete filtered results?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the currently displayed results (up to 200 rows). Type{' '}
+                        <span className="font-medium">DELETE</span> to confirm.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="space-y-2">
+                      <Input
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="Type DELETE to confirm"
+                        aria-label="Type DELETE to confirm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deletions are restricted to Admin/Management.
+                      </p>
+                    </div>
+
+                    <AlertDialogFooter>
+                      <AlertDialogCancel
+                        onClick={() => {
+                          setDeleteConfirmText("");
+                        }}
+                      >
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          // Prevent closing if not confirmed.
+                          if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+                            e.preventDefault();
+                            return;
+                          }
+                          void handleDeleteFiltered();
+                        }}
+                        disabled={isDeleting || deleteConfirmText.trim().toUpperCase() !== "DELETE"}
+                      >
+                        {isDeleting ? "Deleting…" : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground tabular-nums w-12 text-right">
                   {Math.round(resultsScrollLeft).toLocaleString()}
@@ -734,7 +853,7 @@ const DataUploadsPage = () => {
                       </TableRow>
                     ) : (
                       jobs.map((j) => (
-                        <TableRow key={`${j.source}-${j.job_number}-${j.updated_at}`}>
+                        <TableRow key={j.id}>
                           <TableCell className="font-medium">{j.job_number}</TableCell>
                           <TableCell>{j.source}</TableCell>
                           <TableCell>{excelValueToISODate(j.job_date) ?? "—"}</TableCell>
