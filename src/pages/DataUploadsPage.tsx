@@ -335,14 +335,21 @@ const DataUploadsPage = () => {
 
     const onScroll = () => setResultsScrollLeft(el.scrollLeft);
 
+    // Recompute after layout/paint as scrollWidth can be incorrect on the first pass.
     recompute();
+    const raf1 = requestAnimationFrame(recompute);
+    const raf2 = requestAnimationFrame(recompute);
     el.addEventListener("scroll", onScroll, { passive: true });
     const ro = new ResizeObserver(recompute);
-    ro.observe(el);
+    // Observe the table itself (preferred) so width changes update scroll metrics reliably.
+    const tableEl = el.querySelector("table");
+    ro.observe(tableEl ?? el);
     window.addEventListener("resize", recompute);
 
     return () => {
       el.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
       ro.disconnect();
       window.removeEventListener("resize", recompute);
     };
@@ -824,6 +831,12 @@ const DataUploadsPage = () => {
                   min={0}
                   max={resultsScrollMax}
                   value={Math.min(resultsScrollLeft, resultsScrollMax)}
+                  disabled={resultsScrollMax <= 0}
+                  onInput={(e) => {
+                    const next = Number((e.target as HTMLInputElement).value);
+                    setResultsScrollLeft(next);
+                    resultsScrollRef.current?.scrollTo({ left: next, behavior: "auto" });
+                  }}
                   onChange={(e) => {
                     const next = Number(e.target.value);
                     setResultsScrollLeft(next);
