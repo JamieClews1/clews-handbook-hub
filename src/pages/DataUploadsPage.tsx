@@ -380,7 +380,18 @@ const DataUploadsPage = () => {
       if (!ticket) continue;
 
       const jobDateVal = getFirstMatchingValue(r, ["Date", "Job Date", "job_date"]);
-      const weightVal = getFirstMatchingValue(r, ["Weight (t)", "Weight", "Weight_t", "weight_t", "Tonnes"]);
+      const weightVal = getFirstMatchingValue(r, [
+        "Weight (t)",
+        "Weight",
+        "Weight_t",
+        "weight_t",
+        "Tonnes",
+        // Skiptrak commonly provides this as 'Nett Weight'
+        "Nett Weight",
+        "Net Weight",
+        "Nett Weight (t)",
+        "Net Weight (t)",
+      ]);
 
       const weightNum =
         weightVal == null || weightVal === ""
