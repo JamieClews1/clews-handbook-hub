@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Download, Truck, Filter, Settings } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -31,9 +31,10 @@ interface LoadReport {
 interface LoadReportsListProps {
   onNewReport: () => void;
   onViewReport: (id: string) => void;
+  onEditReport: (id: string) => void;
 }
 
-export const LoadReportsList = ({ onNewReport, onViewReport }: LoadReportsListProps) => {
+export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport }: LoadReportsListProps) => {
   const [reports, setReports] = useState<LoadReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -220,6 +221,14 @@ export const LoadReportsList = ({ onNewReport, onViewReport }: LoadReportsListPr
                       {getStatusBadge(report.status)}
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEditReport(report.id)}
+                        className="mr-1"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
