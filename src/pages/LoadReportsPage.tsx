@@ -547,6 +547,8 @@ const LoadReportsPage = () => {
               operatorName={operatorName}
               vehicleReg={vehicleReg}
               jobNumber={jobNumber}
+              weighbridgeWeightKg={weighbridgeWeightKg}
+              weighbridgeLoading={weighbridgeLoading}
               reportDate={reportDate}
               lineItems={lineItems}
               onBack={handleBack}

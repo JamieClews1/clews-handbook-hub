@@ -84,37 +84,38 @@ export const NewLoadForm = ({
               autoComplete="off"
             />
 
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onLookupWeighbridgeWeight}
-                disabled={!jobNumber.trim() || !!weighbridgeLoading || !onLookupWeighbridgeWeight}
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Lookup weight
-              </Button>
-
-              {jobNumber.trim().length > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  {weighbridgeLoading ? (
-                    <span>Looking up weighbridge net weight...</span>
-                  ) : typeof weighbridgeWeightKg === "number" ? (
-                    <span>
-                      Weighbridge net weight:{" "}
-                      <span className="font-medium text-foreground">
-                        {Math.round(weighbridgeWeightKg).toLocaleString()}
-                      </span>{" "}
-                      kg
-                    </span>
-                  ) : (
-                    <span>No weighbridge weight found for this job number</span>
-                  )}
+            {jobNumber.trim().length > 0 && (
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Weighbridge Weight (kg)</span>
+                  <span className="font-medium text-foreground">
+                    {weighbridgeLoading ? (
+                      <span className="text-muted-foreground">Looking up…</span>
+                    ) : typeof weighbridgeWeightKg === "number" ? (
+                      `${Math.round(weighbridgeWeightKg).toLocaleString()} kg`
+                    ) : (
+                      <span className="text-muted-foreground">Not found</span>
+                    )}
+                  </span>
                 </div>
-              )}
-            </div>
+
+                {!!onLookupWeighbridgeWeight && (
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onLookupWeighbridgeWeight}
+                      disabled={!jobNumber.trim() || !!weighbridgeLoading}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Refresh weight
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <Button

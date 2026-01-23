@@ -15,6 +15,8 @@ interface LoadReviewScreenProps {
   operatorName: string;
   vehicleReg: string;
   jobNumber: string;
+  weighbridgeWeightKg?: number | null;
+  weighbridgeLoading?: boolean;
   reportDate: string;
   lineItems: LineItem[];
   onBack: () => void;
@@ -28,6 +30,8 @@ export const LoadReviewScreen = ({
   operatorName,
   vehicleReg,
   jobNumber,
+  weighbridgeWeightKg,
+  weighbridgeLoading,
   reportDate,
   lineItems,
   onBack,
@@ -87,6 +91,21 @@ export const LoadReviewScreen = ({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Job Number:</span>
               <span className="font-medium">{jobNumber}</span>
+            </div>
+          )}
+
+          {jobNumber && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Weighbridge Weight (kg):</span>
+              <span className="font-medium">
+                {weighbridgeLoading ? (
+                  <span className="text-muted-foreground">Looking up…</span>
+                ) : typeof weighbridgeWeightKg === "number" ? (
+                  Math.round(weighbridgeWeightKg).toLocaleString()
+                ) : (
+                  <span className="text-muted-foreground">Not found</span>
+                )}
+              </span>
             </div>
           )}
         </CardContent>
