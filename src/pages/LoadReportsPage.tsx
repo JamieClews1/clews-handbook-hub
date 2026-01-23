@@ -527,6 +527,7 @@ const LoadReportsPage = () => {
               onJobNumberChange={handleJobNumberChange}
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
+              onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
             />

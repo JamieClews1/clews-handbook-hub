@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Truck, ArrowRight } from "lucide-react";
+import { Truck, ArrowRight, RefreshCw } from "lucide-react";
 
 interface NewLoadFormProps {
   operatorName: string;
@@ -13,6 +13,7 @@ interface NewLoadFormProps {
   onJobNumberChange: (value: string) => void;
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
+  onLookupWeighbridgeWeight?: () => void;
   onStartTally: () => void;
   isValid: boolean;
 }
@@ -26,6 +27,7 @@ export const NewLoadForm = ({
   onJobNumberChange,
   weighbridgeWeightKg,
   weighbridgeLoading,
+  onLookupWeighbridgeWeight,
   onStartTally,
   isValid,
 }: NewLoadFormProps) => {
@@ -82,19 +84,37 @@ export const NewLoadForm = ({
               autoComplete="off"
             />
 
-            {jobNumber.trim().length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                {weighbridgeLoading ? (
-                  <span>Looking up weighbridge net weight...</span>
-                ) : typeof weighbridgeWeightKg === "number" ? (
-                  <span>
-                    Weighbridge net weight: <span className="font-medium text-foreground">{Math.round(weighbridgeWeightKg).toLocaleString()}</span> kg
-                  </span>
-                ) : (
-                  <span>No weighbridge weight found for this job number</span>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onLookupWeighbridgeWeight}
+                disabled={!jobNumber.trim() || !!weighbridgeLoading || !onLookupWeighbridgeWeight}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Lookup weight
+              </Button>
+
+              {jobNumber.trim().length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {weighbridgeLoading ? (
+                    <span>Looking up weighbridge net weight...</span>
+                  ) : typeof weighbridgeWeightKg === "number" ? (
+                    <span>
+                      Weighbridge net weight:{" "}
+                      <span className="font-medium text-foreground">
+                        {Math.round(weighbridgeWeightKg).toLocaleString()}
+                      </span>{" "}
+                      kg
+                    </span>
+                  ) : (
+                    <span>No weighbridge weight found for this job number</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <Button
