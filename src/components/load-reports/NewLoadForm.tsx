@@ -11,6 +11,8 @@ interface NewLoadFormProps {
   onOperatorNameChange: (value: string) => void;
   onVehicleRegChange: (value: string) => void;
   onJobNumberChange: (value: string) => void;
+  weighbridgeWeightKg?: number | null;
+  weighbridgeLoading?: boolean;
   onStartTally: () => void;
   isValid: boolean;
 }
@@ -22,6 +24,8 @@ export const NewLoadForm = ({
   onOperatorNameChange,
   onVehicleRegChange,
   onJobNumberChange,
+  weighbridgeWeightKg,
+  weighbridgeLoading,
   onStartTally,
   isValid,
 }: NewLoadFormProps) => {
@@ -77,6 +81,20 @@ export const NewLoadForm = ({
               className="h-14 text-lg"
               autoComplete="off"
             />
+
+            {jobNumber.trim().length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                {weighbridgeLoading ? (
+                  <span>Looking up weighbridge net weight...</span>
+                ) : typeof weighbridgeWeightKg === "number" ? (
+                  <span>
+                    Weighbridge net weight: <span className="font-medium text-foreground">{Math.round(weighbridgeWeightKg).toLocaleString()}</span> kg
+                  </span>
+                ) : (
+                  <span>No weighbridge weight found for this job number</span>
+                )}
+              </div>
+            )}
           </div>
 
           <Button
