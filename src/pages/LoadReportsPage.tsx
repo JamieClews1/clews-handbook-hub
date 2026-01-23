@@ -41,6 +41,8 @@ const LoadReportsPage = () => {
   const [jobNumber, setJobNumber] = useState("");
   const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [weighbridgeWeightKg, setWeighbridgeWeightKg] = useState<number | null>(null);
+  const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -96,6 +98,45 @@ const LoadReportsPage = () => {
     }
 
     setWasteTypes(data || []);
+  };
+
+  const fetchWeighbridgeWeightKg = async (ticketOrJobNumber: string) => {
+    const ticket = ticketOrJobNumber.trim();
+    if (!ticket) {
+      setWeighbridgeWeightKg(null);
+      return;
+    }
+
+    setWeighbridgeLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("weight_t")
+        .eq("job_number", ticket)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const weightT = data?.weight_t;
+      const weightKg = typeof weightT === "number" ? weightT * 1000 : null;
+      setWeighbridgeWeightKg(weightKg);
+    } catch {
+      // If the user can't access Data Hub rows (RLS) or the record doesn't exist,
+      // just hide the value rather than blocking the load report flow.
+      setWeighbridgeWeightKg(null);
+    } finally {
+      setWeighbridgeLoading(false);
+    }
+  };
+
+  const handleJobNumberChange = (value: string) => {
+    setJobNumber(value);
+
+    // Lightweight debounce to avoid hammering queries while typing
+    window.clearTimeout((handleJobNumberChange as any)._t);
+    (handleJobNumberChange as any)._t = window.setTimeout(() => {
+      fetchWeighbridgeWeightKg(value);
+    }, 300);
   };
 
   const initializeLineItems = () => {
@@ -169,6 +210,7 @@ const LoadReportsPage = () => {
       setVehicleReg(report.vehicle_reg || "");
       setJobNumber(report.notes || ""); // Using notes field for job number temporarily
       setReportDate(report.report_date);
+      fetchWeighbridgeWeightKg(report.notes || "");
       
       if (items && items.length > 0) {
         setLineItems(
@@ -224,6 +266,7 @@ const LoadReportsPage = () => {
       setVehicleReg(report.vehicle_reg || "");
       setJobNumber(report.notes || ""); // Using notes field for job number temporarily
       setReportDate(report.report_date);
+      fetchWeighbridgeWeightKg(report.notes || "");
 
       if (items && items.length > 0) {
         setLineItems(
@@ -481,7 +524,9 @@ const LoadReportsPage = () => {
               jobNumber={jobNumber}
               onOperatorNameChange={setOperatorName}
               onVehicleRegChange={setVehicleReg}
-              onJobNumberChange={setJobNumber}
+              onJobNumberChange={handleJobNumberChange}
+              weighbridgeWeightKg={weighbridgeWeightKg}
+              weighbridgeLoading={weighbridgeLoading}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
             />
