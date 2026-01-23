@@ -198,6 +198,61 @@ const LoadReportsPage = () => {
     }
   };
 
+  const handleEditReport = async (reportId: string) => {
+    setIsSaving(true);
+    try {
+      // Fetch report
+      const { data: report, error: reportError } = await supabase
+        .from("load_reports")
+        .select("*")
+        .eq("id", reportId)
+        .single();
+
+      if (reportError) throw reportError;
+
+      // Fetch line items
+      const { data: items, error: itemsError } = await supabase
+        .from("load_line_items")
+        .select("*")
+        .eq("load_report_id", reportId)
+        .order("display_order");
+
+      if (itemsError) throw itemsError;
+
+      setCurrentReportId(reportId);
+      setOperatorName(report.operator_name);
+      setVehicleReg(report.vehicle_reg || "");
+      setJobNumber(report.notes || ""); // Using notes field for job number temporarily
+      setReportDate(report.report_date);
+
+      if (items && items.length > 0) {
+        setLineItems(
+          items.map((item) => ({
+            waste_type: item.waste_type,
+            pallet_count: item.pallet_count,
+            avg_weight_kg: Number(item.avg_weight_kg),
+            total_weight_kg: Number(item.total_weight_kg),
+            display_order: item.display_order,
+            pallet_weight_kg: defaultPalletWeight,
+          }))
+        );
+      } else {
+        initializeLineItems();
+      }
+
+      // Always open the editable form view
+      setViewMode("new");
+    } catch (error: any) {
+      toast({
+        title: "Error loading report",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleStartTally = () => {
     if (lineItems.length === 0) {
       initializeLineItems();
@@ -411,7 +466,11 @@ const LoadReportsPage = () => {
                   </p>
                 </div>
               </div>
-              <LoadReportsList onNewReport={handleNewReport} onViewReport={handleViewReport} />
+              <LoadReportsList
+                onNewReport={handleNewReport}
+                onViewReport={handleViewReport}
+                onEditReport={handleEditReport}
+              />
             </>
           )}
 
