@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Save, Send, Truck } from "lucide-react";
 import { LineItem } from "./TallyScreen";
+import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
 
 interface LoadReviewScreenProps {
   operatorName: string;
@@ -19,6 +21,7 @@ interface LoadReviewScreenProps {
   weighbridgeLoading?: boolean;
   reportDate: string;
   lineItems: LineItem[];
+  onAcceptReconciled?: (items: LineItem[]) => void;
   onBack: () => void;
   onSaveDraft: () => void;
   onSubmit: () => void;
@@ -34,17 +37,30 @@ export const LoadReviewScreen = ({
   weighbridgeLoading,
   reportDate,
   lineItems,
+  onAcceptReconciled,
   onBack,
   onSaveDraft,
   onSubmit,
   isSaving,
   isReadOnly = false,
 }: LoadReviewScreenProps) => {
+  const [reconciledItems, setReconciledItems] = useState<LineItem[] | null>(null);
+
   const totalPallets = lineItems.reduce((sum, item) => sum + item.pallet_count, 0);
   const totalWeight = lineItems.reduce(
     (sum, item) => sum + item.pallet_count * item.avg_weight_kg,
     0
   );
+
+  const reconcileSummary = useMemo(() => {
+    if (typeof weighbridgeWeightKg !== "number") return null;
+    if (!reconciledItems) return null;
+    const targetTotalKg = Math.round(weighbridgeWeightKg);
+    const reconciledTotalKg = Math.round(
+      reconciledItems.reduce((sum, i) => sum + i.pallet_count * i.avg_weight_kg, 0)
+    );
+    return { targetTotalKg, reconciledTotalKg };
+  }, [reconciledItems, weighbridgeWeightKg]);
 
   const getRowBgColor = (wasteType: string) => {
     const colors: Record<string, string> = {
@@ -182,6 +198,137 @@ export const LoadReviewScreen = ({
           </Table>
         </div>
       </Card>
+
+      {/* Reconcile */}
+      {!isReadOnly && typeof weighbridgeWeightKg === "number" && (
+        <div className="space-y-4">
+          <Button
+            type="button"
+            onClick={() => {
+              const result = reconcileLineItemsToTargetKg(lineItems, weighbridgeWeightKg);
+              setReconciledItems(result.reconciled);
+            }}
+            className="h-12 w-full text-base"
+            disabled={isSaving || !!weighbridgeLoading}
+          >
+            Reconcile
+          </Button>
+
+          {!!reconciledItems && (
+            <Card className="border-2 overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Reconciled figures</CardTitle>
+                {reconcileSummary && (
+                  <p className="text-sm text-muted-foreground">
+                    Target: {reconcileSummary.targetTotalKg.toLocaleString()} kg · Reconciled: {reconcileSummary.reconciledTotalKg.toLocaleString()} kg
+                  </p>
+                )}
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-bold text-foreground">
+                        Recyclable / Waste Type
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-foreground">
+                        Number of Pallets
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-foreground">
+                        Av Weight (KG)
+                      </TableHead>
+                      <TableHead className="text-right font-bold text-foreground">
+                        Total Weight (KG)
+                      </TableHead>
+                      <TableHead className="text-right font-bold text-foreground">
+                        Total Pallet Weight (KG)
+                      </TableHead>
+                      <TableHead className="text-right font-bold text-foreground">
+                        Actual Recyclable/ Waste Weight (KG)
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reconciledItems.map((item) => {
+                      const totalW = Math.round(item.pallet_count * item.avg_weight_kg);
+                      const totalPalletWeight =
+                        item.pallet_count * (item.pallet_weight_kg || 0);
+                      const actualWeight = totalW - totalPalletWeight;
+                      return (
+                        <TableRow
+                          key={`reconciled-${item.waste_type}`}
+                          className={getRowBgColor(item.waste_type)}
+                        >
+                          <TableCell className="font-medium">{item.waste_type}</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">
+                            {item.pallet_count}
+                          </TableCell>
+                          <TableCell className="text-center">{item.avg_weight_kg}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {totalW.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {totalPalletWeight.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {actualWeight.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="bg-primary/10 border-t-2 border-primary/30">
+                      <TableCell className="font-bold text-primary">TOTAL</TableCell>
+                      <TableCell className="text-center text-xl font-bold text-primary">
+                        {reconciledItems.reduce((sum, i) => sum + i.pallet_count, 0)}
+                      </TableCell>
+                      <TableCell />
+                      <TableCell className="text-right text-xl font-bold text-primary">
+                        {Math.round(
+                          reconciledItems.reduce(
+                            (sum, i) => sum + i.pallet_count * i.avg_weight_kg,
+                            0
+                          )
+                        ).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-xl font-bold text-primary">
+                        {reconciledItems
+                          .reduce(
+                            (sum, i) => sum + i.pallet_count * (i.pallet_weight_kg || 0),
+                            0
+                          )
+                          .toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-xl font-bold text-primary">
+                        {Math.round(
+                          reconciledItems.reduce((sum, i) => {
+                            const t = i.pallet_count * i.avg_weight_kg;
+                            const p = i.pallet_count * (i.pallet_weight_kg || 0);
+                            return sum + (t - p);
+                          }, 0)
+                        ).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <CardContent className="pt-4">
+                <Button
+                  type="button"
+                  className="w-full h-12 text-base"
+                  disabled={!onAcceptReconciled || isSaving}
+                  onClick={() => {
+                    onAcceptReconciled?.(reconciledItems);
+                    setReconciledItems(null);
+                  }}
+                >
+                  Accept reconciled
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Action Buttons */}
       {!isReadOnly && (
