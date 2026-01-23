@@ -551,6 +551,13 @@ const LoadReportsPage = () => {
               weighbridgeLoading={weighbridgeLoading}
               reportDate={reportDate}
               lineItems={lineItems}
+              onAcceptReconciled={(items) => {
+                setLineItems(items);
+                toast({
+                  title: "Reconciled applied",
+                  description: "Reconciled average weights have been applied to match the weighbridge weight.",
+                });
+              }}
               onBack={handleBack}
               onSaveDraft={() => saveReport(false)}
               onSubmit={() => saveReport(true)}
