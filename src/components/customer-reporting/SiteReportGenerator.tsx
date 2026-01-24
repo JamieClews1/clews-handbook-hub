@@ -112,6 +112,7 @@ export function SiteReportGenerator() {
       const startDate = format(dateRange.from, "yyyy-MM-dd");
       const endDate = format(dateRange.to, "yyyy-MM-dd");
 
+      // Build query - filter by customer AND site names from Data Hub mappings
       let query = supabase
         .from("data_hub_jobs")
         .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site")
@@ -119,13 +120,14 @@ export function SiteReportGenerator() {
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
 
+      // Filter by Data Hub customer if set
       if (dataHubCustomer) {
         query = query.eq("customer", dataHubCustomer);
       }
 
+      // Filter by any of the configured Data Hub site names (exact match on site field)
       if (siteNames.length > 0) {
-        const orConditions = siteNames.map((name) => `site.ilike.%${name}%`).join(",");
-        query = query.or(orConditions);
+        query = query.in("site", siteNames);
       }
 
       const { data: jobs, error } = await query;
