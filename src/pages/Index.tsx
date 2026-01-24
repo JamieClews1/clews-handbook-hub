@@ -104,8 +104,8 @@ const Index = () => {
       title: "Customer Setup",
       description: "Configure customer accounts, preferences, and service agreements.",
       icon: Users,
-      href: "#",
-      comingSoon: true,
+      href: isManagement ? "/admin/customers" : "#",
+      comingSoon: !isManagement,
     },
     {
       title: "Rebate Values",
