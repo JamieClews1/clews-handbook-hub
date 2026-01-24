@@ -74,6 +74,10 @@ type ProfileLite = {
 export function CustomerSetupAdmin() {
   const { toast } = useToast();
 
+  // Radix Select disallows SelectItem value="" (empty string). We use a sentinel
+  // to represent clearing a selection while still allowing Select's value to be "".
+  const SELECT_NONE_VALUE = "__none__";
+
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -701,13 +705,13 @@ export function CustomerSetupAdmin() {
                               <TableCell>
                                 <Select
                                   value={priceSetId}
-                                  onValueChange={(val) => setSitePriceSet(s.id, val === "" ? null : val)}
+                                  onValueChange={(val) => setSitePriceSet(s.id, val === SELECT_NONE_VALUE ? null : val)}
                                 >
                                   <SelectTrigger className="w-[220px]">
                                     <SelectValue placeholder="Select..." />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value={SELECT_NONE_VALUE}>None</SelectItem>
                                     {priceSets.map((ps) => (
                                       <SelectItem key={ps.id} value={ps.id}>
                                         {ps.name}
@@ -974,12 +978,20 @@ export function CustomerSetupAdmin() {
 
             <div className="grid gap-2">
               <Label>Owner contact</Label>
-              <Select value={siteForm.owner_contact_id} onValueChange={(val) => setSiteForm((p) => ({ ...p, owner_contact_id: val }))}>
+              <Select
+                value={siteForm.owner_contact_id}
+                onValueChange={(val) =>
+                  setSiteForm((p) => ({
+                    ...p,
+                    owner_contact_id: val === SELECT_NONE_VALUE ? "" : val,
+                  }))
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select contact (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value={SELECT_NONE_VALUE}>None</SelectItem>
                   {contacts.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.full_name}
