@@ -189,9 +189,35 @@ export function SiteRebateReportGenerator() {
       }
 
       // Get Load Report data for this site/month
-      // For now, we'll use a simplified approach - getting weights from load_line_items
-      // In production, this would match Load Reports to the site via job numbers
+      const monthEnd = format(endOfMonth(selectedMonth), "yyyy-MM-dd");
       
+      // Fetch load reports for this site in the selected month
+      const { data: loadReports } = await supabase
+        .from("load_reports")
+        .select("id, report_date, status")
+        .eq("site_id", selectedSiteId)
+        .gte("report_date", monthStart)
+        .lte("report_date", monthEnd)
+        .eq("status", "submitted");
+
+      // Get all line items from matching load reports
+      const loadReportIds = (loadReports ?? []).map((r) => r.id);
+      
+      let lineItemWeights: Record<string, number> = {};
+      
+      if (loadReportIds.length > 0) {
+        const { data: lineItems } = await supabase
+          .from("load_line_items")
+          .select("waste_type, total_weight_kg")
+          .in("load_report_id", loadReportIds);
+        
+        // Aggregate weights by waste type (convert kg to tonnes)
+        for (const item of lineItems ?? []) {
+          const weightTonnes = Number(item.total_weight_kg) / 1000;
+          lineItemWeights[item.waste_type] = (lineItemWeights[item.waste_type] ?? 0) + weightTonnes;
+        }
+      }
+
       // Build report rows
       const reportRows: RebateReportRow[] = [];
 
@@ -215,9 +241,8 @@ export function SiteRebateReportGenerator() {
           rateSource = "Not configured";
         }
 
-        // For demo purposes, we'll use placeholder weights
-        // In production, this would pull from actual Load Reports
-        const weight_tonnes = 0; // Placeholder - would come from Load Reports
+        // Get weight from load reports for this material
+        const weight_tonnes = lineItemWeights[config.material_name] ?? 0;
 
         reportRows.push({
           material_name: config.material_name,
@@ -399,11 +424,10 @@ export function SiteRebateReportGenerator() {
           )}
 
           <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
-            <p className="font-medium mb-1">Note:</p>
+            <p className="font-medium mb-1">Data Source:</p>
             <p>
-              Weights are currently placeholder values. To populate actual weights, Load Reports need to be
-              linked to this site. The rates shown are calculated from the site's rebate configuration and
-              the monthly values for {format(selectedMonth, "MMMM yyyy")}.
+              Weights are pulled from submitted Load Reports linked to this site for {format(selectedMonth, "MMMM yyyy")}.
+              Make sure Load Reports have the correct site selected when created.
             </p>
           </div>
         </div>
