@@ -39,6 +39,7 @@ type JobRecord = {
   category: string | null;
   movement_type: string | null;
   site: string | null;
+  raw: unknown;
 };
 
 export function SiteReportGenerator() {
@@ -115,7 +116,7 @@ export function SiteReportGenerator() {
       // Build query - filter by customer AND site names from Data Hub mappings
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site")
+        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -144,7 +145,24 @@ export function SiteReportGenerator() {
   };
 
   const totalWeight = jobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
+  const totalCost = jobRecords.reduce((sum, r) => {
+    const rawObj = r.raw && typeof r.raw === "object" && !Array.isArray(r.raw) ? (r.raw as Record<string, unknown>) : null;
+    const cost = rawObj?.Cost;
+    return sum + (typeof cost === "number" ? cost : typeof cost === "string" ? parseFloat(cost) || 0 : 0);
+  }, 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
+
+  // Helper to extract cost from raw JSON
+  const getJobCost = (job: JobRecord): number | null => {
+    const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+    const cost = rawObj?.Cost;
+    if (typeof cost === "number") return cost;
+    if (typeof cost === "string") {
+      const parsed = parseFloat(cost);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  };
 
   // Aggregate summary by waste type
   const wasteSummary = jobRecords.reduce((acc, job) => {
@@ -267,12 +285,15 @@ export function SiteReportGenerator() {
                 </>
               )}
             </h3>
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               <Badge variant="secondary" className="text-sm">
                 {jobRecords.length} jobs
               </Badge>
               <Badge variant="default" className="text-sm">
                 {totalWeight.toFixed(2)} tonnes
+              </Badge>
+              <Badge variant="outline" className="text-sm">
+                £{totalCost.toFixed(2)} total
               </Badge>
             </div>
           </div>
@@ -322,29 +343,38 @@ export function SiteReportGenerator() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Job No.</TableHead>
-                      <TableHead>Job Type</TableHead>
+                      <TableHead>Movement</TableHead>
+                      <TableHead>Container</TableHead>
                       <TableHead>EWC</TableHead>
                       <TableHead>Waste Type</TableHead>
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
+                      <TableHead className="text-right">Cost (£)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobRecords.map((job, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="whitespace-nowrap">
-                          {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
-                        </TableCell>
-                        <TableCell className="font-medium">{job.job_number || "-"}</TableCell>
-                        <TableCell>{job.container_type || "-"}</TableCell>
-                        <TableCell>{job.ewc || "-"}</TableCell>
-                        <TableCell>{job.waste_description || "-"}</TableCell>
-                        <TableCell>{job.vehicle_registration || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {jobRecords.map((job, idx) => {
+                      const cost = getJobCost(job);
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell className="whitespace-nowrap">
+                            {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
+                          </TableCell>
+                          <TableCell className="font-medium">{job.job_number || "-"}</TableCell>
+                          <TableCell>{job.movement_type || "-"}</TableCell>
+                          <TableCell>{job.container_type || "-"}</TableCell>
+                          <TableCell>{job.ewc || "-"}</TableCell>
+                          <TableCell>{job.waste_description || "-"}</TableCell>
+                          <TableCell>{job.vehicle_registration || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {cost != null ? cost.toFixed(2) : "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
