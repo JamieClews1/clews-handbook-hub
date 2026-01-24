@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Users, LogOut, ArrowRight, Home, ClipboardSignature, Settings, FileQuestion } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Users, LogOut, ArrowRight, Home, ClipboardSignature, Settings, FileQuestion, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -77,6 +77,13 @@ const AdminPage = () => {
       icon: Users,
       href: "/admin/users",
       gradient: "from-accent to-accent/80",
+    },
+    {
+      title: "Customer Setup",
+      description: "Manage customers, sites, contacts, and portal access.",
+      icon: Building2,
+      href: "/admin/customers",
+      gradient: "from-primary to-secondary",
     },
   ];
 

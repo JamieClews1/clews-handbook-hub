@@ -16,6 +16,7 @@ import AdminHandbookPage from "./pages/AdminHandbookPage";
 import AdminRAMSPage from "./pages/AdminRAMSPage";
 import AdminToolboxTalksPage from "./pages/AdminToolboxTalksPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminCustomersPage from "./pages/AdminCustomersPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminQuestionnairesPage from "./pages/AdminQuestionnairesPage";
 import MyProfilePage from "./pages/MyProfilePage";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/admin/rams" element={<AdminRAMSPage />} />
             <Route path="/admin/toolbox-talks" element={<AdminToolboxTalksPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/customers" element={<AdminCustomersPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/admin/questionnaires" element={<AdminQuestionnairesPage />} />
             <Route path="/my-profile" element={<MyProfilePage />} />
