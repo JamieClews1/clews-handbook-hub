@@ -194,16 +194,32 @@ export function SiteRebateReportGenerator() {
       // Fetch load reports for this site in the selected month
       const { data: loadReports } = await supabase
         .from("load_reports")
-        .select("id, report_date, status")
+        .select("id, report_date, status, total_pallets")
         .eq("site_id", selectedSiteId)
         .gte("report_date", monthStart)
         .lte("report_date", monthEnd)
         .eq("status", "submitted");
 
+      // Get pallet weight setting
+      const { data: palletWeightSetting } = await supabase
+        .from("load_report_settings")
+        .select("setting_value")
+        .eq("setting_key", "default_pallet_weight_kg")
+        .single();
+      
+      const palletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) : 20;
+
       // Get all line items from matching load reports
       const loadReportIds = (loadReports ?? []).map((r) => r.id);
       
+      // Calculate total pallet count from all load reports
+      const totalPalletCount = (loadReports ?? []).reduce((sum, r) => sum + (r.total_pallets ?? 0), 0);
+      const totalPalletWeightTonnes = (totalPalletCount * palletWeightKg) / 1000;
+      
       let lineItemWeights: Record<string, number> = {};
+      
+      // Add pallet weight charge as a special entry
+      lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
       
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
