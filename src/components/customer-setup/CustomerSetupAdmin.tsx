@@ -100,6 +100,10 @@ export function CustomerSetupAdmin() {
   const [newCustomerName, setNewCustomerName] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
 
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "" });
+
   const customerCreateSchema = useMemo(
     () =>
       z.object({
@@ -491,6 +495,42 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  const openEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setEditCustomerForm({ customer_code: customer.customer_code, customer_name: customer.customer_name });
+    setEditCustomerOpen(true);
+  };
+
+  const saveCustomer = async () => {
+    if (!editingCustomer) return;
+    const parsed = customerCreateSchema.safeParse(editCustomerForm);
+    if (!parsed.success) {
+      toast({
+        title: "Check customer details",
+        description: parsed.error.issues[0]?.message ?? "Invalid customer details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingCustomer(true);
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .update({ customer_code: parsed.data.customer_code, customer_name: parsed.data.customer_name })
+        .eq("id", editingCustomer.id);
+      if (error) throw error;
+      toast({ title: "Saved", description: "Customer updated." });
+      setEditCustomerOpen(false);
+      setEditingCustomer(null);
+      await loadCustomers();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to save customer.", variant: "destructive" });
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
   const setSitePriceSet = async (siteId: string, priceSetId: string | null) => {
     try {
       const existing = sitePriceSets[siteId];
@@ -674,17 +714,25 @@ export function CustomerSetupAdmin() {
 
       <div className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Customer</CardTitle>
-            <CardDescription>
-              {selectedCustomer ? (
-                <span>
-                  Managing <span className="font-medium text-foreground">{selectedCustomer.customer_name}</span>
-                </span>
-              ) : (
-                "Select a customer to begin."
-              )}
-            </CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-2">
+            <div>
+              <CardTitle>Customer</CardTitle>
+              <CardDescription>
+                {selectedCustomer ? (
+                  <span>
+                    Managing <span className="font-medium text-foreground">{selectedCustomer.customer_name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">({selectedCustomer.customer_code})</span>
+                  </span>
+                ) : (
+                  "Select a customer to begin."
+                )}
+              </CardDescription>
+            </div>
+            {selectedCustomer && (
+              <Button variant="outline" size="sm" onClick={() => openEditCustomer(selectedCustomer)}>
+                Edit customer
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {!selectedCustomer ? (
@@ -969,6 +1017,44 @@ export function CustomerSetupAdmin() {
             </Button>
             <Button onClick={createCustomer} disabled={savingCustomer}>
               {savingCustomer ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit customer dialog */}
+      <Dialog open={editCustomerOpen} onOpenChange={setEditCustomerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit customer</DialogTitle>
+            <DialogDescription>Update the customer code or name.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit_customer_name">Customer name</Label>
+              <Input
+                id="edit_customer_name"
+                value={editCustomerForm.customer_name}
+                onChange={(e) => setEditCustomerForm((p) => ({ ...p, customer_name: e.target.value }))}
+                placeholder="e.g. Britvic"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_customer_code">Customer code</Label>
+              <Input
+                id="edit_customer_code"
+                value={editCustomerForm.customer_code}
+                onChange={(e) => setEditCustomerForm((p) => ({ ...p, customer_code: e.target.value }))}
+                placeholder="e.g. BRITVIC"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCustomerOpen(false)} disabled={savingCustomer}>
+              Cancel
+            </Button>
+            <Button onClick={saveCustomer} disabled={savingCustomer}>
+              {savingCustomer ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
