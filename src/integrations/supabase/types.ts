@@ -1842,13 +1842,6 @@ export type Database = {
             referencedRelation: "rebate_price_sets"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "rebate_price_set_items_rebate_item_id_fkey"
-            columns: ["rebate_item_id"]
-            isOneToOne: false
-            referencedRelation: "rebate_items"
-            referencedColumns: ["id"]
-          },
         ]
       }
       rebate_price_sets: {
