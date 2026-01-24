@@ -20,6 +20,7 @@ type Customer = {
 type Site = {
   id: string;
   site_name: string;
+  data_hub_customer: string | null;
   data_hub_site: string | null;
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
@@ -66,7 +67,7 @@ export function SiteReportGenerator() {
   const loadSites = async (customerId: string) => {
     const { data } = await supabase
       .from("customer_sites")
-      .select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4")
+      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4")
       .eq("customer_id", customerId)
       .order("site_name");
     setSites(data ?? []);
@@ -88,9 +89,11 @@ export function SiteReportGenerator() {
         site.data_hub_site_2,
         site.data_hub_site_3,
         site.data_hub_site_4,
-      ].filter(Boolean);
+      ].filter(Boolean) as string[];
 
-      if (siteNames.length === 0) {
+      const dataHubCustomer = site.data_hub_customer;
+
+      if (siteNames.length === 0 && !dataHubCustomer) {
         setReportData([]);
         setReportGenerated(true);
         return;
@@ -106,9 +109,16 @@ export function SiteReportGenerator() {
         .gte("job_date", monthStart)
         .lte("job_date", monthEnd);
 
-      // Filter by site names (using OR conditions)
-      const orConditions = siteNames.map((name) => `site.ilike.%${name}%`).join(",");
-      query = query.or(orConditions);
+      // If we have a data hub customer, filter by it first
+      if (dataHubCustomer) {
+        query = query.eq("customer", dataHubCustomer);
+      }
+
+      // If we have specific site names, filter by them
+      if (siteNames.length > 0) {
+        const orConditions = siteNames.map((name) => `site.ilike.%${name}%`).join(",");
+        query = query.or(orConditions);
+      }
 
       const { data: jobs, error } = await query;
 
