@@ -126,8 +126,10 @@ export function CustomerSetupAdmin() {
     data_hub_site_3: "",
     data_hub_site_4: "",
     owner_contact_id: "",
+    price_set_id: "",
   });
   const [savingSite, setSavingSite] = useState(false);
+  const [newRebateSetInline, setNewRebateSetInline] = useState("");
 
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<CustomerContact | null>(null);
@@ -146,11 +148,6 @@ export function CustomerSetupAdmin() {
   });
   const [inviting, setInviting] = useState(false);
 
-  // Rebate set dialogs
-  const [editRebateSetOpen, setEditRebateSetOpen] = useState(false);
-  const [editingRebateSet, setEditingRebateSet] = useState<PriceSet | null>(null);
-  const [rebateSetName, setRebateSetName] = useState("");
-  const [savingRebateSet, setSavingRebateSet] = useState(false);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -346,12 +343,15 @@ export function CustomerSetupAdmin() {
       data_hub_site_3: "",
       data_hub_site_4: "",
       owner_contact_id: "",
+      price_set_id: "",
     });
+    setNewRebateSetInline("");
     setEditSiteOpen(true);
   };
 
   const openEditSite = (site: CustomerSite) => {
     setEditingSite(site);
+    const existingPriceSetId = sitePriceSets[site.id]?.price_set_id ?? "";
     setSiteForm({
       site_name: site.site_name ?? "",
       data_hub_customer: site.data_hub_customer ?? "",
@@ -360,7 +360,9 @@ export function CustomerSetupAdmin() {
       data_hub_site_3: site.data_hub_site_3 ?? "",
       data_hub_site_4: site.data_hub_site_4 ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
+      price_set_id: existingPriceSetId,
     });
+    setNewRebateSetInline("");
     setEditSiteOpen(true);
   };
 
@@ -384,16 +386,22 @@ export function CustomerSetupAdmin() {
         owner_contact_id: siteForm.owner_contact_id || null,
       };
 
+      let siteId: string;
       if (editingSite) {
         const { error } = await supabase.from("customer_sites").update(payload).eq("id", editingSite.id);
         if (error) throw error;
-        toast({ title: "Saved", description: "Site updated." });
+        siteId = editingSite.id;
       } else {
-        const { error } = await supabase.from("customer_sites").insert(payload);
+        const { data, error } = await supabase.from("customer_sites").insert(payload).select("id").single();
         if (error) throw error;
-        toast({ title: "Created", description: "Site created." });
+        siteId = data.id;
       }
 
+      // Handle rebate set assignment
+      const priceSetIdToUse = siteForm.price_set_id || null;
+      await setSitePriceSet(siteId, priceSetIdToUse);
+
+      toast({ title: editingSite ? "Saved" : "Created", description: editingSite ? "Site updated." : "Site created." });
       setEditSiteOpen(false);
       await loadCustomerDetails(selectedCustomerId);
     } catch (e: any) {
@@ -666,62 +674,23 @@ export function CustomerSetupAdmin() {
     }
   };
 
-  // Rebate Set CRUD
-  const openCreateRebateSet = () => {
-    setEditingRebateSet(null);
-    setRebateSetName("");
-    setEditRebateSetOpen(true);
-  };
 
-  const openEditRebateSet = (ps: PriceSet) => {
-    setEditingRebateSet(ps);
-    setRebateSetName(ps.name);
-    setEditRebateSetOpen(true);
-  };
-
-  const saveRebateSet = async () => {
-    const name = rebateSetName.trim();
+  const createRebateSetInline = async () => {
+    const name = newRebateSetInline.trim();
     if (!name) {
       toast({ title: "Missing name", description: "Please enter a rebate set name.", variant: "destructive" });
       return;
     }
 
-    setSavingRebateSet(true);
     try {
-      if (editingRebateSet) {
-        const { error } = await supabase.from("rebate_price_sets").update({ name }).eq("id", editingRebateSet.id);
-        if (error) throw error;
-        toast({ title: "Saved", description: "Rebate set updated." });
-      } else {
-        const { error } = await supabase.from("rebate_price_sets").insert({ name });
-        if (error) throw error;
-        toast({ title: "Created", description: "Rebate set created." });
-      }
-
-      setEditRebateSetOpen(false);
-      // Refresh price sets
-      const { data, error: fetchError } = await supabase.from("rebate_price_sets").select("id,name,created_at,updated_at").order("name", { ascending: true });
-      if (fetchError) throw fetchError;
-      setPriceSets((data ?? []) as PriceSet[]);
-    } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to save rebate set.", variant: "destructive" });
-    } finally {
-      setSavingRebateSet(false);
-    }
-  };
-
-  const deleteRebateSet = async (psId: string) => {
-    if (!confirm("Delete this rebate set? Sites using it will be unassigned.")) return;
-    try {
-      const { error } = await supabase.from("rebate_price_sets").delete().eq("id", psId);
+      const { data, error } = await supabase.from("rebate_price_sets").insert({ name }).select("id,name,created_at,updated_at").single();
       if (error) throw error;
-      toast({ title: "Deleted", description: "Rebate set removed." });
-      // Refresh price sets
-      const { data, error: fetchError } = await supabase.from("rebate_price_sets").select("id,name,created_at,updated_at").order("name", { ascending: true });
-      if (fetchError) throw fetchError;
-      setPriceSets((data ?? []) as PriceSet[]);
+      toast({ title: "Created", description: "Rebate set created." });
+      setPriceSets((prev) => [...prev, data as PriceSet].sort((a, b) => a.name.localeCompare(b.name)));
+      setSiteForm((p) => ({ ...p, price_set_id: data.id }));
+      setNewRebateSetInline("");
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to delete rebate set.", variant: "destructive" });
+      toast({ title: "Error", description: e?.message ?? "Failed to create rebate set.", variant: "destructive" });
     }
   };
 
@@ -821,7 +790,6 @@ export function CustomerSetupAdmin() {
               <Tabs defaultValue="sites" className="w-full">
                 <TabsList>
                   <TabsTrigger value="sites">Sites</TabsTrigger>
-                  <TabsTrigger value="rebate-sets">Rebate Sets</TabsTrigger>
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="portal">Portal access</TabsTrigger>
                 </TabsList>
@@ -843,14 +811,15 @@ export function CustomerSetupAdmin() {
                           <TableHead>Owner contact</TableHead>
                           <TableHead>Data Hub customer</TableHead>
                           <TableHead>Data Hub sites</TableHead>
-                          <TableHead>Price-set</TableHead>
-                          <TableHead className="w-[220px]">Actions</TableHead>
+                          <TableHead>Rebate Set</TableHead>
+                          <TableHead className="w-[180px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {sites.map((s) => {
                           const owner = s.owner_contact_id ? contactsById[s.owner_contact_id] : null;
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
+                          const priceSet = priceSets.find((ps) => ps.id === priceSetId);
                           const hubSites = [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4].filter(Boolean);
                           return (
                             <TableRow key={s.id}>
@@ -865,22 +834,11 @@ export function CustomerSetupAdmin() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Select
-                                  value={priceSetId}
-                                  onValueChange={(val) => setSitePriceSet(s.id, val === SELECT_NONE_VALUE ? null : val)}
-                                >
-                                  <SelectTrigger className="w-[220px]">
-                                    <SelectValue placeholder="Select..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value={SELECT_NONE_VALUE}>None</SelectItem>
-                                    {priceSets.map((ps) => (
-                                      <SelectItem key={ps.id} value={ps.id}>
-                                        {ps.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {priceSet ? (
+                                  <span className="text-sm">{priceSet.name}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-2">
@@ -899,60 +857,6 @@ export function CustomerSetupAdmin() {
                           <TableRow>
                             <TableCell colSpan={6} className="text-muted-foreground">
                               No sites yet.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="rebate-sets" className="mt-4 space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">Rebate Sets</h3>
-                      <p className="text-sm text-muted-foreground">Manage rebate set templates that can be assigned to customer sites.</p>
-                    </div>
-                    <Button onClick={openCreateRebateSet}>New rebate set</Button>
-                  </div>
-
-                  <div className="rounded-md border border-border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Sites using</TableHead>
-                          <TableHead className="w-[220px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {priceSets.map((ps) => {
-                          const sitesUsingCount = sites.filter((s) => sitePriceSets[s.id]?.price_set_id === ps.id).length;
-                          return (
-                            <TableRow key={ps.id}>
-                              <TableCell className="font-medium">{ps.name}</TableCell>
-                              <TableCell>
-                                <span className="text-sm text-muted-foreground">
-                                  {sitesUsingCount} site{sitesUsingCount !== 1 ? "s" : ""}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => openEditRebateSet(ps)}>
-                                    Edit
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => deleteRebateSet(ps.id)}>
-                                    Delete
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {priceSets.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-muted-foreground">
-                              No rebate sets yet.
                             </TableCell>
                           </TableRow>
                         )}
@@ -1282,6 +1186,54 @@ export function CustomerSetupAdmin() {
                 </SelectContent>
               </Select>
             </div>
+
+            <Separator />
+
+            <div className="grid gap-2">
+              <Label>Rebate Set</Label>
+              <Select
+                value={siteForm.price_set_id}
+                onValueChange={(val) =>
+                  setSiteForm((p) => ({
+                    ...p,
+                    price_set_id: val === SELECT_NONE_VALUE ? "" : val,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select rebate set (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SELECT_NONE_VALUE}>None</SelectItem>
+                  {priceSets.map((ps) => (
+                    <SelectItem key={ps.id} value={ps.id}>
+                      {ps.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Assign a rebate pricing template to this site.</p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Or create new rebate set</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newRebateSetInline}
+                  onChange={(e) => setNewRebateSetInline(e.target.value)}
+                  placeholder="e.g. Merchant Price Card"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={createRebateSetInline}
+                  disabled={!newRebateSetInline.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditSiteOpen(false)} disabled={savingSite}>
@@ -1386,34 +1338,6 @@ export function CustomerSetupAdmin() {
         </DialogContent>
       </Dialog>
 
-      {/* Rebate Set dialog */}
-      <Dialog open={editRebateSetOpen} onOpenChange={setEditRebateSetOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingRebateSet ? "Edit rebate set" : "New rebate set"}</DialogTitle>
-            <DialogDescription>Rebate sets are templates that can be assigned to customer sites.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="rebate_set_name">Name</Label>
-              <Input
-                id="rebate_set_name"
-                value={rebateSetName}
-                onChange={(e) => setRebateSetName(e.target.value)}
-                placeholder="e.g. Merchant Price Card"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditRebateSetOpen(false)} disabled={savingRebateSet}>
-              Cancel
-            </Button>
-            <Button onClick={saveRebateSet} disabled={savingRebateSet}>
-              {savingRebateSet ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
