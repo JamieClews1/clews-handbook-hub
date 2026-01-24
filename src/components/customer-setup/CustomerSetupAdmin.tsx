@@ -146,6 +146,12 @@ export function CustomerSetupAdmin() {
   });
   const [inviting, setInviting] = useState(false);
 
+  // Rebate set dialogs
+  const [editRebateSetOpen, setEditRebateSetOpen] = useState(false);
+  const [editingRebateSet, setEditingRebateSet] = useState<PriceSet | null>(null);
+  const [rebateSetName, setRebateSetName] = useState("");
+  const [savingRebateSet, setSavingRebateSet] = useState(false);
+
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
     [customers, selectedCustomerId]
@@ -660,6 +666,65 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  // Rebate Set CRUD
+  const openCreateRebateSet = () => {
+    setEditingRebateSet(null);
+    setRebateSetName("");
+    setEditRebateSetOpen(true);
+  };
+
+  const openEditRebateSet = (ps: PriceSet) => {
+    setEditingRebateSet(ps);
+    setRebateSetName(ps.name);
+    setEditRebateSetOpen(true);
+  };
+
+  const saveRebateSet = async () => {
+    const name = rebateSetName.trim();
+    if (!name) {
+      toast({ title: "Missing name", description: "Please enter a rebate set name.", variant: "destructive" });
+      return;
+    }
+
+    setSavingRebateSet(true);
+    try {
+      if (editingRebateSet) {
+        const { error } = await supabase.from("rebate_price_sets").update({ name }).eq("id", editingRebateSet.id);
+        if (error) throw error;
+        toast({ title: "Saved", description: "Rebate set updated." });
+      } else {
+        const { error } = await supabase.from("rebate_price_sets").insert({ name });
+        if (error) throw error;
+        toast({ title: "Created", description: "Rebate set created." });
+      }
+
+      setEditRebateSetOpen(false);
+      // Refresh price sets
+      const { data, error: fetchError } = await supabase.from("rebate_price_sets").select("id,name,created_at,updated_at").order("name", { ascending: true });
+      if (fetchError) throw fetchError;
+      setPriceSets((data ?? []) as PriceSet[]);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to save rebate set.", variant: "destructive" });
+    } finally {
+      setSavingRebateSet(false);
+    }
+  };
+
+  const deleteRebateSet = async (psId: string) => {
+    if (!confirm("Delete this rebate set? Sites using it will be unassigned.")) return;
+    try {
+      const { error } = await supabase.from("rebate_price_sets").delete().eq("id", psId);
+      if (error) throw error;
+      toast({ title: "Deleted", description: "Rebate set removed." });
+      // Refresh price sets
+      const { data, error: fetchError } = await supabase.from("rebate_price_sets").select("id,name,created_at,updated_at").order("name", { ascending: true });
+      if (fetchError) throw fetchError;
+      setPriceSets((data ?? []) as PriceSet[]);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to delete rebate set.", variant: "destructive" });
+    }
+  };
+
   const removeMembership = async (membershipId: string) => {
     if (!selectedCustomerId) return;
     if (!confirm("Remove this portal membership?")) return;
@@ -756,6 +821,7 @@ export function CustomerSetupAdmin() {
               <Tabs defaultValue="sites" className="w-full">
                 <TabsList>
                   <TabsTrigger value="sites">Sites</TabsTrigger>
+                  <TabsTrigger value="rebate-sets">Rebate Sets</TabsTrigger>
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="portal">Portal access</TabsTrigger>
                 </TabsList>
@@ -833,6 +899,60 @@ export function CustomerSetupAdmin() {
                           <TableRow>
                             <TableCell colSpan={6} className="text-muted-foreground">
                               No sites yet.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="rebate-sets" className="mt-4 space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">Rebate Sets</h3>
+                      <p className="text-sm text-muted-foreground">Manage rebate set templates that can be assigned to customer sites.</p>
+                    </div>
+                    <Button onClick={openCreateRebateSet}>New rebate set</Button>
+                  </div>
+
+                  <div className="rounded-md border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Sites using</TableHead>
+                          <TableHead className="w-[220px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {priceSets.map((ps) => {
+                          const sitesUsingCount = sites.filter((s) => sitePriceSets[s.id]?.price_set_id === ps.id).length;
+                          return (
+                            <TableRow key={ps.id}>
+                              <TableCell className="font-medium">{ps.name}</TableCell>
+                              <TableCell>
+                                <span className="text-sm text-muted-foreground">
+                                  {sitesUsingCount} site{sitesUsingCount !== 1 ? "s" : ""}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => openEditRebateSet(ps)}>
+                                    Edit
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => deleteRebateSet(ps.id)}>
+                                    Delete
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {priceSets.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-muted-foreground">
+                              No rebate sets yet.
                             </TableCell>
                           </TableRow>
                         )}
@@ -1261,6 +1381,35 @@ export function CustomerSetupAdmin() {
             </Button>
             <Button onClick={inviteAndLink} disabled={inviting}>
               {inviting ? "Inviting..." : "Invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rebate Set dialog */}
+      <Dialog open={editRebateSetOpen} onOpenChange={setEditRebateSetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingRebateSet ? "Edit rebate set" : "New rebate set"}</DialogTitle>
+            <DialogDescription>Rebate sets are templates that can be assigned to customer sites.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rebate_set_name">Name</Label>
+              <Input
+                id="rebate_set_name"
+                value={rebateSetName}
+                onChange={(e) => setRebateSetName(e.target.value)}
+                placeholder="e.g. Merchant Price Card"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRebateSetOpen(false)} disabled={savingRebateSet}>
+              Cancel
+            </Button>
+            <Button onClick={saveRebateSet} disabled={savingRebateSet}>
+              {savingRebateSet ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
