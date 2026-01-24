@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 
 type Customer = {
@@ -129,9 +130,15 @@ export function CustomerSetupAdmin() {
     data_hub_site_4: "",
     owner_contact_id: "",
     price_set_id: "",
+    load_report_type: "",
   });
   const [savingSite, setSavingSite] = useState(false);
   const [newRebateSetInline, setNewRebateSetInline] = useState("");
+
+  // Available load report types (currently only Britvic)
+  const LOAD_REPORT_TYPES = [
+    { id: "britvic", name: "BRITVIC" },
+  ];
 
   const [editContactOpen, setEditContactOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<CustomerContact | null>(null);
@@ -189,7 +196,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,owner_contact_id,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,owner_contact_id,load_report_type,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -346,12 +353,13 @@ export function CustomerSetupAdmin() {
       data_hub_site_4: "",
       owner_contact_id: "",
       price_set_id: "",
+      load_report_type: "",
     });
     setNewRebateSetInline("");
     setEditSiteOpen(true);
   };
 
-  const openEditSite = (site: CustomerSite) => {
+  const openEditSite = (site: CustomerSite & { load_report_type?: string | null }) => {
     setEditingSite(site);
     const existingPriceSetId = sitePriceSets[site.id]?.price_set_id ?? "";
     setSiteForm({
@@ -363,6 +371,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_4: site.data_hub_site_4 ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
       price_set_id: existingPriceSetId,
+      load_report_type: (site as any).load_report_type ?? "",
     });
     setNewRebateSetInline("");
     setEditSiteOpen(true);
@@ -386,6 +395,7 @@ export function CustomerSetupAdmin() {
         data_hub_site_3: siteForm.data_hub_site_3.trim() || null,
         data_hub_site_4: siteForm.data_hub_site_4.trim() || null,
         owner_contact_id: siteForm.owner_contact_id || null,
+        load_report_type: siteForm.load_report_type || null,
       };
 
       let siteId: string;
@@ -810,9 +820,9 @@ export function CustomerSetupAdmin() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Site</TableHead>
+                          <TableHead>Load Report Type</TableHead>
                           <TableHead>Owner contact</TableHead>
                           <TableHead>Data Hub customer</TableHead>
-                          <TableHead>Data Hub sites</TableHead>
                           <TableHead>Rebate Set</TableHead>
                           <TableHead className="w-[180px]">Actions</TableHead>
                         </TableRow>
@@ -822,19 +832,19 @@ export function CustomerSetupAdmin() {
                           const owner = s.owner_contact_id ? contactsById[s.owner_contact_id] : null;
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
                           const priceSet = priceSets.find((ps) => ps.id === priceSetId);
-                          const hubSites = [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4].filter(Boolean);
+                          const loadReportType = (s as any).load_report_type;
                           return (
                             <TableRow key={s.id}>
                               <TableCell className="font-medium">{s.site_name}</TableCell>
-                              <TableCell>{owner ? owner.full_name : <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell>{s.data_hub_customer ?? <span className="text-muted-foreground">—</span>}</TableCell>
                               <TableCell>
-                                {hubSites.length > 0 ? (
-                                  <span className="text-sm">{hubSites.join(", ")}</span>
+                                {loadReportType ? (
+                                  <Badge variant="secondary">{loadReportType.toUpperCase()}</Badge>
                                 ) : (
                                   <span className="text-muted-foreground">—</span>
                                 )}
                               </TableCell>
+                              <TableCell>{owner ? owner.full_name : <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>{s.data_hub_customer ?? <span className="text-muted-foreground">—</span>}</TableCell>
                               <TableCell>
                                 {priceSet ? (
                                   <span className="text-sm">{priceSet.name}</span>
@@ -1193,6 +1203,32 @@ export function CustomerSetupAdmin() {
             <Separator />
 
             <div className="grid gap-2">
+              <Label>Load Report Type</Label>
+              <Select
+                value={siteForm.load_report_type}
+                onValueChange={(val) =>
+                  setSiteForm((p) => ({
+                    ...p,
+                    load_report_type: val === SELECT_NONE_VALUE ? "" : val,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select load report type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SELECT_NONE_VALUE}>None</SelectItem>
+                  {LOAD_REPORT_TYPES.map((lrt) => (
+                    <SelectItem key={lrt.id} value={lrt.id}>
+                      {lrt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Determines which materials appear for rebate values.</p>
+            </div>
+
+            <div className="grid gap-2">
               <Label>Rebate Set</Label>
               <Select
                 value={siteForm.price_set_id}
@@ -1238,15 +1274,21 @@ export function CustomerSetupAdmin() {
               </div>
             </div>
 
-            {/* Rebate Items Configuration - only show if a rebate set is selected */}
-            {siteForm.price_set_id && (
+            {/* Rebate Items Configuration - only show if a rebate set and load report type are selected */}
+            {siteForm.price_set_id && siteForm.load_report_type && (
               <>
                 <Separator />
                 <SiteRebateItemsEditor
                   priceSetId={siteForm.price_set_id}
                   priceSetName={priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "Rebate Set"}
+                  loadReportType={siteForm.load_report_type}
                 />
               </>
+            )}
+            {siteForm.price_set_id && !siteForm.load_report_type && (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                Select a Load Report Type above to configure rebate values for materials.
+              </p>
             )}
           </div>
           </ScrollArea>

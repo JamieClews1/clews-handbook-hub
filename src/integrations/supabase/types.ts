@@ -370,6 +370,7 @@ export type Database = {
           data_hub_site_3: string | null
           data_hub_site_4: string | null
           id: string
+          load_report_type: string | null
           owner_contact_id: string | null
           site_name: string
           updated_at: string
@@ -383,6 +384,7 @@ export type Database = {
           data_hub_site_3?: string | null
           data_hub_site_4?: string | null
           id?: string
+          load_report_type?: string | null
           owner_contact_id?: string | null
           site_name: string
           updated_at?: string
@@ -396,6 +398,7 @@ export type Database = {
           data_hub_site_3?: string | null
           data_hub_site_4?: string | null
           id?: string
+          load_report_type?: string | null
           owner_contact_id?: string | null
           site_name?: string
           updated_at?: string
