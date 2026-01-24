@@ -3,11 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 
 type WasteType = {
@@ -16,13 +14,19 @@ type WasteType = {
   display_order: number;
 };
 
+type RebateItem = {
+  id: string;
+  name: string;
+  sort_order: number;
+};
+
 type PriceSetItem = {
   id: string;
   price_set_id: string;
-  rebate_item_id: string; // Actually references load_waste_types.id now
+  material_id: string; // references load_waste_types.id (stored in rebate_item_id column for now)
+  rebate_item_id: string; // references rebate_items.id (we need a new column for this)
   display_order: number;
-  value_type: "lower" | "higher" | "set";
-  set_value: number | null;
+  value_type: "lower" | "higher";
 };
 
 type Props = {
@@ -37,6 +41,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
   const [saving, setSaving] = useState(false);
 
   const [allMaterials, setAllMaterials] = useState<WasteType[]>([]);
+  const [allRebateItems, setAllRebateItems] = useState<RebateItem[]>([]);
   const [priceSetItems, setPriceSetItems] = useState<PriceSetItem[]>([]);
 
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
@@ -44,27 +49,47 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Load waste types from load_waste_types (materials for the load report)
-      const [{ data: materials, error: materialsError }, { data: psItems, error: psItemsError }] = await Promise.all([
+      const [
+        { data: materials, error: materialsError },
+        { data: rebateItems, error: rebateItemsError },
+        { data: psItems, error: psItemsError }
+      ] = await Promise.all([
         supabase
           .from("load_waste_types")
           .select("id, waste_type, display_order")
           .eq("is_active", true)
           .order("display_order", { ascending: true }),
         supabase
+          .from("rebate_items")
+          .select("id, name, sort_order")
+          .order("sort_order", { ascending: true }),
+        supabase
           .from("rebate_price_set_items")
-          .select("id, price_set_id, rebate_item_id, display_order, value_type, set_value")
+          .select("id, price_set_id, rebate_item_id, value_type_item_id, display_order, value_type")
           .eq("price_set_id", priceSetId)
           .order("display_order", { ascending: true }),
       ]);
 
       if (materialsError) throw materialsError;
+      if (rebateItemsError) throw rebateItemsError;
       if (psItemsError) throw psItemsError;
 
       setAllMaterials((materials ?? []) as WasteType[]);
-      setPriceSetItems((psItems ?? []) as PriceSetItem[]);
+      setAllRebateItems((rebateItems ?? []) as RebateItem[]);
+      
+      // Map DB structure to our local type
+      const mappedItems = (psItems ?? []).map((item: any) => ({
+        id: item.id,
+        price_set_id: item.price_set_id,
+        material_id: item.rebate_item_id, // This stores the material (load_waste_types.id)
+        rebate_item_id: item.value_type_item_id || "", // This stores the rebate item reference
+        display_order: item.display_order,
+        value_type: item.value_type as "lower" | "higher",
+      }));
+      
+      setPriceSetItems(mappedItems);
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to load materials.", variant: "destructive" });
+      toast({ title: "Error", description: e?.message ?? "Failed to load data.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -74,7 +99,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     loadData();
   }, [loadData]);
 
-  const usedMaterialIds = new Set(priceSetItems.map((p) => p.rebate_item_id));
+  const usedMaterialIds = new Set(priceSetItems.map((p) => p.material_id));
   const availableMaterials = allMaterials.filter((m) => !usedMaterialIds.has(m.id));
 
   const addMaterial = async () => {
@@ -86,16 +111,27 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         .from("rebate_price_set_items")
         .insert({
           price_set_id: priceSetId,
-          rebate_item_id: selectedMaterialId,
+          rebate_item_id: selectedMaterialId, // Store material ID here
+          value_type_item_id: null, // No value type selected yet
           display_order: maxOrder + 10,
           value_type: "lower",
           set_value: null,
         })
-        .select("id, price_set_id, rebate_item_id, display_order, value_type, set_value")
+        .select("id, price_set_id, rebate_item_id, value_type_item_id, display_order, value_type")
         .single();
 
       if (error) throw error;
-      setPriceSetItems((prev) => [...prev, data as PriceSetItem]);
+      
+      const newItem: PriceSetItem = {
+        id: data.id,
+        price_set_id: data.price_set_id,
+        material_id: data.rebate_item_id,
+        rebate_item_id: data.value_type_item_id || "",
+        display_order: data.display_order,
+        value_type: data.value_type as "lower" | "higher",
+      };
+      
+      setPriceSetItems((prev) => [...prev, newItem]);
       setSelectedMaterialId("");
       toast({ title: "Added", description: "Material added to rebate set." });
     } catch (e: any) {
@@ -105,47 +141,41 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     }
   };
 
-  const updateItemValueType = async (itemId: string, valueType: "lower" | "higher" | "set", setValue?: number | null) => {
+  const updateValueTypeItem = async (itemId: string, rebateItemId: string) => {
     setSaving(true);
     try {
-      const updatePayload: Partial<PriceSetItem> = { value_type: valueType };
-      if (valueType === "set" && setValue !== undefined) {
-        updatePayload.set_value = setValue;
-      } else if (valueType !== "set") {
-        updatePayload.set_value = null;
-      }
-
-      const { error } = await supabase.from("rebate_price_set_items").update(updatePayload).eq("id", itemId);
+      const { error } = await supabase
+        .from("rebate_price_set_items")
+        .update({ value_type_item_id: rebateItemId || null })
+        .eq("id", itemId);
 
       if (error) throw error;
 
       setPriceSetItems((prev) =>
-        prev.map((p) =>
-          p.id === itemId
-            ? { ...p, value_type: valueType, set_value: valueType === "set" ? (setValue ?? p.set_value) : null }
-            : p
-        )
+        prev.map((p) => (p.id === itemId ? { ...p, rebate_item_id: rebateItemId } : p))
       );
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to update material.", variant: "destructive" });
+      toast({ title: "Error", description: e?.message ?? "Failed to update value type.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  const updateSetValue = async (itemId: string, value: string) => {
-    const numValue = value.trim() === "" ? null : parseFloat(value);
-    if (value.trim() !== "" && isNaN(numValue!)) return;
-
+  const updateRange = async (itemId: string, range: "lower" | "higher") => {
     setSaving(true);
     try {
-      const { error } = await supabase.from("rebate_price_set_items").update({ set_value: numValue }).eq("id", itemId);
+      const { error } = await supabase
+        .from("rebate_price_set_items")
+        .update({ value_type: range, set_value: null })
+        .eq("id", itemId);
 
       if (error) throw error;
 
-      setPriceSetItems((prev) => prev.map((p) => (p.id === itemId ? { ...p, set_value: numValue } : p)));
+      setPriceSetItems((prev) =>
+        prev.map((p) => (p.id === itemId ? { ...p, value_type: range } : p))
+      );
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to update value.", variant: "destructive" });
+      toast({ title: "Error", description: e?.message ?? "Failed to update range.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -171,6 +201,10 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     return allMaterials.find((m) => m.id === materialId)?.waste_type ?? "Unknown";
   };
 
+  const getRebateItemName = (rebateItemId: string) => {
+    return allRebateItems.find((r) => r.id === rebateItemId)?.name ?? "";
+  };
+
   if (loading) {
     return <div className="text-sm text-muted-foreground py-4">Loading materials...</div>;
   }
@@ -179,9 +213,9 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <Label className="text-base font-medium">Rebate Values for "{priceSetName}"</Label>
+          <Label className="text-base font-medium">Rebate Configuration for "{priceSetName}"</Label>
           <p className="text-xs text-muted-foreground mt-1">
-            Materials from {loadReportType.toUpperCase()} report type
+            Configure value types and ranges for {loadReportType.toUpperCase()} materials
           </p>
         </div>
       </div>
@@ -193,61 +227,49 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
               <TableRow>
                 <TableHead>Material</TableHead>
                 <TableHead>Value Type</TableHead>
-                <TableHead>Set Value (£/tonne)</TableHead>
+                <TableHead>Range</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {priceSetItems.map((psi) => (
                 <TableRow key={psi.id}>
-                  <TableCell className="font-medium">{getMaterialName(psi.rebate_item_id)}</TableCell>
+                  <TableCell className="font-medium">{getMaterialName(psi.material_id)}</TableCell>
                   <TableCell>
                     <Select
-                      value={psi.value_type}
-                      onValueChange={(val) => updateItemValueType(psi.id, val as "lower" | "higher" | "set")}
+                      value={psi.rebate_item_id || "__none__"}
+                      onValueChange={(val) => updateValueTypeItem(psi.id, val === "__none__" ? "" : val)}
                       disabled={saving}
                     >
-                      <SelectTrigger className="w-[160px]">
-                        <SelectValue />
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="Select value type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="lower">
-                          <span className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">Lower</Badge>
-                            Range
-                          </span>
+                        <SelectItem value="__none__">
+                          <span className="text-muted-foreground">Select value type...</span>
                         </SelectItem>
-                        <SelectItem value="higher">
-                          <span className="flex items-center gap-2">
-                            <Badge variant="default" className="text-xs">Higher</Badge>
-                            Range
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="set">
-                          <span className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">Fixed</Badge>
-                            Value
-                          </span>
-                        </SelectItem>
+                        {allRebateItems.map((ri) => (
+                          <SelectItem key={ri.id} value={ri.id}>
+                            {ri.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell>
-                    {psi.value_type === "set" ? (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="w-28"
-                        value={psi.set_value ?? ""}
-                        onChange={(e) => updateSetValue(psi.id, e.target.value)}
-                        placeholder="e.g. -74"
-                        disabled={saving}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground text-sm italic">
-                        Uses {psi.value_type === "lower" ? "lower" : "higher"} range from Rebate Values
-                      </span>
-                    )}
+                    <Select
+                      value={psi.value_type}
+                      onValueChange={(val) => updateRange(psi.id, val as "lower" | "higher")}
+                      disabled={saving || !psi.rebate_item_id}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lower">lower</SelectItem>
+                        <SelectItem value="higher">higher</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Button
