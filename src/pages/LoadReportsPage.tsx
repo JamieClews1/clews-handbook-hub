@@ -35,6 +35,14 @@ const LoadReportsPage = () => {
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [defaultPalletWeight, setDefaultPalletWeight] = useState(20);
 
+  // Sites state
+  interface SiteOption {
+    id: string;
+    site_name: string;
+  }
+  const [sites, setSites] = useState<SiteOption[]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState<string>("");
+
   // Form state
   const [operatorName, setOperatorName] = useState("");
   const [vehicleReg, setVehicleReg] = useState("");
@@ -53,7 +61,19 @@ const LoadReportsPage = () => {
   useEffect(() => {
     fetchWasteTypes();
     fetchDefaultPalletWeight();
+    fetchSites();
   }, []);
+
+  const fetchSites = async () => {
+    const { data, error } = await supabase
+      .from("customer_sites")
+      .select("id, site_name")
+      .order("site_name");
+
+    if (!error && data) {
+      setSites(data);
+    }
+  };
 
   const fetchDefaultPalletWeight = async () => {
     const { data, error } = await supabase
@@ -156,6 +176,7 @@ const LoadReportsPage = () => {
     setOperatorName("");
     setVehicleReg("");
     setJobNumber("");
+    setSelectedSiteId("");
     setReportDate(new Date().toISOString().split("T")[0]);
     
     // Fetch latest waste types to ensure we have current default weights
@@ -522,9 +543,12 @@ const LoadReportsPage = () => {
               operatorName={operatorName}
               vehicleReg={vehicleReg}
               jobNumber={jobNumber}
+              selectedSiteId={selectedSiteId}
+              sites={sites}
               onOperatorNameChange={setOperatorName}
               onVehicleRegChange={setVehicleReg}
               onJobNumberChange={handleJobNumberChange}
+              onSiteChange={setSelectedSiteId}
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}
