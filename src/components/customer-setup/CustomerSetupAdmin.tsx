@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 type Customer = {
   id: string;
   customer_code: string;
+  customer_name: string;
   created_at: string;
   updated_at: string;
 };
@@ -95,7 +97,17 @@ export function CustomerSetupAdmin() {
   // dialogs
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
   const [newCustomerCode, setNewCustomerCode] = useState("");
+  const [newCustomerName, setNewCustomerName] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
+
+  const customerCreateSchema = useMemo(
+    () =>
+      z.object({
+        customer_code: z.string().trim().min(1, "Customer code is required.").max(50, "Customer code is too long."),
+        customer_name: z.string().trim().min(1, "Customer name is required.").max(150, "Customer name is too long."),
+      }),
+    []
+  );
 
   const [editSiteOpen, setEditSiteOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<CustomerSite | null>(null);
@@ -132,7 +144,11 @@ export function CustomerSetupAdmin() {
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
     if (!q) return customers;
-    return customers.filter((c) => c.customer_code.toLowerCase().includes(q));
+    return customers.filter((c) => {
+      const code = c.customer_code.toLowerCase();
+      const name = c.customer_name.toLowerCase();
+      return code.includes(q) || name.includes(q);
+    });
   }, [customers, customerSearch]);
 
   const contactsById = useMemo(() => {
@@ -144,8 +160,8 @@ export function CustomerSetupAdmin() {
   const loadCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id,customer_code,created_at,updated_at")
-      .order("customer_code", { ascending: true });
+      .select("id,customer_code,customer_name,created_at,updated_at")
+      .order("customer_name", { ascending: true });
     if (error) throw error;
     setCustomers((data ?? []) as Customer[]);
     if (!selectedCustomerId && (data?.[0]?.id ?? null)) {
@@ -440,22 +456,32 @@ export function CustomerSetupAdmin() {
   };
 
   const createCustomer = async () => {
-    const code = newCustomerCode.trim();
-    if (!code) {
-      toast({ title: "Missing code", description: "Customer code is required.", variant: "destructive" });
+    const parsed = customerCreateSchema.safeParse({
+      customer_code: newCustomerCode,
+      customer_name: newCustomerName,
+    });
+    if (!parsed.success) {
+      toast({
+        title: "Check customer details",
+        description: parsed.error.issues[0]?.message ?? "Invalid customer details.",
+        variant: "destructive",
+      });
       return;
     }
+
+    const { customer_code: code, customer_name: name } = parsed.data;
     setSavingCustomer(true);
     try {
       const { data, error } = await supabase
         .from("customers")
-        .insert({ customer_code: code })
+        .insert({ customer_code: code, customer_name: name })
         .select("id")
         .single();
       if (error) throw error;
-      toast({ title: "Created", description: `Customer ${code} created.` });
+      toast({ title: "Created", description: `Customer ${name} created.` });
       setCreateCustomerOpen(false);
       setNewCustomerCode("");
+      setNewCustomerName("");
       await loadCustomers();
       if (data?.id) setSelectedCustomerId(data.id);
     } catch (e: any) {
@@ -604,7 +630,7 @@ export function CustomerSetupAdmin() {
             <Input
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
-              placeholder="Search by customer code..."
+              placeholder="Search customers..."
             />
             <Button variant="outline" onClick={() => setCreateCustomerOpen(true)}>
               New
@@ -616,7 +642,7 @@ export function CustomerSetupAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead>
+                    <TableHead>Name</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -627,7 +653,7 @@ export function CustomerSetupAdmin() {
                       onClick={() => setSelectedCustomerId(c.id)}
                       role="button"
                     >
-                      <TableCell className="font-medium">{c.customer_code}</TableCell>
+                      <TableCell className="font-medium">{c.customer_name}</TableCell>
                     </TableRow>
                   ))}
                   {filteredCustomers.length === 0 && (
@@ -653,7 +679,7 @@ export function CustomerSetupAdmin() {
             <CardDescription>
               {selectedCustomer ? (
                 <span>
-                  Managing <span className="font-medium text-foreground">{selectedCustomer.customer_code}</span>
+                  Managing <span className="font-medium text-foreground">{selectedCustomer.customer_name}</span>
                 </span>
               ) : (
                 "Select a customer to begin."
@@ -915,16 +941,27 @@ export function CustomerSetupAdmin() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New customer</DialogTitle>
-            <DialogDescription>Create a customer using the unique customer code.</DialogDescription>
+            <DialogDescription>Create a customer using the unique customer code and a required name.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="customer_code">Customer code</Label>
-            <Input
-              id="customer_code"
-              value={newCustomerCode}
-              onChange={(e) => setNewCustomerCode(e.target.value)}
-              placeholder="e.g. BRITVIC"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="customer_name">Customer name</Label>
+              <Input
+                id="customer_name"
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+                placeholder="e.g. Britvic"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer_code">Customer code</Label>
+              <Input
+                id="customer_code"
+                value={newCustomerCode}
+                onChange={(e) => setNewCustomerCode(e.target.value)}
+                placeholder="e.g. BRITVIC"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateCustomerOpen(false)} disabled={savingCustomer}>
