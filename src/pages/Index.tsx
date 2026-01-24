@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, Users, DollarSign, Database } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -99,13 +99,6 @@ const Index = () => {
       description: "Upload and manage operational data files and reports.",
       icon: Upload,
       href: "/data-hub/uploads",
-    },
-    {
-      title: "Customer Setup",
-      description: "Configure customer accounts, preferences, and service agreements.",
-      icon: Users,
-      href: isManagement ? "/admin/customers" : "#",
-      comingSoon: !isManagement,
     },
     {
       title: "Rebate Values",
