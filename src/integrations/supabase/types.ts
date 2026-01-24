@@ -202,6 +202,233 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          email?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_portal_memberships: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_memberships_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_memberships_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_portal_site_access: {
+        Row: {
+          created_at: string
+          id: string
+          membership_id: string
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membership_id: string
+          site_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membership_id?: string
+          site_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_site_access_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "customer_portal_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_site_access_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_site_price_sets: {
+        Row: {
+          created_at: string
+          id: string
+          price_set_id: string
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          price_set_id: string
+          site_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          price_set_id?: string
+          site_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_site_price_sets_price_set_id_fkey"
+            columns: ["price_set_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_price_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_site_price_sets_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: true
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_sites: {
+        Row: {
+          created_at: string
+          customer_id: string
+          data_hub_customer: string | null
+          data_hub_site: string | null
+          id: string
+          owner_contact_id: string | null
+          site_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          data_hub_customer?: string | null
+          data_hub_site?: string | null
+          id?: string
+          owner_contact_id?: string | null
+          site_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          data_hub_customer?: string | null
+          data_hub_site?: string | null
+          id?: string
+          owner_contact_id?: string | null
+          site_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_sites_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_sites_owner_contact_id_fkey"
+            columns: ["owner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          customer_code: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_code: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_code?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       data_hub_jobs: {
         Row: {
           category: string | null
@@ -1560,6 +1787,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rebate_price_set_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          price_set_id: string
+          rebate_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          price_set_id: string
+          rebate_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          price_set_id?: string
+          rebate_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rebate_price_set_items_price_set_id_fkey"
+            columns: ["price_set_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_price_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rebate_price_set_items_rebate_item_id_fkey"
+            columns: ["rebate_item_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rebate_price_sets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       riddor_incidents: {
         Row: {
