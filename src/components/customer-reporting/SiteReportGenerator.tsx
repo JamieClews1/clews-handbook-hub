@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,10 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, FileDown, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import * as XLSX from "xlsx";
 
 type Customer = {
   id: string;
@@ -54,6 +56,7 @@ export function SiteReportGenerator() {
   const [loading, setLoading] = useState(false);
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
+  const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
 
   useEffect(() => {
     loadCustomers();
@@ -144,13 +147,31 @@ export function SiteReportGenerator() {
     }
   };
 
-  const totalWeight = jobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
-  const totalCost = jobRecords.reduce((sum, r) => {
+  // Get unique waste types for filter
+  const uniqueWasteTypes = useMemo(() => {
+    const types = new Set<string>();
+    jobRecords.forEach((job) => {
+      if (job.waste_description) types.add(job.waste_description);
+    });
+    return Array.from(types).sort();
+  }, [jobRecords]);
+
+  // Filter job records by selected waste types
+  const filteredJobRecords = useMemo(() => {
+    if (selectedWasteTypes.length === 0) return jobRecords;
+    return jobRecords.filter((job) => 
+      job.waste_description && selectedWasteTypes.includes(job.waste_description)
+    );
+  }, [jobRecords, selectedWasteTypes]);
+
+  const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
+  const totalCost = filteredJobRecords.reduce((sum, r) => {
     const rawObj = r.raw && typeof r.raw === "object" && !Array.isArray(r.raw) ? (r.raw as Record<string, unknown>) : null;
     const cost = rawObj?.Cost;
     return sum + (typeof cost === "number" ? cost : typeof cost === "string" ? parseFloat(cost) || 0 : 0);
   }, 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
   // Helper to extract cost from raw JSON
   const getJobCost = (job: JobRecord): number | null => {
@@ -164,8 +185,70 @@ export function SiteReportGenerator() {
     return null;
   };
 
-  // Aggregate summary by waste type
-  const wasteSummary = jobRecords.reduce((acc, job) => {
+  // Toggle waste type filter
+  const toggleWasteType = (wasteType: string) => {
+    setSelectedWasteTypes((prev) =>
+      prev.includes(wasteType)
+        ? prev.filter((t) => t !== wasteType)
+        : [...prev, wasteType]
+    );
+  };
+
+  // Export to Excel
+  const exportToExcel = () => {
+    if (!selectedCustomer || !selectedSite || !dateRange?.from || !dateRange?.to) return;
+
+    const wb = XLSX.utils.book_new();
+
+    // Header rows
+    const headerData = [
+      ["Site Recycling Report"],
+      [],
+      ["Customer:", selectedCustomer.customer_name],
+      ["Site:", selectedSite.site_name],
+      ["Date Range:", `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`],
+      ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
+      [],
+      ["Total Jobs:", filteredJobRecords.length.toString()],
+      ["Total Weight (t):", totalWeight.toFixed(2)],
+      ["Total Cost (£):", totalCost.toFixed(2)],
+      [],
+      [],
+    ];
+
+    // Detailed records header and data
+    const detailHeaders = ["Date", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
+    const detailData = filteredJobRecords.map((job) => [
+      job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+      job.job_number || "",
+      job.movement_type || "",
+      job.container_type || "",
+      job.ewc || "",
+      job.waste_description || "",
+      job.vehicle_registration || "",
+      job.weight_t ?? "",
+      getJobCost(job) ?? "",
+    ]);
+
+    // Combine all data
+    const wsData = [...headerData, detailHeaders, ...detailData];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
+      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Site Report");
+
+    // Generate filename
+    const fileName = `${selectedCustomer.customer_name}_${selectedSite.site_name}_${format(dateRange.from, "yyyyMMdd")}-${format(dateRange.to, "yyyyMMdd")}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
+  // Aggregate summary by waste type (from filtered records)
+  const wasteSummary = filteredJobRecords.reduce((acc, job) => {
     const desc = job.waste_description || "Unknown";
     if (!acc[desc]) {
       acc[desc] = { count: 0, weight: 0 };
@@ -257,23 +340,31 @@ export function SiteReportGenerator() {
         </div>
       </div>
 
-      <Button
-        onClick={generateReport}
-        disabled={!selectedSiteId || !dateRange?.from || !dateRange?.to || loading}
-        className="w-full md:w-auto"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <FileDown className="h-4 w-4 mr-2" />
-            Generate Report
-          </>
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          onClick={generateReport}
+          disabled={!selectedSiteId || !dateRange?.from || !dateRange?.to || loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <FileDown className="h-4 w-4 mr-2" />
+              Generate Report
+            </>
+          )}
+        </Button>
+
+        {reportGenerated && filteredJobRecords.length > 0 && (
+          <Button variant="outline" onClick={exportToExcel}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export to Excel
+          </Button>
         )}
-      </Button>
+      </div>
 
       {reportGenerated && (
         <div className="space-y-6">
@@ -287,7 +378,7 @@ export function SiteReportGenerator() {
             </h3>
             <div className="flex gap-4 flex-wrap">
               <Badge variant="secondary" className="text-sm">
-                {jobRecords.length} jobs
+                {filteredJobRecords.length} jobs
               </Badge>
               <Badge variant="default" className="text-sm">
                 {totalWeight.toFixed(2)} tonnes
@@ -297,6 +388,40 @@ export function SiteReportGenerator() {
               </Badge>
             </div>
           </div>
+
+          {/* Waste Type Filter */}
+          {uniqueWasteTypes.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-sm">Filter by Waste Type</span>
+                {selectedWasteTypes.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedWasteTypes([])}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Clear ({selectedWasteTypes.length})
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {uniqueWasteTypes.map((wasteType) => (
+                  <label
+                    key={wasteType}
+                    className="flex items-center gap-2 cursor-pointer text-sm"
+                  >
+                    <Checkbox
+                      checked={selectedWasteTypes.includes(wasteType)}
+                      onCheckedChange={() => toggleWasteType(wasteType)}
+                    />
+                    <span>{wasteType}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Summary by Waste Type */}
           {sortedSummary.length > 0 && (
@@ -324,7 +449,7 @@ export function SiteReportGenerator() {
                   ))}
                   <TableRow className="bg-muted/50 font-semibold">
                     <TableCell>Total</TableCell>
-                    <TableCell className="text-right">{jobRecords.length}</TableCell>
+                    <TableCell className="text-right">{filteredJobRecords.length}</TableCell>
                     <TableCell className="text-right">{totalWeight.toFixed(2)}</TableCell>
                     <TableCell className="text-right">100%</TableCell>
                   </TableRow>
@@ -334,7 +459,7 @@ export function SiteReportGenerator() {
           )}
 
           {/* Detailed Job Records */}
-          {jobRecords.length > 0 ? (
+          {filteredJobRecords.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 font-medium">Detailed Job Records</div>
               <div className="overflow-x-auto">
@@ -353,7 +478,7 @@ export function SiteReportGenerator() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobRecords.map((job, idx) => {
+                    {filteredJobRecords.map((job, idx) => {
                       const cost = getJobCost(job);
                       return (
                         <TableRow key={idx}>
