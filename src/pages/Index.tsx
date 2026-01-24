@@ -101,6 +101,12 @@ const Index = () => {
       href: "/data-hub/uploads",
     },
     {
+      title: "Customer Reporting",
+      description: "Generate site reports and rebate reports for customers.",
+      icon: FileText,
+      href: "/customer-reporting",
+    },
+    {
       title: "Rebate Values",
       description: "Manage rebate rates, pricing structures, and value calculations.",
       icon: DollarSign,
