@@ -905,6 +905,7 @@ export type Database = {
           operator_id: string | null
           operator_name: string
           report_date: string
+          site_id: string | null
           status: string
           submitted_at: string | null
           total_pallets: number
@@ -919,6 +920,7 @@ export type Database = {
           operator_id?: string | null
           operator_name: string
           report_date?: string
+          site_id?: string | null
           status?: string
           submitted_at?: string | null
           total_pallets?: number
@@ -933,6 +935,7 @@ export type Database = {
           operator_id?: string | null
           operator_name?: string
           report_date?: string
+          site_id?: string | null
           status?: string
           submitted_at?: string | null
           total_pallets?: number
@@ -946,6 +949,13 @@ export type Database = {
             columns: ["operator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "load_reports_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
             referencedColumns: ["id"]
           },
         ]

@@ -230,6 +230,7 @@ const LoadReportsPage = () => {
       setOperatorName(report.operator_name);
       setVehicleReg(report.vehicle_reg || "");
       setJobNumber(report.notes || ""); // Using notes field for job number temporarily
+      setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
       fetchWeighbridgeWeightKg(report.notes || "");
       
@@ -286,6 +287,7 @@ const LoadReportsPage = () => {
       setOperatorName(report.operator_name);
       setVehicleReg(report.vehicle_reg || "");
       setJobNumber(report.notes || ""); // Using notes field for job number temporarily
+      setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
       fetchWeighbridgeWeightKg(report.notes || "");
 
@@ -353,6 +355,7 @@ const LoadReportsPage = () => {
         operator_name: operatorName,
         vehicle_reg: vehicleReg || null,
         notes: jobNumber || null, // Storing job number in notes field
+        site_id: selectedSiteId || null,
         report_date: reportDate,
         total_pallets: totalPallets,
         total_weight_kg: totalWeight,
