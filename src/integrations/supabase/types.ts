@@ -1813,6 +1813,7 @@ export type Database = {
           set_value: number | null
           updated_at: string
           value_type: string
+          value_type_item_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1823,6 +1824,7 @@ export type Database = {
           set_value?: number | null
           updated_at?: string
           value_type?: string
+          value_type_item_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1833,6 +1835,7 @@ export type Database = {
           set_value?: number | null
           updated_at?: string
           value_type?: string
+          value_type_item_id?: string | null
         }
         Relationships: [
           {

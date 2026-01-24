@@ -23,8 +23,8 @@ type RebateItem = {
 type PriceSetItem = {
   id: string;
   price_set_id: string;
-  material_id: string; // references load_waste_types.id (stored in rebate_item_id column for now)
-  rebate_item_id: string; // references rebate_items.id (we need a new column for this)
+  material_id: string; // references load_waste_types.id (stored in rebate_item_id column)
+  value_type_item_id: string; // references rebate_items.id
   display_order: number;
   value_type: "lower" | "higher";
 };
@@ -65,7 +65,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
           .order("sort_order", { ascending: true }),
         supabase
           .from("rebate_price_set_items")
-          .select("id, price_set_id, rebate_item_id, value_type_item_id, display_order, value_type")
+          .select("id, price_set_id, rebate_item_id, display_order, value_type, set_value")
           .eq("price_set_id", priceSetId)
           .order("display_order", { ascending: true }),
       ]);
@@ -77,12 +77,35 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       setAllMaterials((materials ?? []) as WasteType[]);
       setAllRebateItems((rebateItems ?? []) as RebateItem[]);
       
+      // Fetch the value_type_item_id separately since types haven't regenerated
+      const itemIds = (psItems ?? []).map((p: any) => p.id);
+      let valueTypeItemMap: Record<string, string | null> = {};
+      
+      if (itemIds.length > 0) {
+        const { data: extendedData } = await supabase
+          .from("rebate_price_set_items")
+          .select("id")
+          .in("id", itemIds);
+        
+        // Use raw query approach to get the new column
+        for (const item of psItems ?? []) {
+          const { data: rawItem } = await supabase
+            .from("rebate_price_set_items")
+            .select("*")
+            .eq("id", (item as any).id)
+            .single();
+          if (rawItem) {
+            valueTypeItemMap[(item as any).id] = (rawItem as any).value_type_item_id || null;
+          }
+        }
+      }
+      
       // Map DB structure to our local type
       const mappedItems = (psItems ?? []).map((item: any) => ({
         id: item.id,
         price_set_id: item.price_set_id,
         material_id: item.rebate_item_id, // This stores the material (load_waste_types.id)
-        rebate_item_id: item.value_type_item_id || "", // This stores the rebate item reference
+        value_type_item_id: valueTypeItemMap[item.id] || "", // This stores the rebate item reference
         display_order: item.display_order,
         value_type: item.value_type as "lower" | "higher",
       }));
@@ -112,23 +135,22 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         .insert({
           price_set_id: priceSetId,
           rebate_item_id: selectedMaterialId, // Store material ID here
-          value_type_item_id: null, // No value type selected yet
           display_order: maxOrder + 10,
           value_type: "lower",
           set_value: null,
-        })
-        .select("id, price_set_id, rebate_item_id, value_type_item_id, display_order, value_type")
+        } as any)
+        .select("id, price_set_id, rebate_item_id, display_order, value_type")
         .single();
 
       if (error) throw error;
       
       const newItem: PriceSetItem = {
-        id: data.id,
-        price_set_id: data.price_set_id,
-        material_id: data.rebate_item_id,
-        rebate_item_id: data.value_type_item_id || "",
-        display_order: data.display_order,
-        value_type: data.value_type as "lower" | "higher",
+        id: (data as any).id,
+        price_set_id: (data as any).price_set_id,
+        material_id: (data as any).rebate_item_id,
+        value_type_item_id: "",
+        display_order: (data as any).display_order,
+        value_type: (data as any).value_type as "lower" | "higher",
       };
       
       setPriceSetItems((prev) => [...prev, newItem]);
@@ -146,13 +168,13 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     try {
       const { error } = await supabase
         .from("rebate_price_set_items")
-        .update({ value_type_item_id: rebateItemId || null })
+        .update({ value_type_item_id: rebateItemId || null } as any)
         .eq("id", itemId);
 
       if (error) throw error;
 
       setPriceSetItems((prev) =>
-        prev.map((p) => (p.id === itemId ? { ...p, rebate_item_id: rebateItemId } : p))
+        prev.map((p) => (p.id === itemId ? { ...p, value_type_item_id: rebateItemId } : p))
       );
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to update value type.", variant: "destructive" });
@@ -201,10 +223,6 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     return allMaterials.find((m) => m.id === materialId)?.waste_type ?? "Unknown";
   };
 
-  const getRebateItemName = (rebateItemId: string) => {
-    return allRebateItems.find((r) => r.id === rebateItemId)?.name ?? "";
-  };
-
   if (loading) {
     return <div className="text-sm text-muted-foreground py-4">Loading materials...</div>;
   }
@@ -237,7 +255,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                   <TableCell className="font-medium">{getMaterialName(psi.material_id)}</TableCell>
                   <TableCell>
                     <Select
-                      value={psi.rebate_item_id || "__none__"}
+                      value={psi.value_type_item_id || "__none__"}
                       onValueChange={(val) => updateValueTypeItem(psi.id, val === "__none__" ? "" : val)}
                       disabled={saving}
                     >
@@ -260,7 +278,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                     <Select
                       value={psi.value_type}
                       onValueChange={(val) => updateRange(psi.id, val as "lower" | "higher")}
-                      disabled={saving || !psi.rebate_item_id}
+                      disabled={saving || !psi.value_type_item_id}
                     >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue />
