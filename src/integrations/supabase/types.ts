@@ -1807,7 +1807,9 @@ export type Database = {
           id: string
           price_set_id: string
           rebate_item_id: string
+          set_value: number | null
           updated_at: string
+          value_type: string
         }
         Insert: {
           created_at?: string
@@ -1815,7 +1817,9 @@ export type Database = {
           id?: string
           price_set_id: string
           rebate_item_id: string
+          set_value?: number | null
           updated_at?: string
+          value_type?: string
         }
         Update: {
           created_at?: string
@@ -1823,7 +1827,9 @@ export type Database = {
           id?: string
           price_set_id?: string
           rebate_item_id?: string
+          set_value?: number | null
           updated_at?: string
+          value_type?: string
         }
         Relationships: [
           {

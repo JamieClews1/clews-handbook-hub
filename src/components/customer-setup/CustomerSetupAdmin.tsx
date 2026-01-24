@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 
 type Customer = {
   id: string;
@@ -1108,11 +1110,12 @@ export function CustomerSetupAdmin() {
 
       {/* Site dialog */}
       <Dialog open={editSiteOpen} onOpenChange={setEditSiteOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editingSite ? "Edit site" : "New site"}</DialogTitle>
-            <DialogDescription>Manual Data Hub mapping is optional. Owner is a contact record.</DialogDescription>
+            <DialogDescription>Configure site details, Data Hub mapping, and rebate pricing.</DialogDescription>
           </DialogHeader>
+          <ScrollArea className="max-h-[calc(90vh-180px)] pr-4">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="site_name">Site name</Label>
@@ -1234,7 +1237,19 @@ export function CustomerSetupAdmin() {
                 </Button>
               </div>
             </div>
+
+            {/* Rebate Items Configuration - only show if a rebate set is selected */}
+            {siteForm.price_set_id && (
+              <>
+                <Separator />
+                <SiteRebateItemsEditor
+                  priceSetId={siteForm.price_set_id}
+                  priceSetName={priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "Rebate Set"}
+                />
+              </>
+            )}
           </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditSiteOpen(false)} disabled={savingSite}>
               Cancel
