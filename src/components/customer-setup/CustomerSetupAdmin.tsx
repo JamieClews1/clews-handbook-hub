@@ -28,6 +28,9 @@ type CustomerSite = {
   site_name: string;
   data_hub_customer: string | null;
   data_hub_site: string | null;
+  data_hub_site_2: string | null;
+  data_hub_site_3: string | null;
+  data_hub_site_4: string | null;
   owner_contact_id: string | null;
   created_at: string;
   updated_at: string;
@@ -119,6 +122,9 @@ export function CustomerSetupAdmin() {
     site_name: "",
     data_hub_customer: "",
     data_hub_site: "",
+    data_hub_site_2: "",
+    data_hub_site_3: "",
+    data_hub_site_4: "",
     owner_contact_id: "",
   });
   const [savingSite, setSavingSite] = useState(false);
@@ -178,7 +184,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,owner_contact_id,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,owner_contact_id,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -330,6 +336,9 @@ export function CustomerSetupAdmin() {
       site_name: "",
       data_hub_customer: "",
       data_hub_site: "",
+      data_hub_site_2: "",
+      data_hub_site_3: "",
+      data_hub_site_4: "",
       owner_contact_id: "",
     });
     setEditSiteOpen(true);
@@ -341,6 +350,9 @@ export function CustomerSetupAdmin() {
       site_name: site.site_name ?? "",
       data_hub_customer: site.data_hub_customer ?? "",
       data_hub_site: site.data_hub_site ?? "",
+      data_hub_site_2: site.data_hub_site_2 ?? "",
+      data_hub_site_3: site.data_hub_site_3 ?? "",
+      data_hub_site_4: site.data_hub_site_4 ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
     });
     setEditSiteOpen(true);
@@ -358,9 +370,12 @@ export function CustomerSetupAdmin() {
       const payload = {
         customer_id: selectedCustomerId,
         site_name: siteForm.site_name.trim(),
-        data_hub_customer: siteForm.data_hub_customer.trim() ? siteForm.data_hub_customer.trim() : null,
-        data_hub_site: siteForm.data_hub_site.trim() ? siteForm.data_hub_site.trim() : null,
-        owner_contact_id: siteForm.owner_contact_id ? siteForm.owner_contact_id : null,
+        data_hub_customer: siteForm.data_hub_customer.trim() || null,
+        data_hub_site: siteForm.data_hub_site.trim() || null,
+        data_hub_site_2: siteForm.data_hub_site_2.trim() || null,
+        data_hub_site_3: siteForm.data_hub_site_3.trim() || null,
+        data_hub_site_4: siteForm.data_hub_site_4.trim() || null,
+        owner_contact_id: siteForm.owner_contact_id || null,
       };
 
       if (editingSite) {
@@ -761,7 +776,7 @@ export function CustomerSetupAdmin() {
                           <TableHead>Site</TableHead>
                           <TableHead>Owner contact</TableHead>
                           <TableHead>Data Hub customer</TableHead>
-                          <TableHead>Data Hub site</TableHead>
+                          <TableHead>Data Hub sites</TableHead>
                           <TableHead>Price-set</TableHead>
                           <TableHead className="w-[220px]">Actions</TableHead>
                         </TableRow>
@@ -770,12 +785,19 @@ export function CustomerSetupAdmin() {
                         {sites.map((s) => {
                           const owner = s.owner_contact_id ? contactsById[s.owner_contact_id] : null;
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
+                          const hubSites = [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4].filter(Boolean);
                           return (
                             <TableRow key={s.id}>
                               <TableCell className="font-medium">{s.site_name}</TableCell>
                               <TableCell>{owner ? owner.full_name : <span className="text-muted-foreground">—</span>}</TableCell>
                               <TableCell>{s.data_hub_customer ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell>{s.data_hub_site ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>
+                                {hubSites.length > 0 ? (
+                                  <span className="text-sm">{hubSites.join(", ")}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 <Select
                                   value={priceSetId}
@@ -1088,13 +1110,30 @@ export function CustomerSetupAdmin() {
                   placeholder="Exact string in uploads"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="dh_site">Data Hub site</Label>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Data Hub sites (up to 4)</Label>
+              <div className="grid sm:grid-cols-2 gap-3">
                 <Input
-                  id="dh_site"
                   value={siteForm.data_hub_site}
                   onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site: e.target.value }))}
-                  placeholder="Exact string in uploads"
+                  placeholder="Site 1"
+                />
+                <Input
+                  value={siteForm.data_hub_site_2}
+                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_2: e.target.value }))}
+                  placeholder="Site 2"
+                />
+                <Input
+                  value={siteForm.data_hub_site_3}
+                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_3: e.target.value }))}
+                  placeholder="Site 3"
+                />
+                <Input
+                  value={siteForm.data_hub_site_4}
+                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_4: e.target.value }))}
+                  placeholder="Site 4"
                 />
               </div>
             </div>

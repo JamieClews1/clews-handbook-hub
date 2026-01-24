@@ -366,6 +366,9 @@ export type Database = {
           customer_id: string
           data_hub_customer: string | null
           data_hub_site: string | null
+          data_hub_site_2: string | null
+          data_hub_site_3: string | null
+          data_hub_site_4: string | null
           id: string
           owner_contact_id: string | null
           site_name: string
@@ -376,6 +379,9 @@ export type Database = {
           customer_id: string
           data_hub_customer?: string | null
           data_hub_site?: string | null
+          data_hub_site_2?: string | null
+          data_hub_site_3?: string | null
+          data_hub_site_4?: string | null
           id?: string
           owner_contact_id?: string | null
           site_name: string
@@ -386,6 +392,9 @@ export type Database = {
           customer_id?: string
           data_hub_customer?: string | null
           data_hub_site?: string | null
+          data_hub_site_2?: string | null
+          data_hub_site_3?: string | null
+          data_hub_site_4?: string | null
           id?: string
           owner_contact_id?: string | null
           site_name?: string
