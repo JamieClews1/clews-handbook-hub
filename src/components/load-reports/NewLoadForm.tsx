@@ -2,15 +2,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Truck, ArrowRight, RefreshCw } from "lucide-react";
+
+interface SiteOption {
+  id: string;
+  site_name: string;
+}
 
 interface NewLoadFormProps {
   operatorName: string;
   vehicleReg: string;
   jobNumber: string;
+  selectedSiteId: string;
+  sites: SiteOption[];
   onOperatorNameChange: (value: string) => void;
   onVehicleRegChange: (value: string) => void;
   onJobNumberChange: (value: string) => void;
+  onSiteChange: (siteId: string) => void;
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onLookupWeighbridgeWeight?: () => void;
@@ -22,9 +37,12 @@ export const NewLoadForm = ({
   operatorName,
   vehicleReg,
   jobNumber,
+  selectedSiteId,
+  sites,
   onOperatorNameChange,
   onVehicleRegChange,
   onJobNumberChange,
+  onSiteChange,
   weighbridgeWeightKg,
   weighbridgeLoading,
   onLookupWeighbridgeWeight,
@@ -116,6 +134,24 @@ export const NewLoadForm = ({
                 )}
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="site" className="text-base font-medium">
+              Site
+            </Label>
+            <Select value={selectedSiteId} onValueChange={onSiteChange}>
+              <SelectTrigger id="site" className="h-14 text-lg">
+                <SelectValue placeholder="Select a site" />
+              </SelectTrigger>
+              <SelectContent>
+                {sites.map((site) => (
+                  <SelectItem key={site.id} value={site.id}>
+                    {site.site_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Button
