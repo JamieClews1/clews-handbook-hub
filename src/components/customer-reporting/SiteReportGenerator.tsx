@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter, Columns } from "lucide-react";
+import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter, Columns, Database } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
@@ -43,7 +43,10 @@ type JobRecord = {
   site: string | null;
   raw: unknown;
   order_number_override: string | null;
+  source: string;
 };
+
+type DataSourceFilter = "all" | "skiptrak" | "midweigh";
 
 type ColumnKey = 
   | "date" | "jobNo" | "orderNo" | "haulier" | "jobType" | "inOut" | "domComm" 
@@ -85,6 +88,7 @@ export function SiteReportGenerator() {
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(
     new Set(ALL_COLUMNS.map((c) => c.key))
   );
+  const [dataSourceFilter, setDataSourceFilter] = useState<DataSourceFilter>("all");
 
   useEffect(() => {
     loadCustomers();
@@ -147,7 +151,7 @@ export function SiteReportGenerator() {
       // Build query - filter by customer AND site names from Data Hub mappings
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override")
+        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -184,13 +188,26 @@ export function SiteReportGenerator() {
     return Array.from(types).sort();
   }, [jobRecords]);
 
-  // Filter job records by selected waste types
+  // Filter job records by selected waste types and data source
   const filteredJobRecords = useMemo(() => {
-    if (selectedWasteTypes.length === 0) return jobRecords;
-    return jobRecords.filter((job) => 
-      job.waste_description && selectedWasteTypes.includes(job.waste_description)
-    );
-  }, [jobRecords, selectedWasteTypes]);
+    let filtered = jobRecords;
+    
+    // Filter by data source
+    if (dataSourceFilter !== "all") {
+      filtered = filtered.filter((job) => 
+        job.source?.toLowerCase() === dataSourceFilter
+      );
+    }
+    
+    // Filter by waste types
+    if (selectedWasteTypes.length > 0) {
+      filtered = filtered.filter((job) => 
+        job.waste_description && selectedWasteTypes.includes(job.waste_description)
+      );
+    }
+    
+    return filtered;
+  }, [jobRecords, selectedWasteTypes, dataSourceFilter]);
 
   const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
   const totalCost = filteredJobRecords.reduce((sum, r) => {
@@ -527,6 +544,41 @@ export function SiteReportGenerator() {
                     </label>
                   ))}
                 </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {reportGenerated && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Database className="h-4 w-4 mr-2" />
+                Source: {dataSourceFilter === "all" ? "All" : dataSourceFilter === "skiptrak" ? "Skiptrak" : "Midweigh"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 bg-background border z-50" align="start">
+              <div className="space-y-1">
+                <span className="font-medium text-sm block pb-2 border-b mb-2">Data Source</span>
+                {[
+                  { value: "all" as DataSourceFilter, label: "All Sources" },
+                  { value: "skiptrak" as DataSourceFilter, label: "Skiptrak" },
+                  { value: "midweigh" as DataSourceFilter, label: "Midweigh" },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex items-center gap-2 cursor-pointer text-sm py-1.5 hover:bg-muted/50 px-2 rounded"
+                  >
+                    <input
+                      type="radio"
+                      name="dataSource"
+                      checked={dataSourceFilter === option.value}
+                      onChange={() => setDataSourceFilter(option.value)}
+                      className="h-4 w-4"
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
               </div>
             </PopoverContent>
           </Popover>
