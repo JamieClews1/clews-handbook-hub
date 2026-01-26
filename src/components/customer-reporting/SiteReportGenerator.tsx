@@ -174,10 +174,15 @@ export function SiteReportGenerator() {
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
+  // Helper to get raw object
+  const getRawObj = (job: JobRecord): Record<string, unknown> | null => {
+    return job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+  };
+
   // Helper to extract cost from raw JSON
   const getJobCost = (job: JobRecord): number | null => {
-    const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
-    const cost = rawObj?.Cost;
+    const rawObj = getRawObj(job);
+    const cost = rawObj?.Cost ?? rawObj?.["Total Price"];
     if (typeof cost === "number") return cost;
     if (typeof cost === "string") {
       const parsed = parseFloat(cost);
@@ -188,7 +193,7 @@ export function SiteReportGenerator() {
 
   // Helper to extract original order number from raw JSON
   const getOriginalOrderNumber = (job: JobRecord): string | null => {
-    const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+    const rawObj = getRawObj(job);
     if (!rawObj) return null;
     const orderNo = rawObj["Order No."] ?? rawObj["Order No"] ?? rawObj["order_no"] ?? rawObj["OrderNo"] ?? rawObj["PO Number"] ?? rawObj["PO"];
     return orderNo ? String(orderNo).trim() : null;
@@ -207,6 +212,48 @@ export function SiteReportGenerator() {
     const originalOrderNo = getOriginalOrderNumber(job);
     return !!(job.order_number_override && 
       job.order_number_override.trim() !== (originalOrderNo || ""));
+  };
+
+  // Helper to extract additional raw fields
+  const getHaulier = (job: JobRecord): string | null => {
+    const rawObj = getRawObj(job);
+    const val = rawObj?.Haulier ?? rawObj?.haulier;
+    return val ? String(val).trim() : null;
+  };
+
+  const getJobType = (job: JobRecord): string | null => {
+    const rawObj = getRawObj(job);
+    const val = rawObj?.["Job Type"] ?? rawObj?.["job_type"] ?? rawObj?.JobType;
+    return val ? String(val).trim() : null;
+  };
+
+  const getInOut = (job: JobRecord): string | null => {
+    const rawObj = getRawObj(job);
+    const val = rawObj?.["In / Out"] ?? rawObj?.["In/Out"] ?? rawObj?.InOut ?? rawObj?.Direction;
+    return val ? String(val).trim() : null;
+  };
+
+  const getWeighbridge = (job: JobRecord): string | null => {
+    const rawObj = getRawObj(job);
+    const val = rawObj?.Weighbridge ?? rawObj?.weighbridge;
+    return val ? String(val).trim() : null;
+  };
+
+  const getDomComm = (job: JobRecord): string | null => {
+    const rawObj = getRawObj(job);
+    const val = rawObj?.["Dom/ Comm"] ?? rawObj?.["Dom/Comm"] ?? rawObj?.DomComm ?? rawObj?.Type;
+    return val ? String(val).trim() : null;
+  };
+
+  const getTotalPrice = (job: JobRecord): number | null => {
+    const rawObj = getRawObj(job);
+    const price = rawObj?.["Total Price"] ?? rawObj?.TotalPrice ?? rawObj?.Price;
+    if (typeof price === "number") return price;
+    if (typeof price === "string") {
+      const parsed = parseFloat(price.replace(/[£,]/g, ""));
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
   };
 
   // Toggle waste type filter
@@ -241,18 +288,24 @@ export function SiteReportGenerator() {
     ];
 
     // Detailed records header and data
-    const detailHeaders = ["Date", "Job No.", "Order No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
+    const detailHeaders = ["Date", "Job No.", "Order No.", "Haulier", "Job Type", "In/Out", "Dom/Comm", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weighbridge", "Weight (t)", "Cost (£)", "Total Price (£)"];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       job.job_number || "",
       getOrderNumber(job) || "",
+      getHaulier(job) || "",
+      getJobType(job) || "",
+      getInOut(job) || "",
+      getDomComm(job) || "",
       job.movement_type || "",
       job.container_type || "",
       job.ewc || "",
       job.waste_description || "",
       job.vehicle_registration || "",
+      getWeighbridge(job) || "",
       job.weight_t ?? "",
       getJobCost(job) ?? "",
+      getTotalPrice(job) ?? "",
     ]);
 
     // Combine all data
@@ -261,8 +314,8 @@ export function SiteReportGenerator() {
 
     // Set column widths
     ws["!cols"] = [
-      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
-      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
+      { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, "Site Report");
@@ -494,13 +547,19 @@ export function SiteReportGenerator() {
                       <TableHead>Date</TableHead>
                       <TableHead>Job No.</TableHead>
                       <TableHead>Order No.</TableHead>
+                      <TableHead>Haulier</TableHead>
+                      <TableHead>Job Type</TableHead>
+                      <TableHead>In/Out</TableHead>
+                      <TableHead>Dom/Comm</TableHead>
                       <TableHead>Movement</TableHead>
                       <TableHead>Container</TableHead>
                       <TableHead>EWC</TableHead>
                       <TableHead>Waste Type</TableHead>
                       <TableHead>Vehicle</TableHead>
+                      <TableHead>Weighbridge</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                       <TableHead className="text-right">Cost (£)</TableHead>
+                      <TableHead className="text-right">Total Price (£)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -508,6 +567,12 @@ export function SiteReportGenerator() {
                       const cost = getJobCost(job);
                       const orderNo = getOrderNumber(job);
                       const poChanged = isPOChanged(job);
+                      const haulier = getHaulier(job);
+                      const jobType = getJobType(job);
+                      const inOut = getInOut(job);
+                      const domComm = getDomComm(job);
+                      const weighbridge = getWeighbridge(job);
+                      const totalPrice = getTotalPrice(job);
                       return (
                         <TableRow key={idx}>
                           <TableCell className="whitespace-nowrap">
@@ -517,16 +582,24 @@ export function SiteReportGenerator() {
                           <TableCell className={poChanged ? "text-green-600 font-semibold" : ""}>
                             {orderNo || "-"}
                           </TableCell>
+                          <TableCell>{haulier || "-"}</TableCell>
+                          <TableCell>{jobType || "-"}</TableCell>
+                          <TableCell>{inOut || "-"}</TableCell>
+                          <TableCell>{domComm || "-"}</TableCell>
                           <TableCell>{job.movement_type || "-"}</TableCell>
                           <TableCell>{job.container_type || "-"}</TableCell>
                           <TableCell>{job.ewc || "-"}</TableCell>
                           <TableCell>{job.waste_description || "-"}</TableCell>
                           <TableCell>{job.vehicle_registration || "-"}</TableCell>
+                          <TableCell>{weighbridge || "-"}</TableCell>
                           <TableCell className="text-right">
                             {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
                           </TableCell>
                           <TableCell className="text-right">
                             {cost != null ? cost.toFixed(2) : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {totalPrice != null ? totalPrice.toFixed(2) : "-"}
                           </TableCell>
                         </TableRow>
                       );
