@@ -426,6 +426,7 @@ export type Database = {
           customer_code: string
           customer_name: string
           id: string
+          po_notification_email: string | null
           updated_at: string
         }
         Insert: {
@@ -433,6 +434,7 @@ export type Database = {
           customer_code: string
           customer_name: string
           id?: string
+          po_notification_email?: string | null
           updated_at?: string
         }
         Update: {
@@ -440,6 +442,7 @@ export type Database = {
           customer_code?: string
           customer_name?: string
           id?: string
+          po_notification_email?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -455,6 +458,7 @@ export type Database = {
           job_date: string | null
           job_number: string
           movement_type: string | null
+          order_number_override: string | null
           raw: Json
           site: string | null
           source: string
@@ -473,6 +477,7 @@ export type Database = {
           job_date?: string | null
           job_number: string
           movement_type?: string | null
+          order_number_override?: string | null
           raw?: Json
           site?: string | null
           source: string
@@ -491,6 +496,7 @@ export type Database = {
           job_date?: string | null
           job_number?: string
           movement_type?: string | null
+          order_number_override?: string | null
           raw?: Json
           site?: string | null
           source?: string

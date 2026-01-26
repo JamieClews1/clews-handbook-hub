@@ -21,6 +21,7 @@ type Customer = {
   id: string;
   customer_code: string;
   customer_name: string;
+  po_notification_email: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -108,7 +109,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "" });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "" });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -182,7 +183,7 @@ export function CustomerSetupAdmin() {
   const loadCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id,customer_code,customer_name,created_at,updated_at")
+      .select("id,customer_code,customer_name,po_notification_email,created_at,updated_at")
       .order("customer_name", { ascending: true });
     if (error) throw error;
     setCustomers((data ?? []) as Customer[]);
@@ -538,7 +539,11 @@ export function CustomerSetupAdmin() {
 
   const openEditCustomer = (customer: Customer) => {
     setEditingCustomer(customer);
-    setEditCustomerForm({ customer_code: customer.customer_code, customer_name: customer.customer_name });
+    setEditCustomerForm({ 
+      customer_code: customer.customer_code, 
+      customer_name: customer.customer_name,
+      po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk"
+    });
     setEditCustomerOpen(true);
   };
 
@@ -558,7 +563,11 @@ export function CustomerSetupAdmin() {
     try {
       const { error } = await supabase
         .from("customers")
-        .update({ customer_code: parsed.data.customer_code, customer_name: parsed.data.customer_name })
+        .update({ 
+          customer_code: parsed.data.customer_code, 
+          customer_name: parsed.data.customer_name,
+          po_notification_email: editCustomerForm.po_notification_email.trim() || null
+        })
         .eq("id", editingCustomer.id);
       if (error) throw error;
       toast({ title: "Saved", description: "Customer updated." });
@@ -1085,7 +1094,7 @@ export function CustomerSetupAdmin() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit customer</DialogTitle>
-            <DialogDescription>Update the customer code or name.</DialogDescription>
+            <DialogDescription>Update the customer details and notification settings.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -1105,6 +1114,20 @@ export function CustomerSetupAdmin() {
                 onChange={(e) => setEditCustomerForm((p) => ({ ...p, customer_code: e.target.value }))}
                 placeholder="e.g. BRITVIC"
               />
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="edit_po_notification_email">PO Change Notification Email</Label>
+              <Input
+                id="edit_po_notification_email"
+                type="email"
+                value={editCustomerForm.po_notification_email}
+                onChange={(e) => setEditCustomerForm((p) => ({ ...p, po_notification_email: e.target.value }))}
+                placeholder="orders@clewsrecycling.co.uk"
+              />
+              <p className="text-xs text-muted-foreground">
+                When a customer edits a PO number in the portal, a notification will be sent to this email address.
+              </p>
             </div>
           </div>
           <DialogFooter>
