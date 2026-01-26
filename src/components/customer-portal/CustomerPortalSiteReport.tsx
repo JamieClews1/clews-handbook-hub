@@ -160,6 +160,14 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
     return null;
   };
 
+  const getOrderNumber = (job: JobRecord): string | null => {
+    const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+    const orderNo = rawObj?.["Order No"];
+    if (typeof orderNo === "string" && orderNo.trim()) return orderNo.trim();
+    if (typeof orderNo === "number") return String(orderNo);
+    return null;
+  };
+
   const toggleWasteType = (wasteType: string) => {
     setSelectedWasteTypes((prev) =>
       prev.includes(wasteType)
@@ -188,9 +196,10 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
       [],
     ];
 
-    const detailHeaders = ["Date", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+      getOrderNumber(job) || "",
       job.job_number || "",
       job.movement_type || "",
       job.container_type || "",
@@ -205,7 +214,7 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
     ws["!cols"] = [
-      { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
+      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
       { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
     ];
 
@@ -412,6 +421,7 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      <TableHead>Order No.</TableHead>
                       <TableHead>Job No.</TableHead>
                       <TableHead>Movement</TableHead>
                       <TableHead>Container</TableHead>
@@ -425,11 +435,13 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
                   <TableBody>
                     {filteredJobRecords.map((job, idx) => {
                       const cost = getJobCost(job);
+                      const orderNo = getOrderNumber(job);
                       return (
                         <TableRow key={idx}>
                           <TableCell>
                             {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
                           </TableCell>
+                          <TableCell className="font-mono text-sm">{orderNo || "-"}</TableCell>
                           <TableCell className="font-mono text-sm">{job.job_number || "-"}</TableCell>
                           <TableCell>{job.movement_type || "-"}</TableCell>
                           <TableCell>{job.container_type || "-"}</TableCell>
