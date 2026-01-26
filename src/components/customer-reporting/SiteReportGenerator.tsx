@@ -42,6 +42,7 @@ type JobRecord = {
   movement_type: string | null;
   site: string | null;
   raw: unknown;
+  order_number_override: string | null;
 };
 
 export function SiteReportGenerator() {
@@ -119,7 +120,7 @@ export function SiteReportGenerator() {
       // Build query - filter by customer AND site names from Data Hub mappings
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw")
+        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -185,6 +186,29 @@ export function SiteReportGenerator() {
     return null;
   };
 
+  // Helper to extract original order number from raw JSON
+  const getOriginalOrderNumber = (job: JobRecord): string | null => {
+    const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+    if (!rawObj) return null;
+    const orderNo = rawObj["Order No."] ?? rawObj["Order No"] ?? rawObj["order_no"] ?? rawObj["OrderNo"] ?? rawObj["PO Number"] ?? rawObj["PO"];
+    return orderNo ? String(orderNo).trim() : null;
+  };
+
+  // Helper to get display order number (prefers override)
+  const getOrderNumber = (job: JobRecord): string | null => {
+    if (job.order_number_override && job.order_number_override.trim()) {
+      return job.order_number_override.trim();
+    }
+    return getOriginalOrderNumber(job);
+  };
+
+  // Check if PO has been changed
+  const isPOChanged = (job: JobRecord): boolean => {
+    const originalOrderNo = getOriginalOrderNumber(job);
+    return !!(job.order_number_override && 
+      job.order_number_override.trim() !== (originalOrderNo || ""));
+  };
+
   // Toggle waste type filter
   const toggleWasteType = (wasteType: string) => {
     setSelectedWasteTypes((prev) =>
@@ -217,10 +241,11 @@ export function SiteReportGenerator() {
     ];
 
     // Detailed records header and data
-    const detailHeaders = ["Date", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
+    const detailHeaders = ["Date", "Job No.", "Order No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       job.job_number || "",
+      getOrderNumber(job) || "",
       job.movement_type || "",
       job.container_type || "",
       job.ewc || "",
@@ -236,7 +261,7 @@ export function SiteReportGenerator() {
 
     // Set column widths
     ws["!cols"] = [
-      { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
+      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
       { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
     ];
 
@@ -468,6 +493,7 @@ export function SiteReportGenerator() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Job No.</TableHead>
+                      <TableHead>Order No.</TableHead>
                       <TableHead>Movement</TableHead>
                       <TableHead>Container</TableHead>
                       <TableHead>EWC</TableHead>
@@ -480,12 +506,17 @@ export function SiteReportGenerator() {
                   <TableBody>
                     {filteredJobRecords.map((job, idx) => {
                       const cost = getJobCost(job);
+                      const orderNo = getOrderNumber(job);
+                      const poChanged = isPOChanged(job);
                       return (
                         <TableRow key={idx}>
                           <TableCell className="whitespace-nowrap">
                             {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
                           </TableCell>
                           <TableCell className="font-medium">{job.job_number || "-"}</TableCell>
+                          <TableCell className={poChanged ? "text-green-600 font-semibold" : ""}>
+                            {orderNo || "-"}
+                          </TableCell>
                           <TableCell>{job.movement_type || "-"}</TableCell>
                           <TableCell>{job.container_type || "-"}</TableCell>
                           <TableCell>{job.ewc || "-"}</TableCell>
