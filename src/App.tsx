@@ -31,6 +31,7 @@ import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import DataUploadsPage from "./pages/DataUploadsPage";
 import RebateValuesPage from "./pages/RebateValuesPage";
 import CustomerReportingPage from "./pages/CustomerReportingPage";
+import CustomerPortalPage from "./pages/CustomerPortalPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
              <Route path="/data-hub/uploads" element={<DataUploadsPage />} />
              <Route path="/rebate-values" element={<RebateValuesPage />} />
              <Route path="/customer-reporting" element={<CustomerReportingPage />} />
+             <Route path="/my-portal" element={<CustomerPortalPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.send-inspection-report]
 verify_jwt = true
+
+[functions.customer-portal-contact]
+verify_jwt = false
