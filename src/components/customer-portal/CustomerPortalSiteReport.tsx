@@ -2,17 +2,19 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter } from "lucide-react";
+import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter, Pencil, Save, X } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 type Site = {
   id: string;
@@ -25,6 +27,7 @@ type Site = {
 };
 
 type JobRecord = {
+  id: string;
   job_date: string;
   job_number: string;
   container_type: string | null;
@@ -36,6 +39,7 @@ type JobRecord = {
   movement_type: string | null;
   site: string | null;
   raw: unknown;
+  order_number_override: string | null;
 };
 
 interface CustomerPortalSiteReportProps {
@@ -44,6 +48,7 @@ interface CustomerPortalSiteReportProps {
 }
 
 export function CustomerPortalSiteReport({ customerId, customerName }: CustomerPortalSiteReportProps) {
+  const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -54,9 +59,16 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
+  
+  // PO editing state
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [editingPOValue, setEditingPOValue] = useState("");
+  const [savingPO, setSavingPO] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState<string>("orders@clewsrecycling.co.uk");
 
   useEffect(() => {
     loadSites();
+    loadNotificationEmail();
   }, [customerId]);
 
   const loadSites = async () => {
@@ -67,6 +79,17 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
       .eq("customer_id", customerId)
       .order("site_name");
     setSites(data ?? []);
+  };
+
+  const loadNotificationEmail = async () => {
+    const { data } = await supabase
+      .from("customers")
+      .select("po_notification_email")
+      .eq("id", customerId)
+      .maybeSingle();
+    if (data?.po_notification_email) {
+      setNotificationEmail(data.po_notification_email);
+    }
   };
 
   const generateReport = async () => {
@@ -100,7 +123,7 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw")
+        .select("id, job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -161,11 +184,89 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
   };
 
   const getOrderNumber = (job: JobRecord): string | null => {
+    // Prefer override value if set
+    if (job.order_number_override && job.order_number_override.trim()) {
+      return job.order_number_override.trim();
+    }
     const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
     const orderNo = rawObj?.["Order No"];
     if (typeof orderNo === "string" && orderNo.trim()) return orderNo.trim();
     if (typeof orderNo === "number") return String(orderNo);
     return null;
+  };
+
+  const getOriginalOrderNumber = (job: JobRecord): string | null => {
+    const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+    const orderNo = rawObj?.["Order No"];
+    if (typeof orderNo === "string" && orderNo.trim()) return orderNo.trim();
+    if (typeof orderNo === "number") return String(orderNo);
+    return null;
+  };
+
+  const startEditingPO = (job: JobRecord) => {
+    setEditingJobId(job.id);
+    setEditingPOValue(getOrderNumber(job) || "");
+  };
+
+  const cancelEditingPO = () => {
+    setEditingJobId(null);
+    setEditingPOValue("");
+  };
+
+  const savePONumber = async (job: JobRecord) => {
+    if (!editingPOValue.trim()) {
+      toast({ title: "Error", description: "Please enter a PO number.", variant: "destructive" });
+      return;
+    }
+
+    setSavingPO(true);
+    try {
+      const oldPO = getOrderNumber(job);
+      const newPO = editingPOValue.trim();
+
+      // Update the database
+      const { error: updateError } = await supabase
+        .from("data_hub_jobs")
+        .update({ order_number_override: newPO })
+        .eq("id", job.id);
+
+      if (updateError) throw updateError;
+
+      // Send notification email
+      const { error: notifyError } = await supabase.functions.invoke("po-change-notification", {
+        body: {
+          notificationEmail,
+          customerName,
+          siteName: selectedSite?.site_name || "",
+          jobNumber: job.job_number,
+          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+          oldPONumber: oldPO,
+          newPONumber: newPO,
+          changedBy: (await supabase.auth.getUser()).data.user?.email || "Unknown",
+        },
+      });
+
+      if (notifyError) {
+        console.error("Failed to send notification:", notifyError);
+        // Don't fail the save if notification fails
+      }
+
+      // Update local state
+      setJobRecords((prev) =>
+        prev.map((j) =>
+          j.id === job.id ? { ...j, order_number_override: newPO } : j
+        )
+      );
+
+      toast({ title: "Saved", description: "PO number updated successfully." });
+      setEditingJobId(null);
+      setEditingPOValue("");
+    } catch (error: any) {
+      console.error("Error saving PO number:", error);
+      toast({ title: "Error", description: error?.message || "Failed to save PO number.", variant: "destructive" });
+    } finally {
+      setSavingPO(false);
+    }
   };
 
   const toggleWasteType = (wasteType: string) => {
@@ -422,6 +523,7 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Order No.</TableHead>
+                      <TableHead className="w-10"></TableHead>
                       <TableHead>Job No.</TableHead>
                       <TableHead>Movement</TableHead>
                       <TableHead>Container</TableHead>
@@ -436,12 +538,61 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
                     {filteredJobRecords.map((job, idx) => {
                       const cost = getJobCost(job);
                       const orderNo = getOrderNumber(job);
+                      const isEditing = editingJobId === job.id;
                       return (
                         <TableRow key={idx}>
                           <TableCell>
                             {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
                           </TableCell>
-                          <TableCell className="font-mono text-sm">{orderNo || "-"}</TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {isEditing ? (
+                              <Input
+                                value={editingPOValue}
+                                onChange={(e) => setEditingPOValue(e.target.value)}
+                                className="h-8 w-28"
+                                placeholder="Enter PO"
+                                disabled={savingPO}
+                              />
+                            ) : (
+                              <span className={job.order_number_override ? "text-green-600 font-semibold" : ""}>
+                                {orderNo || "-"}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isEditing ? (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => savePONumber(job)}
+                                  disabled={savingPO}
+                                >
+                                  {savingPO ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 text-green-600" />}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={cancelEditingPO}
+                                  disabled={savingPO}
+                                >
+                                  <X className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => startEditingPO(job)}
+                                title="Edit PO Number"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                              </Button>
+                            )}
+                          </TableCell>
                           <TableCell className="font-mono text-sm">{job.job_number || "-"}</TableCell>
                           <TableCell>{job.movement_type || "-"}</TableCell>
                           <TableCell>{job.container_type || "-"}</TableCell>
