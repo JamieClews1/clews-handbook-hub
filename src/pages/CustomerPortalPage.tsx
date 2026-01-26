@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2 } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
 import { CustomerPortalContactForm } from "@/components/customer-portal/CustomerPortalContactForm";
+import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 
 type PortalMembership = {
   id: string;
@@ -22,20 +23,19 @@ type PortalMembership = {
 };
 
 const CustomerPortalPage = () => {
-  const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [membership, setMembership] = useState<PortalMembership | null>(null);
-  const [loadingMembership, setLoadingMembership] = useState(true);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
+  const [loadingMembership, setLoadingMembership] = useState(false);
 
   useEffect(() => {
     const loadMembership = async () => {
-      if (!user) return;
+      if (!user) {
+        setMembership(null);
+        setLoadingMembership(false);
+        return;
+      }
+      
+      setLoadingMembership(true);
       
       const { data, error } = await supabase
         .from("customer_portal_memberships")
@@ -57,10 +57,18 @@ const CustomerPortalPage = () => {
       setLoadingMembership(false);
     };
 
-    if (user) {
-      loadMembership();
-    }
+    loadMembership();
   }, [user]);
+
+  const handleLogout = async () => {
+    await signOut();
+    setMembership(null);
+  };
+
+  // Show login screen if not authenticated
+  if (!loading && !user) {
+    return <CustomerPortalLogin onLoginSuccess={() => {}} />;
+  }
 
   if (loading || loadingMembership) {
     return (
@@ -71,10 +79,6 @@ const CustomerPortalPage = () => {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   if (!membership) {
@@ -112,13 +116,11 @@ const CustomerPortalPage = () => {
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/portal">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Portal
-              </Button>
-            </Link>
             <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+            <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Button>
           </div>
         </div>
       </header>
