@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -22,13 +23,21 @@ type PortalMembership = {
   };
 };
 
+type Customer = {
+  id: string;
+  customer_name: string;
+  customer_code: string;
+};
+
 const CustomerPortalPage = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, isAdmin, loading, signOut } = useAuth();
   const [membership, setMembership] = useState<PortalMembership | null>(null);
   const [loadingMembership, setLoadingMembership] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadMembership = async () => {
+    const loadData = async () => {
       if (!user) {
         setMembership(null);
         setLoadingMembership(false);
@@ -37,6 +46,22 @@ const CustomerPortalPage = () => {
       
       setLoadingMembership(true);
       
+      // If admin, load all customers for selection
+      if (isAdmin) {
+        const { data: customersData } = await supabase
+          .from("customers")
+          .select("id, customer_name, customer_code")
+          .order("customer_name");
+        
+        if (customersData && customersData.length > 0) {
+          setCustomers(customersData);
+          setSelectedCustomerId(customersData[0].id);
+        }
+        setLoadingMembership(false);
+        return;
+      }
+      
+      // For non-admins, check membership
       const { data, error } = await supabase
         .from("customer_portal_memberships")
         .select(`
@@ -57,12 +82,14 @@ const CustomerPortalPage = () => {
       setLoadingMembership(false);
     };
 
-    loadMembership();
-  }, [user]);
+    loadData();
+  }, [user, isAdmin]);
 
   const handleLogout = async () => {
     await signOut();
     setMembership(null);
+    setCustomers([]);
+    setSelectedCustomerId(null);
   };
 
   // Show login screen if not authenticated
@@ -81,7 +108,15 @@ const CustomerPortalPage = () => {
     );
   }
 
-  if (!membership) {
+  // Get customer info based on admin or regular user
+  const currentCustomer = isAdmin && selectedCustomerId
+    ? customers.find(c => c.id === selectedCustomerId)
+    : membership?.customers;
+
+  const currentCustomerId = isAdmin ? selectedCustomerId : membership?.customer_id;
+
+  // Non-admin without membership
+  if (!isAdmin && !membership) {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -111,32 +146,98 @@ const CustomerPortalPage = () => {
     );
   }
 
+  // Admin without any customers in system
+  if (isAdmin && customers.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-50 glass border-b border-border/50">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <Link to="/admin">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Admin
+                </Button>
+              </Link>
+              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>No Customers Found</CardTitle>
+              <CardDescription>
+                There are no customers set up yet. Please add customers in the Admin → Customer Setup section.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-            <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
+            <div className="flex items-center gap-4">
+              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              {isAdmin && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  <Shield className="h-3 w-3" />
+                  Admin View
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    Admin
+                  </Button>
+                </Link>
+              )}
+              <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-              <Building2 className="h-6 w-6 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <Building2 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Customer Portal</h1>
+                <p className="text-muted-foreground text-sm">
+                  {isAdmin ? "Viewing as admin" : `Welcome, ${currentCustomer?.customer_name}`}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Customer Portal</h1>
-              <p className="text-muted-foreground text-sm">
-                Welcome, {membership.customers.customer_name}
-              </p>
-            </div>
+            
+            {isAdmin && customers.length > 0 && (
+              <Select value={selectedCustomerId || ""} onValueChange={setSelectedCustomerId}>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Select customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.customer_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <Tabs defaultValue="site-reports" className="space-y-6">
@@ -167,10 +268,12 @@ const CustomerPortalPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CustomerPortalSiteReport 
-                    customerId={membership.customer_id}
-                    customerName={membership.customers.customer_name}
-                  />
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalSiteReport 
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -184,10 +287,12 @@ const CustomerPortalPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CustomerPortalRebateReport 
-                    customerId={membership.customer_id}
-                    customerName={membership.customers.customer_name}
-                  />
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalRebateReport 
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -201,10 +306,12 @@ const CustomerPortalPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CustomerPortalContactForm 
-                    customerId={membership.customer_id}
-                    customerName={membership.customers.customer_name}
-                  />
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalContactForm 
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
