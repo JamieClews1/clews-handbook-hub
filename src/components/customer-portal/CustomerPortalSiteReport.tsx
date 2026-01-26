@@ -538,7 +538,11 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
                     {filteredJobRecords.map((job, idx) => {
                       const cost = getJobCost(job);
                       const orderNo = getOrderNumber(job);
+                      const originalOrderNo = getOriginalOrderNumber(job);
                       const isEditing = editingJobId === job.id;
+                      // PO is considered changed if override exists and differs from original
+                      const isPOChanged = job.order_number_override && 
+                        job.order_number_override.trim() !== (originalOrderNo || "");
                       return (
                         <TableRow key={idx}>
                           <TableCell>
@@ -554,7 +558,7 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
                                 disabled={savingPO}
                               />
                             ) : (
-                              <span className={job.order_number_override ? "text-green-600 font-semibold" : ""}>
+                              <span className={isPOChanged ? "text-green-600 font-semibold" : ""}>
                                 {orderNo || "-"}
                               </span>
                             )}
