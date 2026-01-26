@@ -306,7 +306,6 @@ export function SiteReportGenerator() {
   };
 
   const isColumnVisible = (columnKey: ColumnKey) => visibleColumns.has(columnKey);
-  };
 
   // Export to Excel
   const exportToExcel = () => {
