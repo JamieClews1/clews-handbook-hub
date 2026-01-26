@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter } from "lucide-react";
+import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter, Columns } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
@@ -45,6 +45,30 @@ type JobRecord = {
   order_number_override: string | null;
 };
 
+type ColumnKey = 
+  | "date" | "jobNo" | "orderNo" | "haulier" | "jobType" | "inOut" | "domComm" 
+  | "movement" | "container" | "ewc" | "wasteType" | "vehicle" | "weighbridge" 
+  | "weight" | "cost" | "totalPrice";
+
+const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "date", label: "Date" },
+  { key: "jobNo", label: "Job No." },
+  { key: "orderNo", label: "Order No." },
+  { key: "haulier", label: "Haulier" },
+  { key: "jobType", label: "Job Type" },
+  { key: "inOut", label: "In/Out" },
+  { key: "domComm", label: "Dom/Comm" },
+  { key: "movement", label: "Movement" },
+  { key: "container", label: "Container" },
+  { key: "ewc", label: "EWC" },
+  { key: "wasteType", label: "Waste Type" },
+  { key: "vehicle", label: "Vehicle" },
+  { key: "weighbridge", label: "Weighbridge" },
+  { key: "weight", label: "Weight (t)" },
+  { key: "cost", label: "Cost (£)" },
+  { key: "totalPrice", label: "Total Price (£)" },
+];
+
 export function SiteReportGenerator() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -58,6 +82,9 @@ export function SiteReportGenerator() {
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(
+    new Set(ALL_COLUMNS.map((c) => c.key))
+  );
 
   useEffect(() => {
     loadCustomers();
@@ -265,6 +292,22 @@ export function SiteReportGenerator() {
     );
   };
 
+  // Toggle column visibility
+  const toggleColumn = (columnKey: ColumnKey) => {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(columnKey)) {
+        next.delete(columnKey);
+      } else {
+        next.add(columnKey);
+      }
+      return next;
+    });
+  };
+
+  const isColumnVisible = (columnKey: ColumnKey) => visibleColumns.has(columnKey);
+  };
+
   // Export to Excel
   const exportToExcel = () => {
     if (!selectedCustomer || !selectedSite || !dateRange?.from || !dateRange?.to) return;
@@ -287,36 +330,43 @@ export function SiteReportGenerator() {
       [],
     ];
 
-    // Detailed records header and data
-    const detailHeaders = ["Date", "Job No.", "Order No.", "Haulier", "Job Type", "In/Out", "Dom/Comm", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weighbridge", "Weight (t)", "Cost (£)", "Total Price (£)"];
-    const detailData = filteredJobRecords.map((job) => [
-      job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
-      job.job_number || "",
-      getOrderNumber(job) || "",
-      getHaulier(job) || "",
-      getJobType(job) || "",
-      getInOut(job) || "",
-      getDomComm(job) || "",
-      job.movement_type || "",
-      job.container_type || "",
-      job.ewc || "",
-      job.waste_description || "",
-      job.vehicle_registration || "",
-      getWeighbridge(job) || "",
-      job.weight_t ?? "",
-      getJobCost(job) ?? "",
-      getTotalPrice(job) ?? "",
-    ]);
+    // Build headers and data based on visible columns
+    const columnData: { key: ColumnKey; header: string; getValue: (job: JobRecord) => string | number }[] = [
+      { key: "date", header: "Date", getValue: (job) => job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "" },
+      { key: "jobNo", header: "Job No.", getValue: (job) => job.job_number || "" },
+      { key: "orderNo", header: "Order No.", getValue: (job) => getOrderNumber(job) || "" },
+      { key: "haulier", header: "Haulier", getValue: (job) => getHaulier(job) || "" },
+      { key: "jobType", header: "Job Type", getValue: (job) => getJobType(job) || "" },
+      { key: "inOut", header: "In/Out", getValue: (job) => getInOut(job) || "" },
+      { key: "domComm", header: "Dom/Comm", getValue: (job) => getDomComm(job) || "" },
+      { key: "movement", header: "Movement", getValue: (job) => job.movement_type || "" },
+      { key: "container", header: "Container", getValue: (job) => job.container_type || "" },
+      { key: "ewc", header: "EWC", getValue: (job) => job.ewc || "" },
+      { key: "wasteType", header: "Waste Type", getValue: (job) => job.waste_description || "" },
+      { key: "vehicle", header: "Vehicle", getValue: (job) => job.vehicle_registration || "" },
+      { key: "weighbridge", header: "Weighbridge", getValue: (job) => getWeighbridge(job) || "" },
+      { key: "weight", header: "Weight (t)", getValue: (job) => job.weight_t ?? "" },
+      { key: "cost", header: "Cost (£)", getValue: (job) => getJobCost(job) ?? "" },
+      { key: "totalPrice", header: "Total Price (£)", getValue: (job) => getTotalPrice(job) ?? "" },
+    ];
+
+    const visibleColumnData = columnData.filter((col) => visibleColumns.has(col.key));
+    const detailHeaders = visibleColumnData.map((col) => col.header);
+    const detailData = filteredJobRecords.map((job) => 
+      visibleColumnData.map((col) => col.getValue(job))
+    );
 
     // Combine all data
     const wsData = [...headerData, detailHeaders, ...detailData];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Set column widths
-    ws["!cols"] = [
-      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
-      { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-    ];
+    // Set column widths dynamically based on visible columns
+    const columnWidths: Record<ColumnKey, number> = {
+      date: 12, jobNo: 15, orderNo: 15, haulier: 15, jobType: 12, inOut: 10, domComm: 12,
+      movement: 12, container: 25, ewc: 12, wasteType: 30, vehicle: 12, weighbridge: 15,
+      weight: 12, cost: 12, totalPrice: 12,
+    };
+    ws["!cols"] = visibleColumnData.map((col) => ({ wch: columnWidths[col.key] }));
 
     XLSX.utils.book_append_sheet(wb, ws, "Site Report");
 
@@ -442,6 +492,46 @@ export function SiteReportGenerator() {
             Export to Excel
           </Button>
         )}
+
+        {reportGenerated && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Columns className="h-4 w-4 mr-2" />
+                Columns ({visibleColumns.size}/{ALL_COLUMNS.length})
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 bg-background border z-50" align="start">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between pb-2 border-b">
+                  <span className="font-medium text-sm">Show Columns</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setVisibleColumns(new Set(ALL_COLUMNS.map((c) => c.key)))}
+                  >
+                    Select All
+                  </Button>
+                </div>
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {ALL_COLUMNS.map((col) => (
+                    <label
+                      key={col.key}
+                      className="flex items-center gap-2 cursor-pointer text-sm py-1 hover:bg-muted/50 px-1 rounded"
+                    >
+                      <Checkbox
+                        checked={isColumnVisible(col.key)}
+                        onCheckedChange={() => toggleColumn(col.key)}
+                      />
+                      <span>{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {reportGenerated && (
@@ -544,22 +634,22 @@ export function SiteReportGenerator() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Job No.</TableHead>
-                      <TableHead>Order No.</TableHead>
-                      <TableHead>Haulier</TableHead>
-                      <TableHead>Job Type</TableHead>
-                      <TableHead>In/Out</TableHead>
-                      <TableHead>Dom/Comm</TableHead>
-                      <TableHead>Movement</TableHead>
-                      <TableHead>Container</TableHead>
-                      <TableHead>EWC</TableHead>
-                      <TableHead>Waste Type</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Weighbridge</TableHead>
-                      <TableHead className="text-right">Weight (t)</TableHead>
-                      <TableHead className="text-right">Cost (£)</TableHead>
-                      <TableHead className="text-right">Total Price (£)</TableHead>
+                      {isColumnVisible("date") && <TableHead>Date</TableHead>}
+                      {isColumnVisible("jobNo") && <TableHead>Job No.</TableHead>}
+                      {isColumnVisible("orderNo") && <TableHead>Order No.</TableHead>}
+                      {isColumnVisible("haulier") && <TableHead>Haulier</TableHead>}
+                      {isColumnVisible("jobType") && <TableHead>Job Type</TableHead>}
+                      {isColumnVisible("inOut") && <TableHead>In/Out</TableHead>}
+                      {isColumnVisible("domComm") && <TableHead>Dom/Comm</TableHead>}
+                      {isColumnVisible("movement") && <TableHead>Movement</TableHead>}
+                      {isColumnVisible("container") && <TableHead>Container</TableHead>}
+                      {isColumnVisible("ewc") && <TableHead>EWC</TableHead>}
+                      {isColumnVisible("wasteType") && <TableHead>Waste Type</TableHead>}
+                      {isColumnVisible("vehicle") && <TableHead>Vehicle</TableHead>}
+                      {isColumnVisible("weighbridge") && <TableHead>Weighbridge</TableHead>}
+                      {isColumnVisible("weight") && <TableHead className="text-right">Weight (t)</TableHead>}
+                      {isColumnVisible("cost") && <TableHead className="text-right">Cost (£)</TableHead>}
+                      {isColumnVisible("totalPrice") && <TableHead className="text-right">Total Price (£)</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -575,32 +665,44 @@ export function SiteReportGenerator() {
                       const totalPrice = getTotalPrice(job);
                       return (
                         <TableRow key={idx}>
-                          <TableCell className="whitespace-nowrap">
-                            {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
-                          </TableCell>
-                          <TableCell className="font-medium">{job.job_number || "-"}</TableCell>
-                          <TableCell className={poChanged ? "text-green-600 font-semibold" : ""}>
-                            {orderNo || "-"}
-                          </TableCell>
-                          <TableCell>{haulier || "-"}</TableCell>
-                          <TableCell>{jobType || "-"}</TableCell>
-                          <TableCell>{inOut || "-"}</TableCell>
-                          <TableCell>{domComm || "-"}</TableCell>
-                          <TableCell>{job.movement_type || "-"}</TableCell>
-                          <TableCell>{job.container_type || "-"}</TableCell>
-                          <TableCell>{job.ewc || "-"}</TableCell>
-                          <TableCell>{job.waste_description || "-"}</TableCell>
-                          <TableCell>{job.vehicle_registration || "-"}</TableCell>
-                          <TableCell>{weighbridge || "-"}</TableCell>
-                          <TableCell className="text-right">
-                            {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {cost != null ? cost.toFixed(2) : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {totalPrice != null ? totalPrice.toFixed(2) : "-"}
-                          </TableCell>
+                          {isColumnVisible("date") && (
+                            <TableCell className="whitespace-nowrap">
+                              {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
+                            </TableCell>
+                          )}
+                          {isColumnVisible("jobNo") && (
+                            <TableCell className="font-medium">{job.job_number || "-"}</TableCell>
+                          )}
+                          {isColumnVisible("orderNo") && (
+                            <TableCell className={poChanged ? "text-green-600 font-semibold" : ""}>
+                              {orderNo || "-"}
+                            </TableCell>
+                          )}
+                          {isColumnVisible("haulier") && <TableCell>{haulier || "-"}</TableCell>}
+                          {isColumnVisible("jobType") && <TableCell>{jobType || "-"}</TableCell>}
+                          {isColumnVisible("inOut") && <TableCell>{inOut || "-"}</TableCell>}
+                          {isColumnVisible("domComm") && <TableCell>{domComm || "-"}</TableCell>}
+                          {isColumnVisible("movement") && <TableCell>{job.movement_type || "-"}</TableCell>}
+                          {isColumnVisible("container") && <TableCell>{job.container_type || "-"}</TableCell>}
+                          {isColumnVisible("ewc") && <TableCell>{job.ewc || "-"}</TableCell>}
+                          {isColumnVisible("wasteType") && <TableCell>{job.waste_description || "-"}</TableCell>}
+                          {isColumnVisible("vehicle") && <TableCell>{job.vehicle_registration || "-"}</TableCell>}
+                          {isColumnVisible("weighbridge") && <TableCell>{weighbridge || "-"}</TableCell>}
+                          {isColumnVisible("weight") && (
+                            <TableCell className="text-right">
+                              {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
+                            </TableCell>
+                          )}
+                          {isColumnVisible("cost") && (
+                            <TableCell className="text-right">
+                              {cost != null ? cost.toFixed(2) : "-"}
+                            </TableCell>
+                          )}
+                          {isColumnVisible("totalPrice") && (
+                            <TableCell className="text-right">
+                              {totalPrice != null ? totalPrice.toFixed(2) : "-"}
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}
