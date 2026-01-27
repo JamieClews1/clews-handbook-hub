@@ -187,6 +187,15 @@ export function CustomerSetupAdmin() {
     return map;
   }, [contacts]);
 
+  // Map contact_id -> membership (to find the linked portal user for a contact)
+  const membershipByContactId = useMemo(() => {
+    const map: Record<string, Membership> = {};
+    for (const m of memberships) {
+      if (m.contact_id) map[m.contact_id] = m;
+    }
+    return map;
+  }, [memberships]);
+
   const loadCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
@@ -1030,9 +1039,6 @@ export function CustomerSetupAdmin() {
                                   <Button variant="outline" size="sm" onClick={() => saveSiteAccess(m.id)}>
                                     Save access
                                   </Button>
-                                  <Button variant="outline" size="sm" onClick={() => openPasswordDialog(m.user_id, profile?.email ?? m.user_id)}>
-                                    Set Password
-                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => removeMembership(m.id)}>
                                     Remove
                                   </Button>
@@ -1409,6 +1415,32 @@ export function CustomerSetupAdmin() {
               </div>
             </div>
           </div>
+
+          {/* Show Set Password button if this contact has a linked portal user */}
+          {editingContact && membershipByContactId[editingContact.id] && (
+            <div className="border-t pt-4 mt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Portal Access</p>
+                  <p className="text-xs text-muted-foreground">
+                    This contact has a linked portal login ({profilesById[membershipByContactId[editingContact.id].user_id]?.email ?? "user"})
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const membership = membershipByContactId[editingContact.id];
+                    const profile = profilesById[membership.user_id];
+                    openPasswordDialog(membership.user_id, profile?.email ?? membership.user_id);
+                  }}
+                >
+                  Set Password
+                </Button>
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditContactOpen(false)} disabled={savingContact}>
               Cancel
