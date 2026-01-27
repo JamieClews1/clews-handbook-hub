@@ -12,6 +12,7 @@ import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerP
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
 import { CustomerPortalContactForm } from "@/components/customer-portal/CustomerPortalContactForm";
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
+import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
 
 type PortalMembership = {
   id: string;
@@ -35,6 +36,7 @@ const CustomerPortalPage = () => {
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [accessibleSites, setAccessibleSites] = useState<{ id: string; site_name: string }[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,6 +80,16 @@ const CustomerPortalPage = () => {
 
       if (!error && data) {
         setMembership(data as unknown as PortalMembership);
+        
+        // Fetch accessible sites for the user
+        const { data: sitesData } = await supabase
+          .from("customer_sites")
+          .select("id, site_name")
+          .eq("customer_id", data.customer_id);
+        
+        if (sitesData) {
+          setAccessibleSites(sitesData);
+        }
       }
       setLoadingMembership(false);
     };
@@ -90,6 +102,7 @@ const CustomerPortalPage = () => {
     setMembership(null);
     setCustomers([]);
     setSelectedCustomerId(null);
+    setAccessibleSites([]);
   };
 
   // Show login screen if not authenticated
@@ -199,6 +212,13 @@ const CustomerPortalPage = () => {
                     Admin
                   </Button>
                 </Link>
+              )}
+              {!isAdmin && user && (
+                <CustomerPortalProfile
+                  userEmail={user.email || ""}
+                  customerName={currentCustomer?.customer_name || ""}
+                  managedSites={accessibleSites}
+                />
               )}
               <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
