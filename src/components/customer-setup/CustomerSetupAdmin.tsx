@@ -165,6 +165,9 @@ export function CustomerSetupAdmin() {
   const [newPassword, setNewPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
 
+  // Create portal login state (for contacts without portal access)
+  const [creatingPortalLogin, setCreatingPortalLogin] = useState(false);
+
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -746,6 +749,56 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  // Create a portal login for a contact who doesn't have one yet
+  const createPortalLoginForContact = async (contact: CustomerContact) => {
+    if (!selectedCustomerId || !contact.email) {
+      toast({ 
+        title: "Missing email", 
+        description: "Contact must have an email address to create portal login.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setCreatingPortalLogin(true);
+    try {
+      // Create the auth user via edge function
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: contact.email.trim(),
+          full_name: contact.full_name.trim() || null,
+          user_types: [],
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      const userId: string | undefined = data?.user?.id ?? data?.id ?? undefined;
+      if (!userId) {
+        throw new Error("User was created but no user id was returned.");
+      }
+
+      // Create the membership linked to this contact
+      const { error: membershipError } = await supabase.from("customer_portal_memberships").insert({
+        customer_id: selectedCustomerId,
+        user_id: userId,
+        contact_id: contact.id,
+      });
+      if (membershipError) throw membershipError;
+
+      toast({ title: "Portal login created", description: `Login created for ${contact.email}. You can now set their password.` });
+      
+      // Reload to get the new membership
+      await loadCustomerDetails(selectedCustomerId);
+      
+      // Open password dialog for the new user
+      openPasswordDialog(userId, contact.email);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to create portal login.", variant: "destructive" });
+    } finally {
+      setCreatingPortalLogin(false);
+    }
+  };
 
   const createRebateSetInline = async () => {
     const name = newRebateSetInline.trim();
@@ -1416,30 +1469,48 @@ export function CustomerSetupAdmin() {
             </div>
           </div>
 
-          {/* Show Set Password button if this contact has a linked portal user */}
-          {editingContact && membershipByContactId[editingContact.id] && (
+          {/* Portal Access section */}
+          {editingContact && (
             <div className="border-t pt-4 mt-2">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Portal Access</p>
-                  <p className="text-xs text-muted-foreground">
-                    This contact has a linked portal login ({profilesById[membershipByContactId[editingContact.id].user_id]?.email ?? "user"})
-                  </p>
+                  {membershipByContactId[editingContact.id] ? (
+                    <p className="text-xs text-muted-foreground">
+                      This contact has a linked portal login ({profilesById[membershipByContactId[editingContact.id].user_id]?.email ?? "user"})
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      No portal login exists for this contact
+                    </p>
+                  )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const membership = membershipByContactId[editingContact.id];
-                    const profile = profilesById[membership.user_id];
-                    openPasswordDialog(membership.user_id, profile?.email ?? membership.user_id);
-                  }}
-                >
-                  Set Password
-                </Button>
+                {membershipByContactId[editingContact.id] ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const membership = membershipByContactId[editingContact.id];
+                      const profile = profilesById[membership.user_id];
+                      openPasswordDialog(membership.user_id, profile?.email ?? membership.user_id);
+                    }}
+                  >
+                    Set Password
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={creatingPortalLogin || !editingContact.email}
+                    onClick={() => createPortalLoginForContact(editingContact)}
+                  >
+                    {creatingPortalLogin ? "Creating..." : "Create Portal Login"}
+                  </Button>
+                )}
               </div>
             </div>
           )}
+
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditContactOpen(false)} disabled={savingContact}>
