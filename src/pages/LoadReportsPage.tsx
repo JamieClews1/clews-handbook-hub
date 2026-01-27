@@ -131,7 +131,7 @@ const LoadReportsPage = () => {
     try {
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("weight_t")
+        .select("weight_t, job_date")
         .eq("job_number", ticket)
         .maybeSingle();
 
@@ -140,6 +140,11 @@ const LoadReportsPage = () => {
       const weightT = data?.weight_t;
       const weightKg = typeof weightT === "number" ? weightT * 1000 : null;
       setWeighbridgeWeightKg(weightKg);
+
+      // Update report date to match the job date if available
+      if (data?.job_date) {
+        setReportDate(data.job_date);
+      }
     } catch {
       // If the user can't access Data Hub rows (RLS) or the record doesn't exist,
       // just hide the value rather than blocking the load report flow.
