@@ -158,6 +158,13 @@ export function CustomerSetupAdmin() {
   });
   const [inviting, setInviting] = useState(false);
 
+  // Password dialog state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
+  const [passwordUserEmail, setPasswordUserEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
+
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -695,6 +702,41 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  const openPasswordDialog = (userId: string, email: string) => {
+    setPasswordUserId(userId);
+    setPasswordUserEmail(email);
+    setNewPassword("");
+    setPasswordDialogOpen(true);
+  };
+
+  const setUserPassword = async () => {
+    if (!passwordUserId || !newPassword) return;
+    if (newPassword.length < 6) {
+      toast({ title: "Invalid password", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    setSettingPassword(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("set-user-password", {
+        body: { user_id: passwordUserId, password: newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Password updated", description: `Password set for ${passwordUserEmail}` });
+      setPasswordDialogOpen(false);
+      setNewPassword("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to set password.", variant: "destructive" });
+    } finally {
+      setSettingPassword(false);
+    }
+  };
+
 
   const createRebateSetInline = async () => {
     const name = newRebateSetInline.trim();
@@ -987,6 +1029,9 @@ export function CustomerSetupAdmin() {
                                 <div className="flex flex-wrap gap-2">
                                   <Button variant="outline" size="sm" onClick={() => saveSiteAccess(m.id)}>
                                     Save access
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => openPasswordDialog(m.user_id, profile?.email ?? m.user_id)}>
+                                    Set Password
                                   </Button>
                                   <Button variant="outline" size="sm" onClick={() => removeMembership(m.id)}>
                                     Remove
@@ -1413,6 +1458,39 @@ export function CustomerSetupAdmin() {
             </Button>
             <Button onClick={inviteAndLink} disabled={inviting}>
               {inviting ? "Inviting..." : "Invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set password dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set password</DialogTitle>
+            <DialogDescription>
+              Set a new password for <span className="font-medium">{passwordUserEmail}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new_password">New password</Label>
+              <Input
+                id="new_password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimum 6 characters"
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)} disabled={settingPassword}>
+              Cancel
+            </Button>
+            <Button onClick={setUserPassword} disabled={settingPassword || newPassword.length < 6}>
+              {settingPassword ? "Setting..." : "Set Password"}
             </Button>
           </DialogFooter>
         </DialogContent>
