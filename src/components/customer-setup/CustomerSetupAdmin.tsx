@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -999,43 +1000,119 @@ export function CustomerSetupAdmin() {
                     <Button onClick={openCreateContact}>New contact</Button>
                   </div>
 
-                  <div className="rounded-md border border-border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Phone</TableHead>
-                          <TableHead className="w-[220px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {contacts.map((c) => (
-                          <TableRow key={c.id}>
-                            <TableCell className="font-medium">{c.full_name}</TableCell>
-                            <TableCell>{c.email ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                            <TableCell>{c.phone ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-2">
-                                <Button variant="outline" size="sm" onClick={() => openEditContact(c)}>
-                                  Edit
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => deleteContact(c.id)}>
-                                  Delete
-                                </Button>
+                  <div className="grid gap-4">
+                    {contacts.map((c) => {
+                      const membership = membershipByContactId[c.id];
+                      const hasPortalAccess = !!membership;
+                      const profile = membership ? profilesById[membership.user_id] : null;
+                      const managedSites = sites.filter((s) => s.owner_contact_id === c.id);
+
+                      return (
+                        <Card key={c.id} className="relative">
+                          <CardContent className="pt-4 pb-4">
+                            <div className="flex items-start justify-between gap-4">
+                              {/* Contact info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold text-foreground">{c.full_name}</h4>
+                                  {hasPortalAccess && (
+                                    <Badge variant="secondary" className="text-xs gap-1">
+                                      <UserCheck className="h-3 w-3" />
+                                      Portal Access
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-0.5">
+                                  {c.email && <p>{c.email}</p>}
+                                  {c.phone && <p>{c.phone}</p>}
+                                </div>
+
+                                {/* Managed sites */}
+                                {managedSites.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Manages sites:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {managedSites.map((site) => (
+                                        <Badge key={site.id} variant="outline" className="text-xs">
+                                          <MapPin className="h-3 w-3 mr-1" />
+                                          {site.site_name}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Portal login info */}
+                                {hasPortalAccess && profile && (
+                                  <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Portal Login:</p>
+                                    <p className="text-sm">{profile.email}</p>
+                                  </div>
+                                )}
                               </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {contacts.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-muted-foreground">
-                              No contacts yet.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+
+                              {/* Actions - right side */}
+                              <div className="flex flex-col gap-2 items-end">
+                                <div className="flex items-center gap-1">
+                                  {hasPortalAccess ? (
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      title="Set Password"
+                                      onClick={() => {
+                                        openPasswordDialog(membership.user_id, profile?.email ?? membership.user_id);
+                                      }}
+                                    >
+                                      <Key className="h-4 w-4" />
+                                    </Button>
+                                  ) : (
+                                    c.email && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs gap-1"
+                                        disabled={creatingPortalLogin}
+                                        onClick={() => createPortalLoginForContact(c)}
+                                        title="Create portal login"
+                                      >
+                                        <UserPlus className="h-3 w-3" />
+                                        Create Login
+                                      </Button>
+                                    )
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    title="Edit contact"
+                                    onClick={() => openEditContact(c)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    title="Delete contact"
+                                    onClick={() => deleteContact(c.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    {contacts.length === 0 && (
+                      <Card>
+                        <CardContent className="py-6 text-sm text-muted-foreground text-center">
+                          No contacts yet.
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </TabsContent>
 
