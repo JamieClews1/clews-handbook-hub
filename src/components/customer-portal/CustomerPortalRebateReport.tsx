@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, DollarSign, Loader2, FileSpreadsheet } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { DateRange } from "react-day-picker";
 
 type Site = {
   id: string;
@@ -49,7 +50,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<RebateReportRow[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
@@ -69,8 +73,14 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
     setSites(data ?? []);
   };
 
+  const formatDateRange = () => {
+    if (!dateRange?.from) return "Select date range";
+    if (!dateRange.to) return format(dateRange.from, "dd MMM yyyy");
+    return `${format(dateRange.from, "dd MMM yyyy")} - ${format(dateRange.to, "dd MMM yyyy")}`;
+  };
+
   const generateReport = async () => {
-    if (!selectedSiteId) return;
+    if (!selectedSiteId || !dateRange?.from || !dateRange?.to) return;
 
     setLoading(true);
     setReportGenerated(false);
@@ -152,30 +162,51 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
         });
       }
 
-      // Get monthly values for the selected month
-      const monthStart = format(startOfMonth(selectedMonth), "yyyy-MM-dd");
+      // Get all months within the date range
+      const monthsInRange = eachMonthOfInterval({
+        start: dateRange.from,
+        end: dateRange.to,
+      });
+
+      const monthStarts = monthsInRange.map((m) => format(startOfMonth(m), "yyyy-MM-dd"));
+
+      // Get monthly values for all months in the range
       const { data: monthlyValues } = await supabase
         .from("rebate_monthly_values")
-        .select("item_id, lower_range, higher_range")
-        .eq("month_start", monthStart);
+        .select("item_id, lower_range, higher_range, month_start")
+        .in("month_start", monthStarts);
 
-      const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
+      // Build a map keyed by item_id, averaging across months if multiple
+      const monthlyValueMap: Record<string, { lower: number; higher: number; count: number }> = {};
       for (const mv of monthlyValues ?? []) {
-        monthlyValueMap[mv.item_id] = {
-          lower: mv.lower_range ?? 0,
-          higher: mv.higher_range ?? 0,
+        if (!monthlyValueMap[mv.item_id]) {
+          monthlyValueMap[mv.item_id] = { lower: 0, higher: 0, count: 0 };
+        }
+        monthlyValueMap[mv.item_id].lower += mv.lower_range ?? 0;
+        monthlyValueMap[mv.item_id].higher += mv.higher_range ?? 0;
+        monthlyValueMap[mv.item_id].count += 1;
+      }
+
+      // Average the values
+      const averagedMonthlyMap: Record<string, { lower: number; higher: number }> = {};
+      for (const itemId of Object.keys(monthlyValueMap)) {
+        const val = monthlyValueMap[itemId];
+        averagedMonthlyMap[itemId] = {
+          lower: val.count > 0 ? val.lower / val.count : 0,
+          higher: val.count > 0 ? val.higher / val.count : 0,
         };
       }
 
-      // Get Load Report data for this site/month
-      const monthEnd = format(endOfMonth(selectedMonth), "yyyy-MM-dd");
+      // Get Load Report data for this site within date range
+      const rangeStart = format(dateRange.from, "yyyy-MM-dd");
+      const rangeEnd = format(dateRange.to, "yyyy-MM-dd");
       
       const { data: loadReports } = await supabase
         .from("load_reports")
         .select("id, report_date, status, total_pallets")
         .eq("site_id", selectedSiteId)
-        .gte("report_date", monthStart)
-        .lte("report_date", monthEnd)
+        .gte("report_date", rangeStart)
+        .lte("report_date", rangeEnd)
         .eq("status", "submitted");
 
       const { data: palletWeightSetting } = await supabase
@@ -218,10 +249,12 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
           rate = config.set_value;
           rateSource = "Custom";
         } else if (config.value_type_item_id) {
-          const monthVal = monthlyValueMap[config.value_type_item_id];
+          const monthVal = averagedMonthlyMap[config.value_type_item_id];
           if (monthVal) {
             rate = config.range_type === "higher" ? monthVal.higher : monthVal.lower;
-            rateSource = `${config.value_type_name} (${config.range_type})`;
+            rateSource = monthsInRange.length > 1 
+              ? `${config.value_type_name} (${config.range_type}, avg)`
+              : `${config.value_type_name} (${config.range_type})`;
           } else {
             rateSource = "No monthly value";
           }
@@ -259,7 +292,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
   const exportToExcel = () => {
-    if (!selectedSite) return;
+    if (!selectedSite || !dateRange?.from || !dateRange?.to) return;
 
     const wb = XLSX.utils.book_new();
 
@@ -268,7 +301,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       [],
       ["Customer:", customerName],
       ["Site:", selectedSite.site_name],
-      ["Month:", format(selectedMonth, "MMMM yyyy")],
+      ["Period:", formatDateRange()],
       ["Rebate Set:", priceSetName],
       ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
       [],
@@ -305,7 +338,9 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
 
     XLSX.utils.book_append_sheet(wb, ws, "Rebate Report");
 
-    const fileName = `${customerName}_${selectedSite.site_name}_Rebate_${format(selectedMonth, "yyyyMM")}.xlsx`;
+    const fromStr = format(dateRange.from, "yyyyMMdd");
+    const toStr = format(dateRange.to, "yyyyMMdd");
+    const fileName = `${customerName}_${selectedSite.site_name}_Rebate_${fromStr}_${toStr}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -329,25 +364,26 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
         </div>
 
         <div className="space-y-2">
-          <Label>Month</Label>
+          <Label>Date Range</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !selectedMonth && "text-muted-foreground"
+                  !dateRange?.from && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedMonth, "MMMM yyyy")}
+                {formatDateRange()}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode="single"
-                selected={selectedMonth}
-                onSelect={(date) => date && setSelectedMonth(startOfMonth(date))}
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
                 initialFocus
                 className="pointer-events-auto"
               />
@@ -359,7 +395,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       <div className="flex gap-2 flex-wrap">
         <Button
           onClick={generateReport}
-          disabled={!selectedSiteId || loading}
+          disabled={!selectedSiteId || !dateRange?.from || !dateRange?.to || loading}
           className="w-full md:w-auto"
         >
           {loading ? (
@@ -388,7 +424,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-semibold">
-                {selectedSite?.site_name} - {format(selectedMonth, "MMMM yyyy")}
+                {selectedSite?.site_name} - {formatDateRange()}
               </h3>
               <p className="text-sm text-muted-foreground">
                 Rebate Set: <span className="font-medium">{priceSetName}</span>
@@ -453,7 +489,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
           <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
             <p className="font-medium mb-1">Data Source:</p>
             <p>
-              Weights are pulled from submitted Load Reports linked to this site for {format(selectedMonth, "MMMM yyyy")}.
+              Weights are pulled from submitted Load Reports linked to this site for the selected period ({formatDateRange()}).
+              {dateRange?.from && dateRange?.to && eachMonthOfInterval({ start: dateRange.from, end: dateRange.to }).length > 1 && (
+                <span className="block mt-1">Rates are averaged across the months in the selected range.</span>
+              )}
             </p>
           </div>
         </div>
