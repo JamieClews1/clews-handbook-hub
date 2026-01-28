@@ -57,10 +57,15 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     };
   };
 
+  // Filter out Pallet Weight Charge from line items (we calculate it separately)
+  const filterLineItems = (items: LoadReportCardData["line_items"]) => {
+    return items.filter((item) => item.waste_type !== "Pallet Weight Charge");
+  };
+
   // Calculate rebate for a single report (including pallet weight charge)
   const calculateReportRebate = (report: LoadReportCardData) => {
     let rebate = 0;
-    for (const item of report.line_items) {
+    for (const item of filterLineItems(report.line_items)) {
       const rate = rateMap[item.waste_type] ?? 0;
       const weightTonnes = item.total_weight_kg / 1000;
       rebate += weightTonnes * rate;
@@ -69,6 +74,30 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     const palletCharge = calculatePalletWeightCharge(report);
     rebate += palletCharge.value;
     return rebate;
+  };
+
+  // Calculate totals for a report
+  const calculateTotals = (report: LoadReportCardData) => {
+    const filteredItems = filterLineItems(report.line_items);
+    const palletCharge = calculatePalletWeightCharge(report);
+    
+    let totalPallets = 0;
+    let totalWeightTonnes = 0;
+    let totalValue = 0;
+
+    for (const item of filteredItems) {
+      const rate = rateMap[item.waste_type] ?? 0;
+      const weightTonnes = item.total_weight_kg / 1000;
+      totalPallets += item.pallet_count;
+      totalWeightTonnes += weightTonnes;
+      totalValue += weightTonnes * rate;
+    }
+
+    // Add pallet weight charge
+    totalWeightTonnes += palletCharge.weightTonnes;
+    totalValue += palletCharge.value;
+
+    return { totalPallets, totalWeightTonnes, totalValue };
   };
 
   if (reports.length === 0) {
@@ -155,7 +184,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {report.line_items.map((item, idx) => {
+                        {filterLineItems(report.line_items).map((item, idx) => {
                           const rate = rateMap[item.waste_type] ?? 0;
                           const weightTonnes = item.total_weight_kg / 1000;
                           const value = weightTonnes * rate;
@@ -181,7 +210,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                         {report.total_pallets > 0 && palletChargeRate !== 0 && (() => {
                           const palletCharge = calculatePalletWeightCharge(report);
                           return (
-                            <TableRow className="bg-muted/20 border-t">
+                            <TableRow className="bg-amber-50/50">
                               <TableCell className="text-xs py-1.5 font-medium text-amber-700">
                                 Pallet Weight Charge
                               </TableCell>
@@ -199,6 +228,24 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                                 palletCharge.value >= 0 ? "text-green-600" : "text-red-600"
                               )}>
                                 £{palletCharge.value.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })()}
+                        {/* Totals Row */}
+                        {(() => {
+                          const totals = calculateTotals(report);
+                          return (
+                            <TableRow className="bg-muted/50 font-semibold border-t-2">
+                              <TableCell className="text-xs py-2">Total</TableCell>
+                              <TableCell className="text-xs py-2 text-right">{totals.totalPallets}</TableCell>
+                              <TableCell className="text-xs py-2 text-right">{totals.totalWeightTonnes.toFixed(2)}</TableCell>
+                              <TableCell className="text-xs py-2 text-right"></TableCell>
+                              <TableCell className={cn(
+                                "text-xs py-2 text-right",
+                                totals.totalValue >= 0 ? "text-green-600" : "text-red-600"
+                              )}>
+                                £{totals.totalValue.toFixed(2)}
                               </TableCell>
                             </TableRow>
                           );
