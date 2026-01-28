@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { DateRange } from "react-day-picker";
+import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
 
 type Site = {
   id: string;
@@ -58,6 +59,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   const [reportData, setReportData] = useState<RebateReportRow[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [priceSetName, setPriceSetName] = useState("");
+  const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
 
   useEffect(() => {
     loadSites();
@@ -203,11 +205,12 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       
       const { data: loadReports } = await supabase
         .from("load_reports")
-        .select("id, report_date, status, total_pallets")
+        .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
         .eq("site_id", selectedSiteId)
         .gte("report_date", rangeStart)
         .lte("report_date", rangeEnd)
-        .eq("status", "submitted");
+        .eq("status", "submitted")
+        .order("report_date", { ascending: false });
 
       const { data: palletWeightSetting } = await supabase
         .from("load_report_settings")
@@ -226,11 +229,34 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       
       lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
       
+      // Fetch individual reports with their line items for the cards
+      const loadReportsWithItems: LoadReportCardData[] = [];
+      
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
           .from("load_line_items")
-          .select("waste_type, total_weight_kg")
+          .select("load_report_id, waste_type, pallet_count, total_weight_kg")
           .in("load_report_id", loadReportIds);
+        
+        // Build individual report data
+        for (const report of loadReports ?? []) {
+          const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
+          loadReportsWithItems.push({
+            id: report.id,
+            report_date: report.report_date,
+            operator_name: report.operator_name || "Unknown",
+            vehicle_reg: report.vehicle_reg || null,
+            total_pallets: report.total_pallets ?? 0,
+            total_weight_kg: report.total_weight_kg ?? 0,
+            notes: report.notes || null,
+            line_items: reportLineItems.map((li) => ({
+              waste_type: li.waste_type,
+              pallet_count: li.pallet_count,
+              total_weight_kg: Number(li.total_weight_kg),
+            })),
+            calculated_rebate: 0, // Will be calculated by the component
+          });
+        }
         
         for (const item of lineItems ?? []) {
           const weightTonnes = Number(item.total_weight_kg) / 1000;
@@ -274,6 +300,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       }
 
       setReportData(reportRows);
+      setIndividualReports(loadReportsWithItems);
       setReportGenerated(true);
     } catch (error: any) {
       console.error("Error generating report:", error);
@@ -485,6 +512,15 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
               No materials configured for this site's rebate set.
             </p>
           )}
+
+          {/* Individual Load Report Cards */}
+          <LoadReportCards
+            reports={individualReports}
+            rebateConfigs={reportData.map((r) => ({
+              material_name: r.material_name,
+              rate_per_tonne: r.rate_per_tonne,
+            }))}
+          />
 
           <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
             <p className="font-medium mb-1">Data Source:</p>

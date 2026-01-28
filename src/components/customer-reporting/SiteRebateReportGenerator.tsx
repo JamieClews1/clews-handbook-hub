@@ -11,7 +11,7 @@ import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-
+import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
 type Customer = {
   id: string;
   customer_name: string;
@@ -56,6 +56,7 @@ export function SiteRebateReportGenerator() {
   const [reportData, setReportData] = useState<RebateReportRow[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [priceSetName, setPriceSetName] = useState("");
+  const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
 
   useEffect(() => {
     loadCustomers();
@@ -194,11 +195,12 @@ export function SiteRebateReportGenerator() {
       // Fetch load reports for this site in the selected month
       const { data: loadReports } = await supabase
         .from("load_reports")
-        .select("id, report_date, status, total_pallets")
+        .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
         .eq("site_id", selectedSiteId)
         .gte("report_date", monthStart)
         .lte("report_date", monthEnd)
-        .eq("status", "submitted");
+        .eq("status", "submitted")
+        .order("report_date", { ascending: false });
 
       // Get pallet weight setting
       const { data: palletWeightSetting } = await supabase
@@ -221,11 +223,34 @@ export function SiteRebateReportGenerator() {
       // Add pallet weight charge as a special entry
       lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
       
+      // Fetch individual reports with their line items for the cards
+      const loadReportsWithItems: LoadReportCardData[] = [];
+      
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
           .from("load_line_items")
-          .select("waste_type, total_weight_kg")
+          .select("load_report_id, waste_type, pallet_count, total_weight_kg")
           .in("load_report_id", loadReportIds);
+        
+        // Build individual report data
+        for (const report of loadReports ?? []) {
+          const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
+          loadReportsWithItems.push({
+            id: report.id,
+            report_date: (report as any).report_date,
+            operator_name: (report as any).operator_name || "Unknown",
+            vehicle_reg: (report as any).vehicle_reg || null,
+            total_pallets: report.total_pallets ?? 0,
+            total_weight_kg: (report as any).total_weight_kg ?? 0,
+            notes: (report as any).notes || null,
+            line_items: reportLineItems.map((li) => ({
+              waste_type: li.waste_type,
+              pallet_count: li.pallet_count,
+              total_weight_kg: Number(li.total_weight_kg),
+            })),
+            calculated_rebate: 0, // Will be calculated by the component
+          });
+        }
         
         // Aggregate weights by waste type (convert kg to tonnes)
         for (const item of lineItems ?? []) {
@@ -270,6 +295,7 @@ export function SiteRebateReportGenerator() {
       }
 
       setReportData(reportRows);
+      setIndividualReports(loadReportsWithItems);
       setReportGenerated(true);
     } catch (error: any) {
       console.error("Error generating report:", error);
@@ -438,6 +464,15 @@ export function SiteRebateReportGenerator() {
               No materials configured for this site's rebate set.
             </p>
           )}
+
+          {/* Individual Load Report Cards */}
+          <LoadReportCards
+            reports={individualReports}
+            rebateConfigs={reportData.map((r) => ({
+              material_name: r.material_name,
+              rate_per_tonne: r.rate_per_tonne,
+            }))}
+          />
 
           <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
             <p className="font-medium mb-1">Data Source:</p>
