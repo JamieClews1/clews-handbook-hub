@@ -407,7 +407,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
                 {formatDateRange()}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 pointer-events-auto z-50" align="start">
               <Calendar
                 mode="range"
                 selected={dateRange}
