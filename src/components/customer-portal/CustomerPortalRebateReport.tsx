@@ -60,6 +60,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   const [reportGenerated, setReportGenerated] = useState(false);
   const [priceSetName, setPriceSetName] = useState("");
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
+  const [palletWeightKgState, setPalletWeightKgState] = useState(20);
 
   useEffect(() => {
     loadSites();
@@ -301,6 +302,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
 
       setReportData(reportRows);
       setIndividualReports(loadReportsWithItems);
+      setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);
     } catch (error: any) {
       console.error("Error generating report:", error);
@@ -520,6 +522,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
               material_name: r.material_name,
               rate_per_tonne: r.rate_per_tonne,
             }))}
+            palletWeightKg={palletWeightKgState}
           />
 
           <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">

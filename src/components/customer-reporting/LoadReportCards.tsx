@@ -29,9 +29,10 @@ interface LoadReportCardsProps {
     material_name: string;
     rate_per_tonne: number;
   }[];
+  palletWeightKg?: number;
 }
 
-export function LoadReportCards({ reports, rebateConfigs }: LoadReportCardsProps) {
+export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }: LoadReportCardsProps) {
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
 
   const toggleCard = (id: string) => {
@@ -44,7 +45,19 @@ export function LoadReportCards({ reports, rebateConfigs }: LoadReportCardsProps
     rateMap[config.material_name] = config.rate_per_tonne;
   }
 
-  // Calculate rebate for a single report
+  // Get pallet weight charge rate
+  const palletChargeRate = rateMap["Pallet Weight Charge"] ?? 0;
+
+  // Calculate pallet weight charge for a report
+  const calculatePalletWeightCharge = (report: LoadReportCardData) => {
+    const palletWeightTonnes = (report.total_pallets * palletWeightKg) / 1000;
+    return {
+      weightTonnes: palletWeightTonnes,
+      value: palletWeightTonnes * palletChargeRate,
+    };
+  };
+
+  // Calculate rebate for a single report (including pallet weight charge)
   const calculateReportRebate = (report: LoadReportCardData) => {
     let rebate = 0;
     for (const item of report.line_items) {
@@ -52,6 +65,9 @@ export function LoadReportCards({ reports, rebateConfigs }: LoadReportCardsProps
       const weightTonnes = item.total_weight_kg / 1000;
       rebate += weightTonnes * rate;
     }
+    // Add pallet weight charge
+    const palletCharge = calculatePalletWeightCharge(report);
+    rebate += palletCharge.value;
     return rebate;
   };
 
@@ -161,6 +177,32 @@ export function LoadReportCards({ reports, rebateConfigs }: LoadReportCardsProps
                             </TableRow>
                           );
                         })}
+                        {/* Pallet Weight Charge Row */}
+                        {report.total_pallets > 0 && palletChargeRate !== 0 && (() => {
+                          const palletCharge = calculatePalletWeightCharge(report);
+                          return (
+                            <TableRow className="bg-muted/20 border-t">
+                              <TableCell className="text-xs py-1.5 font-medium text-amber-700">
+                                Pallet Weight Charge
+                              </TableCell>
+                              <TableCell className="text-xs py-1.5 text-right text-muted-foreground">
+                                {report.total_pallets} pallets
+                              </TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">
+                                {palletCharge.weightTonnes.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">
+                                £{palletChargeRate.toFixed(2)}
+                              </TableCell>
+                              <TableCell className={cn(
+                                "text-xs py-1.5 text-right font-medium",
+                                palletCharge.value >= 0 ? "text-green-600" : "text-red-600"
+                              )}>
+                                £{palletCharge.value.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })()}
                       </TableBody>
                     </Table>
                   </div>
