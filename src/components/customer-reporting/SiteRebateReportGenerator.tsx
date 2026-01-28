@@ -370,12 +370,13 @@ export function SiteRebateReportGenerator() {
                 {format(selectedMonth, "MMMM yyyy")}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 pointer-events-auto z-50" align="start">
               <Calendar
                 mode="single"
                 selected={selectedMonth}
                 onSelect={(date) => date && setSelectedMonth(startOfMonth(date))}
                 initialFocus
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
