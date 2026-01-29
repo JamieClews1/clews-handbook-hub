@@ -159,7 +159,7 @@ export const UserComplianceView = ({ userId, userTypes, userName }: UserComplian
           <div className="space-y-4">
             {/* RAMS Section */}
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-foreground">RAMS</h4>
+              <h4 className="text-sm font-semibold text-foreground">Compliance Status</h4>
               {ramsItems.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No RAMS applicable</div>
               ) : (
