@@ -52,6 +52,62 @@ const LANGUAGES = [
   { code: 'RO', label: 'Română' },
 ];
 
+// Convert HTML to plain text for PDF rendering
+const htmlToPlainText = (html: string): string => {
+  if (!html) return '';
+  
+  // Create a temporary element to parse HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  const lines: string[] = [];
+  
+  const processNode = (node: Node, listCounter = { value: 0 }, isOrdered = false) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as Element;
+      const tagName = el.tagName.toLowerCase();
+      
+      if (tagName === 'ul') {
+        el.childNodes.forEach(child => processNode(child, { value: 0 }, false));
+      } else if (tagName === 'ol') {
+        const counter = { value: 0 };
+        el.childNodes.forEach(child => processNode(child, counter, true));
+      } else if (tagName === 'li') {
+        const text = el.textContent?.trim();
+        if (text) {
+          if (isOrdered) {
+            listCounter.value++;
+            lines.push(`${listCounter.value}. ${text}`);
+          } else {
+            lines.push(`• ${text}`);
+          }
+        }
+      } else if (tagName === 'p' || tagName === 'div') {
+        const text = el.textContent?.trim();
+        if (text) lines.push(text);
+      } else if (tagName === 'br') {
+        // Skip line breaks, handled by structure
+      } else {
+        el.childNodes.forEach(child => processNode(child, listCounter, isOrdered));
+      }
+    } else if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text && node.parentElement?.tagName.toLowerCase() === 'div') {
+        lines.push(text);
+      }
+    }
+  };
+  
+  tempDiv.childNodes.forEach(child => processNode(child));
+  
+  // If no structured content was found, fall back to simple text extraction
+  if (lines.length === 0) {
+    return tempDiv.textContent?.trim() || '';
+  }
+  
+  return lines.join('\n');
+};
+
 const RAMSDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -489,7 +545,9 @@ const RAMSDetailPage = () => {
           addText(t.controlMeasures, margin + 5, y, { fontSize: 8 });
           y += 4;
           doc.setTextColor(0, 0, 0);
-          const cmHeight = addText(hazard.controlMeasures, margin + 5, y, { fontSize: 9, maxWidth: pageWidth - 2 * margin - 15 });
+          // Convert HTML to plain text for PDF rendering
+          const controlMeasuresText = htmlToPlainText(hazard.controlMeasures);
+          const cmHeight = addText(controlMeasuresText, margin + 5, y, { fontSize: 9, maxWidth: pageWidth - 2 * margin - 15 });
           y += cmHeight + 5;
 
           if (hazard.notes) {
