@@ -23,17 +23,20 @@ interface UserComplianceViewProps {
 export const UserComplianceView = ({ userId, userTypes, userName }: UserComplianceViewProps) => {
   const [ramsItems, setRamsItems] = useState<ComplianceItem[]>([]);
   const [toolboxTalks, setToolboxTalks] = useState<ComplianceItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+  const [dataFetched, setDataFetched] = useState(false);
 
+  // Fetch compliance data immediately on mount to show mandatory pending count
   useEffect(() => {
-    if (isOpen && ramsItems.length === 0 && toolboxTalks.length === 0) {
+    if (userTypes.length > 0 && !dataFetched) {
       fetchComplianceData();
+    } else if (userTypes.length === 0) {
+      setLoading(false);
     }
-  }, [isOpen]);
+  }, [userId, userTypes, dataFetched]);
 
   const fetchComplianceData = async () => {
-    setLoading(true);
     try {
       // Fetch all RAMS applicable to this user's types
       const { data: allRams, error: ramsError } = await supabase
@@ -111,6 +114,7 @@ export const UserComplianceView = ({ userId, userTypes, userName }: UserComplian
       console.error("Error fetching compliance data:", error);
     } finally {
       setLoading(false);
+      setDataFetched(true);
     }
   };
 
@@ -135,17 +139,26 @@ export const UserComplianceView = ({ userId, userTypes, userName }: UserComplian
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2 w-full justify-start">
-          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          <span>View Compliance</span>
-          {!isOpen && (ramsItems.length > 0 || toolboxTalks.length > 0) && (
-            <span className="ml-auto flex gap-2">
-              {totalMandatoryPending > 0 && (
-                <Badge variant="destructive" className="text-xs">
-                  {totalMandatoryPending} mandatory pending
-                </Badge>
-              )}
-            </span>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className={`gap-2 w-full justify-start ${totalMandatoryPending > 0 ? 'text-destructive hover:text-destructive' : ''}`}
+        >
+          {loading ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+          ) : isOpen ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+          {loading ? (
+            <span className="text-muted-foreground">Loading...</span>
+          ) : totalMandatoryPending > 0 ? (
+            <Badge variant="destructive" className="text-xs">
+              {totalMandatoryPending} action{totalMandatoryPending !== 1 ? 's' : ''} required
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground">View Compliance</span>
           )}
         </Button>
       </CollapsibleTrigger>
