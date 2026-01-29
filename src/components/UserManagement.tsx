@@ -329,7 +329,7 @@ export const UserManagement = () => {
                 <TableHead>Username</TableHead>
                 <TableHead>Full Name</TableHead>
                 <TableHead>User Types</TableHead>
-                <TableHead>RAMS Compliance</TableHead>
+                <TableHead>Compliance Status</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
