@@ -333,23 +333,26 @@ const RAMSDetailPage = () => {
       // Gather all texts to translate
       const textsToTranslate = [
         rams.title,
-        'Reference Code',
-        'Created Date',
-        'Review Date',
-        'Mandatory',
-        'Applicable To',
-        'Notice to Drivers',
-        'Risk Assessment',
-        'Potential Hazard',
-        'Who at Risk',
-        'Initial Risk',
-        'Residual Risk',
-        'Control Measures',
-        'Notes',
-        'Creator Signature',
-        'Signed',
-        ...rams.applicable_to,
-        rams.notice_to_drivers || '',
+        'Appendix A – Risk assessment template',
+        'Name of assessor:',
+        'Date:',
+        'Time:',
+        'Location:',
+        'Task being assessed:',
+        'What is the hazard',
+        'Who might be harmed?',
+        'How might people be harmed?',
+        'Existing risk control measures',
+        'Risk rating',
+        'Additional controls',
+        'New risk rating (residual)',
+        'Action / monitored by whom?',
+        'Action / monitored by when?',
+        'Review date:',
+        'Signature:',
+        'L',
+        'C',
+        'R',
         ...hazards.flatMap(h => [
           h.activity,
           h.potential_hazard,
@@ -365,23 +368,26 @@ const RAMSDetailPage = () => {
       let i = 0;
       const t = {
         title: translated[i++],
-        referenceCode: translated[i++],
-        createdDate: translated[i++],
+        appendixHeader: translated[i++],
+        nameOfAssessor: translated[i++],
+        date: translated[i++],
+        time: translated[i++],
+        location: translated[i++],
+        taskBeingAssessed: translated[i++],
+        whatIsHazard: translated[i++],
+        whoMightBeHarmed: translated[i++],
+        howMightBeHarmed: translated[i++],
+        existingRiskControl: translated[i++],
+        riskRating: translated[i++],
+        additionalControls: translated[i++],
+        newRiskRating: translated[i++],
+        actionByWhom: translated[i++],
+        actionByWhen: translated[i++],
         reviewDate: translated[i++],
-        mandatory: translated[i++],
-        applicableTo: translated[i++],
-        noticeToDrivers: translated[i++],
-        riskAssessment: translated[i++],
-        potentialHazard: translated[i++],
-        whoAtRisk: translated[i++],
-        initialRisk: translated[i++],
-        residualRisk: translated[i++],
-        controlMeasures: translated[i++],
-        notes: translated[i++],
-        creatorSignature: translated[i++],
-        signed: translated[i++],
-        applicableToItems: rams.applicable_to.map(() => translated[i++]),
-        noticeText: translated[i++],
+        signature: translated[i++],
+        L: translated[i++],
+        C: translated[i++],
+        R: translated[i++],
         hazards: hazards.map(() => ({
           activity: translated[i++],
           potentialHazard: translated[i++],
@@ -391,234 +397,254 @@ const RAMSDetailPage = () => {
         })),
       };
 
-      // Generate PDF
-      const doc = new jsPDF();
+      // Generate PDF - Landscape for table format
+      const doc = new jsPDF({ orientation: 'landscape' });
       const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 20;
-      let y = 20;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 10;
+      let y = 15;
 
-      const addText = (text: string, x: number, yPos: number, options?: { fontSize?: number; fontStyle?: string; maxWidth?: number }) => {
-        doc.setFontSize(options?.fontSize || 10);
-        if (options?.fontStyle === 'bold') {
-          doc.setFont('helvetica', 'bold');
+      // Colors matching the template
+      const darkBlue: [number, number, number] = [0, 51, 102];
+      const lightBlue: [number, number, number] = [230, 240, 255];
+      const borderColor: [number, number, number] = [0, 51, 102];
+
+      // Helper function to draw cell with border
+      const drawCell = (x: number, yPos: number, w: number, h: number, text: string, options?: { 
+        fontSize?: number; 
+        fontStyle?: 'normal' | 'bold'; 
+        align?: 'left' | 'center';
+        textColor?: [number, number, number];
+        fillColor?: [number, number, number];
+        valign?: 'top' | 'middle';
+      }) => {
+        doc.setDrawColor(...borderColor);
+        doc.setLineWidth(0.3);
+        if (options?.fillColor) {
+          doc.setFillColor(...options.fillColor);
+          doc.rect(x, yPos, w, h, 'FD');
         } else {
-          doc.setFont('helvetica', 'normal');
+          doc.rect(x, yPos, w, h);
         }
         
-        if (options?.maxWidth) {
-          const lines = doc.splitTextToSize(text, options.maxWidth);
-          doc.text(lines, x, yPos);
-          return lines.length * (options?.fontSize || 10) * 0.4;
+        doc.setFontSize(options?.fontSize || 8);
+        doc.setFont('helvetica', options?.fontStyle || 'normal');
+        doc.setTextColor(...(options?.textColor || [0, 0, 0]));
+        
+        const padding = 2;
+        const maxWidth = w - padding * 2;
+        const lines = doc.splitTextToSize(text, maxWidth);
+        
+        let textY = yPos + padding + 3;
+        if (options?.valign === 'middle') {
+          const textHeight = lines.length * (options?.fontSize || 8) * 0.35;
+          textY = yPos + (h - textHeight) / 2 + 3;
         }
-        doc.text(text, x, yPos);
-        return (options?.fontSize || 10) * 0.4;
+        
+        if (options?.align === 'center') {
+          lines.forEach((line: string, idx: number) => {
+            const lineWidth = doc.getTextWidth(line);
+            doc.text(line, x + (w - lineWidth) / 2, textY + idx * ((options?.fontSize || 8) * 0.4));
+          });
+        } else {
+          doc.text(lines, x + padding, textY);
+        }
       };
 
-      const checkNewPage = (needed: number) => {
-        if (y + needed > doc.internal.pageSize.getHeight() - 20) {
-          doc.addPage();
-          y = 20;
-        }
-      };
-
-      // Header
-      doc.setFillColor(37, 99, 235);
-      doc.rect(0, 0, pageWidth, 35, 'F');
-      doc.setTextColor(255, 255, 255);
-      addText(rams.reference_code, margin, 18, { fontSize: 20, fontStyle: 'bold' });
-      addText(t.title, margin, 28, { fontSize: 12 });
-      
-      y = 45;
-      doc.setTextColor(0, 0, 0);
-
-      // Meta info
-      doc.setFillColor(245, 245, 245);
-      doc.rect(margin, y, pageWidth - 2 * margin, 25, 'F');
+      // Appendix A Header
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...darkBlue);
+      doc.text(t.appendixHeader, margin, y);
       y += 8;
-      
-      doc.setTextColor(100, 100, 100);
-      addText(t.createdDate, margin + 5, y, { fontSize: 8 });
-      addText(t.reviewDate, margin + 70, y, { fontSize: 8 });
-      y += 5;
+
+      // Scenario/Description line (using RAMS title and applicable info)
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
-      addText(format(new Date(rams.created_date), "PPP"), margin + 5, y, { fontSize: 10, fontStyle: 'bold' });
-      addText(format(new Date(rams.review_date), "PPP"), margin + 70, y, { fontSize: 10, fontStyle: 'bold' });
+      const scenarioText = `${rams.reference_code}: ${t.title}${rams.applicable_to.length > 0 ? ` - Applicable to: ${rams.applicable_to.join(', ')}` : ''}`;
+      const scenarioLines = doc.splitTextToSize(scenarioText, pageWidth - 2 * margin);
+      doc.text(scenarioLines, margin, y);
+      y += scenarioLines.length * 4 + 4;
+
+      // Assessor Details Table
+      const headerRowHeight = 8;
+      const col1Width = 40;
+      const col2Width = 80;
+      const col3Width = 30;
+      const col4Width = pageWidth - 2 * margin - col1Width - col2Width - col3Width;
+
+      // Row 1: Name of assessor | [value] | Date | [value]
+      drawCell(margin, y, col1Width, headerRowHeight, t.nameOfAssessor, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      drawCell(margin + col1Width, y, col2Width, headerRowHeight, rams.creator_name || '', { valign: 'middle' });
+      drawCell(margin + col1Width + col2Width, y, col3Width, headerRowHeight, t.date, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      drawCell(margin + col1Width + col2Width + col3Width, y, col4Width, headerRowHeight, format(new Date(rams.created_date), "dd/MM/yyyy"), { valign: 'middle' });
+      y += headerRowHeight;
+
+      // Row 2: Time | [value] | Location | [value]
+      drawCell(margin, y, col1Width, headerRowHeight, t.time, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      drawCell(margin + col1Width, y, col2Width, headerRowHeight, '', { valign: 'middle' });
+      drawCell(margin + col1Width + col2Width, y, col3Width, headerRowHeight, t.location, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      drawCell(margin + col1Width + col2Width + col3Width, y, col4Width, headerRowHeight, '', { valign: 'middle' });
+      y += headerRowHeight;
+
+      // Row 3: Task being assessed | [value spanning rest]
+      drawCell(margin, y, col1Width, headerRowHeight, t.taskBeingAssessed, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      drawCell(margin + col1Width, y, pageWidth - 2 * margin - col1Width, headerRowHeight, t.title, { valign: 'middle' });
+      y += headerRowHeight + 3;
+
+      // Main Risk Assessment Table
+      // Column widths for the main table
+      const tableWidth = pageWidth - 2 * margin;
+      const colWidths = {
+        hazard: tableWidth * 0.10,
+        whoHarmed: tableWidth * 0.08,
+        howHarmed: tableWidth * 0.10,
+        existingControl: tableWidth * 0.14,
+        riskL: tableWidth * 0.03,
+        riskC: tableWidth * 0.03,
+        riskR: tableWidth * 0.03,
+        additionalControl: tableWidth * 0.12,
+        newL: tableWidth * 0.03,
+        newC: tableWidth * 0.03,
+        newR: tableWidth * 0.03,
+        byWhom: tableWidth * 0.12,
+        byWhen: tableWidth * 0.12,
+      };
+
+      // Header Row 1 - Main headers with merged cells
+      const headerHeight = 12;
+      const subHeaderHeight = 8;
       
-      y += 18;
-
-      // Badges
-      if (rams.is_mandatory) {
-        doc.setFillColor(254, 226, 226);
-        doc.setTextColor(220, 38, 38);
-        doc.roundedRect(margin, y, 30, 7, 2, 2, 'F');
-        addText(t.mandatory, margin + 3, y + 5, { fontSize: 8, fontStyle: 'bold' });
-      }
+      let x = margin;
+      drawCell(x, y, colWidths.hazard, headerHeight + subHeaderHeight, t.whatIsHazard, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += colWidths.hazard;
+      drawCell(x, y, colWidths.whoHarmed, headerHeight + subHeaderHeight, t.whoMightBeHarmed, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += colWidths.whoHarmed;
+      drawCell(x, y, colWidths.howHarmed, headerHeight + subHeaderHeight, t.howMightBeHarmed, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += colWidths.howHarmed;
+      drawCell(x, y, colWidths.existingControl, headerHeight + subHeaderHeight, t.existingRiskControl, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += colWidths.existingControl;
       
-      let badgeX = rams.is_mandatory ? margin + 35 : margin;
-      doc.setTextColor(67, 56, 202);
-      rams.user_types.forEach(type => {
-        doc.setFillColor(224, 231, 255);
-        doc.roundedRect(badgeX, y, 25, 7, 2, 2, 'F');
-        addText(type, badgeX + 3, y + 5, { fontSize: 8 });
-        badgeX += 28;
-      });
+      // Risk rating header (merged across L, C, R)
+      const riskColsWidth = colWidths.riskL + colWidths.riskC + colWidths.riskR;
+      drawCell(x, y, riskColsWidth, headerHeight, t.riskRating, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      // Sub-headers L, C, R
+      drawCell(x, y + headerHeight, colWidths.riskL, subHeaderHeight, t.L, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      drawCell(x + colWidths.riskL, y + headerHeight, colWidths.riskC, subHeaderHeight, t.C, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      drawCell(x + colWidths.riskL + colWidths.riskC, y + headerHeight, colWidths.riskR, subHeaderHeight, t.R, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += riskColsWidth;
       
-      y += 15;
-      doc.setTextColor(0, 0, 0);
+      drawCell(x, y, colWidths.additionalControl, headerHeight + subHeaderHeight, t.additionalControls, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += colWidths.additionalControl;
+      
+      // New risk rating header (merged across L, C, R)
+      const newRiskColsWidth = colWidths.newL + colWidths.newC + colWidths.newR;
+      drawCell(x, y, newRiskColsWidth, headerHeight, t.newRiskRating, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle', fontSize: 7 });
+      // Sub-headers L, C, R
+      drawCell(x, y + headerHeight, colWidths.newL, subHeaderHeight, t.L, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      drawCell(x + colWidths.newL, y + headerHeight, colWidths.newC, subHeaderHeight, t.C, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      drawCell(x + colWidths.newL + colWidths.newC, y + headerHeight, colWidths.newR, subHeaderHeight, t.R, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle' });
+      x += newRiskColsWidth;
+      
+      drawCell(x, y, colWidths.byWhom, headerHeight + subHeaderHeight, t.actionByWhom, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle', fontSize: 7 });
+      x += colWidths.byWhom;
+      drawCell(x, y, colWidths.byWhen, headerHeight + subHeaderHeight, t.actionByWhen, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, align: 'center', valign: 'middle', fontSize: 7 });
+      
+      y += headerHeight + subHeaderHeight;
 
-      // Applicable To
-      if (t.applicableToItems.length > 0) {
-        checkNewPage(30);
-        addText(t.applicableTo, margin, y, { fontSize: 10, fontStyle: 'bold' });
-        y += 6;
-        t.applicableToItems.forEach(item => {
-          addText(`• ${item}`, margin + 5, y, { fontSize: 9 });
-          y += 5;
-        });
-        y += 5;
-      }
-
-      // Notice to Drivers
-      if (t.noticeText) {
-        checkNewPage(25);
-        addText(t.noticeToDrivers, margin, y, { fontSize: 10, fontStyle: 'bold' });
-        y += 6;
-        doc.setFillColor(254, 249, 195);
-        const noticeLines = doc.splitTextToSize(t.noticeText, pageWidth - 2 * margin - 10);
-        const noticeHeight = noticeLines.length * 4 + 8;
-        doc.roundedRect(margin, y, pageWidth - 2 * margin, noticeHeight, 3, 3, 'F');
-        doc.setTextColor(100, 100, 100);
-        doc.text(noticeLines, margin + 5, y + 6);
-        y += noticeHeight + 8;
-        doc.setTextColor(0, 0, 0);
-      }
-
-      // Risk Assessment
-      if (t.hazards.length > 0) {
-        checkNewPage(20);
-        addText(t.riskAssessment, margin, y, { fontSize: 14, fontStyle: 'bold' });
-        y += 10;
-
-        t.hazards.forEach((hazard, idx) => {
-          const originalHazard = hazards[idx];
-          checkNewPage(70);
-          
-          doc.setDrawColor(229, 231, 235);
-          doc.setFillColor(255, 255, 255);
-          doc.roundedRect(margin, y, pageWidth - 2 * margin, 60, 3, 3, 'FD');
-          
-          y += 8;
-          addText(hazard.activity, margin + 5, y, { fontSize: 11, fontStyle: 'bold', maxWidth: pageWidth - 2 * margin - 10 });
-          y += 8;
-          
-          doc.setTextColor(100, 100, 100);
-          addText(t.potentialHazard, margin + 5, y, { fontSize: 8 });
-          addText(t.whoAtRisk, margin + 85, y, { fontSize: 8 });
-          y += 4;
-          doc.setTextColor(0, 0, 0);
-          const hazardHeight = addText(hazard.potentialHazard, margin + 5, y, { fontSize: 9, maxWidth: 75 });
-          addText(hazard.whoAtRisk, margin + 85, y, { fontSize: 9, maxWidth: 75 });
-          y += Math.max(hazardHeight, 8);
-
-          y += 4;
-          const initialRisk = originalHazard.initial_likelihood * originalHazard.initial_severity;
-          const residualRisk = originalHazard.residual_likelihood * originalHazard.residual_severity;
-          
-          doc.setTextColor(100, 100, 100);
-          addText(t.initialRisk + ':', margin + 5, y, { fontSize: 8 });
-          const [ir, ig, ib] = getRiskColor(initialRisk);
-          doc.setFillColor(ir, ig, ib);
-          doc.setTextColor(255, 255, 255);
-          doc.roundedRect(margin + 35, y - 4, 30, 6, 2, 2, 'F');
-          addText(`${originalHazard.initial_likelihood}×${originalHazard.initial_severity}=${initialRisk}`, margin + 37, y, { fontSize: 8, fontStyle: 'bold' });
-
-          doc.setTextColor(100, 100, 100);
-          addText(t.residualRisk + ':', margin + 85, y, { fontSize: 8 });
-          const [rr, rg, rb] = getRiskColor(residualRisk);
-          doc.setFillColor(rr, rg, rb);
-          doc.setTextColor(255, 255, 255);
-          doc.roundedRect(margin + 115, y - 4, 30, 6, 2, 2, 'F');
-          addText(`${originalHazard.residual_likelihood}×${originalHazard.residual_severity}=${residualRisk}`, margin + 117, y, { fontSize: 8, fontStyle: 'bold' });
-          
-          y += 8;
-          doc.setTextColor(100, 100, 100);
-          addText(t.controlMeasures, margin + 5, y, { fontSize: 8 });
-          y += 4;
-          doc.setTextColor(0, 0, 0);
-          // Convert HTML to plain text for PDF rendering
-          const controlMeasuresText = htmlToPlainText(hazard.controlMeasures);
-          const cmHeight = addText(controlMeasuresText, margin + 5, y, { fontSize: 9, maxWidth: pageWidth - 2 * margin - 15 });
-          y += cmHeight + 5;
-
-          if (hazard.notes) {
-            doc.setTextColor(100, 100, 100);
-            addText(t.notes, margin + 5, y, { fontSize: 8 });
-            y += 4;
-            doc.setTextColor(0, 0, 0);
-            addText(hazard.notes, margin + 5, y, { fontSize: 9, maxWidth: pageWidth - 2 * margin - 15 });
-            y += 8;
-          }
-          
-          y += 10;
-        });
-      }
-
-      // Signature
-      if (rams.creator_signature) {
-        checkNewPage(40);
-        doc.setDrawColor(229, 231, 235);
-        doc.line(margin, y, pageWidth - margin, y);
-        y += 10;
-        addText(t.creatorSignature, margin, y, { fontSize: 10, fontStyle: 'bold' });
-        y += 8;
+      // Data rows for each hazard
+      t.hazards.forEach((hazard, idx) => {
+        const originalHazard = hazards[idx];
         
+        // Calculate row height based on content
+        const controlMeasuresText = htmlToPlainText(hazard.controlMeasures);
+        const notesText = hazard.notes ? htmlToPlainText(hazard.notes) : '';
+        
+        // Estimate heights for each cell
+        doc.setFontSize(7);
+        const hazardLines = doc.splitTextToSize(hazard.potentialHazard, colWidths.hazard - 4);
+        const whoLines = doc.splitTextToSize(hazard.whoAtRisk, colWidths.whoHarmed - 4);
+        const howLines = doc.splitTextToSize(hazard.activity, colWidths.howHarmed - 4);
+        const controlLines = doc.splitTextToSize(controlMeasuresText, colWidths.existingControl - 4);
+        const notesLines = doc.splitTextToSize(notesText, colWidths.additionalControl - 4);
+        
+        const maxLines = Math.max(hazardLines.length, whoLines.length, howLines.length, controlLines.length, notesLines.length, 4);
+        const rowHeight = Math.max(25, maxLines * 3 + 6);
+        
+        // Check if we need a new page
+        if (y + rowHeight > pageHeight - 25) {
+          doc.addPage();
+          y = 15;
+        }
+        
+        const initialRisk = originalHazard.initial_likelihood * originalHazard.initial_severity;
+        const residualRisk = originalHazard.residual_likelihood * originalHazard.residual_severity;
+        
+        x = margin;
+        drawCell(x, y, colWidths.hazard, rowHeight, hazard.potentialHazard, { fontSize: 7 });
+        x += colWidths.hazard;
+        drawCell(x, y, colWidths.whoHarmed, rowHeight, hazard.whoAtRisk, { fontSize: 7 });
+        x += colWidths.whoHarmed;
+        drawCell(x, y, colWidths.howHarmed, rowHeight, hazard.activity, { fontSize: 7 });
+        x += colWidths.howHarmed;
+        drawCell(x, y, colWidths.existingControl, rowHeight, controlMeasuresText, { fontSize: 7 });
+        x += colWidths.existingControl;
+        
+        // Initial risk L, C (Likelihood, Consequence/Severity), R (Risk)
+        drawCell(x, y, colWidths.riskL, rowHeight, String(originalHazard.initial_likelihood), { fontSize: 7, align: 'center', valign: 'middle' });
+        x += colWidths.riskL;
+        drawCell(x, y, colWidths.riskC, rowHeight, String(originalHazard.initial_severity), { fontSize: 7, align: 'center', valign: 'middle' });
+        x += colWidths.riskC;
+        drawCell(x, y, colWidths.riskR, rowHeight, String(initialRisk), { fontSize: 7, align: 'center', valign: 'middle' });
+        x += colWidths.riskR;
+        
+        // Additional controls (using notes field)
+        drawCell(x, y, colWidths.additionalControl, rowHeight, notesText, { fontSize: 7 });
+        x += colWidths.additionalControl;
+        
+        // Residual risk L, C, R
+        drawCell(x, y, colWidths.newL, rowHeight, String(originalHazard.residual_likelihood), { fontSize: 7, align: 'center', valign: 'middle' });
+        x += colWidths.newL;
+        drawCell(x, y, colWidths.newC, rowHeight, String(originalHazard.residual_severity), { fontSize: 7, align: 'center', valign: 'middle' });
+        x += colWidths.newC;
+        drawCell(x, y, colWidths.newR, rowHeight, String(residualRisk), { fontSize: 7, align: 'center', valign: 'middle' });
+        x += colWidths.newR;
+        
+        // Action monitored by whom / when (empty for now - could be extended later)
+        drawCell(x, y, colWidths.byWhom, rowHeight, '', { fontSize: 7 });
+        x += colWidths.byWhom;
+        drawCell(x, y, colWidths.byWhen, rowHeight, '', { fontSize: 7 });
+        
+        y += rowHeight;
+      });
+
+      // Footer: Review date and Signature
+      y += 5;
+      if (y + 12 > pageHeight - 10) {
+        doc.addPage();
+        y = 15;
+      }
+      
+      const footerCol1 = 35;
+      const footerCol2 = (pageWidth - 2 * margin - footerCol1 * 2) / 2;
+      
+      drawCell(margin, y, footerCol1, 10, t.reviewDate, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      drawCell(margin + footerCol1, y, footerCol2, 10, format(new Date(rams.review_date), "dd/MM/yyyy"), { valign: 'middle' });
+      drawCell(margin + footerCol1 + footerCol2, y, footerCol1, 10, t.signature, { fontStyle: 'bold', textColor: darkBlue, fillColor: lightBlue, valign: 'middle' });
+      
+      // Add signature image if available
+      const sigCellX = margin + footerCol1 * 2 + footerCol2;
+      const sigCellWidth = pageWidth - 2 * margin - footerCol1 * 2 - footerCol2;
+      drawCell(sigCellX, y, sigCellWidth, 10, '', { valign: 'middle' });
+      
+      if (rams.creator_signature) {
         try {
-          doc.addImage(rams.creator_signature, 'PNG', margin, y, 50, 20);
+          doc.addImage(rams.creator_signature, 'PNG', sigCellX + 2, y + 1, 25, 8);
         } catch (e) {
           // Signature image failed to load
         }
-        
-        y += 25;
-        if (rams.creator_name) {
-          addText(rams.creator_name, margin, y, { fontSize: 10, fontStyle: 'bold' });
-          y += 5;
-        }
-        if (rams.signed_at) {
-          doc.setTextColor(100, 100, 100);
-          addText(`${t.signed}: ${format(new Date(rams.signed_at), "PPP")}`, margin, y, { fontSize: 9 });
-        }
-        y += 10;
       }
-
-      // Risk Key Footer
-      checkNewPage(35);
-      y += 5;
-      doc.setDrawColor(229, 231, 235);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 10;
-      
-      doc.setTextColor(0, 0, 0);
-      addText('Risk Key', margin, y, { fontSize: 10, fontStyle: 'bold' });
-      y += 5;
-      doc.setTextColor(100, 100, 100);
-      addText('Risk = Likelihood × Severity', margin, y, { fontSize: 8 });
-      y += 8;
-      
-      const riskLevels = [
-        { label: 'Low (1-4)', color: [34, 197, 94] },
-        { label: 'Medium (5-8)', color: [234, 179, 8] },
-        { label: 'High (9-12)', color: [249, 115, 22] },
-        { label: 'Very High (13+)', color: [239, 68, 68] },
-      ];
-      
-      let keyX = margin;
-      riskLevels.forEach(level => {
-        doc.setFillColor(level.color[0], level.color[1], level.color[2]);
-        doc.roundedRect(keyX, y, 8, 6, 1, 1, 'F');
-        doc.setTextColor(60, 60, 60);
-        addText(level.label, keyX + 10, y + 4, { fontSize: 8 });
-        keyX += 40;
-      });
 
       const langSuffix = language !== 'EN' ? `-${language}` : '';
       doc.save(`${rams.reference_code}${langSuffix}.pdf`);
