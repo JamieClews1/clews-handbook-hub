@@ -15,7 +15,15 @@ async function translateText(texts: string[], targetLang: string, deeplApiKey: s
   const nonEmptyTexts = texts.filter(t => t && t.trim());
   if (nonEmptyTexts.length === 0) return texts.map(() => '');
 
-  const response = await fetch('https://api-free.deepl.com/v2/translate', {
+  // DeepL Pro keys end with ":fx", free keys don't - use appropriate endpoint
+  const isFreeKey = deeplApiKey.endsWith(':fx');
+  const apiUrl = isFreeKey 
+    ? 'https://api-free.deepl.com/v2/translate' 
+    : 'https://api.deepl.com/v2/translate';
+
+  console.log(`Using DeepL ${isFreeKey ? 'Free' : 'Pro'} API endpoint`);
+
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
