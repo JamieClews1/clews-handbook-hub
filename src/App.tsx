@@ -8,7 +8,9 @@ import LandingPage from "./pages/LandingPage";
 import Index from "./pages/Index";
 import HandbookPage from "./pages/HandbookPage";
 import RAMSPage from "./pages/RAMSPage";
+import RAMSDetailPage from "./pages/RAMSDetailPage";
 import ToolboxTalksPage from "./pages/ToolboxTalksPage";
+import ToolboxTalkDetailPage from "./pages/ToolboxTalkDetailPage";
 import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
@@ -48,7 +50,9 @@ const App = () => (
             <Route path="/portal" element={<Index />} />
             <Route path="/handbook" element={<HandbookPage />} />
             <Route path="/rams" element={<RAMSPage />} />
+            <Route path="/rams/:id" element={<RAMSDetailPage />} />
             <Route path="/toolbox-talks" element={<ToolboxTalksPage />} />
+            <Route path="/toolbox-talks/:id" element={<ToolboxTalkDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/admin" element={<AdminPage />} />
