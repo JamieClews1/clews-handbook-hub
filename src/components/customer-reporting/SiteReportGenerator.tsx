@@ -28,6 +28,7 @@ type Site = {
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
+  data_hub_site_5: string | null;
 };
 
 type JobRecord = {
@@ -114,7 +115,7 @@ export function SiteReportGenerator() {
   const loadSites = async (customerId: string) => {
     const { data } = await supabase
       .from("customer_sites")
-      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4")
+      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
       .eq("customer_id", customerId)
       .order("site_name");
     setSites(data ?? []);
@@ -135,6 +136,7 @@ export function SiteReportGenerator() {
         site.data_hub_site_2,
         site.data_hub_site_3,
         site.data_hub_site_4,
+        site.data_hub_site_5,
       ].filter(Boolean) as string[];
 
       const dataHubCustomer = site.data_hub_customer;
