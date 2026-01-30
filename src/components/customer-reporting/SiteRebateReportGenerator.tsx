@@ -25,6 +25,7 @@ type Site = {
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
+  data_hub_site_5: string | null;
   load_report_type: string | null;
 };
 
@@ -83,7 +84,7 @@ export function SiteRebateReportGenerator() {
   const loadSites = async (customerId: string) => {
     const { data } = await supabase
       .from("customer_sites")
-      .select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, load_report_type")
+      .select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type")
       .eq("customer_id", customerId)
       .order("site_name");
     setSites(data ?? []);

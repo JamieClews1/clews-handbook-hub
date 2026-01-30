@@ -36,6 +36,7 @@ type CustomerSite = {
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
+  data_hub_site_5: string | null;
   owner_contact_id: string | null;
   created_at: string;
   updated_at: string;
@@ -130,6 +131,7 @@ export function CustomerSetupAdmin() {
     data_hub_site_2: "",
     data_hub_site_3: "",
     data_hub_site_4: "",
+    data_hub_site_5: "",
     owner_contact_id: "",
     price_set_id: "",
     load_report_type: "",
@@ -217,7 +219,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,owner_contact_id,load_report_type,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,owner_contact_id,load_report_type,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -372,6 +374,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_2: "",
       data_hub_site_3: "",
       data_hub_site_4: "",
+      data_hub_site_5: "",
       owner_contact_id: "",
       price_set_id: "",
       load_report_type: "",
@@ -390,6 +393,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_2: site.data_hub_site_2 ?? "",
       data_hub_site_3: site.data_hub_site_3 ?? "",
       data_hub_site_4: site.data_hub_site_4 ?? "",
+      data_hub_site_5: site.data_hub_site_5 ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
       price_set_id: existingPriceSetId,
       load_report_type: (site as any).load_report_type ?? "",
@@ -415,6 +419,7 @@ export function CustomerSetupAdmin() {
         data_hub_site_2: siteForm.data_hub_site_2.trim() || null,
         data_hub_site_3: siteForm.data_hub_site_3.trim() || null,
         data_hub_site_4: siteForm.data_hub_site_4.trim() || null,
+        data_hub_site_5: siteForm.data_hub_site_5.trim() || null,
         owner_contact_id: siteForm.owner_contact_id || null,
         load_report_type: siteForm.load_report_type || null,
       };
@@ -1354,7 +1359,7 @@ export function CustomerSetupAdmin() {
             </div>
 
             <div className="grid gap-2">
-              <Label>Data Hub sites (up to 4)</Label>
+              <Label>Data Hub sites (up to 5)</Label>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input
                   value={siteForm.data_hub_site}
@@ -1375,6 +1380,11 @@ export function CustomerSetupAdmin() {
                   value={siteForm.data_hub_site_4}
                   onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_4: e.target.value }))}
                   placeholder="Site 4"
+                />
+                <Input
+                  value={siteForm.data_hub_site_5}
+                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_5: e.target.value }))}
+                  placeholder="Site 5"
                 />
               </div>
             </div>
