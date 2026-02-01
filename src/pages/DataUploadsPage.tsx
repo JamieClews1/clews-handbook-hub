@@ -892,8 +892,11 @@ const DataUploadsPage = () => {
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-muted-foreground">
-                          Loading…
+                        <TableCell colSpan={12} className="py-12">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <p className="text-muted-foreground">Loading data...</p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ) : jobs.length === 0 ? (
