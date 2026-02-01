@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileCheck, Building2, Settings } from "lucide-react";
+import { ArrowLeft, FileCheck, Building2, Settings, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import clewsLogo from "@/assets/clews-logo.png";
 import { DashboardOverview } from "@/components/duty-of-care/DashboardOverview";
@@ -13,6 +13,7 @@ import { PartnersList } from "@/components/duty-of-care/PartnersList";
 import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSettings";
 import { PartnerQuestionnairesList } from "@/components/duty-of-care/PartnerQuestionnairesList";
 import { PartnerQuestionnaireForm } from "@/components/duty-of-care/PartnerQuestionnaireForm";
+import NearMissReportsList from "@/components/duty-of-care/NearMissReportsList";
 import { CompanyDocument, Partner, PartnerDocument, PartnerDocumentRequirement, DocumentType } from "@/components/duty-of-care/types";
 
 const DutyOfCarePage = () => {
@@ -110,7 +111,7 @@ const DutyOfCarePage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="overview" className="gap-2">
               <FileCheck className="h-4 w-4 hidden sm:inline" />
               Overview
@@ -125,6 +126,10 @@ const DutyOfCarePage = () => {
             </TabsTrigger>
             <TabsTrigger value="questionnaires" className="gap-2">
               Onboarding
+            </TabsTrigger>
+            <TabsTrigger value="near-miss" className="gap-2">
+              <AlertTriangle className="h-4 w-4 hidden sm:inline" />
+              Near Miss
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="settings" className="gap-2">
@@ -187,6 +192,10 @@ const DutyOfCarePage = () => {
                 onView={(id) => setSelectedQuestionnaireId(id)}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="near-miss">
+            <NearMissReportsList />
           </TabsContent>
 
           {isAdmin && (
