@@ -999,6 +999,60 @@ export type Database = {
         }
         Relationships: []
       }
+      near_miss_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          location: string
+          potential_consequences: string | null
+          report_date: string
+          reporter_department: string | null
+          reporter_name: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_actions: string | null
+          updated_at: string
+          what_happened: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          location: string
+          potential_consequences?: string | null
+          report_date?: string
+          reporter_department?: string | null
+          reporter_name?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_actions?: string | null
+          updated_at?: string
+          what_happened: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          location?: string
+          potential_consequences?: string | null
+          report_date?: string
+          reporter_department?: string | null
+          reporter_name?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_actions?: string | null
+          updated_at?: string
+          what_happened?: string
+        }
+        Relationships: []
+      }
       partner_document_requirements: {
         Row: {
           created_at: string
