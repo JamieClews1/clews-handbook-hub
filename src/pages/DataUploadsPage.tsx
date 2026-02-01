@@ -20,10 +20,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
+import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 
-import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, Sparkles, Database } from "lucide-react";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -592,6 +594,20 @@ const DataUploadsPage = () => {
             </div>
           </div>
 
+          <Tabs defaultValue="data" className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="data" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Data & Uploads
+              </TabsTrigger>
+              <TabsTrigger value="ask-ai" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Ask AI
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="data" className="space-y-8">
+
           {!canUpload && (
             <Card>
               <CardHeader>
@@ -928,6 +944,12 @@ const DataUploadsPage = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="ask-ai" className="min-h-[600px]">
+              <DataHubAIChat />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
