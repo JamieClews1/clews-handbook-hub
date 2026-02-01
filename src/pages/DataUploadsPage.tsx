@@ -20,13 +20,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
-import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
-import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
-
-import { ArrowLeft, ArrowRight, Upload, Sparkles, Database, BarChart3 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -569,10 +565,10 @@ const DataUploadsPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link to="/portal">
+              <Link to="/performance-hub">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Back to Portal</span>
+                  <span className="hidden sm:inline">Back to Performance Hub</span>
                 </Button>
               </Link>
               <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
@@ -588,30 +584,12 @@ const DataUploadsPage = () => {
               <Upload className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Data Hub · Data Uploads</h1>
+              <h1 className="text-2xl font-bold text-foreground">Performance Hub · Data Uploads</h1>
               <p className="text-muted-foreground">
                 Upload Skiptrak and Midweigh XLSX files. Records are upserted by Ticket.
               </p>
             </div>
           </div>
-
-          <Tabs defaultValue="data" className="space-y-6">
-            <TabsList className="grid w-full max-w-lg grid-cols-3">
-              <TabsTrigger value="data" className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                Data & Uploads
-              </TabsTrigger>
-              <TabsTrigger value="tracking" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Data Tracking
-              </TabsTrigger>
-              <TabsTrigger value="ask-ai" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Ask AI
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="data" className="space-y-8">
 
           {!canUpload && (
             <Card>
@@ -949,16 +927,6 @@ const DataUploadsPage = () => {
               </div>
             </CardContent>
           </Card>
-            </TabsContent>
-
-            <TabsContent value="tracking" className="min-h-[600px]">
-              <DataHubAnalytics />
-            </TabsContent>
-
-            <TabsContent value="ask-ai" className="min-h-[600px]">
-              <DataHubAIChat />
-            </TabsContent>
-          </Tabs>
         </div>
       </main>
     </div>
