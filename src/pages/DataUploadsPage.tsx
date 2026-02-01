@@ -24,8 +24,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
+import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
 
-import { ArrowLeft, ArrowRight, Upload, Sparkles, Database } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, Sparkles, Database, BarChart3 } from "lucide-react";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -595,10 +596,14 @@ const DataUploadsPage = () => {
           </div>
 
           <Tabs defaultValue="data" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-lg grid-cols-3">
               <TabsTrigger value="data" className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
                 Data & Uploads
+              </TabsTrigger>
+              <TabsTrigger value="tracking" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Data Tracking
               </TabsTrigger>
               <TabsTrigger value="ask-ai" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
@@ -944,6 +949,10 @@ const DataUploadsPage = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="tracking" className="min-h-[600px]">
+              <DataHubAnalytics />
             </TabsContent>
 
             <TabsContent value="ask-ai" className="min-h-[600px]">
