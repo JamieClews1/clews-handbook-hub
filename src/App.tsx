@@ -31,6 +31,8 @@ import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import DataUploadsPage from "./pages/DataUploadsPage";
+import PerformanceHubPage from "./pages/PerformanceHubPage";
+import PerformanceHubReportsPage from "./pages/PerformanceHubReportsPage";
 import RebateValuesPage from "./pages/RebateValuesPage";
 import CustomerReportingPage from "./pages/CustomerReportingPage";
 import CustomerPortalPage from "./pages/CustomerPortalPage";
@@ -72,6 +74,9 @@ const App = () => (
             <Route path="/load-reports" element={<LoadReportsPage />} />
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
+             <Route path="/performance-hub" element={<PerformanceHubPage />} />
+             <Route path="/performance-hub/reports" element={<PerformanceHubReportsPage />} />
+             <Route path="/performance-hub/data" element={<DataUploadsPage />} />
              <Route path="/data-hub/uploads" element={<DataUploadsPage />} />
              <Route path="/rebate-values" element={<RebateValuesPage />} />
              <Route path="/customer-reporting" element={<CustomerReportingPage />} />

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -89,16 +89,16 @@ const Index = () => {
 
   const dataHubSections = [
     {
+      title: "Performance Hub",
+      description: "Business analytics, data tracking, AI insights, and data uploads.",
+      icon: BarChart3,
+      href: "/performance-hub",
+    },
+    {
       title: "Waste Reporting",
       description: "Waste data reporting, tonnage tracking, and environmental compliance.",
       icon: Recycle,
       href: "/waste-reporting",
-    },
-    {
-      title: "Data Uploads",
-      description: "Upload and manage operational data files and reports.",
-      icon: Upload,
-      href: "/data-hub/uploads",
     },
     {
       title: "Customer Reporting",
@@ -318,11 +318,11 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Data Hub & Customers Section */}
+        {/* Performance Hub & Customers Section */}
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-2 h-8 bg-yellow-500 rounded-full" />
-            <h3 className="text-2xl font-bold text-foreground">Data Hub & Customers</h3>
+            <h3 className="text-2xl font-bold text-foreground">Performance Hub & Customers</h3>
           </div>
           <div className="grid md:grid-cols-4 gap-6">
             {dataHubSections.map((section, index) => {

@@ -61,7 +61,7 @@ serve(async (req) => {
     const uniqueCustomers = [...new Set(customers?.map(c => c.customer).filter(Boolean))].slice(0, 30);
     const uniqueSites = [...new Set(sites?.map(s => s.site).filter(Boolean))].slice(0, 30);
 
-    const systemPrompt = `You are a Data Hub assistant for Clews Recycling. You help users query waste management job data.
+    const systemPrompt = `You are a Performance Hub assistant for Clews Recycling. You help users query waste management job data.
 
 ## Database Schema
 The data_hub_jobs table has these columns:
