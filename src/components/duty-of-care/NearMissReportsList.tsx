@@ -51,7 +51,7 @@ const NearMissReportsList = () => {
     review_notes: "",
   });
 
-  const reportUrl = `${window.location.origin}/near-miss-report`;
+  const reportUrl = `${window.location.origin}/nearmissreport`;
 
   const fetchReports = async () => {
     try {
