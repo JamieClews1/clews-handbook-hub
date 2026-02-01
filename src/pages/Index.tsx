@@ -74,6 +74,12 @@ const Index = () => {
       href: "/duty-of-care",
     },
     {
+      title: "Near Miss Reporting",
+      description: "Report and track workplace near miss incidents to improve safety.",
+      icon: ClipboardList,
+      href: "/near-miss",
+    },
+    {
       title: "Policies",
       description: "Environmental policies, quality policies, and compliance certificates.",
       icon: ScrollText,
@@ -248,7 +254,7 @@ const Index = () => {
             <div className="w-2 h-8 bg-amber-500 rounded-full" />
             <h3 className="text-2xl font-bold text-foreground">Compliance Hub</h3>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-4 gap-6">
             {complianceHubSections.map((section, index) => (
               <Link 
                 key={section.href} 

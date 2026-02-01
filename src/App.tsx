@@ -37,6 +37,7 @@ import RebateValuesPage from "./pages/RebateValuesPage";
 import CustomerReportingPage from "./pages/CustomerReportingPage";
 import CustomerPortalPage from "./pages/CustomerPortalPage";
 import NearMissReportPage from "./pages/NearMissReportPage";
+import NearMissPage from "./pages/NearMissPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/my-profile" element={<MyProfilePage />} />
             <Route path="/mass-sign-off" element={<MassSignOffPage />} />
             <Route path="/duty-of-care" element={<DutyOfCarePage />} />
+            <Route path="/near-miss" element={<NearMissPage />} />
             <Route path="/waste-reporting" element={<WasteReportingPage />} />
             <Route path="/policies" element={<PoliciesPage />} />
             <Route path="/site-reports" element={<SiteReportsPage />} />
