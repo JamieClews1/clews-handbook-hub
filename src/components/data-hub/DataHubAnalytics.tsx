@@ -310,6 +310,10 @@ const DataHubAnalytics = () => {
   if (loading) {
     return (
       <div className="space-y-6">
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading analytics data...</p>
+        </div>
         <Skeleton className="h-[400px] w-full" />
         <div className="grid gap-6 md:grid-cols-2">
           <Skeleton className="h-[350px]" />
