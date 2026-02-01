@@ -77,7 +77,7 @@ const App = () => (
             <Route path="/load-reports" element={<LoadReportsPage />} />
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
-            <Route path="/near-miss-report" element={<NearMissReportPage />} />
+            <Route path="/nearmissreport" element={<NearMissReportPage />} />
              <Route path="/performance-hub" element={<PerformanceHubPage />} />
              <Route path="/performance-hub/reports" element={<PerformanceHubReportsPage />} />
              <Route path="/performance-hub/data" element={<DataUploadsPage />} />
