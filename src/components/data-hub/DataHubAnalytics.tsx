@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, startOfWeek, getWeek, getYear, parseISO } from "date-fns";
+import { format, getWeek, getYear, parseISO } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Download } from "lucide-react";
 
 type RawJob = {
@@ -28,8 +29,11 @@ type RawJob = {
   job_date: string | null;
   customer: string | null;
   movement_type: string | null;
+  source: string;
   raw: Record<string, unknown>;
 };
+
+type DataSource = "combined" | "skiptrak" | "midweigh";
 
 // Helper to extract total price from raw JSON
 const getTotalPrice = (raw: Record<string, unknown> | null): number => {
@@ -54,6 +58,32 @@ const YEAR_COLORS: Record<number, string> = {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Source toggle component
+const SourceToggle = ({ 
+  value, 
+  onChange 
+}: { 
+  value: DataSource; 
+  onChange: (v: DataSource) => void;
+}) => (
+  <ToggleGroup 
+    type="single" 
+    value={value} 
+    onValueChange={(v) => v && onChange(v as DataSource)}
+    className="bg-muted rounded-md p-0.5"
+  >
+    <ToggleGroupItem value="combined" className="text-xs px-2 py-1 h-7 data-[state=on]:bg-background">
+      Combined
+    </ToggleGroupItem>
+    <ToggleGroupItem value="skiptrak" className="text-xs px-2 py-1 h-7 data-[state=on]:bg-background">
+      Skiptrak
+    </ToggleGroupItem>
+    <ToggleGroupItem value="midweigh" className="text-xs px-2 py-1 h-7 data-[state=on]:bg-background">
+      Midweigh
+    </ToggleGroupItem>
+  </ToggleGroup>
+);
+
 const DataHubAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<RawJob[]>([]);
@@ -66,6 +96,19 @@ const DataHubAnalytics = () => {
   const [movementYear, setMovementYear] = useState(currentYear.toString());
   const [topCustomersMonth, setTopCustomersMonth] = useState(format(new Date(), "yyyy-MM"));
 
+  // Source selectors for each chart
+  const [revenueSource, setRevenueSource] = useState<DataSource>("combined");
+  const [jobsSource, setJobsSource] = useState<DataSource>("combined");
+  const [incomeSource, setIncomeSource] = useState<DataSource>("combined");
+  const [movementSource, setMovementSource] = useState<DataSource>("combined");
+  const [topCustomersSource, setTopCustomersSource] = useState<DataSource>("combined");
+
+  // Filter jobs by source
+  const filterBySource = (allJobs: RawJob[], source: DataSource) => {
+    if (source === "combined") return allJobs;
+    return allJobs.filter((j) => j.source === source);
+  };
+
   // Available years from data
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -77,12 +120,11 @@ const DataHubAnalytics = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [jobs]);
 
-  // Fetch all Skiptrak jobs
+  // Fetch ALL jobs (both sources)
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       try {
-        // Fetch in batches since there could be many records
         let allJobs: RawJob[] = [];
         let offset = 0;
         const limit = 1000;
@@ -91,8 +133,7 @@ const DataHubAnalytics = () => {
         while (hasMore) {
           const { data, error } = await supabase
             .from("data_hub_jobs")
-            .select("id, job_date, customer, movement_type, raw")
-            .eq("source", "skiptrak")
+            .select("id, job_date, customer, movement_type, source, raw")
             .order("job_date", { ascending: true })
             .range(offset, offset + limit - 1);
 
@@ -119,12 +160,13 @@ const DataHubAnalytics = () => {
 
   // 1. Annual Revenue by Month - Year on Year Comparison
   const annualRevenueData = useMemo(() => {
+    const filteredJobs = filterBySource(jobs, revenueSource);
     const monthlyData: Record<string, Record<number, number>> = {};
     MONTHS.forEach((m) => {
       monthlyData[m] = {};
     });
 
-    jobs.forEach((job) => {
+    filteredJobs.forEach((job) => {
       if (!job.job_date) return;
       const date = parseISO(job.job_date);
       const year = getYear(date);
@@ -137,14 +179,15 @@ const DataHubAnalytics = () => {
       month,
       ...monthlyData[month],
     }));
-  }, [jobs]);
+  }, [jobs, revenueSource]);
 
   // 2. Jobs by Week for selected year
   const jobsByWeekData = useMemo(() => {
+    const filteredJobs = filterBySource(jobs, jobsSource);
     const weeklyJobs: Record<number, number> = {};
     const year = parseInt(jobsYear);
 
-    jobs.forEach((job) => {
+    filteredJobs.forEach((job) => {
       if (!job.job_date) return;
       const date = parseISO(job.job_date);
       if (getYear(date) !== year) return;
@@ -156,16 +199,17 @@ const DataHubAnalytics = () => {
       week: `W${i + 1}`,
       jobs: weeklyJobs[i + 1] || 0,
     }));
-  }, [jobs, jobsYear]);
+  }, [jobs, jobsYear, jobsSource]);
 
   // 3. Income by Week with optional previous year comparison
   const incomeByWeekData = useMemo(() => {
+    const filteredJobs = filterBySource(jobs, incomeSource);
     const year = parseInt(incomeYear);
     const prevYear = year - 1;
     const weeklyIncome: Record<number, number> = {};
     const prevYearIncome: Record<number, number> = {};
 
-    jobs.forEach((job) => {
+    filteredJobs.forEach((job) => {
       if (!job.job_date) return;
       const date = parseISO(job.job_date);
       const jobYear = getYear(date);
@@ -184,15 +228,16 @@ const DataHubAnalytics = () => {
       [year]: weeklyIncome[i + 1] || 0,
       ...(showIncomePrevYear ? { [prevYear]: prevYearIncome[i + 1] || 0 } : {}),
     }));
-  }, [jobs, incomeYear, showIncomePrevYear]);
+  }, [jobs, incomeYear, showIncomePrevYear, incomeSource]);
 
   // 4. Collections vs Exchanges+Deliveries by Week
   const movementByWeekData = useMemo(() => {
+    const filteredJobs = filterBySource(jobs, movementSource);
     const year = parseInt(movementYear);
     const weeklyCollections: Record<number, number> = {};
     const weeklyExchangesDeliveries: Record<number, number> = {};
 
-    jobs.forEach((job) => {
+    filteredJobs.forEach((job) => {
       if (!job.job_date || !job.movement_type) return;
       const date = parseISO(job.job_date);
       if (getYear(date) !== year) return;
@@ -211,17 +256,18 @@ const DataHubAnalytics = () => {
       Collections: weeklyCollections[i + 1] || 0,
       "Exchanges & Deliveries": weeklyExchangesDeliveries[i + 1] || 0,
     }));
-  }, [jobs, movementYear]);
+  }, [jobs, movementYear, movementSource]);
 
   // 5. Top 10 Revenue by Customer for selected month
   const topCustomersData = useMemo(() => {
+    const filteredJobs = filterBySource(jobs, topCustomersSource);
     const [yearStr, monthStr] = topCustomersMonth.split("-");
     const targetYear = parseInt(yearStr);
     const targetMonth = parseInt(monthStr) - 1; // 0-indexed
 
     const customerRevenue: Record<string, number> = {};
 
-    jobs.forEach((job) => {
+    filteredJobs.forEach((job) => {
       if (!job.job_date || !job.customer) return;
       const date = parseISO(job.job_date);
       if (getYear(date) !== targetYear || date.getMonth() !== targetMonth) return;
@@ -237,7 +283,7 @@ const DataHubAnalytics = () => {
         fullName: customer,
         revenue,
       }));
-  }, [jobs, topCustomersMonth]);
+  }, [jobs, topCustomersMonth, topCustomersSource]);
 
   // Export helper
   const exportToExcel = (data: Record<string, unknown>[], fileName: string) => {
@@ -277,18 +323,21 @@ const DataHubAnalytics = () => {
     <div className="space-y-6">
       {/* 1. Annual Revenue by Month - YoY Comparison */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
           <div>
             <CardTitle>Annual Revenue by Month</CardTitle>
             <CardDescription>Year on Year Comparison (2022-2026)</CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportToExcel(annualRevenueData, "annual-revenue-by-month")}
-          >
-            <Download className="h-4 w-4 mr-2" /> Export
-          </Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <SourceToggle value={revenueSource} onChange={setRevenueSource} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportToExcel(annualRevenueData, `annual-revenue-by-month-${revenueSource}`)}
+            >
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
@@ -322,12 +371,13 @@ const DataHubAnalytics = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* 2. Jobs by Week */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle>Jobs by Week</CardTitle>
               <CardDescription>Total job count per week</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <SourceToggle value={jobsSource} onChange={setJobsSource} />
               <Select value={jobsYear} onValueChange={setJobsYear}>
                 <SelectTrigger className="w-[100px]">
                   <SelectValue />
@@ -343,7 +393,7 @@ const DataHubAnalytics = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportToExcel(jobsByWeekData, `jobs-by-week-${jobsYear}`)}
+                onClick={() => exportToExcel(jobsByWeekData, `jobs-by-week-${jobsYear}-${jobsSource}`)}
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -366,12 +416,13 @@ const DataHubAnalytics = () => {
 
         {/* 3. Income by Week */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle>Income by Week</CardTitle>
               <CardDescription>Weekly revenue with optional YoY comparison</CardDescription>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <SourceToggle value={incomeSource} onChange={setIncomeSource} />
               <div className="flex items-center gap-2">
                 <Switch
                   id="prev-year-toggle"
@@ -397,7 +448,7 @@ const DataHubAnalytics = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportToExcel(incomeByWeekData, `income-by-week-${incomeYear}`)}
+                onClick={() => exportToExcel(incomeByWeekData, `income-by-week-${incomeYear}-${incomeSource}`)}
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -445,12 +496,13 @@ const DataHubAnalytics = () => {
 
         {/* 4. Collections vs Exchanges+Deliveries */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle>Collections vs Exchanges & Deliveries</CardTitle>
               <CardDescription>Movement type comparison by week</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <SourceToggle value={movementSource} onChange={setMovementSource} />
               <Select value={movementYear} onValueChange={setMovementYear}>
                 <SelectTrigger className="w-[100px]">
                   <SelectValue />
@@ -466,7 +518,7 @@ const DataHubAnalytics = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportToExcel(movementByWeekData, `movements-by-week-${movementYear}`)}
+                onClick={() => exportToExcel(movementByWeekData, `movements-by-week-${movementYear}-${movementSource}`)}
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -503,12 +555,13 @@ const DataHubAnalytics = () => {
 
         {/* 5. Top 10 Revenue by Customer */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle>Top 10 Revenue by Customer</CardTitle>
               <CardDescription>Highest revenue customers for the month</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <SourceToggle value={topCustomersSource} onChange={setTopCustomersSource} />
               <Select value={topCustomersMonth} onValueChange={setTopCustomersMonth}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue />
@@ -527,7 +580,7 @@ const DataHubAnalytics = () => {
                 onClick={() =>
                   exportToExcel(
                     topCustomersData.map((c) => ({ Customer: c.fullName, Revenue: c.revenue })),
-                    `top-customers-${topCustomersMonth}`
+                    `top-customers-${topCustomersMonth}-${topCustomersSource}`
                   )
                 }
               >
