@@ -24,7 +24,13 @@ interface ToolboxTalk {
   id: string;
   reference_code: string;
   title: string;
+  title_pl?: string | null;
+  title_uk?: string | null;
+  title_ro?: string | null;
   content: string;
+  content_pl?: string | null;
+  content_uk?: string | null;
+  content_ro?: string | null;
   user_types: string[];
   is_mandatory: boolean;
   created_date: string;
@@ -103,8 +109,8 @@ const ToolboxTalkDetailPage = () => {
     fetchData();
   }, [user, id]);
 
-  // Handle language change and translation
-  const handleLanguageChange = async (langCode: string) => {
+  // Handle language change using stored translations
+  const handleLanguageChange = (langCode: string) => {
     if (!talk) return;
     
     setSelectedLanguage(langCode);
@@ -115,32 +121,26 @@ const ToolboxTalkDetailPage = () => {
       return;
     }
 
-    setIsPrinting(true);
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
+    // Use stored translations
+    const langSuffix = langCode.toLowerCase() as 'pl' | 'uk' | 'ro';
+    const titleKey = `title_${langSuffix}` as keyof ToolboxTalk;
+    const contentKey = `content_${langSuffix}` as keyof ToolboxTalk;
 
-      const { data, error } = await supabase.functions.invoke("translate-toolbox-talk", {
-        body: {
-          texts: [talk.title, talk.content],
-          target_lang: langCode,
-        },
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+    const translatedTitle = talk[titleKey] as string | null;
+    const translatedContent = talk[contentKey] as string | null;
 
-      if (error) throw error;
-
-      setDisplayTitle(data.translations[0] || talk.title);
-      setDisplayContent(data.translations[1] || talk.content);
-    } catch (error) {
-      console.error("Translation error:", error);
+    if (translatedTitle && translatedContent) {
+      setDisplayTitle(translatedTitle);
+      setDisplayContent(translatedContent);
+    } else {
+      // No stored translations available
       toast({
-        title: "Translation Error",
-        description: "Failed to translate content. Showing original.",
+        title: "Translation Not Available",
+        description: "This document has not been translated yet. Showing English version.",
         variant: "destructive",
       });
-    } finally {
-      setIsPrinting(false);
+      setDisplayTitle(talk.title);
+      setDisplayContent(talk.content);
     }
   };
 

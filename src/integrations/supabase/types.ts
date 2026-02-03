@@ -1670,10 +1670,16 @@ export type Database = {
           id: string
           is_mandatory: boolean
           notice_to_drivers: string | null
+          notice_to_drivers_pl: string | null
+          notice_to_drivers_ro: string | null
+          notice_to_drivers_uk: string | null
           reference_code: string
           review_date: string
           signed_at: string | null
           title: string
+          title_pl: string | null
+          title_ro: string | null
+          title_uk: string | null
           updated_at: string
           user_types: string[]
         }
@@ -1687,10 +1693,16 @@ export type Database = {
           id?: string
           is_mandatory?: boolean
           notice_to_drivers?: string | null
+          notice_to_drivers_pl?: string | null
+          notice_to_drivers_ro?: string | null
+          notice_to_drivers_uk?: string | null
           reference_code: string
           review_date?: string
           signed_at?: string | null
           title: string
+          title_pl?: string | null
+          title_ro?: string | null
+          title_uk?: string | null
           updated_at?: string
           user_types?: string[]
         }
@@ -1704,10 +1716,16 @@ export type Database = {
           id?: string
           is_mandatory?: boolean
           notice_to_drivers?: string | null
+          notice_to_drivers_pl?: string | null
+          notice_to_drivers_ro?: string | null
+          notice_to_drivers_uk?: string | null
           reference_code?: string
           review_date?: string
           signed_at?: string | null
           title?: string
+          title_pl?: string | null
+          title_ro?: string | null
+          title_uk?: string | null
           updated_at?: string
           user_types?: string[]
         }
@@ -1716,51 +1734,96 @@ export type Database = {
       rams_hazards: {
         Row: {
           activity: string
+          activity_pl: string | null
+          activity_ro: string | null
+          activity_uk: string | null
           control_measures: string
+          control_measures_pl: string | null
+          control_measures_ro: string | null
+          control_measures_uk: string | null
           created_at: string
           display_order: number
           id: string
           initial_likelihood: number
           initial_severity: number
           notes: string | null
+          notes_pl: string | null
+          notes_ro: string | null
+          notes_uk: string | null
           potential_hazard: string
+          potential_hazard_pl: string | null
+          potential_hazard_ro: string | null
+          potential_hazard_uk: string | null
           rams_id: string
           residual_likelihood: number
           residual_severity: number
           updated_at: string
           who_at_risk: string
+          who_at_risk_pl: string | null
+          who_at_risk_ro: string | null
+          who_at_risk_uk: string | null
         }
         Insert: {
           activity: string
+          activity_pl?: string | null
+          activity_ro?: string | null
+          activity_uk?: string | null
           control_measures: string
+          control_measures_pl?: string | null
+          control_measures_ro?: string | null
+          control_measures_uk?: string | null
           created_at?: string
           display_order?: number
           id?: string
           initial_likelihood?: number
           initial_severity?: number
           notes?: string | null
+          notes_pl?: string | null
+          notes_ro?: string | null
+          notes_uk?: string | null
           potential_hazard: string
+          potential_hazard_pl?: string | null
+          potential_hazard_ro?: string | null
+          potential_hazard_uk?: string | null
           rams_id: string
           residual_likelihood?: number
           residual_severity?: number
           updated_at?: string
           who_at_risk: string
+          who_at_risk_pl?: string | null
+          who_at_risk_ro?: string | null
+          who_at_risk_uk?: string | null
         }
         Update: {
           activity?: string
+          activity_pl?: string | null
+          activity_ro?: string | null
+          activity_uk?: string | null
           control_measures?: string
+          control_measures_pl?: string | null
+          control_measures_ro?: string | null
+          control_measures_uk?: string | null
           created_at?: string
           display_order?: number
           id?: string
           initial_likelihood?: number
           initial_severity?: number
           notes?: string | null
+          notes_pl?: string | null
+          notes_ro?: string | null
+          notes_uk?: string | null
           potential_hazard?: string
+          potential_hazard_pl?: string | null
+          potential_hazard_ro?: string | null
+          potential_hazard_uk?: string | null
           rams_id?: string
           residual_likelihood?: number
           residual_severity?: number
           updated_at?: string
           who_at_risk?: string
+          who_at_risk_pl?: string | null
+          who_at_risk_ro?: string | null
+          who_at_risk_uk?: string | null
         }
         Relationships: [
           {
@@ -2166,6 +2229,9 @@ export type Database = {
         Row: {
           assigned_users: string[] | null
           content: string
+          content_pl: string | null
+          content_ro: string | null
+          content_uk: string | null
           created_at: string
           created_date: string
           id: string
@@ -2173,12 +2239,18 @@ export type Database = {
           is_published: boolean
           reference_code: string
           title: string
+          title_pl: string | null
+          title_ro: string | null
+          title_uk: string | null
           updated_at: string
           user_types: string[]
         }
         Insert: {
           assigned_users?: string[] | null
           content: string
+          content_pl?: string | null
+          content_ro?: string | null
+          content_uk?: string | null
           created_at?: string
           created_date?: string
           id?: string
@@ -2186,12 +2258,18 @@ export type Database = {
           is_published?: boolean
           reference_code: string
           title: string
+          title_pl?: string | null
+          title_ro?: string | null
+          title_uk?: string | null
           updated_at?: string
           user_types?: string[]
         }
         Update: {
           assigned_users?: string[] | null
           content?: string
+          content_pl?: string | null
+          content_ro?: string | null
+          content_uk?: string | null
           created_at?: string
           created_date?: string
           id?: string
@@ -2199,6 +2277,9 @@ export type Database = {
           is_published?: boolean
           reference_code?: string
           title?: string
+          title_pl?: string | null
+          title_ro?: string | null
+          title_uk?: string | null
           updated_at?: string
           user_types?: string[]
         }

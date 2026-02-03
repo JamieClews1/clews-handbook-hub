@@ -10,6 +10,7 @@ import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
 import { UserSelector } from "./UserSelector";
+import { TranslationSaveDialog, TranslationOption } from "./TranslationSaveDialog";
 
 interface ToolboxTalk {
   id: string;
@@ -33,6 +34,9 @@ export const ToolboxTalkBuilder = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [selectedTalkForPrint, setSelectedTalkForPrint] = useState<ToolboxTalk | null>(null);
+  const [showTranslationDialog, setShowTranslationDialog] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [pendingSaveTalkId, setPendingSaveTalkId] = useState<string | null>(null);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -95,7 +99,7 @@ export const ToolboxTalkBuilder = () => {
     );
   };
 
-  const handleSave = async () => {
+  const handleSaveClick = () => {
     if (!title.trim()) {
       toast({
         title: "Validation Error",
@@ -124,7 +128,13 @@ export const ToolboxTalkBuilder = () => {
       return;
     }
 
+    setShowTranslationDialog(true);
+  };
+
+  const handleSaveWithTranslation = async (translationOption: TranslationOption) => {
     try {
+      let savedTalkId: string;
+
       if (editingTalk) {
         const { error } = await supabase
           .from("toolbox_talks")
@@ -139,11 +149,7 @@ export const ToolboxTalkBuilder = () => {
           .eq("id", editingTalk.id);
 
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Toolbox Talk updated successfully",
-        });
+        savedTalkId = editingTalk.id;
       } else {
         // Generate next reference code
         const { data: lastTalk } = await supabase
@@ -161,7 +167,7 @@ export const ToolboxTalkBuilder = () => {
           }
         }
 
-        const { error } = await supabase.from("toolbox_talks").insert({
+        const { data, error } = await supabase.from("toolbox_talks").insert({
           reference_code: `TBT-${nextNumber}`,
           title,
           content,
@@ -169,16 +175,59 @@ export const ToolboxTalkBuilder = () => {
           is_mandatory: isMandatory,
           is_published: isPublished,
           assigned_users: assignedUsers,
-        });
+        }).select().single();
 
         if (error) throw error;
+        savedTalkId = data.id;
+      }
 
+      // Translate if requested
+      if (translationOption === "all") {
+        setIsTranslating(true);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-toolbox-talk`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({ toolbox_talk_id: savedTalkId }),
+            }
+          );
+          const result = await response.json();
+          if (result.success) {
+            toast({
+              title: "Success",
+              description: "Toolbox Talk saved and translated successfully",
+            });
+          } else {
+            toast({
+              title: "Warning",
+              description: "Toolbox Talk saved but translation failed",
+              variant: "destructive",
+            });
+          }
+        } catch (translateError) {
+          console.error("Translation error:", translateError);
+          toast({
+            title: "Warning",
+            description: "Toolbox Talk saved but translation failed",
+            variant: "destructive",
+          });
+        } finally {
+          setIsTranslating(false);
+        }
+      } else {
         toast({
           title: "Success",
-          description: "Toolbox Talk created successfully",
+          description: editingTalk ? "Toolbox Talk updated successfully" : "Toolbox Talk created successfully",
         });
       }
 
+      setShowTranslationDialog(false);
       resetForm();
       fetchToolboxTalks();
     } catch (error) {
@@ -188,6 +237,7 @@ export const ToolboxTalkBuilder = () => {
         description: "Failed to save toolbox talk",
         variant: "destructive",
       });
+      setShowTranslationDialog(false);
     }
   };
 
@@ -297,7 +347,7 @@ export const ToolboxTalkBuilder = () => {
             </div>
           </div>
 
-          <Button onClick={handleSave} className="gap-2">
+          <Button onClick={handleSaveClick} className="gap-2">
             <Save className="h-4 w-4" />
             {editingTalk ? "Update" : "Create"} Toolbox Talk
           </Button>
@@ -391,6 +441,15 @@ export const ToolboxTalkBuilder = () => {
         open={printDialogOpen}
         onOpenChange={setPrintDialogOpen}
         toolboxTalk={selectedTalkForPrint}
+      />
+
+      <TranslationSaveDialog
+        open={showTranslationDialog}
+        onOpenChange={setShowTranslationDialog}
+        onConfirm={handleSaveWithTranslation}
+        isTranslating={isTranslating}
+        documentType="Toolbox Talk"
+        isNew={!editingTalk}
       />
     </div>
   );
