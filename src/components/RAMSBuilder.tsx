@@ -14,6 +14,7 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
 import { UserSelector } from "@/components/UserSelector";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { TranslationSaveDialog, TranslationOption } from "@/components/TranslationSaveDialog";
 import {
   Dialog,
   DialogContent,
@@ -109,6 +110,9 @@ export const RAMSBuilder = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showTranslationDialog, setShowTranslationDialog] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [pendingSaveRamsId, setPendingSaveRamsId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRAMSList();
@@ -174,12 +178,15 @@ export const RAMSBuilder = () => {
     setIsEditing(true);
   };
 
-  const handleSave = async () => {
+  const handleSaveClick = () => {
     if (!editForm.reference_code || !editForm.title) {
       toast({ title: "Error", description: "Reference code and title are required", variant: "destructive" });
       return;
     }
+    setShowTranslationDialog(true);
+  };
 
+  const handleSaveWithTranslation = async (translationOption: TranslationOption) => {
     try {
       let ramsId: string;
 
@@ -236,7 +243,39 @@ export const RAMSBuilder = () => {
         if (hazardError) throw hazardError;
       }
 
-      toast({ title: "Success", description: "RAMS saved successfully" });
+      // Translate if requested
+      if (translationOption === "all") {
+        setIsTranslating(true);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-rams`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({ rams_id: ramsId }),
+            }
+          );
+          const result = await response.json();
+          if (result.success) {
+            toast({ title: "Success", description: "RAMS saved and translated successfully" });
+          } else {
+            toast({ title: "Warning", description: "RAMS saved but translation failed", variant: "destructive" });
+          }
+        } catch (translateError) {
+          console.error("Translation error:", translateError);
+          toast({ title: "Warning", description: "RAMS saved but translation failed", variant: "destructive" });
+        } finally {
+          setIsTranslating(false);
+        }
+      } else {
+        toast({ title: "Success", description: "RAMS saved successfully" });
+      }
+
+      setShowTranslationDialog(false);
       setIsEditing(false);
       fetchRAMSList();
       if (ramsId) {
@@ -249,6 +288,7 @@ export const RAMSBuilder = () => {
     } catch (error) {
       console.error(error);
       toast({ title: "Error", description: "Failed to save RAMS", variant: "destructive" });
+      setShowTranslationDialog(false);
     }
   };
 
@@ -858,7 +898,7 @@ export const RAMSBuilder = () => {
                 removeHazardRow={removeHazardRow}
                 toggleUserType={toggleUserType}
                 handleApplicableToChange={handleApplicableToChange}
-                onSave={handleSave}
+                onSave={handleSaveClick}
                 onCancel={() => setIsEditing(false)}
                 getRiskColor={getRiskColor}
               />
@@ -885,6 +925,15 @@ export const RAMSBuilder = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TranslationSaveDialog
+        open={showTranslationDialog}
+        onOpenChange={setShowTranslationDialog}
+        onConfirm={handleSaveWithTranslation}
+        isTranslating={isTranslating}
+        documentType="RAMS"
+        isNew={!selectedRAMS}
+      />
     </div>
   );
 };

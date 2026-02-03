@@ -19,8 +19,14 @@ interface RAMS {
   id: string;
   reference_code: string;
   title: string;
+  title_pl?: string | null;
+  title_uk?: string | null;
+  title_ro?: string | null;
   applicable_to: string[];
   notice_to_drivers: string | null;
+  notice_to_drivers_pl?: string | null;
+  notice_to_drivers_uk?: string | null;
+  notice_to_drivers_ro?: string | null;
   created_date: string;
   review_date: string;
   creator_signature: string | null;
@@ -34,14 +40,29 @@ interface Hazard {
   id: string;
   rams_id: string;
   activity: string;
+  activity_pl?: string | null;
+  activity_uk?: string | null;
+  activity_ro?: string | null;
   potential_hazard: string;
+  potential_hazard_pl?: string | null;
+  potential_hazard_uk?: string | null;
+  potential_hazard_ro?: string | null;
   who_at_risk: string;
+  who_at_risk_pl?: string | null;
+  who_at_risk_uk?: string | null;
+  who_at_risk_ro?: string | null;
   initial_likelihood: number;
   initial_severity: number;
   control_measures: string;
+  control_measures_pl?: string | null;
+  control_measures_uk?: string | null;
+  control_measures_ro?: string | null;
   residual_likelihood: number;
   residual_severity: number;
   notes: string | null;
+  notes_pl?: string | null;
+  notes_uk?: string | null;
+  notes_ro?: string | null;
   display_order: number;
 }
 
@@ -119,7 +140,7 @@ const RAMSDetailPage = () => {
   const [language, setLanguage] = useState('EN');
   const [isDownloading, setIsDownloading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [isTranslating, setIsTranslating] = useState(false);
+  
   const [signedAt, setSignedAt] = useState<string | null>(null);
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
@@ -163,53 +184,50 @@ const RAMSDetailPage = () => {
     }
   }, [rams]);
 
-  // Translate content when language changes
+  // Use stored translations when language changes
   useEffect(() => {
-    const translateContent = async () => {
-      if (!rams || language === 'EN') {
-        setTranslatedContent(null);
-        return;
-      }
+    if (!rams || language === 'EN') {
+      setTranslatedContent(null);
+      return;
+    }
 
-      setIsTranslating(true);
-      try {
-        const textsToTranslate = [
-          rams.title,
-          ...rams.applicable_to,
-          rams.notice_to_drivers || '',
-          ...hazards.flatMap(h => [
-            h.activity,
-            h.potential_hazard,
-            h.who_at_risk,
-            h.control_measures,
-            h.notes || '',
-          ]),
-        ];
+    const langSuffix = language.toLowerCase() as 'pl' | 'uk' | 'ro';
+    const titleKey = `title_${langSuffix}` as keyof RAMS;
+    const noticeKey = `notice_to_drivers_${langSuffix}` as keyof RAMS;
 
-        const translated = await translateTexts(textsToTranslate);
-        
-        let i = 0;
-        setTranslatedContent({
-          title: translated[i++],
-          applicableTo: rams.applicable_to.map(() => translated[i++]),
-          noticeToDrivers: translated[i++],
-          hazards: hazards.map(() => ({
-            activity: translated[i++],
-            potentialHazard: translated[i++],
-            whoAtRisk: translated[i++],
-            controlMeasures: translated[i++],
-            notes: translated[i++],
-          })),
-        });
-      } catch (error) {
-        console.error('Translation error:', error);
-      } finally {
-        setIsTranslating(false);
-      }
-    };
+    // Check if we have stored translations
+    const hasStoredTranslations = rams[titleKey];
 
-    if (rams && hazards.length >= 0) {
-      translateContent();
+    if (hasStoredTranslations) {
+      // Use stored translations
+      setTranslatedContent({
+        title: (rams[titleKey] as string) || rams.title,
+        applicableTo: rams.applicable_to, // Keep original as these are not translated
+        noticeToDrivers: (rams[noticeKey] as string) || rams.notice_to_drivers || '',
+        hazards: hazards.map(h => {
+          const activityKey = `activity_${langSuffix}` as keyof Hazard;
+          const hazardKey = `potential_hazard_${langSuffix}` as keyof Hazard;
+          const riskKey = `who_at_risk_${langSuffix}` as keyof Hazard;
+          const controlKey = `control_measures_${langSuffix}` as keyof Hazard;
+          const notesKey = `notes_${langSuffix}` as keyof Hazard;
+          
+          return {
+            activity: (h[activityKey] as string) || h.activity,
+            potentialHazard: (h[hazardKey] as string) || h.potential_hazard,
+            whoAtRisk: (h[riskKey] as string) || h.who_at_risk,
+            controlMeasures: (h[controlKey] as string) || h.control_measures,
+            notes: (h[notesKey] as string) || h.notes || '',
+          };
+        }),
+      });
+    } else {
+      // No stored translations available - show message
+      toast({
+        title: "Translation Not Available",
+        description: "This document has not been translated yet. Showing English version.",
+        variant: "destructive",
+      });
+      setTranslatedContent(null);
     }
   }, [language, rams, hazards]);
 
@@ -289,33 +307,19 @@ const RAMSDetailPage = () => {
     }
   };
 
-  const translateTexts = async (texts: string[]): Promise<string[]> => {
-    if (language === 'EN') return texts;
+  // Helper to get translated text from stored translations
+  const getTranslatedText = (field: keyof RAMS, fallback: string): string => {
+    if (language === 'EN' || !rams) return fallback;
+    const langSuffix = language.toLowerCase();
+    const translatedField = `${field}_${langSuffix}` as keyof RAMS;
+    return (rams[translatedField] as string) || fallback;
+  };
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-rams`,
-        {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ texts, target_lang: language }),
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        return result.translations;
-      }
-      throw new Error(result.error);
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast({ title: "Translation failed", description: "Showing in English", variant: "destructive" });
-      return texts;
-    }
+  const getTranslatedHazardText = (hazard: Hazard, field: string, fallback: string): string => {
+    if (language === 'EN') return fallback;
+    const langSuffix = language.toLowerCase();
+    const translatedField = `${field}_${langSuffix}` as keyof Hazard;
+    return (hazard[translatedField] as string) || fallback;
   };
 
   const getRiskColor = (risk: number): [number, number, number] => {
@@ -330,71 +334,39 @@ const RAMSDetailPage = () => {
     setIsDownloading(true);
     
     try {
-      // Gather all texts to translate
-      const textsToTranslate = [
-        rams.title,
-        'Appendix A – Risk assessment template',
-        'Name of assessor:',
-        'Date:',
-        'Time:',
-        'Location:',
-        'Task being assessed:',
-        'What is the hazard',
-        'Who might be harmed?',
-        'How might people be harmed?',
-        'Existing risk control measures',
-        'Risk rating',
-        'Additional controls',
-        'New risk rating (residual)',
-        'Action / monitored by whom?',
-        'Action / monitored by when?',
-        'Review date:',
-        'Signature:',
-        'L',
-        'C',
-        'R',
-        ...hazards.flatMap(h => [
-          h.activity,
-          h.potential_hazard,
-          h.who_at_risk,
-          h.control_measures,
-          h.notes || '',
-        ]),
-      ];
+      // Use stored translations for hazards
+      const translatedHazards = hazards.map(h => ({
+        activity: getTranslatedHazardText(h, 'activity', h.activity),
+        potentialHazard: getTranslatedHazardText(h, 'potential_hazard', h.potential_hazard),
+        whoAtRisk: getTranslatedHazardText(h, 'who_at_risk', h.who_at_risk),
+        controlMeasures: getTranslatedHazardText(h, 'control_measures', h.control_measures),
+        notes: getTranslatedHazardText(h, 'notes', h.notes || ''),
+      }));
 
-      const translated = await translateTexts(textsToTranslate);
-      
-      // Map translations back
-      let i = 0;
+      // Static labels - keep in English (or could add a labels translation table later)
       const t = {
-        title: translated[i++],
-        appendixHeader: translated[i++],
-        nameOfAssessor: translated[i++],
-        date: translated[i++],
-        time: translated[i++],
-        location: translated[i++],
-        taskBeingAssessed: translated[i++],
-        whatIsHazard: translated[i++],
-        whoMightBeHarmed: translated[i++],
-        howMightBeHarmed: translated[i++],
-        existingRiskControl: translated[i++],
-        riskRating: translated[i++],
-        additionalControls: translated[i++],
-        newRiskRating: translated[i++],
-        actionByWhom: translated[i++],
-        actionByWhen: translated[i++],
-        reviewDate: translated[i++],
-        signature: translated[i++],
-        L: translated[i++],
-        C: translated[i++],
-        R: translated[i++],
-        hazards: hazards.map(() => ({
-          activity: translated[i++],
-          potentialHazard: translated[i++],
-          whoAtRisk: translated[i++],
-          controlMeasures: translated[i++],
-          notes: translated[i++],
-        })),
+        title: getTranslatedText('title', rams.title),
+        appendixHeader: 'Appendix A – Risk assessment template',
+        nameOfAssessor: 'Name of assessor:',
+        date: 'Date:',
+        time: 'Time:',
+        location: 'Location:',
+        taskBeingAssessed: 'Task being assessed:',
+        whatIsHazard: 'What is the hazard',
+        whoMightBeHarmed: 'Who might be harmed?',
+        howMightBeHarmed: 'How might people be harmed?',
+        existingRiskControl: 'Existing risk control measures',
+        riskRating: 'Risk rating',
+        additionalControls: 'Additional controls',
+        newRiskRating: 'New risk rating (residual)',
+        actionByWhom: 'Action / monitored by whom?',
+        actionByWhen: 'Action / monitored by when?',
+        reviewDate: 'Review date:',
+        signature: 'Signature:',
+        L: 'L',
+        C: 'C',
+        R: 'R',
+        hazards: translatedHazards,
       };
 
       // Generate PDF - Landscape for table format
@@ -727,14 +699,7 @@ const RAMSDetailPage = () => {
             ))}
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-2">
-            {isTranslating ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Translating...
-              </span>
-            ) : (
-              translatedContent?.title || rams.title
-            )}
+            {translatedContent?.title || rams.title}
           </h2>
           <p className="text-primary-foreground/80">
             Created: {format(new Date(rams.created_date), "PPP")} | Review: {format(new Date(rams.review_date), "PPP")}
