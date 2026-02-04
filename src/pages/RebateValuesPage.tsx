@@ -22,9 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ArrowLeft, DollarSign, Save } from "lucide-react";
+import { ArrowLeft, DollarSign, Save, Link2 } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
+import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 
 type RebateItem = {
   id: string;
@@ -259,98 +261,117 @@ const RebateValuesPage = () => {
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-5xl mx-auto space-y-6">
-          <Card>
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Monthly rebate ranges</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Choose a month, edit lower/higher ranges, then save.
-                </p>
-              </div>
+          <Tabs defaultValue="monthly-values" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="monthly-values" className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Monthly Values
+              </TabsTrigger>
+              <TabsTrigger value="rebate-mapping" className="flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                Rebate Mapping
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <div className="w-full sm:w-[240px]">
-                  <Select value={monthStart} onValueChange={setMonthStart}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select month" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {monthOptions.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {labelForMonth(m)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <TabsContent value="monthly-values">
+              <Card>
+                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle>Monthly rebate ranges</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Choose a month, edit lower/higher ranges, then save.
+                    </p>
+                  </div>
 
-                <Button onClick={handleSave} disabled={!canEdit || isSaving || isFetching} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  {isSaving ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            </CardHeader>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                    <div className="w-full sm:w-[240px]">
+                      <Select value={monthStart} onValueChange={setMonthStart}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {monthOptions.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {labelForMonth(m)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <CardContent>
-              <div className="rounded-md border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Recyclable</TableHead>
-                      <TableHead className="w-[160px]">Lower</TableHead>
-                      <TableHead className="w-[160px]">Higher</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => {
-                      const r = rows[item.id];
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell>
-                            <Input
-                              inputMode="decimal"
-                              type="number"
-                              step="0.01"
-                              value={r?.lower ?? ""}
-                              onChange={(e) => setRowValue(item.id, "lower", e.target.value)}
-                              disabled={!canEdit || isFetching}
-                              placeholder="—"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              inputMode="decimal"
-                              type="number"
-                              step="0.01"
-                              value={r?.higher ?? ""}
-                              onChange={(e) => setRowValue(item.id, "higher", e.target.value)}
-                              disabled={!canEdit || isFetching}
-                              placeholder="—"
-                            />
-                          </TableCell>
+                    <Button onClick={handleSave} disabled={!canEdit || isSaving || isFetching} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      {isSaving ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="rounded-md border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Recyclable</TableHead>
+                          <TableHead className="w-[160px]">Lower</TableHead>
+                          <TableHead className="w-[160px]">Higher</TableHead>
                         </TableRow>
-                      );
-                    })}
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item) => {
+                          const r = rows[item.id];
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.name}</TableCell>
+                              <TableCell>
+                                <Input
+                                  inputMode="decimal"
+                                  type="number"
+                                  step="0.01"
+                                  value={r?.lower ?? ""}
+                                  onChange={(e) => setRowValue(item.id, "lower", e.target.value)}
+                                  disabled={!canEdit || isFetching}
+                                  placeholder="—"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  inputMode="decimal"
+                                  type="number"
+                                  step="0.01"
+                                  value={r?.higher ?? ""}
+                                  onChange={(e) => setRowValue(item.id, "higher", e.target.value)}
+                                  disabled={!canEdit || isFetching}
+                                  placeholder="—"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
 
-                    {items.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-muted-foreground">
-                          {isFetching ? "Loading..." : "No rebate items found."}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                        {items.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-muted-foreground">
+                              {isFetching ? "Loading..." : "No rebate items found."}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
 
-              {!canEdit && (
-                <p className="text-sm text-muted-foreground mt-4">
-                  View-only: you don’t have permission to edit rebate values.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                  {!canEdit && (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      View-only: you don't have permission to edit rebate values.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="rebate-mapping">
+              <RebateMappingSection canEdit={canEdit} />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
