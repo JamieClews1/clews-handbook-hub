@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
+import { DateRange } from "react-day-picker";
+
 type Customer = {
   id: string;
   customer_name: string;
@@ -52,7 +54,10 @@ export function SiteRebateReportGenerator() {
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedSiteId, setSelectedSiteId] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<RebateReportRow[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
@@ -176,31 +181,49 @@ export function SiteRebateReportGenerator() {
         });
       }
 
-      // Get monthly values for the selected month
-      const monthStart = format(startOfMonth(selectedMonth), "yyyy-MM-dd");
+      // Get monthly values for all months in the selected range and average them
+      const rangeStart = dateRange?.from ?? new Date();
+      const rangeEnd = dateRange?.to ?? rangeStart;
+      const monthsInRange = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
+      
+      // Fetch monthly values for all months in the range
+      const monthStarts = monthsInRange.map(m => format(startOfMonth(m), "yyyy-MM-dd"));
       const { data: monthlyValues } = await supabase
         .from("rebate_monthly_values")
-        .select("item_id, lower_range, higher_range")
-        .eq("month_start", monthStart);
+        .select("item_id, lower_range, higher_range, month_start")
+        .in("month_start", monthStarts);
 
+      // Average the monthly values across the range
       const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
+      const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
+      
       for (const mv of monthlyValues ?? []) {
-        monthlyValueMap[mv.item_id] = {
-          lower: mv.lower_range ?? 0,
-          higher: mv.higher_range ?? 0,
+        if (!valueAccumulator[mv.item_id]) {
+          valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
+        }
+        valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
+        valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
+        valueAccumulator[mv.item_id].count += 1;
+      }
+      
+      for (const [itemId, acc] of Object.entries(valueAccumulator)) {
+        monthlyValueMap[itemId] = {
+          lower: acc.count > 0 ? acc.lowerSum / acc.count : 0,
+          higher: acc.count > 0 ? acc.higherSum / acc.count : 0,
         };
       }
 
-      // Get Load Report data for this site/month
-      const monthEnd = format(endOfMonth(selectedMonth), "yyyy-MM-dd");
+      // Get Load Report data for this site within the date range
+      const periodStart = format(rangeStart, "yyyy-MM-dd");
+      const periodEnd = format(rangeEnd, "yyyy-MM-dd");
       
-      // Fetch load reports for this site in the selected month
+      // Fetch load reports for this site in the selected date range
       const { data: loadReports } = await supabase
         .from("load_reports")
         .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
         .eq("site_id", selectedSiteId)
-        .gte("report_date", monthStart)
-        .lte("report_date", monthEnd)
+        .gte("report_date", periodStart)
+        .lte("report_date", periodEnd)
         .eq("status", "submitted")
         .order("report_date", { ascending: false });
 
@@ -357,27 +380,36 @@ export function SiteRebateReportGenerator() {
         </div>
 
         <div className="space-y-2">
-          <Label>Month</Label>
+          <Label>Date Range</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !selectedMonth && "text-muted-foreground"
+                  !dateRange?.from && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedMonth, "MMMM yyyy")}
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "d MMM yyyy")
+                  )
+                ) : (
+                  <span>Pick a date range</span>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 z-[100] pointer-events-auto" align="start">
               <Calendar
-                mode="single"
-                month={selectedMonth}
-                onMonthChange={(month) => setSelectedMonth(startOfMonth(month))}
-                selected={selectedMonth}
-                onSelect={(date) => date && setSelectedMonth(startOfMonth(date))}
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
               />
@@ -409,7 +441,8 @@ export function SiteRebateReportGenerator() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-semibold">
-                {selectedSite?.site_name} - {format(selectedMonth, "MMMM yyyy")}
+                {selectedSite?.site_name} – {dateRange?.from && format(dateRange.from, "d MMM yyyy")}
+                {dateRange?.to && dateRange.to !== dateRange.from && ` to ${format(dateRange.to, "d MMM yyyy")}`}
               </h3>
               <p className="text-sm text-muted-foreground">
                 Rebate Set: <span className="font-medium">{priceSetName}</span>
@@ -484,7 +517,7 @@ export function SiteRebateReportGenerator() {
           <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
             <p className="font-medium mb-1">Data Source:</p>
             <p>
-              Weights are pulled from submitted Load Reports linked to this site for {format(selectedMonth, "MMMM yyyy")}.
+              Weights are pulled from submitted Load Reports linked to this site for the selected period.
               Make sure Load Reports have the correct site selected when created.
             </p>
           </div>
