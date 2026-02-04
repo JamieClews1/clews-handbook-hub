@@ -12,6 +12,8 @@ import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
 import { TallyScreen, LineItem } from "@/components/load-reports/TallyScreen";
 import { LoadReviewScreen } from "@/components/load-reports/LoadReviewScreen";
 import { LoadReportsList } from "@/components/load-reports/LoadReportsList";
+import { OfflineSyncStatus } from "@/components/load-reports/OfflineSyncStatus";
+import { useOfflineSync, OfflineLoadReport } from "@/hooks/useOfflineSync";
 
 type ViewMode = "customer" | "list" | "new" | "tally" | "review";
 
@@ -27,6 +29,13 @@ const LoadReportsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { toast } = useToast();
+  const { 
+    isOnline, 
+    isSyncing, 
+    pendingCount, 
+    saveOfflineReport, 
+    syncPendingReports 
+  } = useOfflineSync();
 
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
@@ -34,6 +43,7 @@ const LoadReportsPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [defaultPalletWeight, setDefaultPalletWeight] = useState(20);
+  const [currentLocalId, setCurrentLocalId] = useState<string | null>(null);
 
   // Sites state
   interface SiteOption {
@@ -359,7 +369,7 @@ const LoadReportsPage = () => {
         operator_id: user.id,
         operator_name: operatorName,
         vehicle_reg: vehicleReg || null,
-        notes: jobNumber || null, // Storing job number in notes field
+        notes: jobNumber || null,
         site_id: selectedSiteId || null,
         report_date: reportDate,
         total_pallets: totalPallets,
@@ -368,17 +378,47 @@ const LoadReportsPage = () => {
         submitted_at: submit ? new Date().toISOString() : null,
       };
 
+      // If offline, save locally
+      if (!isOnline) {
+        const localId = currentLocalId || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        const offlineReport: OfflineLoadReport = {
+          localId,
+          ...reportPayload,
+          lineItems: lineItems.map(item => ({
+            waste_type: item.waste_type,
+            pallet_count: item.pallet_count,
+            avg_weight_kg: item.avg_weight_kg,
+            total_weight_kg: item.pallet_count * item.avg_weight_kg,
+            display_order: item.display_order,
+          })),
+          synced: false,
+          createdAt: new Date().toISOString(),
+        };
+
+        saveOfflineReport(offlineReport);
+        setCurrentLocalId(localId);
+
+        toast({
+          title: submit ? "Saved Offline" : "Draft Saved Offline",
+          description: "Report saved locally. Will sync when online.",
+        });
+
+        if (submit) {
+          setViewMode("list");
+        }
+        return;
+      }
+
       let reportId = currentReportId;
 
       if (currentReportId) {
-        // Update existing
         const { error } = await supabase
           .from("load_reports")
           .update(reportPayload)
           .eq("id", currentReportId);
         if (error) throw error;
       } else {
-        // Create new
         const { data, error } = await supabase
           .from("load_reports")
           .insert(reportPayload)
@@ -389,7 +429,6 @@ const LoadReportsPage = () => {
         setCurrentReportId(data.id);
       }
 
-      // Delete existing line items and re-insert
       if (reportId) {
         await supabase.from("load_line_items").delete().eq("load_report_id", reportId);
 
@@ -511,7 +550,15 @@ const LoadReportsPage = () => {
                 <span className="font-semibold text-foreground">{getHeaderTitle()}</span>
               </div>
             </div>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
+            <div className="flex items-center gap-3">
+              <OfflineSyncStatus
+                isOnline={isOnline}
+                isSyncing={isSyncing}
+                pendingCount={pendingCount}
+                onSync={syncPendingReports}
+              />
+              <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
+            </div>
           </div>
         </div>
       </header>
