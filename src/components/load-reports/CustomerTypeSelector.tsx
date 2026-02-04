@@ -1,6 +1,6 @@
 import { Truck } from "lucide-react";
 
-export type CustomerType = "britvic" | "staci" | "vantiva" | "other";
+export type CustomerType = "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other";
 
 interface CustomerTypeSelectorProps {
   onSelect: (customer: CustomerType) => void;
@@ -10,6 +10,8 @@ const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; av
   { id: "britvic", name: "Britvic", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "staci", name: "Staci", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "vantiva", name: "Vantiva", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "amazon", name: "Amazon", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "evri", name: "EVRi", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "other", name: "Standard", icon: <Truck className="h-8 w-8" />, available: true },
 ];
 
