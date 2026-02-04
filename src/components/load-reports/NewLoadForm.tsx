@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Truck, ArrowRight, RefreshCw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Truck, ArrowRight, RefreshCw, Trash2 } from "lucide-react";
 
 interface SiteOption {
   id: string;
@@ -31,6 +43,9 @@ interface NewLoadFormProps {
   onLookupWeighbridgeWeight?: () => void;
   onStartTally: () => void;
   isValid: boolean;
+  isEditing?: boolean;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 export const NewLoadForm = ({
@@ -48,16 +63,56 @@ export const NewLoadForm = ({
   onLookupWeighbridgeWeight,
   onStartTally,
   isValid,
+  isEditing = false,
+  onDelete,
+  isDeleting = false,
 }: NewLoadFormProps) => {
   return (
     <div className="space-y-6">
       <Card className="border-2 shadow-lg">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-              <Truck className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                <Truck className="h-6 w-6 text-white" />
+              </div>
+              <CardTitle className="text-xl">
+                {isEditing ? "Edit Load Report" : "New Load Report"}
+              </CardTitle>
             </div>
-            <CardTitle className="text-xl">New Load Report</CardTitle>
+            {isEditing && onDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Load Report?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete
+                      the load report and all its line items.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -160,7 +215,7 @@ export const NewLoadForm = ({
             size="lg"
             className="w-full h-16 text-xl gap-3 mt-4"
           >
-            Start Tally
+            {isEditing ? "Continue to Tally" : "Start Tally"}
             <ArrowRight className="h-6 w-6" />
           </Button>
         </CardContent>
