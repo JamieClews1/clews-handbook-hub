@@ -12,6 +12,10 @@ import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
 import { TallyScreen, LineItem } from "@/components/load-reports/TallyScreen";
 import { LoadReviewScreen } from "@/components/load-reports/LoadReviewScreen";
 import { LoadReportsList } from "@/components/load-reports/LoadReportsList";
+import { OfflineIndicator } from "@/components/load-reports/OfflineIndicator";
+import { useOfflineLoadReports } from "@/hooks/useOfflineLoadReports";
+import { initAutoSync } from "@/lib/sync-service";
+import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
 
 type ViewMode = "customer" | "list" | "new" | "tally" | "review";
 
@@ -52,11 +56,26 @@ const LoadReportsPage = () => {
   const [weighbridgeWeightKg, setWeighbridgeWeightKg] = useState<number | null>(null);
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
 
+  // Offline support
+  const {
+    isOnline,
+    pendingCount,
+    syncNow,
+    refreshData: refreshOfflineData,
+  } = useOfflineLoadReports(user?.id);
+  const [isSyncingManual, setIsSyncingManual] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    // Initialize auto-sync on mount
+    const cleanup = initAutoSync();
+    return cleanup;
+  }, []);
 
   useEffect(() => {
     fetchWasteTypes();
@@ -72,6 +91,8 @@ const LoadReportsPage = () => {
 
     if (!error && data) {
       setSites(data);
+      // Cache for offline use
+      await cacheSites(data);
     }
   };
 
@@ -118,6 +139,10 @@ const LoadReportsPage = () => {
     }
 
     setWasteTypes(data || []);
+    // Cache for offline use
+    if (data) {
+      await cacheWasteTypes(data);
+    }
   };
 
   const fetchWeighbridgeWeightKg = async (ticketOrJobNumber: string) => {
@@ -486,6 +511,28 @@ const LoadReportsPage = () => {
     }
   };
 
+  const handleManualSync = async () => {
+    setIsSyncingManual(true);
+    try {
+      const { synced, errors } = await syncNow();
+      if (synced > 0) {
+        toast({
+          title: "Synced",
+          description: `${synced} report(s) uploaded successfully`,
+        });
+      }
+      if (errors > 0) {
+        toast({
+          title: "Sync errors",
+          description: `${errors} report(s) failed to sync`,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSyncingManual(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -508,10 +555,18 @@ const LoadReportsPage = () => {
               )}
               <div className="flex items-center gap-2">
                 <Truck className="h-5 w-5 text-amber-500" />
-                <span className="font-semibold text-foreground">{getHeaderTitle()}</span>
+                <span className="font-semibold text-foreground hidden sm:inline">{getHeaderTitle()}</span>
               </div>
             </div>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
+            <div className="flex items-center gap-3">
+              <OfflineIndicator
+                isOnline={isOnline}
+                pendingCount={pendingCount}
+                isSyncing={isSyncingManual}
+                onSyncNow={handleManualSync}
+              />
+              <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto hidden sm:block" />
+            </div>
           </div>
         </div>
       </header>
