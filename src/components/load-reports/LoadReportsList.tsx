@@ -32,9 +32,10 @@ interface LoadReportsListProps {
   onNewReport: () => void;
   onViewReport: (id: string) => void;
   onEditReport: (id: string) => void;
+  customerType?: "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other" | null;
 }
 
-export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport }: LoadReportsListProps) => {
+export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, customerType }: LoadReportsListProps) => {
   const [reports, setReports] = useState<LoadReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,17 +46,49 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport }: Loa
 
   useEffect(() => {
     fetchReports();
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, customerType]);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // First, get site IDs that match the customer type
+      let siteIds: string[] = [];
+      
+      if (customerType) {
+        let siteQuery = supabase
+          .from("customer_sites")
+          .select("id, load_report_type");
+
+        if (customerType !== "other") {
+          siteQuery = siteQuery.eq("load_report_type", customerType);
+        } else {
+          // Standard reports: sites with null/empty load_report_type or explicitly "other"
+          siteQuery = siteQuery.or("load_report_type.is.null,load_report_type.eq.,load_report_type.eq.other");
+        }
+
+        const { data: siteData } = await siteQuery;
+        siteIds = siteData?.map(s => s.id) || [];
+      }
+
+      // Build the reports query
+      let query = supabase
         .from("load_reports")
         .select("*")
         .gte("report_date", dateFrom)
         .lte("report_date", dateTo)
         .order("report_date", { ascending: false });
+
+      // Filter by site_ids if we have a customer type selected
+      if (customerType && siteIds.length > 0) {
+        query = query.in("site_id", siteIds);
+      } else if (customerType && siteIds.length === 0) {
+        // No sites match this customer type, return empty
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setReports(data || []);

@@ -91,10 +91,31 @@ const LoadReportsPage = () => {
   }, [selectedCustomer]);
 
   const fetchSites = async () => {
-    const { data, error } = await supabase
+    // Map customer type to load_report_type value
+    // "other" maps to null/empty (Standard sites) or any site without a specific type
+    const reportTypeMap: Record<CustomerType, string | null> = {
+      britvic: "britvic",
+      staci: "staci",
+      vantiva: "vantiva",
+      amazon: "amazon",
+      evri: "evri",
+      other: null, // Standard - sites without a specific load_report_type
+    };
+
+    let query = supabase
       .from("customer_sites")
-      .select("id, site_name")
+      .select("id, site_name, load_report_type")
       .order("site_name");
+
+    // Filter by load_report_type based on selected customer
+    if (selectedCustomer && selectedCustomer !== "other") {
+      query = query.eq("load_report_type", reportTypeMap[selectedCustomer]);
+    } else if (selectedCustomer === "other") {
+      // Standard reports: sites with null/empty load_report_type or explicitly "other"
+      query = query.or("load_report_type.is.null,load_report_type.eq.,load_report_type.eq.other");
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setSites(data);
@@ -612,6 +633,7 @@ const LoadReportsPage = () => {
                 onNewReport={handleNewReport}
                 onViewReport={handleViewReport}
                 onEditReport={handleEditReport}
+                customerType={selectedCustomer}
               />
             </>
           )}
