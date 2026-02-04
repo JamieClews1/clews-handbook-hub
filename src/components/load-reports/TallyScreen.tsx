@@ -40,6 +40,30 @@ export const TallyScreen = ({
 
   return (
     <div className="space-y-4 pb-32">
+      {/* Tally Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {lineItems.map((item, index) => (
+          <TallyCard
+            key={item.waste_type}
+            wasteType={item.waste_type}
+            palletCount={item.pallet_count}
+            avgWeight={item.avg_weight_kg}
+            onPalletChange={(count) => {
+              onLineItemChange(index, {
+                pallet_count: count,
+                total_weight_kg: count * item.avg_weight_kg,
+              });
+            }}
+            onWeightChange={(weight) => {
+              onLineItemChange(index, {
+                avg_weight_kg: weight,
+                total_weight_kg: item.pallet_count * weight,
+              });
+            }}
+          />
+        ))}
+      </div>
+
       {/* EVRi-specific: Pallets Out section */}
       {isEvri && onPalletsOutChange && (
         <Card className="border-2 border-amber-500/50 bg-amber-50/30">
@@ -66,30 +90,6 @@ export const TallyScreen = ({
           </CardContent>
         </Card>
       )}
-
-      {/* Tally Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {lineItems.map((item, index) => (
-          <TallyCard
-            key={item.waste_type}
-            wasteType={item.waste_type}
-            palletCount={item.pallet_count}
-            avgWeight={item.avg_weight_kg}
-            onPalletChange={(count) => {
-              onLineItemChange(index, {
-                pallet_count: count,
-                total_weight_kg: count * item.avg_weight_kg,
-              });
-            }}
-            onWeightChange={(weight) => {
-              onLineItemChange(index, {
-                avg_weight_kg: weight,
-                total_weight_kg: item.pallet_count * weight,
-              });
-            }}
-          />
-        ))}
-      </div>
 
       {/* Fixed Bottom Summary Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
