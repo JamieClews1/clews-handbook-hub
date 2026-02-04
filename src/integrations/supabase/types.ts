@@ -561,6 +561,38 @@ export type Database = {
         }
         Relationships: []
       }
+      data_hub_rebate_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          rebate_item_id: string | null
+          updated_at: string
+          waste_description: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rebate_item_id?: string | null
+          updated_at?: string
+          waste_description: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rebate_item_id?: string | null
+          updated_at?: string
+          waste_description?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_hub_rebate_mappings_rebate_item_id_fkey"
+            columns: ["rebate_item_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       default_waste_types: {
         Row: {
           display_order: number
