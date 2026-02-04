@@ -59,23 +59,38 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
         const sixMonthsAgoISO = sixMonthsAgo.toISOString().slice(0, 10);
 
         // Get all distinct waste descriptions from data_hub_jobs (last 6 months)
-        const { data: jobsData, error: jobsError } = await supabase
-          .from("data_hub_jobs")
-          .select("waste_description")
-          .not("waste_description", "is", null)
-          .gte("job_date", sixMonthsAgoISO)
-          .order("waste_description");
+        // Use pagination to get ALL records (bypassing 1000-row limit)
+        const allWasteDescriptions: string[] = [];
+        let hasMore = true;
+        let offset = 0;
+        const pageSize = 1000;
 
-        if (jobsError) throw jobsError;
+        while (hasMore) {
+          const { data: jobsData, error: jobsError } = await supabase
+            .from("data_hub_jobs")
+            .select("waste_description")
+            .not("waste_description", "is", null)
+            .gte("job_date", sixMonthsAgoISO)
+            .order("waste_description")
+            .range(offset, offset + pageSize - 1);
+
+          if (jobsError) throw jobsError;
+
+          if (jobsData && jobsData.length > 0) {
+            for (const j of jobsData) {
+              if (j.waste_description) {
+                allWasteDescriptions.push(j.waste_description);
+              }
+            }
+            offset += pageSize;
+            hasMore = jobsData.length === pageSize;
+          } else {
+            hasMore = false;
+          }
+        }
 
         // Get unique waste descriptions
-        const uniqueDescriptions = [
-          ...new Set(
-            (jobsData ?? [])
-              .map((j) => j.waste_description)
-              .filter((d): d is string => !!d)
-          ),
-        ];
+        const uniqueDescriptions = [...new Set(allWasteDescriptions)].sort();
 
         // Get rebate items and material types in parallel
         const [{ data: itemsData, error: itemsError }, { data: materialsData, error: materialsError }] =
