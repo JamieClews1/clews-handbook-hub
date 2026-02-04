@@ -360,6 +360,57 @@ export type Database = {
           },
         ]
       }
+      customer_site_skip_rebates: {
+        Row: {
+          adjustment: number | null
+          created_at: string
+          id: string
+          material_type: Database["public"]["Enums"]["skip_material_type"]
+          set_value: number | null
+          site_id: string
+          updated_at: string
+          value_type: string
+          value_type_item_id: string | null
+        }
+        Insert: {
+          adjustment?: number | null
+          created_at?: string
+          id?: string
+          material_type: Database["public"]["Enums"]["skip_material_type"]
+          set_value?: number | null
+          site_id: string
+          updated_at?: string
+          value_type?: string
+          value_type_item_id?: string | null
+        }
+        Update: {
+          adjustment?: number | null
+          created_at?: string
+          id?: string
+          material_type?: Database["public"]["Enums"]["skip_material_type"]
+          set_value?: number | null
+          site_id?: string
+          updated_at?: string
+          value_type?: string
+          value_type_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_site_skip_rebates_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_site_skip_rebates_value_type_item_id_fkey"
+            columns: ["value_type_item_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_sites: {
         Row: {
           created_at: string
@@ -2364,6 +2415,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      skip_material_type: "card_loose" | "scrap_metal"
       user_type: "driver" | "yard" | "office" | "management"
     }
     CompositeTypes: {
@@ -2493,6 +2545,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      skip_material_type: ["card_loose", "scrap_metal"],
       user_type: ["driver", "yard", "office", "management"],
     },
   },
