@@ -565,6 +565,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          material_type_id: string | null
           rebate_item_id: string | null
           updated_at: string
           waste_description: string
@@ -572,6 +573,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          material_type_id?: string | null
           rebate_item_id?: string | null
           updated_at?: string
           waste_description: string
@@ -579,11 +581,19 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          material_type_id?: string | null
           rebate_item_id?: string | null
           updated_at?: string
           waste_description?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "data_hub_rebate_mappings_material_type_id_fkey"
+            columns: ["material_type_id"]
+            isOneToOne: false
+            referencedRelation: "load_waste_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "data_hub_rebate_mappings_rebate_item_id_fkey"
             columns: ["rebate_item_id"]

@@ -26,8 +26,14 @@ type RebateItem = {
   name: string;
 };
 
+type MaterialType = {
+  id: string;
+  waste_type: string;
+};
+
 type WasteDescriptionRow = {
   waste_description: string;
+  material_type_id: string | null;
   rebate_item_id: string | null;
   isSaving?: boolean;
 };
@@ -39,6 +45,7 @@ interface RebateMappingSectionProps {
 export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => {
   const { toast } = useToast();
   const [rebateItems, setRebateItems] = useState<RebateItem[]>([]);
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [wasteDescriptions, setWasteDescriptions] = useState<WasteDescriptionRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,31 +71,38 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
           ),
         ];
 
-        // Get rebate items
-        const { data: itemsData, error: itemsError } = await supabase
-          .from("rebate_items")
-          .select("id, name")
-          .order("sort_order");
+        // Get rebate items and material types in parallel
+        const [{ data: itemsData, error: itemsError }, { data: materialsData, error: materialsError }] =
+          await Promise.all([
+            supabase.from("rebate_items").select("id, name").order("sort_order"),
+            supabase.from("load_waste_types").select("id, waste_type").eq("is_active", true).order("display_order"),
+          ]);
 
         if (itemsError) throw itemsError;
+        if (materialsError) throw materialsError;
         setRebateItems((itemsData ?? []) as RebateItem[]);
+        setMaterialTypes((materialsData ?? []) as MaterialType[]);
 
         // Get existing mappings
         const { data: mappingsData, error: mappingsError } = await supabase
           .from("data_hub_rebate_mappings")
-          .select("waste_description, rebate_item_id");
+          .select("waste_description, material_type_id, rebate_item_id");
 
         if (mappingsError) throw mappingsError;
 
-        const mappingsByDescription = new Map<string, string | null>();
+        const mappingsByDescription = new Map<string, { material_type_id: string | null; rebate_item_id: string | null }>();
         for (const m of mappingsData ?? []) {
-          mappingsByDescription.set(m.waste_description, m.rebate_item_id);
+          mappingsByDescription.set(m.waste_description, {
+            material_type_id: m.material_type_id,
+            rebate_item_id: m.rebate_item_id,
+          });
         }
 
         // Build rows
         const rows: WasteDescriptionRow[] = uniqueDescriptions.map((wd) => ({
           waste_description: wd,
-          rebate_item_id: mappingsByDescription.get(wd) ?? null,
+          material_type_id: mappingsByDescription.get(wd)?.material_type_id ?? null,
+          rebate_item_id: mappingsByDescription.get(wd)?.rebate_item_id ?? null,
         }));
 
         setWasteDescriptions(rows);
@@ -107,7 +121,11 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
     load();
   }, [toast]);
 
-  const handleMappingChange = async (wasteDescription: string, rebateItemId: string | null) => {
+  const handleMappingChange = async (
+    wasteDescription: string,
+    field: "material_type_id" | "rebate_item_id",
+    value: string | null
+  ) => {
     if (!canEdit) return;
 
     // Mark row as saving
@@ -118,8 +136,15 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
     );
 
     try {
-      if (rebateItemId === null || rebateItemId === "none") {
-        // Delete mapping
+      const currentRow = wasteDescriptions.find((r) => r.waste_description === wasteDescription);
+      const newMaterialTypeId = field === "material_type_id" ? value : currentRow?.material_type_id;
+      const newRebateItemId = field === "rebate_item_id" ? value : currentRow?.rebate_item_id;
+
+      // Only delete if BOTH are null/none
+      if (
+        (newMaterialTypeId === null || newMaterialTypeId === "none") &&
+        (newRebateItemId === null || newRebateItemId === "none")
+      ) {
         await supabase
           .from("data_hub_rebate_mappings")
           .delete()
@@ -128,7 +153,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
         setWasteDescriptions((prev) =>
           prev.map((r) =>
             r.waste_description === wasteDescription
-              ? { ...r, rebate_item_id: null, isSaving: false }
+              ? { ...r, material_type_id: null, rebate_item_id: null, isSaving: false }
               : r
           )
         );
@@ -137,7 +162,11 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
         const { error } = await supabase
           .from("data_hub_rebate_mappings")
           .upsert(
-            { waste_description: wasteDescription, rebate_item_id: rebateItemId },
+            {
+              waste_description: wasteDescription,
+              material_type_id: newMaterialTypeId === "none" ? null : newMaterialTypeId,
+              rebate_item_id: newRebateItemId === "none" ? null : newRebateItemId,
+            },
             { onConflict: "waste_description" }
           );
 
@@ -146,7 +175,12 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
         setWasteDescriptions((prev) =>
           prev.map((r) =>
             r.waste_description === wasteDescription
-              ? { ...r, rebate_item_id: rebateItemId, isSaving: false }
+              ? {
+                  ...r,
+                  material_type_id: newMaterialTypeId === "none" ? null : newMaterialTypeId,
+                  rebate_item_id: newRebateItemId === "none" ? null : newRebateItemId,
+                  isSaving: false,
+                }
               : r
           )
         );
@@ -168,7 +202,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
     }
   };
 
-  const mappedCount = wasteDescriptions.filter((w) => w.rebate_item_id).length;
+  const mappedCount = wasteDescriptions.filter((w) => w.material_type_id || w.rebate_item_id).length;
   const unmappedCount = wasteDescriptions.length - mappedCount;
 
   return (
@@ -203,27 +237,49 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead>Waste Description (Data Hub)</TableHead>
-                  <TableHead className="w-[280px]">Rebate Item</TableHead>
+                  <TableHead className="w-[200px]">Material Type</TableHead>
+                  <TableHead className="w-[200px]">Value Type</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {wasteDescriptions.map((row) => (
                   <TableRow
                     key={row.waste_description}
-                    className={!row.rebate_item_id ? "bg-amber-50/50" : ""}
+                    className={!row.material_type_id && !row.rebate_item_id ? "bg-amber-50/50" : ""}
                   >
                     <TableCell className="font-medium">{row.waste_description}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={row.material_type_id ?? "none"}
+                        onValueChange={(v) =>
+                          handleMappingChange(row.waste_description, "material_type_id", v === "none" ? null : v)
+                        }
+                        disabled={!canEdit || row.isSaving}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— No rebate —</SelectItem>
+                          {materialTypes.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.waste_type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Select
                           value={row.rebate_item_id ?? "none"}
                           onValueChange={(v) =>
-                            handleMappingChange(row.waste_description, v === "none" ? null : v)
+                            handleMappingChange(row.waste_description, "rebate_item_id", v === "none" ? null : v)
                           }
                           disabled={!canEdit || row.isSaving}
                         >
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select rebate item..." />
+                            <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">— Not mapped —</SelectItem>
@@ -244,7 +300,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
 
                 {wasteDescriptions.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-muted-foreground text-center py-8">
+                    <TableCell colSpan={3} className="text-muted-foreground text-center py-8">
                       No waste descriptions found in Data Hub.
                     </TableCell>
                   </TableRow>
