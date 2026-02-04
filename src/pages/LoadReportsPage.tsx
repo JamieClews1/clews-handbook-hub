@@ -427,6 +427,42 @@ const LoadReportsPage = () => {
     }
   };
 
+  const handleDeleteReport = async () => {
+    if (!currentReportId) return;
+    setIsSaving(true);
+
+    try {
+      // Delete from server if it exists there
+      const { error: itemsError } = await supabase
+        .from("load_line_items")
+        .delete()
+        .eq("load_report_id", currentReportId);
+      if (itemsError) throw itemsError;
+
+      const { error } = await supabase
+        .from("load_reports")
+        .delete()
+        .eq("id", currentReportId);
+      if (error) throw error;
+
+      toast({
+        title: "Report Deleted",
+        description: "The load report has been deleted.",
+      });
+
+      setCurrentReportId(null);
+      setViewMode("list");
+    } catch (error: any) {
+      toast({
+        title: "Error deleting report",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleBack = () => {
     switch (viewMode) {
       case "list":
@@ -590,6 +626,9 @@ const LoadReportsPage = () => {
               onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
+              isEditing={!!currentReportId}
+              onDelete={handleDeleteReport}
+              isDeleting={isSaving}
             />
           )}
 
