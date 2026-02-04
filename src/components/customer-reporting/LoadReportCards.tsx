@@ -45,7 +45,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
         .from("rebate_rules")
         .select("rule_key, rule_value, is_enabled")
         .eq("rule_key", "minimum_weight_threshold")
-        .single();
+        .maybeSingle();
       
       if (data) {
         setMinimumWeightThreshold(Number(data.rule_value) || 1.5);
