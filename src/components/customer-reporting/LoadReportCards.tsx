@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Calendar, Truck, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, Calendar, Truck, Package, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export type LoadReportCardData = {
   id: string;
@@ -34,6 +35,25 @@ interface LoadReportCardsProps {
 
 export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }: LoadReportCardsProps) {
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  const [minimumWeightThreshold, setMinimumWeightThreshold] = useState<number>(1.5);
+  const [thresholdEnabled, setThresholdEnabled] = useState<boolean>(true);
+
+  // Fetch rebate rules
+  useEffect(() => {
+    const fetchRules = async () => {
+      const { data } = await supabase
+        .from("rebate_rules")
+        .select("rule_key, rule_value, is_enabled")
+        .eq("rule_key", "minimum_weight_threshold")
+        .single();
+      
+      if (data) {
+        setMinimumWeightThreshold(Number(data.rule_value) || 1.5);
+        setThresholdEnabled(data.is_enabled ?? true);
+      }
+    };
+    fetchRules();
+  }, []);
 
   const toggleCard = (id: string) => {
     setOpenCards((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -48,13 +68,9 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
   // Get pallet weight charge rate
   const palletChargeRate = rateMap["Pallet Weight Charge"] ?? 0;
 
-  // Calculate pallet weight charge for a report
-  const calculatePalletWeightCharge = (report: LoadReportCardData) => {
-    const palletWeightTonnes = (report.total_pallets * palletWeightKg) / 1000;
-    return {
-      weightTonnes: palletWeightTonnes,
-      value: palletWeightTonnes * palletChargeRate,
-    };
+  // Calculate pallet weight for a report (in tonnes)
+  const calculatePalletWeight = (report: LoadReportCardData) => {
+    return (report.total_pallets * palletWeightKg) / 1000;
   };
 
   // Filter out Pallet Weight Charge from line items (we calculate it separately)
@@ -62,24 +78,53 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     return items.filter((item) => item.waste_type !== "Pallet Weight Charge");
   };
 
-  // Calculate rebate for a single report (including pallet weight charge)
+  // Calculate gross weight (total of all material weights)
+  const calculateGrossWeight = (report: LoadReportCardData) => {
+    let gross = 0;
+    for (const item of filterLineItems(report.line_items)) {
+      gross += item.total_weight_kg / 1000;
+    }
+    return gross;
+  };
+
+  // Calculate net weight (gross minus pallet weight)
+  const calculateNetWeight = (report: LoadReportCardData) => {
+    const gross = calculateGrossWeight(report);
+    const palletWeight = calculatePalletWeight(report);
+    return gross - palletWeight;
+  };
+
+  // Check if weight is below threshold
+  const isBelowThreshold = (report: LoadReportCardData) => {
+    if (!thresholdEnabled) return false;
+    const netWeight = calculateNetWeight(report);
+    return netWeight < minimumWeightThreshold;
+  };
+
+  // Calculate rebate for a single report (including pallet weight charge and threshold check)
   const calculateReportRebate = (report: LoadReportCardData) => {
+    // If below threshold, no rebate is due
+    if (isBelowThreshold(report)) {
+      return 0;
+    }
+
     let rebate = 0;
     for (const item of filterLineItems(report.line_items)) {
       const rate = rateMap[item.waste_type] ?? 0;
       const weightTonnes = item.total_weight_kg / 1000;
       rebate += weightTonnes * rate;
     }
-    // Add pallet weight charge
-    const palletCharge = calculatePalletWeightCharge(report);
-    rebate += palletCharge.value;
+    // Add pallet weight charge (usually negative)
+    const palletWeight = calculatePalletWeight(report);
+    rebate += palletWeight * palletChargeRate;
     return rebate;
   };
 
   // Calculate totals for a report
   const calculateTotals = (report: LoadReportCardData) => {
     const filteredItems = filterLineItems(report.line_items);
-    const palletCharge = calculatePalletWeightCharge(report);
+    const palletWeight = calculatePalletWeight(report);
+    const belowThreshold = isBelowThreshold(report);
     
     let totalPallets = 0;
     let totalWeightTonnes = 0;
@@ -90,14 +135,17 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
       const weightTonnes = item.total_weight_kg / 1000;
       totalPallets += item.pallet_count;
       totalWeightTonnes += weightTonnes;
-      totalValue += weightTonnes * rate;
+      if (!belowThreshold) {
+        totalValue += weightTonnes * rate;
+      }
     }
 
-    // Add pallet weight charge
-    totalWeightTonnes += palletCharge.weightTonnes;
-    totalValue += palletCharge.value;
+    // Add pallet weight charge if not below threshold
+    if (!belowThreshold) {
+      totalValue += palletWeight * palletChargeRate;
+    }
 
-    return { totalPallets, totalWeightTonnes, totalValue };
+    return { totalPallets, totalWeightTonnes, totalValue, palletWeight };
   };
 
   if (reports.length === 0) {
@@ -117,10 +165,14 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
       {reports.map((report) => {
         const isOpen = openCards[report.id] ?? false;
         const reportRebate = calculateReportRebate(report);
+        const belowThreshold = isBelowThreshold(report);
+        const grossWeight = calculateGrossWeight(report);
+        const palletWeight = calculatePalletWeight(report);
+        const netWeight = calculateNetWeight(report);
 
         return (
           <Collapsible key={report.id} open={isOpen} onOpenChange={() => toggleCard(report.id)}>
-            <Card className="overflow-hidden">
+            <Card className={cn("overflow-hidden", belowThreshold && "border-amber-300 bg-amber-50/30")}>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3 px-4">
                   <div className="flex items-center justify-between">
@@ -149,17 +201,24 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="secondary" className="text-xs">
-                        {(report.total_weight_kg / 1000).toFixed(2)} t
+                        {netWeight.toFixed(2)} t
                       </Badge>
-                      <Badge 
-                        variant="default" 
-                        className={cn(
-                          "text-xs",
-                          reportRebate >= 0 ? "bg-green-600" : "bg-red-600"
-                        )}
-                      >
-                        £{reportRebate.toFixed(2)}
-                      </Badge>
+                      {belowThreshold ? (
+                        <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-100">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Below threshold
+                        </Badge>
+                      ) : (
+                        <Badge 
+                          variant="default" 
+                          className={cn(
+                            "text-xs",
+                            reportRebate >= 0 ? "bg-green-600" : "bg-red-600"
+                          )}
+                        >
+                          £{reportRebate.toFixed(2)}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   {report.notes && (
@@ -171,7 +230,35 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
               </CollapsibleTrigger>
 
               <CollapsibleContent>
-                <CardContent className="pt-0 pb-3 px-4">
+                <CardContent className="pt-0 pb-3 px-4 space-y-3">
+                  {/* Weight Breakdown Summary */}
+                  <div className="bg-muted/30 rounded-md p-3 text-sm">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Gross Weight</p>
+                        <p className="font-semibold">{grossWeight.toFixed(2)} t</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Pallet Weight ({report.total_pallets} × {palletWeightKg}kg)</p>
+                        <p className="font-semibold text-amber-600">-{palletWeight.toFixed(2)} t</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Net Weight</p>
+                        <p className={cn("font-semibold", belowThreshold ? "text-amber-600" : "text-green-600")}>
+                          {netWeight.toFixed(2)} t
+                        </p>
+                      </div>
+                    </div>
+                    {belowThreshold && (
+                      <div className="mt-3 flex items-center justify-center gap-2 text-amber-700 bg-amber-100 rounded-md py-2 px-3">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-xs font-medium">
+                          No rebate due - net weight below {minimumWeightThreshold}T minimum threshold
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="border rounded-md overflow-hidden">
                     <Table>
                       <TableHeader>
@@ -187,10 +274,10 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                         {filterLineItems(report.line_items).map((item, idx) => {
                           const rate = rateMap[item.waste_type] ?? 0;
                           const weightTonnes = item.total_weight_kg / 1000;
-                          const value = weightTonnes * rate;
+                          const value = belowThreshold ? 0 : weightTonnes * rate;
 
                           return (
-                            <TableRow key={idx}>
+                            <TableRow key={idx} className={belowThreshold ? "opacity-60" : ""}>
                               <TableCell className="text-xs py-1.5">{item.waste_type}</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{item.pallet_count}</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{weightTonnes.toFixed(2)}</TableCell>
@@ -199,39 +286,36 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                               </TableCell>
                               <TableCell className={cn(
                                 "text-xs py-1.5 text-right font-medium",
-                                value >= 0 ? "text-green-600" : "text-red-600"
+                                belowThreshold ? "text-muted-foreground" : value >= 0 ? "text-green-600" : "text-red-600"
                               )}>
-                                £{value.toFixed(2)}
+                                {belowThreshold ? "-" : `£${value.toFixed(2)}`}
                               </TableCell>
                             </TableRow>
                           );
                         })}
                         {/* Pallet Weight Charge Row */}
-                        {report.total_pallets > 0 && palletChargeRate !== 0 && (() => {
-                          const palletCharge = calculatePalletWeightCharge(report);
-                          return (
-                            <TableRow className="bg-amber-50/50">
-                              <TableCell className="text-xs py-1.5 font-medium text-amber-700">
-                                Pallet Weight Charge
-                              </TableCell>
-                              <TableCell className="text-xs py-1.5 text-right text-muted-foreground">
-                                {report.total_pallets} pallets
-                              </TableCell>
-                              <TableCell className="text-xs py-1.5 text-right">
-                                {palletCharge.weightTonnes.toFixed(2)}
-                              </TableCell>
-                              <TableCell className="text-xs py-1.5 text-right">
-                                £{palletChargeRate.toFixed(2)}
-                              </TableCell>
-                              <TableCell className={cn(
-                                "text-xs py-1.5 text-right font-medium",
-                                palletCharge.value >= 0 ? "text-green-600" : "text-red-600"
-                              )}>
-                                £{palletCharge.value.toFixed(2)}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })()}
+                        {report.total_pallets > 0 && palletChargeRate !== 0 && (
+                          <TableRow className={cn("bg-amber-50/50", belowThreshold && "opacity-60")}>
+                            <TableCell className="text-xs py-1.5 font-medium text-amber-700">
+                              Pallet Weight Charge
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-right text-muted-foreground">
+                              {report.total_pallets} pallets
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-right">
+                              {palletWeight.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-right">
+                              £{palletChargeRate.toFixed(2)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-xs py-1.5 text-right font-medium",
+                              belowThreshold ? "text-muted-foreground" : (palletWeight * palletChargeRate) >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                              {belowThreshold ? "-" : `£${(palletWeight * palletChargeRate).toFixed(2)}`}
+                            </TableCell>
+                          </TableRow>
+                        )}
                         {/* Totals Row */}
                         {(() => {
                           const totals = calculateTotals(report);
@@ -243,9 +327,9 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                               <TableCell className="text-xs py-2 text-right"></TableCell>
                               <TableCell className={cn(
                                 "text-xs py-2 text-right",
-                                totals.totalValue >= 0 ? "text-green-600" : "text-red-600"
+                                belowThreshold ? "text-muted-foreground" : totals.totalValue >= 0 ? "text-green-600" : "text-red-600"
                               )}>
-                                £{totals.totalValue.toFixed(2)}
+                                {belowThreshold ? "£0.00" : `£${totals.totalValue.toFixed(2)}`}
                               </TableCell>
                             </TableRow>
                           );
