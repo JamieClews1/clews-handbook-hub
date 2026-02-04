@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 type WasteType = {
   id: string;
@@ -401,6 +402,34 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       {availableMaterials.length === 0 && priceSetItems.length > 0 && (
         <p className="text-xs text-muted-foreground">All available materials have been added.</p>
       )}
+
+      {/* Rebate Rules Section */}
+      <Separator className="my-4" />
+      <div className="space-y-3">
+        <div>
+          <Label className="text-base font-medium">Rebate Rules</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Rules that apply when calculating rebates for this site
+          </p>
+        </div>
+        
+        <div className="rounded-lg border border-border bg-muted/50 p-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                Minimum Weight Threshold
+              </p>
+              <p className="text-sm text-muted-foreground">
+                No rebate is due if the final card weight is less than <span className="font-semibold text-foreground">1.5 tonnes</span>.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Final card weight = Weighbridge weight − Pallet weight
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
