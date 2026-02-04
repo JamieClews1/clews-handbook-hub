@@ -55,6 +55,7 @@ const LoadReportsPage = () => {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [weighbridgeWeightKg, setWeighbridgeWeightKg] = useState<number | null>(null);
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
+  const [palletsOut, setPalletsOut] = useState(0);
 
   // Offline support
   const {
@@ -235,6 +236,7 @@ const LoadReportsPage = () => {
     setVehicleReg("");
     setJobNumber("");
     setSelectedSiteId("");
+    setPalletsOut(0);
     setReportDate(new Date().toISOString().split("T")[0]);
     
     // Fetch latest waste types to ensure we have current default weights
@@ -290,6 +292,7 @@ const LoadReportsPage = () => {
       setJobNumber(report.notes || ""); // Using notes field for job number temporarily
       setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
+      setPalletsOut((report as any).pallets_out || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
       
       if (items && items.length > 0) {
@@ -347,6 +350,7 @@ const LoadReportsPage = () => {
       setJobNumber(report.notes || ""); // Using notes field for job number temporarily
       setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
+      setPalletsOut((report as any).pallets_out || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       if (items && items.length > 0) {
@@ -428,6 +432,7 @@ const LoadReportsPage = () => {
         status: submit ? "submitted" : "draft",
         totalPallets: totalPallets,
         totalWeightKg: totalWeight,
+        palletsOut: palletsOut,
         lineItems: offlineLineItems,
       });
 
@@ -666,6 +671,9 @@ const LoadReportsPage = () => {
               onLineItemChange={handleLineItemChange}
               onBack={handleBack}
               onReview={() => setViewMode("review")}
+              customerType={selectedCustomer}
+              palletsOut={palletsOut}
+              onPalletsOutChange={setPalletsOut}
             />
           )}
 

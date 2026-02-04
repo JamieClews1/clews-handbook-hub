@@ -1,6 +1,9 @@
 import { TallyCard } from "./TallyCard";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowRight, ArrowLeft, Package } from "lucide-react";
 
 export interface LineItem {
   waste_type: string;
@@ -16,6 +19,9 @@ interface TallyScreenProps {
   onLineItemChange: (index: number, updates: Partial<LineItem>) => void;
   onBack: () => void;
   onReview: () => void;
+  customerType?: string | null;
+  palletsOut?: number;
+  onPalletsOutChange?: (count: number) => void;
 }
 
 export const TallyScreen = ({
@@ -23,12 +29,44 @@ export const TallyScreen = ({
   onLineItemChange,
   onBack,
   onReview,
+  customerType,
+  palletsOut = 0,
+  onPalletsOutChange,
 }: TallyScreenProps) => {
   const totalPallets = lineItems.reduce((sum, item) => sum + item.pallet_count, 0);
   const totalWeight = lineItems.reduce((sum, item) => sum + (item.pallet_count * item.avg_weight_kg), 0);
 
+  const isEvri = customerType === "evri";
+
   return (
     <div className="space-y-4 pb-32">
+      {/* EVRi-specific: Pallets Out section */}
+      {isEvri && onPalletsOutChange && (
+        <Card className="border-2 border-amber-500/50 bg-amber-50/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="palletsOut" className="text-base font-semibold text-foreground">
+                  Pallets Out
+                </Label>
+                <p className="text-sm text-muted-foreground">Empty pallets loaded on truck</p>
+              </div>
+              <Input
+                id="palletsOut"
+                type="number"
+                min={0}
+                value={palletsOut}
+                onChange={(e) => onPalletsOutChange(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-24 h-14 text-center text-2xl font-bold"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tally Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {lineItems.map((item, index) => (
