@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
+import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 
 type Customer = {
   id: string;
@@ -1508,6 +1509,17 @@ export function CustomerSetupAdmin() {
               <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                 Select a Load Report Type above to configure rebate values for materials.
               </p>
+            )}
+
+            {/* Skip/RoRo Rebates - always show when editing a site */}
+            {editingSite && (
+              <>
+                <Separator />
+                <SiteSkipRebatesEditor
+                  siteId={editingSite.id}
+                  siteName={siteForm.site_name || editingSite.site_name}
+                />
+              </>
             )}
           </div>
           </ScrollArea>
