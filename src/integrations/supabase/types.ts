@@ -2004,6 +2004,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rebate_rules: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          is_enabled: boolean
+          rule_key: string
+          rule_name: string
+          rule_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          rule_key: string
+          rule_name: string
+          rule_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          is_enabled?: boolean
+          rule_key?: string
+          rule_name?: string
+          rule_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       riddor_incidents: {
         Row: {
           created_at: string
