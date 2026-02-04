@@ -139,9 +139,14 @@ export function CustomerSetupAdmin() {
   const [savingSite, setSavingSite] = useState(false);
   const [newRebateSetInline, setNewRebateSetInline] = useState("");
 
-  // Available load report types (currently only Britvic)
+  // Available load report types - matches CustomerTypeSelector options
   const LOAD_REPORT_TYPES = [
-    { id: "britvic", name: "BRITVIC" },
+    { id: "britvic", name: "Britvic" },
+    { id: "staci", name: "Staci" },
+    { id: "vantiva", name: "Vantiva" },
+    { id: "amazon", name: "Amazon" },
+    { id: "evri", name: "EVRi" },
+    { id: "other", name: "Standard" },
   ];
 
   const [editContactOpen, setEditContactOpen] = useState(false);
