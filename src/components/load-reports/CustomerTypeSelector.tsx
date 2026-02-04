@@ -10,7 +10,7 @@ const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; av
   { id: "britvic", name: "Britvic", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "staci", name: "Staci", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "vantiva", name: "Vantiva", icon: <Truck className="h-8 w-8" />, available: true },
-  { id: "other", name: "Other", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "other", name: "Standard", icon: <Truck className="h-8 w-8" />, available: true },
 ];
 
 export const CustomerTypeSelector = ({ onSelect }: CustomerTypeSelectorProps) => {
