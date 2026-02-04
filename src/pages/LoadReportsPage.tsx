@@ -61,6 +61,7 @@ const LoadReportsPage = () => {
     isOnline,
     pendingCount,
     syncNow,
+    saveReport: saveOfflineReport,
     refreshData: refreshOfflineData,
   } = useOfflineLoadReports(user?.id);
   const [isSyncingManual, setIsSyncingManual] = useState(false);
@@ -380,64 +381,36 @@ const LoadReportsPage = () => {
     try {
       const { totalPallets, totalWeight } = calculateTotals();
 
-      const reportPayload = {
-        operator_id: user.id,
-        operator_name: operatorName,
-        vehicle_reg: vehicleReg || null,
-        notes: jobNumber || null, // Storing job number in notes field
-        site_id: selectedSiteId || null,
-        report_date: reportDate,
-        total_pallets: totalPallets,
-        total_weight_kg: totalWeight,
+      // Use offline-first storage
+      const offlineLineItems = lineItems.map((item) => ({
+        wasteType: item.waste_type,
+        palletCount: item.pallet_count,
+        avgWeightKg: item.avg_weight_kg,
+        totalWeightKg: item.pallet_count * item.avg_weight_kg,
+        displayOrder: item.display_order,
+      }));
+
+      await saveOfflineReport({
+        serverId: currentReportId || undefined,
+        operatorId: user.id,
+        operatorName: operatorName,
+        vehicleReg: vehicleReg || null,
+        jobNumber: jobNumber || null,
+        siteId: selectedSiteId || null,
+        reportDate: reportDate,
         status: submit ? "submitted" : "draft",
-        submitted_at: submit ? new Date().toISOString() : null,
-      };
-
-      let reportId = currentReportId;
-
-      if (currentReportId) {
-        // Update existing
-        const { error } = await supabase
-          .from("load_reports")
-          .update(reportPayload)
-          .eq("id", currentReportId);
-        if (error) throw error;
-      } else {
-        // Create new
-        const { data, error } = await supabase
-          .from("load_reports")
-          .insert(reportPayload)
-          .select()
-          .single();
-        if (error) throw error;
-        reportId = data.id;
-        setCurrentReportId(data.id);
-      }
-
-      // Delete existing line items and re-insert
-      if (reportId) {
-        await supabase.from("load_line_items").delete().eq("load_report_id", reportId);
-
-        const lineItemsPayload = lineItems.map((item) => ({
-          load_report_id: reportId,
-          waste_type: item.waste_type,
-          pallet_count: item.pallet_count,
-          avg_weight_kg: item.avg_weight_kg,
-          total_weight_kg: item.pallet_count * item.avg_weight_kg,
-          display_order: item.display_order,
-        }));
-
-        const { error: itemsError } = await supabase
-          .from("load_line_items")
-          .insert(lineItemsPayload);
-        if (itemsError) throw itemsError;
-      }
+        totalPallets: totalPallets,
+        totalWeightKg: totalWeight,
+        lineItems: offlineLineItems,
+      });
 
       toast({
         title: submit ? "Load Submitted" : "Draft Saved",
-        description: submit
-          ? "Your load report has been submitted successfully."
-          : "Your draft has been saved.",
+        description: isOnline
+          ? submit
+            ? "Your load report has been submitted successfully."
+            : "Your draft has been saved."
+          : "Saved locally. Will sync when online.",
       });
 
       if (submit) {
