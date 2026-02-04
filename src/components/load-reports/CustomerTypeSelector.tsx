@@ -1,14 +1,16 @@
-import { Truck, Warehouse } from "lucide-react";
+import { Truck } from "lucide-react";
 
-export type CustomerType = "yard" | "mrf";
+export type CustomerType = "britvic" | "staci" | "vantiva" | "other";
 
 interface CustomerTypeSelectorProps {
   onSelect: (customer: CustomerType) => void;
 }
 
 const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; available: boolean }[] = [
-  { id: "yard", name: "Yard Reports", icon: <Warehouse className="h-8 w-8" />, available: true },
-  { id: "mrf", name: "MRF Reports", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "britvic", name: "Britvic", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "staci", name: "Staci", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "vantiva", name: "Vantiva", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "other", name: "Other", icon: <Truck className="h-8 w-8" />, available: true },
 ];
 
 export const CustomerTypeSelector = ({ onSelect }: CustomerTypeSelectorProps) => {
