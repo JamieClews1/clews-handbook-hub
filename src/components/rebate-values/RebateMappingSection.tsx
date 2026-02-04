@@ -53,11 +53,17 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
     const load = async () => {
       setIsLoading(true);
       try {
-        // Get all distinct waste descriptions from data_hub_jobs
+        // Calculate date 6 months ago
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const sixMonthsAgoISO = sixMonthsAgo.toISOString().slice(0, 10);
+
+        // Get all distinct waste descriptions from data_hub_jobs (last 6 months)
         const { data: jobsData, error: jobsError } = await supabase
           .from("data_hub_jobs")
           .select("waste_description")
           .not("waste_description", "is", null)
+          .gte("job_date", sixMonthsAgoISO)
           .order("waste_description");
 
         if (jobsError) throw jobsError;
@@ -212,7 +218,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
           <div>
             <CardTitle>Rebate Mapping</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Map Data Hub waste descriptions to rebate pricing items.
+              Map Performance Hub waste descriptions (last 6 months) to rebate pricing items.
             </p>
           </div>
           <div className="flex gap-2">
