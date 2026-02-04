@@ -81,14 +81,28 @@ const LoadReportsPage = () => {
   useEffect(() => {
     fetchWasteTypes();
     fetchDefaultPalletWeight();
-    fetchSites();
   }, []);
 
-  const fetchSites = async () => {
-    const { data, error } = await supabase
+  // Fetch sites when customer type changes
+  useEffect(() => {
+    if (selectedCustomer) {
+      fetchSites(selectedCustomer);
+    }
+  }, [selectedCustomer]);
+
+  const fetchSites = async (customerType: CustomerType) => {
+    // For yard reports, show all sites (no filtering)
+    // For MRF reports, filter by load_report_type = 'mrf'
+    let query = supabase
       .from("customer_sites")
       .select("id, site_name")
       .order("site_name");
+
+    if (customerType === "mrf") {
+      query = query.eq("load_report_type", "mrf");
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       setSites(data);
