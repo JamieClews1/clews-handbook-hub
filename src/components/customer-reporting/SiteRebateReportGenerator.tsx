@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns"
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
+import { SkipRoroRebateTab } from "./SkipRoroRebateTab";
 import { DateRange } from "react-day-picker";
 
 type Customer = {
@@ -539,12 +540,19 @@ export function SiteRebateReportGenerator() {
             </TabsContent>
 
             <TabsContent value="roro-skip" className="mt-4">
-              <div className="border rounded-lg p-8 text-center text-muted-foreground">
-                <p>RoRo / Skip rebate calculation coming soon.</p>
-                <p className="text-sm mt-2">
-                  This will pull job data from Performance Hub and apply Skip/RoRo rebate rates.
-                </p>
-              </div>
+              {selectedSite && (
+                <SkipRoroRebateTab
+                  siteId={selectedSiteId}
+                  dateRange={dateRange}
+                  siteDataHubMappings={[
+                    selectedSite.data_hub_site,
+                    selectedSite.data_hub_site_2,
+                    selectedSite.data_hub_site_3,
+                    selectedSite.data_hub_site_4,
+                    selectedSite.data_hub_site_5,
+                  ].filter((s): s is string => !!s)}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
