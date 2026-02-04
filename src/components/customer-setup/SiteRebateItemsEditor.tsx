@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 type WasteType = {
   id: string;
@@ -32,6 +33,16 @@ type PriceSetItem = {
   set_value: number | null;
 };
 
+type RebateRule = {
+  id: string;
+  rule_key: string;
+  rule_name: string;
+  description: string;
+  is_enabled: boolean;
+  rule_value: number | null;
+  display_order: number;
+};
+
 type Props = {
   priceSetId: string;
   priceSetName: string;
@@ -46,6 +57,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
   const [allMaterials, setAllMaterials] = useState<WasteType[]>([]);
   const [allRebateItems, setAllRebateItems] = useState<RebateItem[]>([]);
   const [priceSetItems, setPriceSetItems] = useState<PriceSetItem[]>([]);
+  const [rebateRules, setRebateRules] = useState<RebateRule[]>([]);
 
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
 
@@ -55,7 +67,8 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       const [
         { data: materials, error: materialsError },
         { data: rebateItems, error: rebateItemsError },
-        { data: psItems, error: psItemsError }
+        { data: psItems, error: psItemsError },
+        { data: rulesData, error: rulesError }
       ] = await Promise.all([
         supabase
           .from("load_waste_types")
@@ -71,14 +84,20 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
           .select("id, price_set_id, rebate_item_id, display_order, value_type, set_value")
           .eq("price_set_id", priceSetId)
           .order("display_order", { ascending: true }),
+        supabase
+          .from("rebate_rules")
+          .select("id, rule_key, rule_name, description, is_enabled, rule_value, display_order")
+          .order("display_order", { ascending: true }),
       ]);
 
       if (materialsError) throw materialsError;
       if (rebateItemsError) throw rebateItemsError;
       if (psItemsError) throw psItemsError;
+      if (rulesError) throw rulesError;
 
       setAllMaterials((materials ?? []) as WasteType[]);
       setAllRebateItems((rebateItems ?? []) as RebateItem[]);
+      setRebateRules((rulesData ?? []) as RebateRule[]);
       
       // Fetch the value_type_item_id separately since types haven't regenerated
       let valueTypeItemMap: Record<string, string | null> = {};
@@ -260,6 +279,27 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     }
   };
 
+  const toggleRuleEnabled = async (ruleId: string, currentlyEnabled: boolean) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("rebate_rules")
+        .update({ is_enabled: !currentlyEnabled } as any)
+        .eq("id", ruleId);
+
+      if (error) throw error;
+
+      setRebateRules((prev) =>
+        prev.map((r) => (r.id === ruleId ? { ...r, is_enabled: !currentlyEnabled } : r))
+      );
+      toast({ title: "Updated", description: `Rule ${!currentlyEnabled ? "enabled" : "disabled"}.` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update rule.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getMaterialName = (materialId: string) => {
     return allMaterials.find((m) => m.id === materialId)?.waste_type ?? "Unknown";
   };
@@ -409,26 +449,53 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         <div>
           <Label className="text-base font-medium">Rebate Rules</Label>
           <p className="text-xs text-muted-foreground mt-1">
-            Rules that apply when calculating rebates for this site
+            Universal rules that apply when calculating rebates
           </p>
         </div>
         
-        <div className="rounded-lg border border-border bg-muted/50 p-3">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
-                Minimum Weight Threshold
-              </p>
-              <p className="text-sm text-muted-foreground">
-                No rebate is due if the final card weight is less than <span className="font-semibold text-foreground">1.5 tonnes</span>.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Final card weight = Weighbridge weight − Pallet weight
-              </p>
+        {rebateRules.length === 0 && (
+          <p className="text-sm text-muted-foreground py-2">No rebate rules configured.</p>
+        )}
+
+        {rebateRules.map((rule) => (
+          <div 
+            key={rule.id} 
+            className={`rounded-lg border p-3 transition-colors ${
+              rule.is_enabled 
+                ? "border-border bg-muted/50" 
+                : "border-border/50 bg-muted/20 opacity-60"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1">
+                <AlertCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${rule.is_enabled ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {rule.rule_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {rule.description}
+                    {rule.rule_value !== null && (
+                      <span className="font-semibold text-foreground"> {rule.rule_value} tonnes</span>
+                    )}
+                  </p>
+                  {rule.rule_key === "min_weight_threshold" && (
+                    <p className="text-xs text-muted-foreground">
+                      Final card weight = Weighbridge weight − Pallet weight
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={rule.is_enabled}
+                  onCheckedChange={() => toggleRuleEnabled(rule.id, rule.is_enabled)}
+                  disabled={saving}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
