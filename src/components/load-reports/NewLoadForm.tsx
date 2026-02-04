@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileSiteSelect } from "./MobileSiteSelect";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,8 @@ export const NewLoadForm = ({
   onDelete,
   isDeleting = false,
 }: NewLoadFormProps) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="space-y-6">
       <Card className="border-2 shadow-lg">
@@ -195,18 +198,27 @@ export const NewLoadForm = ({
             <Label htmlFor="site" className="text-base font-medium">
               Site
             </Label>
-            <Select value={selectedSiteId} onValueChange={onSiteChange}>
-              <SelectTrigger id="site" className="h-14 text-lg">
-                <SelectValue placeholder="Select a site" />
-              </SelectTrigger>
-              <SelectContent>
-                {sites.map((site) => (
-                  <SelectItem key={site.id} value={site.id}>
-                    {site.site_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isMobile ? (
+              <MobileSiteSelect
+                value={selectedSiteId}
+                sites={sites}
+                onValueChange={onSiteChange}
+                placeholder="Select a site"
+              />
+            ) : (
+              <Select value={selectedSiteId} onValueChange={onSiteChange}>
+                <SelectTrigger id="site" className="h-14 text-lg">
+                  <SelectValue placeholder="Select a site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.site_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <Button
