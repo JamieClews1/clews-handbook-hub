@@ -374,6 +374,8 @@ export function SiteRebateReportGenerator() {
             <PopoverContent className="w-auto p-0 z-[100] pointer-events-auto" align="start">
               <Calendar
                 mode="single"
+                month={selectedMonth}
+                onMonthChange={(month) => setSelectedMonth(startOfMonth(month))}
                 selected={selectedMonth}
                 onSelect={(date) => date && setSelectedMonth(startOfMonth(date))}
                 initialFocus
