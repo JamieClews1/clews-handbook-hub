@@ -65,6 +65,7 @@ async function syncSingleReport(report: OfflineLoadReport): Promise<void> {
     report_date: report.reportDate,
     total_pallets: report.totalPallets,
     total_weight_kg: report.totalWeightKg,
+    pallets_out: report.palletsOut || 0,
     status: report.status,
     submitted_at: report.status === 'submitted' ? new Date().toISOString() : null,
   };

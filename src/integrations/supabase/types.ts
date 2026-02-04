@@ -913,6 +913,7 @@ export type Database = {
           notes: string | null
           operator_id: string | null
           operator_name: string
+          pallets_out: number | null
           report_date: string
           site_id: string | null
           status: string
@@ -928,6 +929,7 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name: string
+          pallets_out?: number | null
           report_date?: string
           site_id?: string | null
           status?: string
@@ -943,6 +945,7 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string
+          pallets_out?: number | null
           report_date?: string
           site_id?: string | null
           status?: string
