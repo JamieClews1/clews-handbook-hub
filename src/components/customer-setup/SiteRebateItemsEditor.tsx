@@ -31,6 +31,7 @@ type PriceSetItem = {
   display_order: number;
   value_type: "lower" | "higher" | "set";
   set_value: number | null;
+  adjustment: number | null; // +/- adjustment in £/tonne
 };
 
 type RebateRule = {
@@ -81,7 +82,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
           .order("sort_order", { ascending: true }),
         supabase
           .from("rebate_price_set_items")
-          .select("id, price_set_id, rebate_item_id, display_order, value_type, set_value")
+          .select("id, price_set_id, rebate_item_id, display_order, value_type, set_value, adjustment")
           .eq("price_set_id", priceSetId)
           .order("display_order", { ascending: true }),
         supabase
@@ -127,6 +128,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
           display_order: item.display_order,
           value_type: item.value_type as "lower" | "higher" | "set",
           set_value: item.set_value,
+          adjustment: item.adjustment ?? 0,
         };
       });
       
@@ -172,6 +174,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         display_order: (data as any).display_order,
         value_type: (data as any).value_type as "lower" | "higher" | "set",
         set_value: (data as any).set_value,
+        adjustment: 0,
       };
       
       setPriceSetItems((prev) => [...prev, newItem]);
@@ -263,6 +266,29 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     }
   };
 
+  const updateAdjustment = async (itemId: string, value: string) => {
+    const numValue = value.trim() === "" ? 0 : parseFloat(value);
+    if (value.trim() !== "" && isNaN(numValue)) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("rebate_price_set_items")
+        .update({ adjustment: numValue } as any)
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setPriceSetItems((prev) => 
+        prev.map((p) => (p.id === itemId ? { ...p, adjustment: numValue } : p))
+      );
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update adjustment.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
@@ -327,6 +353,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                 <TableHead>Material</TableHead>
                 <TableHead>Value Type</TableHead>
                 <TableHead>Range</TableHead>
+                <TableHead>Adjustment</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -390,6 +417,22 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                             <SelectItem value="higher">higher</SelectItem>
                           </SelectContent>
                         </Select>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {!isCustom && psi.value_type_item_id && (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            step="1"
+                            className="w-20"
+                            value={psi.adjustment ?? 0}
+                            onChange={(e) => updateAdjustment(psi.id, e.target.value)}
+                            placeholder="0"
+                            disabled={saving}
+                          />
+                          <span className="text-muted-foreground text-xs">£/t</span>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>

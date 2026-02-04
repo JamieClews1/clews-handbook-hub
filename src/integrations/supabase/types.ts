@@ -1944,6 +1944,7 @@ export type Database = {
       }
       rebate_price_set_items: {
         Row: {
+          adjustment: number | null
           created_at: string
           display_order: number
           id: string
@@ -1955,6 +1956,7 @@ export type Database = {
           value_type_item_id: string | null
         }
         Insert: {
+          adjustment?: number | null
           created_at?: string
           display_order?: number
           id?: string
@@ -1966,6 +1968,7 @@ export type Database = {
           value_type_item_id?: string | null
         }
         Update: {
+          adjustment?: number | null
           created_at?: string
           display_order?: number
           id?: string
