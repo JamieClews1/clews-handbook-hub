@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.data-hub-ai]
 verify_jwt = true
+ 
+ [functions.send-rebate-notification]
+ verify_jwt = false
