@@ -8,14 +8,6 @@ import { format, startOfMonth, eachMonthOfInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
-type SkipRebateConfig = {
-  material_type: string;
-  value_type: string;
-  value_type_item_id: string | null;
-  set_value: number | null;
-  adjustment: number | null;
-};
-
 type JobRecord = {
   id: string;
   job_number: string;
@@ -37,6 +29,19 @@ type MaterialSummary = {
   jobs: JobRecord[];
 };
 
+type SkipRebateConfig = {
+  material_type: string;
+  value_type: string;
+  value_type_item_id: string | null;
+  set_value: number | null;
+  adjustment: number | null;
+};
+
+type RebateMapping = {
+  waste_description: string;
+  material_type_id: string | null;
+};
+
 type Props = {
   siteId: string;
   dateRange: DateRange | undefined;
@@ -48,9 +53,11 @@ const MATERIAL_LABELS: Record<string, string> = {
   scrap_metal: "Scrap Metal",
 };
 
-const CATEGORY_TO_MATERIAL: Record<string, string> = {
-  "Roll on Roll off": "card_loose",
-  "Skips": "scrap_metal",
+// Map material_type to the expected load_waste_types material names
+// These must match the waste_type values in load_waste_types table
+const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
+  card_loose: ["Card Loose", "Cardboard"],
+  scrap_metal: ["Scrap Ferrous", "Scrap Non-Ferrous", "Scrap Metal"],
 };
 
 export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Props) {
@@ -79,7 +86,35 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
         return;
       }
 
-      // 2. Get jobs from Performance Hub for this site in date range
+      // 2. Get rebate mappings to filter jobs by valid waste descriptions
+      const { data: rebateMappings } = await supabase
+        .from("data_hub_rebate_mappings")
+        .select("waste_description, material_type_id");
+
+      // Get load_waste_types to map material_type_id to waste_type names
+      const { data: loadWasteTypes } = await supabase
+        .from("load_waste_types")
+        .select("id, waste_type");
+
+      // Build a map of waste_description -> material category (e.g., "scrap_metal", "card_loose")
+      const wasteDescriptionToMaterialCategory: Record<string, string> = {};
+      
+      for (const mapping of rebateMappings ?? []) {
+        if (!mapping.material_type_id) continue;
+        
+        const wasteType = loadWasteTypes?.find(wt => wt.id === mapping.material_type_id);
+        if (!wasteType) continue;
+        
+        // Check which material category this waste type belongs to
+        for (const [materialCategory, wasteTypeNames] of Object.entries(MATERIAL_TYPE_TO_WASTE_TYPES)) {
+          if (wasteTypeNames.some(name => wasteType.waste_type.toLowerCase().includes(name.toLowerCase()))) {
+            wasteDescriptionToMaterialCategory[mapping.waste_description] = materialCategory;
+            break;
+          }
+        }
+      }
+
+      // 3. Get jobs from Performance Hub for this site in date range
       const startDate = format(dateRange!.from!, "yyyy-MM-dd");
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
@@ -112,7 +147,7 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
         }
       }
 
-      // 3. Get monthly values for rate calculation
+      // 4. Get monthly values for rate calculation
       const rangeStart = dateRange!.from!;
       const rangeEnd = dateRange?.to ?? rangeStart;
       const monthsInRange = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
@@ -150,7 +185,7 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
         }
       }
 
-      // 4. Get rebate item names for rate source display
+      // 5. Get rebate item names for rate source display
       const { data: rebateItems } = await supabase
         .from("rebate_items")
         .select("id, name")
@@ -161,14 +196,17 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
         rebateItemNames[ri.id] = ri.name;
       }
 
-      // 5. Build summaries per material type
+      // 6. Build summaries per material type
       const materialSummaries: MaterialSummary[] = [];
 
       for (const config of skipConfigs) {
-        // Find jobs that match this material type based on category
+        // Find jobs that match this material type based on waste_description mapping
+        // Only include jobs where the waste_description has a rebate mapping
+        // that corresponds to the expected material type
         const matchingJobs = allJobs.filter(job => {
-          const mappedMaterial = CATEGORY_TO_MATERIAL[job.category];
-          return mappedMaterial === config.material_type;
+          if (!job.waste_description) return false;
+          const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
+          return mappedCategory === config.material_type;
         });
 
         const totalWeight = matchingJobs.reduce((sum, j) => sum + (j.weight_t ?? 0), 0);
