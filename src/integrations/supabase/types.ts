@@ -1979,6 +1979,60 @@ export type Database = {
           },
         ]
       }
+      rebate_email_logs: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          period_end: string
+          period_start: string
+          rebate_amount: number
+          recipient_email: string
+          sent_at: string
+          sent_by: string | null
+          site_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          period_end: string
+          period_start: string
+          rebate_amount: number
+          recipient_email: string
+          sent_at?: string
+          sent_by?: string | null
+          site_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          rebate_amount?: number
+          recipient_email?: string
+          sent_at?: string
+          sent_by?: string | null
+          site_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rebate_email_logs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rebate_email_logs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rebate_items: {
         Row: {
           created_at: string

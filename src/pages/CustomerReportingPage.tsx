@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, FileText, DollarSign } from "lucide-react";
+ import { Calendar, Send } from "lucide-react";
 import { SiteReportGenerator } from "@/components/customer-reporting/SiteReportGenerator";
 import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
+ import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
 
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
@@ -69,8 +71,8 @@ const CustomerReportingPage = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="site-reports" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+         <Tabs defaultValue="site-reports" className="space-y-6">
+           <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Site Reports
@@ -79,6 +81,10 @@ const CustomerReportingPage = () => {
               <DollarSign className="h-4 w-4" />
               Rebate Reports
             </TabsTrigger>
+             <TabsTrigger value="monthly-generation" className="flex items-center gap-2">
+               <Send className="h-4 w-4" />
+               Monthly Rebate Generation
+             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="site-reports">
@@ -108,6 +114,20 @@ const CustomerReportingPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
+ 
+           <TabsContent value="monthly-generation">
+             <Card>
+               <CardHeader>
+                 <CardTitle>Monthly Rebate Generation</CardTitle>
+                 <CardDescription>
+                   Generate period overview of rebates due to all customers and send notification emails
+                 </CardDescription>
+               </CardHeader>
+               <CardContent>
+                 <MonthlyRebateGeneration />
+               </CardContent>
+             </Card>
+           </TabsContent>
         </Tabs>
       </main>
     </div>
