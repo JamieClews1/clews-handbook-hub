@@ -83,6 +83,7 @@ export function SiteRebateReportGenerator() {
   // Use the hook to get Skip/RoRo rebate totals
   const {
     loading: skipRoroLoading,
+    summaries: skipRoroSummaries,
     totalRebate: skipRoroTotalRebate,
     totalWeight: skipRoroTotalWeight,
   } = useSkipRoroRebates(
@@ -369,6 +370,76 @@ export function SiteRebateReportGenerator() {
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
   const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
 
+  // Consolidate materials into categories for the Total tab
+  // Categories: Cardboard, Films, Scrap Metal, Other
+  const consolidatedData = (() => {
+    const categories: Record<string, { 
+      weight: number; 
+      rebate: number; 
+      sources: { name: string; weight: number; rate: number; rebate: number; source: string }[] 
+    }> = {
+      "Cardboard": { weight: 0, rebate: 0, sources: [] },
+      "Films": { weight: 0, rebate: 0, sources: [] },
+      "Scrap Metal": { weight: 0, rebate: 0, sources: [] },
+      "Other": { weight: 0, rebate: 0, sources: [] },
+    };
+
+    // Categorize Load Reports materials
+    for (const row of reportData) {
+      const name = row.material_name.toLowerCase();
+      let category = "Other";
+      
+      if (name.includes("card") || name.includes("cardboard")) {
+        category = "Cardboard";
+      } else if (name.includes("film")) {
+        category = "Films";
+      } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
+        category = "Scrap Metal";
+      } else if (name.includes("pallet")) {
+        category = "Other"; // Pallet weight charge goes to Other
+      }
+
+      categories[category].weight += row.weight_tonnes;
+      categories[category].rebate += row.rebate_value;
+      categories[category].sources.push({
+        name: `${row.material_name} (Load Reports)`,
+        weight: row.weight_tonnes,
+        rate: row.rate_per_tonne,
+        rebate: row.rebate_value,
+        source: row.rate_source,
+      });
+    }
+
+    // Categorize Skip/RoRo materials
+    for (const summary of skipRoroSummaries) {
+      let category = "Other";
+      
+      if (summary.material_type === "card_loose") {
+        category = "Cardboard";
+      } else if (summary.material_type === "scrap_metal") {
+        category = "Scrap Metal";
+      }
+
+      categories[category].weight += summary.total_weight_tonnes;
+      categories[category].rebate += summary.rebate_value;
+      categories[category].sources.push({
+        name: `${summary.material_label} (RoRo/Skip)`,
+        weight: summary.total_weight_tonnes,
+        rate: summary.rate_per_tonne,
+        rebate: summary.rebate_value,
+        source: summary.rate_source,
+      });
+    }
+
+    // Convert to array and filter out empty categories
+    return Object.entries(categories)
+      .filter(([_, data]) => data.weight > 0 || data.rebate !== 0)
+      .map(([name, data]) => ({
+        category: name,
+        ...data,
+      }));
+  })();
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
@@ -495,82 +566,43 @@ export function SiteRebateReportGenerator() {
             </TabsList>
 
             <TabsContent value="total" className="mt-4">
-              {reportData.length > 0 || skipRoroTotalWeight > 0 ? (
+              {consolidatedData.length > 0 ? (
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Material</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead className="text-right">Weight (t)</TableHead>
-                        <TableHead className="text-right">Rate (£/t)</TableHead>
-                        <TableHead>Rate Source</TableHead>
+                        <TableHead colSpan={2}>Sources</TableHead>
                         <TableHead className="text-right">Value (£)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {/* Load Reports Materials */}
-                      {reportData.length > 0 && (
-                        <TableRow className="bg-muted/30">
-                          <TableCell colSpan={5} className="font-semibold text-sm py-2">
-                            Load Reports
+                      {consolidatedData.map((cat, idx) => (
+                        <TableRow key={idx} className="border-b">
+                          <TableCell className="font-semibold align-top">{cat.category}</TableCell>
+                          <TableCell className="text-right align-top font-medium">{cat.weight.toFixed(2)}</TableCell>
+                          <TableCell colSpan={2} className="text-sm">
+                            <div className="space-y-1">
+                              {cat.sources.map((src, srcIdx) => (
+                                <div key={srcIdx} className="flex justify-between text-muted-foreground">
+                                  <span>{src.name}</span>
+                                  <span className="ml-4">
+                                    {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </TableCell>
-                        </TableRow>
-                      )}
-                      {reportData.map((row, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-medium">{row.material_name}</TableCell>
-                          <TableCell className="text-right">{row.weight_tonnes.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">
-                            {row.rate_per_tonne !== 0 ? `£${row.rate_per_tonne.toFixed(2)}` : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">{row.rate_source}</span>
-                          </TableCell>
-                          <TableCell className={cn("text-right font-medium", row.rebate_value >= 0 ? "text-green-600" : "text-red-600")}>
-                            £{row.rebate_value.toFixed(2)}
-                          </TableCell>
-                        </TableRow>
+                          <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{cat.rebate.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
                       ))}
-                      {reportData.length > 0 && (
-                        <TableRow className="bg-muted/20">
-                          <TableCell className="font-medium">Load Reports Subtotal</TableCell>
-                          <TableCell className="text-right">{loadReportsTotalWeight.toFixed(2)}</TableCell>
-                          <TableCell></TableCell>
-                          <TableCell></TableCell>
-                          <TableCell className={cn("text-right font-medium", loadReportsTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
-                            £{loadReportsTotalRebate.toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      )}
-
-                      {/* Skip/RoRo Materials */}
-                      {skipRoroTotalWeight > 0 && (
-                        <>
-                          <TableRow className="bg-muted/30">
-                            <TableCell colSpan={5} className="font-semibold text-sm py-2">
-                              RoRo / Skip Rebates
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">RoRo / Skip Materials</TableCell>
-                            <TableCell className="text-right">{skipRoroTotalWeight.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">-</TableCell>
-                            <TableCell>
-                              <span className="text-sm text-muted-foreground">See RoRo / Skip tab for details</span>
-                            </TableCell>
-                            <TableCell className={cn("text-right font-medium", skipRoroTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
-                              £{skipRoroTotalRebate.toFixed(2)}
-                            </TableCell>
-                          </TableRow>
-                        </>
-                      )}
-
-                      {/* Grand Total */}
-                      <TableRow className="bg-muted/50 font-semibold">
-                        <TableCell>Grand Total</TableCell>
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell>Total</TableCell>
                         <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
+                        <TableCell colSpan={2}></TableCell>
                         <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
                           £{combinedTotalRebate.toFixed(2)}
                         </TableCell>
@@ -587,8 +619,8 @@ export function SiteRebateReportGenerator() {
               <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground mt-4">
                 <p className="font-medium mb-1">Data Source:</p>
                 <p>
-                  Load Reports: Weights from submitted Load Reports linked to this site. 
-                  RoRo/Skip: Weights from Performance Hub jobs matching "Roll on Roll off" and "Skips" categories with valid rebate mappings.
+                  Cardboard, Films, and Scrap Metal are consolidated from both Load Reports and RoRo/Skip data.
+                  See individual tabs for detailed breakdowns.
                 </p>
               </div>
             </TabsContent>
