@@ -30,6 +30,8 @@
    value_type_item_id: string | null;
    set_value: number | null;
    adjustment: number | null;
+   threshold_tonnes: number | null;
+   rebate_enabled: boolean;
  };
  
  const MATERIAL_LABELS: Record<string, string> = {
@@ -69,7 +71,7 @@
        // 1. Get skip rebate config for this site
        const { data: skipConfigs } = await supabase
          .from("customer_site_skip_rebates")
-         .select("material_type, value_type, value_type_item_id, set_value, adjustment")
+         .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
          .eq("site_id", siteId);
  
        if (!skipConfigs || skipConfigs.length === 0) {
@@ -188,6 +190,21 @@
        const materialSummaries: SkipRoroMaterialSummary[] = [];
  
        for (const config of skipConfigs) {
+         // Skip if rebate is disabled for this material
+         if (!config.rebate_enabled) {
+           materialSummaries.push({
+             material_type: config.material_type,
+             material_label: MATERIAL_LABELS[config.material_type] ?? config.material_type,
+             total_weight_tonnes: 0,
+             rate_per_tonne: 0,
+             adjustment: 0,
+             rebate_value: 0,
+             rate_source: "Rebate disabled",
+             jobs: [],
+           });
+           continue;
+         }
+ 
          const matchingJobs = allJobs.filter(job => {
            if (!job.waste_description) return false;
            const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
@@ -215,7 +232,11 @@
  
          const adjustment = config.adjustment ?? 0;
          const adjustedRate = rate + adjustment;
-         const rebateValue = totalWeightVal * adjustedRate;
+ 
+         // Apply threshold: only pay rebate on weight above threshold
+         const threshold = config.threshold_tonnes ?? 0;
+         const rebatableWeight = Math.max(0, totalWeightVal - threshold);
+         const rebateValue = rebatableWeight * adjustedRate;
  
          materialSummaries.push({
            material_type: config.material_type,

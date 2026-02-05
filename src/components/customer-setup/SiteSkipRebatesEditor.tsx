@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
+ import { Checkbox } from "@/components/ui/checkbox";
 
 type RebateItem = {
   id: string;
@@ -23,6 +24,8 @@ type SkipRebateItem = {
   value_type: "lower" | "higher" | "set";
   set_value: number | null;
   adjustment: number | null;
+   threshold_tonnes: number | null;
+   rebate_enabled: boolean;
 };
 
 const SKIP_MATERIALS: { id: "card_loose" | "scrap_metal"; name: string }[] = [
@@ -52,7 +55,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
         supabase.from("rebate_items").select("id, name, sort_order").order("sort_order", { ascending: true }),
         supabase
           .from("customer_site_skip_rebates")
-          .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment")
+           .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled")
           .eq("site_id", siteId),
       ]);
 
@@ -87,8 +90,10 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
           value_type: "lower",
           set_value: null,
           adjustment: 0,
+           threshold_tonnes: 0,
+           rebate_enabled: true,
         })
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment")
+         .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled")
         .single();
 
       if (error) throw error;
@@ -189,6 +194,39 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
+   const updateThreshold = async (itemId: string, value: string) => {
+     const numValue = value.trim() === "" ? 0 : parseFloat(value);
+     if (value.trim() !== "" && isNaN(numValue)) return;
+ 
+     setSaving(true);
+     try {
+       const { error } = await supabase.from("customer_site_skip_rebates").update({ threshold_tonnes: numValue }).eq("id", itemId);
+ 
+       if (error) throw error;
+ 
+       setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, threshold_tonnes: numValue } : r)));
+     } catch (e: any) {
+       toast({ title: "Error", description: e?.message ?? "Failed to update threshold.", variant: "destructive" });
+     } finally {
+       setSaving(false);
+     }
+   };
+ 
+   const toggleRebateEnabled = async (itemId: string, enabled: boolean) => {
+     setSaving(true);
+     try {
+       const { error } = await supabase.from("customer_site_skip_rebates").update({ rebate_enabled: enabled }).eq("id", itemId);
+ 
+       if (error) throw error;
+ 
+       setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, rebate_enabled: enabled } : r)));
+     } catch (e: any) {
+       toast({ title: "Error", description: e?.message ?? "Failed to update rebate status.", variant: "destructive" });
+     } finally {
+       setSaving(false);
+     }
+   };
+ 
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
@@ -230,8 +268,10 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Material</TableHead>
+                 <TableHead>Rebate Enabled</TableHead>
                 <TableHead>Value Type</TableHead>
                 <TableHead>Range</TableHead>
+                 <TableHead>Threshold (T)</TableHead>
                 <TableHead>Adjustment</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
@@ -244,6 +284,18 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{getMaterialName(item.material_type)}</TableCell>
+                       <TableCell>
+                         <div className="flex items-center gap-2">
+                           <Checkbox
+                             checked={item.rebate_enabled}
+                             onCheckedChange={(checked) => toggleRebateEnabled(item.id, checked === true)}
+                             disabled={saving}
+                           />
+                           <span className="text-xs text-muted-foreground">
+                             {item.rebate_enabled ? "Yes" : "No rebate"}
+                           </span>
+                         </div>
+                       </TableCell>
                     <TableCell>
                       <Select
                         value={currentValueTypeItemId}
@@ -268,6 +320,23 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                       <TableCell>
+                         {item.rebate_enabled && (
+                           <div className="flex items-center gap-1">
+                             <Input
+                               type="number"
+                               step="0.1"
+                               min="0"
+                               className="w-20"
+                               value={item.threshold_tonnes ?? 0}
+                               onChange={(e) => updateThreshold(item.id, e.target.value)}
+                               placeholder="0"
+                               disabled={saving}
+                             />
+                             <span className="text-muted-foreground text-xs">T</span>
+                           </div>
+                         )}
+                       </TableCell>
                     <TableCell>
                       {isCustom ? (
                         <div className="flex items-center gap-1">

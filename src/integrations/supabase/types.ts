@@ -366,8 +366,10 @@ export type Database = {
           created_at: string
           id: string
           material_type: Database["public"]["Enums"]["skip_material_type"]
+          rebate_enabled: boolean | null
           set_value: number | null
           site_id: string
+          threshold_tonnes: number | null
           updated_at: string
           value_type: string
           value_type_item_id: string | null
@@ -377,8 +379,10 @@ export type Database = {
           created_at?: string
           id?: string
           material_type: Database["public"]["Enums"]["skip_material_type"]
+          rebate_enabled?: boolean | null
           set_value?: number | null
           site_id: string
+          threshold_tonnes?: number | null
           updated_at?: string
           value_type?: string
           value_type_item_id?: string | null
@@ -388,8 +392,10 @@ export type Database = {
           created_at?: string
           id?: string
           material_type?: Database["public"]["Enums"]["skip_material_type"]
+          rebate_enabled?: boolean | null
           set_value?: number | null
           site_id?: string
+          threshold_tonnes?: number | null
           updated_at?: string
           value_type?: string
           value_type_item_id?: string | null
