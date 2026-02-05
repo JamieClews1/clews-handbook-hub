@@ -348,6 +348,12 @@
                scrap_metal: "Scrap Metal",
              };
  
+             // Map material type to waste type patterns for flexible matching
+             const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
+               card_loose: ["card loose", "cardboard"],
+               scrap_metal: ["scrap ferrous", "scrap non-ferrous", "scrap metal"],
+             };
+
              for (const config of skipConfigs) {
                if (config.rebate_enabled === false) continue;
  
@@ -356,16 +362,22 @@
                for (const job of jobs ?? []) {
                  const mapping = (mappings ?? []).find(m => m.waste_description === job.waste_description);
                  if (mapping) {
-                   // Check if this mapping corresponds to the material type
-                   const { data: wasteType } = await supabase
-                     .from("load_waste_types")
-                     .select("waste_type")
-                     .eq("id", mapping.material_type_id)
-                     .single();
-                   
-                   const materialLabel = MATERIAL_TYPE_MAP[config.material_type];
-                   if (wasteType?.waste_type === materialLabel || wasteType?.waste_type?.toLowerCase().includes(config.material_type.replace("_", " "))) {
-                     totalWeight += Number(job.weight_t) || 0;
+                   if (mapping.material_type_id) {
+                     // Check if this mapping corresponds to the material type
+                     const { data: wasteType } = await supabase
+                       .from("load_waste_types")
+                       .select("waste_type")
+                       .eq("id", mapping.material_type_id)
+                       .single();
+                     
+                     // Use flexible matching - check if the waste type matches any of the patterns for this material
+                     const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
+                     const wasteTypeLower = wasteType?.waste_type?.toLowerCase() ?? "";
+                     
+                     const matches = patterns.some(pattern => wasteTypeLower.includes(pattern));
+                     if (matches) {
+                       totalWeight += Number(job.weight_t) || 0;
+                     }
                    }
                  }
                }
