@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
 import { SkipRoroRebateTab } from "./SkipRoroRebateTab";
+import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { DateRange } from "react-day-picker";
 
 type Customer = {
@@ -66,6 +67,29 @@ export function SiteRebateReportGenerator() {
   const [priceSetName, setPriceSetName] = useState("");
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
+
+  // Get site data hub mappings for Skip/RoRo calculation
+  const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  const siteDataHubMappings = selectedSite
+    ? [
+        selectedSite.data_hub_site,
+        selectedSite.data_hub_site_2,
+        selectedSite.data_hub_site_3,
+        selectedSite.data_hub_site_4,
+        selectedSite.data_hub_site_5,
+      ].filter((s): s is string => !!s)
+    : [];
+
+  // Use the hook to get Skip/RoRo rebate totals
+  const {
+    loading: skipRoroLoading,
+    totalRebate: skipRoroTotalRebate,
+    totalWeight: skipRoroTotalWeight,
+  } = useSkipRoroRebates(
+    reportGenerated ? selectedSiteId : "",
+    reportGenerated ? dateRange : undefined,
+    siteDataHubMappings
+  );
 
   useEffect(() => {
     loadCustomers();
@@ -337,10 +361,13 @@ export function SiteRebateReportGenerator() {
     }
   };
 
-  const totalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
-  const totalWeight = reportData.reduce((sum, r) => sum + r.weight_tonnes, 0);
+  // Load Reports totals
+  const loadReportsTotalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
+  const loadReportsTotalWeight = reportData.reduce((sum, r) => sum + r.weight_tonnes, 0);
 
-  const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  // Combined totals (Load Reports + Skip/RoRo)
+  const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
+  const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
 
   return (
     <div className="space-y-6">
@@ -452,10 +479,10 @@ export function SiteRebateReportGenerator() {
             </div>
             <div className="flex gap-4">
               <Badge variant="secondary" className="text-sm">
-                {totalWeight.toFixed(2)} tonnes
+                {combinedTotalWeight.toFixed(2)} tonnes
               </Badge>
-              <Badge variant="default" className={cn("text-sm", totalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
-                £{totalRebate.toFixed(2)}
+              <Badge variant="default" className={cn("text-sm", combinedTotalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
+                £{combinedTotalRebate.toFixed(2)}
               </Badge>
             </div>
           </div>
@@ -468,7 +495,7 @@ export function SiteRebateReportGenerator() {
             </TabsList>
 
             <TabsContent value="total" className="mt-4">
-              {reportData.length > 0 ? (
+              {reportData.length > 0 || skipRoroTotalWeight > 0 ? (
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -481,6 +508,14 @@ export function SiteRebateReportGenerator() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
+                      {/* Load Reports Materials */}
+                      {reportData.length > 0 && (
+                        <TableRow className="bg-muted/30">
+                          <TableCell colSpan={5} className="font-semibold text-sm py-2">
+                            Load Reports
+                          </TableCell>
+                        </TableRow>
+                      )}
                       {reportData.map((row, idx) => (
                         <TableRow key={idx}>
                           <TableCell className="font-medium">{row.material_name}</TableCell>
@@ -496,13 +531,48 @@ export function SiteRebateReportGenerator() {
                           </TableCell>
                         </TableRow>
                       ))}
+                      {reportData.length > 0 && (
+                        <TableRow className="bg-muted/20">
+                          <TableCell className="font-medium">Load Reports Subtotal</TableCell>
+                          <TableCell className="text-right">{loadReportsTotalWeight.toFixed(2)}</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className={cn("text-right font-medium", loadReportsTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{loadReportsTotalRebate.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Skip/RoRo Materials */}
+                      {skipRoroTotalWeight > 0 && (
+                        <>
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={5} className="font-semibold text-sm py-2">
+                              RoRo / Skip Rebates
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">RoRo / Skip Materials</TableCell>
+                            <TableCell className="text-right">{skipRoroTotalWeight.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">-</TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">See RoRo / Skip tab for details</span>
+                            </TableCell>
+                            <TableCell className={cn("text-right font-medium", skipRoroTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                              £{skipRoroTotalRebate.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        </>
+                      )}
+
+                      {/* Grand Total */}
                       <TableRow className="bg-muted/50 font-semibold">
-                        <TableCell>Total</TableCell>
-                        <TableCell className="text-right">{totalWeight.toFixed(2)}</TableCell>
+                        <TableCell>Grand Total</TableCell>
+                        <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
                         <TableCell></TableCell>
                         <TableCell></TableCell>
-                        <TableCell className={cn("text-right", totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
-                          £{totalRebate.toFixed(2)}
+                        <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                          £{combinedTotalRebate.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -517,8 +587,8 @@ export function SiteRebateReportGenerator() {
               <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground mt-4">
                 <p className="font-medium mb-1">Data Source:</p>
                 <p>
-                  Weights are pulled from submitted Load Reports linked to this site for the selected period.
-                  Make sure Load Reports have the correct site selected when created.
+                  Load Reports: Weights from submitted Load Reports linked to this site. 
+                  RoRo/Skip: Weights from Performance Hub jobs matching "Roll on Roll off" and "Skips" categories with valid rebate mappings.
                 </p>
               </div>
             </TabsContent>
@@ -544,13 +614,7 @@ export function SiteRebateReportGenerator() {
                 <SkipRoroRebateTab
                   siteId={selectedSiteId}
                   dateRange={dateRange}
-                  siteDataHubMappings={[
-                    selectedSite.data_hub_site,
-                    selectedSite.data_hub_site_2,
-                    selectedSite.data_hub_site_3,
-                    selectedSite.data_hub_site_4,
-                    selectedSite.data_hub_site_5,
-                  ].filter((s): s is string => !!s)}
+                  siteDataHubMappings={siteDataHubMappings}
                 />
               )}
             </TabsContent>
