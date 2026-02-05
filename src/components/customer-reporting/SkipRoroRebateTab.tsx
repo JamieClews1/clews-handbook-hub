@@ -22,6 +22,8 @@ type MaterialSummary = {
   material_type: string;
   material_label: string;
   total_weight_tonnes: number;
+  rebatable_weight_tonnes: number;
+  threshold_tonnes: number;
   rate_per_tonne: number;
   adjustment: number;
   rebate_value: number;
@@ -77,7 +79,7 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
       // 1. Get skip rebate config for this site
       const { data: skipConfigs } = await supabase
         .from("customer_site_skip_rebates")
-        .select("material_type, value_type, value_type_item_id, set_value, adjustment")
+        .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
         .eq("site_id", siteId);
 
       if (!skipConfigs || skipConfigs.length === 0) {
@@ -200,6 +202,11 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
       const materialSummaries: MaterialSummary[] = [];
 
       for (const config of skipConfigs) {
+        // Skip if rebate is disabled for this material
+        if (config.rebate_enabled === false) {
+          continue;
+        }
+        
         // Find jobs that match this material type based on waste_description mapping
         // Only include jobs where the waste_description has a rebate mapping
         // that corresponds to the expected material type
@@ -232,12 +239,18 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
         // Apply adjustment
         const adjustment = config.adjustment ?? 0;
         const adjustedRate = rate + adjustment;
-        const rebateValue = totalWeight * adjustedRate;
+      
+      // Apply threshold logic
+      const threshold = config.threshold_tonnes ?? 0;
+      const rebatableWeight = Math.max(0, totalWeight - threshold);
+      const rebateValue = rebatableWeight * adjustedRate;
 
         materialSummaries.push({
           material_type: config.material_type,
           material_label: MATERIAL_LABELS[config.material_type] ?? config.material_type,
           total_weight_tonnes: totalWeight,
+        rebatable_weight_tonnes: rebatableWeight,
+        threshold_tonnes: threshold,
           rate_per_tonne: adjustedRate,
           adjustment,
           rebate_value: rebateValue,
@@ -317,6 +330,7 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
               <TableHead className="w-8"></TableHead>
               <TableHead>Material</TableHead>
               <TableHead className="text-right">Weight (t)</TableHead>
+                <TableHead className="text-right">Rebatable (t)</TableHead>
               <TableHead className="text-right">Rate (£/t)</TableHead>
               <TableHead>Rate Source</TableHead>
               <TableHead className="text-right">Value (£)</TableHead>
@@ -344,6 +358,14 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
                     </span>
                   </TableCell>
                   <TableCell className="text-right">{summary.total_weight_tonnes.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    {summary.rebatable_weight_tonnes.toFixed(2)}
+                    {summary.threshold_tonnes > 0 && (
+                      <span className="ml-1 text-xs text-amber-600">
+                        (after {summary.threshold_tonnes}t threshold)
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     {summary.rate_per_tonne !== 0 ? `£${summary.rate_per_tonne.toFixed(2)}` : "-"}
                     {summary.adjustment !== 0 && (
@@ -405,6 +427,9 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
               <TableCell></TableCell>
               <TableCell>Total</TableCell>
               <TableCell className="text-right">{totalWeight.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  {summaries.reduce((sum, s) => sum + s.rebatable_weight_tonnes, 0).toFixed(2)}
+                </TableCell>
               <TableCell></TableCell>
               <TableCell></TableCell>
               <TableCell className={cn("text-right", totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
