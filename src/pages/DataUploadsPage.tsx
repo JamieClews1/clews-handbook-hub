@@ -399,12 +399,15 @@ const DataUploadsPage = () => {
             ? weightVal
             : Number(String(weightVal).replace(/,/g, ""));
 
-      mapped.push({
-        job_number: ticket,
-        source,
-        job_date: excelValueToISODate(jobDateVal),
-        customer: toCleanString(
-          getFirstMatchingValue(r, [
+      // Source-specific customer field mapping
+      const customerCandidates = source === "midweigh"
+        ? [
+            // Midweigh uses "Company/Surname" as customer and "Account" as client code
+            "Company/Surname",
+            "Company /Surname",
+            "Company",
+          ]
+        : [
             "Customer",
             "Customer Name",
             "Customer/Producer",
@@ -415,8 +418,13 @@ const DataUploadsPage = () => {
             "Company",
             "Company /Surname",
             "Company/Surname",
-          ]),
-        ),
+          ];
+
+      mapped.push({
+        job_number: ticket,
+        source,
+        job_date: excelValueToISODate(jobDateVal),
+        customer: toCleanString(getFirstMatchingValue(r, customerCandidates)),
         site: toCleanString(
           getFirstMatchingValue(r, [
             "Site",
@@ -443,7 +451,9 @@ const DataUploadsPage = () => {
             "Waste_Description",
           ]),
         ),
-        category: toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])) ,
+        category: source === "midweigh" 
+          ? "Midweigh" // Always set category to "Midweigh" for midweigh uploads
+          : toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])),
         movement_type: toCleanString(getFirstMatchingValue(r, ["Movement Type", "Movement", "movement_type"])),
         container_type: toCleanString(getFirstMatchingValue(r, ["Container", "Container Type", "container_type", "Skip Type"])),
         weight_t: Number.isFinite(weightNum as number) ? (weightNum as number) : null,
