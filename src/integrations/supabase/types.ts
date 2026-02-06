@@ -483,6 +483,66 @@ export type Database = {
           },
         ]
       }
+      customer_skip_rebates: {
+        Row: {
+          adjustment: number | null
+          container_type_filter: string[] | null
+          created_at: string
+          customer_id: string
+          id: string
+          material_type: string
+          rebate_enabled: boolean | null
+          set_value: number | null
+          threshold_tonnes: number | null
+          updated_at: string
+          value_type: string
+          value_type_item_id: string | null
+        }
+        Insert: {
+          adjustment?: number | null
+          container_type_filter?: string[] | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          material_type: string
+          rebate_enabled?: boolean | null
+          set_value?: number | null
+          threshold_tonnes?: number | null
+          updated_at?: string
+          value_type?: string
+          value_type_item_id?: string | null
+        }
+        Update: {
+          adjustment?: number | null
+          container_type_filter?: string[] | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          material_type?: string
+          rebate_enabled?: boolean | null
+          set_value?: number | null
+          threshold_tonnes?: number | null
+          updated_at?: string
+          value_type?: string
+          value_type_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_skip_rebates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_skip_rebates_value_type_item_id_fkey"
+            columns: ["value_type_item_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
