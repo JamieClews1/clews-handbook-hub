@@ -105,6 +105,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         const { data: jobsData } = await supabase
           .from("data_hub_jobs")
           .select("job_number, weight_t")
+          .eq("source", "skiptrak")
           .in("job_number", jobNumbers);
 
         if (jobsData) {
