@@ -348,8 +348,9 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
 
     const wb = XLSX.utils.book_new();
 
-    const headerData = [
-      ["Rebate Report"],
+    // Sheet 1: Summary
+    const summaryData = [
+      ["Rebate Report Summary"],
       [],
       ["Customer:", customerName],
       ["Site:", selectedSite.site_name],
@@ -361,34 +362,119 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       ["Total Rebate (£):", totalRebate.toFixed(2)],
       [],
       [],
+      ["Material", "Weight (t)", "Rate (£/t)", "Rate Source", "Value (£)"],
+      ...reportData.map((row) => [
+        row.material_name,
+        row.weight_tonnes.toFixed(2),
+        row.rate_per_tonne !== 0 ? row.rate_per_tonne.toFixed(2) : "-",
+        row.rate_source,
+        row.rebate_value.toFixed(2),
+      ]),
+      ["Total", totalWeight.toFixed(2), "", "", totalRebate.toFixed(2)],
     ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    wsSummary["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
 
-    const detailHeaders = ["Material", "Weight (t)", "Rate (£/t)", "Rate Source", "Value (£)"];
-    const detailData = reportData.map((row) => [
-      row.material_name,
-      row.weight_tonnes.toFixed(2),
-      row.rate_per_tonne !== 0 ? row.rate_per_tonne.toFixed(2) : "-",
-      row.rate_source,
-      row.rebate_value.toFixed(2),
-    ]);
-
-    // Add total row
-    detailData.push([
-      "Total",
-      totalWeight.toFixed(2),
-      "",
-      "",
-      totalRebate.toFixed(2),
-    ]);
-
-    const wsData = [...headerData, detailHeaders, ...detailData];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    ws["!cols"] = [
-      { wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
+    // Sheet 2: Load Reports
+    const loadReportsData = [
+      ["Load Reports Detail"],
+      [],
+      ["Date", "Operator", "Vehicle Reg", "Job Number", "Pallets", "Report Weight (t)", "Weighbridge (t)", "Reconciliation Status"],
+      ...individualReports.map((report) => {
+        const weighbridgeT = report.weighbridge_weight_kg != null ? (report.weighbridge_weight_kg / 1000).toFixed(2) : "-";
+        const reportT = (report.total_weight_kg / 1000).toFixed(2);
+        let status = "-";
+        if (report.weighbridge_weight_kg != null) {
+          const diff = Math.abs(report.total_weight_kg - report.weighbridge_weight_kg);
+          status = diff > 50 ? "Needs Reconciliation" : "OK";
+        }
+        return [
+          format(new Date(report.report_date), "dd/MM/yyyy"),
+          report.operator_name,
+          report.vehicle_reg || "-",
+          report.notes || "-",
+          report.total_pallets,
+          reportT,
+          weighbridgeT,
+          status,
+        ];
+      }),
     ];
+    const wsLoadReports = XLSX.utils.aoa_to_sheet(loadReportsData);
+    wsLoadReports["!cols"] = [
+      { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsLoadReports, "Load Reports");
 
-    XLSX.utils.book_append_sheet(wb, ws, "Rebate Report");
+    // Sheet 3: Line Items
+    const lineItemsRows: any[][] = [
+      ["Line Items Detail"],
+      [],
+      ["Date", "Operator", "Job Number", "Material", "Pallets", "Weight (kg)", "Weight (t)", "Rate (£/t)", "Rebate (£)"],
+    ];
+    for (const report of individualReports) {
+      for (const li of report.line_items) {
+        // Find rate for this material
+        const materialConfig = reportData.find((r) => r.material_name === li.waste_type);
+        const rate = materialConfig?.rate_per_tonne ?? 0;
+        const weightT = li.total_weight_kg / 1000;
+        const rebate = weightT * rate;
+        lineItemsRows.push([
+          format(new Date(report.report_date), "dd/MM/yyyy"),
+          report.operator_name,
+          report.notes || "-",
+          li.waste_type,
+          li.pallet_count,
+          li.total_weight_kg.toFixed(2),
+          weightT.toFixed(4),
+          rate.toFixed(2),
+          rebate.toFixed(2),
+        ]);
+      }
+      // Add pallet weight charge row per report if applicable
+      if (report.total_pallets > 0) {
+        const palletWeightT = (report.total_pallets * palletWeightKgState) / 1000;
+        const palletConfig = reportData.find((r) => r.material_name === "Pallet Weight Charge");
+        const palletRate = palletConfig?.rate_per_tonne ?? 0;
+        const palletRebate = palletWeightT * palletRate;
+        lineItemsRows.push([
+          format(new Date(report.report_date), "dd/MM/yyyy"),
+          report.operator_name,
+          report.notes || "-",
+          "Pallet Weight Charge",
+          report.total_pallets,
+          (report.total_pallets * palletWeightKgState).toFixed(2),
+          palletWeightT.toFixed(4),
+          palletRate.toFixed(2),
+          palletRebate.toFixed(2),
+        ]);
+      }
+    }
+    const wsLineItems = XLSX.utils.aoa_to_sheet(lineItemsRows);
+    wsLineItems["!cols"] = [
+      { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsLineItems, "Line Items");
+
+    // Sheet 4: Materials Summary
+    const materialsSummaryData = [
+      ["Materials Summary"],
+      [],
+      ["Material", "Total Weight (t)", "Rate (£/t)", "Rate Source", "Total Value (£)"],
+      ...reportData.map((row) => [
+        row.material_name,
+        row.weight_tonnes.toFixed(2),
+        row.rate_per_tonne !== 0 ? row.rate_per_tonne.toFixed(2) : "-",
+        row.rate_source,
+        row.rebate_value.toFixed(2),
+      ]),
+      [],
+      ["Grand Total", totalWeight.toFixed(2), "", "", totalRebate.toFixed(2)],
+    ];
+    const wsMaterialsSummary = XLSX.utils.aoa_to_sheet(materialsSummaryData);
+    wsMaterialsSummary["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsMaterialsSummary, "Materials Summary");
 
     const fromStr = format(dateRange.from, "yyyyMMdd");
     const toStr = format(dateRange.to, "yyyyMMdd");
