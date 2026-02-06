@@ -136,206 +136,219 @@ export function SiteRebateReportGenerator() {
       const site = sites.find((s) => s.id === selectedSiteId);
       if (!site) return;
 
-      // Get the site's price set
+      // Get the site's price set (optional - may not exist for Midweigh-only sites)
       const { data: priceSetLink } = await supabase
         .from("customer_site_price_sets")
         .select("price_set_id, rebate_price_sets(name)")
         .eq("site_id", selectedSiteId)
         .single();
 
-      if (!priceSetLink) {
+      // Check if there are customer-level skip rebates configured
+      const { data: customerSkipRebates } = await supabase
+        .from("customer_skip_rebates")
+        .select("id")
+        .eq("customer_id", selectedCustomerId)
+        .limit(1);
+
+      // Check if there are site-level skip rebates configured
+      const { data: siteSkipRebates } = await supabase
+        .from("customer_site_skip_rebates")
+        .select("id")
+        .eq("site_id", selectedSiteId)
+        .limit(1);
+
+      const hasSkipRebates = (customerSkipRebates && customerSkipRebates.length > 0) || 
+                             (siteSkipRebates && siteSkipRebates.length > 0);
+
+      if (!priceSetLink && !hasSkipRebates) {
         toast({
           title: "No Rebate Set",
-          description: "This site doesn't have a rebate set configured. Please set one up in Customer Setup.",
+          description: "This site doesn't have a rebate set or skip/RoRo rebates configured. Please set one up in Customer Setup.",
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      setPriceSetName((priceSetLink.rebate_price_sets as any)?.name || "Unknown");
-
-      // Get rebate configuration for this price set
-      const { data: rebateItems } = await supabase
-        .from("rebate_price_set_items")
-        .select("rebate_item_id, value_type, set_value")
-        .eq("price_set_id", priceSetLink.price_set_id);
-
-      if (!rebateItems || rebateItems.length === 0) {
-        toast({
-          title: "No Materials Configured",
-          description: "No materials are configured for this site's rebate set.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Fetch value_type_item_id and material names
+      // Initialize variables
       const rebateConfigs: RebateConfig[] = [];
-
-      for (const item of rebateItems) {
-        // Get full item with new column
-        const { data: fullItem } = await supabase
-          .from("rebate_price_set_items")
-          .select("*")
-          .eq("rebate_item_id", item.rebate_item_id)
-          .eq("price_set_id", priceSetLink.price_set_id)
-          .single();
-
-        // Get material name
-        const { data: material } = await supabase
-          .from("load_waste_types")
-          .select("waste_type")
-          .eq("id", item.rebate_item_id)
-          .single();
-
-        // Get value type name if applicable
-        let valueTypeName = null;
-        const valueTypeItemId = (fullItem as any)?.value_type_item_id;
-        if (valueTypeItemId) {
-          const { data: valueType } = await supabase
-            .from("rebate_items")
-            .select("name")
-            .eq("id", valueTypeItemId)
-            .single();
-          valueTypeName = valueType?.name || null;
-        }
-
-        rebateConfigs.push({
-          material_id: item.rebate_item_id,
-          material_name: material?.waste_type || "Unknown",
-          value_type_item_id: valueTypeItemId || null,
-          value_type_name: valueTypeName,
-          range_type: item.value_type as "lower" | "higher" | "set",
-          set_value: item.set_value,
-        });
-      }
-
-      // Get monthly values for all months in the selected range and average them
-      const rangeStart = dateRange?.from ?? new Date();
-      const rangeEnd = dateRange?.to ?? rangeStart;
-      const monthsInRange = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
-      
-      // Fetch monthly values for all months in the range
-      const monthStarts = monthsInRange.map(m => format(startOfMonth(m), "yyyy-MM-dd"));
-      const { data: monthlyValues } = await supabase
-        .from("rebate_monthly_values")
-        .select("item_id, lower_range, higher_range, month_start")
-        .in("month_start", monthStarts);
-
-      // Average the monthly values across the range
       const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
-      const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
-      
-      for (const mv of monthlyValues ?? []) {
-        if (!valueAccumulator[mv.item_id]) {
-          valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
-        }
-        valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
-        valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
-        valueAccumulator[mv.item_id].count += 1;
-      }
-      
-      for (const [itemId, acc] of Object.entries(valueAccumulator)) {
-        monthlyValueMap[itemId] = {
-          lower: acc.count > 0 ? acc.lowerSum / acc.count : 0,
-          higher: acc.count > 0 ? acc.higherSum / acc.count : 0,
-        };
-      }
-
-      // Get Load Report data for this site within the date range
-      const periodStart = format(rangeStart, "yyyy-MM-dd");
-      const periodEnd = format(rangeEnd, "yyyy-MM-dd");
-      
-      // Fetch load reports for this site in the selected date range
-      const { data: loadReports } = await supabase
-        .from("load_reports")
-        .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
-        .eq("site_id", selectedSiteId)
-        .gte("report_date", periodStart)
-        .lte("report_date", periodEnd)
-        .eq("status", "submitted")
-        .order("report_date", { ascending: false });
-
-      // Get pallet weight setting
-      const { data: palletWeightSetting } = await supabase
-        .from("load_report_settings")
-        .select("setting_value")
-        .eq("setting_key", "default_pallet_weight_kg")
-        .single();
-      
-      const palletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) : 20;
-
-      // Get all line items from matching load reports
-      const loadReportIds = (loadReports ?? []).map((r) => r.id);
-      
-      // Calculate total pallet count from all load reports
-      const totalPalletCount = (loadReports ?? []).reduce((sum, r) => sum + (r.total_pallets ?? 0), 0);
-      const totalPalletWeightTonnes = (totalPalletCount * palletWeightKg) / 1000;
-      
+      let loadReportsWithItems: LoadReportCardData[] = [];
       let lineItemWeights: Record<string, number> = {};
-      
-      // Add pallet weight charge as a special entry
-      lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
-      
-      // Fetch individual reports with their line items for the cards
-      const loadReportsWithItems: LoadReportCardData[] = [];
-      
-      if (loadReportIds.length > 0) {
-        const { data: lineItems } = await supabase
-          .from("load_line_items")
-          .select("load_report_id, waste_type, pallet_count, total_weight_kg")
-          .in("load_report_id", loadReportIds);
-        
-        // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
-        const jobNumbers = (loadReports ?? [])
-          .map((r) => (r as any).notes)
-          .filter((n): n is string => !!n && n.trim() !== "");
-        
-        let weighbridgeMap: Record<string, number> = {};
-        if (jobNumbers.length > 0) {
-          const { data: dataHubJobs } = await supabase
-            .from("data_hub_jobs")
-            .select("job_number, weight_t")
-            .in("job_number", jobNumbers);
+      let palletWeightKg = 20;
+
+      // Only process price set if one exists
+      if (priceSetLink) {
+        setPriceSetName((priceSetLink.rebate_price_sets as any)?.name || "Unknown");
+
+        // Get rebate configuration for this price set
+        const { data: rebateItems } = await supabase
+          .from("rebate_price_set_items")
+          .select("rebate_item_id, value_type, set_value")
+          .eq("price_set_id", priceSetLink.price_set_id);
+
+        if (rebateItems && rebateItems.length > 0) {
+          for (const item of rebateItems) {
+            // Get full item with new column
+            const { data: fullItem } = await supabase
+              .from("rebate_price_set_items")
+              .select("*")
+              .eq("rebate_item_id", item.rebate_item_id)
+              .eq("price_set_id", priceSetLink.price_set_id)
+              .single();
+
+            // Get material name
+            const { data: material } = await supabase
+              .from("load_waste_types")
+              .select("waste_type")
+              .eq("id", item.rebate_item_id)
+              .single();
+
+            // Get value type name if applicable
+            let valueTypeName = null;
+            const valueTypeItemId = (fullItem as any)?.value_type_item_id;
+            if (valueTypeItemId) {
+              const { data: valueType } = await supabase
+                .from("rebate_items")
+                .select("name")
+                .eq("id", valueTypeItemId)
+                .single();
+              valueTypeName = valueType?.name || null;
+            }
+
+            rebateConfigs.push({
+              material_id: item.rebate_item_id,
+              material_name: material?.waste_type || "Unknown",
+              value_type_item_id: valueTypeItemId || null,
+              value_type_name: valueTypeName,
+              range_type: item.value_type as "lower" | "higher" | "set",
+              set_value: item.set_value,
+            });
+          }
+
+          // Get monthly values for all months in the selected range and average them
+          const rangeStart = dateRange?.from ?? new Date();
+          const rangeEnd = dateRange?.to ?? rangeStart;
+          const monthsInRange = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
           
-          for (const job of dataHubJobs ?? []) {
-            if (job.weight_t != null) {
-              weighbridgeMap[job.job_number] = job.weight_t * 1000; // Convert tonnes to kg
+          // Fetch monthly values for all months in the range
+          const monthStarts = monthsInRange.map(m => format(startOfMonth(m), "yyyy-MM-dd"));
+          const { data: monthlyValues } = await supabase
+            .from("rebate_monthly_values")
+            .select("item_id, lower_range, higher_range, month_start")
+            .in("month_start", monthStarts);
+
+          // Average the monthly values across the range
+          const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
+          
+          for (const mv of monthlyValues ?? []) {
+            if (!valueAccumulator[mv.item_id]) {
+              valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
+            }
+            valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
+            valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
+            valueAccumulator[mv.item_id].count += 1;
+          }
+          
+          for (const [itemId, acc] of Object.entries(valueAccumulator)) {
+            monthlyValueMap[itemId] = {
+              lower: acc.count > 0 ? acc.lowerSum / acc.count : 0,
+              higher: acc.count > 0 ? acc.higherSum / acc.count : 0,
+            };
+          }
+
+          // Get Load Report data for this site within the date range
+          const periodStart = format(rangeStart, "yyyy-MM-dd");
+          const periodEnd = format(rangeEnd, "yyyy-MM-dd");
+          
+          // Fetch load reports for this site in the selected date range
+          const { data: loadReports } = await supabase
+            .from("load_reports")
+            .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
+            .eq("site_id", selectedSiteId)
+            .gte("report_date", periodStart)
+            .lte("report_date", periodEnd)
+            .eq("status", "submitted")
+            .order("report_date", { ascending: false });
+
+          // Get pallet weight setting
+          const { data: palletWeightSetting } = await supabase
+            .from("load_report_settings")
+            .select("setting_value")
+            .eq("setting_key", "default_pallet_weight_kg")
+            .single();
+          
+          palletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) : 20;
+
+          // Get all line items from matching load reports
+          const loadReportIds = (loadReports ?? []).map((r) => r.id);
+          
+          // Calculate total pallet count from all load reports
+          const totalPalletCount = (loadReports ?? []).reduce((sum, r) => sum + (r.total_pallets ?? 0), 0);
+          const totalPalletWeightTonnes = (totalPalletCount * palletWeightKg) / 1000;
+          
+          // Add pallet weight charge as a special entry
+          lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
+          
+          if (loadReportIds.length > 0) {
+            const { data: lineItems } = await supabase
+              .from("load_line_items")
+              .select("load_report_id, waste_type, pallet_count, total_weight_kg")
+              .in("load_report_id", loadReportIds);
+            
+            // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
+            const jobNumbers = (loadReports ?? [])
+              .map((r) => (r as any).notes)
+              .filter((n): n is string => !!n && n.trim() !== "");
+            
+            let weighbridgeMap: Record<string, number> = {};
+            if (jobNumbers.length > 0) {
+              const { data: dataHubJobs } = await supabase
+                .from("data_hub_jobs")
+                .select("job_number, weight_t")
+                .in("job_number", jobNumbers);
+              
+              for (const job of dataHubJobs ?? []) {
+                if (job.weight_t != null) {
+                  weighbridgeMap[job.job_number] = job.weight_t * 1000; // Convert tonnes to kg
+                }
+              }
+            }
+            
+            // Build individual report data
+            for (const report of loadReports ?? []) {
+              const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
+              const jobNumber = (report as any).notes;
+              const weighbridgeWeightKg = jobNumber ? weighbridgeMap[jobNumber] ?? null : null;
+              
+              loadReportsWithItems.push({
+                id: report.id,
+                report_date: (report as any).report_date,
+                operator_name: (report as any).operator_name || "Unknown",
+                vehicle_reg: (report as any).vehicle_reg || null,
+                total_pallets: report.total_pallets ?? 0,
+                total_weight_kg: (report as any).total_weight_kg ?? 0,
+                notes: (report as any).notes || null,
+                line_items: reportLineItems.map((li) => ({
+                  waste_type: li.waste_type,
+                  pallet_count: li.pallet_count,
+                  total_weight_kg: Number(li.total_weight_kg),
+                })),
+                calculated_rebate: 0, // Will be calculated by the component
+                weighbridge_weight_kg: weighbridgeWeightKg,
+              });
+            }
+            
+            // Aggregate weights by waste type (convert kg to tonnes)
+            for (const item of lineItems ?? []) {
+              const weightTonnes = Number(item.total_weight_kg) / 1000;
+              lineItemWeights[item.waste_type] = (lineItemWeights[item.waste_type] ?? 0) + weightTonnes;
             }
           }
         }
-        
-        // Build individual report data
-        for (const report of loadReports ?? []) {
-          const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
-          const jobNumber = (report as any).notes;
-          const weighbridgeWeightKg = jobNumber ? weighbridgeMap[jobNumber] ?? null : null;
-          
-          loadReportsWithItems.push({
-            id: report.id,
-            report_date: (report as any).report_date,
-            operator_name: (report as any).operator_name || "Unknown",
-            vehicle_reg: (report as any).vehicle_reg || null,
-            total_pallets: report.total_pallets ?? 0,
-            total_weight_kg: (report as any).total_weight_kg ?? 0,
-            notes: (report as any).notes || null,
-            line_items: reportLineItems.map((li) => ({
-              waste_type: li.waste_type,
-              pallet_count: li.pallet_count,
-              total_weight_kg: Number(li.total_weight_kg),
-            })),
-            calculated_rebate: 0, // Will be calculated by the component
-            weighbridge_weight_kg: weighbridgeWeightKg,
-          });
-        }
-        
-        // Aggregate weights by waste type (convert kg to tonnes)
-        for (const item of lineItems ?? []) {
-          const weightTonnes = Number(item.total_weight_kg) / 1000;
-          lineItemWeights[item.waste_type] = (lineItemWeights[item.waste_type] ?? 0) + weightTonnes;
-        }
+      } else {
+        // No price set, set empty price set name
+        setPriceSetName("");
       }
 
       // Build report rows
