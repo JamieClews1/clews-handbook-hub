@@ -351,6 +351,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
 
     const wb = XLSX.utils.book_new();
 
+    // Helper to round numbers for Excel (keeps as number type)
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+    const round4 = (n: number) => Math.round(n * 10000) / 10000;
+
     // Sheet 1: Summary
     const summaryData = [
       ["Rebate Report Summary"],
@@ -361,19 +365,19 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       ["Rebate Set:", priceSetName],
       ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
       [],
-      ["Total Weight (t):", totalWeight.toFixed(2)],
-      ["Total Rebate (£):", totalRebate.toFixed(2)],
+      ["Total Weight (t):", round2(totalWeight)],
+      ["Total Rebate (£):", round2(totalRebate)],
       [],
       [],
       ["Material", "Weight (t)", "Rate (£/t)", "Rate Source", "Value (£)"],
       ...reportData.map((row) => [
         row.material_name,
-        row.weight_tonnes.toFixed(2),
-        row.rate_per_tonne !== 0 ? row.rate_per_tonne.toFixed(2) : "-",
+        round2(row.weight_tonnes),
+        row.rate_per_tonne !== 0 ? round2(row.rate_per_tonne) : "-",
         row.rate_source,
-        row.rebate_value.toFixed(2),
+        round2(row.rebate_value),
       ]),
-      ["Total", totalWeight.toFixed(2), "", "", totalRebate.toFixed(2)],
+      ["Total", round2(totalWeight), "", "", round2(totalRebate)],
     ];
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
     wsSummary["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 12 }];
@@ -385,8 +389,8 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       [],
       ["Date", "Operator", "Vehicle Reg", "Job Number", "Pallets", "Report Weight (t)", "Weighbridge (t)", "Reconciliation Status"],
       ...individualReports.map((report) => {
-        const weighbridgeT = report.weighbridge_weight_kg != null ? (report.weighbridge_weight_kg / 1000).toFixed(2) : "-";
-        const reportT = (report.total_weight_kg / 1000).toFixed(2);
+        const weighbridgeT = report.weighbridge_weight_kg != null ? round2(report.weighbridge_weight_kg / 1000) : "-";
+        const reportT = round2(report.total_weight_kg / 1000);
         let status = "-";
         if (report.weighbridge_weight_kg != null) {
           const diff = Math.abs(report.total_weight_kg - report.weighbridge_weight_kg);
@@ -429,10 +433,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
           report.notes || "-",
           li.waste_type,
           li.pallet_count,
-          li.total_weight_kg.toFixed(2),
-          weightT.toFixed(4),
-          rate.toFixed(2),
-          rebate.toFixed(2),
+          round2(li.total_weight_kg),
+          round4(weightT),
+          round2(rate),
+          round2(rebate),
         ]);
       }
       // Add pallet weight charge row per report if applicable
@@ -447,10 +451,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
           report.notes || "-",
           "Pallet Weight Charge",
           report.total_pallets,
-          (report.total_pallets * palletWeightKgState).toFixed(2),
-          palletWeightT.toFixed(4),
-          palletRate.toFixed(2),
-          palletRebate.toFixed(2),
+          round2(report.total_pallets * palletWeightKgState),
+          round4(palletWeightT),
+          round2(palletRate),
+          round2(palletRebate),
         ]);
       }
     }
@@ -467,13 +471,13 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       ["Material", "Total Weight (t)", "Rate (£/t)", "Rate Source", "Total Value (£)"],
       ...reportData.map((row) => [
         row.material_name,
-        row.weight_tonnes.toFixed(2),
-        row.rate_per_tonne !== 0 ? row.rate_per_tonne.toFixed(2) : "-",
+        round2(row.weight_tonnes),
+        row.rate_per_tonne !== 0 ? round2(row.rate_per_tonne) : "-",
         row.rate_source,
-        row.rebate_value.toFixed(2),
+        round2(row.rebate_value),
       ]),
       [],
-      ["Grand Total", totalWeight.toFixed(2), "", "", totalRebate.toFixed(2)],
+      ["Grand Total", round2(totalWeight), "", "", round2(totalRebate)],
     ];
     const wsMaterialsSummary = XLSX.utils.aoa_to_sheet(materialsSummaryData);
     wsMaterialsSummary["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 15 }];
