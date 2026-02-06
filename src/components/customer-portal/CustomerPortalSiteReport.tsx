@@ -282,6 +282,9 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
   const exportToExcel = () => {
     if (!selectedSite || !dateRange?.from || !dateRange?.to) return;
 
+    // Helper to round numbers for Excel (keeps as number type)
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
     const wb = XLSX.utils.book_new();
 
     const headerData = [
@@ -292,9 +295,9 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
       ["Date Range:", `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`],
       ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
       [],
-      ["Total Jobs:", filteredJobRecords.length.toString()],
-      ["Total Weight (t):", totalWeight.toFixed(2)],
-      ["Total Cost (£):", totalCost.toFixed(2)],
+      ["Total Jobs:", filteredJobRecords.length],
+      ["Total Weight (t):", round2(totalWeight)],
+      ["Total Cost (£):", round2(totalCost)],
       [],
       [],
     ];
@@ -309,8 +312,8 @@ export function CustomerPortalSiteReport({ customerId, customerName }: CustomerP
       job.ewc || "",
       job.waste_description || "",
       job.vehicle_registration || "",
-      job.weight_t ?? "",
-      getJobCost(job) ?? "",
+      job.weight_t != null ? round2(job.weight_t) : "",
+      getJobCost(job) != null ? round2(getJobCost(job)!) : "",
     ]);
 
     const wsData = [...headerData, detailHeaders, ...detailData];

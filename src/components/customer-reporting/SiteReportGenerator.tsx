@@ -330,6 +330,9 @@ export function SiteReportGenerator() {
   const exportToExcel = () => {
     if (!selectedCustomer || !selectedSite || !dateRange?.from || !dateRange?.to) return;
 
+    // Helper to round numbers for Excel (keeps as number type)
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
     const wb = XLSX.utils.book_new();
 
     // Header rows
@@ -341,9 +344,9 @@ export function SiteReportGenerator() {
       ["Date Range:", `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`],
       ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
       [],
-      ["Total Jobs:", filteredJobRecords.length.toString()],
-      ["Total Weight (t):", totalWeight.toFixed(2)],
-      ["Total Cost (£):", totalCost.toFixed(2)],
+      ["Total Jobs:", filteredJobRecords.length],
+      ["Total Weight (t):", round2(totalWeight)],
+      ["Total Cost (£):", round2(totalCost)],
       [],
       [],
     ];
@@ -363,9 +366,9 @@ export function SiteReportGenerator() {
       { key: "wasteType", header: "Waste Type", getValue: (job) => job.waste_description || "" },
       { key: "vehicle", header: "Vehicle", getValue: (job) => job.vehicle_registration || "" },
       { key: "weighbridge", header: "Weighbridge", getValue: (job) => getWeighbridge(job) || "" },
-      { key: "weight", header: "Weight (t)", getValue: (job) => job.weight_t ?? "" },
-      { key: "cost", header: "Cost (£)", getValue: (job) => getJobCost(job) ?? "" },
-      { key: "totalPrice", header: "Total Price (£)", getValue: (job) => getTotalPrice(job) ?? "" },
+      { key: "weight", header: "Weight (t)", getValue: (job) => job.weight_t != null ? round2(job.weight_t) : "" },
+      { key: "cost", header: "Cost (£)", getValue: (job) => { const c = getJobCost(job); return c != null ? round2(c) : ""; } },
+      { key: "totalPrice", header: "Total Price (£)", getValue: (job) => { const p = getTotalPrice(job); return p != null ? round2(p) : ""; } },
     ];
 
     const visibleColumnData = columnData.filter((col) => visibleColumns.has(col.key));

@@ -468,6 +468,9 @@ export function SiteRebateReportGenerator() {
     const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
     if (!selectedCustomer || !selectedSite || !dateRange?.from) return;
 
+    // Helper to round numbers for Excel (keeps as number type)
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
     const wb = XLSX.utils.book_new();
 
     // ============ Sheet 1: Summary ============
@@ -483,14 +486,14 @@ export function SiteRebateReportGenerator() {
 
     const summaryData = consolidatedData.map((cat) => [
       cat.category,
-      cat.weight.toFixed(2),
-      cat.rebate.toFixed(2),
+      round2(cat.weight),
+      round2(cat.rebate),
     ]);
 
     summaryData.push([
       "TOTAL",
-      combinedTotalWeight.toFixed(2),
-      combinedTotalRebate.toFixed(2),
+      round2(combinedTotalWeight),
+      round2(combinedTotalRebate),
     ]);
 
     const summaryWsData = [...summaryHeader, ...summaryData];
@@ -556,9 +559,9 @@ export function SiteRebateReportGenerator() {
           report.notes || "-",
           li.waste_type,
           li.pallet_count,
-          li.total_weight_kg,
-          rate.toFixed(2),
-          rebate.toFixed(2),
+          round2(li.total_weight_kg),
+          round2(rate),
+          round2(rebate),
         ]);
       }
     }
@@ -580,18 +583,18 @@ export function SiteRebateReportGenerator() {
 
     const materialsData = reportData.map((row) => [
       row.material_name,
-      row.weight_tonnes.toFixed(2),
-      row.rate_per_tonne.toFixed(2),
+      round2(row.weight_tonnes),
+      round2(row.rate_per_tonne),
       row.rate_source,
-      row.rebate_value.toFixed(2),
+      round2(row.rebate_value),
     ]);
 
     materialsData.push([
       "TOTAL",
-      loadReportsTotalWeight.toFixed(2),
+      round2(loadReportsTotalWeight),
       "",
       "",
-      loadReportsTotalRebate.toFixed(2),
+      round2(loadReportsTotalRebate),
     ]);
 
     const materialsWsData = [...materialsHeader, ...materialsData];
@@ -609,20 +612,20 @@ export function SiteRebateReportGenerator() {
 
       const skipData = skipRoroSummaries.map((s) => [
         s.material_label,
-        s.total_weight_tonnes.toFixed(2),
-        s.rate_per_tonne.toFixed(2),
-        s.adjustment.toFixed(2),
+        round2(s.total_weight_tonnes),
+        round2(s.rate_per_tonne),
+        round2(s.adjustment),
         s.rate_source,
-        s.rebate_value.toFixed(2),
+        round2(s.rebate_value),
       ]);
 
       skipData.push([
         "TOTAL",
-        skipRoroTotalWeight.toFixed(2),
+        round2(skipRoroTotalWeight),
         "",
         "",
         "",
-        skipRoroTotalRebate.toFixed(2),
+        round2(skipRoroTotalRebate),
       ]);
 
       const skipWsData = [...skipHeader, ...skipData];
