@@ -319,10 +319,10 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                     <TableCell>
                       <Input
                         type="text"
-                        className="w-40 text-xs"
+                        className="min-w-[180px] text-xs"
                         value={item.container_type_filter?.join(", ") ?? ""}
                         onChange={(e) => updateContainerFilter(item.id, e.target.value)}
-                        placeholder="e.g. 8YD, Skip"
+                        placeholder="e.g. 8YD, Skip, RoRo"
                         disabled={saving}
                       />
                       <span className="text-[10px] text-muted-foreground">Comma-separated keywords</span>
