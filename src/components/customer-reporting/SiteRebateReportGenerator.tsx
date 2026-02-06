@@ -17,6 +17,7 @@ import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
 import { SkipRoroRebateTab } from "./SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { DateRange } from "react-day-picker";
+import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 
 type Customer = {
   id: string;
@@ -303,10 +304,13 @@ export function SiteRebateReportGenerator() {
             
             let weighbridgeMap: Record<string, number> = {};
             if (jobNumbers.length > 0) {
+              // Determine source based on site's load_report_type
+              const source = getWeighbridgeSource(site.load_report_type);
+              
               const { data: dataHubJobs } = await supabase
                 .from("data_hub_jobs")
                 .select("job_number, weight_t")
-                .eq("source", "skiptrak")
+                .eq("source", source)
                 .in("job_number", jobNumbers);
               
               for (const job of dataHubJobs ?? []) {

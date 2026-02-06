@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 
 interface LoadReport {
   id: string;
@@ -102,10 +103,13 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
       let weighbridgeMap: Record<string, number> = {};
       if (jobNumbers.length > 0) {
+        // Determine the source based on customer type
+        const source = getWeighbridgeSource(customerType);
+        
         const { data: jobsData } = await supabase
           .from("data_hub_jobs")
           .select("job_number, weight_t")
-          .eq("source", "skiptrak")
+          .eq("source", source)
           .in("job_number", jobNumbers);
 
         if (jobsData) {
