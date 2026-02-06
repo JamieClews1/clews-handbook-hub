@@ -284,9 +284,31 @@ export function SiteRebateReportGenerator() {
           .select("load_report_id, waste_type, pallet_count, total_weight_kg")
           .in("load_report_id", loadReportIds);
         
+        // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
+        const jobNumbers = (loadReports ?? [])
+          .map((r) => (r as any).notes)
+          .filter((n): n is string => !!n && n.trim() !== "");
+        
+        let weighbridgeMap: Record<string, number> = {};
+        if (jobNumbers.length > 0) {
+          const { data: dataHubJobs } = await supabase
+            .from("data_hub_jobs")
+            .select("job_number, weight_t")
+            .in("job_number", jobNumbers);
+          
+          for (const job of dataHubJobs ?? []) {
+            if (job.weight_t != null) {
+              weighbridgeMap[job.job_number] = job.weight_t * 1000; // Convert tonnes to kg
+            }
+          }
+        }
+        
         // Build individual report data
         for (const report of loadReports ?? []) {
           const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
+          const jobNumber = (report as any).notes;
+          const weighbridgeWeightKg = jobNumber ? weighbridgeMap[jobNumber] ?? null : null;
+          
           loadReportsWithItems.push({
             id: report.id,
             report_date: (report as any).report_date,
@@ -301,6 +323,7 @@ export function SiteRebateReportGenerator() {
               total_weight_kg: Number(li.total_weight_kg),
             })),
             calculated_rebate: 0, // Will be calculated by the component
+            weighbridge_weight_kg: weighbridgeWeightKg,
           });
         }
         
