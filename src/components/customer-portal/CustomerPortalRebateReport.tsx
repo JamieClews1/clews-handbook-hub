@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, DollarSign, Loader2, FileSpreadsheet } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
+import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
+import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 
 type Site = {
   id: string;
@@ -62,6 +65,30 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   const [priceSetName, setPriceSetName] = useState("");
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
+
+  // Get site data hub mappings for Skip/RoRo calculation
+  const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  const siteDataHubMappings = selectedSite
+    ? [
+        selectedSite.data_hub_site,
+        selectedSite.data_hub_site_2,
+        selectedSite.data_hub_site_3,
+        selectedSite.data_hub_site_4,
+        selectedSite.data_hub_site_5,
+      ].filter((s): s is string => !!s)
+    : [];
+
+  // Use the hook to get Skip/RoRo rebate totals
+  const {
+    loading: skipRoroLoading,
+    summaries: skipRoroSummaries,
+    totalRebate: skipRoroTotalRebate,
+    totalWeight: skipRoroTotalWeight,
+  } = useSkipRoroRebates(
+    reportGenerated ? selectedSiteId : "",
+    reportGenerated ? dateRange : undefined,
+    siteDataHubMappings
+  );
 
   useEffect(() => {
     loadSites();
@@ -339,12 +366,83 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
     }
   };
 
-  const totalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
-  // Exclude Pallet Weight Charge from total weight as it's a deduction, not actual material
-  const totalWeight = reportData
-    .filter((r) => r.material_name !== "Pallet Weight Charge")
-    .reduce((sum, r) => sum + r.weight_tonnes, 0);
-  const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  // Load Reports totals
+  const loadReportsTotalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
+  const loadReportsTotalWeight = reportData.reduce((sum, r) => sum + r.weight_tonnes, 0);
+
+  // Combined totals (Load Reports + Skip/RoRo)
+  const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
+  const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
+
+  // Consolidate materials into categories for the Total tab
+  // Categories: Cardboard, Films, Scrap Metal, Other
+  const consolidatedData = (() => {
+    const categories: Record<string, { 
+      weight: number; 
+      rebate: number; 
+      sources: { name: string; weight: number; rate: number; rebate: number; source: string }[] 
+    }> = {
+      "Cardboard": { weight: 0, rebate: 0, sources: [] },
+      "Films": { weight: 0, rebate: 0, sources: [] },
+      "Scrap Metal": { weight: 0, rebate: 0, sources: [] },
+      "Other": { weight: 0, rebate: 0, sources: [] },
+    };
+
+    // Categorize Load Reports materials
+    for (const row of reportData) {
+      const name = row.material_name.toLowerCase();
+      let category = "Other";
+      
+      if (name.includes("card") || name.includes("cardboard")) {
+        category = "Cardboard";
+      } else if (name.includes("film")) {
+        category = "Films";
+      } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
+        category = "Scrap Metal";
+      } else if (name.includes("pallet")) {
+        category = "Other"; // Pallet weight charge goes to Other
+      }
+
+      categories[category].weight += row.weight_tonnes;
+      categories[category].rebate += row.rebate_value;
+      categories[category].sources.push({
+        name: `${row.material_name} (Load Reports)`,
+        weight: row.weight_tonnes,
+        rate: row.rate_per_tonne,
+        rebate: row.rebate_value,
+        source: row.rate_source,
+      });
+    }
+
+    // Categorize Skip/RoRo materials
+    for (const summary of skipRoroSummaries) {
+      let category = "Other";
+      
+      if (summary.material_type === "card_loose") {
+        category = "Cardboard";
+      } else if (summary.material_type === "scrap_metal") {
+        category = "Scrap Metal";
+      }
+
+      categories[category].weight += summary.total_weight_tonnes;
+      categories[category].rebate += summary.rebate_value;
+      categories[category].sources.push({
+        name: `${summary.material_label} (RoRo/Skip)`,
+        weight: summary.total_weight_tonnes,
+        rate: summary.rate_per_tonne,
+        rebate: summary.rebate_value,
+        source: summary.rate_source,
+      });
+    }
+
+    // Convert to array and filter out empty categories
+    return Object.entries(categories)
+      .filter(([_, data]) => data.weight > 0 || data.rebate !== 0)
+      .map(([name, data]) => ({
+        category: name,
+        ...data,
+      }));
+  })();
 
   const exportToExcel = () => {
     if (!selectedSite || !dateRange?.from || !dateRange?.to) return;
@@ -365,8 +463,8 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
       ["Rebate Set:", priceSetName],
       ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
       [],
-      ["Total Weight (t):", round2(totalWeight)],
-      ["Total Rebate (£):", round2(totalRebate)],
+      ["Total Weight (t):", round2(combinedTotalWeight)],
+      ["Total Rebate (£):", round2(combinedTotalRebate)],
       [],
       [],
       ["Material", "Weight (t)", "Rate (£/t)", "Rate Source", "Value (£)"],
@@ -377,7 +475,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
         row.rate_source,
         round2(row.rebate_value),
       ]),
-      ["Total", round2(totalWeight), "", "", round2(totalRebate)],
+      ["Total", round2(loadReportsTotalWeight), "", "", round2(loadReportsTotalRebate)],
     ];
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
     wsSummary["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 12 }];
@@ -477,7 +575,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
         round2(row.rebate_value),
       ]),
       [],
-      ["Grand Total", round2(totalWeight), "", "", round2(totalRebate)],
+      ["Grand Total", round2(loadReportsTotalWeight), "", "", round2(loadReportsTotalRebate)],
     ];
     const wsMaterialsSummary = XLSX.utils.aoa_to_sheet(materialsSummaryData);
     wsMaterialsSummary["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 15 }];
@@ -569,87 +667,159 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-semibold">
-                {selectedSite?.site_name} - {formatDateRange()}
+                {selectedSite?.site_name} – {dateRange?.from && format(dateRange.from, "d MMM yyyy")}
+                {dateRange?.to && dateRange.to !== dateRange.from && ` to ${format(dateRange.to, "d MMM yyyy")}`}
               </h3>
               <p className="text-sm text-muted-foreground">
                 Rebate Set: <span className="font-medium">{priceSetName}</span>
               </p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex items-center gap-4">
               <Badge variant="secondary" className="text-sm">
-                {totalWeight.toFixed(2)} tonnes
+                {combinedTotalWeight.toFixed(2)} tonnes
               </Badge>
-              <Badge variant="default" className={cn("text-sm", totalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
-                £{totalRebate.toFixed(2)}
+              <Badge variant="default" className={cn("text-sm", combinedTotalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
+                £{combinedTotalRebate.toFixed(2)}
               </Badge>
             </div>
           </div>
 
-          {reportData.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead className="text-right">Weight (t)</TableHead>
-                    <TableHead className="text-right">Rate (£/t)</TableHead>
-                    <TableHead>Rate Source</TableHead>
-                    <TableHead className="text-right">Value (£)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportData.map((row, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{row.material_name}</TableCell>
-                      <TableCell className="text-right">{row.weight_tonnes.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        {row.rate_per_tonne !== 0 ? `£${row.rate_per_tonne.toFixed(2)}` : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">{row.rate_source}</span>
-                      </TableCell>
-                      <TableCell className={cn("text-right font-medium", row.rebate_value >= 0 ? "text-green-600" : "text-red-600")}>
-                        £{row.rebate_value.toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="bg-muted/50 font-semibold">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-right">{totalWeight.toFixed(2)}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell className={cn("text-right", totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
-                      £{totalRebate.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No materials configured for this site's rebate set.
-            </p>
-          )}
+          <Tabs defaultValue="total" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="total">Total</TabsTrigger>
+              <TabsTrigger value="load-reports">Load Reports</TabsTrigger>
+              <TabsTrigger value="roro-skip">RoRo / Skip Rebates</TabsTrigger>
+            </TabsList>
 
-          {/* Individual Load Report Cards */}
-          <LoadReportCards
-            reports={individualReports}
-            rebateConfigs={reportData.map((r) => ({
-              material_name: r.material_name,
-              rate_per_tonne: r.rate_per_tonne,
-            }))}
-            palletWeightKg={palletWeightKgState}
-          />
-
-          <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
-            <p className="font-medium mb-1">Data Source:</p>
-            <p>
-              Weights are pulled from submitted Load Reports linked to this site for the selected period ({formatDateRange()}).
-              {dateRange?.from && dateRange?.to && eachMonthOfInterval({ start: dateRange.from, end: dateRange.to }).length > 1 && (
-                <span className="block mt-1">Rates are averaged across the months in the selected range.</span>
+            <TabsContent value="total" className="mt-4">
+              {consolidatedData.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-right">Weight (t)</TableHead>
+                        <TableHead colSpan={2}>Sources</TableHead>
+                        <TableHead className="text-right">Value (£)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {consolidatedData.map((cat, idx) => (
+                        <TableRow key={idx} className="border-b">
+                          <TableCell className="font-semibold align-top">{cat.category}</TableCell>
+                          <TableCell className="text-right align-top font-medium">{cat.weight.toFixed(2)}</TableCell>
+                          <TableCell colSpan={2} className="text-sm">
+                            <div className="space-y-1">
+                              {cat.sources.map((src, srcIdx) => (
+                                <div key={srcIdx} className="flex justify-between text-muted-foreground">
+                                  <span>{src.name}</span>
+                                  <span className="ml-4">
+                                    {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{cat.rebate.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
+                        <TableCell colSpan={2}></TableCell>
+                        <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                          £{combinedTotalRebate.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No materials configured for this site's rebate set.
+                </p>
               )}
-            </p>
-          </div>
+
+              <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground mt-4">
+                <p className="font-medium mb-1">Data Source:</p>
+                <p>
+                  Cardboard, Films, and Scrap Metal are consolidated from both Load Reports and RoRo/Skip data.
+                  See individual tabs for detailed breakdowns.
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="load-reports" className="mt-4 space-y-6">
+              {/* Summary Table */}
+              {reportData.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead className="text-right">Weight (t)</TableHead>
+                        <TableHead className="text-right">Rate (£/t)</TableHead>
+                        <TableHead>Rate Source</TableHead>
+                        <TableHead className="text-right">Value (£)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.map((row, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{row.material_name}</TableCell>
+                          <TableCell className="text-right">{row.weight_tonnes.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            {row.rate_per_tonne !== 0 ? `£${row.rate_per_tonne.toFixed(2)}` : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">{row.rate_source}</span>
+                          </TableCell>
+                          <TableCell className={cn("text-right font-medium", row.rebate_value >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{row.rebate_value.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right">{loadReportsTotalWeight.toFixed(2)}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className={cn("text-right", loadReportsTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                          £{loadReportsTotalRebate.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No materials configured for this site's rebate set.
+                </p>
+              )}
+
+              {/* Individual Load Report Cards */}
+              <LoadReportCards
+                reports={individualReports}
+                rebateConfigs={reportData.map((r) => ({
+                  material_name: r.material_name,
+                  rate_per_tonne: r.rate_per_tonne,
+                }))}
+                palletWeightKg={palletWeightKgState}
+              />
+            </TabsContent>
+
+            <TabsContent value="roro-skip" className="mt-4">
+              {selectedSite && (
+                <SkipRoroRebateTab
+                  siteId={selectedSiteId}
+                  dateRange={dateRange}
+                  siteDataHubMappings={siteDataHubMappings}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </div>
