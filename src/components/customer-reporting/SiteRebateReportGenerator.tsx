@@ -648,7 +648,55 @@ export function SiteRebateReportGenerator() {
               </div>
             </TabsContent>
 
-            <TabsContent value="load-reports" className="mt-4">
+            <TabsContent value="load-reports" className="mt-4 space-y-6">
+              {/* Summary Table */}
+              {reportData.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead className="text-right">Weight (t)</TableHead>
+                        <TableHead className="text-right">Rate (£/t)</TableHead>
+                        <TableHead>Rate Source</TableHead>
+                        <TableHead className="text-right">Value (£)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.map((row, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{row.material_name}</TableCell>
+                          <TableCell className="text-right">{row.weight_tonnes.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            {row.rate_per_tonne !== 0 ? `£${row.rate_per_tonne.toFixed(2)}` : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">{row.rate_source}</span>
+                          </TableCell>
+                          <TableCell className={cn("text-right font-medium", row.rebate_value >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{row.rebate_value.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right">{loadReportsTotalWeight.toFixed(2)}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className={cn("text-right", loadReportsTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                          £{loadReportsTotalRebate.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No materials configured for this site's rebate set.
+                </p>
+              )}
+
+              {/* Individual Load Report Cards */}
               <LoadReportCards
                 reports={individualReports}
                 rebateConfigs={reportData.map((r) => ({
@@ -657,11 +705,6 @@ export function SiteRebateReportGenerator() {
                 }))}
                 palletWeightKg={palletWeightKgState}
               />
-              {individualReports.length === 0 && (
-                <p className="text-muted-foreground text-center py-8">
-                  No load reports found for this period.
-                </p>
-              )}
             </TabsContent>
 
             <TabsContent value="roro-skip" className="mt-4">
