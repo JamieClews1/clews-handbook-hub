@@ -12,10 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface LoadReport {
   id: string;
@@ -26,6 +27,8 @@ interface LoadReport {
   total_weight_kg: number;
   status: string;
   created_at: string;
+  notes: string | null;
+  weighbridge_weight_kg?: number | null;
 }
 
 interface LoadReportsListProps {
@@ -91,7 +94,36 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       const { data, error } = await query;
 
       if (error) throw error;
-      setReports(data || []);
+
+      // Fetch weighbridge data for reports with job numbers in notes
+      const jobNumbers = (data || [])
+        .map((r) => r.notes?.trim())
+        .filter((n): n is string => !!n);
+
+      let weighbridgeMap: Record<string, number> = {};
+      if (jobNumbers.length > 0) {
+        const { data: jobsData } = await supabase
+          .from("data_hub_jobs")
+          .select("job_number, weight_t")
+          .in("job_number", jobNumbers);
+
+        if (jobsData) {
+          weighbridgeMap = jobsData.reduce((acc, job) => {
+            if (job.weight_t != null) {
+              acc[job.job_number] = job.weight_t * 1000; // Convert tonnes to kg
+            }
+            return acc;
+          }, {} as Record<string, number>);
+        }
+      }
+
+      // Attach weighbridge weights to reports
+      const reportsWithWeighbridge = (data || []).map((report) => ({
+        ...report,
+        weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
+      }));
+
+      setReports(reportsWithWeighbridge);
     } catch (error: any) {
       toast({
         title: "Error loading reports",
@@ -101,6 +133,12 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     } finally {
       setLoading(false);
     }
+  };
+
+  const needsReconciliation = (report: LoadReport) => {
+    if (report.weighbridge_weight_kg == null) return false;
+    const difference = Math.abs(report.total_weight_kg - report.weighbridge_weight_kg);
+    return difference > 50; // 50kg tolerance
   };
 
   const filteredReports = reports.filter((report) => {
@@ -132,15 +170,36 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     URL.revokeObjectURL(url);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "submitted":
-        return <Badge className="bg-green-500">Submitted</Badge>;
-      case "draft":
-        return <Badge variant="secondary">Draft</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+  const getStatusBadge = (status: string, report: LoadReport) => {
+    const showReconciliation = needsReconciliation(report);
+    
+    return (
+      <div className="flex items-center gap-1.5 justify-center">
+        {showReconciliation && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Weight mismatch - needs reconciliation</p>
+                <p className="text-xs text-muted-foreground">
+                  Report: {(report.total_weight_kg / 1000).toFixed(2)}t, 
+                  Weighbridge: {((report.weighbridge_weight_kg ?? 0) / 1000).toFixed(2)}t
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {status === "submitted" ? (
+          <Badge className="bg-green-500">Submitted</Badge>
+        ) : status === "draft" ? (
+          <Badge variant="secondary">Draft</Badge>
+        ) : (
+          <Badge variant="outline">{status}</Badge>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -251,7 +310,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                       {report.total_weight_kg.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-center">
-                      {getStatusBadge(report.status)}
+                      {getStatusBadge(report.status, report)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
