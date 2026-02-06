@@ -363,6 +363,7 @@ export type Database = {
       customer_site_skip_rebates: {
         Row: {
           adjustment: number | null
+          container_type_filter: string[] | null
           created_at: string
           id: string
           material_type: Database["public"]["Enums"]["skip_material_type"]
@@ -376,6 +377,7 @@ export type Database = {
         }
         Insert: {
           adjustment?: number | null
+          container_type_filter?: string[] | null
           created_at?: string
           id?: string
           material_type: Database["public"]["Enums"]["skip_material_type"]
@@ -389,6 +391,7 @@ export type Database = {
         }
         Update: {
           adjustment?: number | null
+          container_type_filter?: string[] | null
           created_at?: string
           id?: string
           material_type?: Database["public"]["Enums"]["skip_material_type"]

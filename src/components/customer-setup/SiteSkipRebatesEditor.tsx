@@ -21,11 +21,12 @@ type SkipRebateItem = {
   site_id: string;
   material_type: "card_loose" | "scrap_metal";
   value_type_item_id: string | null;
-  value_type: "lower" | "higher" | "set";
+  value_type: "lower" | "higher" | "set" | "bespoke";
   set_value: number | null;
   adjustment: number | null;
-   threshold_tonnes: number | null;
-   rebate_enabled: boolean;
+  threshold_tonnes: number | null;
+  rebate_enabled: boolean;
+  container_type_filter: string[] | null;
 };
 
 const SKIP_MATERIALS: { id: "card_loose" | "scrap_metal"; name: string }[] = [
@@ -53,10 +54,10 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     try {
       const [{ data: rebateItems, error: rebateItemsError }, { data: skipData, error: skipError }] = await Promise.all([
         supabase.from("rebate_items").select("id, name, sort_order").order("sort_order", { ascending: true }),
-        supabase
-          .from("customer_site_skip_rebates")
-           .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled")
-          .eq("site_id", siteId),
+      supabase
+        .from("customer_site_skip_rebates")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter")
+        .eq("site_id", siteId),
       ]);
 
       if (rebateItemsError) throw rebateItemsError;
@@ -75,8 +76,8 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     loadData();
   }, [loadData]);
 
-  const usedMaterialTypes = new Set(skipRebates.map((r) => r.material_type));
-  const availableMaterials = SKIP_MATERIALS.filter((m) => !usedMaterialTypes.has(m.id));
+  // No longer restrict materials - allow multiple entries per material type
+  const availableMaterials = SKIP_MATERIALS;
 
   const addMaterial = async () => {
     if (!selectedMaterialType) return;
@@ -90,10 +91,11 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
           value_type: "lower",
           set_value: null,
           adjustment: 0,
-           threshold_tonnes: 0,
-           rebate_enabled: true,
+          threshold_tonnes: 0,
+          rebate_enabled: true,
+          container_type_filter: null,
         })
-         .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter")
         .single();
 
       if (error) throw error;
@@ -112,10 +114,16 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     setSaving(true);
     try {
       const isCustom = value === "__custom__";
+      const isBespoke = value === "__bespoke__";
 
-      const updateData = isCustom
-        ? { value_type_item_id: null, value_type: "set", set_value: null }
-        : { value_type_item_id: value || null, value_type: "lower", set_value: null };
+      let updateData: { value_type_item_id: string | null; value_type: string; set_value: null };
+      if (isCustom) {
+        updateData = { value_type_item_id: null, value_type: "set", set_value: null };
+      } else if (isBespoke) {
+        updateData = { value_type_item_id: null, value_type: "bespoke", set_value: null };
+      } else {
+        updateData = { value_type_item_id: value || null, value_type: "lower", set_value: null };
+      }
 
       const { error } = await supabase.from("customer_site_skip_rebates").update(updateData).eq("id", itemId);
 
@@ -126,8 +134,8 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
           r.id === itemId
             ? {
                 ...r,
-                value_type_item_id: isCustom ? null : value || null,
-                value_type: isCustom ? "set" : "lower",
+                value_type_item_id: isCustom || isBespoke ? null : value || null,
+                value_type: isCustom ? "set" : (isBespoke ? "bespoke" : "lower"),
                 set_value: null,
               }
             : r
@@ -227,6 +235,28 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
      }
    };
  
+  const updateContainerFilter = async (itemId: string, value: string) => {
+    const filters = value.trim() === "" 
+      ? null 
+      : value.split(",").map(s => s.trim()).filter(s => s.length > 0);
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("customer_site_skip_rebates")
+        .update({ container_type_filter: filters })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, container_type_filter: filters } : r)));
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update container filter.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
@@ -268,10 +298,11 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Material</TableHead>
-                 <TableHead>Rebate Enabled</TableHead>
+                <TableHead>Container Filter</TableHead>
+                <TableHead>Rebate Enabled</TableHead>
                 <TableHead>Value Type</TableHead>
                 <TableHead>Range</TableHead>
-                 <TableHead>Threshold (T)</TableHead>
+                <TableHead>Threshold (T)</TableHead>
                 <TableHead>Adjustment</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
@@ -279,11 +310,23 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
             <TableBody>
               {skipRebates.map((item) => {
                 const isCustom = item.value_type === "set" && !item.value_type_item_id;
-                const currentValueTypeItemId = isCustom ? "__custom__" : item.value_type_item_id || "__none__";
+                const isBespoke = item.value_type === "bespoke";
+                const currentValueTypeItemId = isBespoke ? "__bespoke__" : (isCustom ? "__custom__" : item.value_type_item_id || "__none__");
 
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{getMaterialName(item.material_type)}</TableCell>
+                    <TableCell>
+                      <Input
+                        type="text"
+                        className="w-40 text-xs"
+                        value={item.container_type_filter?.join(", ") ?? ""}
+                        onChange={(e) => updateContainerFilter(item.id, e.target.value)}
+                        placeholder="e.g. 8YD, Skip"
+                        disabled={saving}
+                      />
+                      <span className="text-[10px] text-muted-foreground">Comma-separated keywords</span>
+                    </TableCell>
                        <TableCell>
                          <div className="flex items-center gap-2">
                            <Checkbox
@@ -311,6 +354,9 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                           </SelectItem>
                           <SelectItem value="__custom__">
                             <span className="font-medium">Custom</span>
+                          </SelectItem>
+                          <SelectItem value="__bespoke__">
+                            <span className="font-medium">Bespoke at time</span>
                           </SelectItem>
                           {allRebateItems.map((ri) => (
                             <SelectItem key={ri.id} value={ri.id}>
@@ -352,6 +398,8 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                           />
                           <span className="text-muted-foreground text-sm">/tonne</span>
                         </div>
+                      ) : isBespoke ? (
+                        <span className="text-sm text-muted-foreground italic">Set at report time</span>
                       ) : (
                         <Select
                           value={item.value_type === "set" ? "lower" : item.value_type}
