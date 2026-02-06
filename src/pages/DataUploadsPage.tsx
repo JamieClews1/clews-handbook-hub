@@ -77,7 +77,8 @@ function normalizeHeaderKey(key: unknown) {
   return String(key ?? "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ")
+    .replace(/\s*\/\s*/g, "/"); // Normalize spaces around slashes
 }
 
 function getFirstMatchingValue(row: Record<string, any>, candidates: string[]) {
