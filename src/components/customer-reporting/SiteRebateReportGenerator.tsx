@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, DollarSign, Loader2 } from "lucide-react";
+import { CalendarIcon, DollarSign, Loader2, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -463,6 +464,178 @@ export function SiteRebateReportGenerator() {
       }));
   })();
 
+  const exportToExcel = () => {
+    const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+    if (!selectedCustomer || !selectedSite || !dateRange?.from) return;
+
+    const wb = XLSX.utils.book_new();
+
+    // ============ Sheet 1: Summary ============
+    const summaryHeader = [
+      ["Rebate Report"],
+      ["Customer", selectedCustomer.customer_name],
+      ["Site", selectedSite.site_name],
+      ["Period", `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`],
+      ["Rebate Set", priceSetName],
+      [],
+      ["Category", "Weight (t)", "Value (£)"],
+    ];
+
+    const summaryData = consolidatedData.map((cat) => [
+      cat.category,
+      cat.weight.toFixed(2),
+      cat.rebate.toFixed(2),
+    ]);
+
+    summaryData.push([
+      "TOTAL",
+      combinedTotalWeight.toFixed(2),
+      combinedTotalRebate.toFixed(2),
+    ]);
+
+    const summaryWsData = [...summaryHeader, ...summaryData];
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryWsData);
+    summaryWs["!cols"] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+
+    // ============ Sheet 2: Load Reports Detail ============
+    const loadReportsHeader = [
+      ["Load Reports Detail"],
+      [],
+      ["Date", "Operator", "Vehicle Reg", "Job Number", "Pallets", "Total Weight (kg)", "Weighbridge (kg)", "Reconciliation Status"],
+    ];
+
+    const loadReportsData = individualReports.map((report) => {
+      const weighbridge = report.weighbridge_weight_kg;
+      let reconciliationStatus = "-";
+      if (weighbridge != null) {
+        const diff = Math.abs(report.total_weight_kg - weighbridge);
+        reconciliationStatus = diff > 50 ? "Needs Reconciliation" : "OK";
+      }
+      return [
+        format(new Date(report.report_date), "dd/MM/yyyy"),
+        report.operator_name,
+        report.vehicle_reg || "-",
+        report.notes || "-",
+        report.total_pallets,
+        report.total_weight_kg,
+        weighbridge ?? "-",
+        reconciliationStatus,
+      ];
+    });
+
+    const loadReportsWsData = [...loadReportsHeader, ...loadReportsData];
+    const loadReportsWs = XLSX.utils.aoa_to_sheet(loadReportsWsData);
+    loadReportsWs["!cols"] = [
+      { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 15 },
+      { wch: 10 }, { wch: 18 }, { wch: 18 }, { wch: 22 },
+    ];
+    XLSX.utils.book_append_sheet(wb, loadReportsWs, "Load Reports");
+
+    // ============ Sheet 3: Load Report Line Items ============
+    const lineItemsHeader = [
+      ["Load Report Line Items"],
+      [],
+      ["Report Date", "Operator", "Job Number", "Material", "Pallets", "Weight (kg)", "Rate (£/t)", "Rebate (£)"],
+    ];
+
+    const lineItemsData: (string | number)[][] = [];
+    for (const report of individualReports) {
+      for (const li of report.line_items) {
+        // Skip Pallet Weight Charge - it's calculated separately
+        if (li.waste_type.toLowerCase().includes("pallet weight")) continue;
+        
+        const rateConfig = reportData.find((r) => r.material_name === li.waste_type);
+        const rate = rateConfig?.rate_per_tonne ?? 0;
+        const weightTonnes = li.total_weight_kg / 1000;
+        const rebate = weightTonnes * rate;
+
+        lineItemsData.push([
+          format(new Date(report.report_date), "dd/MM/yyyy"),
+          report.operator_name,
+          report.notes || "-",
+          li.waste_type,
+          li.pallet_count,
+          li.total_weight_kg,
+          rate.toFixed(2),
+          rebate.toFixed(2),
+        ]);
+      }
+    }
+
+    const lineItemsWsData = [...lineItemsHeader, ...lineItemsData];
+    const lineItemsWs = XLSX.utils.aoa_to_sheet(lineItemsWsData);
+    lineItemsWs["!cols"] = [
+      { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 25 },
+      { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 12 },
+    ];
+    XLSX.utils.book_append_sheet(wb, lineItemsWs, "Line Items");
+
+    // ============ Sheet 4: Materials Summary ============
+    const materialsHeader = [
+      ["Materials Summary (Load Reports)"],
+      [],
+      ["Material", "Weight (t)", "Rate (£/t)", "Rate Source", "Value (£)"],
+    ];
+
+    const materialsData = reportData.map((row) => [
+      row.material_name,
+      row.weight_tonnes.toFixed(2),
+      row.rate_per_tonne.toFixed(2),
+      row.rate_source,
+      row.rebate_value.toFixed(2),
+    ]);
+
+    materialsData.push([
+      "TOTAL",
+      loadReportsTotalWeight.toFixed(2),
+      "",
+      "",
+      loadReportsTotalRebate.toFixed(2),
+    ]);
+
+    const materialsWsData = [...materialsHeader, ...materialsData];
+    const materialsWs = XLSX.utils.aoa_to_sheet(materialsWsData);
+    materialsWs["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 25 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, materialsWs, "Materials Summary");
+
+    // ============ Sheet 5: RoRo/Skip Summary ============
+    if (skipRoroSummaries.length > 0) {
+      const skipHeader = [
+        ["RoRo / Skip Rebates Summary"],
+        [],
+        ["Material", "Weight (t)", "Rate (£/t)", "Adjustment (£)", "Rate Source", "Value (£)"],
+      ];
+
+      const skipData = skipRoroSummaries.map((s) => [
+        s.material_label,
+        s.total_weight_tonnes.toFixed(2),
+        s.rate_per_tonne.toFixed(2),
+        s.adjustment.toFixed(2),
+        s.rate_source,
+        s.rebate_value.toFixed(2),
+      ]);
+
+      skipData.push([
+        "TOTAL",
+        skipRoroTotalWeight.toFixed(2),
+        "",
+        "",
+        "",
+        skipRoroTotalRebate.toFixed(2),
+      ]);
+
+      const skipWsData = [...skipHeader, ...skipData];
+      const skipWs = XLSX.utils.aoa_to_sheet(skipWsData);
+      skipWs["!cols"] = [{ wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 25 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, skipWs, "RoRo Skip");
+    }
+
+    // Generate filename
+    const fileName = `Rebate_${selectedCustomer.customer_name}_${selectedSite.site_name}_${format(dateRange.from, "yyyyMMdd")}${dateRange.to ? `-${format(dateRange.to, "yyyyMMdd")}` : ""}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
@@ -571,13 +744,17 @@ export function SiteRebateReportGenerator() {
                 Rebate Set: <span className="font-medium">{priceSetName}</span>
               </p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex items-center gap-4">
               <Badge variant="secondary" className="text-sm">
                 {combinedTotalWeight.toFixed(2)} tonnes
               </Badge>
               <Badge variant="default" className={cn("text-sm", combinedTotalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
                 £{combinedTotalRebate.toFixed(2)}
               </Badge>
+              <Button variant="outline" size="sm" onClick={exportToExcel}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
             </div>
           </div>
 
