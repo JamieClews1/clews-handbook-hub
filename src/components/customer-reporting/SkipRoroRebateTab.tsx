@@ -37,6 +37,8 @@ type SkipRebateConfig = {
   value_type_item_id: string | null;
   set_value: number | null;
   adjustment: number | null;
+  threshold_tonnes: number | null;
+  rebate_enabled: boolean | null;
 };
 
 type RebateMapping = {
@@ -46,8 +48,10 @@ type RebateMapping = {
 
 type Props = {
   siteId: string;
+  customerId?: string; // For customer-level rebates (Midweigh data)
   dateRange: DateRange | undefined;
   siteDataHubMappings: string[];
+  dataHubCustomer?: string; // Customer name in data hub for Midweigh lookup
 };
 
 const MATERIAL_LABELS: Record<string, string> = {
@@ -62,27 +66,44 @@ const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
   scrap_metal: ["Scrap Ferrous", "Scrap Non-Ferrous", "Scrap Metal"],
 };
 
-export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Props) {
+export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMappings, dataHubCustomer }: Props) {
   const [loading, setLoading] = useState(true);
   const [summaries, setSummaries] = useState<MaterialSummary[]>([]);
   const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (siteId && dateRange?.from) {
+    if ((siteId || customerId) && dateRange?.from) {
       loadData();
     }
-  }, [siteId, dateRange]);
+  }, [siteId, customerId, dateRange]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Get skip rebate config for this site
-      const { data: skipConfigs } = await supabase
-        .from("customer_site_skip_rebates")
-        .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-        .eq("site_id", siteId);
+      // 1. Get skip rebate config - either site-level or customer-level
+      let skipConfigs: SkipRebateConfig[] = [];
+      
+      // Try site-level config first
+      if (siteId) {
+        const { data: siteConfigs } = await supabase
+          .from("customer_site_skip_rebates")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+          .eq("site_id", siteId);
+        
+        skipConfigs = (siteConfigs ?? []).filter(c => c.rebate_enabled !== false) as SkipRebateConfig[];
+      }
+      
+      // If no site configs and we have customerId, try customer-level config (for Midweigh data)
+      if (skipConfigs.length === 0 && customerId) {
+        const { data: customerConfigs } = await supabase
+          .from("customer_skip_rebates")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+          .eq("customer_id", customerId);
+        
+        skipConfigs = (customerConfigs ?? []).filter((c: any) => c.rebate_enabled !== false) as SkipRebateConfig[];
+      }
 
-      if (!skipConfigs || skipConfigs.length === 0) {
+      if (skipConfigs.length === 0) {
         setSummaries([]);
         setLoading(false);
         return;
@@ -116,16 +137,16 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
         }
       }
 
-      // 3. Get jobs from Performance Hub for this site in date range
+      // 3. Get jobs from Performance Hub in date range
       const startDate = format(dateRange!.from!, "yyyy-MM-dd");
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
-      // Filter by site mappings and categories (Roll on Roll off, Skips)
-      const targetCategories = ["Roll on Roll off", "Skips"];
+      // Filter by site mappings and categories (Roll on Roll off, Skips, Midweigh)
+      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
       
       let allJobs: JobRecord[] = [];
       
-      // Query for each site mapping
+      // Query for each site mapping (for site-level data)
       for (const siteMapping of siteDataHubMappings) {
         if (!siteMapping) continue;
         
@@ -146,6 +167,31 @@ export function SkipRoroRebateTab({ siteId, dateRange, siteDataHubMappings }: Pr
             category: j.category ?? "",
             site: j.site ?? "",
           }))];
+        }
+      }
+
+      // Also query for Midweigh data where site is blank - match by customer name
+      if (dataHubCustomer) {
+        const { data: midweighJobs } = await supabase
+          .from("data_hub_jobs")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer")
+          .eq("customer", dataHubCustomer)
+          .or("site.is.null,site.eq.")
+          .gte("job_date", startDate)
+          .lte("job_date", endDate)
+          .eq("category", "Midweigh");
+
+        if (midweighJobs) {
+          const mappedJobs = midweighJobs.map(j => ({
+            id: j.id,
+            job_number: j.job_number,
+            job_date: j.job_date ?? "",
+            category: j.category ?? "",
+            waste_description: j.waste_description ?? null,
+            weight_t: j.weight_t ?? 0,
+            site: (j as any).customer ?? "Midweigh", // Show customer as "site" for display
+          }));
+          allJobs = [...allJobs, ...mappedJobs];
         }
       }
 

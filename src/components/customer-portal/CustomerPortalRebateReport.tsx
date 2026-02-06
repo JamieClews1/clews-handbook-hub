@@ -21,6 +21,7 @@ import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 type Site = {
   id: string;
   site_name: string;
+  data_hub_customer: string | null;
   data_hub_site: string | null;
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
@@ -87,7 +88,9 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   } = useSkipRoroRebates(
     reportGenerated ? selectedSiteId : "",
     reportGenerated ? dateRange : undefined,
-    siteDataHubMappings
+    siteDataHubMappings,
+    reportGenerated ? customerId : undefined,
+    selectedSite?.data_hub_customer ?? undefined
   );
 
   useEffect(() => {
@@ -98,7 +101,7 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
     // RLS will filter to only sites the portal user has access to
     const { data } = await supabase
       .from("customer_sites")
-      .select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type")
+      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type")
       .eq("customer_id", customerId)
       .order("site_name");
     setSites(data ?? []);
@@ -820,8 +823,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
               {selectedSite && (
                 <SkipRoroRebateTab
                   siteId={selectedSiteId}
+                  customerId={customerId}
                   dateRange={dateRange}
                   siteDataHubMappings={siteDataHubMappings}
+                  dataHubCustomer={selectedSite.data_hub_customer ?? undefined}
                 />
               )}
             </TabsContent>

@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
+import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 
 type Customer = {
   id: string;
@@ -927,6 +928,7 @@ export function CustomerSetupAdmin() {
               <Tabs defaultValue="sites" className="w-full">
                 <TabsList>
                   <TabsTrigger value="sites">Sites</TabsTrigger>
+                  <TabsTrigger value="midweigh">Midweigh Rebates</TabsTrigger>
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="portal">Portal access</TabsTrigger>
                 </TabsList>
@@ -1000,6 +1002,13 @@ export function CustomerSetupAdmin() {
                       </TableBody>
                     </Table>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="midweigh" className="mt-4 space-y-4">
+                  <CustomerSkipRebatesEditor
+                    customerId={selectedCustomerId!}
+                    customerName={selectedCustomer?.customer_name ?? ""}
+                  />
                 </TabsContent>
 
                 <TabsContent value="contacts" className="mt-4 space-y-4">
