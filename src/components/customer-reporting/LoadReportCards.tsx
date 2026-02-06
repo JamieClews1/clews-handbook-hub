@@ -215,7 +215,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="secondary" className="text-xs">
-                        {netWeight.toFixed(2)} t
+                        {grossWeight.toFixed(2)} t
                       </Badge>
                       {requiresReconciliation && (
                         <Badge variant="outline" className="text-xs border-orange-500 text-orange-700 bg-orange-100">
