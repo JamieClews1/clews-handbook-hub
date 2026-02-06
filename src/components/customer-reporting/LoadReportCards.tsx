@@ -22,6 +22,7 @@ export type LoadReportCardData = {
     total_weight_kg: number;
   }[];
   calculated_rebate: number;
+  weighbridge_weight_kg?: number | null;
 };
 
 interface LoadReportCardsProps {
@@ -101,6 +102,14 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     return netWeight < minimumWeightThreshold;
   };
 
+  // Check if load report weight doesn't match weighbridge weight (tolerance of 50kg)
+  const needsReconciliation = (report: LoadReportCardData) => {
+    if (report.weighbridge_weight_kg == null) return false;
+    const loadReportWeightKg = report.total_weight_kg;
+    const difference = Math.abs(loadReportWeightKg - report.weighbridge_weight_kg);
+    return difference > 50; // 50kg tolerance
+  };
+
   // Calculate rebate for a single report (including pallet weight charge and threshold check)
   const calculateReportRebate = (report: LoadReportCardData) => {
     // If below threshold, no rebate is due
@@ -169,10 +178,15 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
         const grossWeight = calculateGrossWeight(report);
         const palletWeight = calculatePalletWeight(report);
         const netWeight = calculateNetWeight(report);
+        const requiresReconciliation = needsReconciliation(report);
 
         return (
           <Collapsible key={report.id} open={isOpen} onOpenChange={() => toggleCard(report.id)}>
-            <Card className={cn("overflow-hidden", belowThreshold && "border-amber-300 bg-amber-50/30")}>
+            <Card className={cn(
+              "overflow-hidden", 
+              belowThreshold && "border-amber-300 bg-amber-50/30",
+              requiresReconciliation && !belowThreshold && "border-orange-400 bg-orange-50/30"
+            )}>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3 px-4">
                   <div className="flex items-center justify-between">
@@ -203,6 +217,12 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                       <Badge variant="secondary" className="text-xs">
                         {netWeight.toFixed(2)} t
                       </Badge>
+                      {requiresReconciliation && (
+                        <Badge variant="outline" className="text-xs border-orange-500 text-orange-700 bg-orange-100">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Needs Reconciliation
+                        </Badge>
+                      )}
                       {belowThreshold ? (
                         <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-100">
                           <AlertTriangle className="h-3 w-3 mr-1" />
@@ -231,13 +251,36 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
 
               <CollapsibleContent>
                 <CardContent className="pt-0 pb-3 px-4 space-y-3">
+                  {/* Reconciliation Warning */}
+                  {requiresReconciliation && (
+                    <div className="flex items-center gap-2 text-orange-700 bg-orange-100 rounded-md py-2 px-3">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                      <div className="text-xs">
+                        <span className="font-medium">Weight mismatch detected:</span>{" "}
+                        Load report shows {(report.total_weight_kg / 1000).toFixed(2)}t but weighbridge shows {((report.weighbridge_weight_kg ?? 0) / 1000).toFixed(2)}t.
+                        <span className="font-medium"> Reconciliation required.</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Weight Breakdown Summary */}
                   <div className="bg-muted/30 rounded-md p-3 text-sm">
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className={cn("grid gap-4 text-center", report.weighbridge_weight_kg != null ? "grid-cols-4" : "grid-cols-3")}>
                       <div>
                         <p className="text-muted-foreground text-xs">Gross Weight</p>
                         <p className="font-semibold">{grossWeight.toFixed(2)} t</p>
                       </div>
+                      {report.weighbridge_weight_kg != null && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Weighbridge</p>
+                          <p className={cn(
+                            "font-semibold",
+                            requiresReconciliation ? "text-orange-600" : "text-green-600"
+                          )}>
+                            {(report.weighbridge_weight_kg / 1000).toFixed(2)} t
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-muted-foreground text-xs">Pallet Weight ({report.total_pallets} × {palletWeightKg}kg)</p>
                         <p className="font-semibold text-amber-600">-{palletWeight.toFixed(2)} t</p>
