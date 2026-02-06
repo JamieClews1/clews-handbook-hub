@@ -340,7 +340,10 @@ export function CustomerPortalRebateReport({ customerId, customerName }: Custome
   };
 
   const totalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
-  const totalWeight = reportData.reduce((sum, r) => sum + r.weight_tonnes, 0);
+  // Exclude Pallet Weight Charge from total weight as it's a deduction, not actual material
+  const totalWeight = reportData
+    .filter((r) => r.material_name !== "Pallet Weight Charge")
+    .reduce((sum, r) => sum + r.weight_tonnes, 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
   const exportToExcel = () => {
