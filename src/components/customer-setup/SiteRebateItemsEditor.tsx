@@ -27,9 +27,9 @@ type PriceSetItem = {
   id: string;
   price_set_id: string;
   material_id: string; // references load_waste_types.id (stored in rebate_item_id column)
-  value_type_item_id: string; // references rebate_items.id, or "__custom__" for custom values
+  value_type_item_id: string; // references rebate_items.id, or "__custom__" / "__bespoke__" for special values
   display_order: number;
-  value_type: "lower" | "higher" | "set";
+  value_type: "lower" | "higher" | "set" | "bespoke";
   set_value: number | null;
   adjustment: number | null; // +/- adjustment in £/tonne
 };
@@ -119,14 +119,16 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         const valueTypeItemId = valueTypeItemMap[item.id];
         // If value_type is "set" and no value_type_item_id, it's a custom value
         const isCustom = item.value_type === "set" && !valueTypeItemId;
+        // If value_type is "bespoke", it's a bespoke at time value
+        const isBespoke = item.value_type === "bespoke";
         
         return {
           id: item.id,
           price_set_id: item.price_set_id,
           material_id: item.rebate_item_id,
-          value_type_item_id: isCustom ? "__custom__" : (valueTypeItemId || ""),
+          value_type_item_id: isBespoke ? "__bespoke__" : (isCustom ? "__custom__" : (valueTypeItemId || "")),
           display_order: item.display_order,
-          value_type: item.value_type as "lower" | "higher" | "set",
+          value_type: item.value_type as "lower" | "higher" | "set" | "bespoke",
           set_value: item.set_value,
           adjustment: item.adjustment ?? 0,
         };
@@ -191,12 +193,18 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     setSaving(true);
     try {
       const isCustom = value === "__custom__";
+      const isBespoke = value === "__bespoke__";
       
-      // If custom, clear value_type_item_id and set value_type to "set"
+      // If custom or bespoke, clear value_type_item_id and set value_type to "set" or "bespoke"
       // If selecting a rebate item, set value_type_item_id and reset to "lower"
-      const updateData: any = isCustom
-        ? { value_type_item_id: null, value_type: "set", set_value: null }
-        : { value_type_item_id: value || null, value_type: "lower", set_value: null };
+      let updateData: any;
+      if (isCustom) {
+        updateData = { value_type_item_id: null, value_type: "set", set_value: null };
+      } else if (isBespoke) {
+        updateData = { value_type_item_id: null, value_type: "bespoke", set_value: null };
+      } else {
+        updateData = { value_type_item_id: value || null, value_type: "lower", set_value: null };
+      }
       
       const { error } = await supabase
         .from("rebate_price_set_items")
@@ -210,7 +218,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
           ? { 
               ...p, 
               value_type_item_id: value,
-              value_type: isCustom ? "set" : "lower",
+              value_type: isCustom ? "set" : (isBespoke ? "bespoke" : "lower"),
               set_value: null,
             } 
           : p
@@ -360,6 +368,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
             <TableBody>
               {priceSetItems.map((psi) => {
                 const isCustom = psi.value_type_item_id === "__custom__";
+                const isBespoke = psi.value_type_item_id === "__bespoke__";
                 
                 return (
                   <TableRow key={psi.id}>
@@ -379,6 +388,9 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                           </SelectItem>
                           <SelectItem value="__custom__">
                             <span className="font-medium">Custom</span>
+                          </SelectItem>
+                          <SelectItem value="__bespoke__">
+                            <span className="font-medium">Bespoke at time</span>
                           </SelectItem>
                           {allRebateItems.map((ri) => (
                             <SelectItem key={ri.id} value={ri.id}>
@@ -403,6 +415,8 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                           />
                           <span className="text-muted-foreground text-sm">/tonne</span>
                         </div>
+                      ) : isBespoke ? (
+                        <span className="text-sm text-muted-foreground italic">Set at report time</span>
                       ) : (
                         <Select
                           value={psi.value_type === "set" ? "lower" : psi.value_type}
