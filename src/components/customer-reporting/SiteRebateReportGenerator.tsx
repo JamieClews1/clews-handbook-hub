@@ -386,9 +386,11 @@ export function SiteRebateReportGenerator() {
     }
   };
 
-  // Load Reports totals
+  // Load Reports totals (exclude Pallet Weight Charge from weight total - it's a deduction, not material weight)
   const loadReportsTotalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
-  const loadReportsTotalWeight = reportData.reduce((sum, r) => sum + r.weight_tonnes, 0);
+  const loadReportsTotalWeight = reportData
+    .filter((r) => r.material_name !== "Pallet Weight Charge")
+    .reduce((sum, r) => sum + r.weight_tonnes, 0);
 
   // Combined totals (Load Reports + Skip/RoRo)
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
@@ -397,6 +399,8 @@ export function SiteRebateReportGenerator() {
   // Consolidate materials into categories for the Total tab
   // Categories: Cardboard, Films, Scrap Metal, Other
   const consolidatedData = (() => {
+    // Note: Pallet Weight Charge weight is excluded from category weight totals
+    // but its rebate value is still included in the "Other" category rebate
     const categories: Record<string, { 
       weight: number; 
       rebate: number; 
@@ -411,6 +415,7 @@ export function SiteRebateReportGenerator() {
     // Categorize Load Reports materials
     for (const row of reportData) {
       const name = row.material_name.toLowerCase();
+      const isPalletWeightCharge = name.includes("pallet weight charge");
       let category = "Other";
       
       if (name.includes("card") || name.includes("cardboard")) {
@@ -419,11 +424,12 @@ export function SiteRebateReportGenerator() {
         category = "Films";
       } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
         category = "Scrap Metal";
-      } else if (name.includes("pallet")) {
-        category = "Other"; // Pallet weight charge goes to Other
       }
 
-      categories[category].weight += row.weight_tonnes;
+      // Pallet Weight Charge: include rebate value but NOT weight in totals
+      if (!isPalletWeightCharge) {
+        categories[category].weight += row.weight_tonnes;
+      }
       categories[category].rebate += row.rebate_value;
       categories[category].sources.push({
         name: `${row.material_name} (Load Reports)`,
