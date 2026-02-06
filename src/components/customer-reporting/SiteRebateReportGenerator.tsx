@@ -306,6 +306,7 @@ export function SiteRebateReportGenerator() {
               const { data: dataHubJobs } = await supabase
                 .from("data_hub_jobs")
                 .select("job_number, weight_t")
+                .eq("source", "skiptrak")
                 .in("job_number", jobNumbers);
               
               for (const job of dataHubJobs ?? []) {
