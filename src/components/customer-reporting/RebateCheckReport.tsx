@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, ChevronDown, ChevronRight, Loader2, FileSpreadsheet, Building2, Download } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, Loader2, FileSpreadsheet, Building2, Download, Check, AlertCircle } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,8 @@ type CustomerRebateData = {
   wasteTypes: WasteTypeSummary[];
   totalWeight: number;
   totalJobs: number;
+  isConfigured: boolean;
+  configuredSiteName?: string;
 };
 
 export function RebateCheckReport() {
@@ -116,7 +118,7 @@ export function RebateCheckReport() {
       // Get jobs for rebateable waste types in the date range
       const { data: jobs } = await supabase
         .from("data_hub_jobs")
-        .select("customer, source, waste_description, weight_t")
+        .select("customer, source, waste_description, weight_t, site")
         .in("waste_description", rebateableWasteDescriptions)
         .gte("job_date", periodStart)
         .lte("job_date", periodEnd)
@@ -129,6 +131,50 @@ export function RebateCheckReport() {
         return;
       }
 
+      // Get configured customer sites to check which customers are already set up
+      const { data: configuredSites } = await supabase
+        .from("customer_sites")
+        .select(`
+          id,
+          site_name,
+          data_hub_site,
+          data_hub_site_2,
+          data_hub_site_3,
+          data_hub_site_4,
+          data_hub_site_5,
+          data_hub_customer,
+          customer_id,
+          customers!inner(customer_name)
+        `);
+
+      // Build a map of data hub customer names to configured site info
+      const configuredCustomerMap: Record<string, { siteName: string; customerName: string }> = {};
+      for (const site of configuredSites ?? []) {
+        if (site.data_hub_customer) {
+          configuredCustomerMap[site.data_hub_customer.toLowerCase()] = {
+            siteName: site.site_name,
+            customerName: (site.customers as any)?.customer_name ?? "",
+          };
+        }
+        // Also check the data_hub_site fields as they sometimes contain customer mappings
+        const siteFields = [
+          site.data_hub_site,
+          site.data_hub_site_2,
+          site.data_hub_site_3,
+          site.data_hub_site_4,
+          site.data_hub_site_5,
+        ].filter(Boolean);
+        
+        for (const siteField of siteFields) {
+          if (siteField) {
+            configuredCustomerMap[siteField.toLowerCase()] = {
+              siteName: site.site_name,
+              customerName: (site.customers as any)?.customer_name ?? "",
+            };
+          }
+        }
+      }
+
       // Aggregate by customer + source
       const customerMap: Record<string, CustomerRebateData> = {};
 
@@ -136,12 +182,19 @@ export function RebateCheckReport() {
         const key = `${job.customer}|${job.source}`;
         
         if (!customerMap[key]) {
+          // Check if this customer or their site is configured
+          const customerLower = job.customer!.toLowerCase();
+          const siteLower = job.site?.toLowerCase() ?? "";
+          const configInfo = configuredCustomerMap[customerLower] || configuredCustomerMap[siteLower];
+          
           customerMap[key] = {
             customer: job.customer!,
             source: job.source,
             wasteTypes: [],
             totalWeight: 0,
             totalJobs: 0,
+            isConfigured: !!configInfo,
+            configuredSiteName: configInfo?.siteName,
           };
         }
 
@@ -204,6 +257,8 @@ export function RebateCheckReport() {
       for (const wasteType of customer.wasteTypes) {
         rows.push({
           Customer: customer.customer,
+          "Configured for Rebates": customer.isConfigured ? "Yes" : "No",
+          "Configured Site": customer.configuredSiteName || "",
           Source: customer.source,
           "Waste Description": wasteType.waste_description,
           "Material Type": wasteType.material_type || "Unmapped",
@@ -316,6 +371,12 @@ export function RebateCheckReport() {
                     {customerData.length} Customers
                   </Badge>
                   <Badge variant="secondary" className="text-base px-4 py-2">
+                    {customerData.filter(c => c.isConfigured).length} Configured
+                  </Badge>
+                  <Badge variant="outline" className="text-base px-4 py-2 border-amber-500 text-amber-600">
+                    {customerData.filter(c => !c.isConfigured).length} Not Set Up
+                  </Badge>
+                  <Badge variant="secondary" className="text-base px-4 py-2">
                     {grandTotalJobs.toLocaleString()} Jobs
                   </Badge>
                   <Badge variant="default" className="text-base px-4 py-2">
@@ -331,7 +392,12 @@ export function RebateCheckReport() {
 
                     return (
                       <Collapsible key={customerKey} open={isExpanded}>
-                        <Card className="border">
+                        <Card className={cn(
+                          "border",
+                          customer.isConfigured 
+                            ? "border-l-4 border-l-green-500" 
+                            : "border-l-4 border-l-amber-500"
+                        )}>
                           <CollapsibleTrigger
                             onClick={() => toggleCustomer(customerKey)}
                             className="w-full"
@@ -345,7 +411,25 @@ export function RebateCheckReport() {
                                 )}
                                 <Building2 className="h-5 w-5 text-muted-foreground" />
                                 <div className="text-left">
-                                  <p className="font-medium">{customer.customer}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{customer.customer}</p>
+                                    {customer.isConfigured ? (
+                                      <Badge variant="outline" className="text-xs border-green-500 text-green-600 gap-1">
+                                        <Check className="h-3 w-3" />
+                                        Configured
+                                        {customer.configuredSiteName && (
+                                          <span className="text-muted-foreground ml-1">
+                                            ({customer.configuredSiteName})
+                                          </span>
+                                        )}
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-600 gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Not Set Up
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <p className="text-sm text-muted-foreground">
                                     {customer.wasteTypes.length} waste type
                                     {customer.wasteTypes.length !== 1 ? "s" : ""} •{" "}
