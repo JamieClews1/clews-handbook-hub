@@ -74,10 +74,19 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     return items.filter((item) => !item.waste_type.toLowerCase().includes("pallet weight"));
   };
 
+  // Total pallets are derived from line items to ensure deductions are truly "line-by-line"
+  const calculateLineItemPallets = (report: LoadReportCardData) => {
+    if (isNoPalletsOnLoad(report)) return 0;
+    return filterLineItems(report.line_items).reduce(
+      (sum, item) => sum + (Number(item.pallet_count) || 0),
+      0,
+    );
+  };
+
   // Calculate pallet weight for a report (in tonnes)
   const calculatePalletWeight = (report: LoadReportCardData) => {
-    if (isNoPalletsOnLoad(report)) return 0;
-    return (report.total_pallets * palletWeightKg) / 1000;
+    const pallets = calculateLineItemPallets(report);
+    return (pallets * palletWeightKg) / 1000;
   };
 
   // Calculate gross weight (total of all material weights)
@@ -186,6 +195,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
         const belowThreshold = isBelowThreshold(report);
         const grossWeight = calculateGrossWeight(report);
         const palletWeight = calculatePalletWeight(report);
+        const lineItemPallets = calculateLineItemPallets(report);
         const netWeight = calculateNetWeight(report);
         const requiresReconciliation = needsReconciliation(report);
 
@@ -222,9 +232,19 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                         {report.operator_name}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center flex-wrap justify-end gap-2">
                       <Badge variant="secondary" className="text-xs">
                         {grossWeight.toFixed(2)} t
+                      </Badge>
+
+                      {!isNoPalletsOnLoad(report) && palletWeight > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          Pallets {lineItemPallets} (-{Math.round(palletWeight * 1000).toLocaleString()} kg)
+                        </Badge>
+                      )}
+
+                      <Badge variant="secondary" className="text-xs">
+                        Actual {Math.round(Math.max(0, netWeight) * 1000).toLocaleString()} kg
                       </Badge>
                       {requiresReconciliation && (
                         <Badge
@@ -298,9 +318,9 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                         </div>
                       )}
                       <div>
-                        <p className="text-muted-foreground text-xs">
-                          Pallet Weight ({isNoPalletsOnLoad(report) ? 0 : report.total_pallets} × {palletWeightKg}kg)
-                        </p>
+                          <p className="text-muted-foreground text-xs">
+                            Pallet Weight ({isNoPalletsOnLoad(report) ? 0 : lineItemPallets} × {palletWeightKg}kg)
+                          </p>
                         <p className="font-semibold text-amber-600">-{palletWeight.toFixed(2)} t</p>
                       </div>
                       <div>
