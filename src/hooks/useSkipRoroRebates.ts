@@ -208,7 +208,10 @@ export function useSkipRoroRebates(
       if (excludeDeliverMovement) {
         allJobs = allJobs.filter(j => {
           const movementType = (j.movement_type ?? "").toLowerCase();
-          return movementType !== "deliver" && movementType !== "delivery";
+          // Exclude: deliver, delivery, inward (Midweigh uses INWARD for deliveries/drop-offs)
+          return movementType !== "deliver" && 
+                 movementType !== "delivery" && 
+                 movementType !== "inward";
         });
       }
  
