@@ -33,12 +33,14 @@ interface LoadReportCardsProps {
     rate_per_tonne: number;
   }[];
   palletWeightKg?: number;
+  palletChargeRate?: number; // Rate per pallet (e.g., -£47)
 }
 
-export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }: LoadReportCardsProps) {
+export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, palletChargeRate = 0 }: LoadReportCardsProps) {
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
   const [minimumWeightThreshold, setMinimumWeightThreshold] = useState<number>(1.5);
   const [thresholdEnabled, setThresholdEnabled] = useState<boolean>(true);
+  const [fetchedPalletChargeRate, setFetchedPalletChargeRate] = useState<number | null>(null);
 
   // Fetch rebate rules
   useEffect(() => {
@@ -56,6 +58,20 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     };
     fetchRules();
   }, []);
+
+  // Look up pallet charge rate from rebate configs if not passed
+  useEffect(() => {
+    // Check for a "Pallet" or "Pallet Charge" material in the rebate configs
+    const palletConfig = rebateConfigs.find(
+      (c) => c.material_name.toLowerCase().includes("pallet")
+    );
+    if (palletConfig) {
+      setFetchedPalletChargeRate(palletConfig.rate_per_tonne);
+    }
+  }, [rebateConfigs]);
+
+  // The effective pallet charge rate (prop takes priority, else fetched from configs)
+  const effectivePalletChargeRate = palletChargeRate !== 0 ? palletChargeRate : (fetchedPalletChargeRate ?? 0);
 
   const toggleCard = (id: string) => {
     setOpenCards((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -132,7 +148,14 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
     return Math.max(0, grossKg - palletKg);
   };
 
-  // Calculate rebate for a single report (rebate on actual recyclable/waste weight)
+  // Calculate pallet charge value for a report
+  const calculatePalletChargeValue = (report: LoadReportCardData) => {
+    if (isNoPalletsOnLoad(report)) return 0;
+    const pallets = calculateLineItemPallets(report);
+    return pallets * effectivePalletChargeRate;
+  };
+
+  // Calculate rebate for a single report (rebate on actual recyclable/waste weight + pallet charge)
   const calculateReportRebate = (report: LoadReportCardData) => {
     if (isBelowThreshold(report)) return 0;
 
@@ -142,10 +165,14 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
       const actualKg = calcLineActualWeightKg(report, item);
       rebate += (actualKg / 1000) * rate;
     }
+
+    // Add pallet charge (usually negative)
+    rebate += calculatePalletChargeValue(report);
+
     return rebate;
   };
 
-  // Calculate totals for a report (gross/pallet/actual + value)
+  // Calculate totals for a report (gross/pallet/actual + value including pallet charge)
   const calculateTotals = (report: LoadReportCardData) => {
     const filteredItems = filterLineItems(report.line_items);
     const belowThreshold = isBelowThreshold(report);
@@ -170,6 +197,11 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
       if (!belowThreshold) {
         totalValue += (actualKg / 1000) * rate;
       }
+    }
+
+    // Add pallet charge to total value
+    if (!belowThreshold) {
+      totalValue += calculatePalletChargeValue(report);
     }
 
     return { totalPallets, totalGrossKg, totalPalletWeightKg, totalActualKg, totalValue };
@@ -386,6 +418,36 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20 }:
                             </TableRow>
                           );
                         })}
+
+                        {/* Pallet Charge Row */}
+                        {!isNoPalletsOnLoad(report) && effectivePalletChargeRate !== 0 && (() => {
+                          const palletCount = calculateLineItemPallets(report);
+                          const palletChargeValue = calculatePalletChargeValue(report);
+                          return (
+                            <TableRow className={cn("bg-amber-50/50 border-t", belowThreshold && "opacity-60")}>
+                              <TableCell className="text-xs py-1.5 font-medium">Pallet Charge</TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">{palletCount}</TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">-</TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">-</TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">-</TableCell>
+                              <TableCell className="text-xs py-1.5 text-right">
+                                £{effectivePalletChargeRate.toFixed(2)}/pallet
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-xs py-1.5 text-right font-medium",
+                                  belowThreshold
+                                    ? "text-muted-foreground"
+                                    : palletChargeValue >= 0
+                                      ? "text-green-600"
+                                      : "text-red-600",
+                                )}
+                              >
+                                {belowThreshold ? "-" : `£${palletChargeValue.toFixed(2)}`}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })()}
 
                         {/* Totals Row */}
                         {(() => {
