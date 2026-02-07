@@ -21,8 +21,12 @@ type JobRecord = {
   job_type?: string | null;
   rebatable_weight?: number;
   job_rebate_value?: number;
-  // For Artic Curtain Side loads - weight from specific load report line item
+  // For loads with matching Load Reports - weight from specific load report line item
   material_weight_t?: number;
+  // Gross weight before pallet deduction (for display)
+  gross_weight_t?: number;
+  // Total pallet weight deducted (for display)
+  pallet_weight_t?: number;
 };
 
 type MaterialSummary = {
@@ -282,7 +286,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
           
           const defaultPalletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) || 20 : 20;
 
-          // Build a map of job_number -> material_category -> weight in tonnes (actual weight after pallet deduction)
+          // Build a map of job_number -> material_category -> { net, gross, palletWeight } in tonnes
           for (const lr of loadReports) {
             const jobNumber = lr.notes;
             if (!jobNumber) continue;
@@ -300,10 +304,20 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
                 const palletWeightDeduction = noPalletsOnLoad ? 0 : (palletCount * defaultPalletWeightKg);
                 const actualWeightKg = totalWeightKg - palletWeightDeduction;
                 
-                // Convert KG to tonnes and accumulate
-                const weightT = actualWeightKg / 1000;
-                loadReportWeights[jobNumber][materialCategory] = 
-                  (loadReportWeights[jobNumber][materialCategory] ?? 0) + weightT;
+                // Convert KG to tonnes and store with breakdown
+                const grossT = totalWeightKg / 1000;
+                const palletT = palletWeightDeduction / 1000;
+                const netT = actualWeightKg / 1000;
+                
+                // Store with breakdown info (we store as object with net, gross, pallet)
+                const existing = loadReportWeights[jobNumber][materialCategory] as any;
+                if (existing && typeof existing === 'object') {
+                  existing.net += netT;
+                  existing.gross += grossT;
+                  existing.pallet += palletT;
+                } else {
+                  loadReportWeights[jobNumber][materialCategory] = { net: netT, gross: grossT, pallet: palletT } as any;
+                }
               }
             }
           }
@@ -416,15 +430,25 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         // Calculate per-job rebatable weight and rebate value
         // For Artic Curtain Side loads, use the material-specific weight from load_line_items
         const jobsWithRebates = matchingJobs.map(job => {
-          // Check if this is an Artic Curtain Side job with load report weights
-          const loadWeights = (job as any)._loadReportWeights as Record<string, number> | undefined;
+          // Check if this job has load report weights with breakdown
+          const loadWeights = (job as any)._loadReportWeights as Record<string, any> | undefined;
           
           // Use material-specific weight if available (from load report), otherwise use total job weight
           let materialWeight: number;
+          let grossWeight: number | undefined;
+          let palletWeight: number | undefined;
+          
           if (loadWeights && loadWeights[config.material_type] !== undefined) {
-            materialWeight = loadWeights[config.material_type];
+            const breakdown = loadWeights[config.material_type];
+            if (typeof breakdown === 'object' && breakdown.net !== undefined) {
+              materialWeight = breakdown.net;
+              grossWeight = breakdown.gross;
+              palletWeight = breakdown.pallet;
+            } else {
+              materialWeight = breakdown as number;
+            }
           } else {
-            // For non-Artic jobs or Artic without load reports, use total job weight
+            // For jobs without load reports, use total job weight (no pallet breakdown)
             materialWeight = job.weight_t ?? 0;
           }
           
@@ -434,6 +458,8 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
           return {
             ...job,
             material_weight_t: materialWeight,
+            gross_weight_t: grossWeight,
+            pallet_weight_t: palletWeight,
             weight_t: job.weight_t, // Keep original total weight for display
             rebatable_weight: rebatableWeight,
             job_rebate_value: jobRebateValue,
@@ -583,7 +609,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
                 {/* Expanded job details */}
                 {expandedMaterials.has(summary.material_type) && summary.jobs.length > 0 && (
                   <TableRow key={`${summary.material_type}-jobs`}>
-                    <TableCell colSpan={6} className="p-0 bg-muted/30">
+                    <TableCell colSpan={7} className="p-0 bg-muted/30">
                       <div className="p-4">
                         <Table>
                           <TableHeader>
@@ -592,7 +618,10 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
                               <TableHead>Job No.</TableHead>
                               <TableHead>Site</TableHead>
                               <TableHead>Description</TableHead>
-                              <TableHead className="text-right">Weight (t)</TableHead>
+                              <TableHead className="text-right">Gross Weight (t)</TableHead>
+                              <TableHead className="text-right">Pallet Weight (t)</TableHead>
+                              <TableHead className="text-right">Actual Recyclable (t)</TableHead>
+                              <TableHead className="text-right">Rate (£/t)</TableHead>
                               <TableHead className="text-right">Rebate (£)</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -601,6 +630,12 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
                               const jobRebate = job.job_rebate_value ?? 0;
                               const rebatableWeight = job.rebatable_weight ?? 0;
                               const isBelowThreshold = summary.threshold_tonnes > 0 && rebatableWeight === 0;
+                              
+                              // Determine gross, pallet, and net weights
+                              const hasLoadReportData = job.gross_weight_t !== undefined;
+                              const grossWeight = hasLoadReportData ? job.gross_weight_t! : job.weight_t;
+                              const palletWeight = hasLoadReportData ? (job.pallet_weight_t ?? 0) : 0;
+                              const netWeight = job.material_weight_t !== undefined ? job.material_weight_t : job.weight_t;
                               
                               return (
                                 <TableRow key={job.id} className={isBelowThreshold ? "bg-amber-50/50" : ""}>
@@ -611,20 +646,21 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
                                   <TableCell>{job.site}</TableCell>
                                   <TableCell>{job.waste_description || "-"}</TableCell>
                                   <TableCell className="text-right">
-                                    {/* Show material-specific weight if available, otherwise total */}
-                                    {job.material_weight_t !== undefined 
-                                      ? job.material_weight_t.toFixed(2)
-                                      : job.weight_t.toFixed(2)}
-                                    {job.material_weight_t !== undefined && job.material_weight_t !== job.weight_t && (
-                                      <span className="ml-1 text-xs text-muted-foreground">
-                                        (of {job.weight_t.toFixed(2)}t total)
-                                      </span>
-                                    )}
+                                    {grossWeight.toFixed(2)}
+                                  </TableCell>
+                                  <TableCell className="text-right text-red-600">
+                                    {palletWeight > 0 ? `-${palletWeight.toFixed(2)}` : "-"}
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {netWeight.toFixed(2)}
                                     {isBelowThreshold && (
                                       <span className="ml-1 text-xs text-amber-600">(below threshold)</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className={cn("text-right", jobRebate > 0 ? "text-green-600" : isBelowThreshold ? "text-amber-600" : "text-muted-foreground")}>
+                                  <TableCell className="text-right text-muted-foreground">
+                                    £{summary.rate_per_tonne.toFixed(2)}
+                                  </TableCell>
+                                  <TableCell className={cn("text-right font-medium", jobRebate >= 0 ? "text-green-600" : "text-red-600")}>
                                     £{jobRebate.toFixed(2)}
                                   </TableCell>
                                 </TableRow>
