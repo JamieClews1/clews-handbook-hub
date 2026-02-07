@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ interface WasteType {
 
 const LoadReportsPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const { toast } = useToast();
 
@@ -84,6 +85,16 @@ const LoadReportsPage = () => {
     fetchWasteTypes();
     fetchDefaultPalletWeight();
   }, []);
+
+  // Handle edit query parameter from external navigation
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && user && !loading) {
+      // Clear the query param to prevent re-triggering
+      setSearchParams({}, { replace: true });
+      handleEditReport(editId);
+    }
+  }, [searchParams, user, loading]);
 
   // Fetch sites when customer type changes
   useEffect(() => {
