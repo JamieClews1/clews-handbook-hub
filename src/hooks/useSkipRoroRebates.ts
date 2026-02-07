@@ -13,6 +13,7 @@ type JobRecord = {
   site: string;
   container_type?: string | null;
   movement_type?: string | null;
+  job_type?: string | null;
 };
  
  export type SkipRoroMaterialSummary = {
@@ -150,7 +151,7 @@ export function useSkipRoroRebates(
         
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, container_type, movement_type")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
           .eq("site", siteMapping)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -166,6 +167,7 @@ export function useSkipRoroRebates(
             site: j.site ?? "",
             container_type: j.container_type ?? null,
             movement_type: j.movement_type ?? null,
+            job_type: j.job_type ?? null,
           }))];
         }
       }
@@ -174,7 +176,7 @@ export function useSkipRoroRebates(
       if (dataHubCustomer) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
           .eq("customer", dataHubCustomer)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
@@ -192,6 +194,7 @@ export function useSkipRoroRebates(
             site: (j as any).customer ?? "Midweigh",
             container_type: j.container_type ?? null,
             movement_type: j.movement_type ?? null,
+            job_type: j.job_type ?? null,
           }));
           allJobs = [...allJobs, ...mappedJobs];
         }
@@ -204,8 +207,8 @@ export function useSkipRoroRebates(
         allJobs = allJobs.filter(j => {
           // Only apply to Midweigh category
           if (j.category !== "Midweigh") return true;
-          const containerType = (j.container_type ?? "").toUpperCase();
-          return containerType !== "SKIP";
+          const jobType = (j.job_type ?? "").toUpperCase();
+          return jobType !== "SKIP";
         });
       }
       

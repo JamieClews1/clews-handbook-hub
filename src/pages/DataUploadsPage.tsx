@@ -37,6 +37,7 @@ type DataHubJobRow = {
   category?: string | null;
   movement_type?: string | null;
   container_type?: string | null;
+  job_type?: string | null;
   weight_t?: number | null;
   vehicle_registration?: string | null;
   raw: Record<string, unknown>;
@@ -500,8 +501,10 @@ const DataUploadsPage = () => {
           "Container Type", 
           "container_type", 
           "Skip Type",
-          "Job Type",    // Midweigh column
         ])),
+        job_type: source === "midweigh" 
+          ? toCleanString(getFirstMatchingValue(r, ["Job Type", "JobType", "job_type"]))
+          : null,
         weight_t: weightTonnes,
         vehicle_registration: toCleanString(
           getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Vehicle Reg", "Reg", "Registration", "vehicle_registration"]),
