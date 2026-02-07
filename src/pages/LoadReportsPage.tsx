@@ -183,21 +183,33 @@ const LoadReportsPage = () => {
 
     setWeighbridgeLoading(true);
     try {
+      // Determine which source to use based on customer type
+      // Britvic, Staci, Standard (other) use Skiptrak; Vantiva, Amazon, Evri use Midweigh
+      const usesMidweigh = selectedCustomer && ["vantiva", "amazon", "evri"].includes(selectedCustomer);
+      const source = usesMidweigh ? "midweigh" : "skiptrak";
+
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("weight_t, job_date")
+        .select("weight_t, job_date, source")
         .eq("job_number", ticket)
+        .eq("source", source)
         .maybeSingle();
 
       if (error) throw error;
 
-      const weightT = data?.weight_t;
-      const weightKg = typeof weightT === "number" ? weightT * 1000 : null;
-      setWeighbridgeWeightKg(weightKg);
+      if (data) {
+        // Midweigh stores weight in KG, Skiptrak stores in tonnes
+        const weightKg = data.source === "midweigh" 
+          ? (data.weight_t ?? 0) 
+          : (data.weight_t ?? 0) * 1000;
+        setWeighbridgeWeightKg(weightKg);
 
-      // Update report date to match the job date if available
-      if (data?.job_date) {
-        setReportDate(data.job_date);
+        // Update report date to match the job date if available
+        if (data.job_date) {
+          setReportDate(data.job_date);
+        }
+      } else {
+        setWeighbridgeWeightKg(null);
       }
     } catch {
       // If the user can't access Data Hub rows (RLS) or the record doesn't exist,
