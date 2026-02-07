@@ -1344,7 +1344,7 @@ export function CustomerSetupAdmin() {
 
       {/* Site dialog */}
       <Dialog open={editSiteOpen} onOpenChange={setEditSiteOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh]">
+        <DialogContent className="max-w-7xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editingSite ? "Edit site" : "New site"}</DialogTitle>
             <DialogDescription>Configure site details, Data Hub mapping, and rebate pricing.</DialogDescription>
