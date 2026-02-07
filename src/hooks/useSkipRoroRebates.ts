@@ -198,20 +198,25 @@ export function useSkipRoroRebates(
       }
 
       // Apply exclusion rules to filter out unwanted jobs
+      // Rule 1: Exclude Midweigh jobs with Job Type = "SKIP"
+      // These are duplicate weighbridge records for Skiptrak jobs (e.g., Skiptrak 44788 = Midweigh 75756)
       if (excludeSkipJobType) {
         allJobs = allJobs.filter(j => {
+          // Only apply to Midweigh category
+          if (j.category !== "Midweigh") return true;
           const containerType = (j.container_type ?? "").toUpperCase();
-          return !containerType.includes("SKIP");
+          return containerType !== "SKIP";
         });
       }
       
+      // Rule 2: Exclude Skiptrak "Deliver" jobs (Skips & Roll on Roll off categories)
+      // These are empty container deliveries with zero weight - no rebate applies
       if (excludeDeliverMovement) {
         allJobs = allJobs.filter(j => {
+          // Only apply to Skiptrak categories (Skips and Roll on Roll off)
+          if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
           const movementType = (j.movement_type ?? "").toLowerCase();
-          // Exclude: deliver, delivery, inward (Midweigh uses INWARD for deliveries/drop-offs)
-          return movementType !== "deliver" && 
-                 movementType !== "delivery" && 
-                 movementType !== "inward";
+          return movementType !== "deliver" && movementType !== "delivery";
         });
       }
  
