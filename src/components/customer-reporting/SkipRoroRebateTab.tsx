@@ -16,6 +16,9 @@ type JobRecord = {
   waste_description: string | null;
   weight_t: number;
   site: string;
+  container_type?: string | null;
+  movement_type?: string | null;
+  job_type?: string | null;
 };
 
 type MaterialSummary = {
@@ -80,6 +83,14 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
   const loadData = async () => {
     setLoading(true);
     try {
+      // 0. Load rebate rules (exclusion settings)
+      const { data: rebateRules } = await supabase
+        .from("rebate_rules")
+        .select("rule_key, is_enabled");
+      
+      const excludeSkipJobType = rebateRules?.find(r => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
+      const excludeDeliverMovement = rebateRules?.find(r => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+
       // 1. Get skip rebate config - either site-level or customer-level
       let skipConfigs: SkipRebateConfig[] = [];
       
@@ -152,7 +163,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
           .eq("site", siteMapping)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -166,6 +177,9 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
             waste_description: j.waste_description ?? null,
             category: j.category ?? "",
             site: j.site ?? "",
+            container_type: j.container_type ?? null,
+            movement_type: j.movement_type ?? null,
+            job_type: j.job_type ?? null,
           }))];
         }
       }
@@ -174,7 +188,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       if (dataHubCustomer) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
           .eq("customer", dataHubCustomer)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
@@ -190,9 +204,33 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
             waste_description: j.waste_description ?? null,
             weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
             site: (j as any).customer ?? "Midweigh", // Show customer as "site" for display
+            container_type: j.container_type ?? null,
+            movement_type: j.movement_type ?? null,
+            job_type: j.job_type ?? null,
           }));
           allJobs = [...allJobs, ...mappedJobs];
         }
+      }
+
+      // Apply exclusion rules to filter out unwanted jobs
+      // Rule 1: Exclude Midweigh jobs with Job Type = "SKIP"
+      // These are duplicate weighbridge records for Skiptrak jobs
+      if (excludeSkipJobType) {
+        allJobs = allJobs.filter(j => {
+          if (j.category !== "Midweigh") return true;
+          const jobType = (j.job_type ?? "").toUpperCase();
+          return jobType !== "SKIP";
+        });
+      }
+      
+      // Rule 2: Exclude Skiptrak "Deliver" jobs (Skips & Roll on Roll off categories)
+      // These are empty container deliveries with zero weight - no rebate applies
+      if (excludeDeliverMovement) {
+        allJobs = allJobs.filter(j => {
+          if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
+          const movementType = (j.movement_type ?? "").toLowerCase();
+          return movementType !== "deliver" && movementType !== "delivery";
+        });
       }
 
       // 4. Get monthly values for rate calculation
