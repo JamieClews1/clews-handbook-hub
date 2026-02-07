@@ -3,8 +3,8 @@
  * based on customer name or site's load_report_type.
  * 
  * Mapping:
- * - Britvic, Staci, Standard (other) → skiptrak
- * - Vantiva, Amazon, Evri → midweigh
+ * - Britvic, Staci, Standard (other) → skiptrak (weight in tonnes)
+ * - Vantiva, Amazon, Evri → midweigh (weight in KG, needs conversion)
  */
 
 // Customer types that use Midweigh for weighbridge data
@@ -24,6 +24,21 @@ export function getWeighbridgeSource(customerType: string | null | undefined): "
   
   // Default to skiptrak for all others (including britvic, staci, other/standard)
   return "skiptrak";
+}
+
+/**
+ * Converts raw weight from data source to tonnes.
+ * - Skiptrak: weight is already in tonnes
+ * - Midweigh: weight is in KG, divide by 1000
+ */
+export function convertWeightToTonnes(weight: number | null | undefined, source: "skiptrak" | "midweigh"): number | null {
+  if (weight == null) return null;
+  
+  if (source === "midweigh") {
+    return weight / 1000; // Convert KG to tonnes
+  }
+  
+  return weight; // Skiptrak is already in tonnes
 }
 
 /**
