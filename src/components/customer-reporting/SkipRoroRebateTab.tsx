@@ -161,7 +161,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         if (jobs) {
           allJobs = [...allJobs, ...jobs.map(j => ({
             ...j,
-            weight_t: j.weight_t ?? 0,
+            weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
             job_date: j.job_date ?? "",
             waste_description: j.waste_description ?? null,
             category: j.category ?? "",
@@ -188,7 +188,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
             job_date: j.job_date ?? "",
             category: j.category ?? "",
             waste_description: j.waste_description ?? null,
-            weight_t: j.weight_t ?? 0,
+            weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
             site: (j as any).customer ?? "Midweigh", // Show customer as "site" for display
           }));
           allJobs = [...allJobs, ...mappedJobs];
