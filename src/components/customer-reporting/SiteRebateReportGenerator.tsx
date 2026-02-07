@@ -344,6 +344,9 @@ export function SiteRebateReportGenerator() {
             }
 
             // Aggregate NET weights by waste type (gross minus pallet weight per line item)
+            // Also track total pallet weight across all load reports
+            let totalPalletWeightTonnes = 0;
+            
             for (const item of lineItems ?? []) {
               const wasteType = item.waste_type;
               if (wasteType.toLowerCase().includes("pallet weight")) continue;
@@ -356,7 +359,11 @@ export function SiteRebateReportGenerator() {
               const actualTonnes = actualKg / 1000;
 
               lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+              totalPalletWeightTonnes += palletKg / 1000;
             }
+            
+            // Store total pallet weight for later use
+            lineItemWeights["__total_pallet_weight__"] = totalPalletWeightTonnes;
           }
         }
       } else {
@@ -366,6 +373,8 @@ export function SiteRebateReportGenerator() {
 
       // Build report rows
       const reportRows: RebateReportRow[] = [];
+      let palletChargeRate = 0;
+      let palletChargeRateSource = "";
 
       for (const config of rebateConfigs) {
         // Determine the rate
@@ -387,8 +396,14 @@ export function SiteRebateReportGenerator() {
           rateSource = "Not configured";
         }
 
-        // Get weight from load reports for this material
-        const weight_tonnes = lineItemWeights[config.material_name] ?? 0;
+        // Check if this is the pallet weight charge config
+        if (config.material_name.toLowerCase().includes("pallet")) {
+          palletChargeRate = rate;
+          palletChargeRateSource = rateSource;
+        }
+
+        // Get weight from load reports for this material (skip the internal tracking key)
+        const weight_tonnes = config.material_name === "__total_pallet_weight__" ? 0 : (lineItemWeights[config.material_name] ?? 0);
 
         reportRows.push({
           material_name: config.material_name,
@@ -397,6 +412,14 @@ export function SiteRebateReportGenerator() {
           rebate_value: weight_tonnes * rate,
           rate_source: rateSource,
         });
+      }
+
+      // Update the Pallet Weight Charge row with the actual total pallet weight from all load reports
+      const totalPalletWeight = lineItemWeights["__total_pallet_weight__"] ?? 0;
+      const palletChargeIndex = reportRows.findIndex(r => r.material_name.toLowerCase().includes("pallet"));
+      if (palletChargeIndex >= 0 && totalPalletWeight > 0) {
+        reportRows[palletChargeIndex].weight_tonnes = totalPalletWeight;
+        reportRows[palletChargeIndex].rebate_value = totalPalletWeight * reportRows[palletChargeIndex].rate_per_tonne;
       }
 
       setReportData(reportRows);
@@ -415,11 +438,18 @@ export function SiteRebateReportGenerator() {
     }
   };
 
-  // Load Reports totals (exclude Pallet Weight Charge from weight total - it's a deduction, not material weight)
+  // Load Reports totals
+  // Total rebate includes all materials + pallet charge (which is typically negative)
   const loadReportsTotalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
-  const loadReportsTotalWeight = reportData
-    .filter((r) => r.material_name !== "Pallet Weight Charge")
+  // Total weight = material net weight + pallet weight (to show gross total)
+  // This gives the full weight picture: net material weight + pallet weight = gross weight
+  const materialNetWeight = reportData
+    .filter((r) => !r.material_name.toLowerCase().includes("pallet"))
     .reduce((sum, r) => sum + r.weight_tonnes, 0);
+  const palletWeight = reportData
+    .filter((r) => r.material_name.toLowerCase().includes("pallet"))
+    .reduce((sum, r) => sum + r.weight_tonnes, 0);
+  const loadReportsTotalWeight = materialNetWeight + palletWeight;
 
   // Combined totals (Load Reports + Skip/RoRo)
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
