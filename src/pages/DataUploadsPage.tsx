@@ -137,6 +137,36 @@ function excelValueToISODate(value: any): string | null {
   return null;
 }
 
+function parseFlexibleNumber(value: any): number | null {
+  if (value == null || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+
+  let str = String(value).trim();
+  if (!str) return null;
+
+  // Remove common unit suffixes/prefixes (e.g. "160KG", "3.8 t")
+  str = str.replace(/\b(kg|kgs|tonnes?|tonne|t)\b/gi, "");
+  // Keep only number-relevant characters
+  str = str.replace(/[^0-9.,\-]/g, "");
+  if (!str) return null;
+
+  const lastComma = str.lastIndexOf(",");
+  const lastDot = str.lastIndexOf(".");
+  const isCommaDecimal = lastComma > lastDot;
+
+  if (isCommaDecimal) {
+    // 1.234,56 -> 1234.56
+    str = str.replace(/\./g, "");
+    str = str.replace(/,/g, ".");
+  } else {
+    // 1,234.56 -> 1234.56
+    str = str.replace(/,/g, "");
+  }
+
+  const parsed = Number.parseFloat(str);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function chunk<T>(items: T[], size: number) {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
@@ -381,25 +411,26 @@ const DataUploadsPage = () => {
       if (!ticket) continue;
 
       const jobDateVal = getFirstMatchingValue(r, ["Date", "Job Date", "job_date"]);
-      const weightVal = getFirstMatchingValue(r, [
-        "Weight (t)",
+
+      // Weight handling (IMPORTANT):
+      // - Skiptrak: weight_t is stored in TONNES
+      // - Midweigh: weight_t is stored in KG
+      // Any UI/reporting that needs tonnes should convert Midweigh by dividing by 1000.
+      const weightTonnesVal = getFirstMatchingValue(r, ["Weight (t)", "Tonnes", "Nett Weight (t)", "Net Weight (t)"]);
+      const weightOtherVal = getFirstMatchingValue(r, [
+        "Weight (kg)",
+        "Weight (KG)",
         "Weight",
         "Weight_t",
         "weight_t",
-        "Tonnes",
         // Skiptrak commonly provides this as 'Nett Weight'
         "Nett Weight",
         "Net Weight",
-        "Nett Weight (t)",
-        "Net Weight (t)",
       ]);
 
-      const weightNum =
-        weightVal == null || weightVal === ""
-          ? null
-          : typeof weightVal === "number"
-            ? weightVal
-            : Number(String(weightVal).replace(/,/g, ""));
+      const inputIsTonnes = weightTonnesVal != null && String(weightTonnesVal).trim() !== "";
+      const parsedWeight = parseFlexibleNumber(inputIsTonnes ? weightTonnesVal : weightOtherVal);
+      const weightTonnes = parsedWeight == null ? null : parsedWeight;
 
       // Source-specific customer field mapping
       const customerCandidates = source === "midweigh"
@@ -458,7 +489,7 @@ const DataUploadsPage = () => {
           : toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])),
         movement_type: toCleanString(getFirstMatchingValue(r, ["Movement Type", "Movement", "movement_type"])),
         container_type: toCleanString(getFirstMatchingValue(r, ["Container", "Container Type", "container_type", "Skip Type"])),
-        weight_t: Number.isFinite(weightNum as number) ? (weightNum as number) : null,
+        weight_t: weightTonnes,
         vehicle_registration: toCleanString(
           getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Vehicle Reg", "Reg", "Registration", "vehicle_registration"]),
         ),
@@ -982,7 +1013,13 @@ const DataUploadsPage = () => {
                           <TableCell className="max-w-[24rem] truncate" title={j.waste_description ?? ""}>
                             {j.waste_description ?? "—"}
                           </TableCell>
-                          <TableCell className="text-right whitespace-nowrap">{j.weight_t ?? "—"}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {j.weight_t == null
+                              ? "—"
+                              : j.source === "midweigh"
+                                ? (j.weight_t / 1000).toFixed(2)
+                                : j.weight_t.toFixed(2)}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">{j.vehicle_registration ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
