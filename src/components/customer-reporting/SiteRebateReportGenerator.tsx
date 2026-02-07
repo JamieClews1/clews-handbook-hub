@@ -362,8 +362,8 @@ export function SiteRebateReportGenerator() {
               totalPalletWeightTonnes += palletKg / 1000;
             }
             
-            // Store total pallet weight for later use
-            lineItemWeights["__total_pallet_weight__"] = totalPalletWeightTonnes;
+            // Store total pallet weight for later use - this is the key for pallet charge
+            lineItemWeights["__PALLET_WEIGHT__"] = (lineItemWeights["__PALLET_WEIGHT__"] ?? 0) + totalPalletWeightTonnes;
           }
         }
       } else {
@@ -396,14 +396,12 @@ export function SiteRebateReportGenerator() {
           rateSource = "Not configured";
         }
 
-        // Check if this is the pallet weight charge config
-        if (config.material_name.toLowerCase().includes("pallet")) {
-          palletChargeRate = rate;
-          palletChargeRateSource = rateSource;
-        }
-
-        // Get weight from load reports for this material (skip the internal tracking key)
-        const weight_tonnes = config.material_name === "__total_pallet_weight__" ? 0 : (lineItemWeights[config.material_name] ?? 0);
+        // Check if this is the pallet weight charge config - use the aggregated pallet weight
+        const isPalletCharge = config.material_name.toLowerCase().includes("pallet");
+        const totalPalletWeight = lineItemWeights["__PALLET_WEIGHT__"] ?? 0;
+        
+        // Get weight: for pallet charge use the aggregated total, otherwise use material weight
+        const weight_tonnes = isPalletCharge ? totalPalletWeight : (lineItemWeights[config.material_name] ?? 0);
 
         reportRows.push({
           material_name: config.material_name,
@@ -412,14 +410,6 @@ export function SiteRebateReportGenerator() {
           rebate_value: weight_tonnes * rate,
           rate_source: rateSource,
         });
-      }
-
-      // Update the Pallet Weight Charge row with the actual total pallet weight from all load reports
-      const totalPalletWeight = lineItemWeights["__total_pallet_weight__"] ?? 0;
-      const palletChargeIndex = reportRows.findIndex(r => r.material_name.toLowerCase().includes("pallet"));
-      if (palletChargeIndex >= 0 && totalPalletWeight > 0) {
-        reportRows[palletChargeIndex].weight_tonnes = totalPalletWeight;
-        reportRows[palletChargeIndex].rebate_value = totalPalletWeight * reportRows[palletChargeIndex].rate_per_tonne;
       }
 
       setReportData(reportRows);
