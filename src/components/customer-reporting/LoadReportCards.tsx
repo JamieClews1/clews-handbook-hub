@@ -148,11 +148,11 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
     return Math.max(0, grossKg - palletKg);
   };
 
-  // Calculate pallet charge value for a report
+  // Calculate pallet charge value for a report (rate per tonne × pallet weight in tonnes)
   const calculatePalletChargeValue = (report: LoadReportCardData) => {
     if (isNoPalletsOnLoad(report)) return 0;
-    const pallets = calculateLineItemPallets(report);
-    return pallets * effectivePalletChargeRate;
+    const palletWeightTonnes = calculatePalletWeight(report); // Already in tonnes
+    return palletWeightTonnes * effectivePalletChargeRate;
   };
 
   // Calculate rebate for a single report (rebate on actual recyclable/waste weight + pallet charge)
@@ -422,6 +422,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                         {/* Pallet Charge Row */}
                         {!isNoPalletsOnLoad(report) && effectivePalletChargeRate !== 0 && (() => {
                           const palletCount = calculateLineItemPallets(report);
+                          const palletWeightT = calculatePalletWeight(report);
                           const palletChargeValue = calculatePalletChargeValue(report);
                           return (
                             <TableRow className={cn("bg-amber-50/50 border-t", belowThreshold && "opacity-60")}>
@@ -429,9 +430,11 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                               <TableCell className="text-xs py-1.5 text-right">{palletCount}</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">-</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">-</TableCell>
-                              <TableCell className="text-xs py-1.5 text-right">-</TableCell>
+                              <TableCell className="text-xs py-1.5 text-right font-medium">
+                                {palletWeightT.toFixed(2)} t
+                              </TableCell>
                               <TableCell className="text-xs py-1.5 text-right">
-                                £{effectivePalletChargeRate.toFixed(2)}/pallet
+                                £{effectivePalletChargeRate.toFixed(2)}/t
                               </TableCell>
                               <TableCell
                                 className={cn(
