@@ -487,8 +487,21 @@ const DataUploadsPage = () => {
         category: source === "midweigh" 
           ? "Midweigh" // Always set category to "Midweigh" for midweigh uploads
           : toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])),
-        movement_type: toCleanString(getFirstMatchingValue(r, ["Movement Type", "Movement", "movement_type"])),
-        container_type: toCleanString(getFirstMatchingValue(r, ["Container", "Container Type", "container_type", "Skip Type"])),
+        movement_type: toCleanString(getFirstMatchingValue(r, [
+          "Movement Type", 
+          "Movement", 
+          "movement_type",
+          "In / Out",    // Midweigh column
+          "In/Out",
+          "In Out",
+        ])),
+        container_type: toCleanString(getFirstMatchingValue(r, [
+          "Container", 
+          "Container Type", 
+          "container_type", 
+          "Skip Type",
+          "Job Type",    // Midweigh column
+        ])),
         weight_t: weightTonnes,
         vehicle_registration: toCleanString(
           getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Vehicle Reg", "Reg", "Registration", "vehicle_registration"]),
