@@ -417,8 +417,9 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {!isCustom && item.value_type_item_id && (
+                      {!isCustom && !isBespoke && item.value_type_item_id && (
                         <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground text-xs">£</span>
                           <Input
                             type="number"
                             step="1"
@@ -428,7 +429,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                             placeholder="0"
                             disabled={saving}
                           />
-                          <span className="text-muted-foreground text-xs">£/t</span>
+                          <span className="text-muted-foreground text-xs">/t</span>
                         </div>
                       )}
                     </TableCell>
