@@ -19,6 +19,8 @@ type JobRecord = {
   container_type?: string | null;
   movement_type?: string | null;
   job_type?: string | null;
+  rebatable_weight?: number;
+  job_rebate_value?: number;
 };
 
 type MaterialSummary = {
@@ -324,22 +326,35 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         const adjustment = config.adjustment ?? 0;
         const adjustedRate = rate + adjustment;
       
-      // Apply threshold logic
-      const threshold = config.threshold_tonnes ?? 0;
-      const rebatableWeight = Math.max(0, totalWeight - threshold);
-      const rebateValue = rebatableWeight * adjustedRate;
+        // Apply threshold PER JOB: only pay rebate on weight above threshold for each individual job
+        const threshold = config.threshold_tonnes ?? 0;
+        
+        // Calculate per-job rebatable weight and rebate value
+        const jobsWithRebates = matchingJobs.map(job => {
+          const jobWeight = job.weight_t ?? 0;
+          const rebatableWeight = Math.max(0, jobWeight - threshold);
+          const jobRebateValue = rebatableWeight * adjustedRate;
+          return {
+            ...job,
+            rebatable_weight: rebatableWeight,
+            job_rebate_value: jobRebateValue,
+          };
+        });
+
+        const totalRebatableWeight = jobsWithRebates.reduce((sum, j) => sum + (j.rebatable_weight ?? 0), 0);
+        const rebateValue = jobsWithRebates.reduce((sum, j) => sum + (j.job_rebate_value ?? 0), 0);
 
         materialSummaries.push({
           material_type: config.material_type,
           material_label: MATERIAL_LABELS[config.material_type] ?? config.material_type,
           total_weight_tonnes: totalWeight,
-        rebatable_weight_tonnes: rebatableWeight,
-        threshold_tonnes: threshold,
+          rebatable_weight_tonnes: totalRebatableWeight,
+          threshold_tonnes: threshold,
           rate_per_tonne: adjustedRate,
           adjustment,
           rebate_value: rebateValue,
           rate_source: rateSource,
-          jobs: matchingJobs.sort((a, b) => 
+          jobs: jobsWithRebates.sort((a, b) => 
             new Date(b.job_date).getTime() - new Date(a.job_date).getTime()
           ),
         });
@@ -483,20 +498,31 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {summary.jobs.map((job) => (
-                              <TableRow key={job.id}>
-                                <TableCell>
-                                  {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
-                                </TableCell>
-                                <TableCell className="font-medium">{job.job_number}</TableCell>
-                                <TableCell>{job.site}</TableCell>
-                                <TableCell>{job.waste_description || "-"}</TableCell>
-                                <TableCell className="text-right">{job.weight_t.toFixed(2)}</TableCell>
-                                <TableCell className={cn("text-right", (job.weight_t * summary.rate_per_tonne) >= 0 ? "text-green-600" : "text-red-600")}>
-                                  £{(job.weight_t * summary.rate_per_tonne).toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {summary.jobs.map((job) => {
+                              const jobRebate = job.job_rebate_value ?? 0;
+                              const rebatableWeight = job.rebatable_weight ?? 0;
+                              const isBelowThreshold = summary.threshold_tonnes > 0 && rebatableWeight === 0;
+                              
+                              return (
+                                <TableRow key={job.id} className={isBelowThreshold ? "bg-amber-50/50" : ""}>
+                                  <TableCell>
+                                    {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
+                                  </TableCell>
+                                  <TableCell className="font-medium">{job.job_number}</TableCell>
+                                  <TableCell>{job.site}</TableCell>
+                                  <TableCell>{job.waste_description || "-"}</TableCell>
+                                  <TableCell className="text-right">
+                                    {job.weight_t.toFixed(2)}
+                                    {isBelowThreshold && (
+                                      <span className="ml-1 text-xs text-amber-600">(below threshold)</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className={cn("text-right", jobRebate > 0 ? "text-green-600" : isBelowThreshold ? "text-amber-600" : "text-muted-foreground")}>
+                                    £{jobRebate.toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
