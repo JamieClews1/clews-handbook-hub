@@ -163,6 +163,7 @@ const DataUploadsPage = () => {
 
   const [isUploading, setIsUploading] = useState<DataSource | null>(null);
   const [lastUploadSummary, setLastUploadSummary] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; stage: string } | null>(null);
 
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"all" | DataSource>("all");
@@ -480,11 +481,14 @@ const DataUploadsPage = () => {
 
     setIsUploading(source);
     setLastUploadSummary(null);
+    setUploadProgress({ current: 0, total: 0, stage: "Parsing file..." });
+    
     try {
       const jobsToUpsert = await parseFileToJobs(file, source);
+      const totalRows = jobsToUpsert.length;
 
-      // Keep a raw preview (all columns) from the uploaded document for debugging/verification.
-      const rawRows = jobsToUpsert.map((j) => j.raw ?? {}).filter(Boolean) as Record<string, unknown>[];
+      // Keep a raw preview (first 100 rows) from the uploaded document for debugging/verification.
+      const rawRows = jobsToUpsert.slice(0, 100).map((j) => j.raw ?? {}).filter(Boolean) as Record<string, unknown>[];
       const headers = Array.from(
         rawRows.reduce((set, r) => {
           Object.keys(r).forEach((k) => set.add(k));
@@ -493,7 +497,7 @@ const DataUploadsPage = () => {
       );
       setLastParsedPreview({ source, fileName: file.name, headers, rows: rawRows });
 
-      if (jobsToUpsert.length === 0) {
+      if (totalRows === 0) {
         toast({
           title: "No rows found",
           description: "We couldn't find a Ticket/Job Number column with values.",
@@ -502,44 +506,64 @@ const DataUploadsPage = () => {
         return;
       }
 
-      // Avoid overwriting existing non-empty fields with blanks.
-      // (Some sources don't include Customer / Waste Description columns.)
-      const jobNumbers = jobsToUpsert.map((j) => j.job_number);
-      const existingByJob = new Map<string, ExistingJobFields>();
-      for (const ids of chunk(jobNumbers, 500)) {
-        const { data: existing, error } = await supabase
+      setUploadProgress({ current: 0, total: totalRows, stage: "Processing records..." });
+
+      // For very large files, process in smaller batches to prevent timeouts
+      const BATCH_SIZE = 500;
+      const jobBatches = chunk(jobsToUpsert, BATCH_SIZE);
+      let processedCount = 0;
+
+      for (let batchIndex = 0; batchIndex < jobBatches.length; batchIndex++) {
+        const batch = jobBatches[batchIndex];
+        const jobNumbers = batch.map((j) => j.job_number);
+
+        // Fetch existing records for this batch only
+        const existingByJob = new Map<string, ExistingJobFields>();
+        const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
           .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date")
-          .in("job_number", ids);
-        if (error) throw error;
+          .in("job_number", jobNumbers);
+        
+        if (fetchError) throw fetchError;
         (existing ?? []).forEach((row: any) => existingByJob.set(String(row.job_number), row as ExistingJobFields));
+
+        // Merge with existing data (avoid overwriting non-empty fields with blanks)
+        const mergedBatch = batch.map((j) => {
+          const existingRow = existingByJob.get(j.job_number);
+          return {
+            ...j,
+            job_date: j.job_date ?? (existingRow?.job_date as any) ?? null,
+            customer: j.customer ?? (existingRow?.customer as any) ?? null,
+            site: j.site ?? (existingRow?.site as any) ?? null,
+            ewc: j.ewc ?? (existingRow?.ewc as any) ?? null,
+            waste_description: j.waste_description ?? (existingRow?.waste_description as any) ?? null,
+            category: j.category ?? (existingRow?.category as any) ?? null,
+            movement_type: j.movement_type ?? (existingRow?.movement_type as any) ?? null,
+            container_type: j.container_type ?? (existingRow?.container_type as any) ?? null,
+            weight_t: j.weight_t ?? (existingRow?.weight_t as any) ?? null,
+            vehicle_registration: j.vehicle_registration ?? (existingRow?.vehicle_registration as any) ?? null,
+          } satisfies DataHubJobRow;
+        });
+
+        // Upsert this batch
+        const { error: upsertError } = await supabase
+          .from("data_hub_jobs")
+          .upsert(mergedBatch as any, { onConflict: "job_number" });
+        
+        if (upsertError) throw upsertError;
+
+        processedCount += batch.length;
+        setUploadProgress({ 
+          current: processedCount, 
+          total: totalRows, 
+          stage: `Processed ${processedCount.toLocaleString()} of ${totalRows.toLocaleString()} records...` 
+        });
+
+        // Yield to UI thread to prevent freezing
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
-      const mergedJobs = jobsToUpsert.map((j) => {
-        const existing = existingByJob.get(j.job_number);
-        return {
-          ...j,
-          job_date: j.job_date ?? (existing?.job_date as any) ?? null,
-          customer: j.customer ?? (existing?.customer as any) ?? null,
-          site: j.site ?? (existing?.site as any) ?? null,
-          ewc: j.ewc ?? (existing?.ewc as any) ?? null,
-          waste_description: j.waste_description ?? (existing?.waste_description as any) ?? null,
-          category: j.category ?? (existing?.category as any) ?? null,
-          movement_type: j.movement_type ?? (existing?.movement_type as any) ?? null,
-          container_type: j.container_type ?? (existing?.container_type as any) ?? null,
-          weight_t: j.weight_t ?? (existing?.weight_t as any) ?? null,
-          vehicle_registration: j.vehicle_registration ?? (existing?.vehicle_registration as any) ?? null,
-        } satisfies DataHubJobRow;
-      });
-
-      // Upsert in chunks to keep request sizes safe
-      const chunks = chunk(mergedJobs, 500);
-      for (const c of chunks) {
-        const { error } = await supabase.from("data_hub_jobs").upsert(c as any, { onConflict: "job_number" });
-        if (error) throw error;
-      }
-
-      const summary = `${source.toUpperCase()}: processed ${jobsToUpsert.length.toLocaleString()} rows (deduped by Ticket)`;
+      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)`;
       setLastUploadSummary(summary);
       toast({
         title: "Upload complete",
@@ -554,6 +578,7 @@ const DataUploadsPage = () => {
       });
     } finally {
       setIsUploading(null);
+      setUploadProgress(null);
     }
   };
 
@@ -640,7 +665,21 @@ const DataUploadsPage = () => {
                 >
                   Select a file above to upload
                 </Button>
-                {isUploading === "skiptrak" && <p className="text-sm text-muted-foreground">Uploading…</p>}
+                {isUploading === "skiptrak" && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {uploadProgress?.stage || "Uploading…"}
+                    </p>
+                    {uploadProgress && uploadProgress.total > 0 && (
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -664,7 +703,21 @@ const DataUploadsPage = () => {
                 <Button type="button" variant="secondary" disabled className="w-full">
                   Select a file above to upload
                 </Button>
-                {isUploading === "midweigh" && <p className="text-sm text-muted-foreground">Uploading…</p>}
+                {isUploading === "midweigh" && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {uploadProgress?.stage || "Uploading…"}
+                    </p>
+                    {uploadProgress && uploadProgress.total > 0 && (
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
