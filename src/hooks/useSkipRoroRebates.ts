@@ -3,15 +3,17 @@
  import { format, startOfMonth, eachMonthOfInterval } from "date-fns";
  import { DateRange } from "react-day-picker";
  
- type JobRecord = {
-   id: string;
-   job_number: string;
-   job_date: string;
-   category: string;
-   waste_description: string | null;
-   weight_t: number;
-   site: string;
- };
+type JobRecord = {
+  id: string;
+  job_number: string;
+  job_date: string;
+  category: string;
+  waste_description: string | null;
+  weight_t: number;
+  site: string;
+  container_type?: string | null;
+  movement_type?: string | null;
+};
  
  export type SkipRoroMaterialSummary = {
    material_type: string;
@@ -70,6 +72,14 @@ export function useSkipRoroRebates(
   const loadData = async () => {
     setLoading(true);
     try {
+      // 0. Load rebate rules (exclusion settings)
+      const { data: rebateRules } = await supabase
+        .from("rebate_rules")
+        .select("rule_key, is_enabled");
+      
+      const excludeSkipJobType = rebateRules?.find(r => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
+      const excludeDeliverMovement = rebateRules?.find(r => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+
       // 1. Get skip rebate config - either site-level or customer-level
       let skipConfigs: SkipRebateConfig[] = [];
       
@@ -140,7 +150,7 @@ export function useSkipRoroRebates(
         
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, container_type, movement_type")
           .eq("site", siteMapping)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -154,6 +164,8 @@ export function useSkipRoroRebates(
             waste_description: j.waste_description ?? null,
             category: j.category ?? "",
             site: j.site ?? "",
+            container_type: j.container_type ?? null,
+            movement_type: j.movement_type ?? null,
           }))];
         }
       }
@@ -162,7 +174,7 @@ export function useSkipRoroRebates(
       if (dataHubCustomer) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type")
           .eq("customer", dataHubCustomer)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
@@ -178,9 +190,26 @@ export function useSkipRoroRebates(
             waste_description: j.waste_description ?? null,
             weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
             site: (j as any).customer ?? "Midweigh",
+            container_type: j.container_type ?? null,
+            movement_type: j.movement_type ?? null,
           }));
           allJobs = [...allJobs, ...mappedJobs];
         }
+      }
+
+      // Apply exclusion rules to filter out unwanted jobs
+      if (excludeSkipJobType) {
+        allJobs = allJobs.filter(j => {
+          const containerType = (j.container_type ?? "").toUpperCase();
+          return !containerType.includes("SKIP");
+        });
+      }
+      
+      if (excludeDeliverMovement) {
+        allJobs = allJobs.filter(j => {
+          const movementType = (j.movement_type ?? "").toLowerCase();
+          return movementType !== "deliver" && movementType !== "delivery";
+        });
       }
  
        // 4. Get monthly values for rate calculation

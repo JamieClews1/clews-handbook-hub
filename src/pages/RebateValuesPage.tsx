@@ -24,9 +24,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ArrowLeft, DollarSign, Save, Link2 } from "lucide-react";
+import { ArrowLeft, DollarSign, Save, Link2, Settings } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
+import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
 
 type RebateItem = {
   id: string;
@@ -251,7 +252,7 @@ const RebateValuesPage = () => {
               </Link>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <span className="font-semibold text-foreground">Rebate Values</span>
+                <span className="font-semibold text-foreground">Rebates</span>
               </div>
             </div>
             <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
@@ -262,7 +263,7 @@ const RebateValuesPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-5xl mx-auto space-y-6">
           <Tabs defaultValue="monthly-values" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="monthly-values" className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
                 Monthly Values
@@ -270,6 +271,10 @@ const RebateValuesPage = () => {
               <TabsTrigger value="rebate-mapping" className="flex items-center gap-2">
                 <Link2 className="h-4 w-4" />
                 Rebate Mapping
+              </TabsTrigger>
+              <TabsTrigger value="rebate-settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Rebate Settings
               </TabsTrigger>
             </TabsList>
 
@@ -370,6 +375,10 @@ const RebateValuesPage = () => {
 
             <TabsContent value="rebate-mapping">
               <RebateMappingSection canEdit={canEdit} />
+            </TabsContent>
+
+            <TabsContent value="rebate-settings">
+              <RebateSettingsSection canEdit={canEdit} />
             </TabsContent>
           </Tabs>
         </div>
