@@ -15,6 +15,7 @@ export interface OfflineLoadReport {
   totalPallets: number;
   totalWeightKg: number;
   palletsOut?: number;
+  noPalletsOnLoad?: boolean;
   lineItems: OfflineLineItem[];
   createdAt: string;
   updatedAt: string;

@@ -19,6 +19,7 @@ interface LoadReviewScreenProps {
   jobNumber: string;
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
+  noPalletsOnLoad?: boolean;
   reportDate: string;
   lineItems: LineItem[];
   onAcceptReconciled?: (items: LineItem[]) => void;
@@ -35,6 +36,7 @@ export const LoadReviewScreen = ({
   jobNumber,
   weighbridgeWeightKg,
   weighbridgeLoading,
+  noPalletsOnLoad = false,
   reportDate,
   lineItems,
   onAcceptReconciled,
@@ -154,9 +156,9 @@ export const LoadReviewScreen = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lineItems.map((item) => {
+            {lineItems.map((item) => {
                 const totalWeight = item.pallet_count * item.avg_weight_kg;
-                const totalPalletWeight = item.pallet_count * (item.pallet_weight_kg || 0);
+                const totalPalletWeight = noPalletsOnLoad ? 0 : item.pallet_count * (item.pallet_weight_kg || 0);
                 const actualWeight = totalWeight - totalPalletWeight;
                 return (
                   <TableRow key={item.waste_type} className={getRowBgColor(item.waste_type)}>
@@ -179,7 +181,12 @@ export const LoadReviewScreen = ({
               })}
               {/* Total Row */}
               <TableRow className="bg-primary/10 border-t-2 border-primary/30">
-                <TableCell className="font-bold text-primary">TOTAL</TableCell>
+                <TableCell className="font-bold text-primary">
+                  TOTAL
+                  {noPalletsOnLoad && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">(no pallet deduction)</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-center text-xl font-bold text-primary">
                   {totalPallets}
                 </TableCell>
@@ -188,10 +195,12 @@ export const LoadReviewScreen = ({
                   {totalWeight.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right text-xl font-bold text-primary">
-                  {lineItems.reduce((sum, item) => sum + item.pallet_count * (item.pallet_weight_kg || 0), 0).toLocaleString()}
+                  {noPalletsOnLoad ? 0 : lineItems.reduce((sum, item) => sum + item.pallet_count * (item.pallet_weight_kg || 0), 0).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right text-xl font-bold text-primary">
-                  {lineItems.reduce((sum, item) => sum + (item.pallet_count * item.avg_weight_kg) - (item.pallet_count * (item.pallet_weight_kg || 0)), 0).toLocaleString()}
+                  {noPalletsOnLoad 
+                    ? totalWeight.toLocaleString()
+                    : lineItems.reduce((sum, item) => sum + (item.pallet_count * item.avg_weight_kg) - (item.pallet_count * (item.pallet_weight_kg || 0)), 0).toLocaleString()}
                 </TableCell>
               </TableRow>
             </TableBody>
