@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Calendar, Truck, Package, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Calendar, Truck, Package, AlertTriangle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,9 +36,11 @@ interface LoadReportCardsProps {
   }[];
   palletWeightKg?: number;
   palletChargeRate?: number; // Rate per pallet (e.g., -£47)
+  onEditReport?: (reportId: string) => void;
 }
 
-export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, palletChargeRate = 0 }: LoadReportCardsProps) {
+export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, palletChargeRate = 0, onEditReport }: LoadReportCardsProps) {
+  const navigate = useNavigate();
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
   const [minimumWeightThreshold, setMinimumWeightThreshold] = useState<number>(1.5);
   const [thresholdEnabled, setThresholdEnabled] = useState<boolean>(true);
@@ -310,6 +314,26 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
 
               <CollapsibleContent>
                 <CardContent className="pt-0 pb-3 px-4 space-y-3">
+                  {/* Edit Button */}
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onEditReport) {
+                          onEditReport(report.id);
+                        } else {
+                          navigate(`/load-reports?edit=${report.id}`);
+                        }
+                      }}
+                      className="text-xs"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Open & Edit Report
+                    </Button>
+                  </div>
+
                   {/* Reconciliation Warning */}
                   {requiresReconciliation && (
                     <div className="flex items-center gap-2 text-orange-700 bg-orange-100 rounded-md py-2 px-3">
