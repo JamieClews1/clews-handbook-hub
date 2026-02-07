@@ -14,6 +14,8 @@ type JobRecord = {
   container_type?: string | null;
   movement_type?: string | null;
   job_type?: string | null;
+  rebatable_weight?: number;
+  job_rebate_value?: number;
 };
  
  export type SkipRoroMaterialSummary = {
@@ -290,51 +292,64 @@ export function useSkipRoroRebates(
            continue;
          }
  
-         const matchingJobs = allJobs.filter(job => {
-           if (!job.waste_description) return false;
-           const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
-           return mappedCategory === config.material_type;
-         });
- 
-         const totalWeightVal = matchingJobs.reduce((sum, j) => sum + (j.weight_t ?? 0), 0);
- 
-         let rate = 0;
-         let rateSource = "Not configured";
- 
-         if (config.value_type === "set" && config.set_value !== null) {
-           rate = config.set_value;
-           rateSource = "Custom";
-         } else if (config.value_type_item_id) {
-           const monthVal = monthlyValueMap[config.value_type_item_id];
-           const itemName = rebateItemNames[config.value_type_item_id] ?? "Unknown";
-           if (monthVal) {
-             rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
-             rateSource = `${itemName} (${config.value_type})`;
-           } else {
-             rateSource = `${itemName} - No monthly value`;
-           }
-         }
- 
-         const adjustment = config.adjustment ?? 0;
-         const adjustedRate = rate + adjustment;
- 
-         // Apply threshold: only pay rebate on weight above threshold
-         const threshold = config.threshold_tonnes ?? 0;
-         const rebatableWeight = Math.max(0, totalWeightVal - threshold);
-         const rebateValue = rebatableWeight * adjustedRate;
- 
-         materialSummaries.push({
-           material_type: config.material_type,
-           material_label: MATERIAL_LABELS[config.material_type] ?? config.material_type,
-           total_weight_tonnes: totalWeightVal,
-           rate_per_tonne: adjustedRate,
-           adjustment,
-           rebate_value: rebateValue,
-           rate_source: rateSource,
-           jobs: matchingJobs.sort((a, b) => 
-             new Date(b.job_date).getTime() - new Date(a.job_date).getTime()
-           ),
-         });
+          const matchingJobs = allJobs.filter(job => {
+            if (!job.waste_description) return false;
+            const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
+            return mappedCategory === config.material_type;
+          });
+
+          const totalWeightVal = matchingJobs.reduce((sum, j) => sum + (j.weight_t ?? 0), 0);
+
+          let rate = 0;
+          let rateSource = "Not configured";
+
+          if (config.value_type === "set" && config.set_value !== null) {
+            rate = config.set_value;
+            rateSource = "Custom";
+          } else if (config.value_type_item_id) {
+            const monthVal = monthlyValueMap[config.value_type_item_id];
+            const itemName = rebateItemNames[config.value_type_item_id] ?? "Unknown";
+            if (monthVal) {
+              rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
+              rateSource = `${itemName} (${config.value_type})`;
+            } else {
+              rateSource = `${itemName} - No monthly value`;
+            }
+          }
+
+          const adjustment = config.adjustment ?? 0;
+          const adjustedRate = rate + adjustment;
+
+          // Apply threshold PER JOB: only pay rebate on weight above threshold for each individual job
+          const threshold = config.threshold_tonnes ?? 0;
+          
+          // Calculate per-job rebatable weight and rebate value
+          const jobsWithRebates = matchingJobs.map(job => {
+            const jobWeight = job.weight_t ?? 0;
+            const rebatableWeight = Math.max(0, jobWeight - threshold);
+            const jobRebateValue = rebatableWeight * adjustedRate;
+            return {
+              ...job,
+              rebatable_weight: rebatableWeight,
+              job_rebate_value: jobRebateValue,
+            };
+          });
+
+          const totalRebatableWeight = jobsWithRebates.reduce((sum, j) => sum + (j.rebatable_weight ?? 0), 0);
+          const rebateValue = jobsWithRebates.reduce((sum, j) => sum + (j.job_rebate_value ?? 0), 0);
+
+          materialSummaries.push({
+            material_type: config.material_type,
+            material_label: MATERIAL_LABELS[config.material_type] ?? config.material_type,
+            total_weight_tonnes: totalWeightVal,
+            rate_per_tonne: adjustedRate,
+            adjustment,
+            rebate_value: rebateValue,
+            rate_source: rateSource,
+            jobs: jobsWithRebates.sort((a, b) => 
+              new Date(b.job_date).getTime() - new Date(a.job_date).getTime()
+            ),
+          });
        }
  
        const totalRebateVal = materialSummaries.reduce((sum, s) => sum + s.rebate_value, 0);
