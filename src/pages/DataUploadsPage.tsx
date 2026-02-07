@@ -22,7 +22,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
-import { ArrowLeft, ArrowRight, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -244,46 +244,46 @@ const DataUploadsPage = () => {
     [search, sourceFilter, fromDate, toDate],
   );
 
-  useEffect(() => {
-    const loadJobs = async () => {
-      if (!user) return;
-      setLoadingJobs(true);
-      try {
-        let q = supabase
-          .from("data_hub_jobs")
-          .select(
-            "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,updated_at",
-          )
-          .order("job_date", { ascending: false, nullsFirst: false })
-          .order("updated_at", { ascending: false })
-          .limit(200);
+  const loadJobs = async () => {
+    if (!user) return;
+    setLoadingJobs(true);
+    try {
+      let q = supabase
+        .from("data_hub_jobs")
+        .select(
+          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,updated_at",
+        )
+        .order("job_date", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(200);
 
-        if (filters.source !== "all") q = q.eq("source", filters.source);
-        if (filters.fromDate) q = q.gte("job_date", filters.fromDate);
-        if (filters.toDate) q = q.lte("job_date", filters.toDate);
+      if (filters.source !== "all") q = q.eq("source", filters.source);
+      if (filters.fromDate) q = q.gte("job_date", filters.fromDate);
+      if (filters.toDate) q = q.lte("job_date", filters.toDate);
 
-        if (filters.search) {
-          const term = filters.search.replace(/,/g, "");
-          q = q.or(
-            `job_number.ilike.%${term}%,customer.ilike.%${term}%,site.ilike.%${term}%,ewc.ilike.%${term}%`,
-          );
-        }
-
-        const { data, error } = await q;
-        if (error) throw error;
-        setJobs((data ?? []) as ListedJob[]);
-      } catch (e: any) {
-        console.error(e);
-        toast({
-          title: "Could not load jobs",
-          description: e?.message ?? "Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingJobs(false);
+      if (filters.search) {
+        const term = filters.search.replace(/,/g, "");
+        q = q.or(
+          `job_number.ilike.%${term}%,customer.ilike.%${term}%,site.ilike.%${term}%,ewc.ilike.%${term}%`,
+        );
       }
-    };
 
+      const { data, error } = await q;
+      if (error) throw error;
+      setJobs((data ?? []) as ListedJob[]);
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: "Could not load jobs",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingJobs(false);
+    }
+  };
+
+  useEffect(() => {
     loadJobs();
   }, [user, toast, filters]);
 
@@ -895,9 +895,21 @@ const DataUploadsPage = () => {
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">
-                  Showing up to {jobs.length.toLocaleString()} rows (based on current filters).
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    Showing up to {jobs.length.toLocaleString()} rows (based on current filters).
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => loadJobs()}
+                    disabled={loadingJobs}
+                    className="gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loadingJobs ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
 
                 <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                   <AlertDialogTrigger asChild>
