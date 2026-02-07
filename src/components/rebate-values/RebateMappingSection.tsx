@@ -33,6 +33,7 @@ type MaterialType = {
 
 type WasteDescriptionRow = {
   waste_description: string;
+  ewc_code: string | null;
   material_type_id: string | null;
   rebate_item_id: string | null;
   isSaving?: boolean;
@@ -60,7 +61,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
 
         // Get all distinct waste descriptions from data_hub_jobs (last 6 months)
         // Use pagination to get ALL records (bypassing 1000-row limit)
-        const allWasteDescriptions: string[] = [];
+        const allWasteDescriptions: { description: string; ewc: string | null }[] = [];
         let hasMore = true;
         let offset = 0;
         const pageSize = 1000;
@@ -68,7 +69,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
         while (hasMore) {
           const { data: jobsData, error: jobsError } = await supabase
             .from("data_hub_jobs")
-            .select("waste_description")
+            .select("waste_description, ewc")
             .not("waste_description", "is", null)
             .gte("job_date", sixMonthsAgoISO)
             .order("waste_description")
@@ -79,7 +80,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
           if (jobsData && jobsData.length > 0) {
             for (const j of jobsData) {
               if (j.waste_description) {
-                allWasteDescriptions.push(j.waste_description);
+                allWasteDescriptions.push({ description: j.waste_description, ewc: j.ewc });
               }
             }
             offset += pageSize;
@@ -89,8 +90,15 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
           }
         }
 
-        // Get unique waste descriptions
-        const uniqueDescriptions = [...new Set(allWasteDescriptions)].sort();
+        // Get unique waste descriptions with their EWC codes
+        const descriptionMap = new Map<string, string | null>();
+        for (const item of allWasteDescriptions) {
+          // Keep the first EWC code found for each description
+          if (!descriptionMap.has(item.description)) {
+            descriptionMap.set(item.description, item.ewc);
+          }
+        }
+        const uniqueDescriptions = [...descriptionMap.keys()].sort();
 
         // Get rebate items and material types in parallel
         const [{ data: itemsData, error: itemsError }, { data: materialsData, error: materialsError }] =
@@ -122,6 +130,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
         // Build rows
         const rows: WasteDescriptionRow[] = uniqueDescriptions.map((wd) => ({
           waste_description: wd,
+          ewc_code: descriptionMap.get(wd) ?? null,
           material_type_id: mappingsByDescription.get(wd)?.material_type_id ?? null,
           rebate_item_id: mappingsByDescription.get(wd)?.rebate_item_id ?? null,
         }));
@@ -268,7 +277,14 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
                     key={row.waste_description}
                     className={!row.material_type_id && !row.rebate_item_id ? "bg-amber-50/50" : ""}
                   >
-                    <TableCell className="font-medium">{row.waste_description}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-0.5">
+                        <span>{row.waste_description}</span>
+                        {row.ewc_code && (
+                          <span className="text-xs text-muted-foreground">EWC: {row.ewc_code}</span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={row.material_type_id ?? "none"}
