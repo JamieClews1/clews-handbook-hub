@@ -16,6 +16,8 @@ type JobRecord = {
   job_type?: string | null;
   rebatable_weight?: number;
   job_rebate_value?: number;
+  // For Artic Curtain Side loads - weight from specific load report line item
+  material_weight_t?: number;
 };
  
  export type SkipRoroMaterialSummary = {
@@ -44,10 +46,10 @@ type JobRecord = {
    scrap_metal: "Scrap Metal",
  };
  
- const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
-   card_loose: ["Card Loose", "Cardboard"],
-   scrap_metal: ["Scrap Ferrous", "Scrap Non-Ferrous", "Scrap Metal"],
- };
+const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
+  card_loose: ["Card Loose", "Card Bales", "Cardboard"],
+  scrap_metal: ["Scrap Ferrous", "Scrap Non-Ferrous", "Scrap Metal"],
+};
  
 export function useSkipRoroRebates(
   siteId: string,
@@ -224,7 +226,71 @@ export function useSkipRoroRebates(
           return movementType !== "deliver" && movementType !== "delivery";
         });
       }
- 
+
+      // 4a. For Artic Curtain Side jobs, get material-specific weights from load_line_items
+      // Load Reports store job numbers in the 'notes' field
+      const articJobs = allJobs.filter(j => j.category === "Artic Curtain Side");
+      const articJobNumbers = articJobs.map(j => j.job_number);
+      
+      // Map load_waste_types to material categories
+      const wasteTypeToMaterialCategory: Record<string, string> = {};
+      for (const wt of loadWasteTypes ?? []) {
+        for (const [materialCategory, wasteTypeNames] of Object.entries(MATERIAL_TYPE_TO_WASTE_TYPES)) {
+          if (wasteTypeNames.some(name => wt.waste_type.toLowerCase().includes(name.toLowerCase()))) {
+            wasteTypeToMaterialCategory[wt.waste_type] = materialCategory;
+            break;
+          }
+        }
+      }
+
+      // Fetch load reports that match the Artic job numbers (stored in notes field)
+      let loadReportWeights: Record<string, Record<string, number>> = {}; // job_number -> material_category -> weight_t
+      
+      if (articJobNumbers.length > 0) {
+        const { data: loadReports } = await supabase
+          .from("load_reports")
+          .select("id, notes")
+          .in("notes", articJobNumbers);
+
+        if (loadReports && loadReports.length > 0) {
+          const loadReportIds = loadReports.map(lr => lr.id);
+          
+          const { data: lineItems } = await supabase
+            .from("load_line_items")
+            .select("load_report_id, waste_type, total_weight_kg")
+            .in("load_report_id", loadReportIds)
+            .gt("total_weight_kg", 0); // Only items with weight
+
+          // Build a map of job_number -> material_category -> weight in tonnes
+          for (const lr of loadReports) {
+            const jobNumber = lr.notes;
+            if (!jobNumber) continue;
+            
+            const jobLineItems = lineItems?.filter(li => li.load_report_id === lr.id) ?? [];
+            loadReportWeights[jobNumber] = {};
+            
+            for (const li of jobLineItems) {
+              const materialCategory = wasteTypeToMaterialCategory[li.waste_type];
+              if (materialCategory) {
+                // Convert KG to tonnes and accumulate
+                const weightT = (li.total_weight_kg ?? 0) / 1000;
+                loadReportWeights[jobNumber][materialCategory] = 
+                  (loadReportWeights[jobNumber][materialCategory] ?? 0) + weightT;
+              }
+            }
+          }
+        }
+      }
+
+      // Attach material-specific weights to Artic jobs
+      allJobs = allJobs.map(job => {
+        if (job.category === "Artic Curtain Side" && loadReportWeights[job.job_number]) {
+          // Don't set material_weight_t here - we'll determine it per material type later
+          return { ...job, _loadReportWeights: loadReportWeights[job.job_number] };
+        }
+        return job;
+      });
+
        // 4. Get monthly values for rate calculation
        const rangeStart = dateRange!.from!;
        const rangeEnd = dateRange?.to ?? rangeStart;
@@ -324,12 +390,27 @@ export function useSkipRoroRebates(
           const threshold = config.threshold_tonnes ?? 0;
           
           // Calculate per-job rebatable weight and rebate value
+          // For Artic Curtain Side loads, use the material-specific weight from load_line_items
           const jobsWithRebates = matchingJobs.map(job => {
-            const jobWeight = job.weight_t ?? 0;
-            const rebatableWeight = Math.max(0, jobWeight - threshold);
+            // Check if this is an Artic Curtain Side job with load report weights
+            const loadWeights = (job as any)._loadReportWeights as Record<string, number> | undefined;
+            
+            // Use material-specific weight if available (from load report), otherwise use total job weight
+            let materialWeight: number;
+            if (loadWeights && loadWeights[config.material_type] !== undefined) {
+              materialWeight = loadWeights[config.material_type];
+            } else {
+              // For non-Artic jobs or Artic without load reports, use total job weight
+              materialWeight = job.weight_t ?? 0;
+            }
+            
+            const rebatableWeight = Math.max(0, materialWeight - threshold);
             const jobRebateValue = rebatableWeight * adjustedRate;
+            
             return {
               ...job,
+              material_weight_t: materialWeight,
+              weight_t: job.weight_t, // Keep original total weight for display
               rebatable_weight: rebatableWeight,
               job_rebate_value: jobRebateValue,
             };
