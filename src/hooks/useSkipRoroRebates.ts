@@ -227,10 +227,10 @@ export function useSkipRoroRebates(
         });
       }
 
-      // 4a. For Artic Curtain Side jobs, get material-specific weights from load_line_items
+      // 4a. Get material-specific weights from load_line_items for jobs with matching Load Reports
       // Load Reports store job numbers in the 'notes' field
-      const articJobs = allJobs.filter(j => j.category === "Artic Curtain Side");
-      const articJobNumbers = articJobs.map(j => j.job_number);
+      // This applies to ALL jobs that have a corresponding Load Report (not just Artic Curtain Side)
+      const allJobNumbers = allJobs.map(j => j.job_number);
       
       // Map load_waste_types to material categories
       const wasteTypeToMaterialCategory: Record<string, string> = {};
@@ -243,15 +243,15 @@ export function useSkipRoroRebates(
         }
       }
 
-      // Fetch load reports that match the Artic job numbers (stored in notes field)
+      // Fetch load reports that match ANY job numbers (stored in notes field)
       // Also fetch no_pallets_on_load flag to calculate actual weight after pallet deduction
       let loadReportWeights: Record<string, Record<string, number>> = {}; // job_number -> material_category -> weight_t
       
-      if (articJobNumbers.length > 0) {
+      if (allJobNumbers.length > 0) {
         const { data: loadReports } = await supabase
           .from("load_reports")
           .select("id, notes, no_pallets_on_load")
-          .in("notes", articJobNumbers);
+          .in("notes", allJobNumbers);
 
         if (loadReports && loadReports.length > 0) {
           const loadReportIds = loadReports.map(lr => lr.id);
@@ -300,10 +300,10 @@ export function useSkipRoroRebates(
         }
       }
 
-      // Attach material-specific weights to Artic jobs
+      // Attach material-specific weights to ALL jobs that have matching Load Reports
       allJobs = allJobs.map(job => {
-        if (job.category === "Artic Curtain Side" && loadReportWeights[job.job_number]) {
-          // Don't set material_weight_t here - we'll determine it per material type later
+        if (loadReportWeights[job.job_number]) {
+          // Attach load report weights for later use
           return { ...job, _loadReportWeights: loadReportWeights[job.job_number] };
         }
         return job;
