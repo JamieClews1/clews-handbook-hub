@@ -1075,6 +1075,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          no_pallets_on_load: boolean
           notes: string | null
           operator_id: string | null
           operator_name: string
@@ -1091,6 +1092,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          no_pallets_on_load?: boolean
           notes?: string | null
           operator_id?: string | null
           operator_name: string
@@ -1107,6 +1109,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          no_pallets_on_load?: boolean
           notes?: string | null
           operator_id?: string | null
           operator_name?: string

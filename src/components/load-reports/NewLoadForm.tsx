@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -42,6 +43,8 @@ interface NewLoadFormProps {
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onLookupWeighbridgeWeight?: () => void;
+  noPalletsOnLoad?: boolean;
+  onNoPalletsOnLoadChange?: (checked: boolean) => void;
   onStartTally: () => void;
   isValid: boolean;
   isEditing?: boolean;
@@ -62,6 +65,8 @@ export const NewLoadForm = ({
   weighbridgeWeightKg,
   weighbridgeLoading,
   onLookupWeighbridgeWeight,
+  noPalletsOnLoad = false,
+  onNoPalletsOnLoadChange,
   onStartTally,
   isValid,
   isEditing = false,
@@ -220,6 +225,29 @@ export const NewLoadForm = ({
               </Select>
             )}
           </div>
+
+          {/* No Pallets on Load Checkbox */}
+          {onNoPalletsOnLoadChange && (
+            <div className="flex items-center space-x-3 rounded-lg border border-border bg-muted/30 p-4">
+              <Checkbox
+                id="noPalletsOnLoad"
+                checked={noPalletsOnLoad}
+                onCheckedChange={(checked) => onNoPalletsOnLoadChange(checked === true)}
+                className="h-5 w-5"
+              />
+              <div className="flex-1">
+                <Label
+                  htmlFor="noPalletsOnLoad"
+                  className="text-base font-medium cursor-pointer"
+                >
+                  No pallets on load
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Bales were not on pallets, so pallet weight will not be deducted
+                </p>
+              </div>
+            </div>
+          )}
 
           <Button
             onClick={onStartTally}

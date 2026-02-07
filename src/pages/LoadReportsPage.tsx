@@ -56,6 +56,7 @@ const LoadReportsPage = () => {
   const [weighbridgeWeightKg, setWeighbridgeWeightKg] = useState<number | null>(null);
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
   const [palletsOut, setPalletsOut] = useState(0);
+  const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
 
   // Offline support
   const {
@@ -249,6 +250,7 @@ const LoadReportsPage = () => {
     setJobNumber("");
     setSelectedSiteId("");
     setPalletsOut(0);
+    setNoPalletsOnLoad(false);
     setReportDate(new Date().toISOString().split("T")[0]);
     
     // Fetch latest waste types to ensure we have current default weights
@@ -305,6 +307,7 @@ const LoadReportsPage = () => {
       setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
       setPalletsOut((report as any).pallets_out || 0);
+      setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       fetchWeighbridgeWeightKg(report.notes || "");
       
       if (items && items.length > 0) {
@@ -363,6 +366,7 @@ const LoadReportsPage = () => {
       setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
       setPalletsOut((report as any).pallets_out || 0);
+      setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       if (items && items.length > 0) {
@@ -445,6 +449,7 @@ const LoadReportsPage = () => {
         totalPallets: totalPallets,
         totalWeightKg: totalWeight,
         palletsOut: palletsOut,
+        noPalletsOnLoad: noPalletsOnLoad,
         lineItems: offlineLineItems,
       });
 
@@ -669,6 +674,8 @@ const LoadReportsPage = () => {
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}
+              noPalletsOnLoad={noPalletsOnLoad}
+              onNoPalletsOnLoadChange={setNoPalletsOnLoad}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
               isEditing={!!currentReportId}
@@ -696,6 +703,7 @@ const LoadReportsPage = () => {
               jobNumber={jobNumber}
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
+              noPalletsOnLoad={noPalletsOnLoad}
               reportDate={reportDate}
               lineItems={lineItems}
               onAcceptReconciled={(items) => {
