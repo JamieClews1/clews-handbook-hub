@@ -517,12 +517,13 @@ const DataUploadsPage = () => {
         const batch = jobBatches[batchIndex];
         const jobNumbers = batch.map((j) => j.job_number);
 
-        // Fetch existing records for this batch only
+        // Fetch existing records for this batch only (filter by source too since job_number is unique per source)
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
           .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date")
-          .in("job_number", jobNumbers);
+          .in("job_number", jobNumbers)
+          .eq("source", source);
         
         if (fetchError) throw fetchError;
         (existing ?? []).forEach((row: any) => existingByJob.set(String(row.job_number), row as ExistingJobFields));
@@ -545,10 +546,10 @@ const DataUploadsPage = () => {
           } satisfies DataHubJobRow;
         });
 
-        // Upsert this batch
+        // Upsert this batch using composite key (job_number + source)
         const { error: upsertError } = await supabase
           .from("data_hub_jobs")
-          .upsert(mergedBatch as any, { onConflict: "job_number" });
+          .upsert(mergedBatch as any, { onConflict: "job_number,source" });
         
         if (upsertError) throw upsertError;
 
