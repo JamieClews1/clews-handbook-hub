@@ -580,6 +580,7 @@ export type Database = {
           id: string
           job_date: string | null
           job_number: string
+          job_type: string | null
           movement_type: string | null
           order_number_override: string | null
           raw: Json
@@ -599,6 +600,7 @@ export type Database = {
           id?: string
           job_date?: string | null
           job_number: string
+          job_type?: string | null
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
@@ -618,6 +620,7 @@ export type Database = {
           id?: string
           job_date?: string | null
           job_number?: string
+          job_type?: string | null
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
