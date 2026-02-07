@@ -17,7 +17,7 @@ import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
 import { SkipRoroRebateTab } from "./SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { DateRange } from "react-day-picker";
-import { getWeighbridgeSource } from "@/lib/weighbridge-source";
+import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 
 type Customer = {
   id: string;
@@ -314,8 +314,9 @@ export function SiteRebateReportGenerator() {
                 .in("job_number", jobNumbers);
               
               for (const job of dataHubJobs ?? []) {
-                if (job.weight_t != null) {
-                  weighbridgeMap[job.job_number] = job.weight_t * 1000; // Convert tonnes to kg
+                const weightInTonnes = convertWeightToTonnes(job.weight_t, source);
+                if (weightInTonnes != null) {
+                  weighbridgeMap[job.job_number] = weightInTonnes * 1000; // Convert tonnes to kg for display
                 }
               }
             }

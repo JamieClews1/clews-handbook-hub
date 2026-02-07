@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getWeighbridgeSource } from "@/lib/weighbridge-source";
+import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 
 interface LoadReport {
   id: string;
@@ -114,8 +114,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
         if (jobsData) {
           weighbridgeMap = jobsData.reduce((acc, job) => {
-            if (job.weight_t != null) {
-              acc[job.job_number] = job.weight_t * 1000; // Convert tonnes to kg
+            const weightInTonnes = convertWeightToTonnes(job.weight_t, source);
+            if (weightInTonnes != null) {
+              acc[job.job_number] = weightInTonnes * 1000; // Convert tonnes to kg for display
             }
             return acc;
           }, {} as Record<string, number>);
