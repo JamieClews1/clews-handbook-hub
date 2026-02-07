@@ -166,10 +166,11 @@ export const RebateSettingsSection = ({ canEdit }: Props) => {
             <div className="flex items-center justify-between rounded-lg border border-border p-4">
               <div className="space-y-0.5">
                 <Label htmlFor="exclude-skip" className="text-base font-medium">
-                  Exclude SKIP Job Type
+                  Exclude Midweigh SKIP Job Type
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Jobs with container type containing "SKIP" will be excluded from rebate calculations.
+                  Midweigh jobs with Job Type "SKIP" will be excluded. These are weighbridge duplicates 
+                  of Skiptrak tickets (e.g., Skiptrak 44788 and Midweigh 75756 represent the same load).
                 </p>
               </div>
               <Switch
@@ -183,10 +184,11 @@ export const RebateSettingsSection = ({ canEdit }: Props) => {
             <div className="flex items-center justify-between rounded-lg border border-border p-4">
               <div className="space-y-0.5">
                 <Label htmlFor="exclude-deliver" className="text-base font-medium">
-                  Exclude Deliver Movement
+                  Exclude Skiptrak Deliver Movement
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Jobs with movement type "Deliver" or "Inward" will be excluded from rebate calculations.
+                  Skiptrak jobs (Skips & Roll on Roll off) with movement type "Deliver" will be excluded. 
+                  These are empty container deliveries with zero weight.
                 </p>
               </div>
               <Switch
