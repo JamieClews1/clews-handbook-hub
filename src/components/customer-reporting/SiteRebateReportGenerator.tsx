@@ -265,7 +265,7 @@ export function SiteRebateReportGenerator() {
           // Fetch load reports for this site in the selected date range
           const { data: loadReports } = await supabase
             .from("load_reports")
-            .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
+            .select("id, report_date, status, total_pallets, no_pallets_on_load, operator_name, vehicle_reg, total_weight_kg, notes")
             .eq("site_id", selectedSiteId)
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
@@ -278,41 +278,38 @@ export function SiteRebateReportGenerator() {
             .select("setting_value")
             .eq("setting_key", "default_pallet_weight_kg")
             .single();
-          
+
           palletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) : 20;
 
           // Get all line items from matching load reports
           const loadReportIds = (loadReports ?? []).map((r) => r.id);
-          
-          // Calculate total pallet count from all load reports
-          const totalPalletCount = (loadReports ?? []).reduce((sum, r) => sum + (r.total_pallets ?? 0), 0);
-          const totalPalletWeightTonnes = (totalPalletCount * palletWeightKg) / 1000;
-          
-          // Add pallet weight charge as a special entry
-          lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
-          
+          const noPalletsByReportId: Record<string, boolean> = {};
+          for (const r of loadReports ?? []) {
+            noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+          }
+
           if (loadReportIds.length > 0) {
             const { data: lineItems } = await supabase
               .from("load_line_items")
               .select("load_report_id, waste_type, pallet_count, total_weight_kg")
               .in("load_report_id", loadReportIds);
-            
+
             // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
             const jobNumbers = (loadReports ?? [])
               .map((r) => (r as any).notes)
               .filter((n): n is string => !!n && n.trim() !== "");
-            
+
             let weighbridgeMap: Record<string, number> = {};
             if (jobNumbers.length > 0) {
               // Determine source based on site's load_report_type
               const source = getWeighbridgeSource(site.load_report_type);
-              
+
               const { data: dataHubJobs } = await supabase
                 .from("data_hub_jobs")
                 .select("job_number, weight_t")
                 .eq("source", source)
                 .in("job_number", jobNumbers);
-              
+
               for (const job of dataHubJobs ?? []) {
                 const weightInTonnes = convertWeightToTonnes(job.weight_t, source);
                 if (weightInTonnes != null) {
@@ -320,13 +317,13 @@ export function SiteRebateReportGenerator() {
                 }
               }
             }
-            
+
             // Build individual report data
             for (const report of loadReports ?? []) {
               const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
               const jobNumber = (report as any).notes;
               const weighbridgeWeightKg = jobNumber ? weighbridgeMap[jobNumber] ?? null : null;
-              
+
               loadReportsWithItems.push({
                 id: report.id,
                 report_date: (report as any).report_date,
@@ -335,6 +332,7 @@ export function SiteRebateReportGenerator() {
                 total_pallets: report.total_pallets ?? 0,
                 total_weight_kg: (report as any).total_weight_kg ?? 0,
                 notes: (report as any).notes || null,
+                no_pallets_on_load: (report as any).no_pallets_on_load ?? null,
                 line_items: reportLineItems.map((li) => ({
                   waste_type: li.waste_type,
                   pallet_count: li.pallet_count,
@@ -344,11 +342,20 @@ export function SiteRebateReportGenerator() {
                 weighbridge_weight_kg: weighbridgeWeightKg,
               });
             }
-            
-            // Aggregate weights by waste type (convert kg to tonnes)
+
+            // Aggregate NET weights by waste type (gross minus pallet weight per line item)
             for (const item of lineItems ?? []) {
-              const weightTonnes = Number(item.total_weight_kg) / 1000;
-              lineItemWeights[item.waste_type] = (lineItemWeights[item.waste_type] ?? 0) + weightTonnes;
+              const wasteType = item.waste_type;
+              if (wasteType.toLowerCase().includes("pallet weight")) continue;
+
+              const grossKg = Number(item.total_weight_kg) || 0;
+              const palletCount = Number(item.pallet_count) || 0;
+              const noPallets = noPalletsByReportId[item.load_report_id] ?? false;
+              const palletKg = noPallets ? 0 : palletCount * palletWeightKg;
+              const actualKg = Math.max(0, grossKg - palletKg);
+              const actualTonnes = actualKg / 1000;
+
+              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
             }
           }
         }
