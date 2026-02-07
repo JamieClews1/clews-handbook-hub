@@ -186,7 +186,7 @@ export const RebateSettingsSection = ({ canEdit }: Props) => {
                   Exclude Deliver Movement
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Jobs with movement type "Deliver" will be excluded from rebate calculations.
+                  Jobs with movement type "Deliver" or "Inward" will be excluded from rebate calculations.
                 </p>
               </div>
               <Switch
