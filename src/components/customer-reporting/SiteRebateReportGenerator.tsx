@@ -23,6 +23,7 @@ type Customer = {
   id: string;
   customer_name: string;
   customer_code: string;
+  data_hub_customer: string | null;
 };
 
 type Site = {
@@ -83,6 +84,11 @@ export function SiteRebateReportGenerator() {
       ].filter((s): s is string => !!s)
     : [];
 
+  // Get customer for customer-level data_hub_customer mapping
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+  // Use site-level data_hub_customer if available, otherwise fall back to customer-level
+  const effectiveDataHubCustomer = selectedSite?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? undefined;
+
   // Use the hook to get Skip/RoRo rebate totals
   const {
     loading: skipRoroLoading,
@@ -94,7 +100,7 @@ export function SiteRebateReportGenerator() {
     reportGenerated ? dateRange : undefined,
     siteDataHubMappings,
     reportGenerated ? selectedCustomerId : undefined,
-    selectedSite?.data_hub_customer ?? undefined
+    effectiveDataHubCustomer
   );
 
   useEffect(() => {
@@ -113,7 +119,7 @@ export function SiteRebateReportGenerator() {
   const loadCustomers = async () => {
     const { data } = await supabase
       .from("customers")
-      .select("id, customer_name, customer_code")
+      .select("id, customer_name, customer_code, data_hub_customer")
       .order("customer_name");
     setCustomers(data ?? []);
   };
@@ -128,21 +134,29 @@ export function SiteRebateReportGenerator() {
   };
 
   const generateReport = async () => {
-    if (!selectedSiteId) return;
+    // Allow generation if we have a customer and either:
+    // 1. A site is selected, or
+    // 2. No sites exist for this customer (customer-level Midweigh report)
+    const hasNoSites = sites.length === 0;
+    if (!selectedCustomerId) return;
+    if (!hasNoSites && !selectedSiteId) return;
 
     setLoading(true);
     setReportGenerated(false);
 
     try {
-      const site = sites.find((s) => s.id === selectedSiteId);
-      if (!site) return;
+      const site = selectedSiteId ? sites.find((s) => s.id === selectedSiteId) : null;
 
       // Get the site's price set (optional - may not exist for Midweigh-only sites)
-      const { data: priceSetLink } = await supabase
-        .from("customer_site_price_sets")
-        .select("price_set_id, rebate_price_sets(name)")
-        .eq("site_id", selectedSiteId)
-        .single();
+      let priceSetLink = null;
+      if (selectedSiteId) {
+        const { data } = await supabase
+          .from("customer_site_price_sets")
+          .select("price_set_id, rebate_price_sets(name)")
+          .eq("site_id", selectedSiteId)
+          .single();
+        priceSetLink = data;
+      }
 
       // Check if there are customer-level skip rebates configured
       const { data: customerSkipRebates } = await supabase
@@ -152,11 +166,15 @@ export function SiteRebateReportGenerator() {
         .limit(1);
 
       // Check if there are site-level skip rebates configured
-      const { data: siteSkipRebates } = await supabase
-        .from("customer_site_skip_rebates")
-        .select("id")
-        .eq("site_id", selectedSiteId)
-        .limit(1);
+      let siteSkipRebates = null;
+      if (selectedSiteId) {
+        const { data } = await supabase
+          .from("customer_site_skip_rebates")
+          .select("id")
+          .eq("site_id", selectedSiteId)
+          .limit(1);
+        siteSkipRebates = data;
+      }
 
       const hasSkipRebates = (customerSkipRebates && customerSkipRebates.length > 0) || 
                              (siteSkipRebates && siteSkipRebates.length > 0);
@@ -164,7 +182,9 @@ export function SiteRebateReportGenerator() {
       if (!priceSetLink && !hasSkipRebates) {
         toast({
           title: "No Rebate Set",
-          description: "This site doesn't have a rebate set or skip/RoRo rebates configured. Please set one up in Customer Setup.",
+          description: hasNoSites 
+            ? "This customer doesn't have skip/RoRo rebates configured. Please set them up in Customer Setup."
+            : "This site doesn't have a rebate set or skip/RoRo rebates configured. Please set one up in Customer Setup.",
           variant: "destructive",
         });
         setLoading(false);
@@ -520,8 +540,10 @@ export function SiteRebateReportGenerator() {
   })();
 
   const exportToExcel = () => {
-    const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
-    if (!selectedCustomer || !selectedSite || !dateRange?.from) return;
+    const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
+    if (!exportCustomer || !dateRange?.from) return;
+
+    const siteName = selectedSite?.site_name ?? "Customer-Level Report";
 
     // Helper to round numbers for Excel (keeps as number type)
     const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -531,10 +553,10 @@ export function SiteRebateReportGenerator() {
     // ============ Sheet 1: Summary ============
     const summaryHeader = [
       ["Rebate Report"],
-      ["Customer", selectedCustomer.customer_name],
-      ["Site", selectedSite.site_name],
+      ["Customer", exportCustomer.customer_name],
+      ["Site", siteName],
       ["Period", `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`],
-      ["Rebate Set", priceSetName],
+      ["Rebate Set", priceSetName || "Customer-Level Midweigh Rebates"],
       [],
       ["Category", "Weight (t)", "Value (£)"],
     ];
@@ -690,7 +712,7 @@ export function SiteRebateReportGenerator() {
     }
 
     // Generate filename
-    const fileName = `Rebate_${selectedCustomer.customer_name}_${selectedSite.site_name}_${format(dateRange.from, "yyyyMMdd")}${dateRange.to ? `-${format(dateRange.to, "yyyyMMdd")}` : ""}.xlsx`;
+    const fileName = `Rebate_${exportCustomer.customer_name}_${siteName.replace(/[^a-zA-Z0-9]/g, "_")}_${format(dateRange.from, "yyyyMMdd")}${dateRange.to ? `-${format(dateRange.to, "yyyyMMdd")}` : ""}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -715,22 +737,28 @@ export function SiteRebateReportGenerator() {
 
         <div className="space-y-2">
           <Label>Site</Label>
-          <Select
-            value={selectedSiteId}
-            onValueChange={setSelectedSiteId}
-            disabled={!selectedCustomerId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select site" />
-            </SelectTrigger>
-            <SelectContent>
-              {sites.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.site_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {selectedCustomerId && sites.length === 0 ? (
+            <div className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+              No sites configured – Customer-level Midweigh report
+            </div>
+          ) : (
+            <Select
+              value={selectedSiteId}
+              onValueChange={setSelectedSiteId}
+              disabled={!selectedCustomerId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select site" />
+              </SelectTrigger>
+              <SelectContent>
+                {sites.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.site_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -774,7 +802,7 @@ export function SiteRebateReportGenerator() {
 
       <Button
         onClick={generateReport}
-        disabled={!selectedSiteId || loading}
+        disabled={(!selectedSiteId && sites.length > 0) || !selectedCustomerId || loading}
         className="w-full md:w-auto"
       >
         {loading ? (
@@ -795,12 +823,18 @@ export function SiteRebateReportGenerator() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-semibold">
-                {selectedSite?.site_name} – {dateRange?.from && format(dateRange.from, "d MMM yyyy")}
+                {selectedSite?.site_name ?? selectedCustomer?.customer_name ?? "Customer"} – {dateRange?.from && format(dateRange.from, "d MMM yyyy")}
                 {dateRange?.to && dateRange.to !== dateRange.from && ` to ${format(dateRange.to, "d MMM yyyy")}`}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                Rebate Set: <span className="font-medium">{priceSetName}</span>
-              </p>
+              {priceSetName ? (
+                <p className="text-sm text-muted-foreground">
+                  Rebate Set: <span className="font-medium">{priceSetName}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">Customer-level Midweigh Rebates</span>
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="text-sm">
@@ -943,13 +977,13 @@ export function SiteRebateReportGenerator() {
             </TabsContent>
 
             <TabsContent value="roro-skip" className="mt-4">
-              {selectedSite && (
+              {(selectedSite || selectedCustomer) && (
                 <SkipRoroRebateTab
                   siteId={selectedSiteId}
                   customerId={selectedCustomerId}
                   dateRange={dateRange}
                   siteDataHubMappings={siteDataHubMappings}
-                  dataHubCustomer={selectedSite.data_hub_customer ?? undefined}
+                  dataHubCustomer={effectiveDataHubCustomer}
                 />
               )}
             </TabsContent>
