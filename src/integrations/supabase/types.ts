@@ -548,6 +548,7 @@ export type Database = {
           created_at: string
           customer_code: string
           customer_name: string
+          data_hub_customer: string | null
           id: string
           po_notification_email: string | null
           updated_at: string
@@ -556,6 +557,7 @@ export type Database = {
           created_at?: string
           customer_code: string
           customer_name: string
+          data_hub_customer?: string | null
           id?: string
           po_notification_email?: string | null
           updated_at?: string
@@ -564,6 +566,7 @@ export type Database = {
           created_at?: string
           customer_code?: string
           customer_name?: string
+          data_hub_customer?: string | null
           id?: string
           po_notification_email?: string | null
           updated_at?: string
