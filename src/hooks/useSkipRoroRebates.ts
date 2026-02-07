@@ -244,36 +244,54 @@ export function useSkipRoroRebates(
       }
 
       // Fetch load reports that match the Artic job numbers (stored in notes field)
+      // Also fetch no_pallets_on_load flag to calculate actual weight after pallet deduction
       let loadReportWeights: Record<string, Record<string, number>> = {}; // job_number -> material_category -> weight_t
       
       if (articJobNumbers.length > 0) {
         const { data: loadReports } = await supabase
           .from("load_reports")
-          .select("id, notes")
+          .select("id, notes, no_pallets_on_load")
           .in("notes", articJobNumbers);
 
         if (loadReports && loadReports.length > 0) {
           const loadReportIds = loadReports.map(lr => lr.id);
           
+          // Fetch line items with pallet counts to calculate actual weight
           const { data: lineItems } = await supabase
             .from("load_line_items")
-            .select("load_report_id, waste_type, total_weight_kg")
+            .select("load_report_id, waste_type, total_weight_kg, pallet_count")
             .in("load_report_id", loadReportIds)
             .gt("total_weight_kg", 0); // Only items with weight
 
-          // Build a map of job_number -> material_category -> weight in tonnes
+          // Fetch default pallet weight
+          const { data: palletWeightSetting } = await supabase
+            .from("load_report_settings")
+            .select("setting_value")
+            .eq("setting_key", "default_pallet_weight_kg")
+            .single();
+          
+          const defaultPalletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) || 20 : 20;
+
+          // Build a map of job_number -> material_category -> weight in tonnes (actual weight after pallet deduction)
           for (const lr of loadReports) {
             const jobNumber = lr.notes;
             if (!jobNumber) continue;
             
+            const noPalletsOnLoad = (lr as any).no_pallets_on_load ?? false;
             const jobLineItems = lineItems?.filter(li => li.load_report_id === lr.id) ?? [];
             loadReportWeights[jobNumber] = {};
             
             for (const li of jobLineItems) {
               const materialCategory = wasteTypeToMaterialCategory[li.waste_type];
               if (materialCategory) {
+                // Calculate actual weight: total weight minus pallet weight (unless no pallets on load)
+                const totalWeightKg = li.total_weight_kg ?? 0;
+                const palletCount = li.pallet_count ?? 0;
+                const palletWeightDeduction = noPalletsOnLoad ? 0 : (palletCount * defaultPalletWeightKg);
+                const actualWeightKg = totalWeightKg - palletWeightDeduction;
+                
                 // Convert KG to tonnes and accumulate
-                const weightT = (li.total_weight_kg ?? 0) / 1000;
+                const weightT = actualWeightKg / 1000;
                 loadReportWeights[jobNumber][materialCategory] = 
                   (loadReportWeights[jobNumber][materialCategory] ?? 0) + weightT;
               }
