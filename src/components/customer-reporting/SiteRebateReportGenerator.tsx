@@ -72,8 +72,11 @@ export function SiteRebateReportGenerator() {
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
 
+  // Check if "Customer Midweigh" virtual option is selected
+  const isCustomerMidweighMode = selectedSiteId === "__CUSTOMER_MIDWEIGH__";
+  
   // Get site data hub mappings for Skip/RoRo calculation
-  const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  const selectedSite = isCustomerMidweighMode ? null : sites.find((s) => s.id === selectedSiteId);
   const siteDataHubMappings = selectedSite
     ? [
         selectedSite.data_hub_site,
@@ -86,19 +89,22 @@ export function SiteRebateReportGenerator() {
 
   // Get customer for customer-level data_hub_customer mapping
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
-  // Use site-level data_hub_customer if available, otherwise fall back to customer-level
-  const effectiveDataHubCustomer = selectedSite?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? undefined;
+  // In Customer Midweigh mode, use customer-level mapping only; otherwise prefer site-level
+  const effectiveDataHubCustomer = isCustomerMidweighMode 
+    ? selectedCustomer?.data_hub_customer 
+    : (selectedSite?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? undefined);
 
   // Use the hook to get Skip/RoRo rebate totals
+  // In Customer Midweigh mode, pass empty siteId to skip site-level lookups
   const {
     loading: skipRoroLoading,
     summaries: skipRoroSummaries,
     totalRebate: skipRoroTotalRebate,
     totalWeight: skipRoroTotalWeight,
   } = useSkipRoroRebates(
-    reportGenerated ? selectedSiteId : "",
+    reportGenerated && !isCustomerMidweighMode ? selectedSiteId : "",
     reportGenerated ? dateRange : undefined,
-    siteDataHubMappings,
+    isCustomerMidweighMode ? [] : siteDataHubMappings,
     reportGenerated ? selectedCustomerId : undefined,
     effectiveDataHubCustomer
   );
@@ -136,16 +142,17 @@ export function SiteRebateReportGenerator() {
   const generateReport = async () => {
     // Allow generation if we have a customer and either:
     // 1. A site is selected, or
-    // 2. No sites exist for this customer (customer-level Midweigh report)
+    // 2. Customer Midweigh mode is selected, or
+    // 3. No sites exist for this customer (customer-level Midweigh report)
     const hasNoSites = sites.length === 0;
     if (!selectedCustomerId) return;
-    if (!hasNoSites && !selectedSiteId) return;
+    if (!isCustomerMidweighMode && !hasNoSites && !selectedSiteId) return;
 
     setLoading(true);
     setReportGenerated(false);
 
     try {
-      const site = selectedSiteId ? sites.find((s) => s.id === selectedSiteId) : null;
+      const site = isCustomerMidweighMode ? null : (selectedSiteId ? sites.find((s) => s.id === selectedSiteId) : null);
 
       // Get the site's price set (optional - may not exist for Midweigh-only sites)
       let priceSetLink = null;
@@ -543,7 +550,7 @@ export function SiteRebateReportGenerator() {
     const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
     if (!exportCustomer || !dateRange?.from) return;
 
-    const siteName = selectedSite?.site_name ?? "Customer-Level Report";
+    const siteName = isCustomerMidweighMode ? "Customer Midweigh Report" : (selectedSite?.site_name ?? "Customer-Level Report");
 
     // Helper to round numbers for Excel (keeps as number type)
     const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -737,9 +744,9 @@ export function SiteRebateReportGenerator() {
 
         <div className="space-y-2">
           <Label>Site</Label>
-          {selectedCustomerId && sites.length === 0 ? (
+          {selectedCustomerId && sites.length === 0 && !selectedCustomer?.data_hub_customer ? (
             <div className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
-              No sites configured – Customer-level Midweigh report
+              No sites configured
             </div>
           ) : (
             <Select
@@ -751,6 +758,12 @@ export function SiteRebateReportGenerator() {
                 <SelectValue placeholder="Select site" />
               </SelectTrigger>
               <SelectContent>
+                {/* Show Customer Midweigh option if customer has data_hub_customer mapping */}
+                {selectedCustomer?.data_hub_customer && (
+                  <SelectItem value="__CUSTOMER_MIDWEIGH__">
+                    ⚖️ Customer Midweigh Report (No Site)
+                  </SelectItem>
+                )}
                 {sites.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.site_name}
@@ -802,7 +815,7 @@ export function SiteRebateReportGenerator() {
 
       <Button
         onClick={generateReport}
-        disabled={(!selectedSiteId && sites.length > 0) || !selectedCustomerId || loading}
+        disabled={(!selectedSiteId && sites.length > 0 && !selectedCustomer?.data_hub_customer) || !selectedCustomerId || loading}
         className="w-full md:w-auto"
       >
         {loading ? (
@@ -823,10 +836,13 @@ export function SiteRebateReportGenerator() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-lg font-semibold">
-                {selectedSite?.site_name ?? selectedCustomer?.customer_name ?? "Customer"} – {dateRange?.from && format(dateRange.from, "d MMM yyyy")}
+                {isCustomerMidweighMode 
+                  ? `${selectedCustomer?.customer_name ?? "Customer"} (Midweigh)` 
+                  : (selectedSite?.site_name ?? selectedCustomer?.customer_name ?? "Customer")
+                } – {dateRange?.from && format(dateRange.from, "d MMM yyyy")}
                 {dateRange?.to && dateRange.to !== dateRange.from && ` to ${format(dateRange.to, "d MMM yyyy")}`}
               </h3>
-              {priceSetName ? (
+              {priceSetName && !isCustomerMidweighMode ? (
                 <p className="text-sm text-muted-foreground">
                   Rebate Set: <span className="font-medium">{priceSetName}</span>
                 </p>
