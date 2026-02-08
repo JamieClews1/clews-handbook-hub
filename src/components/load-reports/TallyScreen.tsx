@@ -1,9 +1,10 @@
 import { TallyCard } from "./TallyCard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ArrowLeft, Package } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight, ArrowLeft, Package, Droplets } from "lucide-react";
 
 export interface LineItem {
   waste_type: string;
@@ -12,6 +13,7 @@ export interface LineItem {
   total_weight_kg: number;
   display_order: number;
   pallet_weight_kg: number;
+  wet_charge_applied?: boolean;
 }
 
 interface TallyScreenProps {
@@ -22,6 +24,8 @@ interface TallyScreenProps {
   customerType?: string | null;
   palletsOut?: number;
   onPalletsOutChange?: (count: number) => void;
+  wetChargePercent?: number;
+  onWetChargePercentChange?: (percent: number) => void;
 }
 
 export const TallyScreen = ({
@@ -32,6 +36,8 @@ export const TallyScreen = ({
   customerType,
   palletsOut = 0,
   onPalletsOutChange,
+  wetChargePercent = 0,
+  onWetChargePercentChange,
 }: TallyScreenProps) => {
   const totalPallets = lineItems.reduce((sum, item) => sum + item.pallet_count, 0);
   const totalWeight = lineItems.reduce((sum, item) => sum + (item.pallet_count * item.avg_weight_kg), 0);
@@ -87,6 +93,86 @@ export const TallyScreen = ({
                 className="w-24 h-14 text-center text-2xl font-bold"
               />
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Contamination/Wet Charge Section */}
+      {onWetChargePercentChange && (
+        <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <Droplets className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Contamination / Wet Charge</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Apply a % discount for materials not as described
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Percentage Input */}
+            <div className="flex items-center gap-4">
+              <Label htmlFor="wetChargePercent" className="text-sm font-medium whitespace-nowrap">
+                Discount %
+              </Label>
+              <Input
+                id="wetChargePercent"
+                type="number"
+                min={0}
+                max={100}
+                value={wetChargePercent}
+                onChange={(e) => onWetChargePercentChange(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                className="w-24 h-12 text-center text-xl font-bold"
+              />
+              <span className="text-muted-foreground">%</span>
+            </div>
+
+            {/* Material Selection */}
+            {wetChargePercent > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Apply to materials:</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {lineItems
+                    .filter((item) => item.pallet_count > 0)
+                    .map((item, idx) => {
+                      const originalIndex = lineItems.findIndex(
+                        (li) => li.waste_type === item.waste_type
+                      );
+                      return (
+                        <div
+                          key={item.waste_type}
+                          className="flex items-center space-x-2 rounded-lg border border-border bg-background p-3"
+                        >
+                          <Checkbox
+                            id={`wet-charge-${item.waste_type}`}
+                            checked={item.wet_charge_applied || false}
+                            onCheckedChange={(checked) =>
+                              onLineItemChange(originalIndex, {
+                                wet_charge_applied: checked === true,
+                              })
+                            }
+                          />
+                          <Label
+                            htmlFor={`wet-charge-${item.waste_type}`}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {item.waste_type}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                </div>
+                {lineItems.filter((item) => item.pallet_count > 0).length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">
+                    Add pallets to materials above to apply the wet charge
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

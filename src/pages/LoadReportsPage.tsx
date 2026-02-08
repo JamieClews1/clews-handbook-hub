@@ -58,6 +58,7 @@ const LoadReportsPage = () => {
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
   const [palletsOut, setPalletsOut] = useState(0);
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
+  const [wetChargePercent, setWetChargePercent] = useState(0);
 
   // Offline support
   const {
@@ -250,6 +251,7 @@ const LoadReportsPage = () => {
       total_weight_kg: 0,
       display_order: wt.display_order,
       pallet_weight_kg: defaultPalletWeight,
+      wet_charge_applied: false,
     }));
     setLineItems(items);
   };
@@ -262,6 +264,7 @@ const LoadReportsPage = () => {
     setSelectedSiteId("");
     setPalletsOut(0);
     setNoPalletsOnLoad(false);
+    setWetChargePercent(0);
     setReportDate(new Date().toISOString().split("T")[0]);
     
     // Fetch latest waste types to ensure we have current default weights
@@ -280,6 +283,7 @@ const LoadReportsPage = () => {
         total_weight_kg: 0,
         display_order: wt.display_order,
         pallet_weight_kg: defaultPalletWeight,
+        wet_charge_applied: false,
       }));
       setLineItems(items);
     } else {
@@ -319,6 +323,7 @@ const LoadReportsPage = () => {
       setReportDate(report.report_date);
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
+      setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
       
       if (items && items.length > 0) {
@@ -330,6 +335,7 @@ const LoadReportsPage = () => {
             total_weight_kg: Number(item.total_weight_kg),
             display_order: item.display_order,
             pallet_weight_kg: defaultPalletWeight,
+            wet_charge_applied: (item as any).wet_charge_applied || false,
           }))
         );
       } else {
@@ -378,6 +384,7 @@ const LoadReportsPage = () => {
       setReportDate(report.report_date);
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
+      setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       if (items && items.length > 0) {
@@ -389,6 +396,7 @@ const LoadReportsPage = () => {
             total_weight_kg: Number(item.total_weight_kg),
             display_order: item.display_order,
             pallet_weight_kg: defaultPalletWeight,
+            wet_charge_applied: (item as any).wet_charge_applied || false,
           }))
         );
       } else {
@@ -446,6 +454,7 @@ const LoadReportsPage = () => {
         avgWeightKg: item.avg_weight_kg,
         totalWeightKg: item.pallet_count * item.avg_weight_kg,
         displayOrder: item.display_order,
+        wetChargeApplied: item.wet_charge_applied || false,
       }));
 
       await saveOfflineReport({
@@ -461,6 +470,7 @@ const LoadReportsPage = () => {
         totalWeightKg: totalWeight,
         palletsOut: palletsOut,
         noPalletsOnLoad: noPalletsOnLoad,
+        wetChargePercent: wetChargePercent,
         lineItems: offlineLineItems,
       });
 
@@ -704,6 +714,8 @@ const LoadReportsPage = () => {
               customerType={selectedCustomer}
               palletsOut={palletsOut}
               onPalletsOutChange={setPalletsOut}
+              wetChargePercent={wetChargePercent}
+              onWetChargePercentChange={setWetChargePercent}
             />
           )}
 
@@ -715,6 +727,7 @@ const LoadReportsPage = () => {
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               noPalletsOnLoad={noPalletsOnLoad}
+              wetChargePercent={wetChargePercent}
               reportDate={reportDate}
               lineItems={lineItems}
               onAcceptReconciled={(items) => {

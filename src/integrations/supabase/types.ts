@@ -1017,6 +1017,7 @@ export type Database = {
           total_weight_kg: number
           updated_at: string
           waste_type: string
+          wet_charge_applied: boolean | null
         }
         Insert: {
           avg_weight_kg?: number
@@ -1028,6 +1029,7 @@ export type Database = {
           total_weight_kg?: number
           updated_at?: string
           waste_type: string
+          wet_charge_applied?: boolean | null
         }
         Update: {
           avg_weight_kg?: number
@@ -1039,6 +1041,7 @@ export type Database = {
           total_weight_kg?: number
           updated_at?: string
           waste_type?: string
+          wet_charge_applied?: boolean | null
         }
         Relationships: [
           {
@@ -1091,6 +1094,7 @@ export type Database = {
           total_weight_kg: number
           updated_at: string
           vehicle_reg: string | null
+          wet_charge_percent: number | null
         }
         Insert: {
           created_at?: string
@@ -1108,6 +1112,7 @@ export type Database = {
           total_weight_kg?: number
           updated_at?: string
           vehicle_reg?: string | null
+          wet_charge_percent?: number | null
         }
         Update: {
           created_at?: string
@@ -1125,6 +1130,7 @@ export type Database = {
           total_weight_kg?: number
           updated_at?: string
           vehicle_reg?: string | null
+          wet_charge_percent?: number | null
         }
         Relationships: [
           {
