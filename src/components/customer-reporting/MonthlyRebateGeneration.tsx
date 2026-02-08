@@ -221,11 +221,28 @@
  
            if (!priceSetLink) continue;
  
-           // Get rebate items config
-           const { data: rebateItems } = await supabase
-             .from("rebate_price_set_items")
-             .select("rebate_item_id, value_type, set_value, value_type_item_id")
-             .eq("price_set_id", priceSetLink.price_set_id);
+            // Get rebate items config
+            const { data: rebateItems } = await supabase
+              .from("rebate_price_set_items")
+              .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
+              .eq("price_set_id", priceSetLink.price_set_id);
+            
+            // Fetch rebate item names for rate source display
+            const rebateItemIds = (rebateItems ?? [])
+              .map(item => item.value_type_item_id)
+              .filter((id): id is string => !!id);
+            
+            let rebateItemNames: Record<string, string> = {};
+            if (rebateItemIds.length > 0) {
+              const { data: rebateItemsData } = await supabase
+                .from("rebate_items")
+                .select("id, name")
+                .in("id", rebateItemIds);
+              
+              for (const ri of rebateItemsData ?? []) {
+                rebateItemNames[ri.id] = ri.name;
+              }
+            }
  
            // Get load reports for this site
            const { data: loadReports } = await supabase
@@ -270,20 +287,30 @@
              const materialName = material?.waste_type ?? "Unknown";
              const weight = lineItemWeights[materialName] ?? 0;
  
-             // Determine rate
-             let rate = 0;
-             let rateSource = "Not configured";
- 
-             if (item.value_type === "set" && item.set_value !== null) {
-               rate = Number(item.set_value);
-               rateSource = "Custom";
-             } else if (item.value_type_item_id) {
-               const monthVal = monthlyValueMap[item.value_type_item_id];
-               if (monthVal) {
-                 rate = item.value_type === "higher" ? monthVal.higher : monthVal.lower;
-                 rateSource = item.value_type === "higher" ? "Market (Higher)" : "Market (Lower)";
-               }
-             }
+              // Determine rate
+              let rate = 0;
+              let rateSource = "Not configured";
+              const adjustment = Number(item.adjustment ?? 0);
+
+              if (item.value_type === "set" && item.set_value !== null) {
+                rate = Number(item.set_value);
+                rateSource = "Custom";
+              } else if (item.value_type_item_id) {
+                const monthVal = monthlyValueMap[item.value_type_item_id];
+                const itemName = rebateItemNames[item.value_type_item_id] ?? "Market";
+                if (monthVal) {
+                  rate = item.value_type === "higher" ? monthVal.higher : monthVal.lower;
+                  rateSource = `${itemName} (${item.value_type})`;
+                } else {
+                  rateSource = `${itemName} - No monthly value`;
+                }
+              }
+
+              // Apply rate adjustment
+              if (adjustment !== 0) {
+                rate += adjustment;
+                rateSource += ` ${adjustment > 0 ? "+" : ""}${adjustment}`;
+              }
  
              const rebate = weight * rate;
              loadReportRebate += rebate;
@@ -708,7 +735,7 @@
                                      <TableHead>Material</TableHead>
                                      <TableHead className="text-right">Weight (t)</TableHead>
                                      <TableHead className="text-right">Rate (£/t)</TableHead>
-                                     <TableHead>Source</TableHead>
+                                     <TableHead>Rate Source</TableHead>
                                      <TableHead className="text-right">Value (£)</TableHead>
                                    </TableRow>
                                  </TableHeader>
