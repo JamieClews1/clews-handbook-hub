@@ -342,7 +342,7 @@
            }
  
            // Add pallet weight charge row (this is a deduction from the total)
-           if (palletWeightTonnes > 0) {
+           if (palletWeightTonnes > 0 && palletChargeRate > 0) {
              const palletChargeValue = palletWeightTonnes * palletChargeRate;
              // Pallet charge is a deduction, so subtract from total
              loadReportRebate -= palletChargeValue;
@@ -350,8 +350,8 @@
              materials.push({
                name: "Pallet Weight Charge",
                weight: palletWeightTonnes,
-               rate: palletChargeRate !== 0 ? -palletChargeRate : 0, // Show as negative rate
-               rebate: palletChargeRate !== 0 ? -palletChargeValue : 0, // Show as negative value
+               rate: -palletChargeRate, // Always show as negative rate (deduction)
+               rebate: -palletChargeValue, // Always show as negative value (deduction)
                source: palletChargeRateSource,
              });
            }
