@@ -244,32 +244,57 @@
               }
             }
  
-           // Get load reports for this site
-           const { data: loadReports } = await supabase
-             .from("load_reports")
-             .select("id, total_pallets")
-             .eq("site_id", site.id)
-             .gte("report_date", periodStart)
-             .lte("report_date", periodEnd)
-             .eq("status", "submitted");
- 
-           const loadReportIds = (loadReports ?? []).map(r => r.id);
-           const totalPallets = (loadReports ?? []).reduce((sum, r) => sum + (r.total_pallets ?? 0), 0);
-           const palletWeightTonnes = (totalPallets * palletWeightKg) / 1000;
- 
-           // Get line items
-           let lineItemWeights: Record<string, number> = {};
-           if (loadReportIds.length > 0) {
-             const { data: lineItems } = await supabase
-               .from("load_line_items")
-               .select("waste_type, total_weight_kg")
-               .in("load_report_id", loadReportIds);
-             
-             for (const item of lineItems ?? []) {
-               const weightTonnes = Number(item.total_weight_kg) / 1000;
-               lineItemWeights[item.waste_type] = (lineItemWeights[item.waste_type] ?? 0) + weightTonnes;
-             }
-           }
+          // Get load reports for this site
+          const { data: loadReports } = await supabase
+            .from("load_reports")
+            .select("id, total_pallets, no_pallets_on_load")
+            .eq("site_id", site.id)
+            .gte("report_date", periodStart)
+            .lte("report_date", periodEnd)
+            .eq("status", "submitted");
+
+          const loadReportIds = (loadReports ?? []).map(r => r.id);
+          
+          // Build a map of report id to no_pallets_on_load flag
+          const noPalletsByReportId: Record<string, boolean> = {};
+          for (const r of loadReports ?? []) {
+            noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+          }
+
+          // Get line items with pallet counts to calculate NET weights
+          let lineItemWeights: Record<string, number> = {};
+          let totalPalletWeightTonnes = 0;
+          
+          if (loadReportIds.length > 0) {
+            const { data: lineItems } = await supabase
+              .from("load_line_items")
+              .select("load_report_id, waste_type, total_weight_kg, pallet_count")
+              .in("load_report_id", loadReportIds);
+            
+            for (const item of lineItems ?? []) {
+              const wasteType = item.waste_type;
+              // Skip pallet weight line items - they're a charge not a material
+              if (wasteType.toLowerCase().includes("pallet weight")) continue;
+              
+              const grossKg = Number(item.total_weight_kg) || 0;
+              const palletCount = Number(item.pallet_count) || 0;
+              const noPallets = noPalletsByReportId[item.load_report_id] ?? false;
+              
+              // Calculate pallet weight deduction for this line item
+              const palletKg = noPallets ? 0 : palletCount * palletWeightKg;
+              const actualKg = Math.max(0, grossKg - palletKg);
+              const actualTonnes = actualKg / 1000;
+              
+              // Accumulate NET weight by waste type
+              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+              
+              // Accumulate total pallet weight for the pallet charge row
+              totalPalletWeightTonnes += palletKg / 1000;
+            }
+          }
+          
+          // Use the calculated pallet weight from line items
+          const palletWeightTonnes = totalPalletWeightTonnes;
  
            // Calculate load report rebates
            let loadReportRebate = 0;
