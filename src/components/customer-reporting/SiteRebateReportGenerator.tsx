@@ -292,7 +292,7 @@ export function SiteRebateReportGenerator() {
           // Fetch load reports for this site in the selected date range
           const { data: loadReports } = await supabase
             .from("load_reports")
-            .select("id, report_date, status, total_pallets, no_pallets_on_load, operator_name, vehicle_reg, total_weight_kg, notes")
+            .select("id, report_date, status, total_pallets, no_pallets_on_load, wet_charge_percent, operator_name, vehicle_reg, total_weight_kg, notes")
             .eq("site_id", selectedSiteId)
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
@@ -318,7 +318,7 @@ export function SiteRebateReportGenerator() {
           if (loadReportIds.length > 0) {
             const { data: lineItems } = await supabase
               .from("load_line_items")
-              .select("load_report_id, waste_type, pallet_count, total_weight_kg")
+              .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied")
               .in("load_report_id", loadReportIds);
 
             // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
@@ -360,10 +360,12 @@ export function SiteRebateReportGenerator() {
                 total_weight_kg: (report as any).total_weight_kg ?? 0,
                 notes: (report as any).notes || null,
                 no_pallets_on_load: (report as any).no_pallets_on_load ?? null,
+                wet_charge_percent: (report as any).wet_charge_percent ?? null,
                 line_items: reportLineItems.map((li) => ({
                   waste_type: li.waste_type,
                   pallet_count: li.pallet_count,
                   total_weight_kg: Number(li.total_weight_kg),
+                  wet_charge_applied: (li as any).wet_charge_applied ?? false,
                 })),
                 calculated_rebate: 0, // Will be calculated by the component
                 weighbridge_weight_kg: weighbridgeWeightKg,
@@ -372,7 +374,15 @@ export function SiteRebateReportGenerator() {
 
             // Aggregate NET weights by waste type (gross minus pallet weight per line item)
             // Also track total pallet weight across all load reports
+            // AND track wet charge discounts per material
             let totalPalletWeightTonnes = 0;
+            const wetChargeDiscounts: Record<string, { affectedWeight: number; discountPercent: number }[]> = {};
+            
+            // Build a map of report id to wet_charge_percent
+            const wetChargePercentByReportId: Record<string, number> = {};
+            for (const r of loadReports ?? []) {
+              wetChargePercentByReportId[r.id] = (r as any).wet_charge_percent ?? 0;
+            }
             
             for (const item of lineItems ?? []) {
               const wasteType = item.waste_type;
@@ -387,10 +397,25 @@ export function SiteRebateReportGenerator() {
 
               lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
               totalPalletWeightTonnes += palletKg / 1000;
+              
+              // Track wet charge discount for this item
+              const wetChargeApplied = (item as any).wet_charge_applied ?? false;
+              const wetChargePercent = wetChargePercentByReportId[item.load_report_id] ?? 0;
+              if (wetChargeApplied && wetChargePercent > 0) {
+                if (!wetChargeDiscounts[wasteType]) {
+                  wetChargeDiscounts[wasteType] = [];
+                }
+                wetChargeDiscounts[wasteType].push({
+                  affectedWeight: actualTonnes,
+                  discountPercent: wetChargePercent,
+                });
+              }
             }
             
             // Store total pallet weight for later use - this is the key for pallet charge
             lineItemWeights["__PALLET_WEIGHT__"] = (lineItemWeights["__PALLET_WEIGHT__"] ?? 0) + totalPalletWeightTonnes;
+            // Store wet charge discounts for rebate calculation
+            (lineItemWeights as any).__WET_CHARGE_DISCOUNTS__ = wetChargeDiscounts;
           }
         }
       } else {
@@ -402,6 +427,9 @@ export function SiteRebateReportGenerator() {
       const reportRows: RebateReportRow[] = [];
       let palletChargeRate = 0;
       let palletChargeRateSource = "";
+      
+      // Get wet charge discounts (if any)
+      const wetChargeDiscounts = (lineItemWeights as any).__WET_CHARGE_DISCOUNTS__ as Record<string, { affectedWeight: number; discountPercent: number }[]> | undefined;
 
       for (const config of rebateConfigs) {
         // Determine the rate
@@ -430,11 +458,29 @@ export function SiteRebateReportGenerator() {
         // Get weight: for pallet charge use the aggregated total, otherwise use material weight
         const weight_tonnes = isPalletCharge ? totalPalletWeight : (lineItemWeights[config.material_name] ?? 0);
 
+        // Calculate rebate value with wet charge discount applied
+        let rebate_value = weight_tonnes * rate;
+        
+        // Apply wet charge discounts for this material
+        const materialDiscounts = wetChargeDiscounts?.[config.material_name];
+        if (materialDiscounts && materialDiscounts.length > 0 && !isPalletCharge) {
+          // Calculate the discounted rebate:
+          // Full weight at full rate, minus the discount amount for affected portions
+          const totalWeight = lineItemWeights[config.material_name] ?? 0;
+          const unaffectedWeight = totalWeight - materialDiscounts.reduce((sum, d) => sum + d.affectedWeight, 0);
+          
+          // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
+          rebate_value = unaffectedWeight * rate;
+          for (const discount of materialDiscounts) {
+            rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
+          }
+        }
+
         reportRows.push({
           material_name: config.material_name,
           weight_tonnes,
           rate_per_tonne: rate,
-          rebate_value: weight_tonnes * rate,
+          rebate_value,
           rate_source: rateSource,
         });
       }
