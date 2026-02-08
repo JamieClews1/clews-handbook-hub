@@ -1520,15 +1520,20 @@ export function CustomerSetupAdmin() {
               </p>
             )}
 
-            {/* Skip/RoRo Rebates - always show when editing a site */}
-            {editingSite && (
-              <>
-                <Separator />
-                <SiteSkipRebatesEditor
-                  siteId={editingSite.id}
-                  siteName={siteForm.site_name || editingSite.site_name}
-                />
-              </>
+            {/* Skip/RoRo Rebates - show when editing a site, or placeholder when creating */}
+            <Separator />
+            {editingSite ? (
+              <SiteSkipRebatesEditor
+                siteId={editingSite.id}
+                siteName={siteForm.site_name || editingSite.site_name}
+              />
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Skip / RoRo Rebates</Label>
+                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  Save this site first to configure Skip/RoRo rebates.
+                </p>
+              </div>
             )}
           </div>
           </ScrollArea>
