@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Save, Send, Truck } from "lucide-react";
 import { LineItem } from "./TallyScreen";
+import { Droplets } from "lucide-react";
 import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
 
 interface LoadReviewScreenProps {
@@ -20,6 +21,7 @@ interface LoadReviewScreenProps {
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   noPalletsOnLoad?: boolean;
+  wetChargePercent?: number;
   reportDate: string;
   lineItems: LineItem[];
   onAcceptReconciled?: (items: LineItem[]) => void;
@@ -37,6 +39,7 @@ export const LoadReviewScreen = ({
   weighbridgeWeightKg,
   weighbridgeLoading,
   noPalletsOnLoad = false,
+  wetChargePercent = 0,
   reportDate,
   lineItems,
   onAcceptReconciled,
@@ -207,6 +210,35 @@ export const LoadReviewScreen = ({
           </Table>
         </div>
       </Card>
+
+      {/* Wet Charge Summary */}
+      {wetChargePercent > 0 && (
+        <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <Droplets className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-foreground">Contamination / Wet Charge</h4>
+                <p className="text-sm text-muted-foreground">
+                  {wetChargePercent}% discount applied to: {' '}
+                  {lineItems
+                    .filter((item) => item.wet_charge_applied && item.pallet_count > 0)
+                    .map((item) => item.waste_type)
+                    .join(', ') || 'None selected'}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  -{wetChargePercent}%
+                </div>
+                <div className="text-xs text-muted-foreground">Rebate Discount</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Reconcile */}
       {!isReadOnly && typeof weighbridgeWeightKg === "number" && (

@@ -16,6 +16,7 @@ export interface OfflineLoadReport {
   totalWeightKg: number;
   palletsOut?: number;
   noPalletsOnLoad?: boolean;
+  wetChargePercent?: number;
   lineItems: OfflineLineItem[];
   createdAt: string;
   updatedAt: string;
@@ -27,6 +28,7 @@ export interface OfflineLineItem {
   avgWeightKg: number;
   totalWeightKg: number;
   displayOrder: number;
+  wetChargeApplied?: boolean;
 }
 
 interface LoadReportsDB extends DBSchema {
