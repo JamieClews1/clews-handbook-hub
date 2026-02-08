@@ -486,7 +486,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                               <TableCell className="text-xs py-1.5 text-right">-</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">-</TableCell>
                               <TableCell className="text-xs py-1.5 text-right font-medium">
-                                {palletWeightT.toFixed(2)} t
+                                {Math.round(palletWeightT * 1000).toLocaleString()}
                               </TableCell>
                               <TableCell className="text-xs py-1.5 text-right">
                                 £{effectivePalletChargeRate.toFixed(2)}/t
