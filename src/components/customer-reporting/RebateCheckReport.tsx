@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -213,9 +214,12 @@ export function RebateCheckReport() {
           customerMap[key].wasteTypes.push(wasteEntry);
         }
 
+        // Convert weight to tonnes - Midweigh stores KG, Skiptrak stores tonnes
+        const weightInTonnes = convertWeightToTonnes(Number(job.weight_t) || 0, job.source as "skiptrak" | "midweigh") || 0;
+        
         wasteEntry.job_count += 1;
-        wasteEntry.total_weight += Number(job.weight_t) || 0;
-        customerMap[key].totalWeight += Number(job.weight_t) || 0;
+        wasteEntry.total_weight += weightInTonnes;
+        customerMap[key].totalWeight += weightInTonnes;
         customerMap[key].totalJobs += 1;
       }
 
