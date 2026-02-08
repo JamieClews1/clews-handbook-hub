@@ -11,6 +11,39 @@ import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
+// Local input component to prevent stalling while typing
+function AdjustmentInput({ 
+  value, 
+  onSave, 
+  disabled 
+}: { 
+  value: number; 
+  onSave: (value: string) => void; 
+  disabled: boolean;
+}) {
+  const [localValue, setLocalValue] = useState(String(value));
+  
+  useEffect(() => {
+    setLocalValue(String(value));
+  }, [value]);
+  
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="number"
+        step="1"
+        className="w-20"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={() => onSave(localValue)}
+        placeholder="0"
+        disabled={disabled}
+      />
+      <span className="text-muted-foreground text-xs">£/t</span>
+    </div>
+  );
+}
+
 type WasteType = {
   id: string;
   waste_type: string;
@@ -435,18 +468,11 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
                     </TableCell>
                     <TableCell>
                       {!isCustom && psi.value_type_item_id && (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            step="1"
-                            className="w-20"
-                            value={psi.adjustment ?? 0}
-                            onChange={(e) => updateAdjustment(psi.id, e.target.value)}
-                            placeholder="0"
-                            disabled={saving}
-                          />
-                          <span className="text-muted-foreground text-xs">£/t</span>
-                        </div>
+                        <AdjustmentInput
+                          value={psi.adjustment ?? 0}
+                          onSave={(value) => updateAdjustment(psi.id, value)}
+                          disabled={saving}
+                        />
                       )}
                     </TableCell>
                     <TableCell>

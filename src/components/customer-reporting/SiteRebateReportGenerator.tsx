@@ -45,6 +45,7 @@ type RebateConfig = {
   value_type_name: string | null;
   range_type: "lower" | "higher" | "set";
   set_value: number | null;
+  adjustment: number;
 };
 
 type RebateReportRow = {
@@ -253,6 +254,7 @@ export function SiteRebateReportGenerator() {
               value_type_name: valueTypeName,
               range_type: item.value_type as "lower" | "higher" | "set",
               set_value: item.set_value,
+              adjustment: (fullItem as any)?.adjustment ?? 0,
             });
           }
 
@@ -434,7 +436,7 @@ export function SiteRebateReportGenerator() {
       const wetChargeDiscounts = (lineItemWeights as any).__WET_CHARGE_DISCOUNTS__ as Record<string, { affectedWeight: number; discountPercent: number }[]> | undefined;
 
       for (const config of rebateConfigs) {
-        // Determine the rate
+        // Determine the base rate
         let rate = 0;
         let rateSource = "";
 
@@ -451,6 +453,12 @@ export function SiteRebateReportGenerator() {
           }
         } else {
           rateSource = "Not configured";
+        }
+
+        // Apply rate adjustment (can be positive or negative)
+        if (config.adjustment !== 0) {
+          rate += config.adjustment;
+          rateSource += ` ${config.adjustment > 0 ? "+" : ""}${config.adjustment}`;
         }
 
         // Check if this is the pallet weight charge config - use the aggregated pallet weight
