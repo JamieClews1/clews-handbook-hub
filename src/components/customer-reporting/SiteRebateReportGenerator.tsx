@@ -53,6 +53,8 @@ type RebateReportRow = {
   rate_per_tonne: number;
   rebate_value: number;
   rate_source: string;
+  has_wet_charge?: boolean;
+  wet_charge_summary?: string;
 };
 
 export function SiteRebateReportGenerator() {
@@ -460,14 +462,22 @@ export function SiteRebateReportGenerator() {
 
         // Calculate rebate value with wet charge discount applied
         let rebate_value = weight_tonnes * rate;
+        let hasWetCharge = false;
+        let wetChargeSummary = "";
         
         // Apply wet charge discounts for this material
         const materialDiscounts = wetChargeDiscounts?.[config.material_name];
         if (materialDiscounts && materialDiscounts.length > 0 && !isPalletCharge) {
+          hasWetCharge = true;
           // Calculate the discounted rebate:
           // Full weight at full rate, minus the discount amount for affected portions
           const totalWeight = lineItemWeights[config.material_name] ?? 0;
           const unaffectedWeight = totalWeight - materialDiscounts.reduce((sum, d) => sum + d.affectedWeight, 0);
+          const totalAffectedWeight = materialDiscounts.reduce((sum, d) => sum + d.affectedWeight, 0);
+          
+          // Get unique discount percentages for summary
+          const uniqueDiscounts = [...new Set(materialDiscounts.map(d => d.discountPercent))];
+          wetChargeSummary = `${totalAffectedWeight.toFixed(2)}t @ ${uniqueDiscounts.map(d => `-${d}%`).join(", ")}`;
           
           // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
           rebate_value = unaffectedWeight * rate;
@@ -482,6 +492,8 @@ export function SiteRebateReportGenerator() {
           rate_per_tonne: rate,
           rebate_value,
           rate_source: rateSource,
+          has_wet_charge: hasWetCharge,
+          wet_charge_summary: wetChargeSummary,
         });
       }
 
@@ -995,14 +1007,26 @@ export function SiteRebateReportGenerator() {
                     </TableHeader>
                     <TableBody>
                       {reportData.map((row, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-medium">{row.material_name}</TableCell>
+                        <TableRow key={idx} className={row.has_wet_charge ? "bg-amber-50 dark:bg-amber-950/30" : ""}>
+                          <TableCell className="font-medium">
+                            {row.material_name}
+                            {row.has_wet_charge && (
+                              <Badge variant="outline" className="ml-2 text-xs bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700">
+                                Wet Charge
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">{row.weight_tonnes.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
                             {row.rate_per_tonne !== 0 ? `£${row.rate_per_tonne.toFixed(2)}` : "-"}
                           </TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground">{row.rate_source}</span>
+                            {row.has_wet_charge && row.wet_charge_summary && (
+                              <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                                {row.wet_charge_summary}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className={cn("text-right font-medium", row.rebate_value >= 0 ? "text-green-600" : "text-red-600")}>
                             £{row.rebate_value.toFixed(2)}
