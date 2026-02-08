@@ -19,10 +19,12 @@ export type LoadReportCardData = {
   total_weight_kg: number;
   notes: string | null;
   no_pallets_on_load?: boolean | null;
+  wet_charge_percent?: number | null;
   line_items: {
     waste_type: string;
     pallet_count: number;
     total_weight_kg: number;
+    wet_charge_applied?: boolean;
   }[];
   calculated_rebate: number;
   weighbridge_weight_kg?: number | null;
@@ -160,14 +162,24 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
   };
 
   // Calculate rebate for a single report (rebate on actual recyclable/waste weight + pallet charge)
+  // Applies wet charge discount to affected line items
   const calculateReportRebate = (report: LoadReportCardData) => {
     if (isBelowThreshold(report)) return 0;
 
+    const wetChargePercent = report.wet_charge_percent ?? 0;
+    
     let rebate = 0;
     for (const item of filterLineItems(report.line_items)) {
       const rate = rateMap[item.waste_type] ?? 0;
       const actualKg = calcLineActualWeightKg(report, item);
-      rebate += (actualKg / 1000) * rate;
+      let lineRebate = (actualKg / 1000) * rate;
+      
+      // Apply wet charge discount if this line item is affected
+      if (item.wet_charge_applied && wetChargePercent > 0) {
+        lineRebate = lineRebate * (1 - wetChargePercent / 100);
+      }
+      
+      rebate += lineRebate;
     }
 
     // Add pallet charge (usually negative)
@@ -177,9 +189,11 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
   };
 
   // Calculate totals for a report (gross/pallet/actual + value including pallet charge)
+  // Applies wet charge discount to affected line items
   const calculateTotals = (report: LoadReportCardData) => {
     const filteredItems = filterLineItems(report.line_items);
     const belowThreshold = isBelowThreshold(report);
+    const wetChargePercent = report.wet_charge_percent ?? 0;
 
     let totalPallets = 0;
     let totalGrossKg = 0;
@@ -199,7 +213,12 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
       totalActualKg += actualKg;
 
       if (!belowThreshold) {
-        totalValue += (actualKg / 1000) * rate;
+        let lineValue = (actualKg / 1000) * rate;
+        // Apply wet charge discount if this line item is affected
+        if (item.wet_charge_applied && wetChargePercent > 0) {
+          lineValue = lineValue * (1 - wetChargePercent / 100);
+        }
+        totalValue += lineValue;
       }
     }
 
@@ -415,11 +434,23 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                           const grossKg = Number(item.total_weight_kg) || 0;
                           const palletKg = calcLinePalletWeightKg(report, item);
                           const actualKg = Math.max(0, grossKg - palletKg);
-                          const value = belowThreshold ? 0 : (actualKg / 1000) * rate;
+                          const wetChargePercent = report.wet_charge_percent ?? 0;
+                          const hasWetCharge = item.wet_charge_applied && wetChargePercent > 0;
+                          let value = belowThreshold ? 0 : (actualKg / 1000) * rate;
+                          if (!belowThreshold && hasWetCharge) {
+                            value = value * (1 - wetChargePercent / 100);
+                          }
 
                           return (
-                            <TableRow key={idx} className={belowThreshold ? "opacity-60" : ""}>
-                              <TableCell className="text-xs py-1.5">{item.waste_type}</TableCell>
+                            <TableRow key={idx} className={cn(belowThreshold && "opacity-60", hasWetCharge && !belowThreshold && "bg-blue-50/50")}>
+                              <TableCell className="text-xs py-1.5">
+                                {item.waste_type}
+                                {hasWetCharge && (
+                                  <Badge variant="outline" className="ml-2 text-[10px] px-1 py-0 border-blue-400 text-blue-600">
+                                    -{wetChargePercent}%
+                                  </Badge>
+                                )}
+                              </TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{item.pallet_count}</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{Math.round(grossKg).toLocaleString()}</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{Math.round(palletKg).toLocaleString()}</TableCell>
