@@ -300,10 +300,6 @@
            let loadReportRebate = 0;
            let loadReportWeight = 0;
            const materials: CustomerRebateSummary["siteBreakdowns"][0]["materials"] = [];
- 
-           // Find pallet weight charge config first (to calculate its rate separately)
-           let palletChargeRate = 0;
-           let palletChargeRateSource = "Deduction";
            
            for (const item of rebateItems ?? []) {
              // Get material name
@@ -344,41 +340,25 @@
                 rateSource += ` ${adjustment > 0 ? "+" : ""}${adjustment}`;
               }
 
-             // If this is the pallet weight charge, store the rate for separate handling
-             if (isPalletCharge) {
-               palletChargeRate = rate;
-               palletChargeRateSource = rateSource;
-               continue; // Don't add here, will add below with proper formatting
-             }
- 
+             // Calculate rebate value - for pallet charge this is treated as any other row
+             // (the rate itself determines whether it's a deduction via positive/negative value)
              const rebate = weight * rate;
              loadReportRebate += rebate;
-             loadReportWeight += weight;
+             
+             // Only add to weight total for non-pallet materials (pallet weight is a charge, not material)
+             if (!isPalletCharge) {
+               loadReportWeight += weight;
+             }
  
              if (weight > 0 || rate !== 0) {
                materials.push({
-                 name: `${materialName} (Load Reports)`,
+                 name: isPalletCharge ? "Pallet Weight Charge" : `${materialName} (Load Reports)`,
                  weight,
                  rate,
                  rebate,
                  source: rateSource,
                });
              }
-           }
- 
-           // Add pallet weight charge row (this is a deduction from the total)
-           if (palletWeightTonnes > 0 && palletChargeRate > 0) {
-             const palletChargeValue = palletWeightTonnes * palletChargeRate;
-             // Pallet charge is a deduction, so subtract from total
-             loadReportRebate -= palletChargeValue;
-             
-             materials.push({
-               name: "Pallet Weight Charge",
-               weight: palletWeightTonnes,
-               rate: -palletChargeRate, // Always show as negative rate (deduction)
-               rebate: -palletChargeValue, // Always show as negative value (deduction)
-               source: palletChargeRateSource,
-             });
            }
  
            // Skip/RoRo rebates (simplified - just getting totals)
