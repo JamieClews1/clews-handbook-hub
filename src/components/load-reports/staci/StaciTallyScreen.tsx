@@ -1,17 +1,18 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, Palette, Package } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
-import { StaciColourSelector } from "./StaciColourSelector";
 import { StaciSummaryTable } from "./StaciSummaryTable";
 import {
   StaciPalletEntry,
+  StaciWasteComposition,
   StaciPalletColour,
   StaciColourSummary,
   STACI_PALLET_RATES,
+  calculatePalletColour,
 } from "./types";
 
 interface StaciTallyScreenProps {
@@ -34,22 +35,46 @@ export const StaciTallyScreen = ({
   // Generate unique ID for new entries
   const generateId = () => crypto.randomUUID();
 
-  // Add a new pallet with the selected colour
-  const handleAddPallet = (colour: StaciPalletColour) => {
+  // Add a new blank pallet
+  const handleAddPallet = () => {
     const newEntry: StaciPalletEntry = {
       id: generateId(),
-      colour,
+      colour: "blue", // Default, will be recalculated
       weight_kg: 0,
       pallet_type: "good",
       display_order: palletEntries.length,
+      description: "",
+      waste_composition: "mixed_majority_recyclable",
     };
     onPalletEntriesChange([...palletEntries, newEntry]);
   };
 
-  // Update weight for a specific entry
+  // Update description for a specific entry
+  const handleDescriptionChange = (id: string, description: string) => {
+    onPalletEntriesChange(
+      palletEntries.map((e) => (e.id === id ? { ...e, description } : e))
+    );
+  };
+
+  // Update weight and recalculate colour
   const handleWeightChange = (id: string, weight: number) => {
     onPalletEntriesChange(
-      palletEntries.map((e) => (e.id === id ? { ...e, weight_kg: weight } : e))
+      palletEntries.map((e) => {
+        if (e.id !== id) return e;
+        const newColour = calculatePalletColour(weight, e.waste_composition);
+        return { ...e, weight_kg: weight, colour: newColour };
+      })
+    );
+  };
+
+  // Update composition and recalculate colour
+  const handleCompositionChange = (id: string, composition: StaciWasteComposition) => {
+    onPalletEntriesChange(
+      palletEntries.map((e) => {
+        if (e.id !== id) return e;
+        const newColour = calculatePalletColour(e.weight_kg, composition);
+        return { ...e, waste_composition: composition, colour: newColour };
+      })
     );
   };
 
@@ -58,13 +83,15 @@ export const StaciTallyScreen = ({
     onPalletEntriesChange(palletEntries.filter((e) => e.id !== id));
   };
 
-  // Calculate summaries by colour
+  // Calculate summaries by colour (excluding waste_wood for now)
   const { summaries, totalPallets, totalWeightKg, totalValue } = useMemo(() => {
     const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
 
     for (const entry of palletEntries) {
-      const existing = colourMap.get(entry.colour) || { count: 0, weight: 0 };
-      colourMap.set(entry.colour, {
+      // Recalculate colour to ensure it's up to date
+      const colour = calculatePalletColour(entry.weight_kg, entry.waste_composition);
+      const existing = colourMap.get(colour) || { count: 0, weight: 0 };
+      colourMap.set(colour, {
         count: existing.count + 1,
         weight: existing.weight + entry.weight_kg,
       });
@@ -77,12 +104,11 @@ export const StaciTallyScreen = ({
 
     for (const [colour, data] of colourMap) {
       const rate = STACI_PALLET_RATES[colour];
-      // For waste_wood, rate is per tonne, so calculate based on weight
       let value: number;
       if (colour === "waste_wood") {
-        value = (data.weight / 1000) * rate; // Convert kg to tonnes, multiply by rate
+        value = (data.weight / 1000) * rate;
       } else {
-        value = data.count * rate; // Per pallet rate
+        value = data.count * rate;
       }
 
       summaries.push({
@@ -98,7 +124,6 @@ export const StaciTallyScreen = ({
       totalValue += value;
     }
 
-    // Sort by colour order: red, yellow, blue, green, waste_wood
     const colourOrder: StaciPalletColour[] = ["red", "yellow", "blue", "green", "waste_wood"];
     summaries.sort((a, b) => colourOrder.indexOf(a.colour) - colourOrder.indexOf(b.colour));
 
@@ -107,44 +132,55 @@ export const StaciTallyScreen = ({
 
   return (
     <div className="space-y-6 pb-32">
-      {/* Colour selector */}
+      {/* Header card with add button */}
       <Card className="border-2 shadow-lg">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-              <Palette className="h-5 w-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                <ClipboardList className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Staci Pallet Tally</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Enter pallet details - colour is auto-calculated
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">Staci Pallet Tally</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Add pallets by colour classification
-              </p>
-            </div>
+            <Button onClick={handleAddPallet} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Pallet
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <StaciColourSelector onAddPallet={handleAddPallet} />
-        </CardContent>
       </Card>
 
       {/* Pallet entries list */}
-      {palletEntries.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Pallets ({palletEntries.length}):
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {palletEntries.map((entry, idx) => (
-              <StaciPalletEntryCard
-                key={entry.id}
-                entry={entry}
-                index={idx}
-                onWeightChange={(weight) => handleWeightChange(entry.id, weight)}
-                onDelete={() => handleDelete(entry.id)}
-              />
-            ))}
-          </div>
+      {palletEntries.length > 0 ? (
+        <div className="space-y-4">
+          {palletEntries.map((entry, idx) => (
+            <StaciPalletEntryCard
+              key={entry.id}
+              entry={entry}
+              index={idx}
+              onDescriptionChange={(desc) => handleDescriptionChange(entry.id, desc)}
+              onWeightChange={(weight) => handleWeightChange(entry.id, weight)}
+              onCompositionChange={(comp) => handleCompositionChange(entry.id, comp)}
+              onDelete={() => handleDelete(entry.id)}
+            />
+          ))}
         </div>
+      ) : (
+        <Card className="border-2 border-dashed">
+          <CardContent className="py-12 text-center">
+            <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-4">No pallets added yet</p>
+            <Button onClick={handleAddPallet} variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add First Pallet
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Good pallet rebate section */}
