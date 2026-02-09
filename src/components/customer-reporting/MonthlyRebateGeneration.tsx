@@ -762,21 +762,26 @@
                                      <TableHead className="text-right">Value (£)</TableHead>
                                    </TableRow>
                                  </TableHeader>
-                                 <TableBody>
-                                   {siteBreakdown.materials.map((material, idx) => (
-                                     <TableRow key={idx}>
-                                       <TableCell>{material.name}</TableCell>
-                                       <TableCell className="text-right">{material.weight.toFixed(2)}</TableCell>
-                                       <TableCell className="text-right">
-                                         {material.rate !== 0 ? `£${material.rate.toFixed(2)}` : "-"}
-                                       </TableCell>
-                                       <TableCell className="text-sm text-muted-foreground">{material.source}</TableCell>
-                                       <TableCell className={cn("text-right", material.rebate >= 0 ? "text-green-600" : "text-red-600")}>
-                                         £{material.rebate.toFixed(2)}
-                                       </TableCell>
-                                     </TableRow>
-                                   ))}
-                                 </TableBody>
+                                  <TableBody>
+                                    {siteBreakdown.materials.map((material, idx) => {
+                                      const isPalletCharge = material.name.toLowerCase().includes("pallet");
+                                      return (
+                                        <TableRow key={idx}>
+                                          <TableCell>{material.name}</TableCell>
+                                          <TableCell className="text-right">
+                                            {isPalletCharge ? "-" : material.weight.toFixed(2)}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {material.rate !== 0 ? `£${material.rate.toFixed(2)}` : "-"}
+                                          </TableCell>
+                                          <TableCell className="text-sm text-muted-foreground">{material.source}</TableCell>
+                                          <TableCell className={cn("text-right", material.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                                            £{material.rebate.toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
                                </Table>
                              </div>
                            </CollapsibleContent>
