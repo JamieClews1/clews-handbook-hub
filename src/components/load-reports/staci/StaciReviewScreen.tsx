@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, FileText, Palette } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, Palette, Scale } from "lucide-react";
 import { StaciSummaryTable } from "./StaciSummaryTable";
 import {
   StaciPalletEntry,
@@ -9,6 +9,8 @@ import {
   StaciPalletColour,
   STACI_PALLET_RATES,
   STACI_PALLET_GOOD_REBATE,
+  getTotalPercentage,
+  calculatePalletColour,
 } from "./types";
 
 interface StaciReviewScreenProps {
@@ -24,10 +26,100 @@ interface StaciReviewScreenProps {
   filmsBaleCount: number;
   filmsBaleWeightKg: number;
   palletWeightKg?: number;
+  weighbridgeWeightKg?: number | null;
+  weighbridgeLoading?: boolean;
+  onPalletEntriesChange?: (entries: StaciPalletEntry[]) => void;
   onBack: () => void;
   onSaveDraft: () => void;
   onSubmit: () => void;
   isSaving: boolean;
+}
+
+/**
+ * Proportionally distribute weighbridge weight across valid pallet entries.
+ * Each entry's weight is scaled so the total gross weight matches the target.
+ */
+function reconcileStaciEntries(
+  entries: StaciPalletEntry[],
+  targetKg: number
+): StaciPalletEntry[] {
+  // Only reconcile valid entries (100% breakdown, weight > 0)
+  const validIndices: number[] = [];
+  let currentTotal = 0;
+
+  entries.forEach((entry, idx) => {
+    const breakdownTotal = getTotalPercentage(entry.waste_breakdown);
+    const isValid = Math.abs(breakdownTotal - 100) < 0.01 && entry.weight_kg > 0;
+    if (isValid) {
+      validIndices.push(idx);
+      currentTotal += entry.weight_kg * (entry.pallet_count || 1);
+    }
+  });
+
+  if (validIndices.length === 0 || currentTotal === 0) return entries;
+
+  const ratio = targetKg / currentTotal;
+
+  return entries.map((entry, idx) => {
+    if (!validIndices.includes(idx)) return entry;
+
+    const newWeight = Math.round(entry.weight_kg * ratio);
+    const newColour = calculatePalletColour(newWeight, entry.waste_breakdown);
+    return { ...entry, weight_kg: newWeight, colour: newColour };
+  });
+}
+
+function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: number) {
+  const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
+
+  for (const entry of palletEntries) {
+    const breakdownTotal = getTotalPercentage(entry.waste_breakdown);
+    const isValid = Math.abs(breakdownTotal - 100) < 0.01 && entry.weight_kg > 0;
+    if (!isValid) continue;
+
+    const palletCount = entry.pallet_count || 1;
+    const colour = entry.colour;
+    const existing = colourMap.get(colour) || { count: 0, weight: 0 };
+    colourMap.set(colour, {
+      count: existing.count + palletCount,
+      weight: existing.weight + (entry.weight_kg * palletCount),
+    });
+  }
+
+  const summaries: StaciColourSummary[] = [];
+  let totalPallets = 0;
+  let totalWeightKg = 0;
+  let totalValue = 0;
+
+  for (const [colour, data] of colourMap) {
+    const rate = STACI_PALLET_RATES[colour];
+    let value: number;
+    if (colour === "waste_wood") {
+      value = (data.weight / 1000) * rate;
+    } else {
+      value = data.count * rate;
+    }
+
+    summaries.push({
+      colour,
+      palletCount: data.count,
+      totalWeightKg: data.weight,
+      ratePerPallet: rate,
+      totalValue: value,
+    });
+
+    totalPallets += data.count;
+    totalWeightKg += data.weight;
+    totalValue += value;
+  }
+
+  const colourOrder: StaciPalletColour[] = ["red", "yellow", "blue", "green", "waste_wood"];
+  summaries.sort((a, b) => colourOrder.indexOf(a.colour) - colourOrder.indexOf(b.colour));
+
+  const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
+  const netTotal = totalValue - palletRebate;
+
+  return { summaries, totalPallets, totalWeightKg, totalValue, netTotal };
 }
 
 export const StaciReviewScreen = ({
@@ -43,58 +135,41 @@ export const StaciReviewScreen = ({
   filmsBaleCount,
   filmsBaleWeightKg,
   palletWeightKg = 20,
+  weighbridgeWeightKg,
+  weighbridgeLoading,
+  onPalletEntriesChange,
   onBack,
   onSaveDraft,
   onSubmit,
   isSaving,
 }: StaciReviewScreenProps) => {
-  // Calculate summaries
-  const { summaries, totalPallets, totalWeightKg, totalValue, netTotal } = useMemo(() => {
-    const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
+  const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
 
-    for (const entry of palletEntries) {
-      const existing = colourMap.get(entry.colour) || { count: 0, weight: 0 };
-      colourMap.set(entry.colour, {
-        count: existing.count + 1,
-        weight: existing.weight + entry.weight_kg,
-      });
+  const { summaries, totalPallets, totalWeightKg, totalValue, netTotal } = useMemo(
+    () => buildSummaries(palletEntries, goodPalletCount),
+    [palletEntries, goodPalletCount]
+  );
+
+  // Reconciled preview summaries
+  const reconciledSummaryData = useMemo(() => {
+    if (!reconciledPreview) return null;
+    return buildSummaries(reconciledPreview, goodPalletCount);
+  }, [reconciledPreview, goodPalletCount]);
+
+  const handleReconcile = () => {
+    if (typeof weighbridgeWeightKg !== "number") return;
+    const reconciled = reconcileStaciEntries(palletEntries, weighbridgeWeightKg);
+    setReconciledPreview(reconciled);
+  };
+
+  const handleAcceptReconciled = () => {
+    if (reconciledPreview && onPalletEntriesChange) {
+      onPalletEntriesChange(reconciledPreview);
+      setReconciledPreview(null);
     }
+  };
 
-    const summaries: StaciColourSummary[] = [];
-    let totalPallets = 0;
-    let totalWeightKg = 0;
-    let totalValue = 0;
-
-    for (const [colour, data] of colourMap) {
-      const rate = STACI_PALLET_RATES[colour];
-      let value: number;
-      if (colour === "waste_wood") {
-        value = (data.weight / 1000) * rate;
-      } else {
-        value = data.count * rate;
-      }
-
-      summaries.push({
-        colour,
-        palletCount: data.count,
-        totalWeightKg: data.weight,
-        ratePerPallet: rate,
-        totalValue: value,
-      });
-
-      totalPallets += data.count;
-      totalWeightKg += data.weight;
-      totalValue += value;
-    }
-
-    const colourOrder: StaciPalletColour[] = ["red", "yellow", "blue", "green", "waste_wood"];
-    summaries.sort((a, b) => colourOrder.indexOf(a.colour) - colourOrder.indexOf(b.colour));
-
-    const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
-    const netTotal = totalValue - palletRebate;
-
-    return { summaries, totalPallets, totalWeightKg, totalValue, netTotal };
-  }, [palletEntries, goodPalletCount]);
+  const canReconcile = typeof weighbridgeWeightKg === "number" && palletEntries.length > 0;
 
   return (
     <div className="space-y-6 pb-32">
@@ -128,6 +203,20 @@ export const StaciReviewScreen = ({
               <div>
                 <span className="text-muted-foreground">Job Number:</span>
                 <p className="font-medium">{jobNumber}</p>
+              </div>
+            )}
+            {jobNumber && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Weighbridge Weight:</span>
+                <p className="font-medium">
+                  {weighbridgeLoading ? (
+                    <span className="text-muted-foreground">Looking up…</span>
+                  ) : typeof weighbridgeWeightKg === "number" ? (
+                    `${Math.round(weighbridgeWeightKg).toLocaleString()} kg`
+                  ) : (
+                    <span className="text-muted-foreground">Not found</span>
+                  )}
+                </p>
               </div>
             )}
           </div>
@@ -166,6 +255,62 @@ export const StaciReviewScreen = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Reconcile Section */}
+      {canReconcile && onPalletEntriesChange && (
+        <div className="space-y-4">
+          <Button
+            type="button"
+            onClick={handleReconcile}
+            className="h-12 w-full text-base gap-2"
+            variant="outline"
+            disabled={isSaving || !!weighbridgeLoading}
+          >
+            <Scale className="h-5 w-5" />
+            Reconcile to Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
+          </Button>
+
+          {reconciledPreview && reconciledSummaryData && (
+            <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Reconciled Preview</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
+                  Reconciled: {reconciledSummaryData.totalWeightKg.toLocaleString()} kg
+                  {reconciledSummaryData.totalWeightKg !== totalWeightKg && (
+                    <span className="ml-1">
+                      (was {totalWeightKg.toLocaleString()} kg)
+                    </span>
+                  )}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <StaciSummaryTable
+                  summaries={reconciledSummaryData.summaries}
+                  totalPallets={reconciledSummaryData.totalPallets}
+                  totalWeightKg={reconciledSummaryData.totalWeightKg}
+                  totalValue={reconciledSummaryData.totalValue}
+                  goodPalletCount={goodPalletCount}
+                  palletsScrapCount={palletsScrapCount}
+                  cardBalesCount={cardBalesCount}
+                  cardBalesWeightKg={cardBalesWeightKg}
+                  filmsBaleCount={filmsBaleCount}
+                  filmsBaleWeightKg={filmsBaleWeightKg}
+                  palletWeightKg={palletWeightKg}
+                />
+                <Button
+                  type="button"
+                  className="w-full h-12 text-base"
+                  onClick={handleAcceptReconciled}
+                  disabled={isSaving}
+                >
+                  Accept Reconciled Weights
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Total Value Card */}
       <Card className={`border-2 ${netTotal < 0 ? "border-green-500/50 bg-green-50/30" : "border-orange-500/50 bg-orange-50/30"}`}>

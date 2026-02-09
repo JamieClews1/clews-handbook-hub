@@ -846,6 +846,9 @@ const LoadReportsPage = () => {
               filmsBaleCount={staciFilmsBaleCount}
               filmsBaleWeightKg={staciFilmsBaleWeightKg}
               palletWeightKg={defaultPalletWeight}
+              weighbridgeWeightKg={weighbridgeWeightKg}
+              weighbridgeLoading={weighbridgeLoading}
+              onPalletEntriesChange={setStaciPalletEntries}
               onBack={handleBack}
               onSaveDraft={() => saveReport(false)}
               onSubmit={() => saveReport(true)}
