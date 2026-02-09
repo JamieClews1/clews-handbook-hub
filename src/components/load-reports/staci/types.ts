@@ -72,6 +72,7 @@ export interface StaciPalletEntry {
   display_order: number;
   description: string;
   waste_breakdown: StaciWasteBreakdown;
+  pallet_count: number; // Number of pallets of this type
 }
 
 // Staci 2025 rates per pallet
