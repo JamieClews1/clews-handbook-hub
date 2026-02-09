@@ -543,6 +543,8 @@ const LoadReportsPage = () => {
             weight_kg: entry.weight_kg,
             pallet_type: entry.pallet_type,
             display_order: idx,
+            description: entry.description || null,
+            waste_breakdown: entry.waste_breakdown || {},
           }));
 
           const { error: entriesError } = await supabase
