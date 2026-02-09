@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
@@ -24,6 +24,16 @@ interface StaciTallyScreenProps {
   onReview: () => void;
   goodPalletCount: number;
   onGoodPalletCountChange: (count: number) => void;
+  palletsScrapCount: number;
+  onPalletsScrapCountChange: (count: number) => void;
+  cardBalesCount: number;
+  onCardBalesCountChange: (count: number) => void;
+  cardBalesWeightKg: number;
+  onCardBalesWeightKgChange: (weight: number) => void;
+  filmsBaleCount: number;
+  onFilmsBaleCountChange: (count: number) => void;
+  filmsBaleWeightKg: number;
+  onFilmsBaleWeightKgChange: (weight: number) => void;
 }
 
 export const StaciTallyScreen = ({
@@ -33,6 +43,16 @@ export const StaciTallyScreen = ({
   onReview,
   goodPalletCount,
   onGoodPalletCountChange,
+  palletsScrapCount,
+  onPalletsScrapCountChange,
+  cardBalesCount,
+  onCardBalesCountChange,
+  cardBalesWeightKg,
+  onCardBalesWeightKgChange,
+  filmsBaleCount,
+  onFilmsBaleCountChange,
+  filmsBaleWeightKg,
+  onFilmsBaleWeightKgChange,
 }: StaciTallyScreenProps) => {
   // Generate unique ID for new entries
   const generateId = () => crypto.randomUUID();
@@ -232,6 +252,119 @@ export const StaciTallyScreen = ({
         </CardContent>
       </Card>
 
+      {/* Pallets Scrap */}
+      <Card className="border-2 border-orange-500/50 bg-orange-50/30 dark:bg-orange-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+              <Trash className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="palletsScrap" className="text-base font-semibold text-foreground">
+                Pallets Scrap
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Pallet charge to be applied
+              </p>
+            </div>
+            <Input
+              id="palletsScrap"
+              type="number"
+              min={0}
+              value={palletsScrapCount}
+              onChange={(e) => onPalletsScrapCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+              className="w-24 h-14 text-center text-2xl font-bold"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card Bales */}
+      <Card className="border-2 border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+              <Layers className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-base font-semibold text-foreground">
+                Card Bales
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Baled cardboard
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-center">
+                <Input
+                  id="cardBalesCount"
+                  type="number"
+                  min={0}
+                  value={cardBalesCount}
+                  onChange={(e) => onCardBalesCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-20 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Qty</span>
+              </div>
+              <div className="text-center">
+                <Input
+                  id="cardBalesWeight"
+                  type="number"
+                  min={0}
+                  value={cardBalesWeightKg}
+                  onChange={(e) => onCardBalesWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-24 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Est KG</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Films Bale */}
+      <Card className="border-2 border-violet-500/50 bg-violet-50/30 dark:bg-violet-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center">
+              <Film className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-base font-semibold text-foreground">
+                Films Bale
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Baled film/plastic
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-center">
+                <Input
+                  id="filmsBaleCount"
+                  type="number"
+                  min={0}
+                  value={filmsBaleCount}
+                  onChange={(e) => onFilmsBaleCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-20 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Qty</span>
+              </div>
+              <div className="text-center">
+                <Input
+                  id="filmsBaleWeight"
+                  type="number"
+                  min={0}
+                  value={filmsBaleWeightKg}
+                  onChange={(e) => onFilmsBaleWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-24 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Est KG</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary table */}
       {summaries.length > 0 && (
         <div className="space-y-3">
@@ -249,6 +382,11 @@ export const StaciTallyScreen = ({
             totalWeightKg={totalWeightKg}
             totalValue={totalValue}
             goodPalletCount={goodPalletCount}
+            palletsScrapCount={palletsScrapCount}
+            cardBalesCount={cardBalesCount}
+            cardBalesWeightKg={cardBalesWeightKg}
+            filmsBaleCount={filmsBaleCount}
+            filmsBaleWeightKg={filmsBaleWeightKg}
           />
         </div>
       )}

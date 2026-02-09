@@ -15,6 +15,11 @@ interface StaciSummaryTableProps {
   totalWeightKg: number;
   totalValue: number;
   goodPalletCount?: number;
+  palletsScrapCount?: number;
+  cardBalesCount?: number;
+  cardBalesWeightKg?: number;
+  filmsBaleCount?: number;
+  filmsBaleWeightKg?: number;
 }
 
 export const StaciSummaryTable = ({
@@ -23,6 +28,11 @@ export const StaciSummaryTable = ({
   totalWeightKg,
   totalValue,
   goodPalletCount = 0,
+  palletsScrapCount = 0,
+  cardBalesCount = 0,
+  cardBalesWeightKg = 0,
+  filmsBaleCount = 0,
+  filmsBaleWeightKg = 0,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   const netTotal = totalValue - palletRebate;
@@ -85,6 +95,49 @@ export const StaciSummaryTable = ({
               <TableCell className="text-right font-medium text-green-600">
                 -£{palletRebate.toFixed(2)}
               </TableCell>
+            </TableRow>
+          )}
+          {palletsScrapCount > 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Pallets Scrap</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {palletsScrapCount}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">Charge</TableCell>
+              <TableCell className="text-right font-medium">-</TableCell>
+            </TableRow>
+          )}
+          {cardBalesCount > 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Card Bales</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {cardBalesCount}
+              </TableCell>
+              <TableCell className="text-right">
+                {cardBalesWeightKg.toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right font-medium">-</TableCell>
+            </TableRow>
+          )}
+          {filmsBaleCount > 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Films Bale</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {filmsBaleCount}
+              </TableCell>
+              <TableCell className="text-right">
+                {filmsBaleWeightKg.toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
           )}
         </TableBody>
