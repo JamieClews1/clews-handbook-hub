@@ -1,9 +1,68 @@
-// Staci pallet colour classification (auto-calculated)
+// Staci pallet colour classification (auto-calculated from waste breakdown)
 export type StaciPalletColour = "red" | "yellow" | "blue" | "green" | "waste_wood";
 export type StaciPalletType = "good" | "scrap";
 
-// Waste composition type
-export type StaciWasteComposition = "pure_recyclable" | "mixed_majority_recyclable" | "mixed_majority_non_recyclable" | "non_recyclable";
+// Waste breakdown percentages per pallet
+export interface StaciWasteBreakdown {
+  metal: number;
+  paper: number;
+  card: number;
+  pvc: number;
+  hard_plastic: number;
+  shrink_wrap: number;
+  other_films_plastics: number;
+  rdf: number;
+  wood: number;
+  landfill: number;
+}
+
+// Default empty breakdown
+export const EMPTY_WASTE_BREAKDOWN: StaciWasteBreakdown = {
+  metal: 0,
+  paper: 0,
+  card: 0,
+  pvc: 0,
+  hard_plastic: 0,
+  shrink_wrap: 0,
+  other_films_plastics: 0,
+  rdf: 0,
+  wood: 0,
+  landfill: 0,
+};
+
+// Waste type labels for display
+export const WASTE_TYPE_LABELS: Record<keyof StaciWasteBreakdown, string> = {
+  metal: "Metal",
+  paper: "Paper",
+  card: "Card",
+  pvc: "PVC",
+  hard_plastic: "Hard Plastic",
+  shrink_wrap: "Shrink Wrap",
+  other_films_plastics: "Other Films/Plastics",
+  rdf: "RDF",
+  wood: "Wood",
+  landfill: "Landfill",
+};
+
+// Define which waste types are recyclable
+export const RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
+  "metal",
+  "paper",
+  "card",
+  "hard_plastic",
+  "shrink_wrap",
+  "other_films_plastics",
+];
+
+// Non-recyclable types (goes to landfill/RDF)
+export const NON_RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
+  "pvc",
+  "rdf",
+  "landfill",
+];
+
+// Wood is a special case - tracked separately
+export const WOOD_TYPE: keyof StaciWasteBreakdown = "wood";
 
 export interface StaciPalletEntry {
   id: string;
@@ -11,9 +70,8 @@ export interface StaciPalletEntry {
   weight_kg: number;
   pallet_type: StaciPalletType;
   display_order: number;
-  // New fields for description-first approach
   description: string;
-  waste_composition: StaciWasteComposition;
+  waste_breakdown: StaciWasteBreakdown;
 }
 
 // Staci 2025 rates per pallet
@@ -32,26 +90,52 @@ export const STACI_PALLET_GOOD_REBATE = 0.75; // £0.75 per pallet
 export const STACI_HAULAGE_ARTIC = 145.00;
 export const STACI_HAULAGE_PICKUP = 35.00;
 
-// Waste composition options for the form
-export const STACI_WASTE_COMPOSITION_OPTIONS: { value: StaciWasteComposition; label: string; description: string }[] = [
-  { value: "pure_recyclable", label: "Pure Recyclable", description: "100% recyclable materials" },
-  { value: "mixed_majority_recyclable", label: "Mixed (Majority Recyclable)", description: "Mixed load, >50% recyclable" },
-  { value: "mixed_majority_non_recyclable", label: "Mixed (Majority Non-Recyclable)", description: "Mixed load, >50% non-recyclable" },
-  { value: "non_recyclable", label: "Non-Recyclable", description: "100% non-recyclable materials" },
-];
+/**
+ * Calculate the total percentage from a breakdown
+ */
+export function getTotalPercentage(breakdown: StaciWasteBreakdown): number {
+  return Object.values(breakdown).reduce((sum, val) => sum + val, 0);
+}
 
 /**
- * Auto-calculate pallet colour based on weight and waste composition
+ * Calculate recyclable percentage from breakdown
+ */
+export function getRecyclablePercentage(breakdown: StaciWasteBreakdown): number {
+  return RECYCLABLE_WASTE_TYPES.reduce((sum, key) => sum + breakdown[key], 0);
+}
+
+/**
+ * Calculate non-recyclable percentage from breakdown
+ */
+export function getNonRecyclablePercentage(breakdown: StaciWasteBreakdown): number {
+  return NON_RECYCLABLE_WASTE_TYPES.reduce((sum, key) => sum + breakdown[key], 0);
+}
+
+/**
+ * Auto-calculate pallet colour based on weight and waste breakdown percentages
  * 
  * Rules:
- * - Red (£42): >150KG non-recyclable waste
+ * - Green (-£18 rebate): Pure recyclables (≥95%) AND >300KG
+ * - Blue (£9): Pure recyclables <300KG OR mixed with majority recyclable <150KG
  * - Yellow (£22): >150KG mixed majority recyclable OR <150KG non-recyclable
- * - Blue (£9): Pure recyclables <300KG OR mixed <150KG
- * - Green (-£18 rebate): Pure recyclables >300KG
+ * - Red (£42): >150KG with majority non-recyclable
  */
-export function calculatePalletColour(weight_kg: number, composition: StaciWasteComposition): StaciPalletColour {
+export function calculatePalletColour(weight_kg: number, breakdown: StaciWasteBreakdown): StaciPalletColour {
+  const recyclablePct = getRecyclablePercentage(breakdown);
+  const nonRecyclablePct = getNonRecyclablePercentage(breakdown);
+  const woodPct = breakdown.wood;
+  
+  // Pure recyclable = 95%+ recyclable, minimal non-recyclable
+  const isPureRecyclable = recyclablePct >= 95 && nonRecyclablePct <= 5;
+  
+  // Majority recyclable = recyclable > non-recyclable
+  const isMajorityRecyclable = recyclablePct > nonRecyclablePct;
+  
+  // Majority non-recyclable
+  const isMajorityNonRecyclable = nonRecyclablePct > recyclablePct;
+  
   // Pure recyclable logic
-  if (composition === "pure_recyclable") {
+  if (isPureRecyclable) {
     if (weight_kg >= 300) {
       return "green"; // Rebate: Pure recyclables >300KG
     } else {
@@ -60,7 +144,7 @@ export function calculatePalletColour(weight_kg: number, composition: StaciWaste
   }
   
   // Mixed majority recyclable logic
-  if (composition === "mixed_majority_recyclable") {
+  if (isMajorityRecyclable) {
     if (weight_kg > 150) {
       return "yellow"; // >150KG mixed majority recyclable
     } else {
@@ -68,26 +152,17 @@ export function calculatePalletColour(weight_kg: number, composition: StaciWaste
     }
   }
   
-  // Mixed majority non-recyclable logic
-  if (composition === "mixed_majority_non_recyclable") {
+  // Mixed majority non-recyclable or pure non-recyclable logic
+  if (isMajorityNonRecyclable || nonRecyclablePct >= 50) {
     if (weight_kg > 150) {
-      return "red"; // >150KG with majority non-recyclable = non-recyclable
-    } else {
-      return "blue"; // Mixed <150KG
-    }
-  }
-  
-  // Non-recyclable logic
-  if (composition === "non_recyclable") {
-    if (weight_kg > 150) {
-      return "red"; // >150KG non-recyclable
+      return "red"; // >150KG with majority non-recyclable
     } else {
       return "yellow"; // <150KG non-recyclable
     }
   }
   
-  // Fallback
-  return "blue";
+  // Fallback (e.g., 50/50 split)
+  return weight_kg > 150 ? "yellow" : "blue";
 }
 
 // Colour display configuration

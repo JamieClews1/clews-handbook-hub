@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList } from "lucide-react";
@@ -8,11 +8,13 @@ import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
 import { StaciSummaryTable } from "./StaciSummaryTable";
 import {
   StaciPalletEntry,
-  StaciWasteComposition,
+  StaciWasteBreakdown,
   StaciPalletColour,
   StaciColourSummary,
   STACI_PALLET_RATES,
+  EMPTY_WASTE_BREAKDOWN,
   calculatePalletColour,
+  getTotalPercentage,
 } from "./types";
 
 interface StaciTallyScreenProps {
@@ -44,7 +46,7 @@ export const StaciTallyScreen = ({
       pallet_type: "good",
       display_order: palletEntries.length,
       description: "",
-      waste_composition: "mixed_majority_recyclable",
+      waste_breakdown: { ...EMPTY_WASTE_BREAKDOWN },
     };
     onPalletEntriesChange([...palletEntries, newEntry]);
   };
@@ -61,19 +63,19 @@ export const StaciTallyScreen = ({
     onPalletEntriesChange(
       palletEntries.map((e) => {
         if (e.id !== id) return e;
-        const newColour = calculatePalletColour(weight, e.waste_composition);
+        const newColour = calculatePalletColour(weight, e.waste_breakdown);
         return { ...e, weight_kg: weight, colour: newColour };
       })
     );
   };
 
-  // Update composition and recalculate colour
-  const handleCompositionChange = (id: string, composition: StaciWasteComposition) => {
+  // Update breakdown and recalculate colour
+  const handleBreakdownChange = (id: string, breakdown: StaciWasteBreakdown) => {
     onPalletEntriesChange(
       palletEntries.map((e) => {
         if (e.id !== id) return e;
-        const newColour = calculatePalletColour(e.weight_kg, composition);
-        return { ...e, waste_composition: composition, colour: newColour };
+        const newColour = calculatePalletColour(e.weight_kg, breakdown);
+        return { ...e, waste_breakdown: breakdown, colour: newColour };
       })
     );
   };
@@ -83,13 +85,19 @@ export const StaciTallyScreen = ({
     onPalletEntriesChange(palletEntries.filter((e) => e.id !== id));
   };
 
-  // Calculate summaries by colour (excluding waste_wood for now)
-  const { summaries, totalPallets, totalWeightKg, totalValue } = useMemo(() => {
+  // Calculate summaries by colour (only include valid entries)
+  const { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount } = useMemo(() => {
     const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
 
+    let validCount = 0;
     for (const entry of palletEntries) {
-      // Recalculate colour to ensure it's up to date
-      const colour = calculatePalletColour(entry.weight_kg, entry.waste_composition);
+      const breakdownTotal = getTotalPercentage(entry.waste_breakdown);
+      const isValid = Math.abs(breakdownTotal - 100) < 0.01 && entry.weight_kg > 0;
+      
+      if (!isValid) continue;
+      validCount++;
+
+      const colour = calculatePalletColour(entry.weight_kg, entry.waste_breakdown);
       const existing = colourMap.get(colour) || { count: 0, weight: 0 };
       colourMap.set(colour, {
         count: existing.count + 1,
@@ -127,8 +135,10 @@ export const StaciTallyScreen = ({
     const colourOrder: StaciPalletColour[] = ["red", "yellow", "blue", "green", "waste_wood"];
     summaries.sort((a, b) => colourOrder.indexOf(a.colour) - colourOrder.indexOf(b.colour));
 
-    return { summaries, totalPallets, totalWeightKg, totalValue };
+    return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount };
   }, [palletEntries]);
+
+  const incompleteCount = palletEntries.length - validEntryCount;
 
   return (
     <div className="space-y-6 pb-32">
@@ -143,7 +153,7 @@ export const StaciTallyScreen = ({
               <div>
                 <CardTitle className="text-lg">Staci Pallet Tally</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Enter pallet details - colour is auto-calculated
+                  Enter pallet details with waste % breakdown
                 </p>
               </div>
             </div>
@@ -165,7 +175,7 @@ export const StaciTallyScreen = ({
               index={idx}
               onDescriptionChange={(desc) => handleDescriptionChange(entry.id, desc)}
               onWeightChange={(weight) => handleWeightChange(entry.id, weight)}
-              onCompositionChange={(comp) => handleCompositionChange(entry.id, comp)}
+              onBreakdownChange={(breakdown) => handleBreakdownChange(entry.id, breakdown)}
               onDelete={() => handleDelete(entry.id)}
             />
           ))}
@@ -213,7 +223,14 @@ export const StaciTallyScreen = ({
       {/* Summary table */}
       {summaries.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Summary:</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-muted-foreground">Summary:</h3>
+            {incompleteCount > 0 && (
+              <span className="text-xs text-orange-600 dark:text-orange-400">
+                {incompleteCount} pallet(s) incomplete
+              </span>
+            )}
+          </div>
           <StaciSummaryTable
             summaries={summaries}
             totalPallets={totalPallets}
@@ -235,7 +252,7 @@ export const StaciTallyScreen = ({
 
             <div className="flex items-center gap-6 text-center">
               <div>
-                <div className="text-2xl font-bold text-foreground">{totalPallets}</div>
+                <div className="text-2xl font-bold text-foreground">{validEntryCount}</div>
                 <div className="text-xs text-muted-foreground">Pallets</div>
               </div>
               <div className="w-px h-10 bg-border" />
@@ -247,7 +264,11 @@ export const StaciTallyScreen = ({
               </div>
             </div>
 
-            <Button onClick={onReview} className="h-12 px-6 gap-2 text-base">
+            <Button 
+              onClick={onReview} 
+              className="h-12 px-6 gap-2 text-base"
+              disabled={validEntryCount === 0}
+            >
               <span className="hidden sm:inline">Review</span>
               <ArrowRight className="h-5 w-5" />
             </Button>
