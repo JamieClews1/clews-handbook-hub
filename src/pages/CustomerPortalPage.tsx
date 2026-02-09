@@ -229,8 +229,8 @@ const CustomerPortalPage = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-5xl mx-auto">
+      <main className="w-full px-4 py-6">
+        <div className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
             <div className="flex items-center gap-4 flex-1">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">

@@ -57,7 +57,7 @@ const CustomerReportingPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header language={language} onLanguageChange={setLanguage} />
-      <main className="container mx-auto px-4 py-8">
+      <main className="w-full px-4 py-8">
         <div className="mb-6">
           <Button variant="ghost" onClick={() => navigate("/portal")} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -73,7 +73,7 @@ const CustomerReportingPage = () => {
         </div>
 
         <Tabs defaultValue="site-reports" className="space-y-6">
-          <TabsList className="grid w-full max-w-4xl grid-cols-5">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Site Reports</span>
