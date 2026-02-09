@@ -2463,6 +2463,47 @@ export type Database = {
         }
         Relationships: []
       }
+      staci_pallet_entries: {
+        Row: {
+          colour: string
+          created_at: string
+          display_order: number
+          id: string
+          load_report_id: string
+          pallet_type: string | null
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: {
+          colour: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          load_report_id: string
+          pallet_type?: string | null
+          updated_at?: string
+          weight_kg?: number
+        }
+        Update: {
+          colour?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          load_report_id?: string
+          pallet_type?: string | null
+          updated_at?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staci_pallet_entries_load_report_id_fkey"
+            columns: ["load_report_id"]
+            isOneToOne: false
+            referencedRelation: "load_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       toolbox_talk_signatures: {
         Row: {
           created_at: string
