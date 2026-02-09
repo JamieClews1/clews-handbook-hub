@@ -34,6 +34,7 @@ interface StaciTallyScreenProps {
   onFilmsBaleCountChange: (count: number) => void;
   filmsBaleWeightKg: number;
   onFilmsBaleWeightKgChange: (weight: number) => void;
+  palletWeightKg?: number;
 }
 
 export const StaciTallyScreen = ({
@@ -53,6 +54,7 @@ export const StaciTallyScreen = ({
   onFilmsBaleCountChange,
   filmsBaleWeightKg,
   onFilmsBaleWeightKgChange,
+  palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
   // Generate unique ID for new entries
   const generateId = () => crypto.randomUUID();
@@ -387,6 +389,7 @@ export const StaciTallyScreen = ({
             cardBalesWeightKg={cardBalesWeightKg}
             filmsBaleCount={filmsBaleCount}
             filmsBaleWeightKg={filmsBaleWeightKg}
+            palletWeightKg={palletWeightKg}
           />
         </div>
       )}
