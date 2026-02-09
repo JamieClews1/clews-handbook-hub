@@ -2471,6 +2471,7 @@ export type Database = {
           display_order: number
           id: string
           load_report_id: string
+          pallet_count: number
           pallet_type: string | null
           updated_at: string
           waste_breakdown: Json | null
@@ -2483,6 +2484,7 @@ export type Database = {
           display_order?: number
           id?: string
           load_report_id: string
+          pallet_count?: number
           pallet_type?: string | null
           updated_at?: string
           waste_breakdown?: Json | null
@@ -2495,6 +2497,7 @@ export type Database = {
           display_order?: number
           id?: string
           load_report_id?: string
+          pallet_count?: number
           pallet_type?: string | null
           updated_at?: string
           waste_breakdown?: Json | null

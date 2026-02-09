@@ -545,6 +545,7 @@ const LoadReportsPage = () => {
             display_order: idx,
             description: entry.description || null,
             waste_breakdown: entry.waste_breakdown || {},
+            pallet_count: entry.pallet_count || 1,
           }));
 
           const { error: entriesError } = await supabase
