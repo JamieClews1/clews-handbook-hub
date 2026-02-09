@@ -74,7 +74,7 @@ const ZeroToLandfillChart = () => {
   const weekStart = startOfWeek(subWeeks(now, 51), { weekStartsOn: 1 });
 
   const { data: rawJobs, isLoading } = useQuery({
-    queryKey: ["ztl-midweigh-outward", weekStart.toISOString(), weekEnd.toISOString()],
+    queryKey: ["ztl-midweigh-all", weekStart.toISOString(), weekEnd.toISOString()],
     queryFn: async () => {
       const startStr = format(weekStart, "yyyy-MM-dd");
       const endStr = format(weekEnd, "yyyy-MM-dd");
@@ -87,9 +87,9 @@ const ZeroToLandfillChart = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, raw")
+          .select("job_date, weight_t, raw, movement_type")
           .eq("source", "midweigh")
-          .eq("movement_type", "OUTWARD")
+          .in("movement_type", ["OUTWARD", "INWARD"])
           .gte("job_date", startStr)
           .lte("job_date", endStr)
           .range(from, from + pageSize - 1);
@@ -119,13 +119,13 @@ const ZeroToLandfillChart = () => {
   const chartData = useMemo(() => {
     if (!rawJobs?.length) return [];
 
-    const weekBuckets: Record<string, { landfill: number; rdf: number; recycled: number }> = {};
+    const weekBuckets: Record<string, { landfill: number; rdf: number; recycled: number; totalIn: number }> = {};
 
     // Pre-populate 52 weeks
     for (let i = 0; i < 52; i++) {
       const ws = startOfWeek(subWeeks(now, 51 - i), { weekStartsOn: 1 });
       const key = format(ws, "yyyy-MM-dd");
-      weekBuckets[key] = { landfill: 0, rdf: 0, recycled: 0 };
+      weekBuckets[key] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
     }
 
     rawJobs.forEach((job: any) => {
@@ -136,11 +136,15 @@ const ZeroToLandfillChart = () => {
 
       if (!weekBuckets[key]) return;
 
-      const desc = job.raw?.Product || "";
-      const group: WasteGroup = groupMap[desc] || "recycled";
-      // Midweigh weight is in KG, convert to tonnes
       const tonnes = (job.weight_t || 0) / 1000;
-      weekBuckets[key][group] += tonnes;
+
+      if (job.movement_type === "INWARD") {
+        weekBuckets[key].totalIn += tonnes;
+      } else {
+        const desc = job.raw?.Product || "";
+        const group: WasteGroup = groupMap[desc] || "recycled";
+        weekBuckets[key][group] += tonnes;
+      }
     });
 
     return Object.entries(weekBuckets)
@@ -154,12 +158,14 @@ const ZeroToLandfillChart = () => {
           landfill: Math.round(values.landfill * 100) / 100,
           rdf: Math.round(values.rdf * 100) / 100,
           recycled: Math.round(values.recycled * 100) / 100,
+          totalIn: Math.round(values.totalIn * 100) / 100,
           landfillPct,
         };
       });
   }, [rawJobs, groupMap]);
 
   const chartConfig = {
+    totalIn: { label: "Total Waste In", color: "hsl(210, 70%, 50%)" },
     landfill: { label: "Landfill", color: GROUP_COLORS.landfill },
     rdf: { label: "RDF & Waste To RDF", color: GROUP_COLORS.rdf },
     recycled: { label: "All Recycled", color: GROUP_COLORS.recycled },
@@ -300,6 +306,15 @@ const ZeroToLandfillChart = () => {
                     label={{ value: "Landfill %", angle: 90, position: "insideRight", style: { fontSize: 12 } }}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line
+                    type="monotone"
+                    dataKey="totalIn"
+                    yAxisId="left"
+                    stroke="hsl(210, 70%, 50%)"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Total Waste In"
+                  />
                   <Line
                     type="monotone"
                     dataKey="landfill"
