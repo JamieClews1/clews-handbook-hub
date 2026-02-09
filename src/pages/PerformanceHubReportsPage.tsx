@@ -6,6 +6,7 @@ import { ArrowLeft, BarChart3, Sparkles } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
+import ZeroToLandfillChart from "@/components/data-hub/ZeroToLandfillChart";
 import { useEffect } from "react";
 
 const PerformanceHubReportsPage = () => {
@@ -51,7 +52,7 @@ const PerformanceHubReportsPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
               <BarChart3 className="h-7 w-7 text-primary-foreground" />
@@ -63,6 +64,9 @@ const PerformanceHubReportsPage = () => {
               </p>
             </div>
           </div>
+
+          {/* Zero To Landfill Chart - Double Width */}
+          <ZeroToLandfillChart />
 
           <Tabs defaultValue="tracking" className="space-y-6">
             <TabsList className="grid w-full max-w-md grid-cols-2">
