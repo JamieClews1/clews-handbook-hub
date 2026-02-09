@@ -40,9 +40,9 @@ const GROUP_COLORS: Record<WasteGroup, string> = {
 
 // Default mapping - user can override
 const DEFAULT_GROUP_MAP: Record<string, WasteGroup> = {
-  "Mixed Municipal Waste": "landfill",
-  "combustible waste (refuse derived fuel)": "rdf",
-  "other wastes (including mixtures of materials) from mechanical treatment of wastes other than those mentioned in 19 12 11": "rdf",
+  "MIX MUN": "landfill",
+  "RDF": "rdf",
+  "WASTE OUT (FOR RDF)": "rdf",
 };
 
 const STORAGE_KEY = "ztl-waste-group-map";
@@ -87,7 +87,7 @@ const ZeroToLandfillChart = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, waste_description, weight_t")
+          .select("job_date, weight_t, raw")
           .eq("source", "midweigh")
           .eq("movement_type", "OUTWARD")
           .gte("job_date", startStr)
@@ -109,7 +109,8 @@ const ZeroToLandfillChart = () => {
     if (!rawJobs) return [];
     const descs = new Set<string>();
     rawJobs.forEach((j: any) => {
-      if (j.waste_description) descs.add(j.waste_description);
+      const product = j.raw?.Product;
+      if (product) descs.add(product);
     });
     return Array.from(descs).sort();
   }, [rawJobs]);
@@ -135,7 +136,7 @@ const ZeroToLandfillChart = () => {
 
       if (!weekBuckets[key]) return;
 
-      const desc = job.waste_description || "";
+      const desc = job.raw?.Product || "";
       const group: WasteGroup = groupMap[desc] || "recycled";
       // Midweigh weight is in KG, convert to tonnes
       const tonnes = (job.weight_t || 0) / 1000;
@@ -183,7 +184,7 @@ const ZeroToLandfillChart = () => {
           <div>
             <CardTitle className="text-lg">Zero To Landfill</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Weekly outward waste · Midweigh · Last 52 weeks
+              Weekly outward waste by Product · Midweigh · Last 52 weeks
             </p>
           </div>
         </div>
