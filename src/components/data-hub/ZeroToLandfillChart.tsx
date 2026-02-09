@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Settings2, Leaf } from "lucide-react";
+import ZeroToLandfillPercentChart from "./ZeroToLandfillPercentChart";
 import {
   Dialog,
   DialogContent,
@@ -187,6 +188,7 @@ const ZeroToLandfillChart = () => {
   }, [wasteDescriptions, groupMap]);
 
   return (
+    <>
     <Card className="col-span-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-3">
@@ -359,6 +361,9 @@ const ZeroToLandfillChart = () => {
         )}
       </CardContent>
     </Card>
+
+      <ZeroToLandfillPercentChart chartData={chartData} isLoading={isLoading} />
+    </>
   );
 };
 
