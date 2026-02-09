@@ -42,21 +42,38 @@ export const DataHubCustomerReport = () => {
     format(startOfMonth(new Date()), "yyyy-MM")
   );
 
-  // Fetch unique customer names from data_hub_jobs
+  // Fetch unique customer names from data_hub_jobs (handling pagination for large datasets)
   const { data: customers, isLoading: loadingCustomers } = useQuery({
     queryKey: ["data-hub-customers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("data_hub_jobs")
-        .select("customer")
-        .not("customer", "is", null)
-        .order("customer");
+      const allCustomers: string[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+      let hasMore = true;
 
-      if (error) throw error;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("customer")
+          .not("customer", "is", null)
+          .order("customer")
+          .range(offset, offset + batchSize - 1);
 
-      // Get unique customer names
-      const uniqueCustomers = [...new Set(data.map((d) => d.customer).filter(Boolean))] as string[];
-      return uniqueCustomers.sort();
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const customers = data.map((d) => d.customer).filter(Boolean) as string[];
+          allCustomers.push(...customers);
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // Get unique customer names and sort
+      const uniqueCustomers = [...new Set(allCustomers)].sort();
+      return uniqueCustomers;
     },
   });
 
@@ -70,22 +87,39 @@ export const DataHubCustomerReport = () => {
     };
   }, [selectedMonth]);
 
-  // Fetch jobs for selected customer and period
+  // Fetch jobs for selected customer and period (handling pagination)
   const { data: jobsData, isLoading: loadingJobs, refetch } = useQuery({
     queryKey: ["data-hub-customer-report", selectedCustomer, selectedMonth],
     queryFn: async () => {
       if (!selectedCustomer) return null;
 
-      const { data, error } = await supabase
-        .from("data_hub_jobs")
-        .select("*")
-        .eq("customer", selectedCustomer)
-        .gte("job_date", format(periodStart, "yyyy-MM-dd"))
-        .lte("job_date", format(periodEnd, "yyyy-MM-dd"))
-        .order("job_date", { ascending: true });
+      const allJobs: any[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+      let hasMore = true;
 
-      if (error) throw error;
-      return data;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("*")
+          .eq("customer", selectedCustomer)
+          .gte("job_date", format(periodStart, "yyyy-MM-dd"))
+          .lte("job_date", format(periodEnd, "yyyy-MM-dd"))
+          .order("job_date", { ascending: true })
+          .range(offset, offset + batchSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allJobs.push(...data);
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      return allJobs;
     },
     enabled: !!selectedCustomer,
   });
