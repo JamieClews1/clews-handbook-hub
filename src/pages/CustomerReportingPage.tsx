@@ -6,11 +6,12 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database } from "lucide-react";
 import { SiteReportGenerator } from "@/components/customer-reporting/SiteReportGenerator";
 import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
 import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
+import { DataHubCustomerReport } from "@/components/customer-reporting/DataHubCustomerReport";
 
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
@@ -72,22 +73,26 @@ const CustomerReportingPage = () => {
         </div>
 
         <Tabs defaultValue="site-reports" className="space-y-6">
-          <TabsList className="grid w-full max-w-3xl grid-cols-4">
+          <TabsList className="grid w-full max-w-4xl grid-cols-5">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Site Reports
+              <span className="hidden sm:inline">Site Reports</span>
             </TabsTrigger>
             <TabsTrigger value="rebate-reports" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              Rebate Reports
+              <span className="hidden sm:inline">Rebate Reports</span>
+            </TabsTrigger>
+            <TabsTrigger value="data-hub-report" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              <span className="hidden sm:inline">Data Hub</span>
             </TabsTrigger>
             <TabsTrigger value="monthly-generation" className="flex items-center gap-2">
               <Send className="h-4 w-4" />
-              Monthly Generation
+              <span className="hidden sm:inline">Monthly</span>
             </TabsTrigger>
             <TabsTrigger value="rebate-check" className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4" />
-              Rebate Check
+              <span className="hidden sm:inline">Check</span>
             </TabsTrigger>
           </TabsList>
 
@@ -115,6 +120,20 @@ const CustomerReportingPage = () => {
               </CardHeader>
               <CardContent>
                 <SiteRebateReportGenerator />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="data-hub-report">
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Hub Customer Report</CardTitle>
+                <CardDescription>
+                  Generate reports for customers directly from Data Hub data - no setup required
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DataHubCustomerReport />
               </CardContent>
             </Card>
           </TabsContent>
