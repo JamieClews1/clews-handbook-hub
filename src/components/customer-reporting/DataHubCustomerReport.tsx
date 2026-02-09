@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, FileSpreadsheet, Download, AlertCircle, ChevronsUpDown, Check } from "lucide-react";
+import { Loader2, FileSpreadsheet, Download, AlertCircle, ChevronsUpDown, Check, CalendarIcon } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
@@ -45,9 +46,8 @@ export const DataHubCustomerReport = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedFields, setSelectedFields] = useState<FieldKey[]>(["waste_description"]);
   const [dataSource, setDataSource] = useState<DataSourceFilter>("combined");
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    format(startOfMonth(new Date()), "yyyy-MM")
-  );
+  const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
+  const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
 
   // Fetch unique customer names from data_hub_jobs (handling pagination for large datasets)
   const { data: customers, isLoading: loadingCustomers } = useQuery({
@@ -84,19 +84,12 @@ export const DataHubCustomerReport = () => {
     },
   });
 
-  // Parse selected month
-  const { periodStart, periodEnd } = useMemo(() => {
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const date = new Date(year, month - 1, 1);
-    return {
-      periodStart: startOfMonth(date),
-      periodEnd: endOfMonth(date),
-    };
-  }, [selectedMonth]);
+  const periodStart = startDate;
+  const periodEnd = endDate;
 
   // Fetch jobs for selected customer and period (handling pagination)
   const { data: jobsData, isLoading: loadingJobs, refetch } = useQuery({
-    queryKey: ["data-hub-customer-report", selectedCustomer, selectedMonth, dataSource],
+    queryKey: ["data-hub-customer-report", selectedCustomer, format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), dataSource],
     queryFn: async () => {
       if (!selectedCustomer) return null;
 
@@ -173,18 +166,32 @@ export const DataHubCustomerReport = () => {
     };
   }, [breakdown]);
 
-  // Generate month options (last 12 months)
-  const monthOptions = useMemo(() => {
-    const options = [];
-    for (let i = 0; i < 12; i++) {
-      const date = subMonths(new Date(), i);
-      options.push({
-        value: format(startOfMonth(date), "yyyy-MM"),
-        label: format(date, "MMMM yyyy"),
-      });
+  // Quick period presets
+  const applyPreset = (preset: string) => {
+    const now = new Date();
+    switch (preset) {
+      case "this-month":
+        setStartDate(startOfMonth(now));
+        setEndDate(endOfMonth(now));
+        break;
+      case "last-month":
+        setStartDate(startOfMonth(subMonths(now, 1)));
+        setEndDate(endOfMonth(subMonths(now, 1)));
+        break;
+      case "last-3":
+        setStartDate(startOfMonth(subMonths(now, 2)));
+        setEndDate(endOfMonth(now));
+        break;
+      case "last-6":
+        setStartDate(startOfMonth(subMonths(now, 5)));
+        setEndDate(endOfMonth(now));
+        break;
+      case "last-12":
+        setStartDate(startOfMonth(subMonths(now, 11)));
+        setEndDate(endOfMonth(now));
+        break;
     }
-    return options;
-  }, []);
+  };
 
   // Toggle field selection
   const toggleField = (field: FieldKey) => {
@@ -232,7 +239,7 @@ export const DataHubCustomerReport = () => {
     // Add summary sheet
     const summaryData = [
       { Field: "Customer", Value: selectedCustomer },
-      { Field: "Period", Value: format(periodStart, "MMMM yyyy") },
+      { Field: "Period", Value: `${format(periodStart, "dd/MM/yyyy")} - ${format(periodEnd, "dd/MM/yyyy")}` },
       { Field: "Grouped By", Value: fieldLabels.join(", ") },
       { Field: "Total Weight (t)", Value: totals.totalWeightT.toFixed(3) },
       { Field: "Total Jobs", Value: totals.totalJobs },
@@ -241,14 +248,14 @@ export const DataHubCustomerReport = () => {
     const summaryWs = XLSX.utils.json_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
 
-    const fileName = `DataHub_${selectedCustomer.replace(/[^a-zA-Z0-9]/g, "_")}_${format(periodStart, "yyyy-MM")}.xlsx`;
+    const fileName = `DataHub_${selectedCustomer.replace(/[^a-zA-Z0-9]/g, "_")}_${format(periodStart, "yyyy-MM-dd")}_to_${format(periodEnd, "yyyy-MM-dd")}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
   return (
     <div className="space-y-6">
       {/* Selection Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Searchable Customer Selection */}
         <div className="space-y-2">
           <Label>Data Hub Customer</Label>
@@ -301,21 +308,47 @@ export const DataHubCustomerReport = () => {
           </Popover>
         </div>
 
-        {/* Month Selection */}
+        {/* Date Range Selection */}
         <div className="space-y-2">
-          <Label>Reporting Period</Label>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Start Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start text-left font-normal h-10">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(startDate, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={(d) => d && setStartDate(d)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <Label>End Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start text-left font-normal h-10">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(endDate, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={(d) => d && setEndDate(d)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Data Source Selection */}
@@ -369,13 +402,29 @@ export const DataHubCustomerReport = () => {
         </div>
       </div>
 
+      {/* Quick Period Presets */}
+      <div className="flex flex-wrap gap-2">
+        <span className="text-sm text-muted-foreground self-center mr-1">Quick select:</span>
+        {[
+          { label: "This Month", value: "this-month" },
+          { label: "Last Month", value: "last-month" },
+          { label: "Last 3 Months", value: "last-3" },
+          { label: "Last 6 Months", value: "last-6" },
+          { label: "Last 12 Months", value: "last-12" },
+        ].map((preset) => (
+          <Button key={preset.value} variant="outline" size="sm" onClick={() => applyPreset(preset.value)}>
+            {preset.label}
+          </Button>
+        ))}
+      </div>
+
       {/* Results */}
       {selectedCustomer && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg">
-                {selectedCustomer} - {format(periodStart, "MMMM yyyy")}
+                {selectedCustomer} - {format(periodStart, "dd/MM/yyyy")} to {format(periodEnd, "dd/MM/yyyy")}
               </CardTitle>
               <CardDescription>
                 Waste breakdown from Data Hub records
