@@ -62,6 +62,7 @@ function saveGroupMap(map: Record<string, WasteGroup>) {
 const ZeroToLandfillChart = () => {
   const [groupMap, setGroupMap] = useState<Record<string, WasteGroup>>(loadGroupMap);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
 
   useEffect(() => {
     saveGroupMap(groupMap);
@@ -214,9 +215,25 @@ const ZeroToLandfillChart = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Assign each waste description to one of the three groups. Unassigned streams default to "All Recycled".
               </p>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm font-medium">Show:</span>
+                <Select value={filterGroup} onValueChange={(val) => setFilterGroup(val as WasteGroup | "all")}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Groups</SelectItem>
+                    <SelectItem value="landfill">Landfill ({groupCounts.landfill})</SelectItem>
+                    <SelectItem value="rdf">RDF & Waste To RDF ({groupCounts.rdf})</SelectItem>
+                    <SelectItem value="recycled">All Recycled ({groupCounts.recycled})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-2">
-                  {wasteDescriptions.map((desc) => (
+                  {wasteDescriptions
+                    .filter((desc) => filterGroup === "all" || (groupMap[desc] || "recycled") === filterGroup)
+                    .map((desc) => (
                     <div key={desc} className="flex items-center gap-3 py-2 border-b border-border/50">
                       <div className="flex-1 text-sm truncate" title={desc}>
                         {desc}
