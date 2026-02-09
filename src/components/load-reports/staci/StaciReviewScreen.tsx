@@ -233,7 +233,19 @@ export const StaciReviewScreen = ({
             <CardTitle className="text-lg">Pallet Breakdown</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {summaries.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="text-2xl font-bold">{totalPallets}</p>
+                <p className="text-xs text-muted-foreground">Total Pallets</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <p className="text-2xl font-bold">{(totalPallets * palletWeightKg).toLocaleString()} kg</p>
+                <p className="text-xs text-muted-foreground">Pallet Tare ({palletWeightKg}kg each)</p>
+              </div>
+            </div>
+          )}
           {summaries.length > 0 ? (
             <StaciSummaryTable
               summaries={summaries}
