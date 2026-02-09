@@ -814,6 +814,7 @@ const LoadReportsPage = () => {
               onFilmsBaleCountChange={setStaciFilmsBaleCount}
               filmsBaleWeightKg={staciFilmsBaleWeightKg}
               onFilmsBaleWeightKgChange={setStaciFilmsBaleWeightKg}
+              palletWeightKg={defaultPalletWeight}
             />
           )}
 
@@ -844,6 +845,7 @@ const LoadReportsPage = () => {
               cardBalesWeightKg={staciCardBalesWeightKg}
               filmsBaleCount={staciFilmsBaleCount}
               filmsBaleWeightKg={staciFilmsBaleWeightKg}
+              palletWeightKg={defaultPalletWeight}
               onBack={handleBack}
               onSaveDraft={() => saveReport(false)}
               onSubmit={() => saveReport(true)}

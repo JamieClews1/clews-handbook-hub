@@ -20,6 +20,7 @@ interface StaciSummaryTableProps {
   cardBalesWeightKg?: number;
   filmsBaleCount?: number;
   filmsBaleWeightKg?: number;
+  palletWeightKg?: number;
 }
 
 export const StaciSummaryTable = ({
@@ -33,8 +34,11 @@ export const StaciSummaryTable = ({
   cardBalesWeightKg = 0,
   filmsBaleCount = 0,
   filmsBaleWeightKg = 0,
+  palletWeightKg = 20,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
+  const totalPalletDeductionKg = totalPallets * palletWeightKg;
+  const totalNetWeightKg = totalWeightKg - totalPalletDeductionKg;
   const netTotal = totalValue - palletRebate;
 
   return (
@@ -44,7 +48,9 @@ export const StaciSummaryTable = ({
           <TableRow className="bg-muted/50">
             <TableHead>Colour</TableHead>
             <TableHead className="text-right">Pallets</TableHead>
-            <TableHead className="text-right">Weight (KG)</TableHead>
+            <TableHead className="text-right">Gross Weight (KG)</TableHead>
+            <TableHead className="text-right">Pallet Weight (KG)</TableHead>
+            <TableHead className="text-right">Net Weight (KG)</TableHead>
             <TableHead className="text-right">Rate/Pallet</TableHead>
             <TableHead className="text-right">Value (£)</TableHead>
           </TableRow>
@@ -53,6 +59,8 @@ export const StaciSummaryTable = ({
           {summaries.map((summary) => {
             const config = STACI_COLOUR_CONFIG[summary.colour];
             const isRebate = summary.ratePerPallet < 0;
+            const palletDeduction = summary.palletCount * palletWeightKg;
+            const netWeight = summary.totalWeightKg - palletDeduction;
             return (
               <TableRow key={summary.colour}>
                 <TableCell>
@@ -66,6 +74,12 @@ export const StaciSummaryTable = ({
                 </TableCell>
                 <TableCell className="text-right">
                   {summary.totalWeightKg.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {palletDeduction.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {netWeight.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
                   {isRebate ? (
@@ -89,6 +103,8 @@ export const StaciSummaryTable = ({
                 {goodPalletCount}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right text-green-600">
                 -£{STACI_PALLET_GOOD_REBATE.toFixed(2)}
               </TableCell>
@@ -106,6 +122,8 @@ export const StaciSummaryTable = ({
                 {palletsScrapCount}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">Charge</TableCell>
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
@@ -122,6 +140,8 @@ export const StaciSummaryTable = ({
                 {cardBalesWeightKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">{cardBalesWeightKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
           )}
@@ -137,6 +157,8 @@ export const StaciSummaryTable = ({
                 {filmsBaleWeightKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">{filmsBaleWeightKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
           )}
@@ -146,6 +168,8 @@ export const StaciSummaryTable = ({
             <TableCell>Total</TableCell>
             <TableCell className="text-right">{totalPallets}</TableCell>
             <TableCell className="text-right">{totalWeightKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalPalletDeductionKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalNetWeightKg.toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
               {netTotal < 0 ? "-" : ""}£{Math.abs(netTotal).toFixed(2)}
