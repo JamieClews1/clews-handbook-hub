@@ -2467,31 +2467,37 @@ export type Database = {
         Row: {
           colour: string
           created_at: string
+          description: string | null
           display_order: number
           id: string
           load_report_id: string
           pallet_type: string | null
           updated_at: string
+          waste_breakdown: Json | null
           weight_kg: number
         }
         Insert: {
           colour: string
           created_at?: string
+          description?: string | null
           display_order?: number
           id?: string
           load_report_id: string
           pallet_type?: string | null
           updated_at?: string
+          waste_breakdown?: Json | null
           weight_kg?: number
         }
         Update: {
           colour?: string
           created_at?: string
+          description?: string | null
           display_order?: number
           id?: string
           load_report_id?: string
           pallet_type?: string | null
           updated_at?: string
+          waste_breakdown?: Json | null
           weight_kg?: number
         }
         Relationships: [
