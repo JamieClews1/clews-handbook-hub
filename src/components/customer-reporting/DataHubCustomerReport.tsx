@@ -22,9 +22,15 @@ const AVAILABLE_FIELDS = [
   { key: "category", label: "Category" },
   { key: "ewc", label: "EWC Code" },
   { key: "job_type", label: "Job Type" },
+  { key: "job_number", label: "Job Number" },
   { key: "movement_type", label: "Movement Type" },
   { key: "vehicle_registration", label: "Vehicle Reg" },
+  { key: "source", label: "Source" },
+  { key: "order_number_override", label: "Order Number" },
+  { key: "job_date", label: "Job Date" },
 ] as const;
+
+type DataSourceFilter = "combined" | "skiptrak" | "midweigh";
 
 type FieldKey = typeof AVAILABLE_FIELDS[number]["key"];
 
@@ -38,6 +44,7 @@ export const DataHubCustomerReport = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedFields, setSelectedFields] = useState<FieldKey[]>(["waste_description"]);
+  const [dataSource, setDataSource] = useState<DataSourceFilter>("combined");
   const [selectedMonth, setSelectedMonth] = useState<string>(
     format(startOfMonth(new Date()), "yyyy-MM")
   );
@@ -89,7 +96,7 @@ export const DataHubCustomerReport = () => {
 
   // Fetch jobs for selected customer and period (handling pagination)
   const { data: jobsData, isLoading: loadingJobs, refetch } = useQuery({
-    queryKey: ["data-hub-customer-report", selectedCustomer, selectedMonth],
+    queryKey: ["data-hub-customer-report", selectedCustomer, selectedMonth, dataSource],
     queryFn: async () => {
       if (!selectedCustomer) return null;
 
@@ -99,12 +106,18 @@ export const DataHubCustomerReport = () => {
       let hasMore = true;
 
       while (hasMore) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("data_hub_jobs")
           .select("*")
           .eq("customer", selectedCustomer)
           .gte("job_date", format(periodStart, "yyyy-MM-dd"))
-          .lte("job_date", format(periodEnd, "yyyy-MM-dd"))
+          .lte("job_date", format(periodEnd, "yyyy-MM-dd"));
+
+        if (dataSource !== "combined") {
+          query = query.eq("source", dataSource);
+        }
+
+        const { data, error } = await query
           .order("job_date", { ascending: true })
           .range(offset, offset + batchSize - 1);
 
@@ -235,7 +248,7 @@ export const DataHubCustomerReport = () => {
   return (
     <div className="space-y-6">
       {/* Selection Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Searchable Customer Selection */}
         <div className="space-y-2">
           <Label>Data Hub Customer</Label>
@@ -301,6 +314,21 @@ export const DataHubCustomerReport = () => {
                   {option.label}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Data Source Selection */}
+        <div className="space-y-2">
+          <Label>Data Source</Label>
+          <Select value={dataSource} onValueChange={(v) => setDataSource(v as DataSourceFilter)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="combined">Combined</SelectItem>
+              <SelectItem value="skiptrak">Skiptrak</SelectItem>
+              <SelectItem value="midweigh">Midweigh</SelectItem>
             </SelectContent>
           </Select>
         </div>
