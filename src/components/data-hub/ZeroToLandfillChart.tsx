@@ -145,19 +145,25 @@ const ZeroToLandfillChart = () => {
 
     return Object.entries(weekBuckets)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([weekDate, values]) => ({
-        week: format(parseISO(weekDate), "dd MMM"),
-        weekFull: weekDate,
-        landfill: Math.round(values.landfill * 100) / 100,
-        rdf: Math.round(values.rdf * 100) / 100,
-        recycled: Math.round(values.recycled * 100) / 100,
-      }));
+      .map(([weekDate, values]) => {
+        const total = values.landfill + values.rdf + values.recycled;
+        const landfillPct = total > 0 ? Math.round((values.landfill / total) * 10000) / 100 : 0;
+        return {
+          week: format(parseISO(weekDate), "dd MMM"),
+          weekFull: weekDate,
+          landfill: Math.round(values.landfill * 100) / 100,
+          rdf: Math.round(values.rdf * 100) / 100,
+          recycled: Math.round(values.recycled * 100) / 100,
+          landfillPct,
+        };
+      });
   }, [rawJobs, groupMap]);
 
   const chartConfig = {
     landfill: { label: "Landfill", color: GROUP_COLORS.landfill },
     rdf: { label: "RDF & Waste To RDF", color: GROUP_COLORS.rdf },
     recycled: { label: "All Recycled", color: GROUP_COLORS.recycled },
+    landfillPct: { label: "Landfill %", color: "hsl(0, 70%, 35%)" },
   };
 
   const handleGroupChange = (desc: string, group: WasteGroup) => {
@@ -270,7 +276,7 @@ const ZeroToLandfillChart = () => {
           <div className="w-full overflow-x-auto">
             <div style={{ minWidth: "1400px" }}>
               <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <LineChart data={chartData} margin={{ top: 5, right: 60, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                   <XAxis
                     dataKey="week"
@@ -281,13 +287,23 @@ const ZeroToLandfillChart = () => {
                     height={60}
                   />
                   <YAxis
+                    yAxisId="left"
                     tick={{ fontSize: 11 }}
                     label={{ value: "Tonnes", angle: -90, position: "insideLeft", style: { fontSize: 12 } }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 11 }}
+                    domain={[0, 100]}
+                    tickFormatter={(v) => `${v}%`}
+                    label={{ value: "Landfill %", angle: 90, position: "insideRight", style: { fontSize: 12 } }}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
                     dataKey="landfill"
+                    yAxisId="left"
                     stroke={GROUP_COLORS.landfill}
                     strokeWidth={2}
                     dot={false}
@@ -296,6 +312,7 @@ const ZeroToLandfillChart = () => {
                   <Line
                     type="monotone"
                     dataKey="rdf"
+                    yAxisId="left"
                     stroke={GROUP_COLORS.rdf}
                     strokeWidth={2}
                     dot={false}
@@ -304,10 +321,21 @@ const ZeroToLandfillChart = () => {
                   <Line
                     type="monotone"
                     dataKey="recycled"
+                    yAxisId="left"
                     stroke={GROUP_COLORS.recycled}
                     strokeWidth={2}
                     dot={false}
                     name="All Recycled"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="landfillPct"
+                    yAxisId="right"
+                    stroke="hsl(0, 70%, 35%)"
+                    strokeWidth={2}
+                    strokeDasharray="5 3"
+                    dot={false}
+                    name="Landfill %"
                   />
                 </LineChart>
               </ChartContainer>
