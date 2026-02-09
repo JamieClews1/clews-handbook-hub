@@ -66,6 +66,11 @@ const LoadReportsPage = () => {
   // Staci-specific state
   const [staciPalletEntries, setStaciPalletEntries] = useState<StaciPalletEntry[]>([]);
   const [staciGoodPalletCount, setStaciGoodPalletCount] = useState(0);
+  const [staciPalletsScrapCount, setStaciPalletsScrapCount] = useState(0);
+  const [staciCardBalesCount, setStaciCardBalesCount] = useState(0);
+  const [staciCardBalesWeightKg, setStaciCardBalesWeightKg] = useState(0);
+  const [staciFilmsBaleCount, setStaciFilmsBaleCount] = useState(0);
+  const [staciFilmsBaleWeightKg, setStaciFilmsBaleWeightKg] = useState(0);
 
   // Offline support
   const {
@@ -277,6 +282,11 @@ const LoadReportsPage = () => {
     // Reset Staci state
     setStaciPalletEntries([]);
     setStaciGoodPalletCount(0);
+    setStaciPalletsScrapCount(0);
+    setStaciCardBalesCount(0);
+    setStaciCardBalesWeightKg(0);
+    setStaciFilmsBaleCount(0);
+    setStaciFilmsBaleWeightKg(0);
     
     // Fetch latest waste types to ensure we have current default weights
     const { data, error } = await supabase
@@ -794,6 +804,16 @@ const LoadReportsPage = () => {
               onReview={() => setViewMode("review")}
               goodPalletCount={staciGoodPalletCount}
               onGoodPalletCountChange={setStaciGoodPalletCount}
+              palletsScrapCount={staciPalletsScrapCount}
+              onPalletsScrapCountChange={setStaciPalletsScrapCount}
+              cardBalesCount={staciCardBalesCount}
+              onCardBalesCountChange={setStaciCardBalesCount}
+              cardBalesWeightKg={staciCardBalesWeightKg}
+              onCardBalesWeightKgChange={setStaciCardBalesWeightKg}
+              filmsBaleCount={staciFilmsBaleCount}
+              onFilmsBaleCountChange={setStaciFilmsBaleCount}
+              filmsBaleWeightKg={staciFilmsBaleWeightKg}
+              onFilmsBaleWeightKgChange={setStaciFilmsBaleWeightKg}
             />
           )}
 
@@ -819,6 +839,11 @@ const LoadReportsPage = () => {
               reportDate={reportDate}
               palletEntries={staciPalletEntries}
               goodPalletCount={staciGoodPalletCount}
+              palletsScrapCount={staciPalletsScrapCount}
+              cardBalesCount={staciCardBalesCount}
+              cardBalesWeightKg={staciCardBalesWeightKg}
+              filmsBaleCount={staciFilmsBaleCount}
+              filmsBaleWeightKg={staciFilmsBaleWeightKg}
               onBack={handleBack}
               onSaveDraft={() => saveReport(false)}
               onSubmit={() => saveReport(true)}

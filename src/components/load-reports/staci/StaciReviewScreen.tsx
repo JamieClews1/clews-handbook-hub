@@ -18,6 +18,11 @@ interface StaciReviewScreenProps {
   reportDate: string;
   palletEntries: StaciPalletEntry[];
   goodPalletCount: number;
+  palletsScrapCount: number;
+  cardBalesCount: number;
+  cardBalesWeightKg: number;
+  filmsBaleCount: number;
+  filmsBaleWeightKg: number;
   onBack: () => void;
   onSaveDraft: () => void;
   onSubmit: () => void;
@@ -31,6 +36,11 @@ export const StaciReviewScreen = ({
   reportDate,
   palletEntries,
   goodPalletCount,
+  palletsScrapCount,
+  cardBalesCount,
+  cardBalesWeightKg,
+  filmsBaleCount,
+  filmsBaleWeightKg,
   onBack,
   onSaveDraft,
   onSubmit,
@@ -140,6 +150,11 @@ export const StaciReviewScreen = ({
               totalWeightKg={totalWeightKg}
               totalValue={totalValue}
               goodPalletCount={goodPalletCount}
+              palletsScrapCount={palletsScrapCount}
+              cardBalesCount={cardBalesCount}
+              cardBalesWeightKg={cardBalesWeightKg}
+              filmsBaleCount={filmsBaleCount}
+              filmsBaleWeightKg={filmsBaleWeightKg}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">
