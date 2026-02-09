@@ -21,6 +21,7 @@ interface StaciPalletEntryCardProps {
   index: number;
   onDescriptionChange: (description: string) => void;
   onWeightChange: (weight: number) => void;
+  onPalletCountChange: (count: number) => void;
   onBreakdownChange: (breakdown: StaciWasteBreakdown) => void;
   onDelete: () => void;
 }
@@ -30,6 +31,7 @@ export const StaciPalletEntryCard = ({
   index,
   onDescriptionChange,
   onWeightChange,
+  onPalletCountChange,
   onBreakdownChange,
   onDelete,
 }: StaciPalletEntryCardProps) => {
@@ -44,10 +46,15 @@ export const StaciPalletEntryCard = ({
 
   return (
     <Card className="overflow-hidden border-2 shadow-sm">
-      {/* Header with pallet number and delete */}
+      {/* Header with pallet type number and delete */}
       <div className="bg-muted px-4 py-3 flex items-center justify-between border-b">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-lg">Pallet #{index + 1}</span>
+          <span className="font-bold text-lg">Pallet Type #{index + 1}</span>
+          {entry.pallet_count > 1 && (
+            <span className="text-sm text-muted-foreground">
+              ×{entry.pallet_count} pallets
+            </span>
+          )}
           {entry.weight_kg > 0 && isBreakdownValid && (
             <div className={`px-2 py-0.5 rounded text-xs font-semibold ${calculatedConfig.bgColor} ${calculatedConfig.textColor}`}>
               {calculatedConfig.label}
@@ -65,9 +72,9 @@ export const StaciPalletEntryCard = ({
       </div>
 
       <CardContent className="p-4 space-y-4">
-        {/* Description and Weight row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
+        {/* Description, Pallet Count and Weight row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor={`desc-${entry.id}`} className="text-sm font-medium">
               Description
             </Label>
@@ -81,20 +88,41 @@ export const StaciPalletEntryCard = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`weight-${entry.id}`} className="text-sm font-medium">
-              Est. Weight (KG)
+            <Label htmlFor={`count-${entry.id}`} className="text-sm font-medium">
+              No. Pallets
             </Label>
             <Input
-              id={`weight-${entry.id}`}
+              id={`count-${entry.id}`}
               type="number"
-              min={0}
-              step={10}
-              value={entry.weight_kg || ""}
-              onChange={(e) => onWeightChange(parseFloat(e.target.value) || 0)}
-              className="h-11 text-lg font-semibold"
-              placeholder="0"
+              min={1}
+              value={entry.pallet_count || 1}
+              onChange={(e) => onPalletCountChange(Math.max(1, parseInt(e.target.value) || 1))}
+              className="h-11 text-lg font-semibold text-center"
+              placeholder="1"
             />
           </div>
+        </div>
+
+        {/* Weight per pallet */}
+        <div className="space-y-2">
+          <Label htmlFor={`weight-${entry.id}`} className="text-sm font-medium">
+            Est. Weight per Pallet (KG)
+          </Label>
+          <Input
+            id={`weight-${entry.id}`}
+            type="number"
+            min={0}
+            step={10}
+            value={entry.weight_kg || ""}
+            onChange={(e) => onWeightChange(parseFloat(e.target.value) || 0)}
+            className="h-11 text-lg font-semibold"
+            placeholder="0"
+          />
+          {entry.pallet_count > 1 && entry.weight_kg > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Total weight: {(entry.weight_kg * entry.pallet_count).toLocaleString()} KG
+            </p>
+          )}
         </div>
 
         {/* Waste breakdown collapsible */}

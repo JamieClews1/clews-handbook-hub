@@ -37,7 +37,7 @@ export const StaciTallyScreen = ({
   // Generate unique ID for new entries
   const generateId = () => crypto.randomUUID();
 
-  // Add a new blank pallet
+  // Add a new blank pallet type
   const handleAddPallet = () => {
     const newEntry: StaciPalletEntry = {
       id: generateId(),
@@ -47,8 +47,16 @@ export const StaciTallyScreen = ({
       display_order: palletEntries.length,
       description: "",
       waste_breakdown: { ...EMPTY_WASTE_BREAKDOWN },
+      pallet_count: 1,
     };
     onPalletEntriesChange([...palletEntries, newEntry]);
+  };
+
+  // Update pallet count
+  const handlePalletCountChange = (id: string, count: number) => {
+    onPalletEntriesChange(
+      palletEntries.map((e) => (e.id === id ? { ...e, pallet_count: count } : e))
+    );
   };
 
   // Update description for a specific entry
@@ -86,22 +94,25 @@ export const StaciTallyScreen = ({
   };
 
   // Calculate summaries by colour (only include valid entries)
-  const { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount } = useMemo(() => {
+  const { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount, totalPalletTypes } = useMemo(() => {
     const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
 
     let validCount = 0;
+    let totalPalletTypes = 0;
     for (const entry of palletEntries) {
       const breakdownTotal = getTotalPercentage(entry.waste_breakdown);
       const isValid = Math.abs(breakdownTotal - 100) < 0.01 && entry.weight_kg > 0;
       
       if (!isValid) continue;
       validCount++;
+      totalPalletTypes++;
 
+      const palletCount = entry.pallet_count || 1;
       const colour = calculatePalletColour(entry.weight_kg, entry.waste_breakdown);
       const existing = colourMap.get(colour) || { count: 0, weight: 0 };
       colourMap.set(colour, {
-        count: existing.count + 1,
-        weight: existing.weight + entry.weight_kg,
+        count: existing.count + palletCount,
+        weight: existing.weight + (entry.weight_kg * palletCount),
       });
     }
 
@@ -135,10 +146,10 @@ export const StaciTallyScreen = ({
     const colourOrder: StaciPalletColour[] = ["red", "yellow", "blue", "green", "waste_wood"];
     summaries.sort((a, b) => colourOrder.indexOf(a.colour) - colourOrder.indexOf(b.colour));
 
-    return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount };
+    return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
   }, [palletEntries]);
 
-  const incompleteCount = palletEntries.length - validEntryCount;
+  const incompleteCount = palletEntries.length - totalPalletTypes;
 
   return (
     <div className="space-y-6 pb-32">
@@ -153,13 +164,13 @@ export const StaciTallyScreen = ({
               <div>
                 <CardTitle className="text-lg">Staci Pallet Tally</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Enter pallet details with waste % breakdown
+                  Enter pallet types with quantity and waste % breakdown
                 </p>
               </div>
             </div>
             <Button onClick={handleAddPallet} className="gap-2">
               <Plus className="h-4 w-4" />
-              Add Pallet
+              Add Pallet Type
             </Button>
           </div>
         </CardHeader>
@@ -169,25 +180,26 @@ export const StaciTallyScreen = ({
       {palletEntries.length > 0 ? (
         <div className="space-y-4">
           {palletEntries.map((entry, idx) => (
-            <StaciPalletEntryCard
-              key={entry.id}
-              entry={entry}
-              index={idx}
-              onDescriptionChange={(desc) => handleDescriptionChange(entry.id, desc)}
-              onWeightChange={(weight) => handleWeightChange(entry.id, weight)}
-              onBreakdownChange={(breakdown) => handleBreakdownChange(entry.id, breakdown)}
-              onDelete={() => handleDelete(entry.id)}
-            />
+              <StaciPalletEntryCard
+                key={entry.id}
+                entry={entry}
+                index={idx}
+                onDescriptionChange={(desc) => handleDescriptionChange(entry.id, desc)}
+                onWeightChange={(weight) => handleWeightChange(entry.id, weight)}
+                onPalletCountChange={(count) => handlePalletCountChange(entry.id, count)}
+                onBreakdownChange={(breakdown) => handleBreakdownChange(entry.id, breakdown)}
+                onDelete={() => handleDelete(entry.id)}
+              />
           ))}
         </div>
       ) : (
         <Card className="border-2 border-dashed">
           <CardContent className="py-12 text-center">
             <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">No pallets added yet</p>
+            <p className="text-muted-foreground mb-4">No pallet types added yet</p>
             <Button onClick={handleAddPallet} variant="outline" className="gap-2">
               <Plus className="h-4 w-4" />
-              Add First Pallet
+              Add First Pallet Type
             </Button>
           </CardContent>
         </Card>
@@ -227,7 +239,7 @@ export const StaciTallyScreen = ({
             <h3 className="text-sm font-medium text-muted-foreground">Summary:</h3>
             {incompleteCount > 0 && (
               <span className="text-xs text-orange-600 dark:text-orange-400">
-                {incompleteCount} pallet(s) incomplete
+                {incompleteCount} pallet type(s) incomplete
               </span>
             )}
           </div>
@@ -252,7 +264,7 @@ export const StaciTallyScreen = ({
 
             <div className="flex items-center gap-6 text-center">
               <div>
-                <div className="text-2xl font-bold text-foreground">{validEntryCount}</div>
+                <div className="text-2xl font-bold text-foreground">{totalPallets}</div>
                 <div className="text-xs text-muted-foreground">Pallets</div>
               </div>
               <div className="w-px h-10 bg-border" />
