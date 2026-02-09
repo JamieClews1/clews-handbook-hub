@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { Settings2, Leaf } from "lucide-react";
+import { Settings2, Leaf, CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ZeroToLandfillPercentChart from "./ZeroToLandfillPercentChart";
 import {
   Dialog,
@@ -23,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { startOfWeek, endOfWeek, format, subWeeks, parseISO } from "date-fns";
+import { startOfWeek, endOfWeek, format, subWeeks, subYears, parseISO, differenceInWeeks, eachWeekOfInterval } from "date-fns";
 
 type WasteGroup = "landfill" | "rdf" | "recycled";
 
@@ -60,27 +63,22 @@ function saveGroupMap(map: Record<string, WasteGroup>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 }
 
-const TIMEFRAME_OPTIONS = [
-  { label: "13 weeks", value: 13 },
-  { label: "26 weeks", value: 26 },
-  { label: "52 weeks", value: 52 },
-  { label: "78 weeks", value: 78 },
-  { label: "104 weeks", value: 104 },
-];
-
 const ZeroToLandfillChart = () => {
   const [groupMap, setGroupMap] = useState<Record<string, WasteGroup>>(loadGroupMap);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
-  const [weeksCount, setWeeksCount] = useState(52);
+
+  const now = new Date();
+  const maxStartDate = subYears(now, 2);
+  const [startDate, setStartDate] = useState<Date>(startOfWeek(subWeeks(now, 51), { weekStartsOn: 1 }));
+  const [endDate, setEndDate] = useState<Date>(endOfWeek(now, { weekStartsOn: 1 }));
 
   useEffect(() => {
     saveGroupMap(groupMap);
   }, [groupMap]);
 
-  const now = new Date();
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const weekStart = startOfWeek(subWeeks(now, weeksCount - 1), { weekStartsOn: 1 });
+  const weekStart = startOfWeek(startDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(endDate, { weekStartsOn: 1 });
 
   const { data: rawJobs, isLoading } = useQuery({
     queryKey: ["ztl-midweigh-all", weekStart.toISOString(), weekEnd.toISOString()],
@@ -130,12 +128,12 @@ const ZeroToLandfillChart = () => {
 
     const weekBuckets: Record<string, { landfill: number; rdf: number; recycled: number; totalIn: number }> = {};
 
-    // Pre-populate 52 weeks
-    for (let i = 0; i < weeksCount; i++) {
-      const ws = startOfWeek(subWeeks(now, weeksCount - 1 - i), { weekStartsOn: 1 });
+    // Pre-populate weeks in range
+    const weeks = eachWeekOfInterval({ start: weekStart, end: weekEnd }, { weekStartsOn: 1 });
+    weeks.forEach((ws) => {
       const key = format(ws, "yyyy-MM-dd");
       weekBuckets[key] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
-    }
+    });
 
     rawJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
@@ -206,22 +204,49 @@ const ZeroToLandfillChart = () => {
           <div>
             <CardTitle className="text-lg">Zero To Landfill</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Weekly outward waste by Product · Midweigh · Last {weeksCount} weeks
+              Weekly outward waste by Product · Midweigh
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Select value={String(weeksCount)} onValueChange={(val) => setWeeksCount(Number(val))}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEFRAME_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs")}>
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                {format(startDate, "dd MMM yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={(d) => d && setStartDate(d)}
+                disabled={(d) => d > endDate || d < maxStartDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-xs text-muted-foreground">to</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs")}>
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                {format(endDate, "dd MMM yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={(d) => d && setEndDate(d)}
+                disabled={(d) => d < startDate || d > now}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
           <div className="flex gap-1.5">
             <Badge variant="outline" className="text-xs" style={{ borderColor: GROUP_COLORS.landfill, color: GROUP_COLORS.landfill }}>
               Landfill ({groupCounts.landfill})
