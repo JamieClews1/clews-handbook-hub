@@ -17,6 +17,9 @@ import { useOfflineLoadReports } from "@/hooks/useOfflineLoadReports";
 import { initAutoSync } from "@/lib/sync-service";
 import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
 
+// Staci-specific components
+import { StaciTallyScreen, StaciReviewScreen, StaciPalletEntry } from "@/components/load-reports/staci";
+
 type ViewMode = "customer" | "list" | "new" | "tally" | "review";
 
 interface WasteType {
@@ -59,6 +62,10 @@ const LoadReportsPage = () => {
   const [palletsOut, setPalletsOut] = useState(0);
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
   const [wetChargePercent, setWetChargePercent] = useState(0);
+
+  // Staci-specific state
+  const [staciPalletEntries, setStaciPalletEntries] = useState<StaciPalletEntry[]>([]);
+  const [staciGoodPalletCount, setStaciGoodPalletCount] = useState(0);
 
   // Offline support
   const {
@@ -267,6 +274,10 @@ const LoadReportsPage = () => {
     setWetChargePercent(0);
     setReportDate(new Date().toISOString().split("T")[0]);
     
+    // Reset Staci state
+    setStaciPalletEntries([]);
+    setStaciGoodPalletCount(0);
+    
     // Fetch latest waste types to ensure we have current default weights
     const { data, error } = await supabase
       .from("load_waste_types")
@@ -445,34 +456,101 @@ const LoadReportsPage = () => {
     setIsSaving(true);
 
     try {
-      const { totalPallets, totalWeight } = calculateTotals();
+      const isStaci = selectedCustomer === "staci";
+      
+      // For Staci, calculate totals from pallet entries
+      const staciTotalPallets = staciPalletEntries.length;
+      const staciTotalWeight = staciPalletEntries.reduce((sum, e) => sum + e.weight_kg, 0);
+      
+      const { totalPallets, totalWeight } = isStaci 
+        ? { totalPallets: staciTotalPallets, totalWeight: staciTotalWeight }
+        : calculateTotals();
 
-      // Use offline-first storage
-      const offlineLineItems = lineItems.map((item) => ({
-        wasteType: item.waste_type,
-        palletCount: item.pallet_count,
-        avgWeightKg: item.avg_weight_kg,
-        totalWeightKg: item.pallet_count * item.avg_weight_kg,
-        displayOrder: item.display_order,
-        wetChargeApplied: item.wet_charge_applied || false,
-      }));
+      // Use offline-first storage for standard flow
+      if (!isStaci) {
+        const offlineLineItems = lineItems.map((item) => ({
+          wasteType: item.waste_type,
+          palletCount: item.pallet_count,
+          avgWeightKg: item.avg_weight_kg,
+          totalWeightKg: item.pallet_count * item.avg_weight_kg,
+          displayOrder: item.display_order,
+          wetChargeApplied: item.wet_charge_applied || false,
+        }));
 
-      await saveOfflineReport({
-        serverId: currentReportId || undefined,
-        operatorId: user.id,
-        operatorName: operatorName,
-        vehicleReg: vehicleReg || null,
-        jobNumber: jobNumber || null,
-        siteId: selectedSiteId || null,
-        reportDate: reportDate,
-        status: submit ? "submitted" : "draft",
-        totalPallets: totalPallets,
-        totalWeightKg: totalWeight,
-        palletsOut: palletsOut,
-        noPalletsOnLoad: noPalletsOnLoad,
-        wetChargePercent: wetChargePercent,
-        lineItems: offlineLineItems,
-      });
+        await saveOfflineReport({
+          serverId: currentReportId || undefined,
+          operatorId: user.id,
+          operatorName: operatorName,
+          vehicleReg: vehicleReg || null,
+          jobNumber: jobNumber || null,
+          siteId: selectedSiteId || null,
+          reportDate: reportDate,
+          status: submit ? "submitted" : "draft",
+          totalPallets: totalPallets,
+          totalWeightKg: totalWeight,
+          palletsOut: palletsOut,
+          noPalletsOnLoad: noPalletsOnLoad,
+          wetChargePercent: wetChargePercent,
+          lineItems: offlineLineItems,
+        });
+      } else {
+        // For Staci, save directly to Supabase (online-only for now)
+        const reportPayload = {
+          operator_id: user.id,
+          operator_name: operatorName,
+          vehicle_reg: vehicleReg || null,
+          notes: jobNumber || null,
+          site_id: selectedSiteId || null,
+          report_date: reportDate,
+          status: submit ? "submitted" : "draft",
+          total_pallets: totalPallets,
+          total_weight_kg: totalWeight,
+          pallets_out: staciGoodPalletCount, // Use this field for good pallet count
+          submitted_at: submit ? new Date().toISOString() : null,
+        };
+
+        let reportId = currentReportId;
+
+        if (reportId) {
+          // Update existing report
+          const { error: updateError } = await supabase
+            .from("load_reports")
+            .update(reportPayload)
+            .eq("id", reportId);
+          if (updateError) throw updateError;
+
+          // Delete existing pallet entries
+          await supabase
+            .from("staci_pallet_entries")
+            .delete()
+            .eq("load_report_id", reportId);
+        } else {
+          // Create new report
+          const { data: newReport, error: createError } = await supabase
+            .from("load_reports")
+            .insert(reportPayload)
+            .select("id")
+            .single();
+          if (createError) throw createError;
+          reportId = newReport.id;
+        }
+
+        // Insert Staci pallet entries
+        if (staciPalletEntries.length > 0) {
+          const entries = staciPalletEntries.map((entry, idx) => ({
+            load_report_id: reportId,
+            colour: entry.colour,
+            weight_kg: entry.weight_kg,
+            pallet_type: entry.pallet_type,
+            display_order: idx,
+          }));
+
+          const { error: entriesError } = await supabase
+            .from("staci_pallet_entries")
+            .insert(entries);
+          if (entriesError) throw entriesError;
+        }
+      }
 
       toast({
         title: submit ? "Load Submitted" : "Draft Saved",
@@ -705,7 +783,18 @@ const LoadReportsPage = () => {
             />
           )}
 
-          {viewMode === "tally" && (
+          {viewMode === "tally" && selectedCustomer === "staci" && (
+            <StaciTallyScreen
+              palletEntries={staciPalletEntries}
+              onPalletEntriesChange={setStaciPalletEntries}
+              onBack={handleBack}
+              onReview={() => setViewMode("review")}
+              goodPalletCount={staciGoodPalletCount}
+              onGoodPalletCountChange={setStaciGoodPalletCount}
+            />
+          )}
+
+          {viewMode === "tally" && selectedCustomer !== "staci" && (
             <TallyScreen
               lineItems={lineItems}
               onLineItemChange={handleLineItemChange}
@@ -719,7 +808,22 @@ const LoadReportsPage = () => {
             />
           )}
 
-          {viewMode === "review" && (
+          {viewMode === "review" && selectedCustomer === "staci" && (
+            <StaciReviewScreen
+              operatorName={operatorName}
+              vehicleReg={vehicleReg}
+              jobNumber={jobNumber}
+              reportDate={reportDate}
+              palletEntries={staciPalletEntries}
+              goodPalletCount={staciGoodPalletCount}
+              onBack={handleBack}
+              onSaveDraft={() => saveReport(false)}
+              onSubmit={() => saveReport(true)}
+              isSaving={isSaving}
+            />
+          )}
+
+          {viewMode === "review" && selectedCustomer !== "staci" && (
             <LoadReviewScreen
               operatorName={operatorName}
               vehicleReg={vehicleReg}
