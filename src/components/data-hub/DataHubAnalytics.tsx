@@ -358,7 +358,7 @@ const DataHubAnalytics = () => {
                   contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }}
                 />
                 <Legend />
-                {availableYears.map((year) => (
+                {[...availableYears].sort((a, b) => b - a).map((year) => (
                   <Bar
                     key={year}
                     dataKey={year}
