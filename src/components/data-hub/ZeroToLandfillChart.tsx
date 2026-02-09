@@ -60,19 +60,27 @@ function saveGroupMap(map: Record<string, WasteGroup>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 }
 
+const TIMEFRAME_OPTIONS = [
+  { label: "13 weeks", value: 13 },
+  { label: "26 weeks", value: 26 },
+  { label: "52 weeks", value: 52 },
+  { label: "78 weeks", value: 78 },
+  { label: "104 weeks", value: 104 },
+];
+
 const ZeroToLandfillChart = () => {
   const [groupMap, setGroupMap] = useState<Record<string, WasteGroup>>(loadGroupMap);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
+  const [weeksCount, setWeeksCount] = useState(52);
 
   useEffect(() => {
     saveGroupMap(groupMap);
   }, [groupMap]);
 
-  // Calculate 52 weeks range
   const now = new Date();
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const weekStart = startOfWeek(subWeeks(now, 51), { weekStartsOn: 1 });
+  const weekStart = startOfWeek(subWeeks(now, weeksCount - 1), { weekStartsOn: 1 });
 
   const { data: rawJobs, isLoading } = useQuery({
     queryKey: ["ztl-midweigh-all", weekStart.toISOString(), weekEnd.toISOString()],
@@ -123,8 +131,8 @@ const ZeroToLandfillChart = () => {
     const weekBuckets: Record<string, { landfill: number; rdf: number; recycled: number; totalIn: number }> = {};
 
     // Pre-populate 52 weeks
-    for (let i = 0; i < 52; i++) {
-      const ws = startOfWeek(subWeeks(now, 51 - i), { weekStartsOn: 1 });
+    for (let i = 0; i < weeksCount; i++) {
+      const ws = startOfWeek(subWeeks(now, weeksCount - 1 - i), { weekStartsOn: 1 });
       const key = format(ws, "yyyy-MM-dd");
       weekBuckets[key] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
     }
@@ -198,12 +206,22 @@ const ZeroToLandfillChart = () => {
           <div>
             <CardTitle className="text-lg">Zero To Landfill</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Weekly outward waste by Product · Midweigh · Last 52 weeks
+              Weekly outward waste by Product · Midweigh · Last {weeksCount} weeks
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <Select value={String(weeksCount)} onValueChange={(val) => setWeeksCount(Number(val))}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TIMEFRAME_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="flex gap-1.5">
             <Badge variant="outline" className="text-xs" style={{ borderColor: GROUP_COLORS.landfill, color: GROUP_COLORS.landfill }}>
               Landfill ({groupCounts.landfill})
