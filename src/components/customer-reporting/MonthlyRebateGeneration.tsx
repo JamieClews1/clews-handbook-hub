@@ -340,15 +340,13 @@
                 rateSource += ` ${adjustment > 0 ? "+" : ""}${adjustment}`;
               }
 
-             // Calculate rebate value - for pallet charge this is treated as any other row
-             // (the rate itself determines whether it's a deduction via positive/negative value)
-             const rebate = weight * rate;
-             loadReportRebate += rebate;
-             
-             // Only add to weight total for non-pallet materials (pallet weight is a charge, not material)
-             if (!isPalletCharge) {
-               loadReportWeight += weight;
-             }
+              // Calculate rebate value - for pallet charge this is treated as any other row
+              // (the rate itself determines whether it's a deduction via positive/negative value)
+              const rebate = weight * rate;
+              loadReportRebate += rebate;
+              
+              // Add all material weights to gross weight total (including pallet weight)
+              loadReportWeight += weight;
  
              if (weight > 0 || rate !== 0) {
                materials.push({
