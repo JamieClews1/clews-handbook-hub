@@ -30,6 +30,7 @@ interface LoadReport {
   created_at: string;
   notes: string | null;
   weighbridge_weight_kg?: number | null;
+  customer_name?: string | null;
 }
 
 interface LoadReportsListProps {
@@ -77,7 +78,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       // Build the reports query
       let query = supabase
         .from("load_reports")
-        .select("*")
+        .select("*, customer_sites(site_name, customers(customer_name))")
         .gte("report_date", dateFrom)
         .lte("report_date", dateTo)
         .order("report_date", { ascending: false });
@@ -124,9 +125,10 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       }
 
       // Attach weighbridge weights to reports
-      const reportsWithWeighbridge = (data || []).map((report) => ({
+      const reportsWithWeighbridge = (data || []).map((report: any) => ({
         ...report,
         weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
+        customer_name: report.customer_sites?.customers?.customer_name ?? null,
       }));
 
       setReports(reportsWithWeighbridge);
@@ -150,16 +152,18 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const filteredReports = reports.filter((report) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      report.operator_name.toLowerCase().includes(searchLower) ||
+      (report.customer_name?.toLowerCase().includes(searchLower) ?? false) ||
+      (report.notes?.toLowerCase().includes(searchLower) ?? false) ||
       (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false)
     );
   });
 
   const exportCSV = () => {
-    const headers = ["Date", "Operator", "Vehicle", "Pallets", "Weight (KG)", "Status"];
+    const headers = ["Date", "Customer", "Job Number", "Vehicle", "Pallets", "Weight (KG)", "Status"];
     const rows = filteredReports.map((r) => [
       format(new Date(r.report_date), "dd/MM/yyyy"),
-      r.operator_name,
+      r.customer_name || "",
+      r.notes || "",
       r.vehicle_reg || "",
       r.total_pallets.toString(),
       r.total_weight_kg.toString(),
@@ -241,7 +245,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by operator or vehicle..."
+              placeholder="Search by customer, job number or vehicle..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-12"
@@ -291,8 +295,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>Date</TableHead>
-                  <TableHead>Operator</TableHead>
-                  <TableHead className="hidden sm:table-cell">Vehicle</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="hidden sm:table-cell">Job Number</TableHead>
+                  <TableHead className="hidden md:table-cell">Vehicle</TableHead>
                   <TableHead className="text-center">Pallets</TableHead>
                   <TableHead className="text-right">Weight (KG)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
@@ -305,8 +310,11 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     <TableCell className="font-medium">
                       {format(new Date(report.report_date), "dd/MM/yyyy")}
                     </TableCell>
-                    <TableCell>{report.operator_name}</TableCell>
+                    <TableCell>{report.customer_name || "-"}</TableCell>
                     <TableCell className="hidden sm:table-cell">
+                      {report.notes || "-"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {report.vehicle_reg || "-"}
                     </TableCell>
                     <TableCell className="text-center font-semibold">
