@@ -406,6 +406,59 @@ const ZeroToLandfillChart = () => {
     </Card>
 
       <ZeroToLandfillPercentChart chartData={chartData} isLoading={isLoading} />
+
+      {/* Tonnage Table */}
+      {!isLoading && chartData.length > 0 && (
+        <Card className="col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Weekly Tonnage Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Week</th>
+                    <th className="text-right py-2 px-3 font-medium" style={{ color: "hsl(210, 70%, 50%)" }}>Total In</th>
+                    <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.landfill }}>Landfill</th>
+                    <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.rdf }}>RDF</th>
+                    <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.recycled }}>Recycled</th>
+                    <th className="text-right py-2 px-3 font-medium text-muted-foreground">Landfill %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartData.map((row) => (
+                    <tr key={row.weekFull} className="border-b border-border/50 hover:bg-muted/50">
+                      <td className="py-1.5 px-3 text-muted-foreground">{row.week}</td>
+                      <td className="py-1.5 px-3 text-right font-medium">{row.totalIn.toFixed(2)}</td>
+                      <td className="py-1.5 px-3 text-right">{row.landfill.toFixed(2)}</td>
+                      <td className="py-1.5 px-3 text-right">{row.rdf.toFixed(2)}</td>
+                      <td className="py-1.5 px-3 text-right">{row.recycled.toFixed(2)}</td>
+                      <td className="py-1.5 px-3 text-right text-muted-foreground">{row.landfillPct.toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-semibold">
+                    <td className="py-2 px-3">Total</td>
+                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.totalIn, 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.landfill, 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.rdf, 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.recycled, 0).toFixed(2)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">
+                      {(() => {
+                        const totOut = chartData.reduce((s, r) => s + r.landfill + r.rdf + r.recycled, 0);
+                        const totLf = chartData.reduce((s, r) => s + r.landfill, 0);
+                        return totOut > 0 ? (totLf / totOut * 100).toFixed(2) : "0.00";
+                      })()}%
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 };
