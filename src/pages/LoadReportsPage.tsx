@@ -71,6 +71,7 @@ const LoadReportsPage = () => {
   const [staciCardBalesWeightKg, setStaciCardBalesWeightKg] = useState(0);
   const [staciFilmsBaleCount, setStaciFilmsBaleCount] = useState(0);
   const [staciFilmsBaleWeightKg, setStaciFilmsBaleWeightKg] = useState(0);
+  const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
 
   // Offline support
   const {
@@ -115,6 +116,82 @@ const LoadReportsPage = () => {
       fetchSites();
     }
   }, [selectedCustomer]);
+
+  // Fetch pallet charge rate from the site's price set (for Staci)
+  useEffect(() => {
+    if (selectedCustomer !== "staci" || !selectedSiteId) {
+      setStaciPalletChargeRate(0);
+      return;
+    }
+    const fetchPalletChargeRate = async () => {
+      try {
+        // 1. Get the price set for this site
+        const { data: priceSetLink } = await supabase
+          .from("customer_site_price_sets")
+          .select("price_set_id")
+          .eq("site_id", selectedSiteId)
+          .maybeSingle();
+
+        if (!priceSetLink) {
+          setStaciPalletChargeRate(0);
+          return;
+        }
+
+        // 2. Get all items in the price set
+        const { data: psItems } = await supabase
+          .from("rebate_price_set_items")
+          .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
+          .eq("price_set_id", priceSetLink.price_set_id);
+
+        if (!psItems || psItems.length === 0) {
+          setStaciPalletChargeRate(0);
+          return;
+        }
+
+        // 3. Find the pallet weight charge item
+        for (const item of psItems) {
+          const { data: material } = await supabase
+            .from("load_waste_types")
+            .select("waste_type")
+            .eq("id", item.rebate_item_id)
+            .single();
+
+          if (material && material.waste_type.toLowerCase().includes("pallet")) {
+            let rate = 0;
+            if (item.value_type === "set" && item.set_value !== null) {
+              rate = Number(item.set_value);
+            } else if (item.value_type_item_id) {
+              // Look up monthly value for current month
+              const monthStart = new Date();
+              monthStart.setDate(1);
+              const monthStr = monthStart.toISOString().split("T")[0];
+              const { data: monthVal } = await supabase
+                .from("rebate_monthly_values")
+                .select("lower_range, higher_range")
+                .eq("item_id", item.value_type_item_id)
+                .eq("month_start", monthStr)
+                .maybeSingle();
+              if (monthVal) {
+                rate = item.value_type === "higher"
+                  ? Number(monthVal.higher_range ?? 0)
+                  : Number(monthVal.lower_range ?? 0);
+              }
+            }
+            // Apply adjustment
+            if (item.adjustment) {
+              rate += Number(item.adjustment);
+            }
+            setStaciPalletChargeRate(rate);
+            return;
+          }
+        }
+        setStaciPalletChargeRate(0);
+      } catch {
+        setStaciPalletChargeRate(0);
+      }
+    };
+    fetchPalletChargeRate();
+  }, [selectedCustomer, selectedSiteId]);
 
   const fetchSites = async () => {
     // Map customer type to load_report_type value
@@ -846,6 +923,7 @@ const LoadReportsPage = () => {
               filmsBaleCount={staciFilmsBaleCount}
               filmsBaleWeightKg={staciFilmsBaleWeightKg}
               palletWeightKg={defaultPalletWeight}
+              palletChargeRatePerTonne={staciPalletChargeRate}
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               onPalletEntriesChange={setStaciPalletEntries}
