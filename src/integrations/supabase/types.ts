@@ -1079,13 +1079,18 @@ export type Database = {
       }
       load_reports: {
         Row: {
+          card_bales_count: number | null
+          card_bales_weight_kg: number | null
           created_at: string
+          films_bale_count: number | null
+          films_bale_weight_kg: number | null
           id: string
           no_pallets_on_load: boolean
           notes: string | null
           operator_id: string | null
           operator_name: string
           pallets_out: number | null
+          pallets_scrap_count: number | null
           report_date: string
           site_id: string | null
           status: string
@@ -1097,13 +1102,18 @@ export type Database = {
           wet_charge_percent: number | null
         }
         Insert: {
+          card_bales_count?: number | null
+          card_bales_weight_kg?: number | null
           created_at?: string
+          films_bale_count?: number | null
+          films_bale_weight_kg?: number | null
           id?: string
           no_pallets_on_load?: boolean
           notes?: string | null
           operator_id?: string | null
           operator_name: string
           pallets_out?: number | null
+          pallets_scrap_count?: number | null
           report_date?: string
           site_id?: string | null
           status?: string
@@ -1115,13 +1125,18 @@ export type Database = {
           wet_charge_percent?: number | null
         }
         Update: {
+          card_bales_count?: number | null
+          card_bales_weight_kg?: number | null
           created_at?: string
+          films_bale_count?: number | null
+          films_bale_weight_kg?: number | null
           id?: string
           no_pallets_on_load?: boolean
           notes?: string | null
           operator_id?: string | null
           operator_name?: string
           pallets_out?: number | null
+          pallets_scrap_count?: number | null
           report_date?: string
           site_id?: string | null
           status?: string
