@@ -931,6 +931,7 @@ const LoadReportsPage = () => {
               onPalletsOutChange={setPalletsOut}
               wetChargePercent={wetChargePercent}
               onWetChargePercentChange={setWetChargePercent}
+              weighbridgeWeightKg={weighbridgeWeightKg}
             />
           )}
 

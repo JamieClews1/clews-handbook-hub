@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, ArrowLeft, Package, Droplets } from "lucide-react";
+import { ArrowRight, ArrowLeft, Package, Droplets, Scale } from "lucide-react";
 
 export interface LineItem {
   waste_type: string;
@@ -26,6 +26,7 @@ interface TallyScreenProps {
   onPalletsOutChange?: (count: number) => void;
   wetChargePercent?: number;
   onWetChargePercentChange?: (percent: number) => void;
+  weighbridgeWeightKg?: number | null;
 }
 
 export const TallyScreen = ({
@@ -38,6 +39,7 @@ export const TallyScreen = ({
   onPalletsOutChange,
   wetChargePercent = 0,
   onWetChargePercentChange,
+  weighbridgeWeightKg,
 }: TallyScreenProps) => {
   const totalPallets = lineItems.reduce((sum, item) => sum + item.pallet_count, 0);
   const totalWeight = lineItems.reduce((sum, item) => sum + (item.pallet_count * item.avg_weight_kg), 0);
@@ -190,7 +192,7 @@ export const TallyScreen = ({
               <span className="hidden sm:inline">Back</span>
             </Button>
 
-            <div className="flex items-center gap-6 text-center">
+            <div className="flex items-center gap-4 sm:gap-6 text-center">
               <div>
                 <div className="text-2xl font-bold text-foreground">{totalPallets}</div>
                 <div className="text-xs text-muted-foreground">Pallets</div>
@@ -200,6 +202,25 @@ export const TallyScreen = ({
                 <div className="text-2xl font-bold text-primary">{totalWeight.toLocaleString()}</div>
                 <div className="text-xs text-muted-foreground">Total KG</div>
               </div>
+              {weighbridgeWeightKg != null && (
+                <>
+                  <div className="w-px h-10 bg-border" />
+                  <div>
+                    <div className={`text-2xl font-bold ${
+                      Math.abs(totalWeight - weighbridgeWeightKg) <= 50 
+                        ? "text-green-600" 
+                        : "text-orange-500"
+                    }`}>
+                      {totalWeight - weighbridgeWeightKg > 0 ? "+" : ""}
+                      {(totalWeight - weighbridgeWeightKg).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
+                      <Scale className="h-3 w-3" />
+                      vs Verified
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <Button
