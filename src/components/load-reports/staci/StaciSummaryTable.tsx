@@ -21,6 +21,7 @@ interface StaciSummaryTableProps {
   filmsBaleCount?: number;
   filmsBaleWeightKg?: number;
   palletWeightKg?: number;
+  palletChargeRatePerTonne?: number;
 }
 
 export const StaciSummaryTable = ({
@@ -35,11 +36,13 @@ export const StaciSummaryTable = ({
   filmsBaleCount = 0,
   filmsBaleWeightKg = 0,
   palletWeightKg = 20,
+  palletChargeRatePerTonne = 0,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   const totalPalletDeductionKg = totalPallets * palletWeightKg;
   const totalNetWeightKg = totalWeightKg - totalPalletDeductionKg;
-  const netTotal = totalValue - palletRebate;
+  const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
+  const netTotal = totalValue - palletRebate + palletChargeValue;
 
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -110,6 +113,27 @@ export const StaciSummaryTable = ({
               </TableCell>
               <TableCell className="text-right font-medium text-green-600">
                 -£{palletRebate.toFixed(2)}
+              </TableCell>
+            </TableRow>
+          )}
+          {palletChargeRatePerTonne !== 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Pallet charge</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {totalPallets}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">
+                {totalPalletDeductionKg.toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">
+                £{Math.abs(palletChargeRatePerTonne).toFixed(2)}/tonne
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {palletChargeValue.toFixed(2)}
               </TableCell>
             </TableRow>
           )}

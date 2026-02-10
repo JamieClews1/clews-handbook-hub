@@ -26,6 +26,7 @@ interface StaciReviewScreenProps {
   filmsBaleCount: number;
   filmsBaleWeightKg: number;
   palletWeightKg?: number;
+  palletChargeRatePerTonne?: number;
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onPalletEntriesChange?: (entries: StaciPalletEntry[]) => void;
@@ -119,7 +120,7 @@ function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: numb
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   const netTotal = totalValue - palletRebate;
 
-  return { summaries, totalPallets, totalWeightKg, totalValue, netTotal };
+  return { summaries, totalPallets, totalWeightKg, totalValue, netTotal, palletRebate };
 }
 
 export const StaciReviewScreen = ({
@@ -135,6 +136,7 @@ export const StaciReviewScreen = ({
   filmsBaleCount,
   filmsBaleWeightKg,
   palletWeightKg = 20,
+  palletChargeRatePerTonne = 0,
   weighbridgeWeightKg,
   weighbridgeLoading,
   onPalletEntriesChange,
@@ -145,10 +147,15 @@ export const StaciReviewScreen = ({
 }: StaciReviewScreenProps) => {
   const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
 
-  const { summaries, totalPallets, totalWeightKg, totalValue, netTotal } = useMemo(
+  const { summaries, totalPallets, totalWeightKg, totalValue, palletRebate } = useMemo(
     () => buildSummaries(palletEntries, goodPalletCount),
     [palletEntries, goodPalletCount]
   );
+
+  // Compute pallet charge value and effective net total
+  const totalPalletDeductionKg = totalPallets * palletWeightKg;
+  const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
+  const netTotal = totalValue - palletRebate + palletChargeValue;
 
   // Reconciled preview summaries
   const reconciledSummaryData = useMemo(() => {
@@ -259,6 +266,7 @@ export const StaciReviewScreen = ({
               filmsBaleCount={filmsBaleCount}
               filmsBaleWeightKg={filmsBaleWeightKg}
               palletWeightKg={palletWeightKg}
+              palletChargeRatePerTonne={palletChargeRatePerTonne}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">
@@ -309,6 +317,7 @@ export const StaciReviewScreen = ({
                   filmsBaleCount={filmsBaleCount}
                   filmsBaleWeightKg={filmsBaleWeightKg}
                   palletWeightKg={palletWeightKg}
+                  palletChargeRatePerTonne={palletChargeRatePerTonne}
                 />
                 <Button
                   type="button"
