@@ -141,13 +141,22 @@ const StaciReportsPage = () => {
       
       const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0 };
       (reportData ?? []).forEach((r: any) => {
-        agg.cardBalesCount += Number(r.card_bales_count) || 0;
-        agg.cardBalesWeightKg += Number(r.card_bales_weight_kg) || 0;
-        agg.filmsBaleCount += Number(r.films_bale_count) || 0;
-        agg.filmsBaleWeightKg += Number(r.films_bale_weight_kg) || 0;
-        agg.papersDolavCount += Number(r.papers_dolav_count) || 0;
-        agg.papersDolavWeightKg += Number(r.papers_dolav_weight_kg) || 0;
-        agg.glassDolavCount += Number(r.glass_dolav_count) || 0;
+        const cardCount = Number(r.card_bales_count) || 0;
+        const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
+        const filmsCount = Number(r.films_bale_count) || 0;
+        const filmsPerUnit = Number(r.films_bale_weight_kg) || 0;
+        const papersCount = Number(r.papers_dolav_count) || 0;
+        const papersPerUnit = Number(r.papers_dolav_weight_kg) || 0;
+        const glassCount = Number(r.glass_dolav_count) || 0;
+        const glassPerUnit = Number(r.glass_dolav_weight_kg) || 0;
+        agg.cardBalesCount += cardCount;
+        agg.cardBalesWeightKg += cardCount * cardPerUnit;
+        agg.filmsBaleCount += filmsCount;
+        agg.filmsBaleWeightKg += filmsCount * filmsPerUnit;
+        agg.papersDolavCount += papersCount;
+        agg.papersDolavWeightKg += papersCount * papersPerUnit;
+        agg.glassDolavCount += glassCount;
+        agg.glassDolavWeightKg += glassCount * glassPerUnit;
         agg.glassDolavWeightKg += Number(r.glass_dolav_weight_kg) || 0;
       });
       setBalesDolavData(agg);

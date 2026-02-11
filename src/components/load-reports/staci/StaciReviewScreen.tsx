@@ -38,6 +38,8 @@ interface StaciReviewScreenProps {
   onSaveDraft: () => void;
   onSubmit: () => void;
   isSaving: boolean;
+  cardBalesRatePerTonne?: number;
+  filmsRatePerTonne?: number;
 }
 
 /**
@@ -152,6 +154,8 @@ export const StaciReviewScreen = ({
   onSaveDraft,
   onSubmit,
   isSaving,
+  cardBalesRatePerTonne = 0,
+  filmsRatePerTonne = 0,
 }: StaciReviewScreenProps) => {
   const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
   const [isReconciled, setIsReconciled] = useState(false);
@@ -161,10 +165,14 @@ export const StaciReviewScreen = ({
     [palletEntries, goodPalletCount]
   );
 
-  // Compute pallet charge value and effective net total
+  // Compute pallet charge value, bale values, and effective net total
   const totalPalletDeductionKg = totalPallets * palletWeightKg;
   const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
-  const netTotal = totalValue - palletRebate + palletChargeValue;
+  const cardBalesGrossKg = cardBalesCount * cardBalesWeightKg;
+  const filmsBaleGrossKg = filmsBaleCount * filmsBaleWeightKg;
+  const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesGrossKg / 1000) * cardBalesRatePerTonne : 0;
+  const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleGrossKg / 1000) * filmsRatePerTonne : 0;
+  const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue;
 
   // Reconciled preview summaries
   const reconciledSummaryData = useMemo(() => {
@@ -281,6 +289,8 @@ export const StaciReviewScreen = ({
               glassDolavWeightKg={glassDolavWeightKg}
               palletWeightKg={palletWeightKg}
               palletChargeRatePerTonne={palletChargeRatePerTonne}
+              cardBalesRatePerTonne={cardBalesRatePerTonne}
+              filmsRatePerTonne={filmsRatePerTonne}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">
@@ -348,6 +358,8 @@ export const StaciReviewScreen = ({
                       glassDolavWeightKg={glassDolavWeightKg}
                       palletWeightKg={palletWeightKg}
                       palletChargeRatePerTonne={palletChargeRatePerTonne}
+                      cardBalesRatePerTonne={cardBalesRatePerTonne}
+                      filmsRatePerTonne={filmsRatePerTonne}
                     />
                     <Button
                       type="button"

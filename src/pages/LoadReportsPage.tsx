@@ -76,6 +76,8 @@ const LoadReportsPage = () => {
   const [staciGlassDolavCount, setStaciGlassDolavCount] = useState(0);
   const [staciGlassDolavWeightKg, setStaciGlassDolavWeightKg] = useState(0);
   const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
+  const [staciCardBalesRate, setStaciCardBalesRate] = useState(0);
+  const [staciFilmsRate, setStaciFilmsRate] = useState(0);
 
   // Offline support
   const {
@@ -125,9 +127,11 @@ const LoadReportsPage = () => {
   useEffect(() => {
     if (selectedCustomer !== "staci" || !selectedSiteId) {
       setStaciPalletChargeRate(0);
+      setStaciCardBalesRate(0);
+      setStaciFilmsRate(0);
       return;
     }
-    const fetchPalletChargeRate = async () => {
+    const fetchSiteRates = async () => {
       try {
         // 1. Get the price set for this site
         const { data: priceSetLink } = await supabase
@@ -138,6 +142,8 @@ const LoadReportsPage = () => {
 
         if (!priceSetLink) {
           setStaciPalletChargeRate(0);
+          setStaciCardBalesRate(0);
+          setStaciFilmsRate(0);
           return;
         }
 
@@ -149,52 +155,69 @@ const LoadReportsPage = () => {
 
         if (!psItems || psItems.length === 0) {
           setStaciPalletChargeRate(0);
+          setStaciCardBalesRate(0);
+          setStaciFilmsRate(0);
           return;
         }
 
-        // 3. Find the pallet weight charge item
-        for (const item of psItems) {
-          const { data: material } = await supabase
-            .from("load_waste_types")
-            .select("waste_type")
-            .eq("id", item.rebate_item_id)
-            .single();
+        // 3. Resolve all waste type names
+        const rebateItemIds = psItems.map(i => i.rebate_item_id).filter(Boolean);
+        const { data: materials } = await supabase
+          .from("load_waste_types")
+          .select("id, waste_type")
+          .in("id", rebateItemIds);
 
-          if (material && material.waste_type.toLowerCase().includes("pallet")) {
-            let rate = 0;
-            if (item.value_type === "set" && item.set_value !== null) {
-              rate = Number(item.set_value);
-            } else if (item.value_type_item_id) {
-              // Look up monthly value for current month
-              const monthStart = new Date();
-              monthStart.setDate(1);
-              const monthStr = monthStart.toISOString().split("T")[0];
-              const { data: monthVal } = await supabase
-                .from("rebate_monthly_values")
-                .select("lower_range, higher_range")
-                .eq("item_id", item.value_type_item_id)
-                .eq("month_start", monthStr)
-                .maybeSingle();
-              if (monthVal) {
-                rate = item.value_type === "higher"
-                  ? Number(monthVal.higher_range ?? 0)
-                  : Number(monthVal.lower_range ?? 0);
-              }
+        const materialMap = Object.fromEntries((materials ?? []).map(m => [m.id, m.waste_type.toLowerCase()]));
+
+        const resolveRate = async (item: typeof psItems[0]): Promise<number> => {
+          let rate = 0;
+          if (item.value_type === "set" && item.set_value !== null) {
+            rate = Number(item.set_value);
+          } else if (item.value_type_item_id) {
+            const monthStart = new Date();
+            monthStart.setDate(1);
+            const monthStr = monthStart.toISOString().split("T")[0];
+            const { data: monthVal } = await supabase
+              .from("rebate_monthly_values")
+              .select("lower_range, higher_range")
+              .eq("item_id", item.value_type_item_id)
+              .eq("month_start", monthStr)
+              .maybeSingle();
+            if (monthVal) {
+              rate = item.value_type === "higher"
+                ? Number(monthVal.higher_range ?? 0)
+                : Number(monthVal.lower_range ?? 0);
             }
-            // Apply adjustment
-            if (item.adjustment) {
-              rate += Number(item.adjustment);
-            }
-            setStaciPalletChargeRate(rate);
-            return;
+          }
+          if (item.adjustment) {
+            rate += Number(item.adjustment);
+          }
+          return rate;
+        };
+
+        let palletRate = 0, cardRate = 0, filmsRate = 0;
+
+        for (const item of psItems) {
+          const name = materialMap[item.rebate_item_id] || "";
+          if (name.includes("pallet")) {
+            palletRate = await resolveRate(item);
+          } else if (name.includes("card bale") || name.includes("cardboard")) {
+            cardRate = await resolveRate(item);
+          } else if (name.includes("film")) {
+            filmsRate = await resolveRate(item);
           }
         }
-        setStaciPalletChargeRate(0);
+
+        setStaciPalletChargeRate(palletRate);
+        setStaciCardBalesRate(cardRate);
+        setStaciFilmsRate(filmsRate);
       } catch {
         setStaciPalletChargeRate(0);
+        setStaciCardBalesRate(0);
+        setStaciFilmsRate(0);
       }
     };
-    fetchPalletChargeRate();
+    fetchSiteRates();
   }, [selectedCustomer, selectedSiteId]);
 
   const fetchSites = async () => {
@@ -989,6 +1012,8 @@ const LoadReportsPage = () => {
               glassDolavWeightKg={staciGlassDolavWeightKg}
               palletWeightKg={defaultPalletWeight}
               palletChargeRatePerTonne={staciPalletChargeRate}
+              cardBalesRatePerTonne={staciCardBalesRate}
+              filmsRatePerTonne={staciFilmsRate}
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               onPalletEntriesChange={setStaciPalletEntries}

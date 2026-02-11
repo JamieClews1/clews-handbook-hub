@@ -2,9 +2,9 @@ import { Input } from "@/components/ui/input";
 
 interface BaleDolavInputProps {
   count: number;
-  totalWeightKg: number;
+  totalWeightKg: number; // per-unit weight stored in DB
   onCountChange: (count: number) => void;
-  onTotalWeightChange: (totalWeight: number) => void;
+  onTotalWeightChange: (perUnitWeight: number) => void;
   compact?: boolean;
 }
 
@@ -15,24 +15,20 @@ export const BaleDolavInput = ({
   onTotalWeightChange,
   compact = false,
 }: BaleDolavInputProps) => {
-  const perUnit = count > 0 ? Math.round(totalWeightKg / count) : 0;
+  // totalWeightKg is actually the per-unit weight
+  const perUnit = totalWeightKg;
+  const total = count > 0 ? perUnit * count : 0;
 
   const handleCountChange = (newCount: number) => {
     const safeCount = Math.max(0, newCount);
     onCountChange(safeCount);
-    // Recalculate total using current per-unit weight
-    if (safeCount > 0 && perUnit > 0) {
-      onTotalWeightChange(perUnit * safeCount);
-    }
   };
 
   const handlePerUnitChange = (newPerUnit: number) => {
     const safePerUnit = Math.max(0, newPerUnit);
-    const effectiveCount = count > 0 ? count : 1;
-    onTotalWeightChange(safePerUnit * effectiveCount);
+    onTotalWeightChange(safePerUnit);
   };
 
-  const total = count > 0 ? perUnit * count : 0;
   const inputSize = compact ? "w-16 h-14 text-xl" : "w-20 h-14 text-2xl";
   const estKgSize = compact ? "w-16 h-14 text-xl" : "w-20 h-14 text-2xl";
 

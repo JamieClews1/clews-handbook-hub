@@ -17,15 +17,17 @@ interface StaciSummaryTableProps {
   goodPalletCount?: number;
   palletsScrapCount?: number;
   cardBalesCount?: number;
-  cardBalesWeightKg?: number;
+  cardBalesWeightKg?: number; // per-unit weight
   filmsBaleCount?: number;
-  filmsBaleWeightKg?: number;
+  filmsBaleWeightKg?: number; // per-unit weight
   papersDolavCount?: number;
-  papersDolavWeightKg?: number;
+  papersDolavWeightKg?: number; // per-unit weight
   glassDolavCount?: number;
-  glassDolavWeightKg?: number;
+  glassDolavWeightKg?: number; // per-unit weight
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
+  cardBalesRatePerTonne?: number;
+  filmsRatePerTonne?: number;
 }
 
 export const StaciSummaryTable = ({
@@ -45,12 +47,25 @@ export const StaciSummaryTable = ({
   glassDolavWeightKg = 0,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
+  cardBalesRatePerTonne = 0,
+  filmsRatePerTonne = 0,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   const totalPalletDeductionKg = totalPallets * palletWeightKg;
   const totalNetWeightKg = totalWeightKg - totalPalletDeductionKg;
   const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
-  const netTotal = totalValue - palletRebate + palletChargeValue;
+
+  // Calculate gross weights for bales/dolavs (stored value is per-unit)
+  const cardBalesGrossKg = cardBalesCount * cardBalesWeightKg;
+  const filmsBaleGrossKg = filmsBaleCount * filmsBaleWeightKg;
+  const papersDolavGrossKg = papersDolavCount * papersDolavWeightKg;
+  const glassDolavGrossKg = glassDolavCount * glassDolavWeightKg;
+
+  // Calculate bale values from rates
+  const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesGrossKg / 1000) * cardBalesRatePerTonne : 0;
+  const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleGrossKg / 1000) * filmsRatePerTonne : 0;
+
+  const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue;
 
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -169,12 +184,18 @@ export const StaciSummaryTable = ({
                 {cardBalesCount}
               </TableCell>
               <TableCell className="text-right">
-                {cardBalesWeightKg.toLocaleString()}
+                {cardBalesGrossKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">{cardBalesWeightKg.toLocaleString()}</TableCell>
-              <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right font-medium">-</TableCell>
+              <TableCell className="text-right">{cardBalesGrossKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">
+                {cardBalesRatePerTonne !== 0 ? `£${Math.abs(cardBalesRatePerTonne).toFixed(2)}/t` : "-"}
+              </TableCell>
+              <TableCell className={`text-right font-medium ${cardBalesValue < 0 ? "text-green-600" : ""}`}>
+                {cardBalesValue !== 0 ? (
+                  <>{cardBalesValue < 0 ? "-" : ""}£{Math.abs(cardBalesValue).toFixed(2)}</>
+                ) : "-"}
+              </TableCell>
             </TableRow>
           )}
           {filmsBaleCount > 0 && (
@@ -186,12 +207,18 @@ export const StaciSummaryTable = ({
                 {filmsBaleCount}
               </TableCell>
               <TableCell className="text-right">
-                {filmsBaleWeightKg.toLocaleString()}
+                {filmsBaleGrossKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">{filmsBaleWeightKg.toLocaleString()}</TableCell>
-              <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right font-medium">-</TableCell>
+              <TableCell className="text-right">{filmsBaleGrossKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">
+                {filmsRatePerTonne !== 0 ? `£${Math.abs(filmsRatePerTonne).toFixed(2)}/t` : "-"}
+              </TableCell>
+              <TableCell className={`text-right font-medium ${filmsBaleValue < 0 ? "text-green-600" : ""}`}>
+                {filmsBaleValue !== 0 ? (
+                  <>{filmsBaleValue < 0 ? "-" : ""}£{Math.abs(filmsBaleValue).toFixed(2)}</>
+                ) : "-"}
+              </TableCell>
             </TableRow>
           )}
           {papersDolavCount > 0 && (
@@ -203,10 +230,10 @@ export const StaciSummaryTable = ({
                 {papersDolavCount}
               </TableCell>
               <TableCell className="text-right">
-                {papersDolavWeightKg.toLocaleString()}
+                {papersDolavGrossKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">{papersDolavWeightKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">{papersDolavGrossKg.toLocaleString()}</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
@@ -220,10 +247,10 @@ export const StaciSummaryTable = ({
                 {glassDolavCount}
               </TableCell>
               <TableCell className="text-right">
-                {glassDolavWeightKg.toLocaleString()}
+                {glassDolavGrossKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">{glassDolavWeightKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">{glassDolavGrossKg.toLocaleString()}</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
@@ -233,9 +260,9 @@ export const StaciSummaryTable = ({
           <TableRow className="bg-muted font-bold">
             <TableCell>Total</TableCell>
             <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount}</TableCell>
-            <TableCell className="text-right">{(totalWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg).toLocaleString()}</TableCell>
+            <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">{totalPalletDeductionKg.toLocaleString()}</TableCell>
-            <TableCell className="text-right">{(totalNetWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg).toLocaleString()}</TableCell>
+            <TableCell className="text-right">{(totalNetWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
               {netTotal < 0 ? "-" : ""}£{Math.abs(netTotal).toFixed(2)}
