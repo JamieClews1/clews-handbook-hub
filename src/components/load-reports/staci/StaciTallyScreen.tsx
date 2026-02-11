@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
 import { StaciSummaryTable } from "./StaciSummaryTable";
+import { BaleDolavInput } from "./BaleDolavInput";
 import {
   StaciPalletEntry,
   StaciWasteBreakdown,
@@ -476,28 +477,13 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Card Bales</Label>
                   <p className="text-sm text-muted-foreground">Baled cardboard</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={cardBalesCount}
-                      onChange={(e) => onCardBalesCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-16 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">Qty</span>
-                  </div>
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={cardBalesWeightKg}
-                      onChange={(e) => onCardBalesWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-20 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">KG</span>
-                  </div>
-                </div>
+                <BaleDolavInput
+                  count={cardBalesCount}
+                  totalWeightKg={cardBalesWeightKg}
+                  onCountChange={onCardBalesCountChange}
+                  onTotalWeightChange={onCardBalesWeightKgChange}
+                  compact
+                />
               </div>
             </CardContent>
           </Card>
@@ -513,28 +499,13 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Films Bale</Label>
                   <p className="text-sm text-muted-foreground">Baled film/plastic</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={filmsBaleCount}
-                      onChange={(e) => onFilmsBaleCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-16 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">Qty</span>
-                  </div>
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={filmsBaleWeightKg}
-                      onChange={(e) => onFilmsBaleWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-20 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">KG</span>
-                  </div>
-                </div>
+                <BaleDolavInput
+                  count={filmsBaleCount}
+                  totalWeightKg={filmsBaleWeightKg}
+                  onCountChange={onFilmsBaleCountChange}
+                  onTotalWeightChange={onFilmsBaleWeightKgChange}
+                  compact
+                />
               </div>
             </CardContent>
           </Card>
@@ -550,28 +521,13 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Papers Dolav</Label>
                   <p className="text-sm text-muted-foreground">Paper recycling</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={papersDolavCount}
-                      onChange={(e) => onPapersDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-16 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">Qty</span>
-                  </div>
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={papersDolavWeightKg}
-                      onChange={(e) => onPapersDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-20 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">KG</span>
-                  </div>
-                </div>
+                <BaleDolavInput
+                  count={papersDolavCount}
+                  totalWeightKg={papersDolavWeightKg}
+                  onCountChange={onPapersDolavCountChange}
+                  onTotalWeightChange={onPapersDolavWeightKgChange}
+                  compact
+                />
               </div>
             </CardContent>
           </Card>
@@ -587,28 +543,13 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Glass Dolav</Label>
                   <p className="text-sm text-muted-foreground">Glass recycling</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={glassDolavCount}
-                      onChange={(e) => onGlassDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-16 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">Qty</span>
-                  </div>
-                  <div className="text-center">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={glassDolavWeightKg}
-                      onChange={(e) => onGlassDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-20 h-14 text-center text-xl font-bold"
-                    />
-                    <span className="text-xs text-muted-foreground">KG</span>
-                  </div>
-                </div>
+                <BaleDolavInput
+                  count={glassDolavCount}
+                  totalWeightKg={glassDolavWeightKg}
+                  onCountChange={onGlassDolavCountChange}
+                  onTotalWeightChange={onGlassDolavWeightKgChange}
+                  compact
+                />
               </div>
             </CardContent>
           </Card>
@@ -767,30 +708,12 @@ export const StaciTallyScreen = ({
                 Baled cardboard
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-center">
-                <Input
-                  id="cardBalesCount"
-                  type="number"
-                  min={0}
-                  value={cardBalesCount}
-                  onChange={(e) => onCardBalesCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-20 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Qty</span>
-              </div>
-              <div className="text-center">
-                <Input
-                  id="cardBalesWeight"
-                  type="number"
-                  min={0}
-                  value={cardBalesWeightKg}
-                  onChange={(e) => onCardBalesWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-24 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Est KG</span>
-              </div>
-            </div>
+            <BaleDolavInput
+              count={cardBalesCount}
+              totalWeightKg={cardBalesWeightKg}
+              onCountChange={onCardBalesCountChange}
+              onTotalWeightChange={onCardBalesWeightKgChange}
+            />
           </div>
         </CardContent>
       </Card>
@@ -810,30 +733,12 @@ export const StaciTallyScreen = ({
                 Baled film/plastic
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-center">
-                <Input
-                  id="filmsBaleCount"
-                  type="number"
-                  min={0}
-                  value={filmsBaleCount}
-                  onChange={(e) => onFilmsBaleCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-20 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Qty</span>
-              </div>
-              <div className="text-center">
-                <Input
-                  id="filmsBaleWeight"
-                  type="number"
-                  min={0}
-                  value={filmsBaleWeightKg}
-                  onChange={(e) => onFilmsBaleWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-24 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Est KG</span>
-              </div>
-            </div>
+            <BaleDolavInput
+              count={filmsBaleCount}
+              totalWeightKg={filmsBaleWeightKg}
+              onCountChange={onFilmsBaleCountChange}
+              onTotalWeightChange={onFilmsBaleWeightKgChange}
+            />
           </div>
         </CardContent>
       </Card>
@@ -853,28 +758,12 @@ export const StaciTallyScreen = ({
                 Paper recycling
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-center">
-                <Input
-                  type="number"
-                  min={0}
-                  value={papersDolavCount}
-                  onChange={(e) => onPapersDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-20 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Qty</span>
-              </div>
-              <div className="text-center">
-                <Input
-                  type="number"
-                  min={0}
-                  value={papersDolavWeightKg}
-                  onChange={(e) => onPapersDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-24 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Est KG</span>
-              </div>
-            </div>
+            <BaleDolavInput
+              count={papersDolavCount}
+              totalWeightKg={papersDolavWeightKg}
+              onCountChange={onPapersDolavCountChange}
+              onTotalWeightChange={onPapersDolavWeightKgChange}
+            />
           </div>
         </CardContent>
       </Card>
@@ -894,28 +783,12 @@ export const StaciTallyScreen = ({
                 Glass recycling
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-center">
-                <Input
-                  type="number"
-                  min={0}
-                  value={glassDolavCount}
-                  onChange={(e) => onGlassDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-20 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Qty</span>
-              </div>
-              <div className="text-center">
-                <Input
-                  type="number"
-                  min={0}
-                  value={glassDolavWeightKg}
-                  onChange={(e) => onGlassDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-24 h-14 text-center text-2xl font-bold"
-                />
-                <span className="text-xs text-muted-foreground">Est KG</span>
-              </div>
-            </div>
+            <BaleDolavInput
+              count={glassDolavCount}
+              totalWeightKg={glassDolavWeightKg}
+              onCountChange={onGlassDolavCountChange}
+              onTotalWeightChange={onGlassDolavWeightKgChange}
+            />
           </div>
         </CardContent>
       </Card>
