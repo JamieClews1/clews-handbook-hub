@@ -235,42 +235,19 @@ const StaciReportsPage = () => {
       });
     });
 
-    // Add bales & dolavs weights into the waste breakdown
-    if (balesDolavData.cardBalesWeightKg > 0) {
-      wasteAgg["card"] = (wasteAgg["card"] ?? 0) + balesDolavData.cardBalesWeightKg;
-      totalBreakdownWeight += balesDolavData.cardBalesWeightKg;
-    }
-    if (balesDolavData.filmsBaleWeightKg > 0) {
-      wasteAgg["shrink_wrap"] = (wasteAgg["shrink_wrap"] ?? 0) + balesDolavData.filmsBaleWeightKg;
-      totalBreakdownWeight += balesDolavData.filmsBaleWeightKg;
-    }
-    if (balesDolavData.papersDolavWeightKg > 0) {
-      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + balesDolavData.papersDolavWeightKg;
-      totalBreakdownWeight += balesDolavData.papersDolavWeightKg;
-    }
-    if (balesDolavData.glassDolavWeightKg > 0) {
-      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + balesDolavData.glassDolavWeightKg;
-      totalBreakdownWeight += balesDolavData.glassDolavWeightKg;
-    }
-
-    // Add all pallet wood weight (good + scrap pallets × tare) to wood
-    const totalPalletWoodKg = (goodPallets + scrapPallets) * TARE_KG;
-    if (totalPalletWoodKg > 0) {
-      wasteAgg["wood"] = (wasteAgg["wood"] ?? 0) + totalPalletWoodKg;
-      totalBreakdownWeight += totalPalletWoodKg;
-    }
-
-    const customLabels: Record<string, string> = { glass: "Glass" };
+    // NOTE: Bales/dolavs and pallet tare are NOT added here because the pallet entry
+    // weights are reconciled to the weighbridge total, which already includes bales
+    // and pallet wood weight. Adding them again would double-count.
 
     const wasteRows = Object.entries(wasteAgg)
       .filter(([, kg]) => kg > 0)
       .map(([key, kg]) => ({
         key: key as keyof StaciWasteBreakdown,
-        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? customLabels[key] ?? key,
+        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? key,
         kg,
         tonnes: kg / 1000,
         pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
-        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
+        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any),
         nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
         wood: key === WOOD_TYPE,
       }))
@@ -295,7 +272,7 @@ const StaciReportsPage = () => {
       nonRecoverableKg,
       woodKg,
     };
-  }, [rows, balesDolavData]);
+  }, [rows]);
 
   /* ── export ── */
   const handleExport = () => {
@@ -493,7 +470,7 @@ const StaciReportsPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[
                 { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
-                { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)} t` },
+                { label: "Total Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
                 { label: "Gross Cost", value: `£${(stats.totalCost + haulageData.totalCost).toFixed(2)}` },
                 { label: "Net Cost", value: `£${stats.netCost.toFixed(2)}` },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
