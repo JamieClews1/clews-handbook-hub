@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
 import { CustomerPortalContactForm } from "@/components/customer-portal/CustomerPortalContactForm";
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
+import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
 
 type PortalMembership = {
   id: string;
@@ -261,7 +262,7 @@ const CustomerPortalPage = () => {
           </div>
 
           <Tabs defaultValue="site-reports" className="space-y-6">
-            <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4">
               <TabsTrigger value="site-reports" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Site Reports</span>
@@ -271,6 +272,11 @@ const CustomerPortalPage = () => {
                 <DollarSign className="h-4 w-4" />
                 <span className="hidden sm:inline">Rebate Reports</span>
                 <span className="sm:hidden">Rebates</span>
+              </TabsTrigger>
+              <TabsTrigger value="staci-reports" className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                <span className="hidden sm:inline">STACI Reports</span>
+                <span className="sm:hidden">STACI</span>
               </TabsTrigger>
               <TabsTrigger value="contact" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
@@ -311,6 +317,26 @@ const CustomerPortalPage = () => {
                     <CustomerPortalRebateReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="staci-reports">
+              <Card>
+                <CardHeader>
+                  <CardTitle>STACI Monthly Reports</CardTitle>
+                  <CardDescription>
+                    Download verified monthly recycling reports signed by Clews staff
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && (
+                    <StaciMonthlyReport
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer?.customer_name}
+                      isPortalView={!isAdmin}
                     />
                   )}
                 </CardContent>
