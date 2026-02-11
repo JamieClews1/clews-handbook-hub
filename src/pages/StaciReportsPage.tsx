@@ -625,9 +625,9 @@ const StaciReportsPage = () => {
                               <td className="py-1.5 px-3 text-muted-foreground">Pallet Weight Charges</td>
                               <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
                               <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
-                              <td className="py-1.5 px-3 text-right">-£{Math.abs(PALLET_WEIGHT_CHARGE_PER_TONNE).toFixed(2)}/t</td>
-                              <td className="py-1.5 px-3 text-right font-medium text-destructive">
-                                -£{Math.abs(palletWeightChargeCost).toFixed(2)}
+                              <td className="py-1.5 px-3 text-right">£{Math.abs(PALLET_WEIGHT_CHARGE_PER_TONNE).toFixed(2)}/t</td>
+                              <td className="py-1.5 px-3 text-right font-medium">
+                                £{Math.abs(palletWeightChargeCost).toFixed(2)}
                               </td>
                             </tr>
                           );
