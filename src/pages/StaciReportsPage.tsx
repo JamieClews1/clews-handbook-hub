@@ -576,25 +576,34 @@ const StaciReportsPage = () => {
                           <td className="py-2 px-3 text-right" />
                           <td className="py-2 px-3 text-right">£{stats.totalCost.toFixed(2)}</td>
                         </tr>
-                        {stats.totalPallets > 0 && (
-                          <tr className="border-t border-border/50">
-                            <td className="py-1.5 px-3 text-muted-foreground">Pallet Weight Charges</td>
-                            <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
-                            <td className="py-1.5 px-3 text-right">{(stats.totalPallets * TARE_KG / 1000).toFixed(2)}</td>
-                            <td className="py-1.5 px-3 text-right">£{TARE_KG}/pallet</td>
-                            <td className="py-1.5 px-3 text-right font-medium">
-                              {(() => {
-                                const palletChargeKg = stats.totalPallets * TARE_KG;
-                                // Calculate the charge rate from load_report_settings or use a display-only indication
-                                return `${(palletChargeKg).toLocaleString()} kg`;
-                              })()}
-                            </td>
-                          </tr>
-                        )}
-                        <tr className="font-bold text-lg">
-                          <td className="py-2 px-3" colSpan={4}>Net Pallet Cost</td>
-                          <td className="py-2 px-3 text-right">£{stats.totalCost.toFixed(2)}</td>
-                        </tr>
+                        {stats.totalPallets > 0 && (() => {
+                          const palletWeightT = stats.totalPallets * TARE_KG / 1000;
+                          const PALLET_WEIGHT_CHARGE_PER_TONNE = -47;
+                          const palletWeightChargeCost = palletWeightT * PALLET_WEIGHT_CHARGE_PER_TONNE;
+                          return (
+                            <tr className="border-t border-border/50">
+                              <td className="py-1.5 px-3 text-muted-foreground">Pallet Weight Charges</td>
+                              <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
+                              <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
+                              <td className="py-1.5 px-3 text-right">-£{Math.abs(PALLET_WEIGHT_CHARGE_PER_TONNE).toFixed(2)}/t</td>
+                              <td className="py-1.5 px-3 text-right font-medium text-destructive">
+                                -£{Math.abs(palletWeightChargeCost).toFixed(2)}
+                              </td>
+                            </tr>
+                          );
+                        })()}
+                        {(() => {
+                          const palletWeightT = stats.totalPallets * TARE_KG / 1000;
+                          const PALLET_WEIGHT_CHARGE_PER_TONNE = -47;
+                          const palletWeightChargeCost = palletWeightT * PALLET_WEIGHT_CHARGE_PER_TONNE;
+                          const netCost = stats.totalCost + palletWeightChargeCost;
+                          return (
+                            <tr className="font-bold text-lg">
+                              <td className="py-2 px-3" colSpan={4}>Net Pallet Cost</td>
+                              <td className="py-2 px-3 text-right">£{netCost.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })()}
                       </tfoot>
                     </table>
                   </div>
