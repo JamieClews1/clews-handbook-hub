@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film, Check, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film, Check, ChevronRight, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -287,15 +287,36 @@ export const StaciTallyScreen = ({
 
               {/* Current pallet entry */}
               {currentEntry && (
-                <StaciPalletEntryCard
-                  entry={currentEntry}
-                  index={activePalletIndex}
-                  onDescriptionChange={(desc) => handleDescriptionChange(currentEntry.id, desc)}
-                  onWeightChange={(weight) => handleWeightChange(currentEntry.id, weight)}
-                  onPalletCountChange={(count) => handlePalletCountChange(currentEntry.id, count)}
-                  onBreakdownChange={(breakdown) => handleBreakdownChange(currentEntry.id, breakdown)}
-                  onDelete={() => handleDelete(currentEntry.id)}
-                />
+                <>
+                  <StaciPalletEntryCard
+                    entry={currentEntry}
+                    index={activePalletIndex}
+                    onDescriptionChange={(desc) => handleDescriptionChange(currentEntry.id, desc)}
+                    onWeightChange={(weight) => handleWeightChange(currentEntry.id, weight)}
+                    onPalletCountChange={(count) => handlePalletCountChange(currentEntry.id, count)}
+                    onBreakdownChange={(breakdown) => handleBreakdownChange(currentEntry.id, breakdown)}
+                    onDelete={() => handleDelete(currentEntry.id)}
+                  />
+                  {(() => {
+                    const total = getTotalPercentage(currentEntry.waste_breakdown);
+                    const hasAnyInput = total > 0;
+                    const isNot100 = hasAnyInput && Math.abs(total - 100) >= 0.01;
+                    if (!isNot100) return null;
+                    return (
+                      <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+                        <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-destructive">
+                            Waste breakdown totals {total.toFixed(0)}% — must equal 100%
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Adjust percentages before moving to the next step.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
               )}
             </>
           )}
