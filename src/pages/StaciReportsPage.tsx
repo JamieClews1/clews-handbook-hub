@@ -235,15 +235,42 @@ const StaciReportsPage = () => {
       });
     });
 
+    // Add bales & dolavs weights into the waste breakdown
+    if (balesDolavData.cardBalesWeightKg > 0) {
+      wasteAgg["card"] = (wasteAgg["card"] ?? 0) + balesDolavData.cardBalesWeightKg;
+      totalBreakdownWeight += balesDolavData.cardBalesWeightKg;
+    }
+    if (balesDolavData.filmsBaleWeightKg > 0) {
+      wasteAgg["shrink_wrap"] = (wasteAgg["shrink_wrap"] ?? 0) + balesDolavData.filmsBaleWeightKg;
+      totalBreakdownWeight += balesDolavData.filmsBaleWeightKg;
+    }
+    if (balesDolavData.papersDolavWeightKg > 0) {
+      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + balesDolavData.papersDolavWeightKg;
+      totalBreakdownWeight += balesDolavData.papersDolavWeightKg;
+    }
+    if (balesDolavData.glassDolavWeightKg > 0) {
+      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + balesDolavData.glassDolavWeightKg;
+      totalBreakdownWeight += balesDolavData.glassDolavWeightKg;
+    }
+
+    // Add all pallet wood weight (good + scrap pallets × tare) to wood
+    const totalPalletWoodKg = (goodPallets + scrapPallets) * TARE_KG;
+    if (totalPalletWoodKg > 0) {
+      wasteAgg["wood"] = (wasteAgg["wood"] ?? 0) + totalPalletWoodKg;
+      totalBreakdownWeight += totalPalletWoodKg;
+    }
+
+    const customLabels: Record<string, string> = { glass: "Glass" };
+
     const wasteRows = Object.entries(wasteAgg)
       .filter(([, kg]) => kg > 0)
       .map(([key, kg]) => ({
         key: key as keyof StaciWasteBreakdown,
-        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? key,
+        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? customLabels[key] ?? key,
         kg,
         tonnes: kg / 1000,
         pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
-        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any),
+        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
         nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
         wood: key === WOOD_TYPE,
       }))
@@ -268,7 +295,7 @@ const StaciReportsPage = () => {
       nonRecoverableKg,
       woodKg,
     };
-  }, [rows]);
+  }, [rows, balesDolavData]);
 
   /* ── export ── */
   const handleExport = () => {
