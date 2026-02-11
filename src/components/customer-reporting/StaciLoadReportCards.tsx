@@ -48,10 +48,17 @@ interface StaciReport {
   }[];
 }
 
-export const StaciLoadReportCards = () => {
+interface StaciLoadReportCardsProps {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToProp }: StaciLoadReportCardsProps) => {
   const navigate = useNavigate();
-  const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [internalDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+  const [internalDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const dateFrom = dateFromProp ?? internalDateFrom;
+  const dateTo = dateToProp ?? internalDateTo;
   const [reports, setReports] = useState<StaciReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
@@ -222,27 +229,6 @@ export const StaciLoadReportCards = () => {
 
   return (
     <div className="space-y-4">
-      {/* Date filters */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">From</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="h-10"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-1 block">To</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="h-10"
-          />
-        </div>
-      </div>
 
       {/* Period summary */}
       {reports.length > 0 && (
