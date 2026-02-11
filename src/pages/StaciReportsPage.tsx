@@ -81,6 +81,11 @@ const StaciReportsPage = () => {
     totalCost: number;
   }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
 
+  // DB-driven rates
+  const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
+  const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
+  const [dbPalletWeightCharge, setDbPalletWeightCharge] = useState<number>(-47);
+
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
@@ -176,6 +181,41 @@ const StaciReportsPage = () => {
         setHaulageData({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
       }
 
+      // Fetch DB-driven pallet rates for the reporting period
+      // Use the "from" date to find the active rate period (latest effective_from <= from)
+      const { data: ratesData } = await supabase
+        .from("staci_pallet_rates")
+        .select("colour, rate, effective_from")
+        .lte("effective_from", from)
+        .order("effective_from", { ascending: false });
+
+      if (ratesData && ratesData.length > 0) {
+        // For each colour, pick the latest effective rate
+        const rateMap: Record<string, number> = {};
+        for (const r of ratesData) {
+          if (!(r.colour in rateMap)) rateMap[r.colour] = Number(r.rate);
+        }
+        setDbPalletRates(rateMap);
+      } else {
+        // Fallback to hardcoded
+        setDbPalletRates(Object.fromEntries(Object.entries(STACI_PALLET_RATES)));
+      }
+
+      const { data: chargesData } = await supabase
+        .from("staci_pallet_charges")
+        .select("charge_key, charge_value, effective_from")
+        .lte("effective_from", from)
+        .order("effective_from", { ascending: false });
+
+      if (chargesData && chargesData.length > 0) {
+        const chargeMap: Record<string, number> = {};
+        for (const c of chargesData) {
+          if (!(c.charge_key in chargeMap)) chargeMap[c.charge_key] = Number(c.charge_value);
+        }
+        setDbGoodPalletRebate(chargeMap["good_pallet_rebate"] ?? STACI_PALLET_GOOD_REBATE);
+        setDbPalletWeightCharge(chargeMap["pallet_weight_charge"] ?? -47);
+      }
+
       setFetching(false);
     };
     fetchData();
@@ -196,7 +236,7 @@ const StaciReportsPage = () => {
       // weight_kg is per-pallet gross weight (including pallet wood)
       const grossWeightPerPallet = r.weight_kg;
       const totalGrossWeight = grossWeightPerPallet * count;
-      const rate = STACI_PALLET_RATES[r.colour] ?? 0;
+      const rate = dbPalletRates[r.colour] ?? STACI_PALLET_RATES[r.colour] ?? 0;
       const isWasteWood = r.colour === "waste_wood";
       const lineCost = isWasteWood
         ? (totalGrossWeight / 1000) * rate
@@ -215,7 +255,7 @@ const StaciReportsPage = () => {
       else scrapPallets += count;
     });
 
-    const palletRebate = goodPallets * STACI_PALLET_GOOD_REBATE;
+    const palletRebate = goodPallets * dbGoodPalletRebate;
     const netCost = totalCost - palletRebate;
 
     // waste breakdown
@@ -272,7 +312,7 @@ const StaciReportsPage = () => {
       nonRecoverableKg,
       woodKg,
     };
-  }, [rows]);
+  }, [rows, dbPalletRates, dbGoodPalletRebate]);
 
   /* ── export ── */
   const handleExport = () => {
@@ -313,7 +353,7 @@ const StaciReportsPage = () => {
         STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
         d.count,
         Math.round(d.weightKg),
-        `£${STACI_PALLET_RATES[colour as StaciPalletColour]?.toFixed(2) ?? "0.00"}`,
+        `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
         d.cost.toFixed(2),
       ]),
     ];
@@ -563,7 +603,7 @@ const StaciReportsPage = () => {
                             </td>
                             <td className="py-1.5 px-3 text-right">{d.count}</td>
                             <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
-                            <td className="py-1.5 px-3 text-right">£{STACI_PALLET_RATES[colour as StaciPalletColour]?.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right">£{(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
                           </tr>
                         ))}
@@ -578,7 +618,7 @@ const StaciReportsPage = () => {
                         </tr>
                         {stats.totalPallets > 0 && (() => {
                           const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                          const PALLET_WEIGHT_CHARGE_PER_TONNE = -47;
+                          const PALLET_WEIGHT_CHARGE_PER_TONNE = dbPalletWeightCharge;
                           const palletWeightChargeCost = palletWeightT * PALLET_WEIGHT_CHARGE_PER_TONNE;
                           return (
                             <tr className="border-t border-border/50">
@@ -594,7 +634,7 @@ const StaciReportsPage = () => {
                         })()}
                         {(() => {
                           const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                          const PALLET_WEIGHT_CHARGE_PER_TONNE = -47;
+                          const PALLET_WEIGHT_CHARGE_PER_TONNE = dbPalletWeightCharge;
                           const palletWeightChargeCost = palletWeightT * PALLET_WEIGHT_CHARGE_PER_TONNE;
                           const netCost = stats.totalCost + palletWeightChargeCost;
                           return (
