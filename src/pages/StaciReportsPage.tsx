@@ -67,7 +67,12 @@ const StaciReportsPage = () => {
   const [dateTo, setDateTo] = useState<Date>(endOfMonth(new Date()));
   const [rows, setRows] = useState<PalletRow[]>([]);
   const [fetching, setFetching] = useState(false);
-  const [haulageData, setHaulageData] = useState<{ loads: number; totalCost: number; ratePerLoad: number }>({ loads: 0, totalCost: 0, ratePerLoad: 0 });
+  const [haulageData, setHaulageData] = useState<{
+    artic: { loads: number; totalCost: number; rate: number };
+    pickup: { loads: number; totalCost: number; rate: number };
+    totalLoads: number;
+    totalCost: number;
+  }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -115,22 +120,31 @@ const StaciReportsPage = () => {
       // Fetch haulage costs from data_hub_jobs
       const { data: haulageJobs } = await supabase
         .from("data_hub_jobs")
-        .select("job_number, raw")
+        .select("job_number, raw, container_type")
         .ilike("customer", "%staci%")
         .eq("source", "skiptrak")
         .gte("job_date", from)
         .lte("job_date", to);
 
       if (haulageJobs && haulageJobs.length > 0) {
-        let totalHaulageCost = 0;
+        let articLoads = 0, articCost = 0;
+        let pickupLoads = 0, pickupCost = 0;
         haulageJobs.forEach((j: any) => {
           const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
-          if (!isNaN(cost)) totalHaulageCost += cost;
+          if (isNaN(cost)) return;
+          const ct = (j.container_type ?? j.raw?.["Container Type"] ?? "").toLowerCase();
+          const isPickup = ct.includes("dolav") || ct.includes("pickup") || ct.includes("box");
+          if (isPickup) { pickupLoads++; pickupCost += cost; }
+          else { articLoads++; articCost += cost; }
         });
-        const avgRate = haulageJobs.length > 0 ? totalHaulageCost / haulageJobs.length : 0;
-        setHaulageData({ loads: haulageJobs.length, totalCost: totalHaulageCost, ratePerLoad: avgRate });
+        setHaulageData({
+          artic: { loads: articLoads, totalCost: articCost, rate: articLoads > 0 ? articCost / articLoads : 145 },
+          pickup: { loads: pickupLoads, totalCost: pickupCost, rate: pickupLoads > 0 ? pickupCost / pickupLoads : 15 },
+          totalLoads: articLoads + pickupLoads,
+          totalCost: articCost + pickupCost,
+        });
       } else {
-        setHaulageData({ loads: 0, totalCost: 0, ratePerLoad: 0 });
+        setHaulageData({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
       }
 
       setFetching(false);
@@ -248,8 +262,12 @@ const StaciReportsPage = () => {
       ["Net Cost (£)", stats.netCost.toFixed(2)],
       [],
       ["Haulage"],
-      ["Loads", haulageData.loads],
-      ["Rate per Load (£)", haulageData.ratePerLoad.toFixed(2)],
+      ["Artic Loads", haulageData.artic.loads],
+      ["Artic Rate (£)", haulageData.artic.rate.toFixed(2)],
+      ["Artic Total (£)", haulageData.artic.totalCost.toFixed(2)],
+      ["Pickup/Dolav Loads", haulageData.pickup.loads],
+      ["Pickup/Dolav Rate (£)", haulageData.pickup.rate.toFixed(2)],
+      ["Pickup/Dolav Total (£)", haulageData.pickup.totalCost.toFixed(2)],
       ["Total Haulage Cost (£)", haulageData.totalCost.toFixed(2)],
     ];
     const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
@@ -422,7 +440,7 @@ const StaciReportsPage = () => {
                 { label: "Total Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
                 { label: "Gross Cost", value: `£${stats.totalCost.toFixed(2)}` },
                 { label: "Net Cost", value: `£${stats.netCost.toFixed(2)}` },
-                { label: "Haulage", value: haulageData.loads > 0 ? `${haulageData.loads} loads` : "—" },
+                { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
               ].map((kpi) => (
                 <Card key={kpi.label}>
                   <CardContent className="py-4 text-center">
@@ -434,16 +452,22 @@ const StaciReportsPage = () => {
             </div>
 
             {/* Haulage summary card */}
-            {haulageData.loads > 0 && (
+            {haulageData.totalLoads > 0 && (
               <Card className="border-2 border-blue-500/20">
                 <CardContent className="py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                       <Truck className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Haulage: {haulageData.loads} loads @ £{haulageData.ratePerLoad.toFixed(2)} each</p>
-                      <p className="text-sm text-muted-foreground">Total haulage cost: £{haulageData.totalCost.toFixed(2)}</p>
+                    <div className="flex-1 space-y-1">
+                      <p className="font-semibold">Haulage Breakdown</p>
+                      {haulageData.artic.loads > 0 && (
+                        <p className="text-sm">Artic: {haulageData.artic.loads} loads @ £{haulageData.artic.rate.toFixed(2)} each = £{haulageData.artic.totalCost.toFixed(2)}</p>
+                      )}
+                      {haulageData.pickup.loads > 0 && (
+                        <p className="text-sm">Pickup/Dolav Box: {haulageData.pickup.loads} loads @ £{haulageData.pickup.rate.toFixed(2)} each = £{haulageData.pickup.totalCost.toFixed(2)}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground font-medium">Total haulage: £{haulageData.totalCost.toFixed(2)}</p>
                     </div>
                   </div>
                 </CardContent>
