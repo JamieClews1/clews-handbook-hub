@@ -980,7 +980,7 @@ const StaciReportsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <StaciLoadReportCards />
+            <StaciLoadReportCards dateFrom={format(dateFrom, "yyyy-MM-dd")} dateTo={format(dateTo, "yyyy-MM-dd")} />
           </CardContent>
         </Card>
 
