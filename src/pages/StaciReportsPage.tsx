@@ -37,6 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
+import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
 
 /* ── helpers ─────────────────────────────────────────── */
 
@@ -664,6 +665,19 @@ const StaciReportsPage = () => {
             </div>
           </>
         )}
+
+        {/* Load Report Cards */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Individual Load Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <StaciLoadReportCards />
+          </CardContent>
+        </Card>
 
         {/* Monthly Report Section */}
         <StaciMonthlyReport />
