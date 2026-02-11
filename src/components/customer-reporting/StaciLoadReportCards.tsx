@@ -416,6 +416,76 @@ export const StaciLoadReportCards = () => {
                           </TableFooter>
                         </Table>
                       </div>
+
+                      {/* Bales & Dolavs breakdown */}
+                      {(report.card_bales_count > 0 || report.films_bale_count > 0 || report.papers_dolav_count > 0 || report.glass_dolav_count > 0 || report.pallets_scrap_count > 0) && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/50">
+                                <TableHead className="text-xs">Item</TableHead>
+                                <TableHead className="text-xs text-right">Qty</TableHead>
+                                <TableHead className="text-xs text-right">Weight (KG)</TableHead>
+                                <TableHead className="text-xs text-right">Category</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {report.card_bales_count > 0 && (
+                                <TableRow>
+                                  <TableCell className="py-2 text-sm">Card Bales</TableCell>
+                                  <TableCell className="text-right text-sm">{report.card_bales_count}</TableCell>
+                                  <TableCell className="text-right text-sm">{report.card_bales_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
+                                </TableRow>
+                              )}
+                              {report.films_bale_count > 0 && (
+                                <TableRow>
+                                  <TableCell className="py-2 text-sm">Film Bales</TableCell>
+                                  <TableCell className="text-right text-sm">{report.films_bale_count}</TableCell>
+                                  <TableCell className="text-right text-sm">{report.films_bale_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
+                                </TableRow>
+                              )}
+                              {report.papers_dolav_count > 0 && (
+                                <TableRow>
+                                  <TableCell className="py-2 text-sm">Papers Dolav</TableCell>
+                                  <TableCell className="text-right text-sm">{report.papers_dolav_count}</TableCell>
+                                  <TableCell className="text-right text-sm">{report.papers_dolav_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
+                                </TableRow>
+                              )}
+                              {report.glass_dolav_count > 0 && (
+                                <TableRow>
+                                  <TableCell className="py-2 text-sm">Glass Dolav</TableCell>
+                                  <TableCell className="text-right text-sm">{report.glass_dolav_count}</TableCell>
+                                  <TableCell className="text-right text-sm">{report.glass_dolav_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
+                                </TableRow>
+                              )}
+                              {report.pallets_scrap_count > 0 && (
+                                <TableRow>
+                                  <TableCell className="py-2 text-sm">Scrap Pallets</TableCell>
+                                  <TableCell className="text-right text-sm">{report.pallets_scrap_count}</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right"><Badge variant="outline" className="text-xs">Scrap</Badge></TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                            <TableFooter>
+                              <TableRow className="font-bold">
+                                <TableCell>Total</TableCell>
+                                <TableCell className="text-right">
+                                  {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.pallets_scrap_count}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {(report.card_bales_weight_kg + report.films_bale_weight_kg + report.papers_dolav_weight_kg + report.glass_dolav_weight_kg).toLocaleString()}
+                                </TableCell>
+                                <TableCell />
+                              </TableRow>
+                            </TableFooter>
+                          </Table>
+                        </div>
+                      )}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
