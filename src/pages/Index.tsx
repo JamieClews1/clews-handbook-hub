@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3 } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -99,6 +99,12 @@ const Index = () => {
       description: "Business analytics, data tracking, AI insights, and data uploads.",
       icon: BarChart3,
       href: "/performance-hub",
+    },
+    {
+      title: "STACI Reports",
+      description: "Pallet load costs, recycling breakdown, and exportable period reports.",
+      icon: Package,
+      href: "/staci-reports",
     },
     {
       title: "Waste Reporting",

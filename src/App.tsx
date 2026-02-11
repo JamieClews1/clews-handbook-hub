@@ -38,6 +38,7 @@ import CustomerReportingPage from "./pages/CustomerReportingPage";
 import CustomerPortalPage from "./pages/CustomerPortalPage";
 import NearMissReportPage from "./pages/NearMissReportPage";
 import NearMissPage from "./pages/NearMissPage";
+import StaciReportsPage from "./pages/StaciReportsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
              <Route path="/rebate-values" element={<RebateValuesPage />} />
              <Route path="/customer-reporting" element={<CustomerReportingPage />} />
              <Route path="/my-portal" element={<CustomerPortalPage />} />
+             <Route path="/staci-reports" element={<StaciReportsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
