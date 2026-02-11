@@ -60,7 +60,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
 
       // Filter to sites that actually have a rebate price set
       const sitesWithRebate = sites.filter(
-        (s: any) => s.customer_site_price_sets && s.customer_site_price_sets.length > 0
+        (s: any) => s.customer_site_price_sets && (Array.isArray(s.customer_site_price_sets) ? s.customer_site_price_sets.length > 0 : s.customer_site_price_sets.id)
       );
 
       if (sitesWithRebate.length === 0) {
