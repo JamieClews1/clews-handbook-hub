@@ -497,6 +497,17 @@ const LoadReportsPage = () => {
       setStaciGlassDolavCount((report as any).glass_dolav_count || 0);
       setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
 
+      // Detect if this is a staci report by checking the site's load_report_type
+      let isStaciReport = staciEntries.length > 0;
+      if (!isStaciReport && report.site_id) {
+        const { data: siteData } = await supabase
+          .from("customer_sites")
+          .select("load_report_type")
+          .eq("id", report.site_id)
+          .single();
+        isStaciReport = siteData?.load_report_type === "staci";
+      }
+
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
         setStaciPalletEntries(
@@ -529,8 +540,12 @@ const LoadReportsPage = () => {
         initializeLineItems();
       }
 
-      // Always open the editable form view
-      setViewMode("new");
+      if (isStaciReport) {
+        setSelectedCustomer("staci");
+        setViewMode(report.status === "submitted" ? "review" : "tally");
+      } else {
+        setViewMode("new");
+      }
     } catch (error: any) {
       toast({
         title: "Error loading report",
