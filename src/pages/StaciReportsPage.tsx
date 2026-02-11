@@ -609,23 +609,16 @@ const StaciReportsPage = () => {
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 font-semibold">
-                          <td className="py-2 px-3">Total</td>
-                          <td className="py-2 px-3 text-right">{stats.totalPallets}</td>
-                          <td className="py-2 px-3 text-right">{(stats.totalWeightKg / 1000).toFixed(2)}</td>
-                          <td className="py-2 px-3 text-right" />
-                          <td className="py-2 px-3 text-right">£{stats.totalCost.toFixed(2)}</td>
-                        </tr>
                         {stats.totalPallets > 0 && (() => {
                           const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                          const PALLET_WEIGHT_CHARGE_PER_TONNE = dbPalletWeightCharge;
-                          const palletWeightChargeCost = palletWeightT * PALLET_WEIGHT_CHARGE_PER_TONNE;
+                          const chargePerTonne = dbPalletWeightCharge;
+                          const palletWeightChargeCost = palletWeightT * chargePerTonne;
                           return (
                             <tr className="border-t border-border/50">
                               <td className="py-1.5 px-3 text-muted-foreground">Pallet Weight Charges</td>
                               <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
                               <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
-                              <td className="py-1.5 px-3 text-right">£{Math.abs(PALLET_WEIGHT_CHARGE_PER_TONNE).toFixed(2)}/t</td>
+                              <td className="py-1.5 px-3 text-right">£{Math.abs(chargePerTonne).toFixed(2)}/t</td>
                               <td className="py-1.5 px-3 text-right font-medium">
                                 £{Math.abs(palletWeightChargeCost).toFixed(2)}
                               </td>
@@ -634,8 +627,23 @@ const StaciReportsPage = () => {
                         })()}
                         {(() => {
                           const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                          const PALLET_WEIGHT_CHARGE_PER_TONNE = dbPalletWeightCharge;
-                          const palletWeightChargeCost = palletWeightT * PALLET_WEIGHT_CHARGE_PER_TONNE;
+                          const totalWeightWithPallets = (stats.totalWeightKg / 1000) + palletWeightT;
+                          const chargePerTonne = dbPalletWeightCharge;
+                          const palletWeightChargeCost = palletWeightT * chargePerTonne;
+                          return (
+                            <tr className="border-t-2 font-semibold">
+                              <td className="py-2 px-3">Total</td>
+                              <td className="py-2 px-3 text-right">{stats.totalPallets}</td>
+                              <td className="py-2 px-3 text-right">{totalWeightWithPallets.toFixed(2)}</td>
+                              <td className="py-2 px-3 text-right" />
+                              <td className="py-2 px-3 text-right">£{(stats.totalCost + Math.abs(palletWeightChargeCost)).toFixed(2)}</td>
+                            </tr>
+                          );
+                        })()}
+                        {(() => {
+                          const palletWeightT = stats.totalPallets * TARE_KG / 1000;
+                          const chargePerTonne = dbPalletWeightCharge;
+                          const palletWeightChargeCost = palletWeightT * chargePerTonne;
                           const netCost = stats.totalCost + palletWeightChargeCost;
                           return (
                             <tr className="font-bold text-lg">
