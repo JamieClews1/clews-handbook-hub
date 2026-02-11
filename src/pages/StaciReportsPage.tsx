@@ -68,6 +68,12 @@ const StaciReportsPage = () => {
   const [dateTo, setDateTo] = useState<Date>(endOfMonth(new Date()));
   const [rows, setRows] = useState<PalletRow[]>([]);
   const [fetching, setFetching] = useState(false);
+  const [balesDolavData, setBalesDolavData] = useState<{
+    cardBalesCount: number; cardBalesWeightKg: number;
+    filmsBaleCount: number; filmsBaleWeightKg: number;
+    papersDolavCount: number; papersDolavWeightKg: number;
+    glassDolavCount: number; glassDolavWeightKg: number;
+  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0 });
   const [haulageData, setHaulageData] = useState<{
     artic: { loads: number; totalCost: number; rate: number };
     pickup: { loads: number; totalCost: number; rate: number };
@@ -117,6 +123,28 @@ const StaciReportsPage = () => {
       }));
 
       setRows(mapped);
+
+      // Fetch bales/dolav aggregated data from all submitted staci load_reports in period
+      const { data: reportData } = await supabase
+        .from("load_reports")
+        .select("card_bales_count, card_bales_weight_kg, films_bale_count, films_bale_weight_kg, papers_dolav_count, papers_dolav_weight_kg, glass_dolav_count, glass_dolav_weight_kg")
+        .gte("report_date", from)
+        .lte("report_date", to)
+        .eq("status", "submitted")
+        .not("site_id", "is", null);
+      
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0 };
+      (reportData ?? []).forEach((r: any) => {
+        agg.cardBalesCount += Number(r.card_bales_count) || 0;
+        agg.cardBalesWeightKg += Number(r.card_bales_weight_kg) || 0;
+        agg.filmsBaleCount += Number(r.films_bale_count) || 0;
+        agg.filmsBaleWeightKg += Number(r.films_bale_weight_kg) || 0;
+        agg.papersDolavCount += Number(r.papers_dolav_count) || 0;
+        agg.papersDolavWeightKg += Number(r.papers_dolav_weight_kg) || 0;
+        agg.glassDolavCount += Number(r.glass_dolav_count) || 0;
+        agg.glassDolavWeightKg += Number(r.glass_dolav_weight_kg) || 0;
+      });
+      setBalesDolavData(agg);
 
       // Fetch haulage costs from data_hub_jobs
       const { data: haulageJobs } = await supabase
@@ -426,7 +454,7 @@ const StaciReportsPage = () => {
           </CardContent>
         </Card>
 
-        {rows.length === 0 && !fetching ? (
+        {rows.length === 0 && !fetching && balesDolavData.cardBalesCount === 0 && balesDolavData.filmsBaleCount === 0 && balesDolavData.papersDolavCount === 0 && balesDolavData.glassDolavCount === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               No submitted STACI load reports found for this period.
@@ -579,6 +607,77 @@ const StaciReportsPage = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Bales & Dolavs breakdown */}
+            {(balesDolavData.cardBalesCount > 0 || balesDolavData.filmsBaleCount > 0 || balesDolavData.papersDolavCount > 0 || balesDolavData.glassDolavCount > 0) && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Bales & Dolavs Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Qty</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (kg)</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (t)</th>
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">Category</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {balesDolavData.cardBalesCount > 0 && (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Card Bales</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(balesDolavData.cardBalesWeightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                          </tr>
+                        )}
+                        {balesDolavData.filmsBaleCount > 0 && (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Films Bale</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(balesDolavData.filmsBaleWeightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                          </tr>
+                        )}
+                        {balesDolavData.papersDolavCount > 0 && (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Papers Dolav</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(balesDolavData.papersDolavWeightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                          </tr>
+                        )}
+                        {balesDolavData.glassDolavCount > 0 && (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Glass Dolav</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(balesDolavData.glassDolavWeightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                          </tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-semibold">
+                          <td className="py-2 px-3">Total</td>
+                          <td className="py-2 px-3 text-right">{balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount}</td>
+                          <td className="py-2 px-3 text-right">{(balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg).toLocaleString()}</td>
+                          <td className="py-2 px-3 text-right">{((balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)}</td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Waste breakdown */}
             <div className="grid lg:grid-cols-2 gap-6">
