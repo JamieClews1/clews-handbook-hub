@@ -261,13 +261,18 @@ export const StaciTallyScreen = ({
 
           {palletEntries.length === 0 ? (
             <Card className="border-2 border-dashed">
-              <CardContent className="py-12 text-center">
+              <CardContent className="py-12 text-center space-y-3">
                 <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-4">No pallet types added yet</p>
+                <p className="text-muted-foreground">No pallet types added yet</p>
                 <Button onClick={handleAddPallet} className="gap-2">
                   <Plus className="h-4 w-4" />
                   Add First Pallet Type
                 </Button>
+                <div>
+                  <Button variant="outline" onClick={handleNoMorePallets} className="gap-2">
+                    Skip to Bales & Dolavs
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
