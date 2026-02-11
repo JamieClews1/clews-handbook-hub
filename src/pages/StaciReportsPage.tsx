@@ -193,22 +193,22 @@ const StaciReportsPage = () => {
 
     rows.forEach((r) => {
       const count = r.pallet_count;
-      // weight_kg is per-pallet weight
-      const netWeightPerPallet = Math.max(0, r.weight_kg - TARE_KG);
-      const totalNetWeight = netWeightPerPallet * count;
+      // weight_kg is per-pallet gross weight (including pallet wood)
+      const grossWeightPerPallet = r.weight_kg;
+      const totalGrossWeight = grossWeightPerPallet * count;
       const rate = STACI_PALLET_RATES[r.colour] ?? 0;
       const isWasteWood = r.colour === "waste_wood";
       const lineCost = isWasteWood
-        ? (totalNetWeight / 1000) * rate
+        ? (totalGrossWeight / 1000) * rate
         : rate * count;
 
       if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
       colourMap[r.colour].count += count;
-      colourMap[r.colour].weightKg += totalNetWeight;
+      colourMap[r.colour].weightKg += totalGrossWeight;
       colourMap[r.colour].cost += lineCost;
 
       totalPallets += count;
-      totalWeightKg += totalNetWeight;
+      totalWeightKg += totalGrossWeight;
       totalCost += lineCost;
 
       if (r.pallet_type === "good") goodPallets += count;
@@ -224,9 +224,9 @@ const StaciReportsPage = () => {
 
     rows.forEach((r) => {
       if (!r.waste_breakdown) return;
-      // weight_kg is per-pallet weight
-      const netWeightPerPallet = Math.max(0, r.weight_kg - TARE_KG);
-      const entryWeight = netWeightPerPallet * r.pallet_count;
+      // Use gross weight (including pallet wood)
+      const grossWeightPerPallet = r.weight_kg;
+      const entryWeight = grossWeightPerPallet * r.pallet_count;
       (Object.keys(r.waste_breakdown) as (keyof StaciWasteBreakdown)[]).forEach((key) => {
         const pct = (r.waste_breakdown as StaciWasteBreakdown)[key] ?? 0;
         const kg = (pct / 100) * entryWeight;
