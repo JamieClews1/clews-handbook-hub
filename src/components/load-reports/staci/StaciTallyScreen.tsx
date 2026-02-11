@@ -212,6 +212,8 @@ export const StaciTallyScreen = ({
     return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
   }, [palletEntries]);
 
+  const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0;
+
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
   const isCurrentPalletValid = () => {
@@ -364,7 +366,7 @@ export const StaciTallyScreen = ({
                   onClick={handleNoMorePallets}
                   variant="outline"
                   className="h-12 w-full gap-2"
-                  disabled={validEntryCount === 0}
+                  disabled={validEntryCount === 0 && !hasDolavData}
                 >
                   <Check className="h-4 w-4" />
                   No More Palletised Waste
@@ -624,7 +626,7 @@ export const StaciTallyScreen = ({
               <Button
                 onClick={onReview}
                 className="h-12 px-6 gap-2"
-                disabled={validEntryCount === 0}
+                disabled={validEntryCount === 0 && !hasDolavData}
               >
                 Review
                 <ArrowRight className="h-5 w-5" />
@@ -970,7 +972,7 @@ export const StaciTallyScreen = ({
             <Button 
               onClick={onReview} 
               className="h-12 px-6 gap-2 text-base"
-              disabled={validEntryCount === 0}
+              disabled={validEntryCount === 0 && !hasDolavData}
             >
               <span className="hidden sm:inline">Review</span>
               <ArrowRight className="h-5 w-5" />
