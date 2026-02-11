@@ -232,10 +232,10 @@ export const StaciSummaryTable = ({
         <TableFooter>
           <TableRow className="bg-muted font-bold">
             <TableCell>Total</TableCell>
-            <TableCell className="text-right">{totalPallets}</TableCell>
-            <TableCell className="text-right">{totalWeightKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount}</TableCell>
+            <TableCell className="text-right">{(totalWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">{totalPalletDeductionKg.toLocaleString()}</TableCell>
-            <TableCell className="text-right">{totalNetWeightKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{(totalNetWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
               {netTotal < 0 ? "-" : ""}£{Math.abs(netTotal).toFixed(2)}
