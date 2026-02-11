@@ -18,6 +18,7 @@ import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
+import { MissingReportsAlert } from "./MissingReportsAlert";
 
 interface LoadReport {
   id: string;
@@ -232,6 +233,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           Settings
         </Button>
       </div>
+
+      {/* Missing Reports Alert */}
+      <MissingReportsAlert customerType={customerType ?? null} dateFrom={dateFrom} dateTo={dateTo} />
 
       {/* Filters Card */}
       <Card>
