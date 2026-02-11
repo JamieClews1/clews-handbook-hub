@@ -71,6 +71,10 @@ const LoadReportsPage = () => {
   const [staciCardBalesWeightKg, setStaciCardBalesWeightKg] = useState(0);
   const [staciFilmsBaleCount, setStaciFilmsBaleCount] = useState(0);
   const [staciFilmsBaleWeightKg, setStaciFilmsBaleWeightKg] = useState(0);
+  const [staciPapersDolavCount, setStaciPapersDolavCount] = useState(0);
+  const [staciPapersDolavWeightKg, setStaciPapersDolavWeightKg] = useState(0);
+  const [staciGlassDolavCount, setStaciGlassDolavCount] = useState(0);
+  const [staciGlassDolavWeightKg, setStaciGlassDolavWeightKg] = useState(0);
   const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
 
   // Offline support
@@ -488,6 +492,10 @@ const LoadReportsPage = () => {
       setStaciCardBalesWeightKg(Number((report as any).card_bales_weight_kg) || 0);
       setStaciFilmsBaleCount((report as any).films_bale_count || 0);
       setStaciFilmsBaleWeightKg(Number((report as any).films_bale_weight_kg) || 0);
+      setStaciPapersDolavCount((report as any).papers_dolav_count || 0);
+      setStaciPapersDolavWeightKg(Number((report as any).papers_dolav_weight_kg) || 0);
+      setStaciGlassDolavCount((report as any).glass_dolav_count || 0);
+      setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
@@ -614,11 +622,15 @@ const LoadReportsPage = () => {
           total_weight_kg: totalWeight,
           pallets_out: staciGoodPalletCount,
           pallets_scrap_count: staciPalletsScrapCount,
-          card_bales_count: staciCardBalesCount,
-          card_bales_weight_kg: staciCardBalesWeightKg,
-          films_bale_count: staciFilmsBaleCount,
-          films_bale_weight_kg: staciFilmsBaleWeightKg,
-          submitted_at: submit ? new Date().toISOString() : null,
+           card_bales_count: staciCardBalesCount,
+           card_bales_weight_kg: staciCardBalesWeightKg,
+           films_bale_count: staciFilmsBaleCount,
+           films_bale_weight_kg: staciFilmsBaleWeightKg,
+           papers_dolav_count: staciPapersDolavCount,
+           papers_dolav_weight_kg: staciPapersDolavWeightKg,
+           glass_dolav_count: staciGlassDolavCount,
+           glass_dolav_weight_kg: staciGlassDolavWeightKg,
+           submitted_at: submit ? new Date().toISOString() : null,
         };
 
         let reportId = currentReportId;
@@ -916,6 +928,14 @@ const LoadReportsPage = () => {
               onFilmsBaleCountChange={setStaciFilmsBaleCount}
               filmsBaleWeightKg={staciFilmsBaleWeightKg}
               onFilmsBaleWeightKgChange={setStaciFilmsBaleWeightKg}
+              papersDolavCount={staciPapersDolavCount}
+              onPapersDolavCountChange={setStaciPapersDolavCount}
+              papersDolavWeightKg={staciPapersDolavWeightKg}
+              onPapersDolavWeightKgChange={setStaciPapersDolavWeightKg}
+              glassDolavCount={staciGlassDolavCount}
+              onGlassDolavCountChange={setStaciGlassDolavCount}
+              glassDolavWeightKg={staciGlassDolavWeightKg}
+              onGlassDolavWeightKgChange={setStaciGlassDolavWeightKg}
               palletWeightKg={defaultPalletWeight}
             />
           )}
@@ -948,6 +968,10 @@ const LoadReportsPage = () => {
               cardBalesWeightKg={staciCardBalesWeightKg}
               filmsBaleCount={staciFilmsBaleCount}
               filmsBaleWeightKg={staciFilmsBaleWeightKg}
+              papersDolavCount={staciPapersDolavCount}
+              papersDolavWeightKg={staciPapersDolavWeightKg}
+              glassDolavCount={staciGlassDolavCount}
+              glassDolavWeightKg={staciGlassDolavWeightKg}
               palletWeightKg={defaultPalletWeight}
               palletChargeRatePerTonne={staciPalletChargeRate}
               weighbridgeWeightKg={weighbridgeWeightKg}

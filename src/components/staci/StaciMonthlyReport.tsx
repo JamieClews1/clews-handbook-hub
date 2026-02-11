@@ -66,6 +66,7 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
   const [dateTo, setDateTo] = useState<Date>(endOfMonth(new Date()));
   const [rows, setRows] = useState<PalletRow[]>([]);
+  const [dolavData, setDolavData] = useState<{ papersWeightKg: number; glassWeightKg: number }>({ papersWeightKg: 0, glassWeightKg: 0 });
   const [fetching, setFetching] = useState(false);
   const [signedReports, setSignedReports] = useState<SignedReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
@@ -135,7 +136,25 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
 
       setRows(mapped);
 
-      // Fetch haulage costs from data_hub_jobs
+      // Aggregate dolav data from load_reports
+      const reportIds = [...new Set(mapped.map((r) => r.load_report_id))];
+      if (reportIds.length > 0) {
+        const { data: reportData } = await supabase
+          .from("load_reports")
+          .select("papers_dolav_weight_kg, glass_dolav_weight_kg")
+          .in("id", reportIds);
+        
+        let papersTotal = 0;
+        let glassTotal = 0;
+        (reportData ?? []).forEach((r: any) => {
+          papersTotal += Number(r.papers_dolav_weight_kg) || 0;
+          glassTotal += Number(r.glass_dolav_weight_kg) || 0;
+        });
+        setDolavData({ papersWeightKg: papersTotal, glassWeightKg: glassTotal });
+      } else {
+        setDolavData({ papersWeightKg: 0, glassWeightKg: 0 });
+      }
+
       const { data: haulageJobs } = await supabase
         .from("data_hub_jobs")
         .select("job_number, raw")
@@ -206,15 +225,25 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
       });
     });
 
+    // Add dolav weights to waste aggregation
+    if (dolavData.papersWeightKg > 0) {
+      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + dolavData.papersWeightKg;
+      totalBreakdownWeight += dolavData.papersWeightKg;
+    }
+    if (dolavData.glassWeightKg > 0) {
+      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + dolavData.glassWeightKg;
+      totalBreakdownWeight += dolavData.glassWeightKg;
+    }
+
     const wasteRows = Object.entries(wasteAgg)
       .filter(([, kg]) => kg > 0)
       .map(([key, kg]) => ({
         key,
-        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? key,
+        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? (key === "glass" ? "Glass" : key),
         kg,
         tonnes: kg / 1000,
         pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
-        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any),
+        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
         nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
         wood: key === WOOD_TYPE,
       }))
@@ -225,7 +254,7 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     const woodKg = wasteRows.filter((w) => w.wood).reduce((s, w) => s + w.kg, 0);
 
     return { colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, woodKg };
-  }, [rows]);
+  }, [rows, dolavData]);
 
   const buildReportData = () => ({
     period: { from: format(dateFrom, "yyyy-MM-dd"), to: format(dateTo, "yyyy-MM-dd") },

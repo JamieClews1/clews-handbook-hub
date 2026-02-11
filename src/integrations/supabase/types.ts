@@ -1084,6 +1084,8 @@ export type Database = {
           created_at: string
           films_bale_count: number | null
           films_bale_weight_kg: number | null
+          glass_dolav_count: number | null
+          glass_dolav_weight_kg: number | null
           id: string
           no_pallets_on_load: boolean
           notes: string | null
@@ -1091,6 +1093,8 @@ export type Database = {
           operator_name: string
           pallets_out: number | null
           pallets_scrap_count: number | null
+          papers_dolav_count: number | null
+          papers_dolav_weight_kg: number | null
           report_date: string
           site_id: string | null
           status: string
@@ -1107,6 +1111,8 @@ export type Database = {
           created_at?: string
           films_bale_count?: number | null
           films_bale_weight_kg?: number | null
+          glass_dolav_count?: number | null
+          glass_dolav_weight_kg?: number | null
           id?: string
           no_pallets_on_load?: boolean
           notes?: string | null
@@ -1114,6 +1120,8 @@ export type Database = {
           operator_name: string
           pallets_out?: number | null
           pallets_scrap_count?: number | null
+          papers_dolav_count?: number | null
+          papers_dolav_weight_kg?: number | null
           report_date?: string
           site_id?: string | null
           status?: string
@@ -1130,6 +1138,8 @@ export type Database = {
           created_at?: string
           films_bale_count?: number | null
           films_bale_weight_kg?: number | null
+          glass_dolav_count?: number | null
+          glass_dolav_weight_kg?: number | null
           id?: string
           no_pallets_on_load?: boolean
           notes?: string | null
@@ -1137,6 +1147,8 @@ export type Database = {
           operator_name?: string
           pallets_out?: number | null
           pallets_scrap_count?: number | null
+          papers_dolav_count?: number | null
+          papers_dolav_weight_kg?: number | null
           report_date?: string
           site_id?: string | null
           status?: string

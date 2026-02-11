@@ -25,6 +25,10 @@ interface StaciReviewScreenProps {
   cardBalesWeightKg: number;
   filmsBaleCount: number;
   filmsBaleWeightKg: number;
+  papersDolavCount: number;
+  papersDolavWeightKg: number;
+  glassDolavCount: number;
+  glassDolavWeightKg: number;
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
   weighbridgeWeightKg?: number | null;
@@ -135,6 +139,10 @@ export const StaciReviewScreen = ({
   cardBalesWeightKg,
   filmsBaleCount,
   filmsBaleWeightKg,
+  papersDolavCount,
+  papersDolavWeightKg,
+  glassDolavCount,
+  glassDolavWeightKg,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
   weighbridgeWeightKg,
@@ -267,6 +275,10 @@ export const StaciReviewScreen = ({
               cardBalesWeightKg={cardBalesWeightKg}
               filmsBaleCount={filmsBaleCount}
               filmsBaleWeightKg={filmsBaleWeightKg}
+              papersDolavCount={papersDolavCount}
+              papersDolavWeightKg={papersDolavWeightKg}
+              glassDolavCount={glassDolavCount}
+              glassDolavWeightKg={glassDolavWeightKg}
               palletWeightKg={palletWeightKg}
               palletChargeRatePerTonne={palletChargeRatePerTonne}
             />
@@ -330,6 +342,10 @@ export const StaciReviewScreen = ({
                       cardBalesWeightKg={cardBalesWeightKg}
                       filmsBaleCount={filmsBaleCount}
                       filmsBaleWeightKg={filmsBaleWeightKg}
+                      papersDolavCount={papersDolavCount}
+                      papersDolavWeightKg={papersDolavWeightKg}
+                      glassDolavCount={glassDolavCount}
+                      glassDolavWeightKg={glassDolavWeightKg}
                       palletWeightKg={palletWeightKg}
                       palletChargeRatePerTonne={palletChargeRatePerTonne}
                     />
