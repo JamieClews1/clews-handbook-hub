@@ -240,14 +240,14 @@ export const StaciReviewScreen = ({
         </CardContent>
       </Card>
 
-      {/* Pallet Summary */}
+      {/* Load Summary */}
       <Card className="border-2 shadow-lg">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
               <Palette className="h-5 w-5 text-white" />
             </div>
-            <CardTitle className="text-lg">Pallet Breakdown</CardTitle>
+            <CardTitle className="text-lg">Load Breakdown</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -263,7 +263,7 @@ export const StaciReviewScreen = ({
               </div>
             </div>
           )}
-          {summaries.length > 0 ? (
+          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0) ? (
             <StaciSummaryTable
               summaries={summaries}
               totalPallets={totalPallets}
@@ -284,7 +284,7 @@ export const StaciReviewScreen = ({
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">
-              No pallets have been added yet.
+              No items have been added yet.
             </p>
           )}
         </CardContent>
