@@ -451,24 +451,53 @@ const StaciReportsPage = () => {
               ))}
             </div>
 
-            {/* Haulage summary card */}
+            {/* Haulage summary table */}
             {haulageData.totalLoads > 0 && (
-              <Card className="border-2 border-blue-500/20">
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="font-semibold">Haulage Breakdown</p>
-                      {haulageData.artic.loads > 0 && (
-                        <p className="text-sm">Artic: {haulageData.artic.loads} loads @ £{haulageData.artic.rate.toFixed(2)} each = £{haulageData.artic.totalCost.toFixed(2)}</p>
-                      )}
-                      {haulageData.pickup.loads > 0 && (
-                        <p className="text-sm">Pickup/Dolav Box: {haulageData.pickup.loads} loads @ £{haulageData.pickup.rate.toFixed(2)} each = £{haulageData.pickup.totalCost.toFixed(2)}</p>
-                      )}
-                      <p className="text-sm text-muted-foreground font-medium">Total haulage: £{haulageData.totalCost.toFixed(2)}</p>
-                    </div>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    Haulage Costs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Loads</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total (£)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {haulageData.artic.loads > 0 && (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Artic</td>
+                            <td className="py-1.5 px-3 text-right">{haulageData.artic.loads}</td>
+                            <td className="py-1.5 px-3 text-right">£{haulageData.artic.rate.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right font-medium">£{haulageData.artic.totalCost.toFixed(2)}</td>
+                          </tr>
+                        )}
+                        {haulageData.pickup.loads > 0 && (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Pickup / Dolav Box</td>
+                            <td className="py-1.5 px-3 text-right">{haulageData.pickup.loads}</td>
+                            <td className="py-1.5 px-3 text-right">£{haulageData.pickup.rate.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right font-medium">£{haulageData.pickup.totalCost.toFixed(2)}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-semibold">
+                          <td className="py-2 px-3">Total</td>
+                          <td className="py-2 px-3 text-right">{haulageData.totalLoads}</td>
+                          <td className="py-2 px-3 text-right" />
+                          <td className="py-2 px-3 text-right">£{haulageData.totalCost.toFixed(2)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
