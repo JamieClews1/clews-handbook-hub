@@ -775,7 +775,8 @@ const StaciReportsPage = () => {
                         <tr className="border-b">
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">Qty</th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (kg)</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Wt/Item (kg)</th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total Weight (kg)</th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (t)</th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">Value (£)</th>
                           <th className="text-left py-2 px-3 font-medium text-muted-foreground">Category</th>
@@ -786,6 +787,7 @@ const StaciReportsPage = () => {
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Good Pallets (Rebate)</td>
                             <td className="py-1.5 px-3 text-right">{stats.goodPallets}</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
                             <td className="py-1.5 px-3 text-right">-</td>
                             <td className="py-1.5 px-3 text-right">-</td>
                             <td className="py-1.5 px-3 text-right font-medium text-green-600">-£{stats.palletRebate.toFixed(2)}</td>
@@ -800,6 +802,7 @@ const StaciReportsPage = () => {
                             <tr className="border-b border-border/50">
                               <td className="py-1.5 px-3">Card Bales</td>
                               <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount}</td>
+                              <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount > 0 ? Math.round(balesDolavData.cardBalesWeightKg / balesDolavData.cardBalesCount).toLocaleString() : "-"}</td>
                               <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
                               <td className="py-1.5 px-3 text-right">{cardTonnes.toFixed(2)}</td>
                               <td className="py-1.5 px-3 text-right font-medium">
@@ -817,6 +820,7 @@ const StaciReportsPage = () => {
                             <tr className="border-b border-border/50">
                               <td className="py-1.5 px-3">Films Bale</td>
                               <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount}</td>
+                              <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount > 0 ? Math.round(balesDolavData.filmsBaleWeightKg / balesDolavData.filmsBaleCount).toLocaleString() : "-"}</td>
                               <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
                               <td className="py-1.5 px-3 text-right">{filmsTonnes.toFixed(2)}</td>
                               <td className="py-1.5 px-3 text-right font-medium">
@@ -830,6 +834,7 @@ const StaciReportsPage = () => {
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Papers Dolav</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount > 0 ? Math.round(balesDolavData.papersDolavWeightKg / balesDolavData.papersDolavCount).toLocaleString() : "-"}</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{(balesDolavData.papersDolavWeightKg / 1000).toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right">-</td>
@@ -840,6 +845,7 @@ const StaciReportsPage = () => {
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Glass Dolav</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount > 0 ? Math.round(balesDolavData.glassDolavWeightKg / balesDolavData.glassDolavCount).toLocaleString() : "-"}</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{(balesDolavData.glassDolavWeightKg / 1000).toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right">-</td>
@@ -857,6 +863,7 @@ const StaciReportsPage = () => {
                             <tr className="border-t-2 font-semibold">
                               <td className="py-2 px-3">Total</td>
                               <td className="py-2 px-3 text-right">{stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount}</td>
+                              <td className="py-2 px-3 text-right">-</td>
                               <td className="py-2 px-3 text-right">{(balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg).toLocaleString()}</td>
                               <td className="py-2 px-3 text-right">{((balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)}</td>
                               <td className="py-2 px-3 text-right font-medium">
