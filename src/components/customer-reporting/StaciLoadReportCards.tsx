@@ -155,11 +155,10 @@ export const StaciLoadReportCards = () => {
     for (const entry of report.pallet_entries) {
       const palletCount = entry.pallet_count || 1;
       const colour = entry.colour as StaciPalletColour;
-      const netWeightPerPallet = Math.max(0, entry.weight_kg - palletWeightKg);
       const existing = colourMap.get(colour) || { count: 0, weight: 0 };
       colourMap.set(colour, {
         count: existing.count + palletCount,
-        weight: existing.weight + netWeightPerPallet * palletCount,
+        weight: existing.weight + entry.weight_kg * palletCount,
       });
     }
 
