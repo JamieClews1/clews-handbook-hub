@@ -21,7 +21,7 @@ interface MissingReportsAlertProps {
 }
 
 export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) => {
-  const dateFrom = format(startOfMonth(subMonths(new Date(), 3)), "yyyy-MM-dd");
+  const dateFrom = format(new Date(new Date().getFullYear(), 0, 1), "yyyy-MM-dd");
   const dateTo = format(new Date(), "yyyy-MM-dd");
   const [missingJobs, setMissingJobs] = useState<MissingJob[]>([]);
   const [loading, setLoading] = useState(true);
