@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ArrowLeft, CalendarIcon, Download, Package, Truck } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -85,6 +85,7 @@ const StaciReportsPage = () => {
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
   const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
   const [dbPalletWeightCharge, setDbPalletWeightCharge] = useState<number>(-47);
+  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number }>({ cardBalesRate: 0, filmsRate: 0 });
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -214,6 +215,88 @@ const StaciReportsPage = () => {
         }
         setDbGoodPalletRebate(chargeMap["good_pallet_rebate"] ?? STACI_PALLET_GOOD_REBATE);
         setDbPalletWeightCharge(chargeMap["pallet_weight_charge"] ?? -47);
+      }
+
+      // Fetch bale/dolav rates from the Staci site's rebate price set
+      try {
+        // Find Staci site and its price set
+        const { data: staciSites } = await supabase
+          .from("customer_sites")
+          .select("id, site_name, customers!inner(customer_name)")
+          .ilike("customers.customer_name", "%staci%")
+          .limit(1);
+
+        const staciSiteId = staciSites?.[0]?.id;
+        if (staciSiteId) {
+          const { data: priceSetLink } = await supabase
+            .from("customer_site_price_sets")
+            .select("price_set_id")
+            .eq("site_id", staciSiteId)
+            .single();
+
+          if (priceSetLink?.price_set_id) {
+            // Fetch price set items - rebate_item_id maps to load_waste_types.id
+            const { data: psItems } = await supabase
+              .from("rebate_price_set_items")
+              .select("rebate_item_id, value_type, set_value, adjustment, value_type_item_id")
+              .eq("price_set_id", priceSetLink.price_set_id);
+
+            // Match to Card Bales and Films waste types
+            const { data: wasteTypes } = await supabase
+              .from("load_waste_types")
+              .select("id, waste_type")
+              .in("waste_type", ["Card Bales", "Films Baled- Clear", "Films Baled- Mixed Colour"]);
+
+            const wasteTypeMap = Object.fromEntries((wasteTypes ?? []).map(w => [w.id, w.waste_type]));
+
+            // Get monthly values for the period
+            const monthsInRange = eachMonthOfInterval({ start: dateFrom, end: dateTo });
+            const monthStarts = monthsInRange.map(m => format(startOfMonth(m), "yyyy-MM-dd"));
+            const { data: monthlyValues } = await supabase
+              .from("rebate_monthly_values")
+              .select("item_id, lower_range, higher_range, month_start")
+              .in("month_start", monthStarts);
+
+            const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
+            for (const mv of monthlyValues ?? []) {
+              if (!valueAccumulator[mv.item_id]) {
+                valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
+              }
+              valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
+              valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
+              valueAccumulator[mv.item_id].count += 1;
+            }
+
+            let cardRate = 0;
+            let filmsRate = 0;
+
+            for (const item of psItems ?? []) {
+              const wtName = wasteTypeMap[item.rebate_item_id];
+              if (!wtName) continue;
+
+              let rate = 0;
+              if (item.value_type === "set" && item.set_value != null) {
+                rate = Number(item.set_value);
+              } else if (item.value_type_item_id) {
+                const acc = valueAccumulator[item.value_type_item_id];
+                if (acc && acc.count > 0) {
+                  const avgVal = item.value_type === "higher"
+                    ? acc.higherSum / acc.count
+                    : acc.lowerSum / acc.count;
+                  rate = avgVal;
+                }
+              }
+              rate += Number(item.adjustment ?? 0);
+
+              if (wtName === "Card Bales") cardRate = rate;
+              if (wtName.startsWith("Films Baled")) filmsRate = rate;
+            }
+
+            setBaleRates({ cardBalesRate: cardRate, filmsRate });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch bale rates from rebate setup:", e);
       }
 
       setFetching(false);
@@ -710,26 +793,40 @@ const StaciReportsPage = () => {
                             <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                           </tr>
                         )}
-                        {balesDolavData.cardBalesCount > 0 && (
-                          <tr className="border-b border-border/50">
-                            <td className="py-1.5 px-3">Card Bales</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount}</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
-                            <td className="py-1.5 px-3 text-right">{(balesDolavData.cardBalesWeightKg / 1000).toFixed(2)}</td>
-                            <td className="py-1.5 px-3 text-right">-</td>
-                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
-                          </tr>
-                        )}
-                        {balesDolavData.filmsBaleCount > 0 && (
-                          <tr className="border-b border-border/50">
-                            <td className="py-1.5 px-3">Films Bale</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount}</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
-                            <td className="py-1.5 px-3 text-right">{(balesDolavData.filmsBaleWeightKg / 1000).toFixed(2)}</td>
-                            <td className="py-1.5 px-3 text-right">-</td>
-                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
-                          </tr>
-                        )}
+                        {balesDolavData.cardBalesCount > 0 && (() => {
+                          const cardValuePerTonne = baleRates.cardBalesRate;
+                          const cardTonnes = balesDolavData.cardBalesWeightKg / 1000;
+                          const cardValue = cardTonnes * cardValuePerTonne;
+                          return (
+                            <tr className="border-b border-border/50">
+                              <td className="py-1.5 px-3">Card Bales</td>
+                              <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount}</td>
+                              <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
+                              <td className="py-1.5 px-3 text-right">{cardTonnes.toFixed(2)}</td>
+                              <td className="py-1.5 px-3 text-right font-medium">
+                                {cardValuePerTonne !== 0 ? `£${cardValue.toFixed(2)}` : "-"}
+                              </td>
+                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Recyclable</span></td>
+                            </tr>
+                          );
+                        })()}
+                        {balesDolavData.filmsBaleCount > 0 && (() => {
+                          const filmsValuePerTonne = baleRates.filmsRate;
+                          const filmsTonnes = balesDolavData.filmsBaleWeightKg / 1000;
+                          const filmsValue = filmsTonnes * filmsValuePerTonne;
+                          return (
+                            <tr className="border-b border-border/50">
+                              <td className="py-1.5 px-3">Films Bale</td>
+                              <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount}</td>
+                              <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
+                              <td className="py-1.5 px-3 text-right">{filmsTonnes.toFixed(2)}</td>
+                              <td className="py-1.5 px-3 text-right font-medium">
+                                {filmsValuePerTonne !== 0 ? `£${filmsValue.toFixed(2)}` : "-"}
+                              </td>
+                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Recyclable</span></td>
+                            </tr>
+                          );
+                        })()}
                         {balesDolavData.papersDolavCount > 0 && (
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Papers Dolav</td>
@@ -752,14 +849,26 @@ const StaciReportsPage = () => {
                         )}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 font-semibold">
-                          <td className="py-2 px-3">Total</td>
-                          <td className="py-2 px-3 text-right">{stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount}</td>
-                          <td className="py-2 px-3 text-right">{(balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg).toLocaleString()}</td>
-                          <td className="py-2 px-3 text-right">{((balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)}</td>
-                          <td className="py-2 px-3 text-right font-medium text-green-600">{stats.palletRebate > 0 ? `-£${stats.palletRebate.toFixed(2)}` : "-"}</td>
-                          <td />
-                        </tr>
+                        {(() => {
+                          const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
+                          const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
+                          const totalValue = cardValue + filmsValue;
+                          const totalRebateValue = stats.palletRebate;
+                          return (
+                            <tr className="border-t-2 font-semibold">
+                              <td className="py-2 px-3">Total</td>
+                              <td className="py-2 px-3 text-right">{stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount}</td>
+                              <td className="py-2 px-3 text-right">{(balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg).toLocaleString()}</td>
+                              <td className="py-2 px-3 text-right">{((balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)}</td>
+                              <td className="py-2 px-3 text-right font-medium">
+                                {(totalValue > 0 || totalRebateValue > 0)
+                                  ? `£${(totalValue - totalRebateValue).toFixed(2)}`
+                                  : "-"}
+                              </td>
+                              <td />
+                            </tr>
+                          );
+                        })()}
                       </tfoot>
                     </table>
                   </div>
