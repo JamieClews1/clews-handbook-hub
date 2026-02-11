@@ -2478,6 +2478,69 @@ export type Database = {
         }
         Relationships: []
       }
+      staci_monthly_reports: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          period_end: string
+          period_start: string
+          report_data: Json
+          signature_image: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signer_name: string | null
+          signer_position: string | null
+          site_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          period_end: string
+          period_start: string
+          report_data?: Json
+          signature_image?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          signer_name?: string | null
+          signer_position?: string | null
+          site_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          report_data?: Json
+          signature_image?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          signer_name?: string | null
+          signer_position?: string | null
+          site_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staci_monthly_reports_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staci_monthly_reports_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staci_pallet_entries: {
         Row: {
           colour: string

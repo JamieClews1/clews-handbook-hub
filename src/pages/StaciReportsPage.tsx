@@ -36,6 +36,7 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
+import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
 
 /* ── helpers ─────────────────────────────────────────── */
 
@@ -560,6 +561,9 @@ const StaciReportsPage = () => {
             </div>
           </>
         )}
+
+        {/* Monthly Report Section */}
+        <StaciMonthlyReport />
 
         {/* Clews branding footer */}
         <div className="flex items-center justify-center gap-3 py-6 opacity-50">
