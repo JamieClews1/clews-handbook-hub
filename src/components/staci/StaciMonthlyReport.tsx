@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Download, PenLine, CheckCircle2, Loader2 } from "lucide-react";
+import { CalendarIcon, Download, PenLine, CheckCircle2, Loader2, Truck } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +69,7 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
   const [fetching, setFetching] = useState(false);
   const [signedReports, setSignedReports] = useState<SignedReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [haulageData, setHaulageData] = useState<{ loads: number; totalCost: number; ratePerLoad: number }>({ loads: 0, totalCost: 0, ratePerLoad: 0 });
 
   // Signing state (admin only)
   const [showSignature, setShowSignature] = useState(false);
@@ -133,6 +134,28 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
       }));
 
       setRows(mapped);
+
+      // Fetch haulage costs from data_hub_jobs
+      const { data: haulageJobs } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number, raw")
+        .ilike("customer", "%staci%")
+        .eq("source", "skiptrak")
+        .gte("job_date", from)
+        .lte("job_date", to);
+
+      if (haulageJobs && haulageJobs.length > 0) {
+        let totalHaulageCost = 0;
+        haulageJobs.forEach((j: any) => {
+          const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
+          if (!isNaN(cost)) totalHaulageCost += cost;
+        });
+        const avgRate = haulageJobs.length > 0 ? totalHaulageCost / haulageJobs.length : 0;
+        setHaulageData({ loads: haulageJobs.length, totalCost: totalHaulageCost, ratePerLoad: avgRate });
+      } else {
+        setHaulageData({ loads: 0, totalCost: 0, ratePerLoad: 0 });
+      }
+
       setFetching(false);
     };
     fetchData();
@@ -227,6 +250,11 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     recyclablePct: stats.totalBreakdownWeight > 0 ? +((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
     nonRecoverablePct: stats.totalBreakdownWeight > 0 ? +((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
     woodPct: stats.totalBreakdownWeight > 0 ? +((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+    haulage: {
+      loads: haulageData.loads,
+      ratePerLoad: +haulageData.ratePerLoad.toFixed(2),
+      totalCost: +haulageData.totalCost.toFixed(2),
+    },
   });
 
   const handleSign = async (signatureData: string) => {
@@ -312,6 +340,11 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
       ["Gross Cost (£)", rd.grossCost],
       ["Pallet Rebate (£)", rd.palletRebate],
       ["Net Cost (£)", rd.netCost],
+      [],
+      ["Haulage"],
+      ["Loads", rd.haulage?.loads ?? 0],
+      ["Rate per Load (£)", rd.haulage?.ratePerLoad ?? 0],
+      ["Total Haulage Cost (£)", rd.haulage?.totalCost ?? 0],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Summary");
 
@@ -368,6 +401,11 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
                       Signed by {report.signer_name}{report.signer_position ? ` (${report.signer_position})` : ""} 
                       {report.signed_at && ` on ${format(new Date(report.signed_at), "dd/MM/yyyy")}`}
                     </p>
+                    {report.report_data?.haulage?.loads > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Haulage: {report.report_data.haulage.loads} loads @ £{report.report_data.haulage.ratePerLoad} = £{report.report_data.haulage.totalCost}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => exportSignedReport(report)} className="gap-2">
@@ -430,12 +468,13 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
         {/* Preview stats */}
         {rows.length > 0 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
                 { label: "Pallets", value: stats.totalPallets.toLocaleString() },
                 { label: "Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
                 { label: "Gross", value: `£${stats.totalCost.toFixed(2)}` },
                 { label: "Net", value: `£${stats.netCost.toFixed(2)}` },
+                { label: "Haulage", value: haulageData.loads > 0 ? `${haulageData.loads} loads` : "—" },
               ].map((k) => (
                 <div key={k.label} className="text-center p-3 border rounded-lg">
                   <p className="text-lg font-bold">{k.value}</p>
@@ -443,6 +482,17 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
                 </div>
               ))}
             </div>
+
+            {/* Haulage detail */}
+            {haulageData.loads > 0 && (
+              <div className="flex items-center gap-3 p-3 border rounded-lg bg-blue-500/5">
+                <Truck className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-sm">Haulage: {haulageData.loads} loads @ £{haulageData.ratePerLoad.toFixed(2)} each</p>
+                  <p className="text-xs text-muted-foreground">Total: £{haulageData.totalCost.toFixed(2)}</p>
+                </div>
+              </div>
+            )}
 
             {/* Recycling summary */}
             <div className="grid grid-cols-3 gap-3">
