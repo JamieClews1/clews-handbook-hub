@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film } from "lucide-react";
+import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film, Check, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
 import { StaciSummaryTable } from "./StaciSummaryTable";
 import {
@@ -37,6 +38,8 @@ interface StaciTallyScreenProps {
   palletWeightKg?: number;
 }
 
+type MobileStep = "pallet-entry" | "bales-pallets";
+
 export const StaciTallyScreen = ({
   palletEntries,
   onPalletEntriesChange,
@@ -56,14 +59,16 @@ export const StaciTallyScreen = ({
   onFilmsBaleWeightKgChange,
   palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
-  // Generate unique ID for new entries
+  const isMobile = useIsMobile();
+  const [mobileStep, setMobileStep] = useState<MobileStep>("pallet-entry");
+  const [activePalletIndex, setActivePalletIndex] = useState(0);
+
   const generateId = () => crypto.randomUUID();
 
-  // Add a new blank pallet type
   const handleAddPallet = () => {
     const newEntry: StaciPalletEntry = {
       id: generateId(),
-      colour: "blue", // Default, will be recalculated
+      colour: "blue",
       weight_kg: 0,
       pallet_type: "good",
       display_order: palletEntries.length,
@@ -72,23 +77,21 @@ export const StaciTallyScreen = ({
       pallet_count: 1,
     };
     onPalletEntriesChange([...palletEntries, newEntry]);
+    setActivePalletIndex(palletEntries.length);
   };
 
-  // Update pallet count
   const handlePalletCountChange = (id: string, count: number) => {
     onPalletEntriesChange(
       palletEntries.map((e) => (e.id === id ? { ...e, pallet_count: count } : e))
     );
   };
 
-  // Update description for a specific entry
   const handleDescriptionChange = (id: string, description: string) => {
     onPalletEntriesChange(
       palletEntries.map((e) => (e.id === id ? { ...e, description } : e))
     );
   };
 
-  // Update weight and recalculate colour
   const handleWeightChange = (id: string, weight: number) => {
     onPalletEntriesChange(
       palletEntries.map((e) => {
@@ -99,7 +102,6 @@ export const StaciTallyScreen = ({
     );
   };
 
-  // Update breakdown and recalculate colour
   const handleBreakdownChange = (id: string, breakdown: StaciWasteBreakdown) => {
     onPalletEntriesChange(
       palletEntries.map((e) => {
@@ -110,12 +112,35 @@ export const StaciTallyScreen = ({
     );
   };
 
-  // Delete an entry
   const handleDelete = (id: string) => {
-    onPalletEntriesChange(palletEntries.filter((e) => e.id !== id));
+    const newEntries = palletEntries.filter((e) => e.id !== id);
+    onPalletEntriesChange(newEntries);
+    if (activePalletIndex >= newEntries.length) {
+      setActivePalletIndex(Math.max(0, newEntries.length - 1));
+    }
   };
 
-  // Calculate summaries by colour (only include valid entries)
+  // Save current pallet and add next
+  const handleSaveAndNext = () => {
+    const newEntry: StaciPalletEntry = {
+      id: generateId(),
+      colour: "blue",
+      weight_kg: 0,
+      pallet_type: "good",
+      display_order: palletEntries.length,
+      description: "",
+      waste_breakdown: { ...EMPTY_WASTE_BREAKDOWN },
+      pallet_count: 1,
+    };
+    onPalletEntriesChange([...palletEntries, newEntry]);
+    setActivePalletIndex(palletEntries.length);
+  };
+
+  // No more palletised waste - go to bales/pallets step
+  const handleNoMorePallets = () => {
+    setMobileStep("bales-pallets");
+  };
+
   const { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount, totalPalletTypes } = useMemo(() => {
     const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
 
@@ -173,6 +198,336 @@ export const StaciTallyScreen = ({
 
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
+  const isCurrentPalletValid = () => {
+    if (palletEntries.length === 0) return false;
+    const current = palletEntries[activePalletIndex];
+    if (!current) return false;
+    const breakdownTotal = getTotalPercentage(current.waste_breakdown);
+    return Math.abs(breakdownTotal - 100) < 0.01 && current.weight_kg > 0;
+  };
+
+  // ============ MOBILE WIZARD VIEW ============
+  if (isMobile) {
+    // Step indicator
+    const stepIndicator = (
+      <div className="flex items-center gap-2 mb-4">
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+          mobileStep === "pallet-entry" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+        }`}>
+          <span>1</span>
+          <span>Pallet Types</span>
+        </div>
+        <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+          mobileStep === "bales-pallets" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+        }`}>
+          <span>2</span>
+          <span>Bales & Pallets</span>
+        </div>
+        <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+          <span>3</span>
+          <span>Review</span>
+        </div>
+      </div>
+    );
+
+    // STEP 1: Pallet entry - one at a time
+    if (mobileStep === "pallet-entry") {
+      const currentEntry = palletEntries[activePalletIndex];
+      const currentValid = isCurrentPalletValid();
+
+      return (
+        <div className="space-y-4 pb-32">
+          {stepIndicator}
+
+          {palletEntries.length === 0 ? (
+            <Card className="border-2 border-dashed">
+              <CardContent className="py-12 text-center">
+                <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-4">No pallet types added yet</p>
+                <Button onClick={handleAddPallet} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add First Pallet Type
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Progress indicator */}
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Pallet Type {activePalletIndex + 1} of {palletEntries.length}</span>
+                {validEntryCount > 0 && (
+                  <span className="text-green-600">{validEntryCount} completed</span>
+                )}
+              </div>
+
+              {/* Navigation dots for multiple pallets */}
+              {palletEntries.length > 1 && (
+                <div className="flex items-center gap-1.5 justify-center">
+                  {palletEntries.map((entry, idx) => {
+                    const bd = getTotalPercentage(entry.waste_breakdown);
+                    const valid = Math.abs(bd - 100) < 0.01 && entry.weight_kg > 0;
+                    return (
+                      <button
+                        key={entry.id}
+                        onClick={() => setActivePalletIndex(idx)}
+                        className={`w-3 h-3 rounded-full transition-colors ${
+                          idx === activePalletIndex
+                            ? "bg-primary"
+                            : valid
+                            ? "bg-green-500"
+                            : "bg-muted-foreground/30"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Current pallet entry */}
+              {currentEntry && (
+                <StaciPalletEntryCard
+                  entry={currentEntry}
+                  index={activePalletIndex}
+                  onDescriptionChange={(desc) => handleDescriptionChange(currentEntry.id, desc)}
+                  onWeightChange={(weight) => handleWeightChange(currentEntry.id, weight)}
+                  onPalletCountChange={(count) => handlePalletCountChange(currentEntry.id, count)}
+                  onBreakdownChange={(breakdown) => handleBreakdownChange(currentEntry.id, breakdown)}
+                  onDelete={() => handleDelete(currentEntry.id)}
+                />
+              )}
+            </>
+          )}
+
+          {/* Fixed Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
+            <div className="space-y-2">
+              {palletEntries.length > 0 && currentValid && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleSaveAndNext}
+                    variant="outline"
+                    className="h-12 gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Save & Next Pallet
+                  </Button>
+                  <Button
+                    onClick={handleNoMorePallets}
+                    className="h-12 gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    No More Pallets
+                  </Button>
+                </div>
+              )}
+              {palletEntries.length > 0 && !currentValid && (
+                <Button
+                  onClick={handleNoMorePallets}
+                  variant="outline"
+                  className="h-12 w-full gap-2"
+                  disabled={validEntryCount === 0}
+                >
+                  <Check className="h-4 w-4" />
+                  No More Palletised Waste
+                </Button>
+              )}
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" onClick={onBack} className="h-10 px-3 gap-1">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <div className="flex items-center gap-4 text-center text-sm">
+                  <div>
+                    <div className="font-bold">{totalPallets}</div>
+                    <div className="text-xs text-muted-foreground">Pallets</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-primary">{(totalWeightKg / 1000).toFixed(2)}t</div>
+                    <div className="text-xs text-muted-foreground">Weight</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // STEP 2: Bales & Pallets
+    if (mobileStep === "bales-pallets") {
+      return (
+        <div className="space-y-4 pb-32">
+          {stepIndicator}
+
+          <Card className="border-2 shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                  <Package className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Bales & Pallets</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Good pallets, scrap, bales
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Good Pallets */}
+          <Card className="border-2 border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                  <Package className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Good Pallets</Label>
+                  <p className="text-sm text-muted-foreground">£0.75 rebate each</p>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  value={goodPalletCount}
+                  onChange={(e) => onGoodPalletCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-24 h-14 text-center text-2xl font-bold"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pallets Scrap */}
+          <Card className="border-2 border-orange-500/50 bg-orange-50/30 dark:bg-orange-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                  <Trash className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Pallets Scrap</Label>
+                  <p className="text-sm text-muted-foreground">Pallet charge applied</p>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  value={palletsScrapCount}
+                  onChange={(e) => onPalletsScrapCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-24 h-14 text-center text-2xl font-bold"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card Bales */}
+          <Card className="border-2 border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                  <Layers className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Card Bales</Label>
+                  <p className="text-sm text-muted-foreground">Baled cardboard</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={cardBalesCount}
+                      onChange={(e) => onCardBalesCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-16 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">Qty</span>
+                  </div>
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={cardBalesWeightKg}
+                      onChange={(e) => onCardBalesWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-20 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">KG</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Films Bale */}
+          <Card className="border-2 border-violet-500/50 bg-violet-50/30 dark:bg-violet-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center">
+                  <Film className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Films Bale</Label>
+                  <p className="text-sm text-muted-foreground">Baled film/plastic</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={filmsBaleCount}
+                      onChange={(e) => onFilmsBaleCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-16 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">Qty</span>
+                  </div>
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={filmsBaleWeightKg}
+                      onChange={(e) => onFilmsBaleWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-20 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">KG</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fixed Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
+            <div className="flex items-center justify-between gap-3">
+              <Button variant="outline" onClick={() => setMobileStep("pallet-entry")} className="h-12 px-4 gap-2">
+                <ArrowLeft className="h-5 w-5" />
+                Pallets
+              </Button>
+              <div className="flex items-center gap-4 text-center text-sm">
+                <div>
+                  <div className="font-bold">{totalPallets}</div>
+                  <div className="text-xs text-muted-foreground">Pallets</div>
+                </div>
+                <div>
+                  <div className="font-bold text-primary">{(totalWeightKg / 1000).toFixed(2)}t</div>
+                  <div className="text-xs text-muted-foreground">Weight</div>
+                </div>
+              </div>
+              <Button
+                onClick={onReview}
+                className="h-12 px-6 gap-2"
+                disabled={validEntryCount === 0}
+              >
+                Review
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // ============ DESKTOP VIEW (unchanged) ============
   return (
     <div className="space-y-6 pb-32">
       {/* Header card with add button */}
