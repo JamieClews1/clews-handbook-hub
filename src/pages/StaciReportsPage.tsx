@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, CalendarIcon, Download, Package } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Download, Package, Truck } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -67,6 +67,7 @@ const StaciReportsPage = () => {
   const [dateTo, setDateTo] = useState<Date>(endOfMonth(new Date()));
   const [rows, setRows] = useState<PalletRow[]>([]);
   const [fetching, setFetching] = useState(false);
+  const [haulageData, setHaulageData] = useState<{ loads: number; totalCost: number; ratePerLoad: number }>({ loads: 0, totalCost: 0, ratePerLoad: 0 });
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -80,6 +81,7 @@ const StaciReportsPage = () => {
       const from = format(dateFrom, "yyyy-MM-dd");
       const to = format(dateTo, "yyyy-MM-dd");
 
+      // Fetch pallet entries
       const { data, error } = await supabase
         .from("staci_pallet_entries")
         .select("id, colour, weight_kg, pallet_type, pallet_count, description, waste_breakdown, load_report_id, load_reports!inner(report_date, status, customer_sites(site_name, customers(customer_name)))")
@@ -109,6 +111,28 @@ const StaciReportsPage = () => {
       }));
 
       setRows(mapped);
+
+      // Fetch haulage costs from data_hub_jobs
+      const { data: haulageJobs } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number, raw")
+        .ilike("customer", "%staci%")
+        .eq("source", "skiptrak")
+        .gte("job_date", from)
+        .lte("job_date", to);
+
+      if (haulageJobs && haulageJobs.length > 0) {
+        let totalHaulageCost = 0;
+        haulageJobs.forEach((j: any) => {
+          const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
+          if (!isNaN(cost)) totalHaulageCost += cost;
+        });
+        const avgRate = haulageJobs.length > 0 ? totalHaulageCost / haulageJobs.length : 0;
+        setHaulageData({ loads: haulageJobs.length, totalCost: totalHaulageCost, ratePerLoad: avgRate });
+      } else {
+        setHaulageData({ loads: 0, totalCost: 0, ratePerLoad: 0 });
+      }
+
       setFetching(false);
     };
     fetchData();
@@ -219,6 +243,11 @@ const StaciReportsPage = () => {
       ["Gross Cost (£)", stats.totalCost.toFixed(2)],
       ["Pallet Rebate (£)", stats.palletRebate.toFixed(2)],
       ["Net Cost (£)", stats.netCost.toFixed(2)],
+      [],
+      ["Haulage"],
+      ["Loads", haulageData.loads],
+      ["Rate per Load (£)", haulageData.ratePerLoad.toFixed(2)],
+      ["Total Haulage Cost (£)", haulageData.totalCost.toFixed(2)],
     ];
     const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, ws1, "Summary");
@@ -384,12 +413,13 @@ const StaciReportsPage = () => {
         ) : (
           <>
             {/* KPI cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[
                 { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
                 { label: "Total Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
                 { label: "Gross Cost", value: `£${stats.totalCost.toFixed(2)}` },
                 { label: "Net Cost", value: `£${stats.netCost.toFixed(2)}` },
+                { label: "Haulage", value: haulageData.loads > 0 ? `${haulageData.loads} loads` : "—" },
               ].map((kpi) => (
                 <Card key={kpi.label}>
                   <CardContent className="py-4 text-center">
@@ -399,6 +429,23 @@ const StaciReportsPage = () => {
                 </Card>
               ))}
             </div>
+
+            {/* Haulage summary card */}
+            {haulageData.loads > 0 && (
+              <Card className="border-2 border-blue-500/20">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <Truck className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">Haulage: {haulageData.loads} loads @ £{haulageData.ratePerLoad.toFixed(2)} each</p>
+                      <p className="text-sm text-muted-foreground">Total haulage cost: £{haulageData.totalCost.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Pallet colour breakdown table + bar chart */}
             <div className="grid lg:grid-cols-2 gap-6">
