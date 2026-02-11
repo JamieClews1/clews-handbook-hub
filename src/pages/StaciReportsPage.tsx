@@ -467,7 +467,7 @@ const StaciReportsPage = () => {
               {[
                 { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
                 { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)} t` },
-                { label: "Gross Cost", value: `£${stats.totalCost.toFixed(2)}` },
+                { label: "Gross Cost", value: `£${(stats.totalCost + haulageData.totalCost).toFixed(2)}` },
                 { label: "Net Cost", value: `£${stats.netCost.toFixed(2)}` },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
               ].map((kpi) => (
