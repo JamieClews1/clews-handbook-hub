@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
-import { format } from "date-fns";
+import { format, subMonths, startOfMonth } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -18,18 +18,18 @@ interface MissingJob {
 
 interface MissingReportsAlertProps {
   customerType: "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other" | null;
-  dateFrom: string;
-  dateTo: string;
 }
 
-export const MissingReportsAlert = ({ customerType, dateFrom, dateTo }: MissingReportsAlertProps) => {
+export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) => {
+  const dateFrom = format(startOfMonth(subMonths(new Date(), 3)), "yyyy-MM-dd");
+  const dateTo = format(new Date(), "yyyy-MM-dd");
   const [missingJobs, setMissingJobs] = useState<MissingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
     fetchMissingJobs();
-  }, [customerType, dateFrom, dateTo]);
+  }, [customerType]);
 
   const fetchMissingJobs = async () => {
     if (!customerType) {

@@ -235,7 +235,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       </div>
 
       {/* Missing Reports Alert */}
-      <MissingReportsAlert customerType={customerType ?? null} dateFrom={dateFrom} dateTo={dateTo} />
+      <MissingReportsAlert customerType={customerType ?? null} />
 
       {/* Filters Card */}
       <Card>
