@@ -146,6 +146,7 @@ export const StaciReviewScreen = ({
   isSaving,
 }: StaciReviewScreenProps) => {
   const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
+  const [isReconciled, setIsReconciled] = useState(false);
 
   const { summaries, totalPallets, totalWeightKg, totalValue, palletRebate } = useMemo(
     () => buildSummaries(palletEntries, goodPalletCount),
@@ -173,6 +174,7 @@ export const StaciReviewScreen = ({
     if (reconciledPreview && onPalletEntriesChange) {
       onPalletEntriesChange(reconciledPreview);
       setReconciledPreview(null);
+      setIsReconciled(true);
     }
   };
 
@@ -279,56 +281,70 @@ export const StaciReviewScreen = ({
       {/* Reconcile Section */}
       {canReconcile && onPalletEntriesChange && (
         <div className="space-y-4">
-          <Button
-            type="button"
-            onClick={handleReconcile}
-            className="h-12 w-full text-base gap-2"
-            variant="outline"
-            disabled={isSaving || !!weighbridgeLoading}
-          >
-            <Scale className="h-5 w-5" />
-            Reconcile to Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
-          </Button>
-
-          {reconciledPreview && reconciledSummaryData && (
-            <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Reconciled Preview</CardTitle>
+          {isReconciled ? (
+            <div className="flex items-center gap-3 rounded-lg border-2 border-green-500/50 bg-green-50/30 dark:bg-green-950/20 p-4">
+              <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+              <div>
+                <p className="font-semibold text-green-700 dark:text-green-400">Reconciled & Completed</p>
                 <p className="text-sm text-muted-foreground">
-                  Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
-                  Reconciled: {reconciledSummaryData.totalWeightKg.toLocaleString()} kg
-                  {reconciledSummaryData.totalWeightKg !== totalWeightKg && (
-                    <span className="ml-1">
-                      (was {totalWeightKg.toLocaleString()} kg)
-                    </span>
-                  )}
+                  Weights adjusted to weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
                 </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <StaciSummaryTable
-                  summaries={reconciledSummaryData.summaries}
-                  totalPallets={reconciledSummaryData.totalPallets}
-                  totalWeightKg={reconciledSummaryData.totalWeightKg}
-                  totalValue={reconciledSummaryData.totalValue}
-                  goodPalletCount={goodPalletCount}
-                  palletsScrapCount={palletsScrapCount}
-                  cardBalesCount={cardBalesCount}
-                  cardBalesWeightKg={cardBalesWeightKg}
-                  filmsBaleCount={filmsBaleCount}
-                  filmsBaleWeightKg={filmsBaleWeightKg}
-                  palletWeightKg={palletWeightKg}
-                  palletChargeRatePerTonne={palletChargeRatePerTonne}
-                />
-                <Button
-                  type="button"
-                  className="w-full h-12 text-base"
-                  onClick={handleAcceptReconciled}
-                  disabled={isSaving}
-                >
-                  Accept Reconciled Weights
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button
+                type="button"
+                onClick={handleReconcile}
+                className="h-12 w-full text-base gap-2"
+                variant="outline"
+                disabled={isSaving || !!weighbridgeLoading}
+              >
+                <Scale className="h-5 w-5" />
+                Reconcile to Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
+              </Button>
+
+              {reconciledPreview && reconciledSummaryData && (
+                <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Reconciled Preview</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
+                      Reconciled: {reconciledSummaryData.totalWeightKg.toLocaleString()} kg
+                      {reconciledSummaryData.totalWeightKg !== totalWeightKg && (
+                        <span className="ml-1">
+                          (was {totalWeightKg.toLocaleString()} kg)
+                        </span>
+                      )}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <StaciSummaryTable
+                      summaries={reconciledSummaryData.summaries}
+                      totalPallets={reconciledSummaryData.totalPallets}
+                      totalWeightKg={reconciledSummaryData.totalWeightKg}
+                      totalValue={reconciledSummaryData.totalValue}
+                      goodPalletCount={goodPalletCount}
+                      palletsScrapCount={palletsScrapCount}
+                      cardBalesCount={cardBalesCount}
+                      cardBalesWeightKg={cardBalesWeightKg}
+                      filmsBaleCount={filmsBaleCount}
+                      filmsBaleWeightKg={filmsBaleWeightKg}
+                      palletWeightKg={palletWeightKg}
+                      palletChargeRatePerTonne={palletChargeRatePerTonne}
+                    />
+                    <Button
+                      type="button"
+                      className="w-full h-12 text-base"
+                      onClick={handleAcceptReconciled}
+                      disabled={isSaving}
+                    >
+                      Accept Reconciled Weights
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
       )}
