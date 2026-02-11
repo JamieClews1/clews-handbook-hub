@@ -20,6 +20,10 @@ interface StaciSummaryTableProps {
   cardBalesWeightKg?: number;
   filmsBaleCount?: number;
   filmsBaleWeightKg?: number;
+  papersDolavCount?: number;
+  papersDolavWeightKg?: number;
+  glassDolavCount?: number;
+  glassDolavWeightKg?: number;
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
 }
@@ -35,6 +39,10 @@ export const StaciSummaryTable = ({
   cardBalesWeightKg = 0,
   filmsBaleCount = 0,
   filmsBaleWeightKg = 0,
+  papersDolavCount = 0,
+  papersDolavWeightKg = 0,
+  glassDolavCount = 0,
+  glassDolavWeightKg = 0,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
 }: StaciSummaryTableProps) => {
@@ -182,6 +190,40 @@ export const StaciSummaryTable = ({
               </TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">{filmsBaleWeightKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right font-medium">-</TableCell>
+            </TableRow>
+          )}
+          {papersDolavCount > 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Papers Dolav</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {papersDolavCount}
+              </TableCell>
+              <TableCell className="text-right">
+                {papersDolavWeightKg.toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">{papersDolavWeightKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right font-medium">-</TableCell>
+            </TableRow>
+          )}
+          {glassDolavCount > 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Glass Dolav</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {glassDolavCount}
+              </TableCell>
+              <TableCell className="text-right">
+                {glassDolavWeightKg.toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">{glassDolavWeightKg.toLocaleString()}</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>

@@ -34,6 +34,10 @@ interface StaciReport {
   card_bales_weight_kg: number;
   films_bale_count: number;
   films_bale_weight_kg: number;
+  papers_dolav_count: number;
+  papers_dolav_weight_kg: number;
+  glass_dolav_count: number;
+  glass_dolav_weight_kg: number;
   status: string;
   pallet_entries: {
     colour: StaciPalletColour;
@@ -119,6 +123,10 @@ export const StaciLoadReportCards = () => {
         card_bales_weight_kg: Number(r.card_bales_weight_kg) || 0,
         films_bale_count: r.films_bale_count || 0,
         films_bale_weight_kg: Number(r.films_bale_weight_kg) || 0,
+        papers_dolav_count: (r as any).papers_dolav_count || 0,
+        papers_dolav_weight_kg: Number((r as any).papers_dolav_weight_kg) || 0,
+        glass_dolav_count: (r as any).glass_dolav_count || 0,
+        glass_dolav_weight_kg: Number((r as any).glass_dolav_weight_kg) || 0,
         status: r.status,
         pallet_entries: (palletsByReport[r.id] || []).map((e: any) => ({
           colour: e.colour,

@@ -35,6 +35,14 @@ interface StaciTallyScreenProps {
   onFilmsBaleCountChange: (count: number) => void;
   filmsBaleWeightKg: number;
   onFilmsBaleWeightKgChange: (weight: number) => void;
+  papersDolavCount: number;
+  onPapersDolavCountChange: (count: number) => void;
+  papersDolavWeightKg: number;
+  onPapersDolavWeightKgChange: (weight: number) => void;
+  glassDolavCount: number;
+  onGlassDolavCountChange: (count: number) => void;
+  glassDolavWeightKg: number;
+  onGlassDolavWeightKgChange: (weight: number) => void;
   palletWeightKg?: number;
 }
 
@@ -57,6 +65,14 @@ export const StaciTallyScreen = ({
   onFilmsBaleCountChange,
   filmsBaleWeightKg,
   onFilmsBaleWeightKgChange,
+  papersDolavCount,
+  onPapersDolavCountChange,
+  papersDolavWeightKg,
+  onPapersDolavWeightKgChange,
+  glassDolavCount,
+  onGlassDolavCountChange,
+  glassDolavWeightKg,
+  onGlassDolavWeightKgChange,
   palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
   const isMobile = useIsMobile();
@@ -516,7 +532,79 @@ export const StaciTallyScreen = ({
             </CardContent>
           </Card>
 
-          {/* Fixed Bottom Navigation */}
+          {/* Papers Dolav */}
+          <Card className="border-2 border-sky-500/50 bg-sky-50/30 dark:bg-sky-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
+                  <Layers className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Papers Dolav</Label>
+                  <p className="text-sm text-muted-foreground">Paper recycling</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={papersDolavCount}
+                      onChange={(e) => onPapersDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-16 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">Qty</span>
+                  </div>
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={papersDolavWeightKg}
+                      onChange={(e) => onPapersDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-20 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">KG</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Glass Dolav */}
+          <Card className="border-2 border-teal-500/50 bg-teal-50/30 dark:bg-teal-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                  <Layers className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Glass Dolav</Label>
+                  <p className="text-sm text-muted-foreground">Glass recycling</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={glassDolavCount}
+                      onChange={(e) => onGlassDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-16 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">Qty</span>
+                  </div>
+                  <div className="text-center">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={glassDolavWeightKg}
+                      onChange={(e) => onGlassDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-20 h-14 text-center text-xl font-bold"
+                    />
+                    <span className="text-xs text-muted-foreground">KG</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
             <div className="flex items-center justify-between gap-3">
               <Button variant="outline" onClick={() => setMobileStep("pallet-entry")} className="h-12 px-4 gap-2">
@@ -743,6 +831,88 @@ export const StaciTallyScreen = ({
         </CardContent>
       </Card>
 
+      {/* Papers Dolav */}
+      <Card className="border-2 border-sky-500/50 bg-sky-50/30 dark:bg-sky-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center">
+              <Layers className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-base font-semibold text-foreground">
+                Papers Dolav
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Paper recycling
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-center">
+                <Input
+                  type="number"
+                  min={0}
+                  value={papersDolavCount}
+                  onChange={(e) => onPapersDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-20 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Qty</span>
+              </div>
+              <div className="text-center">
+                <Input
+                  type="number"
+                  min={0}
+                  value={papersDolavWeightKg}
+                  onChange={(e) => onPapersDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-24 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Est KG</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Glass Dolav */}
+      <Card className="border-2 border-teal-500/50 bg-teal-50/30 dark:bg-teal-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+              <Layers className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-base font-semibold text-foreground">
+                Glass Dolav
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Glass recycling
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-center">
+                <Input
+                  type="number"
+                  min={0}
+                  value={glassDolavCount}
+                  onChange={(e) => onGlassDolavCountChange(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-20 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Qty</span>
+              </div>
+              <div className="text-center">
+                <Input
+                  type="number"
+                  min={0}
+                  value={glassDolavWeightKg}
+                  onChange={(e) => onGlassDolavWeightKgChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-24 h-14 text-center text-2xl font-bold"
+                />
+                <span className="text-xs text-muted-foreground">Est KG</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary table */}
       {summaries.length > 0 && (
         <div className="space-y-3">
@@ -765,6 +935,10 @@ export const StaciTallyScreen = ({
             cardBalesWeightKg={cardBalesWeightKg}
             filmsBaleCount={filmsBaleCount}
             filmsBaleWeightKg={filmsBaleWeightKg}
+            papersDolavCount={papersDolavCount}
+            papersDolavWeightKg={papersDolavWeightKg}
+            glassDolavCount={glassDolavCount}
+            glassDolavWeightKg={glassDolavWeightKg}
             palletWeightKg={palletWeightKg}
           />
         </div>
