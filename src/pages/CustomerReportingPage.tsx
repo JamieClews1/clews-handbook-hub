@@ -6,12 +6,13 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database, Package } from "lucide-react";
 import { SiteReportGenerator } from "@/components/customer-reporting/SiteReportGenerator";
 import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
 import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
 import { DataHubCustomerReport } from "@/components/customer-reporting/DataHubCustomerReport";
+import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
 
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
@@ -73,7 +74,7 @@ const CustomerReportingPage = () => {
         </div>
 
         <Tabs defaultValue="site-reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Site Reports</span>
@@ -85,6 +86,10 @@ const CustomerReportingPage = () => {
             <TabsTrigger value="data-hub-report" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
               <span className="hidden sm:inline">Data Hub</span>
+            </TabsTrigger>
+            <TabsTrigger value="staci-reports" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Staci</span>
             </TabsTrigger>
             <TabsTrigger value="monthly-generation" className="flex items-center gap-2">
               <Send className="h-4 w-4" />
@@ -137,7 +142,21 @@ const CustomerReportingPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
- 
+
+          <TabsContent value="staci-reports">
+            <Card>
+              <CardHeader>
+                <CardTitle>Staci Load Reports</CardTitle>
+                <CardDescription>
+                  View all submitted Staci pallet load reports with colour breakdown and costs
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StaciLoadReportCards />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="monthly-generation">
             <Card>
               <CardHeader>
