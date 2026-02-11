@@ -2553,6 +2553,33 @@ export type Database = {
           },
         ]
       }
+      staci_pallet_charges: {
+        Row: {
+          charge_key: string
+          charge_value: number
+          created_at: string
+          effective_from: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          charge_key: string
+          charge_value?: number
+          created_at?: string
+          effective_from: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          charge_key?: string
+          charge_value?: number
+          created_at?: string
+          effective_from?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       staci_pallet_entries: {
         Row: {
           colour: string
@@ -2602,6 +2629,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staci_pallet_rates: {
+        Row: {
+          colour: string
+          created_at: string
+          effective_from: string
+          id: string
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          colour: string
+          created_at?: string
+          effective_from: string
+          id?: string
+          rate?: number
+          updated_at?: string
+        }
+        Update: {
+          colour?: string
+          created_at?: string
+          effective_from?: string
+          id?: string
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       toolbox_talk_signatures: {
         Row: {

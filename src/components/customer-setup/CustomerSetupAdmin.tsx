@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
+import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
 
 type Customer = {
   id: string;
@@ -926,9 +927,10 @@ export function CustomerSetupAdmin() {
               <div className="text-sm text-muted-foreground">No customer selected.</div>
             ) : (
               <Tabs defaultValue="sites" className="w-full">
-                <TabsList>
+                <TabsList className="flex-wrap h-auto">
                   <TabsTrigger value="sites">Sites</TabsTrigger>
                   <TabsTrigger value="midweigh">Midweigh Rebates</TabsTrigger>
+                  <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="portal">Portal access</TabsTrigger>
                 </TabsList>
@@ -1245,6 +1247,10 @@ export function CustomerSetupAdmin() {
                       </div>
                     </div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="staci-rates" className="mt-4">
+                  <StaciPalletRatesEditor />
                 </TabsContent>
               </Tabs>
             )}
