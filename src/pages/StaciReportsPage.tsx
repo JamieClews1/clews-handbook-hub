@@ -858,9 +858,9 @@ const StaciReportsPage = () => {
                               <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
                               <td className="py-1.5 px-3 text-right">{cardTonnes.toFixed(2)}</td>
                               <td className="py-1.5 px-3 text-right font-medium">
-                                {cardValuePerTonne !== 0 ? (cardValue >= 0 ? `£${cardValue.toFixed(2)}` : `-£${Math.abs(cardValue).toFixed(2)}`) : "-"}
+                                {cardValuePerTonne !== 0 ? `£${cardValue.toFixed(2)}` : "-"}
                               </td>
-                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Recyclable</span></td>
+                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
                             </tr>
                           );
                         })()}
@@ -876,9 +876,9 @@ const StaciReportsPage = () => {
                               <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
                               <td className="py-1.5 px-3 text-right">{filmsTonnes.toFixed(2)}</td>
                               <td className="py-1.5 px-3 text-right font-medium">
-                                {filmsValuePerTonne !== 0 ? (filmsValue >= 0 ? `£${filmsValue.toFixed(2)}` : `-£${Math.abs(filmsValue).toFixed(2)}`) : "-"}
+                                {filmsValuePerTonne !== 0 ? `£${filmsValue.toFixed(2)}` : "-"}
                               </td>
-                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Recyclable</span></td>
+                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
                             </tr>
                           );
                         })()}
@@ -909,22 +909,20 @@ const StaciReportsPage = () => {
                         {(() => {
                           const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                           const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-                          const totalValue = cardValue + filmsValue;
-                          const totalRebateValue = stats.palletRebate;
+                          const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount;
+                          const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg;
+                          const totalWeightT = totalWeightKg / 1000;
+                          // Net rebate: positive recyclable values minus the pallet rebate = net reduction
+                          const netRebateValue = cardValue + filmsValue - stats.palletRebate;
                           return (
                             <tr className="border-t-2 font-semibold">
                               <td className="py-2 px-3">Total</td>
-                              <td className="py-2 px-3 text-right">{stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount}</td>
+                              <td className="py-2 px-3 text-right">{totalQty}</td>
                               <td className="py-2 px-3 text-right">-</td>
-                              <td className="py-2 px-3 text-right">{(balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg).toLocaleString()}</td>
-                              <td className="py-2 px-3 text-right">{((balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg) / 1000).toFixed(2)}</td>
-                              <td className="py-2 px-3 text-right font-medium">
-                                {(totalValue > 0 || totalRebateValue > 0)
-                                  ? (() => {
-                                      const net = totalValue - totalRebateValue;
-                                      return net >= 0 ? `£${net.toFixed(2)}` : `£-${Math.abs(net).toFixed(2)}`;
-                                    })()
-                                  : "-"}
+                              <td className="py-2 px-3 text-right">{totalWeightKg.toLocaleString()}</td>
+                              <td className="py-2 px-3 text-right">{totalWeightT.toFixed(2)}</td>
+                              <td className="py-2 px-3 text-right font-medium text-green-600">
+                                £{netRebateValue.toFixed(2)}
                               </td>
                               <td />
                             </tr>
