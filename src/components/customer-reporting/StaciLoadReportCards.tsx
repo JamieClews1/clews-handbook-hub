@@ -455,7 +455,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                             {totalPallets} pallets
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {(totalWeightKg / 1000).toFixed(2)}t
+                            {((totalWeightKg + (report.card_bales_count || 0) * (report.card_bales_weight_kg || 0) + (report.films_bale_count || 0) * (report.films_bale_weight_kg || 0) + (report.papers_dolav_count || 0) * (report.papers_dolav_weight_kg || 0) + (report.glass_dolav_count || 0) * (report.glass_dolav_weight_kg || 0)) / 1000).toFixed(2)}t
                           </Badge>
                           <Badge
                             variant="default"
