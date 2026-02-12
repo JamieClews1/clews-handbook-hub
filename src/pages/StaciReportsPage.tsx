@@ -642,20 +642,28 @@ const StaciReportsPage = () => {
         ) : (
           <>
             {/* KPI cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
-                { label: "Total Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
-                { label: "Gross Cost", value: `£${(stats.totalCost + haulageData.totalCost).toFixed(2)}` },
-                { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
-              ].map((kpi) => (
-                <Card key={kpi.label}>
-                  <CardContent className="py-4 text-center">
-                    <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-                    <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {(() => {
+                const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
+                const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
+                const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue;
+                const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
+
+                return [
+                  { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
+                  { label: "Total Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
+                  { label: "Gross Cost", value: `£${(stats.totalCost + haulageData.totalCost).toFixed(2)}` },
+                  { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}`, highlight: true },
+                  { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
+                ].map((kpi) => (
+                  <Card key={kpi.label}>
+                    <CardContent className="py-4 text-center">
+                      <p className={`text-2xl font-bold ${(kpi as any).highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
+                      <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                    </CardContent>
+                  </Card>
+                ));
+              })()}
             </div>
 
             {/* Haulage summary table */}
