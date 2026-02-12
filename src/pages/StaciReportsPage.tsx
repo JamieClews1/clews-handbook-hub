@@ -857,10 +857,10 @@ const StaciReportsPage = () => {
                               <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount > 0 ? Math.round(balesDolavData.cardBalesWeightKg / balesDolavData.cardBalesCount).toLocaleString() : "-"}</td>
                               <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
                               <td className="py-1.5 px-3 text-right">{cardTonnes.toFixed(2)}</td>
-                              <td className="py-1.5 px-3 text-right font-medium">
-                                {cardValuePerTonne !== 0 ? `£${cardValue.toFixed(2)}` : "-"}
+                              <td className="py-1.5 px-3 text-right font-medium text-green-600">
+                                {cardValuePerTonne !== 0 ? `-£${cardValue.toFixed(2)}` : "-"}
                               </td>
-                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                             </tr>
                           );
                         })()}
@@ -875,10 +875,10 @@ const StaciReportsPage = () => {
                               <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount > 0 ? Math.round(balesDolavData.filmsBaleWeightKg / balesDolavData.filmsBaleCount).toLocaleString() : "-"}</td>
                               <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
                               <td className="py-1.5 px-3 text-right">{filmsTonnes.toFixed(2)}</td>
-                              <td className="py-1.5 px-3 text-right font-medium">
-                                {filmsValuePerTonne !== 0 ? `£${filmsValue.toFixed(2)}` : "-"}
+                              <td className="py-1.5 px-3 text-right font-medium text-green-600">
+                                {filmsValuePerTonne !== 0 ? `-£${filmsValue.toFixed(2)}` : "-"}
                               </td>
-                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                              <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                             </tr>
                           );
                         })()}
@@ -890,7 +890,7 @@ const StaciReportsPage = () => {
                             <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{(balesDolavData.papersDolavWeightKg / 1000).toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right">-</td>
-                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                           </tr>
                         )}
                         {balesDolavData.glassDolavCount > 0 && (
@@ -901,7 +901,7 @@ const StaciReportsPage = () => {
                             <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{(balesDolavData.glassDolavWeightKg / 1000).toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right">-</td>
-                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Recyclable</span></td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                           </tr>
                         )}
                       </tbody>
@@ -912,8 +912,8 @@ const StaciReportsPage = () => {
                           const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount;
                           const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg;
                           const totalWeightT = totalWeightKg / 1000;
-                          // Sum all values: good pallet rebate is negative, recyclable values are positive
-                          const sectionTotal = -stats.palletRebate + cardValue + filmsValue;
+                          // All items are rebates - sum all absolute values as a total rebate
+                          const totalRebate = stats.palletRebate + cardValue + filmsValue;
                           return (
                             <tr className="border-t-2 font-semibold">
                               <td className="py-2 px-3">Total</td>
@@ -921,8 +921,8 @@ const StaciReportsPage = () => {
                               <td className="py-2 px-3 text-right">-</td>
                               <td className="py-2 px-3 text-right">{totalWeightKg.toLocaleString()}</td>
                               <td className="py-2 px-3 text-right">{totalWeightT.toFixed(2)}</td>
-                              <td className={`py-2 px-3 text-right font-medium ${sectionTotal < 0 ? "text-green-600" : ""}`}>
-                                {sectionTotal < 0 ? "-" : ""}£{Math.abs(sectionTotal).toFixed(2)}
+                              <td className="py-2 px-3 text-right font-medium text-green-600">
+                                -£{totalRebate.toFixed(2)}
                               </td>
                               <td />
                             </tr>
