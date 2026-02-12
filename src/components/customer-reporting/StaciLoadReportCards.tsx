@@ -420,7 +420,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Card Bales</TableCell>
                                   <TableCell className="text-right text-sm">{report.card_bales_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{report.card_bales_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right text-sm">{(report.card_bales_count * report.card_bales_weight_kg).toLocaleString()}</TableCell>
                                   <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
                                 </TableRow>
                               )}
@@ -428,7 +428,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Film Bales</TableCell>
                                   <TableCell className="text-right text-sm">{report.films_bale_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{report.films_bale_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right text-sm">{(report.films_bale_count * report.films_bale_weight_kg).toLocaleString()}</TableCell>
                                   <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
                                 </TableRow>
                               )}
@@ -436,7 +436,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Papers Dolav</TableCell>
                                   <TableCell className="text-right text-sm">{report.papers_dolav_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{report.papers_dolav_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right text-sm">{(report.papers_dolav_count * report.papers_dolav_weight_kg).toLocaleString()}</TableCell>
                                   <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
                                 </TableRow>
                               )}
@@ -444,7 +444,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Glass Dolav</TableCell>
                                   <TableCell className="text-right text-sm">{report.glass_dolav_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{report.glass_dolav_weight_kg.toLocaleString()}</TableCell>
+                                  <TableCell className="text-right text-sm">{(report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}</TableCell>
                                   <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
                                 </TableRow>
                               )}
@@ -464,7 +464,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.pallets_scrap_count}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  {(report.card_bales_weight_kg + report.films_bale_weight_kg + report.papers_dolav_weight_kg + report.glass_dolav_weight_kg).toLocaleString()}
+                                  {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}
                                 </TableCell>
                                 <TableCell />
                               </TableRow>
