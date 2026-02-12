@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { Calendar, Truck, Package, ChevronDown, ChevronRight, ExternalLink, Scale } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { Calendar as CalendarIcon, Truck, Package, ChevronDown, ChevronRight, ChevronLeft, ExternalLink, Scale } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   STACI_PALLET_RATES,
@@ -55,10 +58,15 @@ interface StaciLoadReportCardsProps {
 
 export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToProp }: StaciLoadReportCardsProps) => {
   const navigate = useNavigate();
-  const [internalDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [internalDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
-  const dateFrom = dateFromProp ?? internalDateFrom;
-  const dateTo = dateToProp ?? internalDateTo;
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [dateMode, setDateMode] = useState<"month" | "range">("month");
+  const [customFrom, setCustomFrom] = useState<Date>(startOfMonth(new Date()));
+  const [customTo, setCustomTo] = useState<Date>(endOfMonth(new Date()));
+  
+  const dateFrom = dateFromProp ?? (dateMode === "month" ? format(startOfMonth(currentMonth), "yyyy-MM-dd") : format(customFrom, "yyyy-MM-dd"));
+  const dateTo = dateToProp ?? (dateMode === "month" ? format(endOfMonth(currentMonth), "yyyy-MM-dd") : format(customTo, "yyyy-MM-dd"));
+  const hasExternalDates = dateFromProp != null && dateToProp != null;
+  
   const [reports, setReports] = useState<StaciReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
@@ -301,6 +309,73 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
 
   return (
     <div className="space-y-4">
+
+      {/* Period selector (only when no external dates provided) */}
+      {!hasExternalDates && (
+        <Card>
+          <CardContent className="py-4 flex flex-wrap items-center gap-4">
+            <Select value={dateMode} onValueChange={(v) => {
+              const mode = v as "month" | "range";
+              setDateMode(mode);
+              if (mode === "month") {
+                setCurrentMonth(customFrom);
+              } else {
+                setCustomFrom(startOfMonth(currentMonth));
+                setCustomTo(endOfMonth(currentMonth));
+              }
+            }}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Month</SelectItem>
+                <SelectItem value="range">Date Range</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {dateMode === "month" ? (
+              <>
+                <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium min-w-[120px] text-center">
+                  {format(currentMonth, "MMMM yyyy")}
+                </span>
+                <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-medium text-muted-foreground">Period:</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(customFrom, "dd MMM yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customFrom} onSelect={(d) => d && setCustomFrom(d)} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-muted-foreground">to</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(customTo, "dd MMM yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customTo} onSelect={(d) => d && setCustomTo(d)} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Period summary */}
       {reports.length > 0 && (
