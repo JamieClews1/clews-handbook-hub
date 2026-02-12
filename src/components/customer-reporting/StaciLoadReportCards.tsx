@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Calendar, Truck, Package, ChevronDown, ChevronRight, ExternalLink, Scale } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   STACI_PALLET_RATES,
@@ -62,10 +62,12 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
   const [reports, setReports] = useState<StaciReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number }>({ cardBalesRate: 0, filmsRate: 0 });
   const palletWeightKg = 20;
 
   useEffect(() => {
     fetchReports();
+    fetchBaleRates();
   }, [dateFrom, dateTo]);
 
   const fetchReports = async () => {
@@ -149,6 +151,76 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
       console.error("Error fetching staci reports:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBaleRates = async () => {
+    try {
+      const { data: staciSites } = await supabase
+        .from("customer_sites")
+        .select("id")
+        .eq("load_report_type", "staci");
+      const staciSiteId = staciSites?.[0]?.id;
+      if (!staciSiteId) return;
+
+      const { data: priceSetLink } = await supabase
+        .from("customer_site_price_sets")
+        .select("price_set_id")
+        .eq("site_id", staciSiteId)
+        .single();
+      if (!priceSetLink?.price_set_id) return;
+
+      const { data: psItems } = await supabase
+        .from("rebate_price_set_items")
+        .select("rebate_item_id, value_type, set_value, adjustment, value_type_item_id")
+        .eq("price_set_id", priceSetLink.price_set_id);
+
+      const { data: wasteTypes } = await supabase
+        .from("load_waste_types")
+        .select("id, waste_type")
+        .in("waste_type", ["Card Bales", "Films Baled- Clear", "Films Baled- Mixed Colour"]);
+
+      const wasteTypeMap = Object.fromEntries((wasteTypes ?? []).map(w => [w.id, w.waste_type]));
+
+      const dfrom = new Date(dateFrom);
+      const dto = new Date(dateTo);
+      const monthsInRange = eachMonthOfInterval({ start: dfrom, end: dto });
+      const monthStarts = monthsInRange.map(m => format(startOfMonth(m), "yyyy-MM-dd"));
+      const { data: monthlyValues } = await supabase
+        .from("rebate_monthly_values")
+        .select("item_id, lower_range, higher_range, month_start")
+        .in("month_start", monthStarts);
+
+      const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
+      for (const mv of monthlyValues ?? []) {
+        if (!valueAccumulator[mv.item_id]) valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
+        valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
+        valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
+        valueAccumulator[mv.item_id].count += 1;
+      }
+
+      let cardRate = 0;
+      let filmsRate = 0;
+      for (const item of psItems ?? []) {
+        const wtName = wasteTypeMap[item.rebate_item_id];
+        if (!wtName) continue;
+        let rate = 0;
+        if (item.value_type === "set" && item.set_value != null) {
+          rate = Number(item.set_value);
+        } else if (item.value_type_item_id) {
+          const acc = valueAccumulator[item.value_type_item_id];
+          if (acc && acc.count > 0) {
+            const avgVal = item.value_type === "higher" ? acc.higherSum / acc.count : acc.lowerSum / acc.count;
+            rate = avgVal;
+          }
+        }
+        rate += Number(item.adjustment ?? 0);
+        if (wtName === "Card Bales") cardRate = rate;
+        if (wtName.startsWith("Films Baled")) filmsRate = rate;
+      }
+      setBaleRates({ cardBalesRate: cardRate, filmsRate });
+    } catch (e) {
+      console.error("Failed to fetch bale rates:", e);
     }
   };
 
@@ -412,32 +484,58 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                 <TableHead className="text-xs">Item</TableHead>
                                 <TableHead className="text-xs text-right">Qty</TableHead>
                                 <TableHead className="text-xs text-right">Weight (KG)</TableHead>
+                                <TableHead className="text-xs text-right">Rate</TableHead>
+                                <TableHead className="text-xs text-right">Value</TableHead>
                                 <TableHead className="text-xs text-right">Category</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {report.card_bales_count > 0 && (
-                                <TableRow>
-                                  <TableCell className="py-2 text-sm">Card Bales</TableCell>
-                                  <TableCell className="text-right text-sm">{report.card_bales_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{(report.card_bales_count * report.card_bales_weight_kg).toLocaleString()}</TableCell>
-                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
-                                </TableRow>
-                              )}
-                              {report.films_bale_count > 0 && (
-                                <TableRow>
-                                  <TableCell className="py-2 text-sm">Film Bales</TableCell>
-                                  <TableCell className="text-right text-sm">{report.films_bale_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{(report.films_bale_count * report.films_bale_weight_kg).toLocaleString()}</TableCell>
-                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
-                                </TableRow>
-                              )}
+                              {report.card_bales_count > 0 && (() => {
+                                const totalWt = report.card_bales_count * report.card_bales_weight_kg;
+                                const tonnes = totalWt / 1000;
+                                const value = tonnes * baleRates.cardBalesRate;
+                                return (
+                                  <TableRow>
+                                    <TableCell className="py-2 text-sm">Card Bales</TableCell>
+                                    <TableCell className="text-right text-sm">{report.card_bales_count}</TableCell>
+                                    <TableCell className="text-right text-sm">{totalWt.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right text-sm text-green-600">
+                                      {baleRates.cardBalesRate !== 0 ? `-£${Math.abs(baleRates.cardBalesRate).toFixed(2)}/t` : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm font-medium text-green-600">
+                                      {baleRates.cardBalesRate !== 0 ? `-£${value.toFixed(2)}` : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
+                                  </TableRow>
+                                );
+                              })()}
+                              {report.films_bale_count > 0 && (() => {
+                                const totalWt = report.films_bale_count * report.films_bale_weight_kg;
+                                const tonnes = totalWt / 1000;
+                                const value = tonnes * baleRates.filmsRate;
+                                return (
+                                  <TableRow>
+                                    <TableCell className="py-2 text-sm">Film Bales</TableCell>
+                                    <TableCell className="text-right text-sm">{report.films_bale_count}</TableCell>
+                                    <TableCell className="text-right text-sm">{totalWt.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right text-sm text-green-600">
+                                      {baleRates.filmsRate !== 0 ? `-£${Math.abs(baleRates.filmsRate).toFixed(2)}/t` : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm font-medium text-green-600">
+                                      {baleRates.filmsRate !== 0 ? `-£${value.toFixed(2)}` : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
+                                  </TableRow>
+                                );
+                              })()}
                               {report.papers_dolav_count > 0 && (
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Papers Dolav</TableCell>
                                   <TableCell className="text-right text-sm">{report.papers_dolav_count}</TableCell>
                                   <TableCell className="text-right text-sm">{(report.papers_dolav_count * report.papers_dolav_weight_kg).toLocaleString()}</TableCell>
-                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
                                 </TableRow>
                               )}
                               {report.glass_dolav_count > 0 && (
@@ -445,7 +543,9 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableCell className="py-2 text-sm">Glass Dolav</TableCell>
                                   <TableCell className="text-right text-sm">{report.glass_dolav_count}</TableCell>
                                   <TableCell className="text-right text-sm">{(report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}</TableCell>
-                                  <TableCell className="text-right"><Badge variant="secondary" className="text-xs">Recyclable</Badge></TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
                                 </TableRow>
                               )}
                               {report.pallets_scrap_count > 0 && (
@@ -453,21 +553,34 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableCell className="py-2 text-sm">Scrap Pallets</TableCell>
                                   <TableCell className="text-right text-sm">{report.pallets_scrap_count}</TableCell>
                                   <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
                                   <TableCell className="text-right"><Badge variant="outline" className="text-xs">Scrap</Badge></TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
                             <TableFooter>
-                              <TableRow className="font-bold">
-                                <TableCell>Total</TableCell>
-                                <TableCell className="text-right">
-                                  {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.pallets_scrap_count}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}
-                                </TableCell>
-                                <TableCell />
-                              </TableRow>
+                              {(() => {
+                                const cardValue = (report.card_bales_count * report.card_bales_weight_kg / 1000) * baleRates.cardBalesRate;
+                                const filmsValue = (report.films_bale_count * report.films_bale_weight_kg / 1000) * baleRates.filmsRate;
+                                const totalRebate = cardValue + filmsValue;
+                                return (
+                                  <TableRow className="font-bold">
+                                    <TableCell>Total</TableCell>
+                                    <TableCell className="text-right">
+                                      {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.pallets_scrap_count}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}
+                                    </TableCell>
+                                    <TableCell />
+                                    <TableCell className="text-right font-medium text-green-600">
+                                      {totalRebate > 0 ? `-£${totalRebate.toFixed(2)}` : "-"}
+                                    </TableCell>
+                                    <TableCell />
+                                  </TableRow>
+                                );
+                              })()}
                             </TableFooter>
                           </Table>
                         </div>
