@@ -180,9 +180,18 @@ export const StaciReviewScreen = ({
     return buildSummaries(reconciledPreview, goodPalletCount);
   }, [reconciledPreview, goodPalletCount]);
 
+  // Total weight from bales/dolavs that must be subtracted from weighbridge target
+  const baleDolavTotalKg =
+    (cardBalesCount * cardBalesWeightKg) +
+    (filmsBaleCount * filmsBaleWeightKg) +
+    (papersDolavCount * papersDolavWeightKg) +
+    (glassDolavCount * glassDolavWeightKg);
+
   const handleReconcile = () => {
     if (typeof weighbridgeWeightKg !== "number") return;
-    const reconciled = reconcileStaciEntries(palletEntries, weighbridgeWeightKg);
+    // Subtract bale/dolav weight so only the pallet portion is reconciled
+    const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg;
+    const reconciled = reconcileStaciEntries(palletEntries, Math.max(0, palletTargetKg));
     setReconciledPreview(reconciled);
   };
 
@@ -332,10 +341,10 @@ export const StaciReviewScreen = ({
                     <CardTitle className="text-base">Reconciled Preview</CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
-                      Reconciled: {reconciledSummaryData.totalWeightKg.toLocaleString()} kg
-                      {reconciledSummaryData.totalWeightKg !== totalWeightKg && (
+                      Reconciled: {(reconciledSummaryData.totalWeightKg + baleDolavTotalKg).toLocaleString()} kg
+                      {(reconciledSummaryData.totalWeightKg + baleDolavTotalKg) !== (totalWeightKg + baleDolavTotalKg) && (
                         <span className="ml-1">
-                          (was {totalWeightKg.toLocaleString()} kg)
+                          (was {(totalWeightKg + baleDolavTotalKg).toLocaleString()} kg)
                         </span>
                       )}
                     </p>
