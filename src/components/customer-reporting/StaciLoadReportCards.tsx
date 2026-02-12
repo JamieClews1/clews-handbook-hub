@@ -436,7 +436,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{format(new Date(report.report_date), "dd MMM yyyy")}</span>
                           </div>
                           {report.vehicle_reg && (
