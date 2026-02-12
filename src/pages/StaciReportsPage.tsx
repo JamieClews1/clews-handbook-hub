@@ -912,8 +912,8 @@ const StaciReportsPage = () => {
                           const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount;
                           const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg;
                           const totalWeightT = totalWeightKg / 1000;
-                          // Net rebate: positive recyclable values minus the pallet rebate = net reduction
-                          const netRebateValue = cardValue + filmsValue - stats.palletRebate;
+                          // Sum all values: good pallet rebate is negative, recyclable values are positive
+                          const sectionTotal = -stats.palletRebate + cardValue + filmsValue;
                           return (
                             <tr className="border-t-2 font-semibold">
                               <td className="py-2 px-3">Total</td>
@@ -921,8 +921,8 @@ const StaciReportsPage = () => {
                               <td className="py-2 px-3 text-right">-</td>
                               <td className="py-2 px-3 text-right">{totalWeightKg.toLocaleString()}</td>
                               <td className="py-2 px-3 text-right">{totalWeightT.toFixed(2)}</td>
-                              <td className="py-2 px-3 text-right font-medium text-green-600">
-                                £{netRebateValue.toFixed(2)}
+                              <td className={`py-2 px-3 text-right font-medium ${sectionTotal < 0 ? "text-green-600" : ""}`}>
+                                {sectionTotal < 0 ? "-" : ""}£{Math.abs(sectionTotal).toFixed(2)}
                               </td>
                               <td />
                             </tr>
