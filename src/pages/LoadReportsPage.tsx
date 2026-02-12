@@ -422,34 +422,69 @@ const LoadReportsPage = () => {
   const handleViewReport = async (reportId: string) => {
     setIsSaving(true);
     try {
-      // Fetch report
-      const { data: report, error: reportError } = await supabase
-        .from("load_reports")
-        .select("*")
-        .eq("id", reportId)
-        .single();
+      // Fetch report, line items, and staci entries in parallel
+      const [reportResult, itemsResult, staciResult] = await Promise.all([
+        supabase.from("load_reports").select("*").eq("id", reportId).single(),
+        supabase.from("load_line_items").select("*").eq("load_report_id", reportId).order("display_order"),
+        supabase.from("staci_pallet_entries").select("*").eq("load_report_id", reportId).order("display_order"),
+      ]);
 
-      if (reportError) throw reportError;
+      if (reportResult.error) throw reportResult.error;
+      if (itemsResult.error) throw itemsResult.error;
 
-      // Fetch line items
-      const { data: items, error: itemsError } = await supabase
-        .from("load_line_items")
-        .select("*")
-        .eq("load_report_id", reportId)
-        .order("display_order");
-
-      if (itemsError) throw itemsError;
+      const report = reportResult.data;
+      const items = itemsResult.data;
+      const staciEntries = staciResult.data || [];
 
       setCurrentReportId(reportId);
       setOperatorName(report.operator_name);
       setVehicleReg(report.vehicle_reg || "");
-      setJobNumber(report.notes || ""); // Using notes field for job number temporarily
+      setJobNumber(report.notes || "");
       setSelectedSiteId(report.site_id || "");
       setReportDate(report.report_date);
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
+
+      // Load Staci extra fields
+      setStaciGoodPalletCount((report as any).pallets_out || 0);
+      setStaciPalletsScrapCount((report as any).pallets_scrap_count || 0);
+      setStaciCardBalesCount((report as any).card_bales_count || 0);
+      setStaciCardBalesWeightKg(Number((report as any).card_bales_weight_kg) || 0);
+      setStaciFilmsBaleCount((report as any).films_bale_count || 0);
+      setStaciFilmsBaleWeightKg(Number((report as any).films_bale_weight_kg) || 0);
+      setStaciPapersDolavCount((report as any).papers_dolav_count || 0);
+      setStaciPapersDolavWeightKg(Number((report as any).papers_dolav_weight_kg) || 0);
+      setStaciGlassDolavCount((report as any).glass_dolav_count || 0);
+      setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
+
+      // Load Staci pallet entries if present
+      if (staciEntries.length > 0) {
+        setStaciPalletEntries(
+          staciEntries.map((e: any) => ({
+            id: e.id,
+            colour: e.colour,
+            weight_kg: Number(e.weight_kg),
+            pallet_type: e.pallet_type || "good",
+            display_order: e.display_order,
+            description: e.description || "",
+            waste_breakdown: e.waste_breakdown || {},
+            pallet_count: e.pallet_count || 1,
+          }))
+        );
+      }
+
+      // Detect if this is a staci report
+      let isStaciReport = staciEntries.length > 0;
+      if (!isStaciReport && report.site_id) {
+        const { data: siteData } = await supabase
+          .from("customer_sites")
+          .select("load_report_type")
+          .eq("id", report.site_id)
+          .single();
+        isStaciReport = siteData?.load_report_type === "staci";
+      }
       
       if (items && items.length > 0) {
         setLineItems(
@@ -463,12 +498,16 @@ const LoadReportsPage = () => {
             wet_charge_applied: (item as any).wet_charge_applied || false,
           }))
         );
-      } else {
+      } else if (staciEntries.length === 0) {
         initializeLineItems();
       }
 
-      // Go to review for submitted reports, tally for drafts
-      setViewMode(report.status === "submitted" ? "review" : "tally");
+      if (isStaciReport) {
+        setSelectedCustomer("staci");
+        setViewMode(report.status === "submitted" ? "review" : "tally");
+      } else {
+        setViewMode(report.status === "submitted" ? "review" : "tally");
+      }
     } catch (error: any) {
       toast({
         title: "Error loading report",
