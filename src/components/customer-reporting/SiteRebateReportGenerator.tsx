@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, DollarSign, Loader2, Download } from "lucide-react";
 import * as XLSX from "xlsx";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
@@ -68,6 +68,8 @@ export function SiteRebateReportGenerator() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  const [dateMode, setDateMode] = useState<"month" | "custom">("month");
+  const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<RebateReportRow[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
@@ -842,40 +844,94 @@ export function SiteRebateReportGenerator() {
 
         <div className="space-y-2">
           <Label>Date Range</Label>
-          <Popover>
-            <PopoverTrigger asChild>
+          <div className="flex items-center gap-2 mb-2">
+            <Button
+              variant={dateMode === "month" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setDateMode("month");
+                setDateRange({ from: startOfMonth(selectedMonth), to: endOfMonth(selectedMonth) });
+              }}
+            >
+              Month
+            </Button>
+            <Button
+              variant={dateMode === "custom" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDateMode("custom")}
+            >
+              Custom Range
+            </Button>
+          </div>
+
+          {dateMode === "month" ? (
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dateRange?.from && "text-muted-foreground"
-                )}
+                size="icon"
+                onClick={() => {
+                  const prev = subMonths(selectedMonth, 1);
+                  setSelectedMonth(prev);
+                  setDateRange({ from: startOfMonth(prev), to: endOfMonth(prev) });
+                }}
+              >
+                ‹
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 justify-start text-left font-normal"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
-                    </>
-                  ) : (
-                    format(dateRange.from, "d MMM yyyy")
-                  )
-                ) : (
-                  <span>Pick a date range</span>
-                )}
+                {format(selectedMonth, "MMMM yyyy")}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 z-[100] pointer-events-auto" align="start">
-              <Calendar
-                mode="range"
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  const next = addMonths(selectedMonth, 1);
+                  setSelectedMonth(next);
+                  setDateRange({ from: startOfMonth(next), to: endOfMonth(next) });
+                }}
+              >
+                ›
+              </Button>
+            </div>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange?.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "d MMM yyyy")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 z-[100] pointer-events-auto" align="start">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
 
