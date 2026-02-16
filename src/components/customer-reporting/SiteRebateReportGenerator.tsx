@@ -605,13 +605,14 @@ export function SiteRebateReportGenerator() {
       });
     }
 
-    // Convert to array and filter out empty categories
+    // Convert to array, filter empty, sort rebates before charges
     return Object.entries(categories)
       .filter(([_, data]) => data.weight > 0 || data.rebate !== 0)
       .map(([name, data]) => ({
         category: name,
         ...data,
-      }));
+      }))
+      .sort((a, b) => b.rebate - a.rebate);
   })();
 
   const exportToExcel = () => {
