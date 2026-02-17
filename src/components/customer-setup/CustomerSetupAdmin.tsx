@@ -930,7 +930,9 @@ export function CustomerSetupAdmin() {
                 <TabsList className="flex-wrap h-auto">
                   <TabsTrigger value="sites">Sites</TabsTrigger>
                   <TabsTrigger value="midweigh">Midweigh Rebates</TabsTrigger>
-                  <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
+                  {selectedCustomer.customer_name.toLowerCase().includes("staci") && (
+                    <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
+                  )}
                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
                   <TabsTrigger value="portal">Portal access</TabsTrigger>
                 </TabsList>
