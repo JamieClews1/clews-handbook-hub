@@ -8,8 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Download, PenLine, CheckCircle2, Loader2, Truck } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { CalendarIcon, Download, PenLine, CheckCircle2, Loader2, Truck, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/SignaturePad";
@@ -63,6 +63,8 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const [dateMode, setDateMode] = useState<"month" | "custom">("month");
+  const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
   const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
   const [dateTo, setDateTo] = useState<Date>(endOfMonth(new Date()));
   const [rows, setRows] = useState<PalletRow[]>([]);
@@ -461,37 +463,95 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Date pickers */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="space-y-1">
-            <Label className="text-xs">From</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal text-sm")}>
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {format(dateFrom, "dd MMM yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
+        {/* Date mode toggle + pickers */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={dateMode === "month" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setDateMode("month");
+                setDateFrom(startOfMonth(selectedMonth));
+                setDateTo(endOfMonth(selectedMonth));
+              }}
+            >
+              Month
+            </Button>
+            <Button
+              variant={dateMode === "custom" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDateMode("custom")}
+            >
+              Date Range
+            </Button>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">To</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal text-sm")}>
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {format(dateTo, "dd MMM yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateTo} onSelect={(d) => d && setDateTo(d)} className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
-          </div>
-          {fetching && <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>}
+
+          {dateMode === "month" ? (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => {
+                  const prev = subMonths(selectedMonth, 1);
+                  setSelectedMonth(prev);
+                  setDateFrom(startOfMonth(prev));
+                  setDateTo(endOfMonth(prev));
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-medium text-sm min-w-[120px] text-center">
+                {format(selectedMonth, "MMMM yyyy")}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => {
+                  const next = addMonths(selectedMonth, 1);
+                  setSelectedMonth(next);
+                  setDateFrom(startOfMonth(next));
+                  setDateTo(endOfMonth(next));
+                }}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {fetching && <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">From</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal text-sm")}>
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {format(dateFrom, "dd MMM yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">To</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal text-sm")}>
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {format(dateTo, "dd MMM yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateTo} onSelect={(d) => d && setDateTo(d)} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {fetching && <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>}
+            </div>
+          )}
         </div>
 
         {/* Preview stats */}
