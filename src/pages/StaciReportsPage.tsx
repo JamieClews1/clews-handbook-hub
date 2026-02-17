@@ -465,12 +465,12 @@ const StaciReportsPage = () => {
         Math.round(w.kg),
         w.tonnes.toFixed(2),
         w.pct.toFixed(1) + "%",
-        w.recyclable ? "Recyclable" : "Non-Recoverable",
+        w.recyclable ? "Recyclable" : "Waste For Energy",
       ]),
       [],
       ["Category", "Weight (kg)", "% of Total"],
       ["Recyclable", Math.round(stats.recyclableKg), stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
-      ["Non-Recoverable", Math.round(stats.nonRecoverableKg), stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
+      ["Waste For Energy", Math.round(stats.nonRecoverableKg), stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
     ];
     const ws3 = XLSX.utils.aoa_to_sheet(recyclingData);
     XLSX.utils.book_append_sheet(wb, ws3, "Recycling Report");
@@ -502,7 +502,7 @@ const StaciReportsPage = () => {
     const nonRecoverablePct = stats.totalBreakdownWeight > 0 ? (stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100 : 0;
     return [
       { name: "Recyclable", value: +recyclablePct.toFixed(1), fill: "hsl(142, 71%, 45%)" },
-      { name: "Non-Recoverable", value: +nonRecoverablePct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
+      { name: "Waste For Energy", value: +nonRecoverablePct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
     ].filter((d) => d.value > 0);
   }, [stats]);
 
@@ -975,7 +975,7 @@ const StaciReportsPage = () => {
                             <td className="py-1.5 px-3 text-right">{w.pct.toFixed(1)}%</td>
                             <td className="py-1.5 px-3">
                               <span className={cn("text-xs px-2 py-0.5 rounded-full", w.recyclable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-                                {w.recyclable ? "Recyclable" : "Non-Recoverable"}
+                                {w.recyclable ? "Recyclable" : "Waste For Energy"}
                               </span>
                             </td>
                           </tr>
@@ -1000,7 +1000,7 @@ const StaciReportsPage = () => {
                     </div>
                     <div className="text-center p-3 rounded-lg bg-red-500/10">
                       <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
-                      <p className="text-xs text-muted-foreground">Non-Recoverable</p>
+                      <p className="text-xs text-muted-foreground">Waste For Energy</p>
                     </div>
                   </div>
                 </CardContent>
@@ -1008,7 +1008,7 @@ const StaciReportsPage = () => {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Recyclable vs Non-Recoverable</CardTitle>
+                  <CardTitle className="text-base">Recyclable vs Waste For Energy</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[350px]">
                   {pieData.length > 0 ? (
