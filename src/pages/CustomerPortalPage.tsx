@@ -261,18 +261,27 @@ const CustomerPortalPage = () => {
             )}
           </div>
 
-          <Tabs defaultValue="site-reports" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-4">
-              <TabsTrigger value="site-reports" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Site Reports</span>
-                <span className="sm:hidden">Reports</span>
-              </TabsTrigger>
-              <TabsTrigger value="rebate-reports" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                <span className="hidden sm:inline">Rebate Reports</span>
-                <span className="sm:hidden">Rebates</span>
-              </TabsTrigger>
+          {(() => {
+            const isStaciCustomer = currentCustomer?.customer_name?.toLowerCase().includes("staci");
+            const defaultTab = isStaciCustomer ? "staci-reports" : "site-reports";
+            const tabCount = isStaciCustomer ? 2 : 4;
+            return (
+            <Tabs defaultValue={defaultTab} className="space-y-6">
+            <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
+              {!isStaciCustomer && (
+                <TabsTrigger value="site-reports" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Site Reports</span>
+                  <span className="sm:hidden">Reports</span>
+                </TabsTrigger>
+              )}
+              {!isStaciCustomer && (
+                <TabsTrigger value="rebate-reports" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  <span className="hidden sm:inline">Rebate Reports</span>
+                  <span className="sm:hidden">Rebates</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="staci-reports" className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 <span className="hidden sm:inline">STACI Reports</span>
@@ -352,6 +361,8 @@ const CustomerPortalPage = () => {
               </Card>
             </TabsContent>
           </Tabs>
+            );
+          })()}
         </div>
       </main>
     </div>
