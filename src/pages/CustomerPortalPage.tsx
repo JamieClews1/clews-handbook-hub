@@ -13,7 +13,7 @@ import { CustomerPortalRebateReport } from "@/components/customer-portal/Custome
 import { CustomerPortalContactForm } from "@/components/customer-portal/CustomerPortalContactForm";
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
-import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
+import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
 
 type PortalMembership = {
   id: string;
@@ -324,23 +324,13 @@ const CustomerPortalPage = () => {
             </TabsContent>
 
             <TabsContent value="staci-reports">
-              <Card>
-                <CardHeader>
-                  <CardTitle>STACI Monthly Reports</CardTitle>
-                  <CardDescription>
-                    Download verified monthly recycling reports signed by Clews staff
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {currentCustomerId && (
-                    <StaciMonthlyReport
-                      customerId={currentCustomerId}
-                      customerName={currentCustomer?.customer_name}
-                      isPortalView={!isAdmin}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+              {currentCustomerId && (
+                <StaciReportsDashboard
+                  customerId={currentCustomerId}
+                  customerName={currentCustomer?.customer_name}
+                  isPortalView={!isAdmin}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="contact">
