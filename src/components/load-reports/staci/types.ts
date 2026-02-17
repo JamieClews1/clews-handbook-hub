@@ -52,6 +52,7 @@ export const RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
   "hard_plastic",
   "shrink_wrap",
   "other_films_plastics",
+  "wood",
 ];
 
 // Non-recyclable types (goes to landfill/RDF)
