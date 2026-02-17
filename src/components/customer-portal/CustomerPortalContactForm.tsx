@@ -188,11 +188,11 @@ export function CustomerPortalContactForm({ customerId, customerName }: Customer
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Phone className="h-4 w-4" />
-              <span>01onal 123 456 789</span>
+              <span>01788 541549</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Mail className="h-4 w-4" />
-              <span>customerservice@clewsrecycling.co.uk</span>
+              <span>orders@clewsrecycling.co.uk</span>
             </div>
           </div>
         </CardContent>

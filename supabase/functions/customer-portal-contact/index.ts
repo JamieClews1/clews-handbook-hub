@@ -54,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailResponse = await resend.emails.send({
       from: "Customer Portal <noreply@clewsrecycling.co.uk>",
-      to: ["customerservice@clewsrecycling.co.uk"],
+      to: ["orders@clewsrecycling.co.uk"],
       reply_to: userEmail,
       subject: emailSubject,
       html: `
