@@ -35,3 +35,6 @@ verify_jwt = true
  
  [functions.send-rebate-notification]
  verify_jwt = false
+
+[functions.parse-rebate-screenshot]
+verify_jwt = true
