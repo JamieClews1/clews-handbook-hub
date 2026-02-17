@@ -389,7 +389,7 @@ const StaciReportsPage = () => {
 
     const recyclableKg = wasteRows.filter((w) => w.recyclable).reduce((s, w) => s + w.kg, 0);
     const nonRecoverableKg = wasteRows.filter((w) => w.nonRecoverable).reduce((s, w) => s + w.kg, 0);
-    const woodKg = wasteRows.filter((w) => w.wood).reduce((s, w) => s + w.kg, 0);
+    const woodKg = 0; // Wood is now included in recyclable
 
     return {
       colourMap,
@@ -465,13 +465,12 @@ const StaciReportsPage = () => {
         Math.round(w.kg),
         w.tonnes.toFixed(2),
         w.pct.toFixed(1) + "%",
-        w.recyclable ? "Recyclable" : w.wood ? "Wood" : "Non-Recoverable",
+        w.recyclable ? "Recyclable" : "Non-Recoverable",
       ]),
       [],
       ["Category", "Weight (kg)", "% of Total"],
       ["Recyclable", Math.round(stats.recyclableKg), stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
       ["Non-Recoverable", Math.round(stats.nonRecoverableKg), stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
-      ["Wood", Math.round(stats.woodKg), stats.totalBreakdownWeight > 0 ? ((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
     ];
     const ws3 = XLSX.utils.aoa_to_sheet(recyclingData);
     XLSX.utils.book_append_sheet(wb, ws3, "Recycling Report");
@@ -501,11 +500,9 @@ const StaciReportsPage = () => {
   const pieData = useMemo(() => {
     const recyclablePct = stats.totalBreakdownWeight > 0 ? (stats.recyclableKg / stats.totalBreakdownWeight) * 100 : 0;
     const nonRecoverablePct = stats.totalBreakdownWeight > 0 ? (stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100 : 0;
-    const woodPct = stats.totalBreakdownWeight > 0 ? (stats.woodKg / stats.totalBreakdownWeight) * 100 : 0;
     return [
       { name: "Recyclable", value: +recyclablePct.toFixed(1), fill: "hsl(142, 71%, 45%)" },
       { name: "Non-Recoverable", value: +nonRecoverablePct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
-      { name: "Wood", value: +woodPct.toFixed(1), fill: "hsl(30, 60%, 45%)" },
     ].filter((d) => d.value > 0);
   }, [stats]);
 
@@ -977,8 +974,8 @@ const StaciReportsPage = () => {
                             <td className="py-1.5 px-3 text-right">{w.tonnes.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right">{w.pct.toFixed(1)}%</td>
                             <td className="py-1.5 px-3">
-                              <span className={cn("text-xs px-2 py-0.5 rounded-full", w.recyclable ? "bg-green-100 text-green-700" : w.wood ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700")}>
-                                {w.recyclable ? "Recyclable" : w.wood ? "Wood" : "Non-Recoverable"}
+                              <span className={cn("text-xs px-2 py-0.5 rounded-full", w.recyclable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+                                {w.recyclable ? "Recyclable" : "Non-Recoverable"}
                               </span>
                             </td>
                           </tr>
@@ -996,7 +993,7 @@ const StaciReportsPage = () => {
                   </div>
 
                   {/* Summary row */}
-                  <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="text-center p-3 rounded-lg bg-green-500/10">
                       <p className="text-lg font-bold text-green-600">{stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
                       <p className="text-xs text-muted-foreground">Recyclable</p>
@@ -1004,10 +1001,6 @@ const StaciReportsPage = () => {
                     <div className="text-center p-3 rounded-lg bg-red-500/10">
                       <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
                       <p className="text-xs text-muted-foreground">Non-Recoverable</p>
-                    </div>
-                    <div className="text-center p-3 rounded-lg bg-amber-500/10">
-                      <p className="text-lg font-bold text-amber-600">{stats.totalBreakdownWeight > 0 ? ((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
-                      <p className="text-xs text-muted-foreground">Wood</p>
                     </div>
                   </div>
                 </CardContent>
