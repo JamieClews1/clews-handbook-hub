@@ -28,6 +28,7 @@ import { ArrowLeft, DollarSign, Save, Link2, Settings } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
+import { RebateScreenshotUpload } from "@/components/rebate-values/RebateScreenshotUpload";
 
 type RebateItem = {
   id: string;
@@ -63,6 +64,7 @@ const RebateValuesPage = () => {
   const [monthStart, setMonthStart] = useState(() => monthStartISO(new Date()));
   const [rows, setRows] = useState<Record<string, RebateValueRow>>({});
   const [isFetching, setIsFetching] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
   const monthOptions = useMemo(() => {
@@ -157,7 +159,7 @@ const RebateValuesPage = () => {
     if (items.length > 0) {
       loadMonthValues();
     }
-  }, [user, monthStart, items, toast]);
+  }, [user, monthStart, items, toast, refreshKey]);
 
   const setRowValue = (itemId: string, key: "lower" | "higher", value: string) => {
     setRows((prev) => ({
@@ -303,6 +305,12 @@ const RebateValuesPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <RebateScreenshotUpload
+                      items={items}
+                      canEdit={canEdit}
+                      onValuesImported={() => setRefreshKey((k) => k + 1)}
+                    />
 
                     <Button onClick={handleSave} disabled={!canEdit || isSaving || isFetching} className="gap-2">
                       <Save className="h-4 w-4" />
