@@ -92,12 +92,31 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const from = format(dateFrom, "yyyy-MM-dd");
       const to = format(dateTo, "yyyy-MM-dd");
 
-      const { data, error } = await supabase
+      // When in portal view, get the customer's sites for filtering
+      let customerSiteIds: string[] = [];
+      let dataHubCustomerName: string | null = null;
+      if (customerId) {
+        const { data: sites } = await supabase
+          .from("customer_sites")
+          .select("id, data_hub_customer")
+          .eq("customer_id", customerId);
+        customerSiteIds = (sites ?? []).map(s => s.id);
+        dataHubCustomerName = sites?.find(s => s.data_hub_customer)?.data_hub_customer ?? null;
+      }
+
+      // Pallet entries query - filter by customer sites when in portal view
+      let palletQuery = supabase
         .from("staci_pallet_entries")
-        .select("id, colour, weight_kg, pallet_type, pallet_count, description, waste_breakdown, load_report_id, load_reports!inner(report_date, status, customer_sites(site_name, customers(customer_name)))")
+        .select("id, colour, weight_kg, pallet_type, pallet_count, description, waste_breakdown, load_report_id, load_reports!inner(report_date, status, site_id, customer_sites(site_name, customers(customer_name)))")
         .gte("load_reports.report_date", from)
         .lte("load_reports.report_date", to)
         .eq("load_reports.status", "submitted");
+
+      if (customerId && customerSiteIds.length > 0) {
+        palletQuery = palletQuery.in("load_reports.site_id", customerSiteIds);
+      }
+
+      const { data, error } = await palletQuery;
 
       if (error) {
         console.error(error);
@@ -122,13 +141,20 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       setRows(mapped);
 
-      const { data: reportData } = await supabase
+      // Bales/dolavs query - filter by customer sites when in portal view
+      let balesQuery = supabase
         .from("load_reports")
         .select("card_bales_count, card_bales_weight_kg, films_bale_count, films_bale_weight_kg, papers_dolav_count, papers_dolav_weight_kg, glass_dolav_count, glass_dolav_weight_kg")
         .gte("report_date", from)
         .lte("report_date", to)
         .eq("status", "submitted")
         .not("site_id", "is", null);
+
+      if (customerId && customerSiteIds.length > 0) {
+        balesQuery = balesQuery.in("site_id", customerSiteIds);
+      }
+
+      const { data: reportData } = await balesQuery;
 
       const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0 };
       (reportData ?? []).forEach((r: any) => {
@@ -152,15 +178,30 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       });
       setBalesDolavData(agg);
 
-      const { data: haulageJobs } = await supabase
-        .from("data_hub_jobs")
-        .select("job_number, raw, container_type")
-        .ilike("customer", "%staci%")
-        .eq("source", "skiptrak")
-        .gte("job_date", from)
-        .lte("job_date", to);
+      // Haulage query - use customer's data_hub_customer name when in portal view
+      const haulageCustomerFilter = dataHubCustomerName ?? (customerId ? null : "%staci%");
+      
+      let haulageJobs: any[] = [];
+      if (haulageCustomerFilter) {
+        const { data: hjData } = customerId
+          ? await supabase
+              .from("data_hub_jobs")
+              .select("job_number, raw, container_type")
+              .eq("customer", dataHubCustomerName!)
+              .eq("source", "skiptrak")
+              .gte("job_date", from)
+              .lte("job_date", to)
+          : await supabase
+              .from("data_hub_jobs")
+              .select("job_number, raw, container_type")
+              .ilike("customer", "%staci%")
+              .eq("source", "skiptrak")
+              .gte("job_date", from)
+              .lte("job_date", to);
+        haulageJobs = hjData ?? [];
+      }
 
-      if (haulageJobs && haulageJobs.length > 0) {
+      if (haulageJobs.length > 0) {
         let articLoads = 0, articCost = 0;
         let pickupLoads = 0, pickupCost = 0;
         haulageJobs.forEach((j: any) => {
@@ -212,14 +253,20 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         setDbPalletWeightCharge(chargeMap["pallet_weight_charge"] ?? -47);
       }
 
+      // Bale rates - use customer's site or fall back to searching by name
       try {
-        const { data: staciSites } = await supabase
-          .from("customer_sites")
-          .select("id, site_name, customers!inner(customer_name)")
-          .ilike("customers.customer_name", "%staci%")
-          .limit(1);
+        let staciSiteId: string | undefined;
+        if (customerId && customerSiteIds.length > 0) {
+          staciSiteId = customerSiteIds[0];
+        } else {
+          const { data: staciSites } = await supabase
+            .from("customer_sites")
+            .select("id, site_name, customers!inner(customer_name)")
+            .ilike("customers.customer_name", "%staci%")
+            .limit(1);
+          staciSiteId = staciSites?.[0]?.id;
+        }
 
-        const staciSiteId = staciSites?.[0]?.id;
         if (staciSiteId) {
           const { data: priceSetLink } = await supabase
             .from("customer_site_price_sets")
@@ -292,7 +339,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       setFetching(false);
     };
     fetchData();
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, customerId]);
 
   const stats = useMemo(() => {
     const colourMap: Record<string, { count: number; weightKg: number; cost: number }> = {};
