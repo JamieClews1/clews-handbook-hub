@@ -406,6 +406,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       sources: { name: string; weight: number; rate: number; rebate: number; source: string }[] 
     }> = {
       "Cardboard": { weight: 0, rebate: 0, sources: [] },
+      "Paper": { weight: 0, rebate: 0, sources: [] },
       "Films": { weight: 0, rebate: 0, sources: [] },
       "Scrap Metal": { weight: 0, rebate: 0, sources: [] },
       "Other": { weight: 0, rebate: 0, sources: [] },
@@ -419,6 +420,8 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       
       if (name.includes("card") || name.includes("cardboard")) {
         category = "Cardboard";
+      } else if (name.includes("paper")) {
+        category = "Paper";
       } else if (name.includes("film")) {
         category = "Films";
       } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
@@ -466,7 +469,8 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       .map(([name, data]) => ({
         category: name,
         ...data,
-      }));
+      }))
+      .sort((a, b) => b.rebate - a.rebate);
   })();
 
   const exportToExcel = () => {
@@ -717,51 +721,98 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
             </TabsList>
 
             <TabsContent value="total" className="mt-4">
-              {consolidatedData.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Category</TableHead>
-                        <TableHead className="text-right">Weight (t)</TableHead>
-                        <TableHead colSpan={2}>Sources</TableHead>
-                        <TableHead className="text-right">Value (£)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {consolidatedData.map((cat, idx) => (
-                        <TableRow key={idx} className="border-b">
-                          <TableCell className="font-semibold align-top">{cat.category}</TableCell>
-                          <TableCell className="text-right align-top font-medium">{cat.weight.toFixed(2)}</TableCell>
-                          <TableCell colSpan={2} className="text-sm">
-                            <div className="space-y-1">
-                              {cat.sources.map((src, srcIdx) => (
-                                <div key={srcIdx} className="flex justify-between text-muted-foreground">
-                                  <span>{src.name}</span>
-                                  <span className="ml-4">
-                                    {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
-                                  </span>
-                                </div>
-                              ))}
+              {consolidatedData.length > 0 ? (() => {
+                const rebateRows = consolidatedData.filter((cat) => cat.rebate >= 0);
+                const chargeRows = consolidatedData.filter((cat) => cat.rebate < 0);
+                const rebatesTotal = rebateRows.reduce((sum, c) => sum + c.rebate, 0);
+                const rebatesWeight = rebateRows.reduce((sum, c) => sum + c.weight, 0);
+                const chargesTotal = chargeRows.reduce((sum, c) => sum + c.rebate, 0);
+                const chargesWeight = chargeRows.reduce((sum, c) => sum + c.weight, 0);
+
+                const renderCategoryRows = (rows: typeof consolidatedData) =>
+                  rows.map((cat, idx) => (
+                    <TableRow key={idx} className="border-b">
+                      <TableCell className="font-semibold align-top">{cat.category}</TableCell>
+                      <TableCell className="text-right align-top font-medium">{cat.weight.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground align-top">
+                        <div className="space-y-0.5">
+                          {cat.sources.map((src, srcIdx) => (
+                            <div key={srcIdx}>{src.name}</div>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground align-top">
+                        <div className="space-y-0.5">
+                          {cat.sources.map((src, srcIdx) => (
+                            <div key={srcIdx}>
+                              {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
                             </div>
-                          </TableCell>
-                          <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
-                            £{cat.rebate.toFixed(2)}
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                        £{cat.rebate.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ));
+
+                return (
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Category</TableHead>
+                          <TableHead className="text-right">Weight (t)</TableHead>
+                          <TableHead colSpan={2}>Sources</TableHead>
+                          <TableHead className="text-right">Value (£)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rebateRows.length > 0 && (
+                          <>
+                            <TableRow className="bg-green-50 dark:bg-green-950/20">
+                              <TableCell colSpan={5} className="font-bold text-green-700 dark:text-green-400 text-base py-2">
+                                Rebates
+                              </TableCell>
+                            </TableRow>
+                            {renderCategoryRows(rebateRows)}
+                            <TableRow className="bg-green-50/50 dark:bg-green-950/10 border-t">
+                              <TableCell className="font-bold text-green-700 dark:text-green-400">REBATES TOTAL</TableCell>
+                              <TableCell className="text-right font-bold text-green-700 dark:text-green-400">{rebatesWeight.toFixed(2)}</TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                              <TableCell className="text-right font-bold text-green-600">£{rebatesTotal.toFixed(2)}</TableCell>
+                            </TableRow>
+                          </>
+                        )}
+                        {chargeRows.length > 0 && (
+                          <>
+                            <TableRow className="bg-red-50 dark:bg-red-950/20">
+                              <TableCell colSpan={5} className="font-bold text-red-700 dark:text-red-400 text-base py-2">
+                                Charges
+                              </TableCell>
+                            </TableRow>
+                            {renderCategoryRows(chargeRows)}
+                            <TableRow className="bg-red-50/50 dark:bg-red-950/10 border-t">
+                              <TableCell className="font-bold text-red-700 dark:text-red-400">CHARGES TOTAL</TableCell>
+                              <TableCell className="text-right font-bold text-red-700 dark:text-red-400">{chargesWeight.toFixed(2)}</TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                              <TableCell className="text-right font-bold text-red-600">£{chargesTotal.toFixed(2)}</TableCell>
+                            </TableRow>
+                          </>
+                        )}
+                        <TableRow className="bg-muted/50 font-bold border-t-2">
+                          <TableCell>Total</TableCell>
+                          <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
+                          <TableCell colSpan={2}></TableCell>
+                          <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{combinedTotalRebate.toFixed(2)}
                           </TableCell>
                         </TableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell>Total</TableCell>
-                        <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
-                        <TableCell colSpan={2}></TableCell>
-                        <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
-                          £{combinedTotalRebate.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
+                      </TableBody>
+                    </Table>
+                  </div>
+                );
+              })() : (
                 <p className="text-muted-foreground text-center py-8">
                   No materials configured for this site's rebate set.
                 </p>
