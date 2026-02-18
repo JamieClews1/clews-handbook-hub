@@ -18,6 +18,7 @@ import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard"
 type PortalMembership = {
   id: string;
   customer_id: string;
+  contact_id: string | null;
   customers: {
     id: string;
     customer_name: string;
@@ -38,6 +39,7 @@ const CustomerPortalPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [accessibleSites, setAccessibleSites] = useState<{ id: string; site_name: string }[]>([]);
+  const [accessibleSiteIds, setAccessibleSiteIds] = useState<string[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -70,6 +72,7 @@ const CustomerPortalPage = () => {
         .select(`
           id,
           customer_id,
+          contact_id,
           customers (
             id,
             customer_name,
@@ -82,14 +85,37 @@ const CustomerPortalPage = () => {
       if (!error && data) {
         setMembership(data as unknown as PortalMembership);
         
-        // Fetch accessible sites for the user
-        const { data: sitesData } = await supabase
-          .from("customer_sites")
-          .select("id, site_name")
-          .eq("customer_id", data.customer_id);
-        
-        if (sitesData) {
-          setAccessibleSites(sitesData);
+        // Compute accessible site IDs from explicit access + owner contact
+        const siteIdSet = new Set<string>();
+
+        // 1. Explicit site access records
+        const { data: explicitAccess } = await supabase
+          .from("customer_portal_site_access")
+          .select("site_id")
+          .eq("membership_id", data.id);
+        (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
+
+        // 2. Sites where user is the owner contact
+        if (data.contact_id) {
+          const { data: ownerSites } = await supabase
+            .from("customer_sites")
+            .select("id")
+            .eq("customer_id", data.customer_id)
+            .eq("owner_contact_id", data.contact_id);
+          (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
+        }
+
+        const siteIdArray = Array.from(siteIdSet);
+        setAccessibleSiteIds(siteIdArray);
+
+        if (siteIdArray.length > 0) {
+          const { data: sitesData } = await supabase
+            .from("customer_sites")
+            .select("id, site_name")
+            .in("id", siteIdArray);
+          setAccessibleSites(sitesData ?? []);
+        } else {
+          setAccessibleSites([]);
         }
       }
       setLoadingMembership(false);
@@ -309,6 +335,7 @@ const CustomerPortalPage = () => {
                     <CustomerPortalSiteReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
                     />
                   )}
                 </CardContent>
@@ -328,6 +355,7 @@ const CustomerPortalPage = () => {
                     <CustomerPortalRebateReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
                     />
                   )}
                 </CardContent>
