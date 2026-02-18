@@ -282,11 +282,13 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">Rebates</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger value="staci-reports" className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">STACI Reports</span>
-                <span className="sm:hidden">STACI</span>
-              </TabsTrigger>
+              {isStaciCustomer && (
+                <TabsTrigger value="staci-reports" className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <span className="hidden sm:inline">STACI Reports</span>
+                  <span className="sm:hidden">STACI</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="contact" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 <span className="hidden sm:inline">Contact Us</span>
