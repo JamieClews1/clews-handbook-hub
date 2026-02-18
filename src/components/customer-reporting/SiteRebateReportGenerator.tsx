@@ -1055,6 +1055,12 @@ export function SiteRebateReportGenerator() {
                               </TableCell>
                             </TableRow>
                             {renderCategoryRows(rebateRows)}
+                            <TableRow className="bg-green-50/50 dark:bg-green-950/10 border-t">
+                              <TableCell className="font-bold text-green-700 dark:text-green-400">REBATES TOTAL</TableCell>
+                              <TableCell className="text-right font-bold text-green-700 dark:text-green-400">{rebatesWeight.toFixed(2)}</TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                              <TableCell className="text-right font-bold text-green-600">£{rebatesTotal.toFixed(2)}</TableCell>
+                            </TableRow>
                           </>
                         )}
                         {chargeRows.length > 0 && (
@@ -1065,6 +1071,12 @@ export function SiteRebateReportGenerator() {
                               </TableCell>
                             </TableRow>
                             {renderCategoryRows(chargeRows)}
+                            <TableRow className="bg-red-50/50 dark:bg-red-950/10 border-t">
+                              <TableCell className="font-bold text-red-700 dark:text-red-400">CHARGES TOTAL</TableCell>
+                              <TableCell className="text-right font-bold text-red-700 dark:text-red-400">{chargesWeight.toFixed(2)}</TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                              <TableCell className="text-right font-bold text-red-600">£{chargesTotal.toFixed(2)}</TableCell>
+                            </TableRow>
                           </>
                         )}
                         <TableRow className="bg-muted/50 font-bold border-t-2">
