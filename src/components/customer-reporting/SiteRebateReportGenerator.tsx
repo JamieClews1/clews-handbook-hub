@@ -551,6 +551,7 @@ export function SiteRebateReportGenerator() {
       sources: { name: string; weight: number; rate: number; rebate: number; source: string }[] 
     }> = {
       "Cardboard": { weight: 0, rebate: 0, sources: [] },
+      "Paper": { weight: 0, rebate: 0, sources: [] },
       "Films": { weight: 0, rebate: 0, sources: [] },
       "Scrap Metal": { weight: 0, rebate: 0, sources: [] },
       "Other": { weight: 0, rebate: 0, sources: [] },
@@ -564,6 +565,8 @@ export function SiteRebateReportGenerator() {
       
       if (name.includes("card") || name.includes("cardboard")) {
         category = "Cardboard";
+      } else if (name.includes("paper")) {
+        category = "Paper";
       } else if (name.includes("film")) {
         category = "Films";
       } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
