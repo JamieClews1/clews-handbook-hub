@@ -171,9 +171,8 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
           {periods.length > 0 && (
             <div className="rounded-md border border-border overflow-hidden">
               <Table>
-                <TableHeader>
+                 <TableHeader>
                   <TableRow>
-                    <TableHead>Period</TableHead>
                     <TableHead>Month</TableHead>
                     <TableHead>Period End Date</TableHead>
                     <TableHead className="w-[80px]">Actions</TableHead>
@@ -182,7 +181,6 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
                 <TableBody>
                   {periods.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.period_label}</TableCell>
                       <TableCell>{p.month_name}</TableCell>
                       <TableCell>
                         <Input
