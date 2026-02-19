@@ -57,20 +57,42 @@ export const CertificateOfDestruction = ({
       setHasSignature(false);
       setPalletDescriptions([]);
 
-      // Fetch line items for pallet descriptions
+      // Fetch line items and staci pallet entries for descriptions
       if (reportId) {
-        supabase
-          .from("load_line_items")
-          .select("waste_type, pallet_count")
-          .eq("load_report_id", reportId)
-          .order("display_order")
-          .then(({ data }) => {
-            if (data && data.length > 0) {
-              setPalletDescriptions(
-                data.map((item) => `${item.waste_type} (${item.pallet_count} pallets)`)
-              );
-            }
-          });
+        Promise.all([
+          supabase
+            .from("load_line_items")
+            .select("waste_type, pallet_count")
+            .eq("load_report_id", reportId)
+            .order("display_order"),
+          supabase
+            .from("staci_pallet_entries")
+            .select("description, pallet_count, colour, pallet_type")
+            .eq("load_report_id", reportId)
+            .order("display_order"),
+        ]).then(([lineItems, palletEntries]) => {
+          const descriptions: string[] = [];
+
+          // Add staci pallet entry descriptions first
+          if (palletEntries.data && palletEntries.data.length > 0) {
+            palletEntries.data.forEach((entry) => {
+              const desc = entry.description?.trim();
+              const label = desc || `${entry.colour} ${entry.pallet_type ?? "pallet"}`;
+              descriptions.push(`${label} (×${entry.pallet_count})`);
+            });
+          }
+
+          // Add standard line items
+          if (lineItems.data && lineItems.data.length > 0) {
+            lineItems.data.forEach((item) => {
+              descriptions.push(`${item.waste_type} (${item.pallet_count} pallets)`);
+            });
+          }
+
+          if (descriptions.length > 0) {
+            setPalletDescriptions(descriptions);
+          }
+        });
       }
     }
   }, [open, reportId]);
