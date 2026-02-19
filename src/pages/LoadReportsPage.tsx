@@ -41,6 +41,7 @@ const LoadReportsPage = () => {
   const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
   const [defaultPalletWeight, setDefaultPalletWeight] = useState(20);
 
   // Sites state
@@ -784,12 +785,13 @@ const LoadReportsPage = () => {
     setIsSaving(true);
 
     try {
-      // Delete from server if it exists there
-      const { error: itemsError } = await supabase
-        .from("load_line_items")
-        .delete()
-        .eq("load_report_id", currentReportId);
-      if (itemsError) throw itemsError;
+      // Delete child records first (line items, staci entries)
+      const [itemsResult, staciResult] = await Promise.all([
+        supabase.from("load_line_items").delete().eq("load_report_id", currentReportId),
+        supabase.from("staci_pallet_entries").delete().eq("load_report_id", currentReportId),
+      ]);
+      if (itemsResult.error) throw itemsResult.error;
+      if (staciResult.error) throw staciResult.error;
 
       const { error } = await supabase
         .from("load_reports")
@@ -803,6 +805,7 @@ const LoadReportsPage = () => {
       });
 
       setCurrentReportId(null);
+      setListRefreshKey((k) => k + 1);
       setViewMode("list");
     } catch (error: any) {
       toast({
@@ -955,6 +958,7 @@ const LoadReportsPage = () => {
                 </div>
               </div>
               <LoadReportsList
+                key={listRefreshKey}
                 onNewReport={handleNewReport}
                 onViewReport={handleViewReport}
                 onEditReport={handleEditReport}
