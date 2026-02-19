@@ -50,6 +50,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
+  const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -340,7 +341,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                               variant="ghost"
                               size="sm"
                               onClick={() => setCodReport(report)}
-                              className="mr-1"
+                              className={`mr-1 ${codGeneratedIds.has(report.id) ? "text-green-600 bg-green-50 hover:bg-green-100 hover:text-green-700" : ""}`}
                             >
                               <FileText className="h-4 w-4" />
                             </Button>
@@ -380,6 +381,11 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         totalWeightKg={codReport?.total_weight_kg ?? 0}
         jobNumber={codReport?.notes ?? undefined}
         customerName={codReport?.customer_name ?? undefined}
+        onGenerated={() => {
+          if (codReport) {
+            setCodGeneratedIds(prev => new Set(prev).add(codReport.id));
+          }
+        }}
       />
     </div>
   );

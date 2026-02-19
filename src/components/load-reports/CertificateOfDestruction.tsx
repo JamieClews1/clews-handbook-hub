@@ -21,6 +21,7 @@ interface CertificateOfDestructionProps {
   totalWeightKg: number;
   jobNumber?: string;
   customerName?: string;
+  onGenerated?: () => void;
 }
 
 export const CertificateOfDestruction = ({
@@ -30,6 +31,7 @@ export const CertificateOfDestruction = ({
   totalWeightKg,
   jobNumber,
   customerName,
+  onGenerated,
 }: CertificateOfDestructionProps) => {
   const { toast } = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -235,6 +237,7 @@ export const CertificateOfDestruction = ({
         description: `${fileName} has been saved.`,
       });
 
+      onGenerated?.();
       onOpenChange(false);
     } catch (error: any) {
       toast({
