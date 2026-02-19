@@ -9,7 +9,7 @@ interface CustomerTypeSelectorProps {
 const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; available: boolean }[] = [
   { id: "britvic", name: "Britvic", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "staci", name: "Staci", icon: <Truck className="h-8 w-8" />, available: true },
-  { id: "vantiva", name: "Vantiva", icon: <Truck className="h-8 w-8" />, available: true },
+  { id: "vantiva", name: "Weighbridge Load", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "amazon", name: "Amazon", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "evri", name: "EVRi", icon: <Truck className="h-8 w-8" />, available: true },
   { id: "other", name: "Standard", icon: <Truck className="h-8 w-8" />, available: true },
