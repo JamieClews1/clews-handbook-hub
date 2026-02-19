@@ -111,6 +111,10 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
 
       // 5. Filter jobs to only those matching a site in our rebate list
       const matchedJobs = allJobs.filter(job => {
+        // Only curtain side loads need load reports — skip RoRo, skips, etc.
+        const container = (job.container_type ?? "").toLowerCase();
+        if (!container.includes("curtain")) return false;
+
         return siteMatchers.some(m => {
           if (m.customer.toLowerCase() !== (job.customer ?? "").toLowerCase()) return false;
           return m.sites.some(s => s.toLowerCase() === (job.site ?? "").toLowerCase());
