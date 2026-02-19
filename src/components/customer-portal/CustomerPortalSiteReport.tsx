@@ -49,6 +49,8 @@ interface CustomerPortalSiteReportProps {
   accessibleSiteIds?: string[];
 }
 
+import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
+
 export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds }: CustomerPortalSiteReportProps) {
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
@@ -374,42 +376,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         </div>
 
         <div className="space-y-2">
-          <Label>Date Range</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dateRange && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "dd MMM yyyy")} - {format(dateRange.to, "dd MMM yyyy")}
-                    </>
-                  ) : (
-                    format(dateRange.from, "dd MMM yyyy")
-                  )
-                ) : (
-                  <span>Pick a date range</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <ReportingPeriodSelector
+            customerId={customerId}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
         </div>
       </div>
 

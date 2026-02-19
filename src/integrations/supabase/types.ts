@@ -321,6 +321,47 @@ export type Database = {
           },
         ]
       }
+      customer_reporting_periods: {
+        Row: {
+          created_at: string
+          customer_id: string
+          display_order: number
+          id: string
+          month_name: string
+          period_end_date: string
+          period_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          display_order?: number
+          id?: string
+          month_name: string
+          period_end_date: string
+          period_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          display_order?: number
+          id?: string
+          month_name?: string
+          period_end_date?: string
+          period_label?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_reporting_periods_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_site_price_sets: {
         Row: {
           created_at: string
@@ -546,6 +587,7 @@ export type Database = {
       customers: {
         Row: {
           created_at: string
+          custom_reporting_periods_enabled: boolean
           customer_code: string
           customer_name: string
           data_hub_customer: string | null
@@ -555,6 +597,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_reporting_periods_enabled?: boolean
           customer_code: string
           customer_name: string
           data_hub_customer?: string | null
@@ -564,6 +607,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_reporting_periods_enabled?: boolean
           customer_code?: string
           customer_name?: string
           data_hub_customer?: string | null

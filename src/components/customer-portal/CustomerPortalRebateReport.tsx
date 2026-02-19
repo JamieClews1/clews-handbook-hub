@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
+import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
@@ -636,31 +637,11 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         </div>
 
         <div className="space-y-2">
-          <Label>Date Range</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dateRange?.from && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formatDateRange()}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 pointer-events-auto z-50" align="start">
-              <Calendar
-                mode="range"
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <ReportingPeriodSelector
+            customerId={customerId}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
         </div>
       </div>
 

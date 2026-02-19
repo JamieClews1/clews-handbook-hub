@@ -20,12 +20,15 @@ import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
+import { CustomerReportingPeriodsEditor } from "./CustomerReportingPeriodsEditor";
+import { Switch } from "@/components/ui/switch";
 
 type Customer = {
   id: string;
   customer_code: string;
   customer_name: string;
   po_notification_email: string | null;
+  custom_reporting_periods_enabled: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -114,7 +117,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "" });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", custom_reporting_periods_enabled: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -213,7 +216,7 @@ export function CustomerSetupAdmin() {
   const loadCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id,customer_code,customer_name,po_notification_email,created_at,updated_at")
+      .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,created_at,updated_at")
       .order("customer_name", { ascending: true });
     if (error) throw error;
     setCustomers((data ?? []) as Customer[]);
@@ -575,7 +578,8 @@ export function CustomerSetupAdmin() {
     setEditCustomerForm({ 
       customer_code: customer.customer_code, 
       customer_name: customer.customer_name,
-      po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk"
+      po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk",
+      custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false
     });
     setEditCustomerOpen(true);
   };
@@ -599,7 +603,8 @@ export function CustomerSetupAdmin() {
         .update({ 
           customer_code: parsed.data.customer_code, 
           customer_name: parsed.data.customer_name,
-          po_notification_email: editCustomerForm.po_notification_email.trim() || null
+          po_notification_email: editCustomerForm.po_notification_email.trim() || null,
+          custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled
         })
         .eq("id", editingCustomer.id);
       if (error) throw error;
@@ -933,8 +938,11 @@ export function CustomerSetupAdmin() {
                   {selectedCustomer.customer_name.toLowerCase().includes("staci") && (
                     <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
                   )}
-                  <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                  <TabsTrigger value="portal">Portal access</TabsTrigger>
+                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
+                   <TabsTrigger value="portal">Portal access</TabsTrigger>
+                   {selectedCustomer.custom_reporting_periods_enabled && (
+                     <TabsTrigger value="reporting-periods">Reporting Periods</TabsTrigger>
+                   )}
                 </TabsList>
 
                 <TabsContent value="sites" className="mt-4 space-y-4">
@@ -1251,6 +1259,15 @@ export function CustomerSetupAdmin() {
                   )}
                 </TabsContent>
 
+                {selectedCustomer.custom_reporting_periods_enabled && (
+                  <TabsContent value="reporting-periods" className="mt-4">
+                    <CustomerReportingPeriodsEditor
+                      customerId={selectedCustomer.id}
+                      customerName={selectedCustomer.customer_name}
+                    />
+                  </TabsContent>
+                )}
+
                 <TabsContent value="staci-rates" className="mt-4">
                   <StaciPalletRatesEditor />
                 </TabsContent>
@@ -1337,6 +1354,19 @@ export function CustomerSetupAdmin() {
               <p className="text-xs text-muted-foreground">
                 When a customer edits a PO number in the portal, a notification will be sent to this email address.
               </p>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Custom Reporting Periods</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable unique reporting periods for portal users (e.g. Biffa-style periods).
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.custom_reporting_periods_enabled}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, custom_reporting_periods_enabled: v }))}
+              />
             </div>
           </div>
           <DialogFooter>
