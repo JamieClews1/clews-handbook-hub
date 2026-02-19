@@ -146,7 +146,7 @@ export function CustomerSetupAdmin() {
   const LOAD_REPORT_TYPES = [
     { id: "britvic", name: "Britvic" },
     { id: "staci", name: "Staci" },
-    { id: "vantiva", name: "Vantiva" },
+    { id: "vantiva", name: "Weighbridge Load" },
     { id: "amazon", name: "Amazon" },
     { id: "evri", name: "EVRi" },
     { id: "other", name: "Standard" },
