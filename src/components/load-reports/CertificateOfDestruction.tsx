@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,8 @@ interface CertificateOfDestructionProps {
   onOpenChange: (open: boolean) => void;
   reportDate: string;
   totalWeightKg: number;
+  totalPallets: number;
+  reportId: string;
   jobNumber?: string;
   customerName?: string;
   onGenerated?: () => void;
@@ -29,6 +32,8 @@ export const CertificateOfDestruction = ({
   onOpenChange,
   reportDate,
   totalWeightKg,
+  totalPallets,
+  reportId,
   jobNumber,
   customerName,
   onGenerated,
@@ -41,16 +46,34 @@ export const CertificateOfDestruction = ({
   const [destructionMethod, setDestructionMethod] = useState("");
   const [signerName, setSignerName] = useState("");
   const [signerPosition, setSignerPosition] = useState("");
+  const [palletDescriptions, setPalletDescriptions] = useState<string[]>([]);
 
-  // Reset form when dialog opens
+  // Reset form and fetch line items when dialog opens
   useEffect(() => {
     if (open) {
       setDestructionMethod("");
       setSignerName("");
       setSignerPosition("");
       setHasSignature(false);
+      setPalletDescriptions([]);
+
+      // Fetch line items for pallet descriptions
+      if (reportId) {
+        supabase
+          .from("load_line_items")
+          .select("waste_type, pallet_count")
+          .eq("load_report_id", reportId)
+          .order("display_order")
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setPalletDescriptions(
+                data.map((item) => `${item.waste_type} (${item.pallet_count} pallets)`)
+              );
+            }
+          });
+      }
     }
-  }, [open]);
+  }, [open, reportId]);
 
   // Initialize canvas when dialog opens
   useEffect(() => {
@@ -175,7 +198,21 @@ export const CertificateOfDestruction = ({
       if (customerName) addField("Customer:", customerName);
       if (jobNumber) addField("Job Number:", jobNumber);
       addField("Total Weight:", `${totalWeightKg.toLocaleString()} KG`);
-      y += 4;
+      addField("No. of Pallets:", totalPallets.toLocaleString());
+      y += 2;
+
+      // Pallet descriptions
+      if (palletDescriptions.length > 0) {
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Description of Pallets:", margin, y);
+        y += 7;
+        pdf.setFont("helvetica", "normal");
+        palletDescriptions.forEach((desc) => {
+          pdf.text(`• ${desc}`, margin + 4, y);
+          y += 6;
+        });
+        y += 4;
+      }
 
       // Method of destruction
       pdf.setFont("helvetica", "bold");
@@ -283,6 +320,20 @@ export const CertificateOfDestruction = ({
               <span className="text-muted-foreground">Total Weight:</span>
               <span className="font-medium">{totalWeightKg.toLocaleString()} KG</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">No. of Pallets:</span>
+              <span className="font-medium">{totalPallets.toLocaleString()}</span>
+            </div>
+            {palletDescriptions.length > 0 && (
+              <div className="pt-1">
+                <span className="text-muted-foreground text-xs">Description of Pallets:</span>
+                <ul className="list-disc list-inside text-xs mt-0.5">
+                  {palletDescriptions.map((desc, i) => (
+                    <li key={i}>{desc}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Method of destruction */}
