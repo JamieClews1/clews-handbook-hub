@@ -6,13 +6,14 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database, Package } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database, Package, ClipboardCheck } from "lucide-react";
 import { SiteReportGenerator } from "@/components/customer-reporting/SiteReportGenerator";
 import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
 import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
 import { DataHubCustomerReport } from "@/components/customer-reporting/DataHubCustomerReport";
 import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
+import { POCheckReport } from "@/components/customer-reporting/POCheckReport";
 
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
@@ -74,7 +75,7 @@ const CustomerReportingPage = () => {
         </div>
 
         <Tabs defaultValue="site-reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Site Reports</span>
@@ -98,6 +99,10 @@ const CustomerReportingPage = () => {
             <TabsTrigger value="rebate-check" className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               <span className="hidden sm:inline">Check</span>
+            </TabsTrigger>
+            <TabsTrigger value="po-check" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">PO Check</span>
             </TabsTrigger>
           </TabsList>
 
@@ -173,6 +178,10 @@ const CustomerReportingPage = () => {
 
           <TabsContent value="rebate-check">
             <RebateCheckReport />
+          </TabsContent>
+
+          <TabsContent value="po-check">
+            <POCheckReport />
           </TabsContent>
         </Tabs>
       </main>
