@@ -12,13 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { MissingReportsAlert } from "./MissingReportsAlert";
+import { CertificateOfDestruction } from "./CertificateOfDestruction";
 
 interface LoadReport {
   id: string;
@@ -48,6 +49,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -331,6 +333,21 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                       {getStatusBadge(report.status, report)}
                     </TableCell>
                     <TableCell className="text-right">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setCodReport(report)}
+                              className="mr-1"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Certificate of Destruction</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -354,6 +371,16 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           </div>
         )}
       </Card>
+
+      {/* Certificate of Destruction Dialog */}
+      <CertificateOfDestruction
+        open={!!codReport}
+        onOpenChange={(open) => !open && setCodReport(null)}
+        reportDate={codReport?.report_date ?? ""}
+        totalWeightKg={codReport?.total_weight_kg ?? 0}
+        jobNumber={codReport?.notes ?? undefined}
+        customerName={codReport?.customer_name ?? undefined}
+      />
     </div>
   );
 };
