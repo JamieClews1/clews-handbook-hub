@@ -379,6 +379,8 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         onOpenChange={(open) => !open && setCodReport(null)}
         reportDate={codReport?.report_date ?? ""}
         totalWeightKg={codReport?.total_weight_kg ?? 0}
+        totalPallets={codReport?.total_pallets ?? 0}
+        reportId={codReport?.id ?? ""}
         jobNumber={codReport?.notes ?? undefined}
         customerName={codReport?.customer_name ?? undefined}
         onGenerated={() => {
