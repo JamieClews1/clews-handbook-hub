@@ -158,43 +158,48 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
         </Select>
       )}
 
-      {mode === "month" && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dateRange && "text-muted-foreground"
+      {mode === "month" && (() => {
+        const months = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const years = [currentYear - 1, currentYear, currentYear + 1];
+        
+        const handleMonthSelect = (monthYear: string) => {
+          const [yearStr, monthStr] = monthYear.split("-");
+          const year = parseInt(yearStr);
+          const month = parseInt(monthStr) - 1;
+          const from = new Date(year, month, 1);
+          const to = endOfMonth(from);
+          onDateRangeChange({ from, to });
+        };
+        
+        const selectedValue = dateRange?.from
+          ? `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}`
+          : "";
+        
+        return (
+          <Select value={selectedValue} onValueChange={handleMonthSelect}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a month" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) =>
+                months.map((monthName, idx) => {
+                  const value = `${year}-${String(idx + 1).padStart(2, "0")}`;
+                  return (
+                    <SelectItem key={value} value={value}>
+                      {monthName} {year}
+                    </SelectItem>
+                  );
+                })
               )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "dd MMM yyyy")} - {format(dateRange.to, "dd MMM yyyy")}
-                  </>
-                ) : (
-                  format(dateRange.from, "dd MMM yyyy")
-                )
-              ) : (
-                <span>Pick a month</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={onDateRangeChange}
-              numberOfMonths={2}
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-      )}
+            </SelectContent>
+          </Select>
+        );
+      })()}
 
       {mode === "custom" && (
         <Popover>
