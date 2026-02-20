@@ -89,7 +89,7 @@ export default function LiveJobsDashboard() {
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity } = useMemo(() => {
     // Track net containers per customer+site+category
-    const siteMap: Record<string, { customer: string; site: string; category: ContainerCategory; delivered: number; collected: number; containerTypes: Set<string> }> = {};
+    const siteMap: Record<string, { customer: string; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; containerTypes: Set<string> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -110,6 +110,7 @@ export default function LiveJobsDashboard() {
           category: cat,
           delivered: 0,
           collected: 0,
+          exchanged: 0,
           containerTypes: new Set(),
         };
       }
@@ -118,6 +119,7 @@ export default function LiveJobsDashboard() {
 
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
       if (isCollection(job.movement_type)) siteMap[key].collected++;
+      if (isExchange(job.movement_type)) siteMap[key].exchanged++;
 
       // Monthly chart data
       if (job.job_date) {
@@ -137,8 +139,15 @@ export default function LiveJobsDashboard() {
     }
 
     // Sites with net containers on-site
+    // A site is "live" if it has net deliveries > collections OR has had exchanges (container swap = still on-site)
     const live = Object.values(siteMap)
-      .map(s => ({ ...s, netOnSite: s.delivered - s.collected, containerTypes: Array.from(s.containerTypes) }))
+      .map(s => {
+        const netFromDeliveries = s.delivered - s.collected;
+        // If a site only has exchanges (no standalone deliver/collect), it's still live
+        const isLive = netFromDeliveries > 0 || (s.exchanged > 0 && netFromDeliveries >= 0);
+        const netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
+        return { ...s, netOnSite, containerTypes: Array.from(s.containerTypes) };
+      })
       .filter(s => s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
 
@@ -280,7 +289,7 @@ export default function LiveJobsDashboard() {
   );
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; containerTypes: string[] }>; label: string }) {
+function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[] }>; label: string }) {
   if (sites.length === 0) {
     return (
       <Card>
@@ -301,6 +310,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
               <TableHead>Site</TableHead>
               <TableHead className="text-center">On-Site</TableHead>
               <TableHead className="text-center">Delivered</TableHead>
+              <TableHead className="text-center">Exchanged</TableHead>
               <TableHead className="text-center">Collected</TableHead>
               <TableHead>Container Types</TableHead>
             </TableRow>
@@ -314,6 +324,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                   <Badge variant="default">{s.netOnSite}</Badge>
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.delivered}</TableCell>
+                <TableCell className="text-center text-muted-foreground">{s.exchanged}</TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.collected}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
