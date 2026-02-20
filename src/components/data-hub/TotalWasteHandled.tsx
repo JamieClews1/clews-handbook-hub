@@ -99,12 +99,21 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     },
   });
 
-  // Build a Set of Midweigh inward "vehReg|date" keys for matching Skiptrak jobs
-  const midweighInwardKeys = useMemo(() => {
+  // Filter Midweigh inward to only WASTEIN and SKIP products for yard intake
+  const midweighYardIntake = useMemo(() => {
+    if (!midweighInward) return [];
+    return midweighInward.filter((j: any) => {
+      const product = j.raw?.Product;
+      return product === "WASTEIN" || product === "SKIP";
+    });
+  }, [midweighInward]);
+
+  // Build a Set of Midweigh SKIP inward "vehReg|date" keys for matching Skiptrak jobs
+  const midweighSkipKeys = useMemo(() => {
     if (!midweighInward) return new Set<string>();
     const keys = new Set<string>();
     midweighInward.forEach((j: any) => {
-      if (j.vehicle_registration && j.job_date) {
+      if (j.raw?.Product === "SKIP" && j.vehicle_registration && j.job_date) {
         keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
       }
     });
@@ -145,7 +154,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     const buckets: Record<string, { midweighIn: number; skiptrakNonYard: number }> = {};
     keys.forEach((k) => { buckets[k] = { midweighIn: 0, skiptrakNonYard: 0 }; });
 
-    midweighInward.forEach((job: any) => {
+    midweighYardIntake.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
       if (excludeBP && job.site === "BP Contract") return;
       const key = getBucketKey(parseISO(job.job_date), granularity);
@@ -157,7 +166,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       if (!job.job_date || job.weight_t == null) return;
       if (job.vehicle_registration && job.job_date) {
         const matchKey = `${job.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${job.job_date}`;
-        if (midweighInwardKeys.has(matchKey)) return; // already counted in Midweigh yard intake
+        if (midweighSkipKeys.has(matchKey)) return; // already counted in Midweigh yard intake
       }
       if (excludeBP && job.site === "BP Contract") return;
       const key = getBucketKey(parseISO(job.job_date), granularity);
@@ -174,7 +183,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
         skiptrakNonYard: Math.round(values.skiptrakNonYard * 100) / 100,
         total: Math.round((values.midweighIn + values.skiptrakNonYard) * 100) / 100,
       }));
-  }, [midweighInward, skiptrakJobs, midweighInwardKeys, externalStartDate, externalEndDate, granularity, excludeBP]);
+  }, [midweighYardIntake, skiptrakJobs, midweighSkipKeys, externalStartDate, externalEndDate, granularity, excludeBP]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { midweighIn: 0, skiptrakNonYard: 0, total: 0 };
