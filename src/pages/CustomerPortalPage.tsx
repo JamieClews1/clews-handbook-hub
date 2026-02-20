@@ -289,10 +289,12 @@ const CustomerPortalPage = () => {
 
           {(() => {
             const isStaciCustomer = currentCustomer?.customer_name?.toLowerCase().includes("staci");
-            const defaultTab = isStaciCustomer ? "staci-reports" : "site-reports";
+            const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
+            const storedTab = sessionStorage.getItem("portal-active-tab");
+            const defaultTab = storedTab || fallbackTab;
             const tabCount = isStaciCustomer ? 2 : 4;
             return (
-            <Tabs defaultValue={defaultTab} className="space-y-6">
+            <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
             <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
               {!isStaciCustomer && (
                 <TabsTrigger value="site-reports" className="flex items-center gap-2">
