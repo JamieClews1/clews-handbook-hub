@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { AlertTriangle } from "lucide-react";
@@ -22,10 +21,24 @@ interface WasteNotOnMidweighProps {
   externalEndDate: Date;
 }
 
-// Generate a consistent color for a given string
 function stringToColor(str: string, index: number): string {
   const hues = [210, 35, 142, 280, 0, 55, 180, 320, 100, 240];
   return `hsl(${hues[index % hues.length]}, 65%, 55%)`;
+}
+
+async function fetchAllPaged(query: any) {
+  let all: any[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+  while (hasMore) {
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (data) all = all.concat(data);
+    hasMore = data?.length === pageSize;
+    from += pageSize;
+  }
+  return all;
 }
 
 const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMidweighProps) => {
@@ -36,33 +49,27 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
   const startStr = format(weekStart, "yyyy-MM-dd");
   const endStr = format(weekEnd, "yyyy-MM-dd");
 
-  // Fetch Midweigh SKIP inward job numbers
-  const { data: midweighSkipJobNums, isLoading: loadingSkip } = useQuery({
-    queryKey: ["wnm-midweigh-skip-nums", startStr, endStr],
+  // Fetch Midweigh INWARD records (vehicle_registration + job_date for matching)
+  const { data: midweighInward, isLoading: loadingMidweigh } = useQuery({
+    queryKey: ["wnm-midweigh-inward", startStr, endStr],
     queryFn: async () => {
-      let all: any[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await supabase
+      const all = await fetchAllPaged(
+        supabase
           .from("data_hub_jobs")
-          .select("job_number, raw")
+          .select("vehicle_registration, job_date")
           .eq("source", "midweigh")
           .eq("movement_type", "INWARD")
           .gte("job_date", startStr)
           .lte("job_date", endStr)
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (data) all = all.concat(data);
-        hasMore = data?.length === pageSize;
-        from += pageSize;
-      }
-      const skipNums = new Set<string>();
+      );
+      // Build a Set of "vehReg|date" keys for fast lookup
+      const keys = new Set<string>();
       all.forEach((j: any) => {
-        if (j.raw?.Product === "SKIP") skipNums.add(j.job_number);
+        if (j.vehicle_registration && j.job_date) {
+          keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
+        }
       });
-      return skipNums;
+      return keys;
     },
   });
 
@@ -70,34 +77,28 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
   const { data: skiptrakJobs, isLoading: loadingSkiptrak } = useQuery({
     queryKey: ["wnm-skiptrak-all", startStr, endStr],
     queryFn: async () => {
-      let all: any[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await supabase
+      return await fetchAllPaged(
+        supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, customer, site")
+          .select("job_date, weight_t, job_number, customer, site, vehicle_registration")
           .eq("source", "skiptrak")
           .gte("job_date", startStr)
           .lte("job_date", endStr)
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (data) all = all.concat(data);
-        hasMore = data?.length === pageSize;
-        from += pageSize;
-      }
-      return all;
+      );
     },
   });
 
-  const isLoading = loadingSkip || loadingSkiptrak;
+  const isLoading = loadingMidweigh || loadingSkiptrak;
 
-  // Get non-yard Skiptrak jobs
+  // Get Skiptrak jobs with NO matching Midweigh inward on same date + vehicle
   const nonYardJobs = useMemo(() => {
-    if (!skiptrakJobs || !midweighSkipJobNums) return [];
-    return skiptrakJobs.filter((j: any) => !midweighSkipJobNums.has(j.job_number));
-  }, [skiptrakJobs, midweighSkipJobNums]);
+    if (!skiptrakJobs || !midweighInward) return [];
+    return skiptrakJobs.filter((j: any) => {
+      if (!j.vehicle_registration || !j.job_date) return true; // no vehicle reg = can't match
+      const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
+      return !midweighInward.has(key);
+    });
+  }, [skiptrakJobs, midweighInward]);
 
   // Unique customer-sites
   const customerSites = useMemo(() => {
@@ -111,15 +112,13 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
       .map(([name, tonnes]) => ({ name, tonnes: Math.round(tonnes * 100) / 100 }));
   }, [nonYardJobs]);
 
-  // Chart data: weekly, broken down by customer-site or aggregated
+  // Chart data: weekly, broken down by customer-site
   const chartData = useMemo(() => {
     if (!nonYardJobs.length) return [];
 
     const weeks = eachWeekOfInterval({ start: weekStart, end: weekEnd }, { weekStartsOn: 1 });
     const buckets: Record<string, Record<string, number>> = {};
-    weeks.forEach((ws) => {
-      buckets[format(ws, "yyyy-MM-dd")] = {};
-    });
+    weeks.forEach((ws) => { buckets[format(ws, "yyyy-MM-dd")] = {}; });
 
     nonYardJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
@@ -131,7 +130,6 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
       buckets[weekKey][siteKey] = (buckets[weekKey][siteKey] || 0) + (job.weight_t || 0);
     });
 
-    // Get top sites for chart series
     const siteTotals = new Map<string, number>();
     Object.values(buckets).forEach((week) => {
       Object.entries(week).forEach(([site, tonnes]) => {
@@ -146,17 +144,13 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
     return Object.entries(buckets)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([weekDate, siteData]) => {
-        const row: any = {
-          week: format(parseISO(weekDate), "dd MMM"),
-          weekFull: weekDate,
-        };
+        const row: any = { week: format(parseISO(weekDate), "dd MMM"), weekFull: weekDate };
         let total = 0;
         topSites.forEach((site) => {
           const val = Math.round((siteData[site] || 0) * 100) / 100;
           row[site] = val;
           total += val;
         });
-        // Sum any remaining sites into "Other"
         const otherTotal = Object.entries(siteData)
           .filter(([s]) => !topSites.includes(s))
           .reduce((sum, [, v]) => sum + v, 0);
@@ -169,7 +163,6 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
       });
   }, [nonYardJobs, selectedSite, weekStart, weekEnd]);
 
-  // Series keys for the stacked bars
   const seriesKeys = useMemo(() => {
     if (!chartData.length) return [];
     const keys = new Set<string>();
@@ -183,9 +176,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
 
   const chartConfig = useMemo(() => {
     const cfg: Record<string, { label: string; color: string }> = {};
-    seriesKeys.forEach((key, i) => {
-      cfg[key] = { label: key, color: stringToColor(key, i) };
-    });
+    seriesKeys.forEach((key, i) => { cfg[key] = { label: key, color: stringToColor(key, i) }; });
     cfg.total = { label: "Total", color: "hsl(0, 0%, 40%)" };
     return cfg;
   }, [seriesKeys]);
@@ -204,7 +195,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
           <div>
             <CardTitle className="text-lg">Waste Tipped Not On Midweigh</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Skiptrak tickets with no corresponding Midweigh SKIP record · by customer site · weekly
+              Skiptrak tickets with no matching Midweigh inward record (same vehicle &amp; date)
             </p>
           </div>
         </div>
@@ -240,28 +231,12 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <BarChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis
-                    dataKey="week"
-                    tick={{ fontSize: 10 }}
-                    interval={3}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    label={{ value: "Tonnes", angle: -90, position: "insideLeft", style: { fontSize: 12 } }}
-                  />
+                  <XAxis dataKey="week" tick={{ fontSize: 10 }} interval={3} angle={-45} textAnchor="end" height={60} />
+                  <YAxis tick={{ fontSize: 11 }} label={{ value: "Tonnes", angle: -90, position: "insideLeft", style: { fontSize: 12 } }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   {seriesKeys.map((key, i) => (
-                    <Bar
-                      key={key}
-                      dataKey={key}
-                      stackId="sites"
-                      fill={stringToColor(key, i)}
-                      name={key}
-                      radius={i === seriesKeys.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
-                    />
+                    <Bar key={key} dataKey={key} stackId="sites" fill={stringToColor(key, i)} name={key}
+                      radius={i === seriesKeys.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]} />
                   ))}
                 </BarChart>
               </ChartContainer>
@@ -269,7 +244,6 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
           </div>
         )}
 
-        {/* Table */}
         {!isLoading && chartData.length > 0 && (
           <div className="mt-6 w-full overflow-x-auto">
             <table className="w-full text-sm">
@@ -277,7 +251,8 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
                 <tr className="border-b">
                   <th className="text-left py-2 px-3 font-medium text-muted-foreground">Week</th>
                   {seriesKeys.map((key, i) => (
-                    <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]" style={{ color: stringToColor(key, i) }} title={key}>
+                    <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]"
+                      style={{ color: stringToColor(key, i) }} title={key}>
                       {key.length > 20 ? key.substring(0, 18) + "…" : key}
                     </th>
                   ))}
