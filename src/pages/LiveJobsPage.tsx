@@ -1,14 +1,18 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Radio } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Radio, Settings } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import LiveJobsDashboard from "@/components/live-jobs/LiveJobsDashboard";
+import LiveJobsSettings from "@/components/live-jobs/LiveJobsSettings";
+import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { useEffect } from "react";
 
 const LiveJobsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { settings, loading: settingsLoading, updateSetting, refetch } = useLiveJobsSettings();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -16,7 +20,7 @@ const LiveJobsPage = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -59,7 +63,22 @@ const LiveJobsPage = () => {
             </div>
           </div>
 
-          <LiveJobsDashboard />
+          <Tabs defaultValue="dashboard">
+            <TabsList>
+              <TabsTrigger value="dashboard">
+                <Radio className="h-4 w-4 mr-1.5" /> Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                <Settings className="h-4 w-4 mr-1.5" /> Settings
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="dashboard" className="mt-6">
+              <LiveJobsDashboard settings={settings} />
+            </TabsContent>
+            <TabsContent value="settings" className="mt-6">
+              <LiveJobsSettings settings={settings} onSave={async (key, value) => { await updateSetting(key, value); await refetch(); }} />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
