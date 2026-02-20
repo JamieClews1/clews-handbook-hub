@@ -2,11 +2,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BarChart3, Sparkles } from "lucide-react";
+import { ArrowLeft, BarChart3, Sparkles, Gauge } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
 import ZeroToLandfillChart from "@/components/data-hub/ZeroToLandfillChart";
+import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import { useEffect } from "react";
 
 const PerformanceHubReportsPage = () => {
@@ -69,10 +70,14 @@ const PerformanceHubReportsPage = () => {
           <ZeroToLandfillChart />
 
           <Tabs defaultValue="tracking" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-lg grid-cols-3">
               <TabsTrigger value="tracking" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Data Tracking
+              </TabsTrigger>
+              <TabsTrigger value="waste-kpis" className="flex items-center gap-2">
+                <Gauge className="h-4 w-4" />
+                Waste KPIs
               </TabsTrigger>
               <TabsTrigger value="ask-ai" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
@@ -82,6 +87,10 @@ const PerformanceHubReportsPage = () => {
 
             <TabsContent value="tracking" className="space-y-8">
               <DataHubAnalytics />
+            </TabsContent>
+
+            <TabsContent value="waste-kpis" className="space-y-8">
+              <WasteKPIGradeCWood />
             </TabsContent>
 
             <TabsContent value="ask-ai" className="space-y-8">
