@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, XAxis, YAxis, CartesianGrid, Line, ComposedChart } from "recharts";
 import { Truck } from "lucide-react";
@@ -64,6 +66,7 @@ function generateBucketKeys(start: Date, end: Date, granularity: Granularity): s
 
 const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHandledProps) => {
   const [granularity, setGranularity] = useState<Granularity>("weekly");
+  const [excludeBP, setExcludeBP] = useState(false);
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
@@ -81,7 +84,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, raw")
+          .select("job_date, weight_t, job_number, raw, site")
           .eq("source", "midweigh")
           .eq("movement_type", "INWARD")
           .gte("job_date", startStr)
@@ -137,7 +140,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number")
+          .select("job_date, weight_t, job_number, site")
           .eq("source", "skiptrak")
           .gte("job_date", startStr)
           .lte("job_date", endStr)
@@ -162,6 +165,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
 
     midweighInward.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
+      if (excludeBP && job.site === "BP Contract") return;
       const key = getBucketKey(parseISO(job.job_date), granularity);
       if (!buckets[key]) return;
       buckets[key].midweighIn += (job.weight_t || 0) / 1000;
@@ -170,6 +174,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     skiptrakJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
       if (midweighSkipRecords.has(job.job_number)) return;
+      if (excludeBP && job.site === "BP Contract") return;
       const key = getBucketKey(parseISO(job.job_date), granularity);
       if (!buckets[key]) return;
       buckets[key].skiptrakNonYard += (job.weight_t || 0);
@@ -184,7 +189,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
         skiptrakNonYard: Math.round(values.skiptrakNonYard * 100) / 100,
         total: Math.round((values.midweighIn + values.skiptrakNonYard) * 100) / 100,
       }));
-  }, [midweighInward, skiptrakJobs, midweighSkipRecords, externalStartDate, externalEndDate, granularity]);
+  }, [midweighInward, skiptrakJobs, midweighSkipRecords, externalStartDate, externalEndDate, granularity, excludeBP]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { midweighIn: 0, skiptrakNonYard: 0, total: 0 };
@@ -217,7 +222,11 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Switch id="exclude-bp" checked={excludeBP} onCheckedChange={setExcludeBP} />
+            <Label htmlFor="exclude-bp" className="text-xs cursor-pointer">Excl. Biffa BP</Label>
+          </div>
           <div className="flex gap-1 rounded-lg border bg-muted p-0.5">
             {GRANULARITY_OPTIONS.map((opt) => (
               <Button
