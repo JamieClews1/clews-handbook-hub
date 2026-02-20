@@ -1,21 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BarChart3, Sparkles, CalendarIcon, Settings2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { ArrowLeft, Gauge, CalendarIcon } from "lucide-react";
+import { format, subMonths, startOfMonth, endOfWeek } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
-import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
-import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
+import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import ZeroToLandfillChart from "@/components/data-hub/ZeroToLandfillChart";
-import MidweighProductMappings from "@/components/data-hub/MidweighProductMappings";
-import { useEffect } from "react";
 
-const PerformanceHubReportsPage = () => {
+const WasteKPIsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
@@ -62,13 +58,10 @@ const PerformanceHubReportsPage = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -87,17 +80,17 @@ const PerformanceHubReportsPage = () => {
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <BarChart3 className="h-7 w-7 text-primary-foreground" />
+              <Gauge className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Performance Hub · Business Reports</h1>
+              <h1 className="text-2xl font-bold text-foreground">Performance Hub · Waste KPIs</h1>
               <p className="text-muted-foreground">
-                Analytics, data tracking, and AI-powered insights
+                Zero to Landfill tracking and Grade C Wood recovery metrics
               </p>
             </div>
           </div>
 
-          {/* Shared Period Selection */}
+          {/* Period Selection */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
             <span className="text-sm font-medium text-foreground mr-1">Period:</span>
             <Popover>
@@ -151,41 +144,15 @@ const PerformanceHubReportsPage = () => {
             </div>
           </div>
 
-          {/* Zero To Landfill Chart - Double Width */}
+          {/* Zero To Landfill */}
           <ZeroToLandfillChart externalStartDate={startDate} externalEndDate={endDate} />
 
-          <Tabs defaultValue="tracking" className="space-y-6">
-            <TabsList className="grid w-full max-w-xl grid-cols-3">
-              <TabsTrigger value="tracking" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Data Tracking
-              </TabsTrigger>
-              <TabsTrigger value="ask-ai" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Ask AI
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" />
-                Settings
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="tracking" className="space-y-8">
-              <DataHubAnalytics />
-            </TabsContent>
-
-            <TabsContent value="ask-ai" className="space-y-8">
-              <DataHubAIChat />
-            </TabsContent>
-
-            <TabsContent value="settings" className="space-y-8">
-              <MidweighProductMappings />
-            </TabsContent>
-          </Tabs>
+          {/* Grade C Wood KPIs */}
+          <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
         </div>
       </main>
     </div>
   );
 };
 
-export default PerformanceHubReportsPage;
+export default WasteKPIsPage;
