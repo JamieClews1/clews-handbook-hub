@@ -178,19 +178,27 @@ export default function LiveJobsDashboard() {
     const live = Object.values(siteMap)
       .map(s => {
         const netFromDeliveries = s.delivered - s.collected;
-        const netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
+        const totalMovements = s.delivered + s.collected + s.exchanged;
+        // Artics (waste trucks) don't stay on-site, so count sites visited instead
+        const netOnSite = s.category === "artic"
+          ? totalMovements  // For artics, this represents visit count
+          : Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > RENTAL_FREE_DAYS && netOnSite > 0 && !collectionClearedIt;
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
-      .filter(s => s.netOnSite > 0)
+      .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
 
     // Counts by category
     const counts = { skip: 0, roro: 0, artic: 0, totalSites: new Set<string>() };
     for (const s of live) {
-      counts[s.category] += s.netOnSite;
+      if (s.category === "artic") {
+        counts.artic++; // Count sites visited, not containers
+      } else {
+        counts[s.category] += s.netOnSite;
+      }
       counts.totalSites.add(s.site);
     }
 
@@ -213,7 +221,8 @@ export default function LiveJobsDashboard() {
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
-  const articSites = useMemo(() => liveSites.filter(s => s.category === "artic"), [liveSites]);
+  const sixMonthsAgo = useMemo(() => format(subMonths(new Date(), 6), "yyyy-MM-dd"), []);
+  const wasteTruckSites = useMemo(() => liveSites.filter(s => s.category === "artic" && s.lastActivityDate && s.lastActivityDate >= sixMonthsAgo), [liveSites, sixMonthsAgo]);
 
   const chartConfig = {
     deliveries: { label: "Deliveries", color: "hsl(var(--primary))" },
@@ -275,11 +284,12 @@ export default function LiveJobsDashboard() {
         <Card className="border-l-4 border-l-yellow-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ArrowRightLeft className="h-4 w-4" /> Artics
+              <ArrowRightLeft className="h-4 w-4" /> Waste Truck Sites
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-foreground">{liveCounts.artic}</p>
+            <p className="text-3xl font-bold text-foreground">{wasteTruckSites.length}</p>
+            <p className="text-xs text-muted-foreground">Visited in last 6 months</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-destructive">
@@ -325,7 +335,7 @@ export default function LiveJobsDashboard() {
         <TabsList className="grid w-full max-w-xl grid-cols-4">
           <TabsTrigger value="skips">Skips ({skipSites.length})</TabsTrigger>
           <TabsTrigger value="roros">RoRos ({roroSites.length})</TabsTrigger>
-          <TabsTrigger value="artics">Artics ({articSites.length})</TabsTrigger>
+          <TabsTrigger value="artics">Waste Truck ({wasteTruckSites.length})</TabsTrigger>
           <TabsTrigger value="over-rental" className="text-destructive">
             Over Rental ({overRentalSites.length})
           </TabsTrigger>
@@ -338,7 +348,7 @@ export default function LiveJobsDashboard() {
           <SiteTable sites={roroSites} label="RoRo" />
         </TabsContent>
         <TabsContent value="artics">
-          <SiteTable sites={articSites} label="Artic" />
+          <SiteTable sites={wasteTruckSites} label="Waste Truck" />
         </TabsContent>
         <TabsContent value="over-rental">
           <OverRentalTable sites={overRentalSites} />
