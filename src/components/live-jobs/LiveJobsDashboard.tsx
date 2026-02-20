@@ -173,7 +173,7 @@ export default function LiveJobsDashboard() {
         // Over rental only if: has containers on-site, last delivery/exchange > 28 days ago,
         // AND the most recent collection didn't happen AFTER the last delivery/exchange (i.e. bin wasn't collected)
         const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
-        const isOverRental = daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > RENTAL_FREE_DAYS && netOnSite > 0 && !collectionClearedIt;
+        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > RENTAL_FREE_DAYS && netOnSite > 0 && !collectionClearedIt;
         return { ...s, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
       .filter(s => s.netOnSite > 0)
