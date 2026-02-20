@@ -10,6 +10,7 @@ import { format, subMonths, startOfMonth, endOfWeek } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
+import WasteNotOnMidweigh from "@/components/data-hub/WasteNotOnMidweigh";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -146,6 +147,9 @@ const WasteKPIsPage = () => {
 
           {/* Total Waste Handled */}
           <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} />
+
+          {/* Waste Not On Midweigh */}
+          <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} />
 
           {/* Grade C Wood KPIs */}
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
