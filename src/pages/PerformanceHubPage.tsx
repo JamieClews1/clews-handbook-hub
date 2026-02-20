@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, Database } from "lucide-react";
+import { ArrowLeft, BarChart3, Database, Radio } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
 
@@ -54,8 +54,8 @@ const PerformanceHubPage = () => {
             PERFORMANCE HUB
           </h1>
 
-          {/* Two Section Cards */}
-          <div className="grid md:grid-cols-2 gap-8">
+          {/* Section Cards */}
+          <div className="grid md:grid-cols-3 gap-8">
             {/* Business Reports */}
             <Link to="/performance-hub/reports" className="group">
               <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
@@ -66,6 +66,21 @@ const PerformanceHubPage = () => {
                   </h2>
                   <p className="text-primary-foreground/80 text-sm">
                     Analytics, tracking, and AI-powered insights for business performance
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Live Jobs */}
+            <Link to="/performance-hub/live-jobs" className="group">
+              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <Radio className="h-12 w-12 text-primary-foreground" />
+                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
+                    Live Jobs
+                  </h2>
+                  <p className="text-primary-foreground/80 text-sm">
+                    Live container tracking — Skips, RoRos and Artics on-site
                   </p>
                 </div>
               </div>
