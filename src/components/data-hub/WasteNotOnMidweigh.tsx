@@ -49,20 +49,19 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
   const startStr = format(weekStart, "yyyy-MM-dd");
   const endStr = format(weekEnd, "yyyy-MM-dd");
 
-  // Fetch Midweigh INWARD records (vehicle_registration + job_date for matching)
-  const { data: midweighInward, isLoading: loadingMidweigh } = useQuery({
-    queryKey: ["wnm-midweigh-inward", startStr, endStr],
+  // Fetch Midweigh SKIP records (vehicle_registration + job_date for matching)
+  const { data: midweighSkipKeys, isLoading: loadingMidweigh } = useQuery({
+    queryKey: ["wnm-midweigh-skip", startStr, endStr],
     queryFn: async () => {
       const all = await fetchAllPaged(
         supabase
           .from("data_hub_jobs")
           .select("vehicle_registration, job_date")
           .eq("source", "midweigh")
-          .eq("movement_type", "INWARD")
+          .eq("job_type", "SKIP")
           .gte("job_date", startStr)
           .lte("job_date", endStr)
       );
-      // Build a Set of "vehReg|date" keys for fast lookup
       const keys = new Set<string>();
       all.forEach((j: any) => {
         if (j.vehicle_registration && j.job_date) {
@@ -90,15 +89,15 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
 
   const isLoading = loadingMidweigh || loadingSkiptrak;
 
-  // Get Skiptrak jobs with NO matching Midweigh inward on same date + vehicle
+  // Get Skiptrak jobs with NO matching Midweigh SKIP record on same date + vehicle
   const nonYardJobs = useMemo(() => {
-    if (!skiptrakJobs || !midweighInward) return [];
+    if (!skiptrakJobs || !midweighSkipKeys) return [];
     return skiptrakJobs.filter((j: any) => {
-      if (!j.vehicle_registration || !j.job_date) return true; // no vehicle reg = can't match
+      if (!j.vehicle_registration || !j.job_date) return true;
       const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
-      return !midweighInward.has(key);
+      return !midweighSkipKeys.has(key);
     });
-  }, [skiptrakJobs, midweighInward]);
+  }, [skiptrakJobs, midweighSkipKeys]);
 
   // Unique customer-sites
   const customerSites = useMemo(() => {
