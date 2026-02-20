@@ -63,15 +63,26 @@ function saveGroupMap(map: Record<string, WasteGroup>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 }
 
-const ZeroToLandfillChart = () => {
+interface ZeroToLandfillChartProps {
+  externalStartDate?: Date;
+  externalEndDate?: Date;
+}
+
+const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandfillChartProps = {}) => {
   const [groupMap, setGroupMap] = useState<Record<string, WasteGroup>>(loadGroupMap);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
 
   const now = new Date();
   const maxStartDate = subYears(now, 2);
-  const [startDate, setStartDate] = useState<Date>(startOfWeek(subWeeks(now, 51), { weekStartsOn: 1 }));
-  const [endDate, setEndDate] = useState<Date>(endOfWeek(now, { weekStartsOn: 1 }));
+  const [internalStartDate, setInternalStartDate] = useState<Date>(startOfWeek(subWeeks(now, 51), { weekStartsOn: 1 }));
+  const [internalEndDate, setInternalEndDate] = useState<Date>(endOfWeek(now, { weekStartsOn: 1 }));
+
+  const startDate = externalStartDate || internalStartDate;
+  const endDate = externalEndDate || internalEndDate;
+  const setStartDate = externalStartDate ? () => {} : setInternalStartDate;
+  const setEndDate = externalEndDate ? () => {} : setInternalEndDate;
+  const hasExternalDates = !!(externalStartDate && externalEndDate);
 
   useEffect(() => {
     saveGroupMap(groupMap);
@@ -210,43 +221,47 @@ const ZeroToLandfillChart = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs")}>
-                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
-                {format(startDate, "dd MMM yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(d) => d && setStartDate(d)}
-                disabled={(d) => d > endDate || d < maxStartDate}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-          <span className="text-xs text-muted-foreground">to</span>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs")}>
-                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
-                {format(endDate, "dd MMM yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={(d) => d && setEndDate(d)}
-                disabled={(d) => d < startDate || d > now}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
+          {!hasExternalDates && (
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs")}>
+                    <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                    {format(startDate, "dd MMM yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(d) => d && setStartDate(d)}
+                    disabled={(d) => d > endDate || d < maxStartDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">to</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal text-xs")}>
+                    <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                    {format(endDate, "dd MMM yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(d) => d && setEndDate(d)}
+                    disabled={(d) => d < startDate || d > now}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
           <div className="flex gap-1.5">
             <Badge variant="outline" className="text-xs" style={{ borderColor: GROUP_COLORS.landfill, color: GROUP_COLORS.landfill }}>
               Landfill ({groupCounts.landfill})
