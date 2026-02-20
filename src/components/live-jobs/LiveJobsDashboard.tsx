@@ -98,11 +98,8 @@ export default function LiveJobsDashboard() {
 
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
-    // Track net containers per customer+site+category
-    const siteMap: Record<string, { customer: string; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string> }> = {};
-
-    // Track collections by site+category only (ignoring customer name variations)
-    const siteCollectionMap: Record<string, { lastCollectionDate: string | null; totalCollected: number }> = {};
+    // Track net containers per site+category (ignoring customer name variations)
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -114,12 +111,15 @@ export default function LiveJobsDashboard() {
       const cat = categoriseContainer(job.container_type, job.vehicle_registration);
       if (!cat) continue;
 
-      const key = `${job.customer || "Unknown"}|||${job.site || "Unknown"}|||${cat}`;
-      const siteOnlyKey = `${(job.site || "Unknown").toLowerCase().trim()}|||${cat}`;
+      // Group by site+category only, merging all customer name variants
+      const key = `${(job.site || "Unknown").toLowerCase().trim()}|||${cat}`;
+      const customerName = job.customer || "Unknown";
 
       if (!siteMap[key]) {
         siteMap[key] = {
-          customer: job.customer || "Unknown",
+          customers: new Set(),
+          latestCustomer: customerName,
+          latestCustomerDate: job.job_date,
           site: job.site || "Unknown",
           category: cat,
           delivered: 0,
@@ -129,6 +129,13 @@ export default function LiveJobsDashboard() {
           lastCollectionDate: null,
           containerTypes: new Set(),
         };
+      }
+
+      siteMap[key].customers.add(customerName);
+      // Track the most recent customer name for display
+      if (job.job_date && (!siteMap[key].latestCustomerDate || job.job_date > siteMap[key].latestCustomerDate!)) {
+        siteMap[key].latestCustomer = customerName;
+        siteMap[key].latestCustomerDate = job.job_date;
       }
 
       if (job.container_type) siteMap[key].containerTypes.add(job.container_type);
@@ -143,21 +150,10 @@ export default function LiveJobsDashboard() {
           siteMap[key].lastDeliveryOrExchangeDate = job.job_date;
         }
       }
-      // Track last collection date per customer+site key
+      // Track last collection date
       if (job.job_date && isCollection(job.movement_type)) {
         if (!siteMap[key].lastCollectionDate || job.job_date > siteMap[key].lastCollectionDate!) {
           siteMap[key].lastCollectionDate = job.job_date;
-        }
-      }
-
-      // Also track collections by site name only (ignoring customer name) for rental check
-      if (job.job_date && isCollection(job.movement_type)) {
-        if (!siteCollectionMap[siteOnlyKey]) {
-          siteCollectionMap[siteOnlyKey] = { lastCollectionDate: null, totalCollected: 0 };
-        }
-        siteCollectionMap[siteOnlyKey].totalCollected++;
-        if (!siteCollectionMap[siteOnlyKey].lastCollectionDate || job.job_date > siteCollectionMap[siteOnlyKey].lastCollectionDate!) {
-          siteCollectionMap[siteOnlyKey].lastCollectionDate = job.job_date;
         }
       }
 
@@ -179,19 +175,14 @@ export default function LiveJobsDashboard() {
     }
 
     // Sites with net containers on-site
-    // A site is "live" if it has net deliveries > collections OR has had exchanges (container swap = still on-site)
     const live = Object.values(siteMap)
       .map(s => {
         const netFromDeliveries = s.delivered - s.collected;
         const netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
-        // Over rental check: use site-only collection map to catch collections under different customer names
-        const siteOnlyKey = `${s.site.toLowerCase().trim()}|||${s.category}`;
-        const siteCollection = siteCollectionMap[siteOnlyKey];
-        const lastCollectionAcrossCustomers = siteCollection?.lastCollectionDate ?? s.lastCollectionDate;
-        const collectionClearedIt = lastCollectionAcrossCustomers && s.lastDeliveryOrExchangeDate && lastCollectionAcrossCustomers >= s.lastDeliveryOrExchangeDate;
+        const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > RENTAL_FREE_DAYS && netOnSite > 0 && !collectionClearedIt;
-        return { ...s, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
+        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
       .filter(s => s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
@@ -200,7 +191,7 @@ export default function LiveJobsDashboard() {
     const counts = { skip: 0, roro: 0, artic: 0, totalSites: new Set<string>() };
     for (const s of live) {
       counts[s.category] += s.netOnSite;
-      counts.totalSites.add(`${s.customer}|||${s.site}`);
+      counts.totalSites.add(s.site);
     }
 
     // Monthly sorted
