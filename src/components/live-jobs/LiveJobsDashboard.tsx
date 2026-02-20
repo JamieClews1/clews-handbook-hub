@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
-import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp } from "lucide-react";
-import { format, startOfMonth, subMonths } from "date-fns";
+import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
+import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 
 type Job = {
   id: string;
@@ -22,6 +22,8 @@ type Job = {
 };
 
 type ContainerCategory = "skip" | "roro" | "artic";
+
+const RENTAL_FREE_DAYS = 28; // 4 weeks free rental
 
 function categoriseContainer(containerType: string | null): ContainerCategory | null {
   if (!containerType) return null;
@@ -87,9 +89,9 @@ export default function LiveJobsDashboard() {
   }, []);
 
   // ── Compute live containers (net on-site per customer+site) ──
-  const { liveSites, liveCounts, monthlyData, recentActivity } = useMemo(() => {
+  const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per customer+site+category
-    const siteMap: Record<string, { customer: string; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; containerTypes: Set<string> }> = {};
+    const siteMap: Record<string, { customer: string; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastActivityDate: string | null; containerTypes: Set<string> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -111,6 +113,7 @@ export default function LiveJobsDashboard() {
           delivered: 0,
           collected: 0,
           exchanged: 0,
+          lastActivityDate: null,
           containerTypes: new Set(),
         };
       }
@@ -120,6 +123,13 @@ export default function LiveJobsDashboard() {
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
       if (isCollection(job.movement_type)) siteMap[key].collected++;
       if (isExchange(job.movement_type)) siteMap[key].exchanged++;
+
+      // Track last activity date (delivery, exchange, or collection)
+      if (job.job_date) {
+        if (!siteMap[key].lastActivityDate || job.job_date > siteMap[key].lastActivityDate!) {
+          siteMap[key].lastActivityDate = job.job_date;
+        }
+      }
 
       // Monthly chart data
       if (job.job_date) {
@@ -143,10 +153,10 @@ export default function LiveJobsDashboard() {
     const live = Object.values(siteMap)
       .map(s => {
         const netFromDeliveries = s.delivered - s.collected;
-        // If a site only has exchanges (no standalone deliver/collect), it's still live
-        const isLive = netFromDeliveries > 0 || (s.exchanged > 0 && netFromDeliveries >= 0);
         const netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
-        return { ...s, netOnSite, containerTypes: Array.from(s.containerTypes) };
+        const daysSinceActivity = s.lastActivityDate ? differenceInDays(new Date(), new Date(s.lastActivityDate)) : null;
+        const isOverRental = daysSinceActivity !== null && daysSinceActivity > RENTAL_FREE_DAYS && netOnSite > 0;
+        return { ...s, netOnSite, daysSinceActivity, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
       .filter(s => s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
@@ -161,11 +171,17 @@ export default function LiveJobsDashboard() {
     // Monthly sorted
     const monthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
 
+    // Over rental sites
+    const overRental = live
+      .filter(s => s.isOverRental)
+      .sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+
     return {
       liveSites: live,
       liveCounts: { skip: counts.skip, roro: counts.roro, artic: counts.artic, totalSites: counts.totalSites.size },
       monthlyData: monthly,
       recentActivity: recentJobs.slice(0, 100),
+      overRentalSites: overRental,
     };
   }, [jobs]);
 
@@ -199,7 +215,7 @@ export default function LiveJobsDashboard() {
   return (
     <div className="space-y-6">
       {/* ── Summary Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -240,6 +256,17 @@ export default function LiveJobsDashboard() {
             <p className="text-3xl font-bold text-foreground">{liveCounts.artic}</p>
           </CardContent>
         </Card>
+        <Card className="border-l-4 border-l-destructive">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Over Rental
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-destructive">{overRentalSites.length}</p>
+            <p className="text-xs text-muted-foreground">Sites over 4 weeks</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Monthly Line Chart ── */}
@@ -269,10 +296,13 @@ export default function LiveJobsDashboard() {
 
       {/* ── Detail Tabs ── */}
       <Tabs defaultValue="skips" className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-xl grid-cols-4">
           <TabsTrigger value="skips">Skips ({skipSites.length})</TabsTrigger>
           <TabsTrigger value="roros">RoRos ({roroSites.length})</TabsTrigger>
           <TabsTrigger value="artics">Artics ({articSites.length})</TabsTrigger>
+          <TabsTrigger value="over-rental" className="text-destructive">
+            Over Rental ({overRentalSites.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="skips">
@@ -283,6 +313,9 @@ export default function LiveJobsDashboard() {
         </TabsContent>
         <TabsContent value="artics">
           <SiteTable sites={articSites} label="Artic" />
+        </TabsContent>
+        <TabsContent value="over-rental">
+          <OverRentalTable sites={overRentalSites} />
         </TabsContent>
       </Tabs>
     </div>
@@ -326,6 +359,87 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                 <TableCell className="text-center text-muted-foreground">{s.delivered}</TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.exchanged}</TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.collected}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {s.containerTypes.slice(0, 3).map(ct => (
+                      <Badge key={ct} variant="outline" className="text-xs">{ct}</Badge>
+                    ))}
+                    {s.containerTypes.length > 3 && (
+                      <Badge variant="outline" className="text-xs">+{s.containerTypes.length - 3}</Badge>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+type OverRentalSite = {
+  customer: string;
+  site: string;
+  category: ContainerCategory;
+  netOnSite: number;
+  daysSinceActivity: number | null;
+  lastActivityDate: string | null;
+  containerTypes: string[];
+};
+
+function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
+  if (sites.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          No sites are currently over the 4-week rental period. 🎉
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+          <AlertTriangle className="h-5 w-5" />
+          Sites Over 4-Week Free Rental ({sites.length})
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          These sites have not had a collection or exchange within 28 days. Rental charges may apply.
+        </p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-center">On-Site</TableHead>
+              <TableHead className="text-center">Days Since Activity</TableHead>
+              <TableHead>Last Activity</TableHead>
+              <TableHead>Container Types</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sites.map((s, i) => (
+              <TableRow key={i} className="bg-destructive/5">
+                <TableCell className="font-medium">{s.customer}</TableCell>
+                <TableCell>{s.site}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="capitalize">{s.category}</Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant="default">{s.netOnSite}</Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant="destructive">{s.daysSinceActivity} days</Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "—"}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {s.containerTypes.slice(0, 3).map(ct => (
