@@ -151,7 +151,7 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
           <SelectContent>
             {periods.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                {p.month_name} (ends {format(new Date(p.period_end_date + "T00:00:00"), "dd/MM/yyyy")})
+                {p.period_label} — {p.month_name} (ends {format(new Date(p.period_end_date + "T00:00:00"), "dd/MM/yyyy")})
               </SelectItem>
             ))}
           </SelectContent>
