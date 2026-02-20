@@ -19,13 +19,22 @@ type Job = {
   container_type: string | null;
   movement_type: string | null;
   waste_description: string | null;
+  vehicle_registration: string | null;
 };
 
 type ContainerCategory = "skip" | "roro" | "artic";
 
 const RENTAL_FREE_DAYS = 28; // 4 weeks free rental
 
-function categoriseContainer(containerType: string | null): ContainerCategory | null {
+const ARTIC_VEHICLE_REGS = ["FG61 SYV", "FJ18 FDM"];
+
+function categoriseContainer(containerType: string | null, vehicleReg: string | null): ContainerCategory | null {
+  // Check vehicle reg first for artic identification
+  if (vehicleReg) {
+    const vr = vehicleReg.toUpperCase().replace(/\s+/g, "");
+    if (ARTIC_VEHICLE_REGS.some(r => r.replace(/\s+/g, "") === vr)) return "artic";
+  }
+
   if (!containerType) return null;
   const ct = containerType.toLowerCase();
   if (
@@ -41,7 +50,6 @@ function categoriseContainer(containerType: string | null): ContainerCategory | 
     ct.includes("yd") ||
     ct.includes("chain lift")
   ) {
-    // Exclude if it's actually a RoRo
     if (ct.includes("ro ro") || ct.includes("roll on")) return "roro";
     return "skip";
   }
@@ -69,7 +77,7 @@ export default function LiveJobsDashboard() {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description")
+          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect"])
@@ -100,7 +108,7 @@ export default function LiveJobsDashboard() {
     const recentJobs: Job[] = [];
 
     for (const job of jobs) {
-      const cat = categoriseContainer(job.container_type);
+      const cat = categoriseContainer(job.container_type, job.vehicle_registration);
       if (!cat) continue;
 
       const key = `${job.customer || "Unknown"}|||${job.site || "Unknown"}|||${cat}`;
