@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TreePine } from "lucide-react";
-import { format, subMonths, startOfMonth, parseISO } from "date-fns";
+import { format, subMonths, startOfMonth, parseISO, eachMonthOfInterval } from "date-fns";
 
 const WOOD_C_PRODUCTS = ["WOOD-C", "WOOD-C OUT"];
 const MIXED_WASTE_DESCRIPTIONS = [
@@ -25,27 +25,33 @@ interface MonthData {
   extractedFromMixed: number;
 }
 
-const WasteKPIGradeCWood = () => {
-  const startDate = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
+interface WasteKPIGradeCWoodProps {
+  externalStartDate?: Date;
+  externalEndDate?: Date;
+}
+
+const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGradeCWoodProps = {}) => {
+  const defaultStart = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
+  const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
+  const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
 
   const { data: woodCData, isLoading: loadingWood } = useQuery({
-    queryKey: ["waste-kpi-wood-c", startDate],
+    queryKey: ["waste-kpi-wood-c", startDate, endDateStr],
     queryFn: async () => {
-      // Fetch all WOOD-C product data (midweigh only, weights in KG)
       const allRows: any[] = [];
       let from = 0;
       const pageSize = 1000;
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("data_hub_jobs")
           .select("job_date, movement_type, weight_t, raw")
           .eq("source", "midweigh")
           .in("movement_type", ["INWARD", "OUTWARD"])
-          .gte("job_date", startDate)
-          .range(from, from + pageSize - 1);
+          .gte("job_date", startDate);
+        if (endDateStr) query = query.lte("job_date", endDateStr);
+        const { data, error } = await query.range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
-        // Filter for WOOD-C products in JS
         const filtered = data.filter((r: any) => {
           const product = (r.raw as any)?.Product;
           return WOOD_C_PRODUCTS.includes(product);
@@ -59,20 +65,21 @@ const WasteKPIGradeCWood = () => {
   });
 
   const { data: mixedWasteData, isLoading: loadingMixed } = useQuery({
-    queryKey: ["waste-kpi-mixed-waste", startDate],
+    queryKey: ["waste-kpi-mixed-waste", startDate, endDateStr],
     queryFn: async () => {
       const allRows: any[] = [];
       let from = 0;
       const pageSize = 1000;
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("data_hub_jobs")
           .select("job_date, movement_type, weight_t, waste_description")
           .eq("source", "midweigh")
           .eq("movement_type", "INWARD")
           .in("waste_description", MIXED_WASTE_DESCRIPTIONS)
-          .gte("job_date", startDate)
-          .range(from, from + pageSize - 1);
+          .gte("job_date", startDate);
+        if (endDateStr) query = query.lte("job_date", endDateStr);
+        const { data, error } = await query.range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
         allRows.push(...data);
@@ -88,9 +95,11 @@ const WasteKPIGradeCWood = () => {
 
     const months: Record<string, MonthData> = {};
 
-    // Initialize last 12 months
-    for (let i = 11; i >= 0; i--) {
-      const d = subMonths(new Date(), i);
+    // Initialize months from date range
+    const rangeStart = externalStartDate || subMonths(new Date(), 11);
+    const rangeEnd = externalEndDate || new Date();
+    const monthDates = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
+    monthDates.forEach((d) => {
       const key = format(d, "yyyy-MM");
       months[key] = {
         month: key,
@@ -100,7 +109,7 @@ const WasteKPIGradeCWood = () => {
         mixedWasteInward: 0,
         extractedFromMixed: 0,
       };
-    }
+    });
 
     // Process WOOD-C data (midweigh = KG, convert to tonnes)
     woodCData.forEach((row: any) => {
