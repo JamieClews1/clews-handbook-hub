@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BarChart3, Sparkles, Gauge, CalendarIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, Sparkles, Gauge, CalendarIcon, Settings2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
 import ZeroToLandfillChart from "@/components/data-hub/ZeroToLandfillChart";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
+import MidweighProductMappings from "@/components/data-hub/MidweighProductMappings";
 import { useEffect } from "react";
 
 const PerformanceHubReportsPage = () => {
@@ -155,7 +156,7 @@ const PerformanceHubReportsPage = () => {
           <ZeroToLandfillChart externalStartDate={startDate} externalEndDate={endDate} />
 
           <Tabs defaultValue="tracking" className="space-y-6">
-            <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4">
               <TabsTrigger value="tracking" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Data Tracking
@@ -167,6 +168,10 @@ const PerformanceHubReportsPage = () => {
               <TabsTrigger value="ask-ai" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
                 Ask AI
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                Settings
               </TabsTrigger>
             </TabsList>
 
@@ -180,6 +185,10 @@ const PerformanceHubReportsPage = () => {
 
             <TabsContent value="ask-ai" className="space-y-8">
               <DataHubAIChat />
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-8">
+              <MidweighProductMappings />
             </TabsContent>
           </Tabs>
         </div>
