@@ -58,11 +58,37 @@ interface CustomerPortalRebateReportProps {
 export function CustomerPortalRebateReport({ customerId, customerName, accessibleSiteIds }: CustomerPortalRebateReportProps) {
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
-  const [selectedSiteId, setSelectedSiteId] = useState("");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
+  const [selectedSiteId, setSelectedSiteId] = useState(() => sessionStorage.getItem("portal-rebate-report-siteId") || "");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const saved = sessionStorage.getItem("portal-rebate-report-dateRange");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          from: parsed.from ? new Date(parsed.from) : undefined,
+          to: parsed.to ? new Date(parsed.to) : undefined,
+        };
+      } catch { /* fall through */ }
+    }
+    return {
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    };
   });
+
+  // Persist selections to sessionStorage
+  useEffect(() => {
+    if (selectedSiteId) sessionStorage.setItem("portal-rebate-report-siteId", selectedSiteId);
+  }, [selectedSiteId]);
+
+  useEffect(() => {
+    if (dateRange?.from || dateRange?.to) {
+      sessionStorage.setItem("portal-rebate-report-dateRange", JSON.stringify({
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+      }));
+    }
+  }, [dateRange]);
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<RebateReportRow[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
