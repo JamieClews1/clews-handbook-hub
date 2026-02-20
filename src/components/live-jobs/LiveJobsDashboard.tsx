@@ -9,6 +9,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
 import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
+import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 type Job = {
   id: string;
@@ -24,33 +25,30 @@ type Job = {
 
 type ContainerCategory = "skip" | "roro" | "artic";
 
-const RENTAL_FREE_DAYS = 28; // 4 weeks free rental
-
-const ARTIC_VEHICLE_REGS = ["FG61 SYV", "FJ18 FDM"];
-
-function categoriseContainer(containerType: string | null, vehicleReg: string | null): ContainerCategory | null {
+function categoriseContainer(
+  containerType: string | null,
+  vehicleReg: string | null,
+  settings: LiveJobsSettings
+): ContainerCategory | null {
   // Check vehicle reg first for artic identification
   if (vehicleReg) {
     const vr = vehicleReg.toUpperCase().replace(/\s+/g, "");
-    if (ARTIC_VEHICLE_REGS.some(r => r.replace(/\s+/g, "") === vr)) return "artic";
+    if (settings.artic_vehicle_regs.some(r => r.replace(/\s+/g, "").toUpperCase() === vr)) return "artic";
   }
 
   if (!containerType) return null;
   const ct = containerType.toLowerCase();
-  if (
-    ct.includes("curtain side") ||
-    ct.includes("walking floor") ||
-    ct.includes("bulk ejector") ||
-    ct.includes("artic haulage")
-  ) return "artic";
-  if (ct.includes("ro ro") || ct.includes("roll on roll off") || ct.includes("ro ro haulage")) return "roro";
-  if (
-    ct.includes("skip") ||
-    ct.includes("yard") ||
-    ct.includes("yd") ||
-    ct.includes("chain lift")
-  ) {
-    if (ct.includes("ro ro") || ct.includes("roll on")) return "roro";
+
+  // Check artic keywords
+  if (settings.artic_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "artic";
+
+  // Check roro keywords
+  if (settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "roro";
+
+  // Check skip keywords (but roro takes priority)
+  if (settings.skip_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) {
+    // Double-check it's not actually roro
+    if (settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "roro";
     return "skip";
   }
   return null;
@@ -60,7 +58,7 @@ function isDelivery(m: string | null) { return m === "Deliver"; }
 function isCollection(m: string | null) { return m === "Collect"; }
 function isExchange(m: string | null) { return m === "Exchange"; }
 
-export default function LiveJobsDashboard() {
+export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,7 +106,7 @@ export default function LiveJobsDashboard() {
     const recentJobs: Job[] = [];
 
     for (const job of jobs) {
-      const cat = categoriseContainer(job.container_type, job.vehicle_registration);
+      const cat = categoriseContainer(job.container_type, job.vehicle_registration, settings);
       if (!cat) continue;
 
       // Group by site+category only, merging all customer name variants
@@ -185,7 +183,7 @@ export default function LiveJobsDashboard() {
           : Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
-        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > RENTAL_FREE_DAYS && netOnSite > 0 && !collectionClearedIt;
+        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
@@ -217,11 +215,11 @@ export default function LiveJobsDashboard() {
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs]);
+  }, [jobs, settings]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
-  const sixMonthsAgo = useMemo(() => format(subMonths(new Date(), 6), "yyyy-MM-dd"), []);
+  const sixMonthsAgo = useMemo(() => format(subMonths(new Date(), settings.waste_truck_months), "yyyy-MM-dd"), [settings.waste_truck_months]);
   const wasteTruckSites = useMemo(() => liveSites.filter(s => s.category === "artic" && s.lastActivityDate && s.lastActivityDate >= sixMonthsAgo), [liveSites, sixMonthsAgo]);
 
   const chartConfig = {
@@ -289,7 +287,7 @@ export default function LiveJobsDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">{wasteTruckSites.length}</p>
-            <p className="text-xs text-muted-foreground">Visited in last 6 months</p>
+            <p className="text-xs text-muted-foreground">Visited in last {settings.waste_truck_months} months</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-destructive">
@@ -300,7 +298,7 @@ export default function LiveJobsDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-destructive">{overRentalSites.length}</p>
-            <p className="text-xs text-muted-foreground">Sites over 4 weeks</p>
+            <p className="text-xs text-muted-foreground">Sites over {settings.rental_free_days} days</p>
           </CardContent>
         </Card>
       </div>
@@ -429,7 +427,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
-          No sites are currently over the 4-week rental period. 🎉
+          No sites are currently over the rental free period. 🎉
         </CardContent>
       </Card>
     );
@@ -440,10 +438,10 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2 text-destructive">
           <AlertTriangle className="h-5 w-5" />
-          Sites Over 4-Week Free Rental ({sites.length})
+          Sites Over Free Rental ({sites.length})
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          These sites have not had a collection or exchange within 28 days. Rental charges may apply.
+          These sites have not had a collection or exchange within the rental free period. Rental charges may apply.
         </p>
       </CardHeader>
       <CardContent className="p-0">
