@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, Database, Radio } from "lucide-react";
+import { ArrowLeft, BarChart3, Database, Radio, Gauge } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
 
@@ -55,7 +55,22 @@ const PerformanceHubPage = () => {
           </h1>
 
           {/* Section Cards */}
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Waste KPIs */}
+            <Link to="/performance-hub/waste-kpis" className="group">
+              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <Gauge className="h-12 w-12 text-primary-foreground" />
+                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
+                    Waste KPIs
+                  </h2>
+                  <p className="text-primary-foreground/80 text-sm">
+                    Zero to Landfill and Grade C Wood recovery tracking
+                  </p>
+                </div>
+              </div>
+            </Link>
+
             {/* Business Reports */}
             <Link to="/performance-hub/reports" className="group">
               <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
