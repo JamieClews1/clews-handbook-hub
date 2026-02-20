@@ -1277,6 +1277,30 @@ export type Database = {
         }
         Relationships: []
       }
+      midweigh_product_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          midweigh_product_code: string
+          skiptrak_waste_description: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          midweigh_product_code: string
+          skiptrak_waste_description: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          midweigh_product_code?: string
+          skiptrak_waste_description?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       near_miss_reports: {
         Row: {
           created_at: string
