@@ -9,7 +9,7 @@ import { ArrowLeft, Gauge, CalendarIcon } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfWeek } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
-
+import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -85,7 +85,7 @@ const WasteKPIsPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Performance Hub · Waste KPIs</h1>
               <p className="text-muted-foreground">
-                Grade C Wood recovery metrics
+                Total waste handled and Grade C Wood recovery metrics
               </p>
             </div>
           </div>
@@ -143,6 +143,9 @@ const WasteKPIsPage = () => {
               ))}
             </div>
           </div>
+
+          {/* Total Waste Handled */}
+          <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} />
 
           {/* Grade C Wood KPIs */}
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
