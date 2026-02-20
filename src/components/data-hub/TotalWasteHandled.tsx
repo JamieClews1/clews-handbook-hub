@@ -84,7 +84,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, raw, site")
+          .select("job_date, weight_t, job_number, raw, site, vehicle_registration")
           .eq("source", "midweigh")
           .eq("movement_type", "INWARD")
           .gte("job_date", startStr)
@@ -99,35 +99,17 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     },
   });
 
-  // Fetch Midweigh inward records to identify SKIP product job numbers
-  const { data: midweighSkipRecords, isLoading: loadingMidweighSkip } = useQuery({
-    queryKey: ["twh-midweigh-skip-records", startStr, endStr],
-    queryFn: async () => {
-      let all: any[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("data_hub_jobs")
-          .select("job_number, raw")
-          .eq("source", "midweigh")
-          .eq("movement_type", "INWARD")
-          .gte("job_date", startStr)
-          .lte("job_date", endStr)
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (data) all = all.concat(data);
-        hasMore = data?.length === pageSize;
-        from += pageSize;
+  // Build a Set of Midweigh inward "vehReg|date" keys for matching Skiptrak jobs
+  const midweighInwardKeys = useMemo(() => {
+    if (!midweighInward) return new Set<string>();
+    const keys = new Set<string>();
+    midweighInward.forEach((j: any) => {
+      if (j.vehicle_registration && j.job_date) {
+        keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
       }
-      const skipNums = new Set<string>();
-      all.forEach((j: any) => {
-        if (j.raw?.Product === "SKIP") skipNums.add(j.job_number);
-      });
-      return skipNums;
-    },
-  });
+    });
+    return keys;
+  }, [midweighInward]);
 
   // Fetch all Skiptrak jobs in the date range
   const { data: skiptrakJobs, isLoading: loadingSkiptrak } = useQuery({
@@ -140,7 +122,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, site")
+          .select("job_date, weight_t, job_number, site, vehicle_registration")
           .eq("source", "skiptrak")
           .gte("job_date", startStr)
           .lte("job_date", endStr)
@@ -154,10 +136,10 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     },
   });
 
-  const isLoading = loadingMidweigh || loadingMidweighSkip || loadingSkiptrak;
+  const isLoading = loadingMidweigh || loadingSkiptrak;
 
   const chartData = useMemo(() => {
-    if (!midweighInward || !skiptrakJobs || !midweighSkipRecords) return [];
+    if (!midweighInward || !skiptrakJobs) return [];
 
     const keys = generateBucketKeys(externalStartDate, externalEndDate, granularity);
     const buckets: Record<string, { midweighIn: number; skiptrakNonYard: number }> = {};
@@ -173,7 +155,10 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
 
     skiptrakJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
-      if (midweighSkipRecords.has(job.job_number)) return;
+      if (job.vehicle_registration && job.job_date) {
+        const matchKey = `${job.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${job.job_date}`;
+        if (midweighInwardKeys.has(matchKey)) return; // already counted in Midweigh yard intake
+      }
       if (excludeBP && job.site === "BP Contract") return;
       const key = getBucketKey(parseISO(job.job_date), granularity);
       if (!buckets[key]) return;
@@ -189,7 +174,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
         skiptrakNonYard: Math.round(values.skiptrakNonYard * 100) / 100,
         total: Math.round((values.midweighIn + values.skiptrakNonYard) * 100) / 100,
       }));
-  }, [midweighInward, skiptrakJobs, midweighSkipRecords, externalStartDate, externalEndDate, granularity, excludeBP]);
+  }, [midweighInward, skiptrakJobs, midweighInwardKeys, externalStartDate, externalEndDate, granularity, excludeBP]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { midweighIn: 0, skiptrakNonYard: 0, total: 0 };
