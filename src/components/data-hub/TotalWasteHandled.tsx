@@ -74,8 +74,9 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
   const endStr = format(weekEnd, "yyyy-MM-dd");
 
   // Fetch all Midweigh INWARD jobs
-  const { data: midweighInward, isLoading: loadingMidweigh } = useQuery({
-    queryKey: ["twh-midweigh-inward", startStr, endStr],
+  // Fetch Midweigh jobs with job_type WASTEIN or SKIP (yard intake)
+  const { data: midweighYardIntake, isLoading: loadingMidweigh } = useQuery({
+    queryKey: ["twh-midweigh-yard", startStr, endStr],
     queryFn: async () => {
       let all: any[] = [];
       let from = 0;
@@ -84,9 +85,9 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, raw, site, vehicle_registration")
+          .select("job_date, weight_t, job_number, site, vehicle_registration, job_type")
           .eq("source", "midweigh")
-          .eq("movement_type", "INWARD")
+          .in("job_type", ["WASTEIN", "SKIP"])
           .gte("job_date", startStr)
           .lte("job_date", endStr)
           .range(from, from + pageSize - 1);
@@ -99,26 +100,17 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     },
   });
 
-  // Filter Midweigh inward to only WASTEIN and SKIP products for yard intake
-  const midweighYardIntake = useMemo(() => {
-    if (!midweighInward) return [];
-    return midweighInward.filter((j: any) => {
-      const product = j.raw?.Product;
-      return product === "WASTEIN" || product === "SKIP";
-    });
-  }, [midweighInward]);
-
-  // Build a Set of Midweigh SKIP inward "vehReg|date" keys for matching Skiptrak jobs
+  // Build a Set of Midweigh SKIP "vehReg|date" keys for matching Skiptrak jobs
   const midweighSkipKeys = useMemo(() => {
-    if (!midweighInward) return new Set<string>();
+    if (!midweighYardIntake) return new Set<string>();
     const keys = new Set<string>();
-    midweighInward.forEach((j: any) => {
-      if (j.raw?.Product === "SKIP" && j.vehicle_registration && j.job_date) {
+    midweighYardIntake.forEach((j: any) => {
+      if (j.job_type === "SKIP" && j.vehicle_registration && j.job_date) {
         keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
       }
     });
     return keys;
-  }, [midweighInward]);
+  }, [midweighYardIntake]);
 
   // Fetch all Skiptrak jobs in the date range
   const { data: skiptrakJobs, isLoading: loadingSkiptrak } = useQuery({
@@ -148,7 +140,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
   const isLoading = loadingMidweigh || loadingSkiptrak;
 
   const chartData = useMemo(() => {
-    if (!midweighInward || !skiptrakJobs) return [];
+    if (!midweighYardIntake || !skiptrakJobs) return [];
 
     const keys = generateBucketKeys(externalStartDate, externalEndDate, granularity);
     const buckets: Record<string, { midweighIn: number; skiptrakNonYard: number }> = {};
