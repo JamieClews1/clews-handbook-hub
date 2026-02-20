@@ -101,6 +101,9 @@ export default function LiveJobsDashboard() {
     // Track net containers per customer+site+category
     const siteMap: Record<string, { customer: string; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string> }> = {};
 
+    // Track collections by site+category only (ignoring customer name variations)
+    const siteCollectionMap: Record<string, { lastCollectionDate: string | null; totalCollected: number }> = {};
+
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
     recentCutoff.setDate(recentCutoff.getDate() - 30);
@@ -112,6 +115,7 @@ export default function LiveJobsDashboard() {
       if (!cat) continue;
 
       const key = `${job.customer || "Unknown"}|||${job.site || "Unknown"}|||${cat}`;
+      const siteOnlyKey = `${(job.site || "Unknown").toLowerCase().trim()}|||${cat}`;
 
       if (!siteMap[key]) {
         siteMap[key] = {
@@ -139,10 +143,21 @@ export default function LiveJobsDashboard() {
           siteMap[key].lastDeliveryOrExchangeDate = job.job_date;
         }
       }
-      // Track last collection date
+      // Track last collection date per customer+site key
       if (job.job_date && isCollection(job.movement_type)) {
         if (!siteMap[key].lastCollectionDate || job.job_date > siteMap[key].lastCollectionDate!) {
           siteMap[key].lastCollectionDate = job.job_date;
+        }
+      }
+
+      // Also track collections by site name only (ignoring customer name) for rental check
+      if (job.job_date && isCollection(job.movement_type)) {
+        if (!siteCollectionMap[siteOnlyKey]) {
+          siteCollectionMap[siteOnlyKey] = { lastCollectionDate: null, totalCollected: 0 };
+        }
+        siteCollectionMap[siteOnlyKey].totalCollected++;
+        if (!siteCollectionMap[siteOnlyKey].lastCollectionDate || job.job_date > siteCollectionMap[siteOnlyKey].lastCollectionDate!) {
+          siteCollectionMap[siteOnlyKey].lastCollectionDate = job.job_date;
         }
       }
 
@@ -170,9 +185,11 @@ export default function LiveJobsDashboard() {
         const netFromDeliveries = s.delivered - s.collected;
         const netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
-        // Over rental only if: has containers on-site, last delivery/exchange > 28 days ago,
-        // AND the most recent collection didn't happen AFTER the last delivery/exchange (i.e. bin wasn't collected)
-        const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
+        // Over rental check: use site-only collection map to catch collections under different customer names
+        const siteOnlyKey = `${s.site.toLowerCase().trim()}|||${s.category}`;
+        const siteCollection = siteCollectionMap[siteOnlyKey];
+        const lastCollectionAcrossCustomers = siteCollection?.lastCollectionDate ?? s.lastCollectionDate;
+        const collectionClearedIt = lastCollectionAcrossCustomers && s.lastDeliveryOrExchangeDate && lastCollectionAcrossCustomers >= s.lastDeliveryOrExchangeDate;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > RENTAL_FREE_DAYS && netOnSite > 0 && !collectionClearedIt;
         return { ...s, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
