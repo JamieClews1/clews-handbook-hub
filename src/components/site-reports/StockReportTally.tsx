@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Minus, Plus, Save, RotateCcw } from "lucide-react";
@@ -20,14 +20,45 @@ const initTally = (): TallyData =>
   Object.fromEntries(MATERIALS.map((m) => [m, { onStock: 0, out: 0 }]));
 
 interface StockReportTallyProps {
+  reportId?: string;
   onSaved: () => void;
 }
 
-export default function StockReportTally({ onSaved }: StockReportTallyProps) {
+export default function StockReportTally({ reportId, onSaved }: StockReportTallyProps) {
   const { user } = useAuth();
   const [tally, setTally] = useState<TallyData>(initTally);
   const [activeField, setActiveField] = useState<{ material: string; field: "onStock" | "out" } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(!!reportId);
+  const [reportDate, setReportDate] = useState<string | null>(null);
+  const [operatorName, setOperatorName] = useState<string | null>(null);
+
+  // Load existing report data when editing
+  useEffect(() => {
+    if (!reportId) return;
+    const load = async () => {
+      setLoadingExisting(true);
+      const [reportRes, itemsRes] = await Promise.all([
+        supabase.from("stock_reports").select("*").eq("id", reportId).single(),
+        supabase.from("stock_report_items").select("*").eq("stock_report_id", reportId),
+      ]);
+      if (reportRes.data) {
+        setReportDate(reportRes.data.report_date);
+        setOperatorName(reportRes.data.operator_name);
+      }
+      if (itemsRes.data) {
+        const loaded = initTally();
+        itemsRes.data.forEach((item: any) => {
+          if (loaded[item.material] !== undefined) {
+            loaded[item.material] = { onStock: item.on_stock, out: item.out };
+          }
+        });
+        setTally(loaded);
+      }
+      setLoadingExisting(false);
+    };
+    load();
+  }, [reportId]);
 
   const update = (material: string, field: "onStock" | "out", delta: number) => {
     setTally((prev) => ({
@@ -52,49 +83,71 @@ export default function StockReportTally({ onSaved }: StockReportTallyProps) {
       const totalOnStock = Object.values(tally).reduce((s, e) => s + e.onStock, 0);
       const totalOut = Object.values(tally).reduce((s, e) => s + e.out, 0);
 
-      const profileRes = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      const operatorName = profileRes.data?.full_name || user.email || "Unknown";
+      if (reportId) {
+        // UPDATE existing report
+        const { error: updateErr } = await supabase
+          .from("stock_reports")
+          .update({ total_on_stock: totalOnStock, total_out: totalOut })
+          .eq("id", reportId);
+        if (updateErr) throw updateErr;
 
-      const { data: report, error: reportErr } = await supabase
-        .from("stock_reports")
-        .insert({
-          operator_id: user.id,
-          operator_name: operatorName,
-          total_on_stock: totalOnStock,
-          total_out: totalOut,
-        })
-        .select("id")
-        .single();
+        // Delete old items and re-insert
+        await supabase.from("stock_report_items").delete().eq("stock_report_id", reportId);
+        const items = MATERIALS.map((material, idx) => ({
+          stock_report_id: reportId,
+          material,
+          on_stock: tally[material].onStock,
+          out: tally[material].out,
+          display_order: idx,
+        }));
+        const { error: itemsErr } = await supabase.from("stock_report_items").insert(items);
+        if (itemsErr) throw itemsErr;
 
-      if (reportErr || !report) throw reportErr || new Error("Failed to create report");
+        toast.success("Stock report updated");
+      } else {
+        // CREATE new report
+        const profileRes = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        const opName = profileRes.data?.full_name || user.email || "Unknown";
 
-      const items = MATERIALS.map((material, idx) => ({
-        stock_report_id: report.id,
-        material,
-        on_stock: tally[material].onStock,
-        out: tally[material].out,
-        display_order: idx,
-      }));
+        const { data: report, error: reportErr } = await supabase
+          .from("stock_reports")
+          .insert({
+            operator_id: user.id,
+            operator_name: opName,
+            total_on_stock: totalOnStock,
+            total_out: totalOut,
+          })
+          .select("id")
+          .single();
 
-      const { error: itemsErr } = await supabase
-        .from("stock_report_items")
-        .insert(items);
-      if (itemsErr) throw itemsErr;
+        if (reportErr || !report) throw reportErr || new Error("Failed to create report");
 
-      // Send email notification (fire-and-forget)
-      supabase.functions.invoke("send-stock-report-email", {
-        body: { reportId: report.id },
-      }).catch(console.error);
+        const items = MATERIALS.map((material, idx) => ({
+          stock_report_id: report.id,
+          material,
+          on_stock: tally[material].onStock,
+          out: tally[material].out,
+          display_order: idx,
+        }));
 
-      toast.success("Stock report saved");
+        const { error: itemsErr } = await supabase.from("stock_report_items").insert(items);
+        if (itemsErr) throw itemsErr;
+
+        // Send email notification (fire-and-forget)
+        supabase.functions.invoke("send-stock-report-email", {
+          body: { reportId: report.id },
+        }).catch(console.error);
+
+        toast.success("Stock report saved");
+      }
       onSaved();
     } catch (err: any) {
       console.error(err);
-      toast.error("Failed to save report");
+      toast.error(reportId ? "Failed to update report" : "Failed to save report");
     } finally {
       setSaving(false);
     }
@@ -102,11 +155,26 @@ export default function StockReportTally({ onSaved }: StockReportTallyProps) {
 
   const totalOnStock = Object.values(tally).reduce((s, e) => s + e.onStock, 0);
   const totalOut = Object.values(tally).reduce((s, e) => s + e.out, 0);
+  const isEditing = !!reportId;
+
+  if (loadingExisting) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+        Loading report...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 pb-28">
       <div className="text-center text-sm text-muted-foreground font-medium">
-        {format(new Date(), "EEEE, d MMMM yyyy")}
+        {reportDate
+          ? format(new Date(reportDate), "EEEE, d MMMM yyyy")
+          : format(new Date(), "EEEE, d MMMM yyyy")}
+        {isEditing && operatorName && (
+          <span className="block text-xs mt-0.5">by {operatorName}</span>
+        )}
       </div>
 
       {MATERIALS.map((material) => {
@@ -187,7 +255,7 @@ export default function StockReportTally({ onSaved }: StockReportTallyProps) {
           </div>
           <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
             <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Saving..." : isEditing ? "Update" : "Save"}
           </Button>
         </div>
       </div>
