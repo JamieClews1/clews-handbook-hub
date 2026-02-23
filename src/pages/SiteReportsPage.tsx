@@ -21,6 +21,7 @@ const SiteReportsPage = () => {
   const [inspectionView, setInspectionView] = useState<InspectionView>("list");
   const [selectedReportId, setSelectedReportId] = useState<string | undefined>();
   const [stockView, setStockView] = useState<StockView>("list");
+  const [selectedStockReportId, setSelectedStockReportId] = useState<string | undefined>();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -98,7 +99,7 @@ const SiteReportsPage = () => {
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setInspectionView("list"); setStockView("list"); }} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setInspectionView("list"); setStockView("list"); setSelectedStockReportId(undefined); }} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="monthly" className="flex items-center gap-1.5 text-xs sm:text-sm">
                 <ClipboardList className="h-4 w-4" />
@@ -133,11 +134,12 @@ const SiteReportsPage = () => {
             <TabsContent value="stock">
               {stockView === "list" ? (
                 <StockReportsList
-                  onNewReport={() => setStockView("tally")}
+                  onNewReport={() => { setSelectedStockReportId(undefined); setStockView("tally"); }}
                   onSettings={() => setStockView("settings")}
+                  onViewReport={(id) => { setSelectedStockReportId(id); setStockView("tally"); }}
                 />
               ) : stockView === "tally" ? (
-                <StockReportTally onSaved={() => setStockView("list")} />
+                <StockReportTally reportId={selectedStockReportId} onSaved={() => { setSelectedStockReportId(undefined); setStockView("list"); }} />
               ) : (
                 <StockReportSettings />
               )}
