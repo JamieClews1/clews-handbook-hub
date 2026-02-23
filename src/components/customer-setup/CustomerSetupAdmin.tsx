@@ -21,6 +21,7 @@ import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
 import { CustomerReportingPeriodsEditor } from "./CustomerReportingPeriodsEditor";
+import { CreditApplicationsManager } from "./CreditApplicationsManager";
 import { Switch } from "@/components/ui/switch";
 
 type Customer = {
@@ -1273,6 +1274,13 @@ export function CustomerSetupAdmin() {
                 </TabsContent>
               </Tabs>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Credit Applications - standalone section */}
+        <Card>
+          <CardContent className="pt-6">
+            <CreditApplicationsManager />
           </CardContent>
         </Card>
       </div>

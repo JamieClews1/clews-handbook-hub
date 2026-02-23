@@ -202,6 +202,125 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_account_applications: {
+        Row: {
+          account_number: string | null
+          applicant_print_name: string | null
+          applicant_signature: string | null
+          applicant_signed_date: string | null
+          approved: boolean | null
+          approved_at: string | null
+          approved_by_name: string | null
+          approved_by_signature: string | null
+          business_name: string | null
+          company_telephone: string | null
+          contact_name: string | null
+          contact_position: string | null
+          created_at: string
+          created_by: string | null
+          credit_limit_set: number | null
+          credit_requested: number | null
+          customer_id: string | null
+          date_of_incorporation: string | null
+          eori_number: string | null
+          holding_company: string | null
+          id: string
+          invoice_address: string | null
+          invoice_address_postcode: string | null
+          invoice_email: string | null
+          mobile_number: string | null
+          nature_of_business: string | null
+          registered_office: string | null
+          registered_office_postcode: string | null
+          share_token: string
+          status: string
+          submitted_at: string | null
+          trade_references: Json | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          applicant_print_name?: string | null
+          applicant_signature?: string | null
+          applicant_signed_date?: string | null
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by_name?: string | null
+          approved_by_signature?: string | null
+          business_name?: string | null
+          company_telephone?: string | null
+          contact_name?: string | null
+          contact_position?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_limit_set?: number | null
+          credit_requested?: number | null
+          customer_id?: string | null
+          date_of_incorporation?: string | null
+          eori_number?: string | null
+          holding_company?: string | null
+          id?: string
+          invoice_address?: string | null
+          invoice_address_postcode?: string | null
+          invoice_email?: string | null
+          mobile_number?: string | null
+          nature_of_business?: string | null
+          registered_office?: string | null
+          registered_office_postcode?: string | null
+          share_token?: string
+          status?: string
+          submitted_at?: string | null
+          trade_references?: Json | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          applicant_print_name?: string | null
+          applicant_signature?: string | null
+          applicant_signed_date?: string | null
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by_name?: string | null
+          approved_by_signature?: string | null
+          business_name?: string | null
+          company_telephone?: string | null
+          contact_name?: string | null
+          contact_position?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_limit_set?: number | null
+          credit_requested?: number | null
+          customer_id?: string | null
+          date_of_incorporation?: string | null
+          eori_number?: string | null
+          holding_company?: string | null
+          id?: string
+          invoice_address?: string | null
+          invoice_address_postcode?: string | null
+          invoice_email?: string | null
+          mobile_number?: string | null
+          nature_of_business?: string | null
+          registered_office?: string | null
+          registered_office_postcode?: string | null
+          share_token?: string
+          status?: string
+          submitted_at?: string | null
+          trade_references?: Json | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_account_applications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_contacts: {
         Row: {
           created_at: string

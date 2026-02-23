@@ -31,6 +31,7 @@ import SiteReportsPage from "./pages/SiteReportsPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
+import CreditApplicationPage from "./pages/CreditApplicationPage";
 import DataUploadsPage from "./pages/DataUploadsPage";
 import PerformanceHubPage from "./pages/PerformanceHubPage";
 import PerformanceHubReportsPage from "./pages/PerformanceHubReportsPage";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
+            <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
