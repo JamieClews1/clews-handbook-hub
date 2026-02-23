@@ -8,8 +8,11 @@ import clewsLogo from "@/assets/clews-logo.png";
 import MonthlyInspectionForm from "@/components/site-reports/MonthlyInspectionForm";
 import InspectionReportsList from "@/components/site-reports/InspectionReportsList";
 import StockReportTally from "@/components/site-reports/StockReportTally";
+import StockReportsList from "@/components/site-reports/StockReportsList";
+import StockReportSettings from "@/components/site-reports/StockReportSettings";
 
 type InspectionView = "list" | "form";
+type StockView = "list" | "tally" | "settings";
 
 const SiteReportsPage = () => {
   const navigate = useNavigate();
@@ -17,6 +20,7 @@ const SiteReportsPage = () => {
   const [activeTab, setActiveTab] = useState("monthly");
   const [inspectionView, setInspectionView] = useState<InspectionView>("list");
   const [selectedReportId, setSelectedReportId] = useState<string | undefined>();
+  const [stockView, setStockView] = useState<StockView>("list");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -53,7 +57,7 @@ const SiteReportsPage = () => {
   };
 
   const showBackToReports = activeTab === "monthly" && inspectionView === "form";
-
+  const showBackToStock = activeTab === "stock" && stockView !== "list";
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -63,6 +67,11 @@ const SiteReportsPage = () => {
               <Button variant="ghost" size="sm" className="gap-2" onClick={handleBackToList}>
                 <ArrowLeft className="h-4 w-4" />
                 Back to Reports
+              </Button>
+            ) : showBackToStock ? (
+              <Button variant="ghost" size="sm" className="gap-2" onClick={() => setStockView("list")}>
+                <ArrowLeft className="h-4 w-4" />
+                Back to Stock
               </Button>
             ) : (
               <Link to="/portal">
@@ -89,7 +98,7 @@ const SiteReportsPage = () => {
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setInspectionView("list"); }} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setInspectionView("list"); setStockView("list"); }} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="monthly" className="flex items-center gap-1.5 text-xs sm:text-sm">
                 <ClipboardList className="h-4 w-4" />
@@ -122,7 +131,16 @@ const SiteReportsPage = () => {
             </TabsContent>
 
             <TabsContent value="stock">
-              <StockReportTally />
+              {stockView === "list" ? (
+                <StockReportsList
+                  onNewReport={() => setStockView("tally")}
+                  onSettings={() => setStockView("settings")}
+                />
+              ) : stockView === "tally" ? (
+                <StockReportTally onSaved={() => setStockView("list")} />
+              ) : (
+                <StockReportSettings />
+              )}
             </TabsContent>
           </Tabs>
         </div>

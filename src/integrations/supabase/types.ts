@@ -2871,6 +2871,107 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_report_email_settings: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          recipient_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          recipient_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          recipient_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_report_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          material: string
+          on_stock: number
+          out: number
+          stock_report_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          material: string
+          on_stock?: number
+          out?: number
+          stock_report_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          material?: string
+          on_stock?: number
+          out?: number
+          stock_report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_report_items_stock_report_id_fkey"
+            columns: ["stock_report_id"]
+            isOneToOne: false
+            referencedRelation: "stock_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_reports: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          operator_id: string | null
+          operator_name: string
+          report_date: string
+          total_on_stock: number
+          total_out: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_name: string
+          report_date?: string
+          total_on_stock?: number
+          total_out?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_name?: string
+          report_date?: string
+          total_on_stock?: number
+          total_out?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       toolbox_talk_signatures: {
         Row: {
           created_at: string
