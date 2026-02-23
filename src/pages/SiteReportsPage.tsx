@@ -2,17 +2,20 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ClipboardList } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, ClipboardList, Eye, Package } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import MonthlyInspectionForm from "@/components/site-reports/MonthlyInspectionForm";
 import InspectionReportsList from "@/components/site-reports/InspectionReportsList";
+import StockReportTally from "@/components/site-reports/StockReportTally";
 
-type View = 'list' | 'form';
+type InspectionView = "list" | "form";
 
 const SiteReportsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<View>('list');
+  const [activeTab, setActiveTab] = useState("monthly");
+  const [inspectionView, setInspectionView] = useState<InspectionView>("list");
   const [selectedReportId, setSelectedReportId] = useState<string | undefined>();
 
   useEffect(() => {
@@ -32,42 +35,42 @@ const SiteReportsPage = () => {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const handleNewReport = () => {
     setSelectedReportId(undefined);
-    setCurrentView('form');
+    setInspectionView("form");
   };
 
   const handleViewReport = (reportId: string) => {
     setSelectedReportId(reportId);
-    setCurrentView('form');
+    setInspectionView("form");
   };
 
   const handleBackToList = () => {
     setSelectedReportId(undefined);
-    setCurrentView('list');
+    setInspectionView("list");
   };
+
+  const showBackToReports = activeTab === "monthly" && inspectionView === "form";
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {currentView === 'list' ? (
+            {showBackToReports ? (
+              <Button variant="ghost" size="sm" className="gap-2" onClick={handleBackToList}>
+                <ArrowLeft className="h-4 w-4" />
+                Back to Reports
+              </Button>
+            ) : (
               <Link to="/portal">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Portal
                 </Button>
               </Link>
-            ) : (
-              <Button variant="ghost" size="sm" className="gap-2" onClick={handleBackToList}>
-                <ArrowLeft className="h-4 w-4" />
-                Back to Reports
-              </Button>
             )}
             <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
           </div>
@@ -81,24 +84,47 @@ const SiteReportsPage = () => {
               <ClipboardList className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Monthly Site Inspection</h1>
-              <p className="text-muted-foreground text-sm">
-                {currentView === 'list' ? 'View and manage inspection reports' : 'Complete the inspection checklist below'}
-              </p>
+              <h1 className="text-2xl font-bold text-foreground">Site Reports</h1>
+              <p className="text-muted-foreground text-sm">Inspections, walkarounds & stock</p>
             </div>
           </div>
 
-          {currentView === 'list' ? (
-            <InspectionReportsList 
-              onNewReport={handleNewReport} 
-              onViewReport={handleViewReport} 
-            />
-          ) : (
-            <MonthlyInspectionForm 
-              reportId={selectedReportId} 
-              onSave={handleBackToList} 
-            />
-          )}
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setInspectionView("list"); }} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="monthly" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <ClipboardList className="h-4 w-4" />
+                <span>Monthly</span>
+              </TabsTrigger>
+              <TabsTrigger value="walkaround" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Eye className="h-4 w-4" />
+                <span>Walkaround</span>
+              </TabsTrigger>
+              <TabsTrigger value="stock" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Package className="h-4 w-4" />
+                <span>Stock</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="monthly">
+              {inspectionView === "list" ? (
+                <InspectionReportsList onNewReport={handleNewReport} onViewReport={handleViewReport} />
+              ) : (
+                <MonthlyInspectionForm reportId={selectedReportId} onSave={handleBackToList} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="walkaround">
+              <div className="text-center py-16 text-muted-foreground">
+                <Eye className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">Daily Walkaround</p>
+                <p className="text-sm">Coming soon</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="stock">
+              <StockReportTally />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
