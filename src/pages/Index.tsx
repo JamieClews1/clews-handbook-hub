@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3, Package } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3, Package, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -123,6 +123,12 @@ const Index = () => {
       description: "Manage rebate rates, pricing structures, and value calculations.",
       icon: DollarSign,
       href: "/rebate-values",
+    },
+    {
+      title: "Contaminations",
+      description: "Track and manage contamination queries, charges, and customer communications.",
+      icon: AlertTriangle,
+      href: "/performance-hub/contaminations",
     },
   ];
 
