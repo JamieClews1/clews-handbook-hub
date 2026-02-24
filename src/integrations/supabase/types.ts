@@ -202,6 +202,176 @@ export type Database = {
         }
         Relationships: []
       }
+      contamination_activity_log: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          new_value: string | null
+          notes: string | null
+          old_value: string | null
+          query_id: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          query_id: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          query_id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contamination_activity_log_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contamination_charge_matrix: {
+        Row: {
+          charge_value: number
+          contamination_type: string
+          created_at: string
+          description_template: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          charge_value?: number
+          contamination_type: string
+          created_at?: string
+          description_template?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          charge_value?: number
+          contamination_type?: string
+          created_at?: string
+          description_template?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contamination_queries: {
+        Row: {
+          actioned_at: string | null
+          charge_amount: number | null
+          completed_at: string | null
+          container_type: string | null
+          contamination_type: string | null
+          created_at: string
+          customer: string | null
+          data_hub_job_id: string | null
+          email_sent_at: string | null
+          id: string
+          initial_cost: number | null
+          job_date: string | null
+          job_number: string
+          order_number: string | null
+          owner_id: string | null
+          owner_name: string | null
+          photos: string[] | null
+          po_number: string | null
+          postcode: string | null
+          query_reason: string | null
+          recipient_email: string | null
+          resolved_at: string | null
+          site: string | null
+          status: string
+          updated_at: string
+          vehicle_reg: string | null
+          waste_description: string | null
+          weight_t: number | null
+        }
+        Insert: {
+          actioned_at?: string | null
+          charge_amount?: number | null
+          completed_at?: string | null
+          container_type?: string | null
+          contamination_type?: string | null
+          created_at?: string
+          customer?: string | null
+          data_hub_job_id?: string | null
+          email_sent_at?: string | null
+          id?: string
+          initial_cost?: number | null
+          job_date?: string | null
+          job_number: string
+          order_number?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          photos?: string[] | null
+          po_number?: string | null
+          postcode?: string | null
+          query_reason?: string | null
+          recipient_email?: string | null
+          resolved_at?: string | null
+          site?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_reg?: string | null
+          waste_description?: string | null
+          weight_t?: number | null
+        }
+        Update: {
+          actioned_at?: string | null
+          charge_amount?: number | null
+          completed_at?: string | null
+          container_type?: string | null
+          contamination_type?: string | null
+          created_at?: string
+          customer?: string | null
+          data_hub_job_id?: string | null
+          email_sent_at?: string | null
+          id?: string
+          initial_cost?: number | null
+          job_date?: string | null
+          job_number?: string
+          order_number?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          photos?: string[] | null
+          po_number?: string | null
+          postcode?: string | null
+          query_reason?: string | null
+          recipient_email?: string | null
+          resolved_at?: string | null
+          site?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_reg?: string | null
+          waste_description?: string | null
+          weight_t?: number | null
+        }
+        Relationships: []
+      }
       credit_account_applications: {
         Row: {
           account_number: string | null

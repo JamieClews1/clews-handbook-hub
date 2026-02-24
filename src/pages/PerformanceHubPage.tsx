@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, Database, Radio, Gauge } from "lucide-react";
+import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
 
@@ -55,7 +55,7 @@ const PerformanceHubPage = () => {
           </h1>
 
           {/* Section Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
             {/* Waste KPIs */}
             <Link to="/performance-hub/waste-kpis" className="group">
               <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
@@ -111,6 +111,21 @@ const PerformanceHubPage = () => {
                   </h2>
                   <p className="text-primary-foreground/80 text-sm">
                     Upload and manage Skiptrak and Midweigh operational data
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Contaminations */}
+            <Link to="/performance-hub/contaminations" className="group">
+              <div className="h-full p-8 rounded-xl bg-destructive hover:bg-destructive/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <AlertTriangle className="h-12 w-12 text-destructive-foreground" />
+                  <h2 className="text-xl font-bold text-destructive-foreground uppercase tracking-wide">
+                    Contaminations
+                  </h2>
+                  <p className="text-destructive-foreground/80 text-sm">
+                    Track and manage contamination queries, charges and communications
                   </p>
                 </div>
               </div>
