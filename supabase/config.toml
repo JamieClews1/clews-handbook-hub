@@ -41,3 +41,6 @@ verify_jwt = true
 
 [functions.send-stock-report-email]
 verify_jwt = true
+
+[functions.send-contamination-email]
+verify_jwt = true

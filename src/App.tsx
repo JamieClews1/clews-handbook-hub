@@ -43,6 +43,7 @@ import CustomerPortalPage from "./pages/CustomerPortalPage";
 import NearMissReportPage from "./pages/NearMissReportPage";
 import NearMissPage from "./pages/NearMissPage";
 import StaciReportsPage from "./pages/StaciReportsPage";
+import ContaminationsPage from "./pages/ContaminationsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/rebate-values" element={<StaffRoute><RebateValuesPage /></StaffRoute>} />
             <Route path="/customer-reporting" element={<StaffRoute><CustomerReportingPage /></StaffRoute>} />
             <Route path="/staci-reports" element={<StaffRoute><StaciReportsPage /></StaffRoute>} />
+            <Route path="/performance-hub/contaminations" element={<StaffRoute><ContaminationsPage /></StaffRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
