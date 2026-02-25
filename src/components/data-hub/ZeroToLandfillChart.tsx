@@ -29,7 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, subWeeks, subYears, parseISO, differenceInWeeks, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 
 type WasteGroup = "landfill" | "rdf" | "recycled";
-type ViewMode = "week" | "month";
+type ViewMode = "week" | "month" | "total";
 
 const GROUP_LABELS: Record<WasteGroup, string> = {
   landfill: "Landfill",
@@ -142,7 +142,9 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
 
     const buckets: Record<string, { landfill: number; rdf: number; recycled: number; totalIn: number }> = {};
 
-    if (viewMode === "week") {
+    if (viewMode === "total") {
+      buckets["total"] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
+    } else if (viewMode === "week") {
       const weeks = eachWeekOfInterval({ start: weekStart, end: weekEnd }, { weekStartsOn: 1 });
       weeks.forEach((ws) => {
         const key = format(ws, "yyyy-MM-dd");
@@ -159,10 +161,15 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
     rawJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
       const jobDate = parseISO(job.job_date);
-      const bucketDate = viewMode === "week"
-        ? startOfWeek(jobDate, { weekStartsOn: 1 })
-        : startOfMonth(jobDate);
-      const key = format(bucketDate, "yyyy-MM-dd");
+      let key: string;
+      if (viewMode === "total") {
+        key = "total";
+      } else {
+        const bucketDate = viewMode === "week"
+          ? startOfWeek(jobDate, { weekStartsOn: 1 })
+          : startOfMonth(jobDate);
+        key = format(bucketDate, "yyyy-MM-dd");
+      }
 
       if (!buckets[key]) return;
 
@@ -183,9 +190,11 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
         const total = values.landfill + values.rdf + values.recycled;
         const landfillPct = total > 0 ? Math.round((values.landfill / total) * 10000) / 100 : 0;
         return {
-          week: viewMode === "week"
-            ? format(parseISO(bucketDate), "dd MMM")
-            : format(parseISO(bucketDate), "MMM yyyy"),
+        week: viewMode === "total"
+            ? "Total"
+            : viewMode === "week"
+              ? format(parseISO(bucketDate), "dd MMM")
+              : format(parseISO(bucketDate), "MMM yyyy"),
           weekFull: bucketDate,
           landfill: Math.round(values.landfill * 100) / 100,
           rdf: Math.round(values.rdf * 100) / 100,
@@ -229,7 +238,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
           <div>
             <CardTitle className="text-lg">Zero To Landfill</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {viewMode === "week" ? "Weekly" : "Monthly"} outward waste by Product · Midweigh
+              {viewMode === "week" ? "Weekly" : viewMode === "month" ? "Monthly" : "Total"} outward waste by Product · Midweigh
             </p>
           </div>
         </div>
@@ -292,6 +301,14 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
               onClick={() => setViewMode("month")}
             >
               Month
+            </Button>
+            <Button
+              variant={viewMode === "total" ? "default" : "ghost"}
+              size="sm"
+              className="text-xs h-7 px-3"
+              onClick={() => setViewMode("total")}
+            >
+              Total
             </Button>
           </div>
           <div className="flex gap-1.5">
@@ -458,14 +475,14 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
       {!isLoading && chartData.length > 0 && (
         <Card className="col-span-2">
           <CardHeader className="pb-2">
-             <CardTitle className="text-base">{viewMode === "week" ? "Weekly" : "Monthly"} Tonnage Breakdown</CardTitle>
+             <CardTitle className="text-base">{viewMode === "week" ? "Weekly" : viewMode === "month" ? "Monthly" : "Total"} Tonnage Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="w-full overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">{viewMode === "week" ? "Week" : "Month"}</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">{viewMode === "week" ? "Week" : viewMode === "month" ? "Month" : "Period"}</th>
                     <th className="text-right py-2 px-3 font-medium" style={{ color: "hsl(210, 70%, 50%)" }}>Total In</th>
                     <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.landfill }}>Landfill</th>
                     <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.rdf }}>RDF</th>

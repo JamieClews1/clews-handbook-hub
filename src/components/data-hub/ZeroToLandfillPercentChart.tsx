@@ -19,7 +19,7 @@ interface Props {
     totalIn: number;
   }>;
   isLoading: boolean;
-  viewMode?: "week" | "month";
+  viewMode?: "week" | "month" | "total";
 }
 
 const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }: Props) => {
@@ -50,7 +50,7 @@ const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }:
         <div>
           <CardTitle className="text-lg">Zero To Landfill — % Breakdown</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {viewMode === "week" ? "Weekly" : "Monthly"} outward waste as percentage of total
+            {viewMode === "week" ? "Weekly" : viewMode === "month" ? "Monthly" : "Total"} outward waste as percentage of total
           </p>
         </div>
       </CardHeader>
