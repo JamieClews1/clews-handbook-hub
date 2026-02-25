@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3, Package, AlertTriangle } from "lucide-react";
+import { BookOpen, FileText, MessageSquare, Settings, LogOut, ArrowRight, User, ClipboardSignature, FileCheck, Recycle, ScrollText, ClipboardList, Truck, Upload, DollarSign, BarChart3, Package, AlertTriangle, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -129,6 +129,12 @@ const Index = () => {
       description: "Track and manage contamination queries, charges, and customer communications.",
       icon: AlertTriangle,
       href: "/performance-hub/contaminations",
+    },
+    {
+      title: "Stock Check",
+      description: "Monitor skip and RoRo stock levels, availability, and projected movements.",
+      icon: Box,
+      href: "/performance-hub/stock-check",
     },
   ];
 

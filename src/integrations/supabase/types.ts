@@ -3041,6 +3041,201 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_check_container_types: {
+        Row: {
+          category: string
+          created_at: string
+          data_hub_keywords: string[] | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data_hub_keywords?: string[] | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data_hub_keywords?: string[] | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_check_daily_entries: {
+        Row: {
+          actual_in: number | null
+          actual_out: number | null
+          container_type_id: string
+          created_at: string
+          entry_date: string
+          id: string
+          projected_in: number
+          projected_out: number
+          stock_check_id: string
+          updated_at: string
+        }
+        Insert: {
+          actual_in?: number | null
+          actual_out?: number | null
+          container_type_id: string
+          created_at?: string
+          entry_date: string
+          id?: string
+          projected_in?: number
+          projected_out?: number
+          stock_check_id: string
+          updated_at?: string
+        }
+        Update: {
+          actual_in?: number | null
+          actual_out?: number | null
+          container_type_id?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          projected_in?: number
+          projected_out?: number
+          stock_check_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_check_daily_entries_container_type_id_fkey"
+            columns: ["container_type_id"]
+            isOneToOne: false
+            referencedRelation: "stock_check_container_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_check_daily_entries_stock_check_id_fkey"
+            columns: ["stock_check_id"]
+            isOneToOne: false
+            referencedRelation: "stock_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_check_excluded_sites: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          site_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          site_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          site_name?: string
+        }
+        Relationships: []
+      }
+      stock_check_items: {
+        Row: {
+          container_type_id: string
+          created_at: string
+          id: string
+          in_yard: number
+          notes: string | null
+          runner: number
+          stock_check_id: string
+          updated_at: string
+        }
+        Insert: {
+          container_type_id: string
+          created_at?: string
+          id?: string
+          in_yard?: number
+          notes?: string | null
+          runner?: number
+          stock_check_id: string
+          updated_at?: string
+        }
+        Update: {
+          container_type_id?: string
+          created_at?: string
+          id?: string
+          in_yard?: number
+          notes?: string | null
+          runner?: number
+          stock_check_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_check_items_container_type_id_fkey"
+            columns: ["container_type_id"]
+            isOneToOne: false
+            referencedRelation: "stock_check_container_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_check_items_stock_check_id_fkey"
+            columns: ["stock_check_id"]
+            isOneToOne: false
+            referencedRelation: "stock_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_checks: {
+        Row: {
+          check_date: string
+          created_at: string
+          data_hub_sync_enabled: boolean
+          id: string
+          notes: string | null
+          operator_id: string | null
+          operator_name: string
+          status: string
+          updated_at: string
+          week_commencing: string
+        }
+        Insert: {
+          check_date?: string
+          created_at?: string
+          data_hub_sync_enabled?: boolean
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_name: string
+          status?: string
+          updated_at?: string
+          week_commencing?: string
+        }
+        Update: {
+          check_date?: string
+          created_at?: string
+          data_hub_sync_enabled?: boolean
+          id?: string
+          notes?: string | null
+          operator_id?: string | null
+          operator_name?: string
+          status?: string
+          updated_at?: string
+          week_commencing?: string
+        }
+        Relationships: []
+      }
       stock_report_email_settings: {
         Row: {
           created_at: string

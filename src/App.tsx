@@ -44,6 +44,7 @@ import NearMissReportPage from "./pages/NearMissReportPage";
 import NearMissPage from "./pages/NearMissPage";
 import StaciReportsPage from "./pages/StaciReportsPage";
 import ContaminationsPage from "./pages/ContaminationsPage";
+import StockCheckPage from "./pages/StockCheckPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="/customer-reporting" element={<StaffRoute><CustomerReportingPage /></StaffRoute>} />
             <Route path="/staci-reports" element={<StaffRoute><StaciReportsPage /></StaffRoute>} />
             <Route path="/performance-hub/contaminations" element={<StaffRoute><ContaminationsPage /></StaffRoute>} />
+            <Route path="/performance-hub/stock-check" element={<StaffRoute><StockCheckPage /></StaffRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
