@@ -19,9 +19,10 @@ interface Props {
     totalIn: number;
   }>;
   isLoading: boolean;
+  viewMode?: "week" | "month";
 }
 
-const ZeroToLandfillPercentChart = ({ chartData, isLoading }: Props) => {
+const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }: Props) => {
   const pctData = useMemo(() => {
     return chartData.map((d) => {
       const totalOut = d.landfill + d.rdf + d.recycled;
@@ -49,7 +50,7 @@ const ZeroToLandfillPercentChart = ({ chartData, isLoading }: Props) => {
         <div>
           <CardTitle className="text-lg">Zero To Landfill — % Breakdown</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Weekly outward waste as percentage of total · Last 52 weeks
+            {viewMode === "week" ? "Weekly" : "Monthly"} outward waste as percentage of total
           </p>
         </div>
       </CardHeader>

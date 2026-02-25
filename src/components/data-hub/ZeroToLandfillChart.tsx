@@ -26,9 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { startOfWeek, endOfWeek, format, subWeeks, subYears, parseISO, differenceInWeeks, eachWeekOfInterval } from "date-fns";
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, subWeeks, subYears, parseISO, differenceInWeeks, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 
 type WasteGroup = "landfill" | "rdf" | "recycled";
+type ViewMode = "week" | "month";
 
 const GROUP_LABELS: Record<WasteGroup, string> = {
   landfill: "Landfill",
@@ -73,6 +74,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
   const [groupMap, setGroupMap] = useState<Record<string, WasteGroup>>(loadGroupMap);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
 
   const now = new Date();
   const maxStartDate = subYears(now, 2);
@@ -138,42 +140,53 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
   const chartData = useMemo(() => {
     if (!rawJobs?.length) return [];
 
-    const weekBuckets: Record<string, { landfill: number; rdf: number; recycled: number; totalIn: number }> = {};
+    const buckets: Record<string, { landfill: number; rdf: number; recycled: number; totalIn: number }> = {};
 
-    // Pre-populate weeks in range
-    const weeks = eachWeekOfInterval({ start: weekStart, end: weekEnd }, { weekStartsOn: 1 });
-    weeks.forEach((ws) => {
-      const key = format(ws, "yyyy-MM-dd");
-      weekBuckets[key] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
-    });
+    if (viewMode === "week") {
+      const weeks = eachWeekOfInterval({ start: weekStart, end: weekEnd }, { weekStartsOn: 1 });
+      weeks.forEach((ws) => {
+        const key = format(ws, "yyyy-MM-dd");
+        buckets[key] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
+      });
+    } else {
+      const months = eachMonthOfInterval({ start: startDate, end: endDate });
+      months.forEach((ms) => {
+        const key = format(ms, "yyyy-MM-dd");
+        buckets[key] = { landfill: 0, rdf: 0, recycled: 0, totalIn: 0 };
+      });
+    }
 
     rawJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
       const jobDate = parseISO(job.job_date);
-      const ws = startOfWeek(jobDate, { weekStartsOn: 1 });
-      const key = format(ws, "yyyy-MM-dd");
+      const bucketDate = viewMode === "week"
+        ? startOfWeek(jobDate, { weekStartsOn: 1 })
+        : startOfMonth(jobDate);
+      const key = format(bucketDate, "yyyy-MM-dd");
 
-      if (!weekBuckets[key]) return;
+      if (!buckets[key]) return;
 
       const tonnes = (job.weight_t || 0) / 1000;
 
       if (job.movement_type === "INWARD") {
-        weekBuckets[key].totalIn += tonnes;
+        buckets[key].totalIn += tonnes;
       } else {
         const desc = job.raw?.Product || "";
         const group: WasteGroup = groupMap[desc] || "recycled";
-        weekBuckets[key][group] += tonnes;
+        buckets[key][group] += tonnes;
       }
     });
 
-    return Object.entries(weekBuckets)
+    return Object.entries(buckets)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([weekDate, values]) => {
+      .map(([bucketDate, values]) => {
         const total = values.landfill + values.rdf + values.recycled;
         const landfillPct = total > 0 ? Math.round((values.landfill / total) * 10000) / 100 : 0;
         return {
-          week: format(parseISO(weekDate), "dd MMM"),
-          weekFull: weekDate,
+          week: viewMode === "week"
+            ? format(parseISO(bucketDate), "dd MMM")
+            : format(parseISO(bucketDate), "MMM yyyy"),
+          weekFull: bucketDate,
           landfill: Math.round(values.landfill * 100) / 100,
           rdf: Math.round(values.rdf * 100) / 100,
           recycled: Math.round(values.recycled * 100) / 100,
@@ -181,7 +194,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
           landfillPct,
         };
       });
-  }, [rawJobs, groupMap]);
+  }, [rawJobs, groupMap, viewMode, startDate, endDate]);
 
   const chartConfig = {
     totalIn: { label: "Total Waste In", color: "hsl(210, 70%, 50%)" },
@@ -216,7 +229,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
           <div>
             <CardTitle className="text-lg">Zero To Landfill</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Weekly outward waste by Product · Midweigh
+              {viewMode === "week" ? "Weekly" : "Monthly"} outward waste by Product · Midweigh
             </p>
           </div>
         </div>
@@ -263,6 +276,24 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
               </Popover>
             </>
           )}
+          <div className="flex items-center gap-1 rounded-md border bg-muted/50 p-0.5">
+            <Button
+              variant={viewMode === "week" ? "default" : "ghost"}
+              size="sm"
+              className="text-xs h-7 px-3"
+              onClick={() => setViewMode("week")}
+            >
+              Week
+            </Button>
+            <Button
+              variant={viewMode === "month" ? "default" : "ghost"}
+              size="sm"
+              className="text-xs h-7 px-3"
+              onClick={() => setViewMode("month")}
+            >
+              Month
+            </Button>
+          </div>
           <div className="flex gap-1.5">
             <Badge variant="outline" className="text-xs" style={{ borderColor: GROUP_COLORS.landfill, color: GROUP_COLORS.landfill }}>
               Landfill ({groupCounts.landfill})
@@ -421,20 +452,20 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
       </CardContent>
     </Card>
 
-      <ZeroToLandfillPercentChart chartData={chartData} isLoading={isLoading} />
+      <ZeroToLandfillPercentChart chartData={chartData} isLoading={isLoading} viewMode={viewMode} />
 
       {/* Tonnage Table */}
       {!isLoading && chartData.length > 0 && (
         <Card className="col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Weekly Tonnage Breakdown</CardTitle>
+             <CardTitle className="text-base">{viewMode === "week" ? "Weekly" : "Monthly"} Tonnage Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="w-full overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Week</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">{viewMode === "week" ? "Week" : "Month"}</th>
                     <th className="text-right py-2 px-3 font-medium" style={{ color: "hsl(210, 70%, 50%)" }}>Total In</th>
                     <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.landfill }}>Landfill</th>
                     <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.rdf }}>RDF</th>
