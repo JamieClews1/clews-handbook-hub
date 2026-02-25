@@ -45,6 +45,7 @@ const GROUP_COLORS: Record<WasteGroup, string> = {
 // Default mapping - user can override
 const DEFAULT_GROUP_MAP: Record<string, WasteGroup> = {
   "MIX MUN": "landfill",
+  "Waste Out": "landfill",
   "RDF": "rdf",
   "WASTE OUT (FOR RDF)": "rdf",
 };
