@@ -1,0 +1,337 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Save, Plus, Minus, Truck, Container } from "lucide-react";
+
+interface ContainerType {
+  id: string;
+  name: string;
+  category: string;
+  display_order: number;
+}
+
+interface TallyItem {
+  container_type_id: string;
+  in_yard: number;
+  runner: number;
+  notes: string;
+}
+
+interface StockCheckTallyProps {
+  userId: string;
+  onComplete: () => void;
+}
+
+export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) => {
+  const { toast } = useToast();
+  const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
+  const [tallyItems, setTallyItems] = useState<TallyItem[]>([]);
+  const [operatorName, setOperatorName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const [{ data: types }, { data: profile }] = await Promise.all([
+        supabase
+          .from("stock_check_container_types")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order"),
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", userId)
+          .single(),
+      ]);
+
+      if (types) {
+        setContainerTypes(types);
+        setTallyItems(
+          types.map((t) => ({
+            container_type_id: t.id,
+            in_yard: 0,
+            runner: 0,
+            notes: "",
+          }))
+        );
+      }
+      if (profile?.full_name) setOperatorName(profile.full_name);
+      setLoading(false);
+    };
+    load();
+  }, [userId]);
+
+  const updateItem = (typeId: string, field: keyof TallyItem, value: any) => {
+    setTallyItems((prev) =>
+      prev.map((item) =>
+        item.container_type_id === typeId ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const increment = (typeId: string, field: "in_yard" | "runner") => {
+    setTallyItems((prev) =>
+      prev.map((item) =>
+        item.container_type_id === typeId
+          ? { ...item, [field]: item[field] + 1 }
+          : item
+      )
+    );
+  };
+
+  const decrement = (typeId: string, field: "in_yard" | "runner") => {
+    setTallyItems((prev) =>
+      prev.map((item) =>
+        item.container_type_id === typeId
+          ? { ...item, [field]: Math.max(0, item[field] - 1) }
+          : item
+      )
+    );
+  };
+
+  const handleSave = async () => {
+    if (!operatorName.trim()) {
+      toast({ title: "Error", description: "Operator name is required", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: stockCheck, error: checkError } = await supabase
+        .from("stock_checks")
+        .insert({
+          operator_id: userId,
+          operator_name: operatorName,
+          notes,
+          status: "submitted",
+        })
+        .select("id")
+        .single();
+
+      if (checkError) throw checkError;
+
+      const items = tallyItems.map((item) => ({
+        stock_check_id: stockCheck.id,
+        container_type_id: item.container_type_id,
+        in_yard: item.in_yard,
+        runner: item.runner,
+        notes: item.notes || null,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("stock_check_items")
+        .insert(items);
+
+      if (itemsError) throw itemsError;
+
+      toast({ title: "Stock check saved", description: "Your tally has been submitted successfully." });
+      onComplete();
+    } catch (err: any) {
+      toast({ title: "Error saving", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  const skips = containerTypes.filter((t) => t.category === "skip");
+  const roros = containerTypes.filter((t) => t.category === "roro");
+
+  const totalInYard = tallyItems.reduce((s, i) => s + i.in_yard, 0);
+  const totalRunners = tallyItems.reduce((s, i) => s + i.runner, 0);
+
+  return (
+    <div className="space-y-6 pb-32">
+      {/* Operator */}
+      <Card>
+        <CardContent className="p-4">
+          <Label htmlFor="operatorName" className="text-sm font-medium">Operator Name</Label>
+          <Input
+            id="operatorName"
+            value={operatorName}
+            onChange={(e) => setOperatorName(e.target.value)}
+            className="mt-1"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Skips Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Truck className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Skips</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {skips.map((type) => {
+            const item = tallyItems.find((i) => i.container_type_id === type.id);
+            if (!item) return null;
+            return (
+              <TallyCard
+                key={type.id}
+                name={type.name}
+                item={item}
+                onIncrement={(f) => increment(type.id, f)}
+                onDecrement={(f) => decrement(type.id, f)}
+                onNotesChange={(v) => updateItem(type.id, "notes", v)}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* RoRos Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Container className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">RoRos</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {roros.map((type) => {
+            const item = tallyItems.find((i) => i.container_type_id === type.id);
+            if (!item) return null;
+            return (
+              <TallyCard
+                key={type.id}
+                name={type.name}
+                item={item}
+                onIncrement={(f) => increment(type.id, f)}
+                onDecrement={(f) => decrement(type.id, f)}
+                onNotesChange={(v) => updateItem(type.id, "notes", v)}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <Card>
+        <CardContent className="p-4">
+          <Label htmlFor="generalNotes" className="text-sm font-medium">General Notes</Label>
+          <Textarea
+            id="generalNotes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any general observations..."
+            className="mt-1"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Fixed Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 sm:gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold text-foreground">{totalInYard}</div>
+                <div className="text-xs text-muted-foreground">In Yard</div>
+              </div>
+              <div className="w-px h-10 bg-border" />
+              <div>
+                <div className="text-2xl font-bold text-primary">{totalRunners}</div>
+                <div className="text-xs text-muted-foreground">Runners</div>
+              </div>
+            </div>
+            <Button onClick={handleSave} disabled={saving} className="h-12 px-6 gap-2 text-base">
+              <Save className="h-5 w-5" />
+              {saving ? "Saving..." : "Submit"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface TallyCardProps {
+  name: string;
+  item: TallyItem;
+  onIncrement: (field: "in_yard" | "runner") => void;
+  onDecrement: (field: "in_yard" | "runner") => void;
+  onNotesChange: (value: string) => void;
+}
+
+const TallyCard = ({ name, item, onIncrement, onDecrement, onNotesChange }: TallyCardProps) => {
+  return (
+    <Card className="border-2 border-border/50">
+      <CardContent className="p-4 space-y-4">
+        <h3 className="text-lg font-bold text-foreground">{name}</h3>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* In Yard */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground font-medium">In Yard</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 rounded-xl text-lg"
+                onClick={() => onDecrement("in_yard")}
+              >
+                <Minus className="h-5 w-5" />
+              </Button>
+              <div className="flex-1 text-center">
+                <span className="text-3xl font-bold text-foreground">{item.in_yard}</span>
+              </div>
+              <Button
+                variant="default"
+                size="icon"
+                className="h-12 w-12 rounded-xl text-lg"
+                onClick={() => onIncrement("in_yard")}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Runner */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground font-medium">Runner</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 rounded-xl text-lg"
+                onClick={() => onDecrement("runner")}
+              >
+                <Minus className="h-5 w-5" />
+              </Button>
+              <div className="flex-1 text-center">
+                <span className="text-3xl font-bold text-primary">{item.runner}</span>
+              </div>
+              <Button
+                variant="default"
+                size="icon"
+                className="h-12 w-12 rounded-xl text-lg"
+                onClick={() => onIncrement("runner")}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <Input
+          placeholder="Notes (e.g., At the farm)"
+          value={item.notes}
+          onChange={(e) => onNotesChange(e.target.value)}
+          className="text-sm"
+        />
+      </CardContent>
+    </Card>
+  );
+};
