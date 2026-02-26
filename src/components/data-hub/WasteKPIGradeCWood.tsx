@@ -3,13 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Line, ComposedChart } from "recharts";
+import { Bar, XAxis, YAxis, CartesianGrid, Legend, Line, ComposedChart } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TreePine } from "lucide-react";
-import { format, subMonths, startOfMonth, parseISO, eachMonthOfInterval } from "date-fns";
+import { format, subMonths, startOfMonth, eachMonthOfInterval } from "date-fns";
 
+const WOOD_A_PRODUCTS = ["WOOD A", "WOOD A OUT"];
 const WOOD_C_PRODUCTS = ["WOOD-C", "WOOD-C OUT"];
+const ALL_WOOD_PRODUCTS = [...WOOD_A_PRODUCTS, ...WOOD_C_PRODUCTS];
+
 const MIXED_WASTE_DESCRIPTIONS = [
   "Mixed Municipal Waste",
   "mixed construction and demolition wastes other than those mentioned in 17 09 01 17 09 02 and 17 09 03",
@@ -19,10 +22,13 @@ const MIXED_WASTE_DESCRIPTIONS = [
 interface MonthData {
   month: string;
   label: string;
+  woodAInward: number;
+  woodAOutward: number;
   woodCInward: number;
   woodCOutward: number;
   mixedWasteInward: number;
-  extractedFromMixed: number;
+  extractedA: number;
+  extractedC: number;
 }
 
 interface WasteKPIGradeCWoodProps {
@@ -35,8 +41,8 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
   const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
 
-  const { data: woodCData, isLoading: loadingWood } = useQuery({
-    queryKey: ["waste-kpi-wood-c", startDate, endDateStr],
+  const { data: woodData, isLoading: loadingWood } = useQuery({
+    queryKey: ["waste-kpi-wood-all", startDate, endDateStr],
     queryFn: async () => {
       const allRows: any[] = [];
       let from = 0;
@@ -54,7 +60,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
         if (!data || data.length === 0) break;
         const filtered = data.filter((r: any) => {
           const product = (r.raw as any)?.Product;
-          return WOOD_C_PRODUCTS.includes(product);
+          return ALL_WOOD_PRODUCTS.includes(product);
         });
         allRows.push(...filtered);
         if (data.length < pageSize) break;
@@ -91,11 +97,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   });
 
   const chartData = useMemo(() => {
-    if (!woodCData || !mixedWasteData) return [];
+    if (!woodData || !mixedWasteData) return [];
 
     const months: Record<string, MonthData> = {};
-
-    // Initialize months from date range
     const rangeStart = externalStartDate || subMonths(new Date(), 11);
     const rangeEnd = externalEndDate || new Date();
     const monthDates = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
@@ -104,27 +108,31 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       months[key] = {
         month: key,
         label: format(d, "MMM yy"),
-        woodCInward: 0,
-        woodCOutward: 0,
+        woodAInward: 0, woodAOutward: 0,
+        woodCInward: 0, woodCOutward: 0,
         mixedWasteInward: 0,
-        extractedFromMixed: 0,
+        extractedA: 0, extractedC: 0,
       };
     });
 
-    // Process WOOD-C data (midweigh = KG, convert to tonnes)
-    woodCData.forEach((row: any) => {
+    // Process wood data (midweigh = KG, convert to tonnes)
+    woodData.forEach((row: any) => {
       if (!row.job_date) return;
       const key = row.job_date.substring(0, 7);
       if (!months[key]) return;
+      const product = (row.raw as any)?.Product;
       const tonnes = (row.weight_t || 0) / 1000;
+      const isA = WOOD_A_PRODUCTS.includes(product);
       if (row.movement_type === "INWARD") {
-        months[key].woodCInward += tonnes;
+        if (isA) months[key].woodAInward += tonnes;
+        else months[key].woodCInward += tonnes;
       } else if (row.movement_type === "OUTWARD") {
-        months[key].woodCOutward += tonnes;
+        if (isA) months[key].woodAOutward += tonnes;
+        else months[key].woodCOutward += tonnes;
       }
     });
 
-    // Process mixed waste inward (midweigh = KG, convert to tonnes)
+    // Process mixed waste inward
     mixedWasteData.forEach((row: any) => {
       if (!row.job_date) return;
       const key = row.job_date.substring(0, 7);
@@ -132,41 +140,50 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       months[key].mixedWasteInward += (row.weight_t || 0) / 1000;
     });
 
-    // Extracted = outward - direct inward (the rest came from mixed streams)
+    // Extracted = outward - direct inward
     Object.values(months).forEach((m) => {
-      m.extractedFromMixed = Math.max(0, m.woodCOutward - m.woodCInward);
-      // Round all values
+      m.extractedA = Math.max(0, m.woodAOutward - m.woodAInward);
+      m.extractedC = Math.max(0, m.woodCOutward - m.woodCInward);
+      // Round all
+      m.woodAInward = Math.round(m.woodAInward * 100) / 100;
+      m.woodAOutward = Math.round(m.woodAOutward * 100) / 100;
       m.woodCInward = Math.round(m.woodCInward * 100) / 100;
       m.woodCOutward = Math.round(m.woodCOutward * 100) / 100;
       m.mixedWasteInward = Math.round(m.mixedWasteInward * 100) / 100;
-      m.extractedFromMixed = Math.round(m.extractedFromMixed * 100) / 100;
+      m.extractedA = Math.round(m.extractedA * 100) / 100;
+      m.extractedC = Math.round(m.extractedC * 100) / 100;
     });
 
     return Object.values(months);
-  }, [woodCData, mixedWasteData]);
+  }, [woodData, mixedWasteData]);
 
   const totals = useMemo(() => {
-    if (!chartData.length) return { inward: 0, outward: 0, extracted: 0, mixed: 0, pct: 0 };
-    const inward = chartData.reduce((s, d) => s + d.woodCInward, 0);
-    const outward = chartData.reduce((s, d) => s + d.woodCOutward, 0);
-    const extracted = chartData.reduce((s, d) => s + d.extractedFromMixed, 0);
+    if (!chartData.length) return { aIn: 0, aOut: 0, cIn: 0, cOut: 0, extA: 0, extC: 0, mixed: 0, pctA: 0, pctC: 0 };
+    const aIn = chartData.reduce((s, d) => s + d.woodAInward, 0);
+    const aOut = chartData.reduce((s, d) => s + d.woodAOutward, 0);
+    const cIn = chartData.reduce((s, d) => s + d.woodCInward, 0);
+    const cOut = chartData.reduce((s, d) => s + d.woodCOutward, 0);
+    const extA = chartData.reduce((s, d) => s + d.extractedA, 0);
+    const extC = chartData.reduce((s, d) => s + d.extractedC, 0);
     const mixed = chartData.reduce((s, d) => s + d.mixedWasteInward, 0);
-    const pct = mixed > 0 ? (extracted / mixed) * 100 : 0;
+    const r = (v: number) => Math.round(v * 100) / 100;
     return {
-      inward: Math.round(inward * 100) / 100,
-      outward: Math.round(outward * 100) / 100,
-      extracted: Math.round(extracted * 100) / 100,
-      mixed: Math.round(mixed * 100) / 100,
-      pct: Math.round(pct * 100) / 100,
+      aIn: r(aIn), aOut: r(aOut), cIn: r(cIn), cOut: r(cOut),
+      extA: r(extA), extC: r(extC), mixed: r(mixed),
+      pctA: mixed > 0 ? r((extA / mixed) * 100) : 0,
+      pctC: mixed > 0 ? r((extC / mixed) * 100) : 0,
     };
   }, [chartData]);
 
   const isLoading = loadingWood || loadingMixed;
 
   const chartConfig = {
-    woodCInward: { label: "Grade C Direct In", color: "hsl(35, 85%, 55%)" },
-    woodCOutward: { label: "Grade C Total Out", color: "hsl(142, 70%, 45%)" },
-    extractedFromMixed: { label: "Extracted from Mixed", color: "hsl(200, 80%, 50%)" },
+    woodAInward: { label: "Grade A In", color: "hsl(260, 70%, 55%)" },
+    woodAOutward: { label: "Grade A Out", color: "hsl(280, 65%, 50%)" },
+    woodCInward: { label: "Grade C In", color: "hsl(35, 85%, 55%)" },
+    woodCOutward: { label: "Grade C Out", color: "hsl(142, 70%, 45%)" },
+    extractedA: { label: "Grade A Recovery", color: "hsl(260, 80%, 65%)" },
+    extractedC: { label: "Grade C Recovery", color: "hsl(200, 80%, 50%)" },
   };
 
   return (
@@ -177,9 +194,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
             <TreePine className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-lg">Grade C Wood Recovery</CardTitle>
+            <CardTitle className="text-lg">Wood Recovery — Grade A &amp; Grade C</CardTitle>
             <CardDescription>
-              Grade C wood extracted from Mixed Municipal Waste &amp; Construction &amp; Demolition streams
+              Direct inward vs outward, with likely recovery extracted from mixed waste streams
             </CardDescription>
           </div>
         </div>
@@ -191,80 +208,111 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
           </div>
         ) : (
           <>
-            {/* Summary badges */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Direct Grade C In</p>
-                <p className="text-xl font-bold text-foreground">{totals.inward.toFixed(1)}t</p>
+                <p className="text-xs text-muted-foreground">Grade A — Direct In</p>
+                <p className="text-xl font-bold text-foreground">{totals.aIn.toFixed(1)}t</p>
               </div>
               <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Total Grade C Out</p>
-                <p className="text-xl font-bold text-foreground">{totals.outward.toFixed(1)}t</p>
+                <p className="text-xs text-muted-foreground">Grade A — Total Out</p>
+                <p className="text-xl font-bold text-foreground">{totals.aOut.toFixed(1)}t</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center bg-purple-50 dark:bg-purple-950/20">
+                <p className="text-xs text-muted-foreground">Grade A — Recovery</p>
+                <p className="text-xl font-bold" style={{ color: "hsl(260, 70%, 55%)" }}>{totals.extA.toFixed(1)}t</p>
+                <p className="text-xs text-muted-foreground">{totals.pctA.toFixed(1)}% of mixed</p>
               </div>
               <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Extracted from Mixed</p>
-                <p className="text-xl font-bold text-primary">{totals.extracted.toFixed(1)}t</p>
+                <p className="text-xs text-muted-foreground">Mixed Waste In</p>
+                <p className="text-xl font-bold text-foreground">{totals.mixed.toFixed(1)}t</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-lg border p-3 text-center">
+                <p className="text-xs text-muted-foreground">Grade C — Direct In</p>
+                <p className="text-xl font-bold text-foreground">{totals.cIn.toFixed(1)}t</p>
               </div>
               <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">% of Mixed Waste</p>
-                <p className="text-xl font-bold text-primary">{totals.pct.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Grade C — Total Out</p>
+                <p className="text-xl font-bold text-foreground">{totals.cOut.toFixed(1)}t</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center bg-blue-50 dark:bg-blue-950/20">
+                <p className="text-xs text-muted-foreground">Grade C — Recovery</p>
+                <p className="text-xl font-bold text-primary">{totals.extC.toFixed(1)}t</p>
+                <p className="text-xs text-muted-foreground">{totals.pctC.toFixed(1)}% of mixed</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center bg-muted/30">
+                <p className="text-xs text-muted-foreground">Total Wood Recovery</p>
+                <p className="text-xl font-bold text-foreground">{(totals.extA + totals.extC).toFixed(1)}t</p>
+                <p className="text-xs text-muted-foreground">{totals.mixed > 0 ? (((totals.extA + totals.extC) / totals.mixed) * 100).toFixed(1) : "0.0"}% of mixed</p>
               </div>
             </div>
 
             {/* Chart */}
-            <ChartContainer config={chartConfig} className="h-[350px] w-full">
+            <ChartContainer config={chartConfig} className="h-[380px] w-full">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="label" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} label={{ value: "Tonnes", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))" }} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Legend />
-                <Bar dataKey="woodCInward" name="Direct Grade C In" fill="hsl(35, 85%, 55%)" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="extractedFromMixed" name="Extracted from Mixed" fill="hsl(200, 80%, 50%)" radius={[2, 2, 0, 0]} />
-                <Line dataKey="woodCOutward" name="Total Grade C Out" stroke="hsl(142, 70%, 45%)" strokeWidth={2} dot={{ r: 3 }} type="monotone" />
+                <Bar dataKey="woodAInward" name="Grade A In" fill="hsl(260, 70%, 55%)" radius={[2, 2, 0, 0]} stackId="in" />
+                <Bar dataKey="woodCInward" name="Grade C In" fill="hsl(35, 85%, 55%)" radius={[2, 2, 0, 0]} stackId="in" />
+                <Bar dataKey="extractedA" name="Grade A Recovery" fill="hsl(260, 80%, 65%)" radius={[2, 2, 0, 0]} stackId="recovery" />
+                <Bar dataKey="extractedC" name="Grade C Recovery" fill="hsl(200, 80%, 50%)" radius={[2, 2, 0, 0]} stackId="recovery" />
+                <Line dataKey="woodAOutward" name="Grade A Out" stroke="hsl(280, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} type="monotone" strokeDasharray="5 5" />
+                <Line dataKey="woodCOutward" name="Grade C Out" stroke="hsl(142, 70%, 45%)" strokeWidth={2} dot={{ r: 3 }} type="monotone" />
               </ComposedChart>
             </ChartContainer>
 
             {/* Data table */}
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Month</TableHead>
-                    <TableHead className="text-right">Mixed Waste In (t)</TableHead>
-                    <TableHead className="text-right">Grade C Direct In (t)</TableHead>
-                    <TableHead className="text-right">Grade C Total Out (t)</TableHead>
-                    <TableHead className="text-right">Extracted from Mixed (t)</TableHead>
-                    <TableHead className="text-right">% of Mixed</TableHead>
+                    <TableHead className="text-right">Mixed In (t)</TableHead>
+                    <TableHead className="text-right">A In (t)</TableHead>
+                    <TableHead className="text-right">A Out (t)</TableHead>
+                    <TableHead className="text-right text-purple-600 dark:text-purple-400">A Recovery (t)</TableHead>
+                    <TableHead className="text-right">C In (t)</TableHead>
+                    <TableHead className="text-right">C Out (t)</TableHead>
+                    <TableHead className="text-right text-primary">C Recovery (t)</TableHead>
+                    <TableHead className="text-right">% Mixed</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {chartData.map((row) => {
-                    const pct = row.mixedWasteInward > 0
-                      ? ((row.extractedFromMixed / row.mixedWasteInward) * 100).toFixed(1)
-                      : "0.0";
+                    const totalExt = row.extractedA + row.extractedC;
+                    const pct = row.mixedWasteInward > 0 ? ((totalExt / row.mixedWasteInward) * 100).toFixed(1) : "0.0";
                     return (
                       <TableRow key={row.month}>
                         <TableCell className="font-medium">{row.label}</TableCell>
                         <TableCell className="text-right">{row.mixedWasteInward.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{row.woodAInward.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{row.woodAOutward.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium text-purple-600 dark:text-purple-400">{row.extractedA.toFixed(2)}</TableCell>
                         <TableCell className="text-right">{row.woodCInward.toFixed(2)}</TableCell>
                         <TableCell className="text-right">{row.woodCOutward.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-medium text-primary">{row.extractedFromMixed.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium text-primary">{row.extractedC.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Badge variant="outline">{pct}%</Badge>
                         </TableCell>
                       </TableRow>
                     );
                   })}
-                  {/* Totals row */}
                   <TableRow className="font-bold bg-muted/50">
                     <TableCell>Total</TableCell>
                     <TableCell className="text-right">{totals.mixed.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{totals.inward.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{totals.outward.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-primary">{totals.extracted.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{totals.aIn.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{totals.aOut.toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-purple-600 dark:text-purple-400">{totals.extA.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{totals.cIn.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{totals.cOut.toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-primary">{totals.extC.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge>{totals.pct.toFixed(1)}%</Badge>
+                      <Badge>{totals.mixed > 0 ? (((totals.extA + totals.extC) / totals.mixed) * 100).toFixed(1) : "0.0"}%</Badge>
                     </TableCell>
                   </TableRow>
                 </TableBody>
