@@ -2724,6 +2724,169 @@ export type Database = {
         }
         Relationships: []
       }
+      route_one_drivers: {
+        Row: {
+          created_at: string
+          display_order: number
+          driver_name: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          driver_name: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          driver_name?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_one_drivers_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_one_jobs: {
+        Row: {
+          assigned_driver_id: string | null
+          completed_at: string | null
+          container_size: string | null
+          container_type: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          display_order: number
+          estimated_duration_mins: number | null
+          ewc_code: string | null
+          id: string
+          job_number: string
+          job_type: Database["public"]["Enums"]["route_one_job_type"]
+          notes: string | null
+          po_number: string | null
+          query_reason: string | null
+          scheduled_date: string
+          scheduled_time: string | null
+          site_address: string | null
+          site_name: string | null
+          site_postcode: string | null
+          status: Database["public"]["Enums"]["route_one_job_status"]
+          updated_at: string
+          waste_type: string | null
+        }
+        Insert: {
+          assigned_driver_id?: string | null
+          completed_at?: string | null
+          container_size?: string | null
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          display_order?: number
+          estimated_duration_mins?: number | null
+          ewc_code?: string | null
+          id?: string
+          job_number?: string
+          job_type?: Database["public"]["Enums"]["route_one_job_type"]
+          notes?: string | null
+          po_number?: string | null
+          query_reason?: string | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          site_address?: string | null
+          site_name?: string | null
+          site_postcode?: string | null
+          status?: Database["public"]["Enums"]["route_one_job_status"]
+          updated_at?: string
+          waste_type?: string | null
+        }
+        Update: {
+          assigned_driver_id?: string | null
+          completed_at?: string | null
+          container_size?: string | null
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          display_order?: number
+          estimated_duration_mins?: number | null
+          ewc_code?: string | null
+          id?: string
+          job_number?: string
+          job_type?: Database["public"]["Enums"]["route_one_job_type"]
+          notes?: string | null
+          po_number?: string | null
+          query_reason?: string | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          site_address?: string | null
+          site_name?: string | null
+          site_postcode?: string | null
+          status?: Database["public"]["Enums"]["route_one_job_status"]
+          updated_at?: string
+          waste_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_one_jobs_assigned_driver_id_fkey"
+            columns: ["assigned_driver_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_one_vehicles: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          make_model: string | null
+          registration: string
+          tare_weight_kg: number | null
+          updated_at: string
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          make_model?: string | null
+          registration: string
+          tare_weight_kg?: number | null
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          make_model?: string | null
+          registration?: string
+          tare_weight_kg?: number | null
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Relationships: []
+      }
       site_inspection_reports: {
         Row: {
           actions_required: string | null
@@ -3469,6 +3632,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      route_one_job_status:
+        | "unassigned"
+        | "assigned"
+        | "in_progress"
+        | "completed"
+        | "query"
+      route_one_job_type:
+        | "delivery"
+        | "exchange"
+        | "collection"
+        | "waste_truck"
+        | "wasted_journey"
       skip_material_type: "card_loose" | "scrap_metal"
       user_type: "driver" | "yard" | "office" | "management"
     }
@@ -3599,6 +3774,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      route_one_job_status: [
+        "unassigned",
+        "assigned",
+        "in_progress",
+        "completed",
+        "query",
+      ],
+      route_one_job_type: [
+        "delivery",
+        "exchange",
+        "collection",
+        "waste_truck",
+        "wasted_journey",
+      ],
       skip_material_type: ["card_loose", "scrap_metal"],
       user_type: ["driver", "yard", "office", "management"],
     },
