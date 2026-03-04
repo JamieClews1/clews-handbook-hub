@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { StaffRoute } from "./components/StaffRoute";
+import { AppLayout } from "./components/AppLayout";
 import LandingPage from "./pages/LandingPage";
 import Index from "./pages/Index";
 import HandbookPage from "./pages/HandbookPage";
@@ -45,9 +46,18 @@ import NearMissPage from "./pages/NearMissPage";
 import StaciReportsPage from "./pages/StaciReportsPage";
 import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
+import RouteOnePage from "./pages/RouteOnePage";
+import WeighOnePage from "./pages/WeighOnePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+/** Wraps children in StaffRoute + AppLayout */
+const Staff = ({ children }: { children: React.ReactNode }) => (
+  <StaffRoute>
+    <AppLayout>{children}</AppLayout>
+  </StaffRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -68,41 +78,43 @@ const App = () => (
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
 
-            {/* Staff-only routes — portal customers are redirected to /my-portal */}
-            <Route path="/portal" element={<StaffRoute><Index /></StaffRoute>} />
-            <Route path="/handbook" element={<StaffRoute><HandbookPage /></StaffRoute>} />
-            <Route path="/rams" element={<StaffRoute><RAMSPage /></StaffRoute>} />
-            <Route path="/rams/:id" element={<StaffRoute><RAMSDetailPage /></StaffRoute>} />
-            <Route path="/toolbox-talks" element={<StaffRoute><ToolboxTalksPage /></StaffRoute>} />
-            <Route path="/toolbox-talks/:id" element={<StaffRoute><ToolboxTalkDetailPage /></StaffRoute>} />
-            <Route path="/contact" element={<StaffRoute><ContactPage /></StaffRoute>} />
-            <Route path="/admin" element={<StaffRoute><AdminPage /></StaffRoute>} />
-            <Route path="/admin/handbook" element={<StaffRoute><AdminHandbookPage /></StaffRoute>} />
-            <Route path="/admin/rams" element={<StaffRoute><AdminRAMSPage /></StaffRoute>} />
-            <Route path="/admin/toolbox-talks" element={<StaffRoute><AdminToolboxTalksPage /></StaffRoute>} />
-            <Route path="/admin/users" element={<StaffRoute><AdminUsersPage /></StaffRoute>} />
-            <Route path="/admin/customers" element={<StaffRoute><AdminCustomersPage /></StaffRoute>} />
-            <Route path="/admin/settings" element={<StaffRoute><AdminSettingsPage /></StaffRoute>} />
-            <Route path="/admin/questionnaires" element={<StaffRoute><AdminQuestionnairesPage /></StaffRoute>} />
-            <Route path="/my-profile" element={<StaffRoute><MyProfilePage /></StaffRoute>} />
-            <Route path="/mass-sign-off" element={<StaffRoute><MassSignOffPage /></StaffRoute>} />
-            <Route path="/duty-of-care" element={<StaffRoute><DutyOfCarePage /></StaffRoute>} />
-            <Route path="/near-miss" element={<StaffRoute><NearMissPage /></StaffRoute>} />
-            <Route path="/waste-reporting" element={<StaffRoute><WasteReportingPage /></StaffRoute>} />
-            <Route path="/policies" element={<StaffRoute><PoliciesPage /></StaffRoute>} />
-            <Route path="/site-reports" element={<StaffRoute><SiteReportsPage /></StaffRoute>} />
-            <Route path="/load-reports" element={<StaffRoute><LoadReportsPage /></StaffRoute>} />
-            <Route path="/performance-hub" element={<StaffRoute><PerformanceHubPage /></StaffRoute>} />
-            <Route path="/performance-hub/reports" element={<StaffRoute><PerformanceHubReportsPage /></StaffRoute>} />
-            <Route path="/performance-hub/waste-kpis" element={<StaffRoute><WasteKPIsPage /></StaffRoute>} />
-            <Route path="/performance-hub/data" element={<StaffRoute><DataUploadsPage /></StaffRoute>} />
-            <Route path="/performance-hub/live-jobs" element={<StaffRoute><LiveJobsPage /></StaffRoute>} />
-            <Route path="/data-hub/uploads" element={<StaffRoute><DataUploadsPage /></StaffRoute>} />
-            <Route path="/rebate-values" element={<StaffRoute><RebateValuesPage /></StaffRoute>} />
-            <Route path="/customer-reporting" element={<StaffRoute><CustomerReportingPage /></StaffRoute>} />
-            <Route path="/staci-reports" element={<StaffRoute><StaciReportsPage /></StaffRoute>} />
-            <Route path="/performance-hub/contaminations" element={<StaffRoute><ContaminationsPage /></StaffRoute>} />
-            <Route path="/performance-hub/stock-check" element={<StaffRoute><StockCheckPage /></StaffRoute>} />
+            {/* Staff-only routes with sidebar layout */}
+            <Route path="/portal" element={<Staff><Index /></Staff>} />
+            <Route path="/handbook" element={<Staff><HandbookPage /></Staff>} />
+            <Route path="/rams" element={<Staff><RAMSPage /></Staff>} />
+            <Route path="/rams/:id" element={<Staff><RAMSDetailPage /></Staff>} />
+            <Route path="/toolbox-talks" element={<Staff><ToolboxTalksPage /></Staff>} />
+            <Route path="/toolbox-talks/:id" element={<Staff><ToolboxTalkDetailPage /></Staff>} />
+            <Route path="/contact" element={<Staff><ContactPage /></Staff>} />
+            <Route path="/admin" element={<Staff><AdminPage /></Staff>} />
+            <Route path="/admin/handbook" element={<Staff><AdminHandbookPage /></Staff>} />
+            <Route path="/admin/rams" element={<Staff><AdminRAMSPage /></Staff>} />
+            <Route path="/admin/toolbox-talks" element={<Staff><AdminToolboxTalksPage /></Staff>} />
+            <Route path="/admin/users" element={<Staff><AdminUsersPage /></Staff>} />
+            <Route path="/admin/customers" element={<Staff><AdminCustomersPage /></Staff>} />
+            <Route path="/admin/settings" element={<Staff><AdminSettingsPage /></Staff>} />
+            <Route path="/admin/questionnaires" element={<Staff><AdminQuestionnairesPage /></Staff>} />
+            <Route path="/my-profile" element={<Staff><MyProfilePage /></Staff>} />
+            <Route path="/mass-sign-off" element={<Staff><MassSignOffPage /></Staff>} />
+            <Route path="/duty-of-care" element={<Staff><DutyOfCarePage /></Staff>} />
+            <Route path="/near-miss" element={<Staff><NearMissPage /></Staff>} />
+            <Route path="/waste-reporting" element={<Staff><WasteReportingPage /></Staff>} />
+            <Route path="/policies" element={<Staff><PoliciesPage /></Staff>} />
+            <Route path="/site-reports" element={<Staff><SiteReportsPage /></Staff>} />
+            <Route path="/load-reports" element={<Staff><LoadReportsPage /></Staff>} />
+            <Route path="/performance-hub" element={<Staff><PerformanceHubPage /></Staff>} />
+            <Route path="/performance-hub/reports" element={<Staff><PerformanceHubReportsPage /></Staff>} />
+            <Route path="/performance-hub/waste-kpis" element={<Staff><WasteKPIsPage /></Staff>} />
+            <Route path="/performance-hub/data" element={<Staff><DataUploadsPage /></Staff>} />
+            <Route path="/performance-hub/live-jobs" element={<Staff><LiveJobsPage /></Staff>} />
+            <Route path="/data-hub/uploads" element={<Staff><DataUploadsPage /></Staff>} />
+            <Route path="/rebate-values" element={<Staff><RebateValuesPage /></Staff>} />
+            <Route path="/customer-reporting" element={<Staff><CustomerReportingPage /></Staff>} />
+            <Route path="/staci-reports" element={<Staff><StaciReportsPage /></Staff>} />
+            <Route path="/performance-hub/contaminations" element={<Staff><ContaminationsPage /></Staff>} />
+            <Route path="/performance-hub/stock-check" element={<Staff><StockCheckPage /></Staff>} />
+            <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
+            <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
