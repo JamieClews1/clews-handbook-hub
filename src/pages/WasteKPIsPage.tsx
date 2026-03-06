@@ -11,6 +11,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
 import WasteNotOnMidweigh from "@/components/data-hub/WasteNotOnMidweigh";
+import WasteOnsiteOffsite from "@/components/data-hub/WasteOnsiteOffsite";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -150,6 +151,9 @@ const WasteKPIsPage = () => {
 
           {/* Waste Not On Midweigh */}
           <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} />
+
+          {/* On-Site vs Off-Site Tipping */}
+          <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} />
 
           {/* Grade C Wood KPIs */}
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />

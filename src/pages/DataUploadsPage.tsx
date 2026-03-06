@@ -40,6 +40,8 @@ type DataHubJobRow = {
   job_type?: string | null;
   weight_t?: number | null;
   vehicle_registration?: string | null;
+  driver?: string | null;
+  tipping_location?: string | null;
   raw: Record<string, unknown>;
 };
 
@@ -72,6 +74,8 @@ type ExistingJobFields = {
   container_type: string | null;
   weight_t: number | null;
   vehicle_registration: string | null;
+  driver: string | null;
+  tipping_location: string | null;
 };
 
 function normalizeHeaderKey(key: unknown) {
@@ -407,6 +411,12 @@ const DataUploadsPage = () => {
 
     const mapped: DataHubJobRow[] = [];
     for (const r of rows) {
+      // For Skiptrak uploads, skip rows where Status = 'V' (voided)
+      if (source === "skiptrak") {
+        const statusVal = getFirstMatchingValue(r, ["Status", "status"]);
+        if (statusVal && String(statusVal).trim().toUpperCase() === "V") continue;
+      }
+
       const ticketVal = getFirstMatchingValue(r, ["Ticket", "ticket", "Job Number", "job number"]);
       const ticket = String(ticketVal ?? "").trim();
       if (!ticket) continue;
@@ -436,7 +446,6 @@ const DataUploadsPage = () => {
       // Source-specific customer field mapping
       const customerCandidates = source === "midweigh"
         ? [
-            // Midweigh uses "Company/Surname" as customer and "Account" as client code
             "Company/Surname",
             "Company /Surname",
             "Company",
@@ -463,7 +472,6 @@ const DataUploadsPage = () => {
           getFirstMatchingValue(r, [
             "Site",
             "Site Name",
-            "Location",
             "Delivery Site",
             "Collection Site",
             "Job Site",
@@ -486,13 +494,13 @@ const DataUploadsPage = () => {
           ]),
         ),
         category: source === "midweigh" 
-          ? "Midweigh" // Always set category to "Midweigh" for midweigh uploads
+          ? "Midweigh"
           : toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])),
         movement_type: toCleanString(getFirstMatchingValue(r, [
           "Movement Type", 
           "Movement", 
           "movement_type",
-          "In / Out",    // Midweigh column
+          "In / Out",
           "In/Out",
           "In Out",
         ])),
@@ -508,6 +516,12 @@ const DataUploadsPage = () => {
         weight_t: weightTonnes,
         vehicle_registration: toCleanString(
           getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Vehicle Reg", "Reg", "Registration", "vehicle_registration"]),
+        ),
+        driver: toCleanString(
+          getFirstMatchingValue(r, ["Driver", "Drivers", "Driver Name", "driver"]),
+        ),
+        tipping_location: toCleanString(
+          getFirstMatchingValue(r, ["Location", "Tipping Location", "Tip Location", "tipping_location"]),
         ),
         raw: r,
       });
@@ -568,7 +582,7 @@ const DataUploadsPage = () => {
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
-          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date")
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location")
           .in("job_number", jobNumbers)
           .eq("source", source);
         
@@ -590,6 +604,8 @@ const DataUploadsPage = () => {
             container_type: j.container_type ?? (existingRow?.container_type as any) ?? null,
             weight_t: j.weight_t ?? (existingRow?.weight_t as any) ?? null,
             vehicle_registration: j.vehicle_registration ?? (existingRow?.vehicle_registration as any) ?? null,
+            driver: j.driver ?? (existingRow?.driver as any) ?? null,
+            tipping_location: j.tipping_location ?? (existingRow?.tipping_location as any) ?? null,
           } satisfies DataHubJobRow;
         });
 

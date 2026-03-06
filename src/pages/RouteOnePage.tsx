@@ -134,6 +134,25 @@ const RouteOnePage = () => {
     },
   });
 
+  // Fetch Skiptrak scheduled jobs for the selected date range (from data_hub_jobs)
+  const { data: skiptrakScheduledJobs = [] } = useQuery({
+    queryKey: ["route-one-skiptrak-jobs", viewMode, dateStr, weekStart],
+    queryFn: async () => {
+      let query = supabase
+        .from("data_hub_jobs")
+        .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location")
+        .eq("source", "skiptrak");
+      if (viewMode === "day") {
+        query = query.eq("job_date", dateStr);
+      } else {
+        query = query.gte("job_date", weekStart).lte("job_date", weekEnd);
+      }
+      const { data, error } = await query.not("driver", "is", null).order("job_date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // Create job mutation
   const createJob = useMutation({
     mutationFn: async (form: typeof jobForm) => {
@@ -233,9 +252,21 @@ const RouteOnePage = () => {
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  // Get jobs for a specific driver
+  // Get jobs for a specific driver (manual + Skiptrak)
   const getDriverJobs = (driverId: string) =>
     jobs.filter((j: any) => j.assigned_driver_id === driverId);
+
+  // Match Skiptrak jobs to drivers by name (fuzzy: lowercase trim)
+  const getSkiptrakJobsForDriver = (driverName: string) => {
+    const normalized = driverName.toLowerCase().trim();
+    return skiptrakScheduledJobs.filter((j: any) => {
+      const d = (j.driver || "").toLowerCase().trim();
+      // Match if driver name contains or equals (handles "Lee.Gane" vs "Lee Gane")
+      const dNorm = d.replace(/[.\-_]/g, " ");
+      const nNorm = normalized.replace(/[.\-_]/g, " ");
+      return dNorm === nNorm || dNorm.includes(nNorm) || nNorm.includes(dNorm);
+    });
+  };
 
   const unassignedJobs = jobs.filter((j: any) => !j.assigned_driver_id);
 
@@ -461,6 +492,8 @@ const RouteOnePage = () => {
           {/* Driver Columns */}
           {drivers.map((driver: any) => {
             const driverJobs = getDriverJobs(driver.id);
+            const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
+            const totalCount = driverJobs.length + skiptrakJobs.length;
             return (
               <div
                 key={driver.id}
@@ -483,14 +516,22 @@ const RouteOnePage = () => {
                         )}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] h-5">{driverJobs.length}</Badge>
+                    <Badge variant="secondary" className="text-[10px] h-5">{totalCount}</Badge>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
                   {driverJobs.map((job: any) => (
                     <JobCard key={job.id} job={job} onDelete={() => deleteJob.mutate(job.id)} onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })} onDragStart={() => handleDragStart(job.id)} />
                   ))}
-                  {driverJobs.length === 0 && (
+                  {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
+                    <div className="border-t border-border/50 my-1 pt-1">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Skiptrak</span>
+                    </div>
+                  )}
+                  {skiptrakJobs.map((sj: any) => (
+                    <SkiptrakJobCard key={sj.job_number} job={sj} />
+                  ))}
+                  {totalCount === 0 && (
                     <div className="h-full flex items-center justify-center">
                       <p className="text-xs text-muted-foreground">Drop jobs here</p>
                     </div>
@@ -585,6 +626,44 @@ function JobCard({
           <span className="text-[10px]">{job.estimated_duration_mins} min</span>
         </div>
       )}
+    </div>
+  );
+}
+
+// Skiptrak Job Card (read-only, from data_hub_jobs)
+function SkiptrakJobCard({ job }: { job: any }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-2.5">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-bold truncate text-foreground">{job.customer || "Unknown"}</span>
+      </div>
+      {job.site && (
+        <div className="flex items-center gap-1 mt-1">
+          <MapPin className="h-3 w-3 opacity-50 shrink-0" />
+          <span className="text-[10px] truncate text-muted-foreground">{job.site}</span>
+        </div>
+      )}
+      {job.tipping_location && (
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="text-[10px] text-muted-foreground">→ {job.tipping_location}</span>
+        </div>
+      )}
+      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        {job.movement_type && (
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+            {job.movement_type}
+          </Badge>
+        )}
+        {job.container_type && (
+          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
+        )}
+        {job.weight_t != null && job.weight_t > 0 && (
+          <span className="text-[10px] text-muted-foreground">{job.weight_t}t</span>
+        )}
+      </div>
+      <div className="mt-1">
+        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5">Skiptrak #{job.job_number}</Badge>
+      </div>
     </div>
   );
 }
