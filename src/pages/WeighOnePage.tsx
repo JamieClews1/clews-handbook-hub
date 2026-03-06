@@ -126,6 +126,34 @@ const WeighOnePage = () => {
     },
   });
 
+  // Fetch Midweigh customers
+  const { data: midweighCustomers = [] } = useQuery({
+    queryKey: ["weighbridge-customers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weighbridge_customers")
+        .select("id, customer_name")
+        .eq("is_active", true)
+        .order("customer_name", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; customer_name: string }[];
+    },
+  });
+
+  // Fetch Midweigh vehicles
+  const { data: midweighVehicles = [] } = useQuery({
+    queryKey: ["weighbridge-vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weighbridge_vehicles")
+        .select("id, vehicle_reg")
+        .eq("is_active", true)
+        .order("vehicle_reg", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; vehicle_reg: string }[];
+    },
+  });
+
   // Fetch additional items for selected transaction
   const { data: selectedAdditionalItems = [] } = useQuery({
     queryKey: ["weighbridge-additional-items", selectedTransaction?.id],
