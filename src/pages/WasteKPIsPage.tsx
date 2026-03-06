@@ -152,6 +152,9 @@ const WasteKPIsPage = () => {
           {/* Waste Not On Midweigh */}
           <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} />
 
+          {/* On-Site vs Off-Site Tipping */}
+          <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} />
+
           {/* Grade C Wood KPIs */}
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
         </div>
