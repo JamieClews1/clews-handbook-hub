@@ -1097,6 +1097,15 @@ const WeighOnePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Vehicles & Customers CMS Dialog */}
+      <Dialog open={cmsDialogOpen} onOpenChange={setCmsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vehicles & Customers</DialogTitle>
+          </DialogHeader>
+          <WeighOneCMS />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
