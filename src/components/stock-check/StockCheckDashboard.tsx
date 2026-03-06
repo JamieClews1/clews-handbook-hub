@@ -171,7 +171,7 @@ export const StockCheckDashboard = () => {
   const roros = containerTypes.filter((t) => t.category === "roro");
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
-  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0 };
+  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, collectJobs: [], deliverJobs: [] };
 
   const calcBookingsAllowed = (typeId: string) => {
     const item = getItem(typeId);
