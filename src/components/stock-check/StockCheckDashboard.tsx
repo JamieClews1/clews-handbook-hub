@@ -112,12 +112,12 @@ export const StockCheckDashboard = () => {
     const endDate = addDays(today, 4);
 
     // Query data_hub_jobs for upcoming movements
-    const { data: jobs } = await supabase
-      .from("data_hub_jobs")
-      .select("container_type, movement_type, site, job_date")
-      .gte("job_date", format(today, "yyyy-MM-dd"))
-      .lte("job_date", format(endDate, "yyyy-MM-dd"))
-      .in("source", ["skiptrak"]);
+     const { data: jobs } = await supabase
+       .from("data_hub_jobs")
+       .select("container_type, movement_type, site, job_date, customer")
+       .gte("job_date", format(today, "yyyy-MM-dd"))
+       .lte("job_date", format(endDate, "yyyy-MM-dd"))
+       .in("source", ["skiptrak"]);
 
     if (!jobs) return;
 
