@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Truck, Container, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 
@@ -23,6 +24,14 @@ interface StockCheckItem {
   notes: string | null;
 }
 
+interface ProjectionJob {
+  site: string | null;
+  container_type: string | null;
+  job_date: string | null;
+  movement_type: string | null;
+  customer: string | null;
+}
+
 interface DailyEntry {
   container_type_id: string;
   entry_date: string;
@@ -38,7 +47,7 @@ export const StockCheckDashboard = () => {
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [dataHubSync, setDataHubSync] = useState(true);
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
-  const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number }>>({});
+  const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
 
@@ -103,12 +112,12 @@ export const StockCheckDashboard = () => {
     const endDate = addDays(today, 4);
 
     // Query data_hub_jobs for upcoming movements
-    const { data: jobs } = await supabase
-      .from("data_hub_jobs")
-      .select("container_type, movement_type, site, job_date")
-      .gte("job_date", format(today, "yyyy-MM-dd"))
-      .lte("job_date", format(endDate, "yyyy-MM-dd"))
-      .in("source", ["skiptrak"]);
+     const { data: jobs } = await supabase
+       .from("data_hub_jobs")
+       .select("container_type, movement_type, site, job_date, customer")
+       .gte("job_date", format(today, "yyyy-MM-dd"))
+       .lte("job_date", format(endDate, "yyyy-MM-dd"))
+       .in("source", ["skiptrak"]);
 
     if (!jobs) return;
 
@@ -116,7 +125,7 @@ export const StockCheckDashboard = () => {
       (j) => !excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))
     );
 
-    const projMap: Record<string, { toCollect: number; toDeliver: number }> = {};
+    const projMap: Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }> = {};
 
     for (const type of containerTypes) {
       const keywords = type.data_hub_keywords || [];
@@ -126,15 +135,15 @@ export const StockCheckDashboard = () => {
         )
       );
 
-      const toCollect = matchingJobs.filter(
+      const collectJobs = matchingJobs.filter(
         (j) => j.movement_type?.toLowerCase().includes("collection") || j.movement_type?.toLowerCase().includes("collect")
-      ).length;
+      );
 
-      const toDeliver = matchingJobs.filter(
+      const deliverJobs = matchingJobs.filter(
         (j) => j.movement_type?.toLowerCase().includes("deliver") || j.movement_type?.toLowerCase().includes("exchange")
-      ).length;
+      );
 
-      projMap[type.id] = { toCollect, toDeliver };
+      projMap[type.id] = { toCollect: collectJobs.length, toDeliver: deliverJobs.length, collectJobs, deliverJobs };
     }
 
     setProjections(projMap);
@@ -162,7 +171,7 @@ export const StockCheckDashboard = () => {
   const roros = containerTypes.filter((t) => t.category === "roro");
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
-  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0 };
+  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, collectJobs: [], deliverJobs: [] };
 
   const calcBookingsAllowed = (typeId: string) => {
     const item = getItem(typeId);
@@ -234,10 +243,43 @@ export const StockCheckDashboard = () => {
 interface StockTableProps {
   types: ContainerType[];
   getItem: (typeId: string) => StockCheckItem | undefined;
-  getProjection: (typeId: string) => { toCollect: number; toDeliver: number };
+  getProjection: (typeId: string) => { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] };
   calcBookingsAllowed: (typeId: string) => number;
   showProjections: boolean;
 }
+
+const JobsPopover = ({ jobs, label, colorClass }: { jobs: ProjectionJob[]; label: string; colorClass: string }) => {
+  if (jobs.length === 0) return <span className={colorClass}>0</span>;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={`${colorClass} underline decoration-dotted underline-offset-2 cursor-pointer hover:opacity-80`}>
+          {jobs.length}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 max-h-64 overflow-y-auto p-0" align="center">
+        <div className="p-3 border-b border-border">
+          <h4 className="font-semibold text-sm text-foreground">{label} ({jobs.length})</h4>
+        </div>
+        <div className="divide-y divide-border/50">
+          {jobs.map((job, i) => (
+            <div key={i} className="px-3 py-2 text-xs space-y-0.5">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-foreground truncate max-w-[180px]">{job.customer || "—"}</span>
+                {job.job_date && (
+                  <span className="text-muted-foreground">{format(new Date(job.job_date), "dd MMM")}</span>
+                )}
+              </div>
+              <div className="text-muted-foreground truncate">{job.site || "—"}</div>
+              <div className="text-muted-foreground">{job.container_type} · {job.movement_type}</div>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showProjections }: StockTableProps) => {
   return (
@@ -283,8 +325,12 @@ const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showPr
               <td className="py-3 px-2 text-center font-bold text-foreground">{item?.in_yard ?? 0}</td>
               {showProjections && (
                 <>
-                  <td className="py-3 px-2 text-center text-green-600 font-medium">{proj.toCollect}</td>
-                  <td className="py-3 px-2 text-center text-red-600 font-medium">{proj.toDeliver}</td>
+                  <td className="py-3 px-2 text-center font-medium">
+                    <JobsPopover jobs={proj.collectJobs} label="To Collect" colorClass="text-green-600 font-medium" />
+                  </td>
+                  <td className="py-3 px-2 text-center font-medium">
+                    <JobsPopover jobs={proj.deliverJobs} label="To Deliver" colorClass="text-red-600 font-medium" />
+                  </td>
                 </>
               )}
               <td className="py-3 px-2 text-center text-muted-foreground">{item?.runner ?? 0}</td>
