@@ -16,6 +16,7 @@ interface ContainerType {
   display_order: number;
   is_active: boolean;
   data_hub_keywords: string[];
+  default_runner: number;
 }
 
 interface ExcludedSite {
