@@ -2729,31 +2729,43 @@ export type Database = {
       }
       route_one_drivers: {
         Row: {
+          category: string | null
           created_at: string
+          department: number | null
           display_order: number
           driver_name: string
+          driver_number: number | null
           id: string
           is_active: boolean
+          mobile: string | null
           updated_at: string
           user_id: string | null
           vehicle_id: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
+          department?: number | null
           display_order?: number
           driver_name: string
+          driver_number?: number | null
           id?: string
           is_active?: boolean
+          mobile?: string | null
           updated_at?: string
           user_id?: string | null
           vehicle_id?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
+          department?: number | null
           display_order?: number
           driver_name?: string
+          driver_number?: number | null
           id?: string
           is_active?: boolean
+          mobile?: string | null
           updated_at?: string
           user_id?: string | null
           vehicle_id?: string | null
