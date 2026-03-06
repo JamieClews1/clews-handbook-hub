@@ -3212,6 +3212,7 @@ export type Database = {
           category: string
           created_at: string
           data_hub_keywords: string[] | null
+          default_runner: number
           display_order: number
           id: string
           is_active: boolean
@@ -3222,6 +3223,7 @@ export type Database = {
           category?: string
           created_at?: string
           data_hub_keywords?: string[] | null
+          default_runner?: number
           display_order?: number
           id?: string
           is_active?: boolean
@@ -3232,6 +3234,7 @@ export type Database = {
           category?: string
           created_at?: string
           data_hub_keywords?: string[] | null
+          default_runner?: number
           display_order?: number
           id?: string
           is_active?: boolean
