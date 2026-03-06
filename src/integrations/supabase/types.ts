@@ -3616,8 +3616,44 @@ export type Database = {
         }
         Relationships: []
       }
+      weighbridge_additional_items: {
+        Row: {
+          cost: number
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          transaction_id: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          description: string
+          display_order?: number
+          id?: string
+          transaction_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighbridge_additional_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weighbridge_transactions: {
         Row: {
+          additional_items_total: number | null
           container_type: string | null
           created_at: string
           customer: string | null
@@ -3629,16 +3665,21 @@ export type Database = {
           notes: string | null
           operator_id: string | null
           operator_name: string | null
+          price_per_tonne: number | null
           second_weigh_at: string | null
           site: string | null
           status: Database["public"]["Enums"]["weighbridge_status"]
           tare_weight_kg: number | null
           ticket_number: string
+          total_price: number | null
           updated_at: string
           vehicle_reg: string
           waste_description: string | null
+          waste_type_id: string | null
+          weight_charge: number | null
         }
         Insert: {
+          additional_items_total?: number | null
           container_type?: string | null
           created_at?: string
           customer?: string | null
@@ -3650,16 +3691,21 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          price_per_tonne?: number | null
           second_weigh_at?: string | null
           site?: string | null
           status?: Database["public"]["Enums"]["weighbridge_status"]
           tare_weight_kg?: number | null
           ticket_number: string
+          total_price?: number | null
           updated_at?: string
           vehicle_reg: string
           waste_description?: string | null
+          waste_type_id?: string | null
+          weight_charge?: number | null
         }
         Update: {
+          additional_items_total?: number | null
           container_type?: string | null
           created_at?: string
           customer?: string | null
@@ -3671,14 +3717,18 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          price_per_tonne?: number | null
           second_weigh_at?: string | null
           site?: string | null
           status?: Database["public"]["Enums"]["weighbridge_status"]
           tare_weight_kg?: number | null
           ticket_number?: string
+          total_price?: number | null
           updated_at?: string
           vehicle_reg?: string
           waste_description?: string | null
+          waste_type_id?: string | null
+          weight_charge?: number | null
         }
         Relationships: [
           {
@@ -3688,7 +3738,47 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "weighbridge_transactions_waste_type_id_fkey"
+            columns: ["waste_type_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_waste_types"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      weighbridge_waste_types: {
+        Row: {
+          created_at: string
+          display_order: number
+          ewc_code: string | null
+          id: string
+          is_active: boolean
+          price_per_tonne: number
+          updated_at: string
+          waste_type: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          ewc_code?: string | null
+          id?: string
+          is_active?: boolean
+          price_per_tonne?: number
+          updated_at?: string
+          waste_type: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          ewc_code?: string | null
+          id?: string
+          is_active?: boolean
+          price_per_tonne?: number
+          updated_at?: string
+          waste_type?: string
+        }
+        Relationships: []
       }
     }
     Views: {
