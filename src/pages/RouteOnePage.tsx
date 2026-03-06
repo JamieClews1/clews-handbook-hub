@@ -292,6 +292,24 @@ const RouteOnePage = () => {
           </div>
 
           {/* Add buttons */}
+          {/* Driver Settings */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                <Settings className="h-3.5 w-3.5" />
+                Drivers
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Driver Settings</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <DriverSettings />
+              </div>
+            </SheetContent>
+          </Sheet>
+
           <Dialog open={newDriverOpen} onOpenChange={setNewDriverOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
