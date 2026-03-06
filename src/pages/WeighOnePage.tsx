@@ -394,6 +394,7 @@ const WeighOnePage = () => {
         <tr><td>Date:</td><td>${t.first_weigh_at ? format(new Date(t.first_weigh_at), "dd/MM/yyyy HH:mm") : "-"}</td></tr>
         <tr><td>Vehicle:</td><td>${t.vehicle_reg}</td></tr>
         <tr><td>Customer:</td><td>${t.customer ?? "-"}</td></tr>
+        <tr><td>Driver:</td><td>${t.driver_name ?? "-"}</td></tr>
         <tr><td>Site:</td><td>${t.site ?? "-"}</td></tr>
         <tr><td>Waste:</td><td>${t.waste_description ?? "-"}</td></tr>
         <tr><td>EWC Code:</td><td>${t.ewc_code ?? "-"}</td></tr>
@@ -966,6 +967,7 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-mono font-bold">{selectedTransaction.vehicle_reg}</span></div>
                 <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={STATUS_CONFIG[selectedTransaction.status].color}>{STATUS_CONFIG[selectedTransaction.status].label}</Badge></div>
                 <div><span className="text-muted-foreground">Customer:</span> {selectedTransaction.customer ?? "-"}</div>
+                <div><span className="text-muted-foreground">Driver:</span> {selectedTransaction.driver_name ?? "-"}</div>
                 <div><span className="text-muted-foreground">Site:</span> {selectedTransaction.site ?? "-"}</div>
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 <div><span className="text-muted-foreground">EWC:</span> {selectedTransaction.ewc_code ?? "-"}</div>
