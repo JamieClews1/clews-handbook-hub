@@ -79,8 +79,8 @@ const Index = () => {
     },
     {
       title: "OnePortal",
-      subtitle: "Internal Operations",
-      description: "Team compliance, safety documentation, policies, and reporting.",
+      subtitle: "Load Reports",
+      description: "Record and manage pallet loads across customer sites.",
       icon: Package,
       href: "/load-reports",
       gradient: "from-primary to-secondary",
