@@ -452,6 +452,9 @@ const WeighOnePage = () => {
           <p className="text-muted-foreground mt-1">Weighbridge & waste measurement</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setCmsDialogOpen(true)}>
+            <Database className="h-4 w-4" /> Vehicles & Customers
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setWasteTypesDialogOpen(true)}>
             <Settings className="h-4 w-4" /> Waste Types
           </Button>
