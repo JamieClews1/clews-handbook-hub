@@ -3681,6 +3681,7 @@ export type Database = {
           container_type: string | null
           created_at: string
           customer: string | null
+          driver_name: string | null
           ewc_code: string | null
           first_weigh_at: string | null
           gross_weight_kg: number | null
@@ -3707,6 +3708,7 @@ export type Database = {
           container_type?: string | null
           created_at?: string
           customer?: string | null
+          driver_name?: string | null
           ewc_code?: string | null
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
@@ -3733,6 +3735,7 @@ export type Database = {
           container_type?: string | null
           created_at?: string
           customer?: string | null
+          driver_name?: string | null
           ewc_code?: string | null
           first_weigh_at?: string | null
           gross_weight_kg?: number | null

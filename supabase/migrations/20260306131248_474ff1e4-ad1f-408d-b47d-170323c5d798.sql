@@ -1,0 +1,1 @@
+ALTER TABLE public.weighbridge_transactions ADD COLUMN driver_name TEXT;
