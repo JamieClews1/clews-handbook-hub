@@ -881,6 +881,7 @@ export type Database = {
           customer_name: string
           data_hub_customer: string | null
           id: string
+          is_active: boolean
           po_notification_email: string | null
           updated_at: string
         }
@@ -891,6 +892,7 @@ export type Database = {
           customer_name: string
           data_hub_customer?: string | null
           id?: string
+          is_active?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }
@@ -901,6 +903,7 @@ export type Database = {
           customer_name?: string
           data_hub_customer?: string | null
           id?: string
+          is_active?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }
