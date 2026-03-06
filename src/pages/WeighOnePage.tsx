@@ -24,6 +24,7 @@ interface WeighbridgeTransaction {
   vehicle_reg: string;
   customer: string | null;
   site: string | null;
+  driver_name: string | null;
   waste_description: string | null;
   ewc_code: string | null;
   container_type: string | null;
@@ -84,6 +85,7 @@ const WeighOnePage = () => {
     vehicle_reg: "",
     customer: "",
     site: "",
+    driver_name: "",
     waste_type_id: "",
     ewc_code: "",
     container_type: "",
@@ -207,6 +209,7 @@ const WeighOnePage = () => {
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
         customer: formData.customer || null,
         site: formData.site || null,
+        driver_name: formData.driver_name || null,
         waste_description: wasteType?.waste_type || null,
         ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
         container_type: formData.container_type || null,
@@ -339,7 +342,7 @@ const WeighOnePage = () => {
   });
 
   const resetForm = () => {
-    setFormData({ vehicle_reg: "", customer: "", site: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "" });
+    setFormData({ vehicle_reg: "", customer: "", site: "", driver_name: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "" });
     setNewAdditionalItems([]);
   };
 
@@ -391,6 +394,7 @@ const WeighOnePage = () => {
         <tr><td>Date:</td><td>${t.first_weigh_at ? format(new Date(t.first_weigh_at), "dd/MM/yyyy HH:mm") : "-"}</td></tr>
         <tr><td>Vehicle:</td><td>${t.vehicle_reg}</td></tr>
         <tr><td>Customer:</td><td>${t.customer ?? "-"}</td></tr>
+        <tr><td>Driver:</td><td>${t.driver_name ?? "-"}</td></tr>
         <tr><td>Site:</td><td>${t.site ?? "-"}</td></tr>
         <tr><td>Waste:</td><td>${t.waste_description ?? "-"}</td></tr>
         <tr><td>EWC Code:</td><td>${t.ewc_code ?? "-"}</td></tr>
@@ -552,6 +556,10 @@ const WeighOnePage = () => {
                     <Label>Site</Label>
                     <Input placeholder="Site name" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Driver Name</Label>
+                  <Input placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
                 </div>
 
                 {/* Waste Type Selection with Price */}
@@ -959,6 +967,7 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-mono font-bold">{selectedTransaction.vehicle_reg}</span></div>
                 <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={STATUS_CONFIG[selectedTransaction.status].color}>{STATUS_CONFIG[selectedTransaction.status].label}</Badge></div>
                 <div><span className="text-muted-foreground">Customer:</span> {selectedTransaction.customer ?? "-"}</div>
+                <div><span className="text-muted-foreground">Driver:</span> {selectedTransaction.driver_name ?? "-"}</div>
                 <div><span className="text-muted-foreground">Site:</span> {selectedTransaction.site ?? "-"}</div>
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 <div><span className="text-muted-foreground">EWC:</span> {selectedTransaction.ewc_code ?? "-"}</div>
