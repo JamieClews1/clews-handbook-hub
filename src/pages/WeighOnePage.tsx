@@ -556,6 +556,10 @@ const WeighOnePage = () => {
                     <Input placeholder="Site name" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Driver Name</Label>
+                  <Input placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                </div>
 
                 {/* Waste Type Selection with Price */}
                 <div className="space-y-2">
