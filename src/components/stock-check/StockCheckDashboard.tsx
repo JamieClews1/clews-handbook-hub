@@ -125,7 +125,7 @@ export const StockCheckDashboard = () => {
       (j) => !excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))
     );
 
-    const projMap: Record<string, { toCollect: number; toDeliver: number }> = {};
+    const projMap: Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }> = {};
 
     for (const type of containerTypes) {
       const keywords = type.data_hub_keywords || [];
@@ -135,15 +135,15 @@ export const StockCheckDashboard = () => {
         )
       );
 
-      const toCollect = matchingJobs.filter(
+      const collectJobs = matchingJobs.filter(
         (j) => j.movement_type?.toLowerCase().includes("collection") || j.movement_type?.toLowerCase().includes("collect")
-      ).length;
+      );
 
-      const toDeliver = matchingJobs.filter(
+      const deliverJobs = matchingJobs.filter(
         (j) => j.movement_type?.toLowerCase().includes("deliver") || j.movement_type?.toLowerCase().includes("exchange")
-      ).length;
+      );
 
-      projMap[type.id] = { toCollect, toDeliver };
+      projMap[type.id] = { toCollect: collectJobs.length, toDeliver: deliverJobs.length, collectJobs, deliverJobs };
     }
 
     setProjections(projMap);
