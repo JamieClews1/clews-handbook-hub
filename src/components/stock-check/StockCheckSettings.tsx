@@ -177,6 +177,16 @@ export const StockCheckSettings = () => {
                   onSave={(kw) => updateKeywords(type.id, kw)}
                 />
               </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Default Runner</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  className="w-16 h-8 text-center text-sm"
+                  value={type.default_runner}
+                  onChange={(e) => updateDefaultRunner(type.id, parseInt(e.target.value) || 0)}
+                />
+              </div>
             </div>
           ))}
 
