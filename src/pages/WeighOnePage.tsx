@@ -12,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings } from "lucide-react";
+import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database } from "lucide-react";
+import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -73,6 +74,7 @@ const WeighOnePage = () => {
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [wasteTypesDialogOpen, setWasteTypesDialogOpen] = useState(false);
+  const [cmsDialogOpen, setCmsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -450,6 +452,9 @@ const WeighOnePage = () => {
           <p className="text-muted-foreground mt-1">Weighbridge & waste measurement</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setCmsDialogOpen(true)}>
+            <Database className="h-4 w-4" /> Vehicles & Customers
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setWasteTypesDialogOpen(true)}>
             <Settings className="h-4 w-4" /> Waste Types
           </Button>
@@ -1090,6 +1095,15 @@ const WeighOnePage = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+      {/* Vehicles & Customers CMS Dialog */}
+      <Dialog open={cmsDialogOpen} onOpenChange={setCmsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vehicles & Customers</DialogTitle>
+          </DialogHeader>
+          <WeighOneCMS />
         </DialogContent>
       </Dialog>
     </div>
