@@ -492,6 +492,8 @@ const RouteOnePage = () => {
           {/* Driver Columns */}
           {drivers.map((driver: any) => {
             const driverJobs = getDriverJobs(driver.id);
+            const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
+            const totalCount = driverJobs.length + skiptrakJobs.length;
             return (
               <div
                 key={driver.id}
@@ -514,14 +516,22 @@ const RouteOnePage = () => {
                         )}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] h-5">{driverJobs.length}</Badge>
+                    <Badge variant="secondary" className="text-[10px] h-5">{totalCount}</Badge>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
                   {driverJobs.map((job: any) => (
                     <JobCard key={job.id} job={job} onDelete={() => deleteJob.mutate(job.id)} onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })} onDragStart={() => handleDragStart(job.id)} />
                   ))}
-                  {driverJobs.length === 0 && (
+                  {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
+                    <div className="border-t border-border/50 my-1 pt-1">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Skiptrak</span>
+                    </div>
+                  )}
+                  {skiptrakJobs.map((sj: any) => (
+                    <SkiptrakJobCard key={sj.job_number} job={sj} />
+                  ))}
+                  {totalCount === 0 && (
                     <div className="h-full flex items-center justify-center">
                       <p className="text-xs text-muted-foreground">Drop jobs here</p>
                     </div>
