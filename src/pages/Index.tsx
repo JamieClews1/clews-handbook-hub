@@ -79,10 +79,10 @@ const Index = () => {
     },
     {
       title: "OnePortal",
-      subtitle: "Load Reports",
-      description: "Record and manage pallet loads across customer sites.",
+      subtitle: "Internal Operations",
+      description: "Compliance, policies, load reports, safety, and team management.",
       icon: Package,
-      href: "/load-reports",
+      href: "/one-portal",
       gradient: "from-primary to-secondary",
     },
     {

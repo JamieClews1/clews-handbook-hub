@@ -29,6 +29,7 @@ import DutyOfCarePage from "./pages/DutyOfCarePage";
 import WasteReportingPage from "./pages/WasteReportingPage";
 import PoliciesPage from "./pages/PoliciesPage";
 import SiteReportsPage from "./pages/SiteReportsPage";
+import OnePortalPage from "./pages/OnePortalPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="/waste-reporting" element={<Staff><WasteReportingPage /></Staff>} />
             <Route path="/policies" element={<Staff><PoliciesPage /></Staff>} />
             <Route path="/site-reports" element={<Staff><SiteReportsPage /></Staff>} />
+            <Route path="/one-portal" element={<Staff><OnePortalPage /></Staff>} />
             <Route path="/load-reports" element={<Staff><LoadReportsPage /></Staff>} />
             <Route path="/performance-hub" element={<Staff><PerformanceHubPage /></Staff>} />
             <Route path="/performance-hub/reports" element={<Staff><PerformanceHubReportsPage /></Staff>} />
