@@ -3651,6 +3651,30 @@ export type Database = {
           },
         ]
       }
+      weighbridge_customers: {
+        Row: {
+          created_at: string
+          customer_name: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       weighbridge_transactions: {
         Row: {
           additional_items_total: number | null
@@ -3746,6 +3770,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      weighbridge_vehicles: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          vehicle_reg: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          vehicle_reg: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          vehicle_reg?: string
+        }
+        Relationships: []
       }
       weighbridge_waste_types: {
         Row: {
