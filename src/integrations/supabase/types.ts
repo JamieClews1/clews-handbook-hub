@@ -915,6 +915,7 @@ export type Database = {
           container_type: string | null
           created_at: string
           customer: string | null
+          driver: string | null
           ewc: string | null
           id: string
           job_date: string | null
@@ -925,6 +926,7 @@ export type Database = {
           raw: Json
           site: string | null
           source: string
+          tipping_location: string | null
           updated_at: string
           vehicle_registration: string | null
           waste_description: string | null
@@ -935,6 +937,7 @@ export type Database = {
           container_type?: string | null
           created_at?: string
           customer?: string | null
+          driver?: string | null
           ewc?: string | null
           id?: string
           job_date?: string | null
@@ -945,6 +948,7 @@ export type Database = {
           raw?: Json
           site?: string | null
           source: string
+          tipping_location?: string | null
           updated_at?: string
           vehicle_registration?: string | null
           waste_description?: string | null
@@ -955,6 +959,7 @@ export type Database = {
           container_type?: string | null
           created_at?: string
           customer?: string | null
+          driver?: string | null
           ewc?: string | null
           id?: string
           job_date?: string | null
@@ -965,6 +970,7 @@ export type Database = {
           raw?: Json
           site?: string | null
           source?: string
+          tipping_location?: string | null
           updated_at?: string
           vehicle_registration?: string | null
           waste_description?: string | null
