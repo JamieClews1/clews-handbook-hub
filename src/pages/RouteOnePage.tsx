@@ -134,6 +134,25 @@ const RouteOnePage = () => {
     },
   });
 
+  // Fetch Skiptrak scheduled jobs for the selected date range (from data_hub_jobs)
+  const { data: skiptrakScheduledJobs = [] } = useQuery({
+    queryKey: ["route-one-skiptrak-jobs", viewMode, dateStr, weekStart],
+    queryFn: async () => {
+      let query = supabase
+        .from("data_hub_jobs")
+        .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location")
+        .eq("source", "skiptrak");
+      if (viewMode === "day") {
+        query = query.eq("job_date", dateStr);
+      } else {
+        query = query.gte("job_date", weekStart).lte("job_date", weekEnd);
+      }
+      const { data, error } = await query.not("driver", "is", null).order("job_date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // Create job mutation
   const createJob = useMutation({
     mutationFn: async (form: typeof jobForm) => {
