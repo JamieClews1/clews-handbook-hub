@@ -111,6 +111,19 @@ export const StockCheckSettings = () => {
     }
   };
 
+  const updateDefaultRunner = async (id: string, value: number) => {
+    setContainerTypes((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, default_runner: value } : t))
+    );
+    const { error } = await supabase
+      .from("stock_check_container_types")
+      .update({ default_runner: value } as any)
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const addExcludedSite = async () => {
     if (!newSiteName.trim()) return;
 
