@@ -411,6 +411,12 @@ const DataUploadsPage = () => {
 
     const mapped: DataHubJobRow[] = [];
     for (const r of rows) {
+      // For Skiptrak uploads, skip rows where Status = 'V' (voided)
+      if (source === "skiptrak") {
+        const statusVal = getFirstMatchingValue(r, ["Status", "status"]);
+        if (statusVal && String(statusVal).trim().toUpperCase() === "V") continue;
+      }
+
       const ticketVal = getFirstMatchingValue(r, ["Ticket", "ticket", "Job Number", "job number"]);
       const ticket = String(ticketVal ?? "").trim();
       if (!ticket) continue;
@@ -440,7 +446,6 @@ const DataUploadsPage = () => {
       // Source-specific customer field mapping
       const customerCandidates = source === "midweigh"
         ? [
-            // Midweigh uses "Company/Surname" as customer and "Account" as client code
             "Company/Surname",
             "Company /Surname",
             "Company",
@@ -467,7 +472,6 @@ const DataUploadsPage = () => {
           getFirstMatchingValue(r, [
             "Site",
             "Site Name",
-            "Location",
             "Delivery Site",
             "Collection Site",
             "Job Site",
@@ -490,13 +494,13 @@ const DataUploadsPage = () => {
           ]),
         ),
         category: source === "midweigh" 
-          ? "Midweigh" // Always set category to "Midweigh" for midweigh uploads
+          ? "Midweigh"
           : toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])),
         movement_type: toCleanString(getFirstMatchingValue(r, [
           "Movement Type", 
           "Movement", 
           "movement_type",
-          "In / Out",    // Midweigh column
+          "In / Out",
           "In/Out",
           "In Out",
         ])),
@@ -512,6 +516,12 @@ const DataUploadsPage = () => {
         weight_t: weightTonnes,
         vehicle_registration: toCleanString(
           getFirstMatchingValue(r, ["Vehicle", "Vehicle Registration", "Vehicle Reg", "Reg", "Registration", "vehicle_registration"]),
+        ),
+        driver: toCleanString(
+          getFirstMatchingValue(r, ["Driver", "Drivers", "Driver Name", "driver"]),
+        ),
+        tipping_location: toCleanString(
+          getFirstMatchingValue(r, ["Location", "Tipping Location", "Tip Location", "tipping_location"]),
         ),
         raw: r,
       });
