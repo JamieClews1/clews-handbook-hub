@@ -3616,11 +3616,86 @@ export type Database = {
         }
         Relationships: []
       }
+      weighbridge_transactions: {
+        Row: {
+          container_type: string | null
+          created_at: string
+          customer: string | null
+          ewc_code: string | null
+          first_weigh_at: string | null
+          gross_weight_kg: number | null
+          id: string
+          net_weight_kg: number | null
+          notes: string | null
+          operator_id: string | null
+          operator_name: string | null
+          second_weigh_at: string | null
+          site: string | null
+          status: Database["public"]["Enums"]["weighbridge_status"]
+          tare_weight_kg: number | null
+          ticket_number: string
+          updated_at: string
+          vehicle_reg: string
+          waste_description: string | null
+        }
+        Insert: {
+          container_type?: string | null
+          created_at?: string
+          customer?: string | null
+          ewc_code?: string | null
+          first_weigh_at?: string | null
+          gross_weight_kg?: number | null
+          id?: string
+          net_weight_kg?: number | null
+          notes?: string | null
+          operator_id?: string | null
+          operator_name?: string | null
+          second_weigh_at?: string | null
+          site?: string | null
+          status?: Database["public"]["Enums"]["weighbridge_status"]
+          tare_weight_kg?: number | null
+          ticket_number: string
+          updated_at?: string
+          vehicle_reg: string
+          waste_description?: string | null
+        }
+        Update: {
+          container_type?: string | null
+          created_at?: string
+          customer?: string | null
+          ewc_code?: string | null
+          first_weigh_at?: string | null
+          gross_weight_kg?: number | null
+          id?: string
+          net_weight_kg?: number | null
+          notes?: string | null
+          operator_id?: string | null
+          operator_name?: string | null
+          second_weigh_at?: string | null
+          site?: string | null
+          status?: Database["public"]["Enums"]["weighbridge_status"]
+          tare_weight_kg?: number | null
+          ticket_number?: string
+          updated_at?: string
+          vehicle_reg?: string
+          waste_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighbridge_transactions_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_ticket_number: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3646,6 +3721,7 @@ export type Database = {
         | "wasted_journey"
       skip_material_type: "card_loose" | "scrap_metal"
       user_type: "driver" | "yard" | "office" | "management"
+      weighbridge_status: "first_weigh" | "completed" | "voided"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3790,6 +3866,7 @@ export const Constants = {
       ],
       skip_material_type: ["card_loose", "scrap_metal"],
       user_type: ["driver", "yard", "office", "management"],
+      weighbridge_status: ["first_weigh", "completed", "voided"],
     },
   },
 } as const
