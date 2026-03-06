@@ -875,6 +875,12 @@ export function CustomerSetupAdmin() {
             </Button>
           </div>
 
+          <div className="flex items-center gap-2 text-sm">
+            <Switch checked={showArchived} onCheckedChange={setShowArchived} id="show-archived" />
+            <Label htmlFor="show-archived" className="text-muted-foreground cursor-pointer">Show archived</Label>
+            <span className="ml-auto text-xs text-muted-foreground">{filteredCustomers.length} customers</span>
+          </div>
+
           <div className="rounded-md border border-border overflow-hidden">
             <div className="max-h-[420px] overflow-auto">
               <Table>
@@ -891,7 +897,12 @@ export function CustomerSetupAdmin() {
                       onClick={() => setSelectedCustomerId(c.id)}
                       role="button"
                     >
-                      <TableCell className="font-medium">{c.customer_name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {c.customer_name}
+                          {!c.is_active && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Archived</Badge>}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {filteredCustomers.length === 0 && (
