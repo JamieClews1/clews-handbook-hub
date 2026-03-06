@@ -30,6 +30,8 @@ type Customer = {
   customer_name: string;
   po_notification_email: string | null;
   custom_reporting_periods_enabled: boolean;
+  is_active: boolean;
+  data_hub_customer: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -100,6 +102,7 @@ export function CustomerSetupAdmin() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   const [sites, setSites] = useState<CustomerSite[]>([]);
   const [contacts, setContacts] = useState<CustomerContact[]>([]);
@@ -191,13 +194,14 @@ export function CustomerSetupAdmin() {
 
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
-    if (!q) return customers;
     return customers.filter((c) => {
+      if (!showArchived && !c.is_active) return false;
+      if (!q) return true;
       const code = c.customer_code.toLowerCase();
       const name = c.customer_name.toLowerCase();
       return code.includes(q) || name.includes(q);
     });
-  }, [customers, customerSearch]);
+  }, [customers, customerSearch, showArchived]);
 
   const contactsById = useMemo(() => {
     const map: Record<string, CustomerContact> = {};
@@ -217,7 +221,7 @@ export function CustomerSetupAdmin() {
   const loadCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,created_at,updated_at")
+      .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_active,data_hub_customer,created_at,updated_at")
       .order("customer_name", { ascending: true });
     if (error) throw error;
     setCustomers((data ?? []) as Customer[]);
