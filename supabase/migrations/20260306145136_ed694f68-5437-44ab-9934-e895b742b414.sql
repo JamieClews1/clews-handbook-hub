@@ -1,0 +1,1 @@
+ALTER TABLE public.stock_check_container_types ADD COLUMN default_runner integer NOT NULL DEFAULT 0;

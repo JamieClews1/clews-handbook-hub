@@ -13,6 +13,7 @@ interface ContainerType {
   name: string;
   category: string;
   display_order: number;
+  default_runner: number;
 }
 
 interface TallyItem {
@@ -54,10 +55,10 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
       if (types) {
         setContainerTypes(types);
         setTallyItems(
-          types.map((t) => ({
+          types.map((t: any) => ({
             container_type_id: t.id,
             in_yard: 0,
-            runner: 0,
+            runner: t.default_runner ?? 0,
             notes: "",
           }))
         );
