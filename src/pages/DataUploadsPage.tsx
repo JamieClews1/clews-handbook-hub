@@ -582,7 +582,7 @@ const DataUploadsPage = () => {
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
-          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date")
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location")
           .in("job_number", jobNumbers)
           .eq("source", source);
         
@@ -604,6 +604,8 @@ const DataUploadsPage = () => {
             container_type: j.container_type ?? (existingRow?.container_type as any) ?? null,
             weight_t: j.weight_t ?? (existingRow?.weight_t as any) ?? null,
             vehicle_registration: j.vehicle_registration ?? (existingRow?.vehicle_registration as any) ?? null,
+            driver: j.driver ?? (existingRow?.driver as any) ?? null,
+            tipping_location: j.tipping_location ?? (existingRow?.tipping_location as any) ?? null,
           } satisfies DataHubJobRow;
         });
 
