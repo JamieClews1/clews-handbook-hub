@@ -252,9 +252,21 @@ const RouteOnePage = () => {
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  // Get jobs for a specific driver
+  // Get jobs for a specific driver (manual + Skiptrak)
   const getDriverJobs = (driverId: string) =>
     jobs.filter((j: any) => j.assigned_driver_id === driverId);
+
+  // Match Skiptrak jobs to drivers by name (fuzzy: lowercase trim)
+  const getSkiptrakJobsForDriver = (driverName: string) => {
+    const normalized = driverName.toLowerCase().trim();
+    return skiptrakScheduledJobs.filter((j: any) => {
+      const d = (j.driver || "").toLowerCase().trim();
+      // Match if driver name contains or equals (handles "Lee.Gane" vs "Lee Gane")
+      const dNorm = d.replace(/[.\-_]/g, " ");
+      const nNorm = normalized.replace(/[.\-_]/g, " ");
+      return dNorm === nNorm || dNorm.includes(nNorm) || nNorm.includes(dNorm);
+    });
+  };
 
   const unassignedJobs = jobs.filter((j: any) => !j.assigned_driver_id);
 

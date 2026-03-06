@@ -11,6 +11,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
 import WasteNotOnMidweigh from "@/components/data-hub/WasteNotOnMidweigh";
+import WasteOnsiteOffsite from "@/components/data-hub/WasteOnsiteOffsite";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
