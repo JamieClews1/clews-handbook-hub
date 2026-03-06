@@ -74,6 +74,7 @@ const WeighOnePage = () => {
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [wasteTypesDialogOpen, setWasteTypesDialogOpen] = useState(false);
+  const [cmsDialogOpen, setCmsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
