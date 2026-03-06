@@ -92,7 +92,8 @@ const WeighOnePage = () => {
 
   // Additional items for new transaction
   const [newAdditionalItems, setNewAdditionalItems] = useState<{ description: string; cost: string }[]>([]);
-
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [vehicleSearch, setVehicleSearch] = useState("");
   // Second weigh form
   const [secondWeighKg, setSecondWeighKg] = useState("");
 
@@ -123,6 +124,34 @@ const WeighOnePage = () => {
         .order("display_order", { ascending: true });
       if (error) throw error;
       return data as WasteType[];
+    },
+  });
+
+  // Fetch Midweigh customers
+  const { data: midweighCustomers = [] } = useQuery({
+    queryKey: ["weighbridge-customers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weighbridge_customers")
+        .select("id, customer_name")
+        .eq("is_active", true)
+        .order("customer_name", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; customer_name: string }[];
+    },
+  });
+
+  // Fetch Midweigh vehicles
+  const { data: midweighVehicles = [] } = useQuery({
+    queryKey: ["weighbridge-vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weighbridge_vehicles")
+        .select("id, vehicle_reg")
+        .eq("is_active", true)
+        .order("vehicle_reg", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; vehicle_reg: string }[];
     },
   });
 
@@ -438,7 +467,39 @@ const WeighOnePage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Vehicle Reg *</Label>
-                    <Input placeholder="AB12 CDE" value={formData.vehicle_reg} onChange={(e) => setFormData((p) => ({ ...p, vehicle_reg: e.target.value }))} />
+                    <div className="relative">
+                      <Input
+                        placeholder="Search or type reg..."
+                        value={formData.vehicle_reg}
+                        onChange={(e) => {
+                          setFormData((p) => ({ ...p, vehicle_reg: e.target.value }));
+                          setVehicleSearch(e.target.value);
+                        }}
+                        onFocus={() => setVehicleSearch(formData.vehicle_reg)}
+                        onBlur={() => setTimeout(() => setVehicleSearch(""), 200)}
+                      />
+                      {vehicleSearch && formData.vehicle_reg && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {midweighVehicles
+                            .filter(v => v.vehicle_reg.toLowerCase().includes(formData.vehicle_reg.toLowerCase()))
+                            .slice(0, 20)
+                            .map(v => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData(p => ({ ...p, vehicle_reg: v.vehicle_reg }));
+                                  setVehicleSearch("");
+                                }}
+                              >
+                                {v.vehicle_reg}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Gross Weight (kg) *</Label>
@@ -448,7 +509,39 @@ const WeighOnePage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Customer</Label>
-                    <Input placeholder="Customer name" value={formData.customer} onChange={(e) => setFormData((p) => ({ ...p, customer: e.target.value }))} />
+                    <div className="relative">
+                      <Input
+                        placeholder="Search customer..."
+                        value={formData.customer}
+                        onChange={(e) => {
+                          setFormData((p) => ({ ...p, customer: e.target.value }));
+                          setCustomerSearch(e.target.value);
+                        }}
+                        onFocus={() => setCustomerSearch(formData.customer)}
+                        onBlur={() => setTimeout(() => setCustomerSearch(""), 200)}
+                      />
+                      {customerSearch && formData.customer && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {midweighCustomers
+                            .filter(c => c.customer_name.toLowerCase().includes(formData.customer.toLowerCase()))
+                            .slice(0, 20)
+                            .map(c => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData(p => ({ ...p, customer: c.customer_name }));
+                                  setCustomerSearch("");
+                                }}
+                              >
+                                {c.customer_name}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Site</Label>
