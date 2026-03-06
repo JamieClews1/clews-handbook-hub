@@ -24,6 +24,7 @@ interface WeighbridgeTransaction {
   vehicle_reg: string;
   customer: string | null;
   site: string | null;
+  driver_name: string | null;
   waste_description: string | null;
   ewc_code: string | null;
   container_type: string | null;
@@ -84,6 +85,7 @@ const WeighOnePage = () => {
     vehicle_reg: "",
     customer: "",
     site: "",
+    driver_name: "",
     waste_type_id: "",
     ewc_code: "",
     container_type: "",
@@ -207,6 +209,7 @@ const WeighOnePage = () => {
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
         customer: formData.customer || null,
         site: formData.site || null,
+        driver_name: formData.driver_name || null,
         waste_description: wasteType?.waste_type || null,
         ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
         container_type: formData.container_type || null,
@@ -339,7 +342,7 @@ const WeighOnePage = () => {
   });
 
   const resetForm = () => {
-    setFormData({ vehicle_reg: "", customer: "", site: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "" });
+    setFormData({ vehicle_reg: "", customer: "", site: "", driver_name: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "" });
     setNewAdditionalItems([]);
   };
 
