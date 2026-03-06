@@ -24,6 +24,14 @@ interface StockCheckItem {
   notes: string | null;
 }
 
+interface ProjectionJob {
+  site: string | null;
+  container_type: string | null;
+  job_date: string | null;
+  movement_type: string | null;
+  customer: string | null;
+}
+
 interface DailyEntry {
   container_type_id: string;
   entry_date: string;
