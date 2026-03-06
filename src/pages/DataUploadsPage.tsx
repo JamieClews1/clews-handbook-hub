@@ -40,6 +40,8 @@ type DataHubJobRow = {
   job_type?: string | null;
   weight_t?: number | null;
   vehicle_registration?: string | null;
+  driver?: string | null;
+  tipping_location?: string | null;
   raw: Record<string, unknown>;
 };
 
@@ -72,6 +74,8 @@ type ExistingJobFields = {
   container_type: string | null;
   weight_t: number | null;
   vehicle_registration: string | null;
+  driver: string | null;
+  tipping_location: string | null;
 };
 
 function normalizeHeaderKey(key: unknown) {
