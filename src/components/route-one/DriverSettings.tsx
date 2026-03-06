@@ -83,7 +83,7 @@ export const DriverSettings = () => {
         const { error } = await supabase.from("route_one_drivers").update(data).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("route_one_drivers").insert(data);
+        const { error } = await supabase.from("route_one_drivers").insert([data as any]);
         if (error) throw error;
       }
     },

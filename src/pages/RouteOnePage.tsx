@@ -24,7 +24,10 @@ import {
   Clock,
   MapPin,
   AlertTriangle,
+  Settings,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DriverSettings } from "@/components/route-one/DriverSettings";
 import {
   DropdownMenu,
   DropdownMenuContent,
