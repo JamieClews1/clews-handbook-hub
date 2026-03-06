@@ -243,10 +243,43 @@ export const StockCheckDashboard = () => {
 interface StockTableProps {
   types: ContainerType[];
   getItem: (typeId: string) => StockCheckItem | undefined;
-  getProjection: (typeId: string) => { toCollect: number; toDeliver: number };
+  getProjection: (typeId: string) => { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] };
   calcBookingsAllowed: (typeId: string) => number;
   showProjections: boolean;
 }
+
+const JobsPopover = ({ jobs, label, colorClass }: { jobs: ProjectionJob[]; label: string; colorClass: string }) => {
+  if (jobs.length === 0) return <span className={colorClass}>0</span>;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={`${colorClass} underline decoration-dotted underline-offset-2 cursor-pointer hover:opacity-80`}>
+          {jobs.length}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 max-h-64 overflow-y-auto p-0" align="center">
+        <div className="p-3 border-b border-border">
+          <h4 className="font-semibold text-sm text-foreground">{label} ({jobs.length})</h4>
+        </div>
+        <div className="divide-y divide-border/50">
+          {jobs.map((job, i) => (
+            <div key={i} className="px-3 py-2 text-xs space-y-0.5">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-foreground truncate max-w-[180px]">{job.customer || "—"}</span>
+                {job.job_date && (
+                  <span className="text-muted-foreground">{format(new Date(job.job_date), "dd MMM")}</span>
+                )}
+              </div>
+              <div className="text-muted-foreground truncate">{job.site || "—"}</div>
+              <div className="text-muted-foreground">{job.container_type} · {job.movement_type}</div>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showProjections }: StockTableProps) => {
   return (
@@ -292,8 +325,12 @@ const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showPr
               <td className="py-3 px-2 text-center font-bold text-foreground">{item?.in_yard ?? 0}</td>
               {showProjections && (
                 <>
-                  <td className="py-3 px-2 text-center text-green-600 font-medium">{proj.toCollect}</td>
-                  <td className="py-3 px-2 text-center text-red-600 font-medium">{proj.toDeliver}</td>
+                  <td className="py-3 px-2 text-center font-medium">
+                    <JobsPopover jobs={proj.collectJobs} label="To Collect" colorClass="text-green-600 font-medium" />
+                  </td>
+                  <td className="py-3 px-2 text-center font-medium">
+                    <JobsPopover jobs={proj.deliverJobs} label="To Deliver" colorClass="text-red-600 font-medium" />
+                  </td>
                 </>
               )}
               <td className="py-3 px-2 text-center text-muted-foreground">{item?.runner ?? 0}</td>
