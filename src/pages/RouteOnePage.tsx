@@ -31,13 +31,15 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
+import { VehicleSettings } from "@/components/route-one/VehicleSettings";
+import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
 type JobStatus = "unassigned" | "assigned" | "in_progress" | "completed" | "query";
@@ -412,21 +414,36 @@ const RouteOnePage = () => {
             </Button>
           </Link>
 
-          {/* Driver Settings */}
+          {/* Settings Sheet */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
                 <Settings className="h-3.5 w-3.5" />
-                Drivers
+                Setup
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[800px] sm:max-w-[800px] overflow-y-auto">
+            <SheetContent side="right" className="w-[850px] sm:max-w-[850px] overflow-y-auto">
               <SheetHeader>
-                <SheetTitle>Driver Settings</SheetTitle>
+                <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
-              <div className="mt-4">
-                <DriverSettings />
-              </div>
+              <Tabs defaultValue="drivers" className="mt-4">
+                <TabsList className="w-full grid grid-cols-3">
+                  <TabsTrigger value="drivers">Drivers</TabsTrigger>
+                  <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+                  <TabsTrigger value="driver-app">Driver App</TabsTrigger>
+                </TabsList>
+                <div className="mt-4">
+                  <TabsContent value="drivers">
+                    <DriverSettings />
+                  </TabsContent>
+                  <TabsContent value="vehicles">
+                    <VehicleSettings />
+                  </TabsContent>
+                  <TabsContent value="driver-app">
+                    <DriverAppManagement />
+                  </TabsContent>
+                </div>
+              </Tabs>
             </SheetContent>
           </Sheet>
 
