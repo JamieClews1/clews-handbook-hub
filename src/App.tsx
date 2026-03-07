@@ -76,6 +76,7 @@ const App = () => (
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
             <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
+            <Route path="/driver" element={<DriverAppPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
