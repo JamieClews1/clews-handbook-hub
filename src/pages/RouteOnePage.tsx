@@ -31,6 +31,8 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
+import { VehicleSettings } from "@/components/route-one/VehicleSettings";
+import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
 import {
   DropdownMenu,
   DropdownMenuContent,
