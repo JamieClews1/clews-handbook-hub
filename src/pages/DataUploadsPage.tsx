@@ -256,7 +256,7 @@ const DataUploadsPage = () => {
       let q = supabase
         .from("data_hub_jobs")
         .select(
-          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,updated_at",
+          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,updated_at",
         )
         .order("job_date", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
@@ -1024,6 +1024,8 @@ const DataUploadsPage = () => {
                       <TableHead className="whitespace-nowrap">Waste</TableHead>
                       <TableHead className="whitespace-nowrap text-right">Weight (t)</TableHead>
                       <TableHead className="whitespace-nowrap">Vehicle</TableHead>
+                      <TableHead className="whitespace-nowrap">Driver</TableHead>
+                      <TableHead className="whitespace-nowrap">Tipping Location</TableHead>
                       <TableHead className="whitespace-nowrap">Category</TableHead>
                       <TableHead className="whitespace-nowrap">Movement</TableHead>
                       <TableHead className="whitespace-nowrap">Container</TableHead>
@@ -1032,7 +1034,7 @@ const DataUploadsPage = () => {
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="py-12">
+                        <TableCell colSpan={14} className="py-12">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             <p className="text-muted-foreground">Loading data...</p>
@@ -1041,7 +1043,7 @@ const DataUploadsPage = () => {
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-muted-foreground">
+                        <TableCell colSpan={14} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
@@ -1065,6 +1067,8 @@ const DataUploadsPage = () => {
                                 : j.weight_t.toFixed(2)}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">{j.vehicle_registration ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.driver ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.tipping_location ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.container_type ?? "—"}</TableCell>
