@@ -37,7 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
 type JobStatus = "unassigned" | "assigned" | "in_progress" | "completed" | "query";
