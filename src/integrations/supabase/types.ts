@@ -2789,16 +2789,54 @@ export type Database = {
           },
         ]
       }
+      route_one_job_photos: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          job_id: string
+          photo_type: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          job_id: string
+          photo_type?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          job_id?: string
+          photo_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_one_job_photos_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       route_one_jobs: {
         Row: {
           assigned_driver_id: string | null
           completed_at: string | null
           container_size: string | null
           container_type: string | null
+          contamination_notes: string | null
+          contamination_type: string | null
           created_at: string
           created_by: string | null
           customer_name: string
           display_order: number
+          driver_notes: string | null
           estimated_duration_mins: number | null
           ewc_code: string | null
           id: string
@@ -2812,6 +2850,7 @@ export type Database = {
           site_address: string | null
           site_name: string | null
           site_postcode: string | null
+          started_at: string | null
           status: Database["public"]["Enums"]["route_one_job_status"]
           updated_at: string
           waste_type: string | null
@@ -2821,10 +2860,13 @@ export type Database = {
           completed_at?: string | null
           container_size?: string | null
           container_type?: string | null
+          contamination_notes?: string | null
+          contamination_type?: string | null
           created_at?: string
           created_by?: string | null
           customer_name: string
           display_order?: number
+          driver_notes?: string | null
           estimated_duration_mins?: number | null
           ewc_code?: string | null
           id?: string
@@ -2838,6 +2880,7 @@ export type Database = {
           site_address?: string | null
           site_name?: string | null
           site_postcode?: string | null
+          started_at?: string | null
           status?: Database["public"]["Enums"]["route_one_job_status"]
           updated_at?: string
           waste_type?: string | null
@@ -2847,10 +2890,13 @@ export type Database = {
           completed_at?: string | null
           container_size?: string | null
           container_type?: string | null
+          contamination_notes?: string | null
+          contamination_type?: string | null
           created_at?: string
           created_by?: string | null
           customer_name?: string
           display_order?: number
+          driver_notes?: string | null
           estimated_duration_mins?: number | null
           ewc_code?: string | null
           id?: string
@@ -2864,6 +2910,7 @@ export type Database = {
           site_address?: string | null
           site_name?: string | null
           site_postcode?: string | null
+          started_at?: string | null
           status?: Database["public"]["Enums"]["route_one_job_status"]
           updated_at?: string
           waste_type?: string | null
