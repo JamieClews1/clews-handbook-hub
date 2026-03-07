@@ -20,7 +20,7 @@ interface Vehicle {
   is_active: boolean;
 }
 
-const VEHICLE_TYPES = ["Skip Loader", "Ro Ro", "Grab", "Tipper", "Flatbed", "Van", "Other"];
+const VEHICLE_TYPES = ["Skip Loader", "Ro Ro", "Grab", "Tipper", "Flatbed", "Artic", "Van", "Other"];
 
 export const VehicleSettings = () => {
   const queryClient = useQueryClient();
