@@ -49,6 +49,7 @@ import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
+import DriverAppPage from "./pages/DriverAppPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
