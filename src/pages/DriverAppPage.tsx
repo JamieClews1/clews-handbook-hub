@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import {
   Truck,
   MapPin,
@@ -16,14 +18,21 @@ import {
   Package,
   AlertTriangle,
   User,
-  Hash,
   LogOut,
   Loader2,
+  Camera,
+  X,
+  Check,
+  Play,
+  Square,
+  ImageIcon,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
+type JobStatus = "unassigned" | "assigned" | "in_progress" | "completed" | "query";
 
 const JOB_TYPE_LABELS: Record<JobType, string> = {
   delivery: "Delivery",
@@ -40,6 +49,22 @@ const JOB_TYPE_COLORS: Record<JobType, { bg: string; border: string; text: strin
   waste_truck:    { bg: "bg-blue-500/10",    border: "border-blue-500",    text: "text-blue-700",    badge: "bg-blue-500 text-white" },
   wasted_journey: { bg: "bg-red-500/10",     border: "border-red-500",     text: "text-red-700",     badge: "bg-red-500 text-white" },
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  assigned: "Assigned",
+  in_progress: "In Progress",
+  completed: "Completed",
+  query: "Query",
+};
+
+const CONTAMINATION_TYPES = [
+  "Mixed Waste",
+  "Hazardous Materials",
+  "Overfilled Container",
+  "Incorrect Waste Type",
+  "Liquid Waste",
+  "Other",
+];
 
 interface Driver {
   id: string;
@@ -63,9 +88,21 @@ interface Job {
   waste_type: string | null;
   ewc_code: string | null;
   scheduled_time: string | null;
-  status: string;
+  status: JobStatus;
   notes: string | null;
   po_number: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  driver_notes: string | null;
+  contamination_type: string | null;
+  contamination_notes: string | null;
+}
+
+interface JobPhoto {
+  id: string;
+  photo_type: string;
+  file_path: string;
+  file_name: string;
 }
 
 /* ─── PIN Login Screen ────────────────────────── */
@@ -109,7 +146,6 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
-        {/* Logo area */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-emerald-500/20 mb-4">
             <Truck className="w-10 h-10 text-emerald-400" />
@@ -118,7 +154,6 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
           <p className="text-zinc-400 text-lg">Driver Login</p>
         </div>
 
-        {/* Driver Number */}
         <div className="space-y-3">
           <label className="text-zinc-300 text-sm font-medium">Driver Number</label>
           <Input
@@ -131,7 +166,6 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
           />
         </div>
 
-        {/* PIN Display */}
         <div className="space-y-3">
           <label className="text-zinc-300 text-sm font-medium">PIN</label>
           <div className="flex justify-center gap-3">
@@ -151,7 +185,6 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
           </div>
         </div>
 
-        {/* PIN Pad */}
         <div className="grid grid-cols-3 gap-3">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((key) => (
             <Button
@@ -195,9 +228,190 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
   );
 };
 
+/* ─── Photo Capture Component ─────────────────── */
+const PhotoCapture = ({
+  jobId,
+  photoType,
+  label,
+}: {
+  jobId: string;
+  photoType: string;
+  label: string;
+}) => {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const { data: photos = [] } = useQuery({
+    queryKey: ["job-photos", jobId, photoType],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("route_one_job_photos")
+        .select("*")
+        .eq("job_id", jobId)
+        .eq("photo_type", photoType)
+        .order("created_at");
+      if (error) throw error;
+      return (data || []) as JobPhoto[];
+    },
+  });
+
+  const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+
+    try {
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop() || "jpg";
+        const fileName = `${jobId}/${photoType}_${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("route-one-photos")
+          .upload(fileName, file, { cacheControl: "3600" });
+
+        if (uploadError) throw uploadError;
+
+        const { error: dbError } = await supabase
+          .from("route_one_job_photos")
+          .insert({
+            job_id: jobId,
+            photo_type: photoType,
+            file_path: fileName,
+            file_name: file.name,
+          });
+
+        if (dbError) throw dbError;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["job-photos", jobId, photoType] });
+      toast.success(`${label} photo captured`);
+    } catch (err) {
+      console.error("Photo upload error:", err);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async (photo: JobPhoto) => {
+    await supabase.storage.from("route-one-photos").remove([photo.file_path]);
+    await supabase.from("route_one_job_photos").delete().eq("id", photo.id);
+    queryClient.invalidateQueries({ queryKey: ["job-photos", jobId, photoType] });
+    toast.success("Photo removed");
+  };
+
+  const getPublicUrl = (path: string) => {
+    const { data } = supabase.storage.from("route-one-photos").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm text-foreground">{label}</h3>
+        <Badge variant="secondary" className="text-xs">
+          {photos.length} photo{photos.length !== 1 ? "s" : ""}
+        </Badge>
+      </div>
+
+      {/* Photo thumbnails */}
+      {photos.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {photos.map((photo) => (
+            <div key={photo.id} className="relative shrink-0">
+              <img
+                src={getPublicUrl(photo.file_path)}
+                alt={photo.file_name}
+                className="w-20 h-20 object-cover rounded-lg border"
+              />
+              <button
+                onClick={() => handleDelete(photo)}
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Capture button */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleCapture}
+        multiple
+      />
+      <Button
+        variant="outline"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="w-full h-14 text-base gap-3 rounded-xl border-dashed border-2"
+      >
+        {uploading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          <Camera className="w-5 h-5" />
+        )}
+        {uploading ? "Uploading..." : `Take ${label} Photo`}
+      </Button>
+    </div>
+  );
+};
+
+/* ─── Contamination Report ────────────────────── */
+const ContaminationReport = ({
+  selectedType,
+  notes,
+  onTypeChange,
+  onNotesChange,
+}: {
+  selectedType: string;
+  notes: string;
+  onTypeChange: (t: string) => void;
+  onNotesChange: (n: string) => void;
+}) => (
+  <div className="space-y-3">
+    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+      <AlertTriangle className="w-4 h-4 text-red-500" />
+      Contamination Report
+    </h3>
+    <div className="grid grid-cols-2 gap-2">
+      {CONTAMINATION_TYPES.map((type) => (
+        <Button
+          key={type}
+          variant={selectedType === type ? "default" : "outline"}
+          onClick={() => onTypeChange(selectedType === type ? "" : type)}
+          className={cn(
+            "h-12 text-sm rounded-xl justify-start",
+            selectedType === type && "bg-red-500 hover:bg-red-600 text-white"
+          )}
+        >
+          {type}
+        </Button>
+      ))}
+    </div>
+    {selectedType && (
+      <Textarea
+        value={notes}
+        onChange={(e) => onNotesChange(e.target.value)}
+        placeholder="Describe the contamination issue..."
+        className="min-h-[80px] rounded-xl text-base"
+      />
+    )}
+  </div>
+);
+
 /* ─── Job Card ────────────────────────────────── */
 const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
+  const isCompleted = job.status === "completed";
+  const isInProgress = job.status === "in_progress";
 
   return (
     <Card
@@ -205,6 +419,7 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
       className={cn(
         "border-l-4 cursor-pointer active:scale-[0.98] transition-transform",
         colors.border,
+        isCompleted ? "opacity-60" : "",
         colors.bg
       )}
     >
@@ -215,9 +430,19 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
               <Badge className={cn("text-xs font-bold", colors.badge)}>
                 {JOB_TYPE_LABELS[job.job_type]}
               </Badge>
+              {isInProgress && (
+                <Badge className="bg-blue-500 text-white text-xs gap-1">
+                  <Play className="w-3 h-3" /> In Progress
+                </Badge>
+              )}
+              {isCompleted && (
+                <Badge className="bg-emerald-600 text-white text-xs gap-1">
+                  <Check className="w-3 h-3" /> Done
+                </Badge>
+              )}
               {job.status === "query" && (
-                <Badge className="bg-red-500 text-white text-xs">
-                  <AlertTriangle className="w-3 h-3 mr-1" /> Query
+                <Badge className="bg-red-500 text-white text-xs gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Query
                 </Badge>
               )}
               {job.scheduled_time && (
@@ -253,8 +478,28 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
 };
 
 /* ─── Job Detail Screen ───────────────────────── */
-const DriverJobDetail = ({ job, onBack }: { job: Job; onBack: () => void }) => {
+const DriverJobDetail = ({
+  job: initialJob,
+  driverId,
+  onBack,
+  onJobUpdated,
+}: {
+  job: Job;
+  driverId: string;
+  onBack: () => void;
+  onJobUpdated: () => void;
+}) => {
+  const queryClient = useQueryClient();
+  const [job, setJob] = useState(initialJob);
+  const [driverNotes, setDriverNotes] = useState(job.driver_notes || "");
+  const [contaminationType, setContaminationType] = useState(job.contamination_type || "");
+  const [contaminationNotes, setContaminationNotes] = useState(job.contamination_notes || "");
+  const [updating, setUpdating] = useState(false);
+
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
+  const isAssigned = job.status === "assigned";
+  const isInProgress = job.status === "in_progress";
+  const isCompleted = job.status === "completed";
 
   const handleNavigate = () => {
     const address = job.site_postcode || job.site_address || job.site_name || "";
@@ -263,8 +508,67 @@ const DriverJobDetail = ({ job, onBack }: { job: Job; onBack: () => void }) => {
     }
   };
 
+  const updateJobStatus = async (
+    status: JobStatus,
+    extra: Record<string, any> = {}
+  ) => {
+    setUpdating(true);
+    try {
+      const updates: Record<string, any> = { status, ...extra };
+      const { error } = await supabase
+        .from("route_one_jobs")
+        .update(updates)
+        .eq("id", job.id);
+      if (error) throw error;
+
+      setJob((prev) => ({ ...prev, status, ...extra }));
+      onJobUpdated();
+      toast.success(
+        status === "in_progress"
+          ? "Job started"
+          : status === "completed"
+          ? "Job completed"
+          : status === "query"
+          ? "Job flagged as query"
+          : "Job updated"
+      );
+    } catch (err) {
+      console.error("Update error:", err);
+      toast.error("Failed to update job");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleStartJob = () => {
+    updateJobStatus("in_progress", { started_at: new Date().toISOString() });
+  };
+
+  const handleCompleteJob = () => {
+    const extras: Record<string, any> = {
+      completed_at: new Date().toISOString(),
+      driver_notes: driverNotes.trim() || null,
+    };
+    if (contaminationType) {
+      extras.contamination_type = contaminationType;
+      extras.contamination_notes = contaminationNotes.trim() || null;
+      extras.status = "query";
+      extras.query_reason = `Contamination: ${contaminationType}`;
+      updateJobStatus("query", extras);
+    } else {
+      updateJobStatus("completed", extras);
+    }
+  };
+
+  const handleWastedJourney = () => {
+    updateJobStatus("query", {
+      query_reason: "Wasted Journey",
+      driver_notes: driverNotes.trim() || null,
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-6">
       {/* Header */}
       <div className={cn("p-4 border-b-4", colors.border, colors.bg)}>
         <button onClick={onBack} className="flex items-center gap-2 text-muted-foreground mb-3 active:opacity-70">
@@ -275,14 +579,16 @@ const DriverJobDetail = ({ job, onBack }: { job: Job; onBack: () => void }) => {
           <Badge className={cn("text-sm font-bold py-1 px-3", colors.badge)}>
             {JOB_TYPE_LABELS[job.job_type]}
           </Badge>
+          <Badge variant="secondary" className="text-xs">
+            {STATUS_LABELS[job.status] || job.status}
+          </Badge>
           <span className="text-xs text-muted-foreground font-mono">{job.job_number}</span>
         </div>
         <h1 className="text-2xl font-bold text-foreground mt-2">{job.customer_name}</h1>
       </div>
 
-      {/* Details */}
       <div className="p-4 space-y-4">
-        {/* Location */}
+        {/* Location Card */}
         <Card>
           <CardContent className="p-4 space-y-3">
             <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Location</h2>
@@ -322,20 +628,142 @@ const DriverJobDetail = ({ job, onBack }: { job: Job; onBack: () => void }) => {
             </div>
             {job.notes && (
               <div className="pt-2 border-t">
-                <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Notes</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase mb-1">Office Notes</p>
                 <p className="text-sm text-foreground">{job.notes}</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="space-y-3 pb-8">
-          <Button
-            className="w-full h-16 text-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl"
-          >
-            Start Job
-          </Button>
+        {/* ── In Progress / Completion Section ── */}
+        {(isInProgress || isCompleted) && (
+          <>
+            {/* Photos */}
+            <Card>
+              <CardContent className="p-4 space-y-5">
+                <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Photos
+                </h2>
+                <PhotoCapture jobId={job.id} photoType="before" label="Before" />
+                <div className="border-t" />
+                <PhotoCapture jobId={job.id} photoType="after" label="After" />
+                <div className="border-t" />
+                <PhotoCapture jobId={job.id} photoType="contamination" label="Contamination" />
+              </CardContent>
+            </Card>
+
+            {/* Contamination */}
+            {!isCompleted && (
+              <Card>
+                <CardContent className="p-4">
+                  <ContaminationReport
+                    selectedType={contaminationType}
+                    notes={contaminationNotes}
+                    onTypeChange={setContaminationType}
+                    onNotesChange={setContaminationNotes}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Driver Notes */}
+            {!isCompleted && (
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Driver Notes</h2>
+                  <Textarea
+                    value={driverNotes}
+                    onChange={(e) => setDriverNotes(e.target.value)}
+                    placeholder="Add any notes about this job..."
+                    className="min-h-[80px] rounded-xl text-base"
+                  />
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Completed info */}
+        {isCompleted && (
+          <Card className="border-emerald-500/30 bg-emerald-500/5">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                <Check className="w-5 h-5" />
+                Job Completed
+              </div>
+              {job.completed_at && (
+                <p className="text-sm text-muted-foreground">
+                  Completed at {format(new Date(job.completed_at), "HH:mm 'on' d MMM yyyy")}
+                </p>
+              )}
+              {job.driver_notes && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Driver Notes</p>
+                  <p className="text-sm text-foreground">{job.driver_notes}</p>
+                </div>
+              )}
+              {job.contamination_type && (
+                <div className="pt-2 border-t">
+                  <div className="flex items-center gap-2 text-red-500 font-semibold text-sm mb-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    Contamination: {job.contamination_type}
+                  </div>
+                  {job.contamination_notes && (
+                    <p className="text-sm text-muted-foreground">{job.contamination_notes}</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Action Buttons ── */}
+        <div className="space-y-3">
+          {isAssigned && (
+            <Button
+              onClick={handleStartJob}
+              disabled={updating}
+              className="w-full h-16 text-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-3"
+            >
+              {updating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Play className="w-6 h-6" />}
+              Start Job
+            </Button>
+          )}
+
+          {isInProgress && (
+            <>
+              <Button
+                onClick={handleCompleteJob}
+                disabled={updating}
+                className={cn(
+                  "w-full h-16 text-xl font-bold text-white rounded-xl gap-3",
+                  contaminationType
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-emerald-500 hover:bg-emerald-600"
+                )}
+              >
+                {updating ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : contaminationType ? (
+                  <AlertTriangle className="w-6 h-6" />
+                ) : (
+                  <Check className="w-6 h-6" />
+                )}
+                {contaminationType ? "Complete & Flag Query" : "Complete Job"}
+              </Button>
+
+              <Button
+                onClick={handleWastedJourney}
+                disabled={updating}
+                variant="outline"
+                className="w-full h-14 text-lg font-semibold rounded-xl gap-3 border-red-300 text-red-600 hover:bg-red-50"
+              >
+                <Square className="w-5 h-5" />
+                Wasted Journey
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -351,6 +779,7 @@ const InfoItem = ({ label, value }: { label: string; value: string }) => (
 
 /* ─── Jobs Dashboard ──────────────────────────── */
 const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () => void }) => {
+  const queryClient = useQueryClient();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -367,14 +796,29 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
       if (error) throw error;
       return (data || []) as Job[];
     },
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 30000,
   });
 
+  const handleJobUpdated = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["driver-jobs", driver.id, today] });
+  }, [queryClient, driver.id, today]);
+
   if (selectedJob) {
-    return <DriverJobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
+    return (
+      <DriverJobDetail
+        job={selectedJob}
+        driverId={driver.id}
+        onBack={() => {
+          setSelectedJob(null);
+          handleJobUpdated();
+        }}
+        onJobUpdated={handleJobUpdated}
+      />
+    );
   }
 
   const completedCount = jobs.filter((j) => j.status === "completed").length;
+  const inProgressJob = jobs.find((j) => j.status === "in_progress");
 
   return (
     <div className="min-h-screen bg-background">
@@ -422,6 +866,25 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
         </div>
       </div>
 
+      {/* Active job banner */}
+      {inProgressJob && (
+        <div
+          onClick={() => setSelectedJob(inProgressJob)}
+          className="mx-4 mt-3 p-4 bg-blue-500 text-white rounded-xl flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <Play className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold">Job In Progress</p>
+              <p className="text-sm text-blue-100">{inProgressJob.customer_name}</p>
+            </div>
+          </div>
+          <ChevronRight className="w-6 h-6" />
+        </div>
+      )}
+
       {/* Jobs List */}
       <div className="p-4 space-y-3">
         {isLoading ? (
@@ -448,13 +911,11 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
 const DriverAppPage = () => {
   const [driver, setDriver] = useState<Driver | null>(null);
 
-  // Restore session
   useEffect(() => {
     const stored = localStorage.getItem("driver_session");
     if (stored) {
       try {
         const { id, ts } = JSON.parse(stored);
-        // Session valid for 14 hours (one shift)
         if (Date.now() - ts < 14 * 60 * 60 * 1000) {
           supabase
             .from("route_one_drivers")
