@@ -2744,6 +2744,7 @@ export type Database = {
           id: string
           is_active: boolean
           mobile: string | null
+          pin: string | null
           updated_at: string
           user_id: string | null
           vehicle_id: string | null
@@ -2758,6 +2759,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           mobile?: string | null
+          pin?: string | null
           updated_at?: string
           user_id?: string | null
           vehicle_id?: string | null
@@ -2772,6 +2774,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           mobile?: string | null
+          pin?: string | null
           updated_at?: string
           user_id?: string | null
           vehicle_id?: string | null
