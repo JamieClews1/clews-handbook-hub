@@ -5,7 +5,7 @@ import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +25,7 @@ import {
   MapPin,
   AlertTriangle,
   Settings,
+  Pencil,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
@@ -78,7 +79,9 @@ const RouteOnePage = () => {
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
   const [newDriverOpen, setNewDriverOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<any | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
+  const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
 
   // New job form
   const [jobForm, setJobForm] = useState({
@@ -96,6 +99,9 @@ const RouteOnePage = () => {
     assigned_driver_id: "",
     estimated_duration_mins: 60,
   });
+
+  // Edit form state
+  const [editForm, setEditForm] = useState<any>({});
 
   // New driver form
   const [driverForm, setDriverForm] = useState({ driver_name: "", vehicle_type: "Skip" });
@@ -201,13 +207,15 @@ const RouteOnePage = () => {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  // Update job (reassign driver)
+  // Update job mutation
   const updateJob = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
       const { error } = await supabase.from("route_one_jobs").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
+    },
   });
 
   // Delete job
@@ -221,6 +229,55 @@ const RouteOnePage = () => {
       toast({ title: "Job deleted" });
     },
   });
+
+  // Save edited job
+  const saveEditedJob = () => {
+    if (!editingJob) return;
+    const updates: Record<string, any> = {
+      customer_name: editForm.customer_name,
+      site_name: editForm.site_name || null,
+      site_address: editForm.site_address || null,
+      site_postcode: editForm.site_postcode || null,
+      job_type: editForm.job_type,
+      container_type: editForm.container_type || null,
+      container_size: editForm.container_size || null,
+      waste_type: editForm.waste_type || null,
+      notes: editForm.notes || null,
+      po_number: editForm.po_number || null,
+      scheduled_date: editForm.scheduled_date,
+      assigned_driver_id: editForm.assigned_driver_id || null,
+      status: editForm.assigned_driver_id ? (editingJob.status === "unassigned" ? "assigned" : editingJob.status) : "unassigned",
+      estimated_duration_mins: editForm.estimated_duration_mins,
+    };
+    updateJob.mutate(
+      { id: editingJob.id, updates },
+      {
+        onSuccess: () => {
+          setEditingJob(null);
+          toast({ title: "Job updated" });
+        },
+      }
+    );
+  };
+
+  const openEditDialog = (job: any) => {
+    setEditForm({
+      customer_name: job.customer_name || "",
+      site_name: job.site_name || "",
+      site_address: job.site_address || "",
+      site_postcode: job.site_postcode || "",
+      job_type: job.job_type || "delivery",
+      container_type: job.container_type || "",
+      container_size: job.container_size || "",
+      waste_type: job.waste_type || "",
+      notes: job.notes || "",
+      po_number: job.po_number || "",
+      scheduled_date: job.scheduled_date || format(selectedDate, "yyyy-MM-dd"),
+      assigned_driver_id: job.assigned_driver_id || "",
+      estimated_duration_mins: job.estimated_duration_mins || 60,
+    });
+    setEditingJob(job);
+  };
 
   const resetJobForm = () => {
     setJobForm({
@@ -236,7 +293,22 @@ const RouteOnePage = () => {
   };
 
   // Drag and drop handlers
-  const handleDragStart = (jobId: string) => setDraggedJobId(jobId);
+  const handleDragStart = (e: React.DragEvent, jobId: string) => {
+    setDraggedJobId(jobId);
+    e.dataTransfer.effectAllowed = "move";
+    // Add a slight delay to allow the drag image to render
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1";
+    }
+    setDraggedJobId(null);
+    setDragOverDriverId(null);
+  };
 
   const handleDrop = (driverId: string | null) => {
     if (!draggedJobId) return;
@@ -248,9 +320,18 @@ const RouteOnePage = () => {
       },
     });
     setDraggedJobId(null);
+    setDragOverDriverId(null);
   };
 
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDragOver = (e: React.DragEvent, driverId: string | null) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverDriverId(driverId ?? "__unassigned__");
+  };
+
+  const handleDragLeave = () => {
+    setDragOverDriverId(null);
+  };
 
   // Get jobs for a specific driver (manual + Skiptrak)
   const getDriverJobs = (driverId: string) =>
@@ -261,7 +342,6 @@ const RouteOnePage = () => {
     const normalized = driverName.toLowerCase().trim();
     return skiptrakScheduledJobs.filter((j: any) => {
       const d = (j.driver || "").toLowerCase().trim();
-      // Match if driver name contains or equals (handles "Lee.Gane" vs "Lee Gane")
       const dNorm = d.replace(/[.\-_]/g, " ");
       const nNorm = normalized.replace(/[.\-_]/g, " ");
       return dNorm === nNorm || dNorm.includes(nNorm) || nNorm.includes(dNorm);
@@ -322,7 +402,6 @@ const RouteOnePage = () => {
             {queryJobs > 0 && <span><strong className="text-red-600">{queryJobs}</strong> queries</span>}
           </div>
 
-          {/* Add buttons */}
           {/* Driver Settings */}
           <Sheet>
             <SheetTrigger asChild>
@@ -375,102 +454,73 @@ const RouteOnePage = () => {
               <DialogHeader>
                 <DialogTitle>Create Job</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Customer *</Label>
-                    <Input value={jobForm.customer_name} onChange={(e) => setJobForm({ ...jobForm, customer_name: e.target.value })} placeholder="Customer name" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Site</Label>
-                    <Input value={jobForm.site_name} onChange={(e) => setJobForm({ ...jobForm, site_name: e.target.value })} placeholder="Site name" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Site Address</Label>
-                    <Input value={jobForm.site_address} onChange={(e) => setJobForm({ ...jobForm, site_address: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Postcode</Label>
-                    <Input value={jobForm.site_postcode} onChange={(e) => setJobForm({ ...jobForm, site_postcode: e.target.value })} placeholder="e.g. LS1 4AP" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Job Type *</Label>
-                    <Select value={jobForm.job_type} onValueChange={(v) => setJobForm({ ...jobForm, job_type: v as JobType })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(JOB_TYPE_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Container Type</Label>
-                    <Select value={jobForm.container_type} onValueChange={(v) => setJobForm({ ...jobForm, container_type: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Skip">Skip</SelectItem>
-                        <SelectItem value="RoRo">RoRo</SelectItem>
-                        <SelectItem value="Trailer">Trailer</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Date</Label>
-                    <Input type="date" value={jobForm.scheduled_date} onChange={(e) => setJobForm({ ...jobForm, scheduled_date: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Duration (mins)</Label>
-                    <Input type="number" value={jobForm.estimated_duration_mins} onChange={(e) => setJobForm({ ...jobForm, estimated_duration_mins: parseInt(e.target.value) || 60 })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">PO Number</Label>
-                    <Input value={jobForm.po_number} onChange={(e) => setJobForm({ ...jobForm, po_number: e.target.value })} />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Assign Driver</Label>
-                  <Select value={jobForm.assigned_driver_id} onValueChange={(v) => setJobForm({ ...jobForm, assigned_driver_id: v === "unassigned" ? "" : v })}>
-                    <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {drivers.map((d: any) => (
-                        <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Waste Type</Label>
-                  <Input value={jobForm.waste_type} onChange={(e) => setJobForm({ ...jobForm, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
-                </div>
-                <div>
-                  <Label className="text-xs">Notes</Label>
-                  <Textarea value={jobForm.notes} onChange={(e) => setJobForm({ ...jobForm, notes: e.target.value })} rows={2} />
-                </div>
-                <Button onClick={() => createJob.mutate(jobForm)} disabled={!jobForm.customer_name || createJob.isPending}>
+              <JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} />
+              <DialogFooter>
+                <Button onClick={() => createJob.mutate(jobForm)} disabled={!jobForm.customer_name || createJob.isPending} className="w-full">
                   {createJob.isPending ? "Creating..." : "Create Job"}
                 </Button>
-              </div>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </div>
+
+      {/* Edit Job Dialog */}
+      <Dialog open={!!editingJob} onOpenChange={(open) => { if (!open) setEditingJob(null); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4" />
+              Edit Job
+            </DialogTitle>
+          </DialogHeader>
+          <JobFormFields form={editForm} setForm={setEditForm} drivers={drivers} />
+          <div className="flex items-center gap-2 mt-2">
+            <Select value={editingJob?.status || "assigned"} onValueChange={(v) => setEditForm({ ...editForm, _status: v })}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                <SelectItem value="assigned">Assigned</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="query">Query</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex-1" />
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (editingJob) {
+                  deleteJob.mutate(editingJob.id);
+                  setEditingJob(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingJob(null)}>Cancel</Button>
+            <Button onClick={saveEditedJob} disabled={!editForm.customer_name || updateJob.isPending}>
+              {updateJob.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dispatch Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full min-w-max">
           {/* Unassigned Column */}
           <div
-            className="w-64 shrink-0 border-r border-border bg-muted/30 flex flex-col"
-            onDragOver={handleDragOver}
+            className={`w-64 shrink-0 border-r border-border flex flex-col transition-colors ${
+              dragOverDriverId === "__unassigned__" ? "bg-primary/5" : "bg-muted/30"
+            }`}
+            onDragOver={(e) => handleDragOver(e, null)}
+            onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(null)}
           >
             <div className="px-3 py-2 border-b border-border bg-muted/50">
@@ -481,7 +531,16 @@ const RouteOnePage = () => {
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
               {unassignedJobs.map((job: any) => (
-                <JobCard key={job.id} job={job} onDelete={() => deleteJob.mutate(job.id)} onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })} onDragStart={() => handleDragStart(job.id)} />
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  onEdit={() => openEditDialog(job)}
+                  onDelete={() => deleteJob.mutate(job.id)}
+                  onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
+                  onDragStart={(e) => handleDragStart(e, job.id)}
+                  onDragEnd={handleDragEnd}
+                  isDragging={draggedJobId === job.id}
+                />
               ))}
               {unassignedJobs.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-8">No unassigned jobs</p>
@@ -494,11 +553,15 @@ const RouteOnePage = () => {
             const driverJobs = getDriverJobs(driver.id);
             const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
             const totalCount = driverJobs.length + skiptrakJobs.length;
+            const isDropTarget = dragOverDriverId === driver.id;
             return (
               <div
                 key={driver.id}
-                className="w-64 shrink-0 border-r border-border flex flex-col"
-                onDragOver={handleDragOver}
+                className={`w-64 shrink-0 border-r border-border flex flex-col transition-colors ${
+                  isDropTarget ? "bg-primary/5" : ""
+                }`}
+                onDragOver={(e) => handleDragOver(e, driver.id)}
+                onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
                 <div className="px-3 py-2 border-b border-border bg-card">
@@ -521,7 +584,16 @@ const RouteOnePage = () => {
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
                   {driverJobs.map((job: any) => (
-                    <JobCard key={job.id} job={job} onDelete={() => deleteJob.mutate(job.id)} onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })} onDragStart={() => handleDragStart(job.id)} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      onEdit={() => openEditDialog(job)}
+                      onDelete={() => deleteJob.mutate(job.id)}
+                      onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
+                      onDragStart={(e) => handleDragStart(e, job.id)}
+                      onDragEnd={handleDragEnd}
+                      isDragging={draggedJobId === job.id}
+                    />
                   ))}
                   {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
                     <div className="border-t border-border/50 my-1 pt-1">
@@ -557,17 +629,122 @@ const RouteOnePage = () => {
   );
 };
 
+// Shared form fields for Create and Edit dialogs
+function JobFormFields({
+  form,
+  setForm,
+  drivers,
+}: {
+  form: any;
+  setForm: (f: any) => void;
+  drivers: any[];
+}) {
+  return (
+    <div className="grid gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Customer *</Label>
+          <Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} placeholder="Customer name" />
+        </div>
+        <div>
+          <Label className="text-xs">Site</Label>
+          <Input value={form.site_name} onChange={(e) => setForm({ ...form, site_name: e.target.value })} placeholder="Site name" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Site Address</Label>
+          <Input value={form.site_address} onChange={(e) => setForm({ ...form, site_address: e.target.value })} />
+        </div>
+        <div>
+          <Label className="text-xs">Postcode</Label>
+          <Input value={form.site_postcode} onChange={(e) => setForm({ ...form, site_postcode: e.target.value })} placeholder="e.g. LS1 4AP" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Job Type *</Label>
+          <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(JOB_TYPE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Container Type</Label>
+          <Select value={form.container_type} onValueChange={(v) => setForm({ ...form, container_type: v })}>
+            <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Skip">Skip</SelectItem>
+              <SelectItem value="RoRo">RoRo</SelectItem>
+              <SelectItem value="Trailer">Trailer</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <Label className="text-xs">Date</Label>
+          <Input type="date" value={form.scheduled_date} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
+        </div>
+        <div>
+          <Label className="text-xs">Duration (mins)</Label>
+          <Input type="number" value={form.estimated_duration_mins} onChange={(e) => setForm({ ...form, estimated_duration_mins: parseInt(e.target.value) || 60 })} />
+        </div>
+        <div>
+          <Label className="text-xs">PO Number</Label>
+          <Input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs">Assign Driver</Label>
+        <Select value={form.assigned_driver_id || "unassigned"} onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}>
+          <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {drivers.map((d: any) => (
+              <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label className="text-xs">Container Size</Label>
+        <Input value={form.container_size} onChange={(e) => setForm({ ...form, container_size: e.target.value })} placeholder="e.g. 8yd, 20yd" />
+      </div>
+      <div>
+        <Label className="text-xs">Waste Type</Label>
+        <Input value={form.waste_type} onChange={(e) => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
+      </div>
+      <div>
+        <Label className="text-xs">Notes</Label>
+        <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+      </div>
+    </div>
+  );
+}
+
 // Job Card Component
 function JobCard({
   job,
+  onEdit,
   onDelete,
   onStatusChange,
   onDragStart,
+  onDragEnd,
+  isDragging,
 }: {
   job: any;
+  onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (status: JobStatus) => void;
-  onDragStart: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: (e: React.DragEvent) => void;
+  isDragging: boolean;
 }) {
   const jobType = job.job_type as JobType;
   const status = job.status as JobStatus;
@@ -576,7 +753,11 @@ function JobCard({
     <div
       draggable
       onDragStart={onDragStart}
-      className={`rounded-lg border p-2.5 cursor-grab active:cursor-grabbing transition-all hover:shadow-md ${JOB_TYPE_COLORS[jobType]}`}
+      onDragEnd={onDragEnd}
+      onClick={onEdit}
+      className={`rounded-lg border p-2.5 cursor-grab active:cursor-grabbing transition-all hover:shadow-md hover:scale-[1.02] select-none ${JOB_TYPE_COLORS[jobType]} ${
+        isDragging ? "opacity-50 scale-95" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -585,15 +766,21 @@ function JobCard({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/5 shrink-0">
+            <button
+              className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/5 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <MoreVertical className="h-3 w-3" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem onClick={() => onStatusChange("in_progress")}>Mark In Progress</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStatusChange("completed")}>Mark Complete</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStatusChange("query")}>Flag as Query</DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-destructive">Delete Job</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <Pencil className="h-3 w-3 mr-2" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">Delete Job</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -612,11 +799,17 @@ function JobCard({
         {job.container_type && (
           <span className="text-[10px] opacity-60">{job.container_type}</span>
         )}
+        {job.container_size && (
+          <span className="text-[10px] opacity-60">{job.container_size}</span>
+        )}
         {status === "query" && (
           <AlertTriangle className="h-3 w-3 text-red-500" />
         )}
         {status === "completed" && (
           <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-emerald-500 text-white">Done</Badge>
+        )}
+        {status === "in_progress" && (
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-blue-500 text-white">In Progress</Badge>
         )}
       </div>
 
