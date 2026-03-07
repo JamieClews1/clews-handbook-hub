@@ -630,35 +630,55 @@ function JobCard({
   );
 }
 
+// Map Skiptrak movement_type to our job type color scheme
+function getSkiptrakJobType(movementType: string | null): JobType | null {
+  if (!movementType) return null;
+  const mt = movementType.toLowerCase().trim();
+  if (mt.includes("deliver")) return "delivery";
+  if (mt.includes("exchange") || mt.includes("swap")) return "exchange";
+  if (mt.includes("collect") || mt.includes("removal") || mt.includes("uplift")) return "collection";
+  if (mt.includes("waste") || mt.includes("tip")) return "waste_truck";
+  if (mt.includes("wasted") || mt.includes("abortive") || mt.includes("failed")) return "wasted_journey";
+  return null;
+}
+
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job }: { job: any }) {
+  const mappedType = getSkiptrakJobType(job.movement_type);
+  const colorClass = mappedType
+    ? JOB_TYPE_COLORS[mappedType]
+    : "bg-muted/30 border-border/60 text-foreground";
+  const badgeClass = mappedType
+    ? JOB_TYPE_BADGE_COLORS[mappedType]
+    : "";
+
   return (
-    <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 p-2.5">
+    <div className={`rounded-lg border border-dashed p-2.5 ${colorClass}`}>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-bold truncate text-foreground">{job.customer || "Unknown"}</span>
+        <span className="text-xs font-bold truncate">{job.customer || "Unknown"}</span>
       </div>
       {job.site && (
         <div className="flex items-center gap-1 mt-1">
           <MapPin className="h-3 w-3 opacity-50 shrink-0" />
-          <span className="text-[10px] truncate text-muted-foreground">{job.site}</span>
+          <span className="text-[10px] truncate">{job.site}</span>
         </div>
       )}
       {job.tipping_location && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[10px] text-muted-foreground">→ {job.tipping_location}</span>
+          <span className="text-[10px] opacity-70">→ {job.tipping_location}</span>
         </div>
       )}
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
         {job.movement_type && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+          <Badge className={`text-[10px] px-1.5 py-0 h-4 border-0 ${badgeClass || "bg-muted text-muted-foreground"}`}>
             {job.movement_type}
           </Badge>
         )}
         {job.container_type && (
-          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
+          <span className="text-[10px] opacity-60">{job.container_type}</span>
         )}
         {job.weight_t != null && job.weight_t > 0 && (
-          <span className="text-[10px] text-muted-foreground">{job.weight_t}t</span>
+          <span className="text-[10px] opacity-60">{job.weight_t}t</span>
         )}
       </div>
       <div className="mt-1">
