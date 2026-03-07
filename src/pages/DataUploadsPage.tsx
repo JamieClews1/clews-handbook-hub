@@ -59,6 +59,8 @@ type ListedJob = {
   container_type: string | null;
   weight_t: number | null;
   vehicle_registration: string | null;
+  driver: string | null;
+  tipping_location: string | null;
   updated_at: string;
 };
 
