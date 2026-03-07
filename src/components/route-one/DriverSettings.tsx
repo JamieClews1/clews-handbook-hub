@@ -22,6 +22,7 @@ interface Driver {
   display_order: number;
   is_active: boolean;
   vehicle_id: string | null;
+  pin: string | null;
   route_one_vehicles: { id: string; registration: string; vehicle_type: string } | null;
 }
 
@@ -45,6 +46,7 @@ export const DriverSettings = () => {
     department: "",
     category: "Skips",
     vehicle_id: "",
+    pin: "",
   });
 
   const { data: drivers = [], isLoading } = useQuery({
@@ -116,7 +118,7 @@ export const DriverSettings = () => {
   });
 
   const openAdd = () => {
-    setForm({ driver_name: "", driver_number: "", mobile: "", department: "", category: "Skips", vehicle_id: "" });
+    setForm({ driver_name: "", driver_number: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
     setAddOpen(true);
   };
 
@@ -128,6 +130,7 @@ export const DriverSettings = () => {
       department: d.department?.toString() || "",
       category: d.category || "Skips",
       vehicle_id: d.vehicle_id || "",
+      pin: d.pin || "",
     });
     setEditDriver(d);
   };
@@ -140,6 +143,7 @@ export const DriverSettings = () => {
       department: form.department ? parseInt(form.department) : null,
       category: form.category || "Skips",
       vehicle_id: form.vehicle_id || null,
+      pin: form.pin.trim() || null,
     };
     if (!editDriver) {
       data.display_order = drivers.length;
@@ -193,6 +197,10 @@ export const DriverSettings = () => {
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <div>
+        <Label className="text-xs">Driver PIN (for mobile app)</Label>
+        <Input type="text" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="e.g. 1234" />
       </div>
       <Button onClick={handleSave} disabled={!form.driver_name.trim() || saveMutation.isPending} className="w-full">
         {saveMutation.isPending ? "Saving..." : editDriver ? "Update Driver" : "Add Driver"}

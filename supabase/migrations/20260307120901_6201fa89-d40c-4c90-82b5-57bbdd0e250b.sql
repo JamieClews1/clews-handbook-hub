@@ -1,0 +1,1 @@
+ALTER TABLE public.route_one_drivers ADD COLUMN IF NOT EXISTS pin TEXT;

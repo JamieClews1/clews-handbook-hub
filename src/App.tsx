@@ -49,6 +49,7 @@ import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
+import DriverAppPage from "./pages/DriverAppPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
             <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
+            <Route path="/driver" element={<DriverAppPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
