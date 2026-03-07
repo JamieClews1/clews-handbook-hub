@@ -629,6 +629,71 @@ const RouteOnePage = () => {
   );
 };
 
+// Autocomplete input with dropdown suggestions
+function AutocompleteInput({
+  value,
+  onChange,
+  placeholder,
+  fetchSuggestions,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  fetchSuggestions: (query: string) => Promise<string[]>;
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleChange = (val: string) => {
+    onChange(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length < 2) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      const results = await fetchSuggestions(val);
+      setSuggestions(results);
+      setOpen(results.length > 0);
+      setLoading(false);
+    }, 300);
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder={placeholder}
+        onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+      />
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent truncate"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(s);
+                setOpen(false);
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Shared form fields for Create and Edit dialogs
 function JobFormFields({
   form,
@@ -639,16 +704,54 @@ function JobFormFields({
   setForm: (f: any) => void;
   drivers: any[];
 }) {
+  const fetchCustomers = async (query: string): Promise<string[]> => {
+    const { data } = await supabase
+      .from("data_hub_jobs")
+      .select("customer")
+      .ilike("customer", `%${query}%`)
+      .not("customer", "is", null)
+      .limit(100);
+    if (!data) return [];
+    const unique = [...new Set(data.map((r: any) => r.customer).filter(Boolean))];
+    return unique.slice(0, 10);
+  };
+
+  const fetchSites = async (query: string): Promise<string[]> => {
+    let q = supabase
+      .from("data_hub_jobs")
+      .select("site")
+      .ilike("site", `%${query}%`)
+      .not("site", "is", null)
+      .limit(100);
+    if (form.customer_name) {
+      q = q.ilike("customer", `%${form.customer_name}%`);
+    }
+    const { data } = await q;
+    if (!data) return [];
+    const unique = [...new Set(data.map((r: any) => r.site).filter(Boolean))];
+    return unique.slice(0, 10);
+  };
+
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Customer *</Label>
-          <Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} placeholder="Customer name" />
+          <AutocompleteInput
+            value={form.customer_name}
+            onChange={(val) => setForm({ ...form, customer_name: val })}
+            placeholder="Start typing customer..."
+            fetchSuggestions={fetchCustomers}
+          />
         </div>
         <div>
           <Label className="text-xs">Site</Label>
-          <Input value={form.site_name} onChange={(e) => setForm({ ...form, site_name: e.target.value })} placeholder="Site name" />
+          <AutocompleteInput
+            value={form.site_name}
+            onChange={(val) => setForm({ ...form, site_name: val })}
+            placeholder="Start typing site..."
+            fetchSuggestions={fetchSites}
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
