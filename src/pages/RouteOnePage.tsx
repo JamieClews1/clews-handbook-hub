@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
@@ -26,6 +27,7 @@ import {
   AlertTriangle,
   Settings,
   Pencil,
+  Smartphone,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
@@ -401,6 +403,14 @@ const RouteOnePage = () => {
             <span><strong className="text-emerald-600">{completedJobs}</strong> done</span>
             {queryJobs > 0 && <span><strong className="text-red-600">{queryJobs}</strong> queries</span>}
           </div>
+
+          {/* Driver App Link */}
+          <Link to="/driver" target="_blank">
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+              <Smartphone className="h-3.5 w-3.5" />
+              Driver App
+            </Button>
+          </Link>
 
           {/* Driver Settings */}
           <Sheet>
