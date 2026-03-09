@@ -736,6 +736,11 @@ const LoadReportsPage = () => {
            glass_dolav_weight_kg: staciGlassDolavWeightKg,
            scrap_metal_loose_count: staciScrapMetalLooseCount,
            scrap_metal_loose_weight_kg: staciScrapMetalLooseWeightKg,
+           card_bales_on_pallets: staciCardBalesOnPallets,
+           films_bale_on_pallets: staciFilmsBaleOnPallets,
+           papers_dolav_on_pallets: staciPapersDolavOnPallets,
+           glass_dolav_on_pallets: staciGlassDolavOnPallets,
+           scrap_metal_loose_on_pallets: staciScrapMetalLooseOnPallets,
            submitted_at: submit ? new Date().toISOString() : null,
         };
 
