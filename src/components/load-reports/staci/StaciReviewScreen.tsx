@@ -36,6 +36,11 @@ interface StaciReviewScreenProps {
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onPalletEntriesChange?: (entries: StaciPalletEntry[]) => void;
+  onCardBalesWeightKgChange?: (weight: number) => void;
+  onFilmsBaleWeightKgChange?: (weight: number) => void;
+  onPapersDolavWeightKgChange?: (weight: number) => void;
+  onGlassDolavWeightKgChange?: (weight: number) => void;
+  onScrapMetalLooseWeightKgChange?: (weight: number) => void;
   onBack: () => void;
   onSaveDraft: () => void;
   onSubmit: () => void;
@@ -154,6 +159,11 @@ export const StaciReviewScreen = ({
   weighbridgeWeightKg,
   weighbridgeLoading,
   onPalletEntriesChange,
+  onCardBalesWeightKgChange,
+  onFilmsBaleWeightKgChange,
+  onPapersDolavWeightKgChange,
+  onGlassDolavWeightKgChange,
+  onScrapMetalLooseWeightKgChange,
   onBack,
   onSaveDraft,
   onSubmit,
@@ -162,6 +172,13 @@ export const StaciReviewScreen = ({
   filmsRatePerTonne = 0,
 }: StaciReviewScreenProps) => {
   const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
+  const [reconciledBaleDolavPreview, setReconciledBaleDolavPreview] = useState<{
+    cardBalesWeightKg: number;
+    filmsBaleWeightKg: number;
+    papersDolavWeightKg: number;
+    glassDolavWeightKg: number;
+    scrapMetalLooseWeightKg: number;
+  } | null>(null);
   const [isReconciled, setIsReconciled] = useState(false);
 
   const { summaries, totalPallets, totalWeightKg, totalValue, palletRebate } = useMemo(
@@ -192,23 +209,55 @@ export const StaciReviewScreen = ({
     (glassDolavCount * glassDolavWeightKg) +
     (scrapMetalLooseCount * scrapMetalLooseWeightKg);
 
+  const hasPalletEntries = palletEntries.length > 0;
+  const hasBaleDolavItems = baleDolavTotalKg > 0;
+
   const handleReconcile = () => {
     if (typeof weighbridgeWeightKg !== "number") return;
-    // Subtract bale/dolav weight so only the pallet portion is reconciled
-    const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg;
-    const reconciled = reconcileStaciEntries(palletEntries, Math.max(0, palletTargetKg));
-    setReconciledPreview(reconciled);
+
+    if (hasPalletEntries) {
+      // Subtract bale/dolav weight so only the pallet portion is reconciled
+      const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg;
+      const reconciled = reconcileStaciEntries(palletEntries, Math.max(0, palletTargetKg));
+      setReconciledPreview(reconciled);
+      setReconciledBaleDolavPreview(null);
+    } else if (hasBaleDolavItems) {
+      // No pallets — proportionally adjust bale/dolav per-unit weights to match weighbridge
+      const targetKg = weighbridgeWeightKg;
+      const currentTotal = baleDolavTotalKg;
+      if (currentTotal === 0) return;
+      const ratio = targetKg / currentTotal;
+
+      setReconciledBaleDolavPreview({
+        cardBalesWeightKg: cardBalesCount > 0 ? Math.round(cardBalesWeightKg * ratio) : cardBalesWeightKg,
+        filmsBaleWeightKg: filmsBaleCount > 0 ? Math.round(filmsBaleWeightKg * ratio) : filmsBaleWeightKg,
+        papersDolavWeightKg: papersDolavCount > 0 ? Math.round(papersDolavWeightKg * ratio) : papersDolavWeightKg,
+        glassDolavWeightKg: glassDolavCount > 0 ? Math.round(glassDolavWeightKg * ratio) : glassDolavWeightKg,
+        scrapMetalLooseWeightKg: scrapMetalLooseCount > 0 ? Math.round(scrapMetalLooseWeightKg * ratio) : scrapMetalLooseWeightKg,
+      });
+      setReconciledPreview(null);
+    }
   };
 
   const handleAcceptReconciled = () => {
     if (reconciledPreview && onPalletEntriesChange) {
       onPalletEntriesChange(reconciledPreview);
       setReconciledPreview(null);
+      setReconciledBaleDolavPreview(null);
+      setIsReconciled(true);
+    } else if (reconciledBaleDolavPreview) {
+      onCardBalesWeightKgChange?.(reconciledBaleDolavPreview.cardBalesWeightKg);
+      onFilmsBaleWeightKgChange?.(reconciledBaleDolavPreview.filmsBaleWeightKg);
+      onPapersDolavWeightKgChange?.(reconciledBaleDolavPreview.papersDolavWeightKg);
+      onGlassDolavWeightKgChange?.(reconciledBaleDolavPreview.glassDolavWeightKg);
+      onScrapMetalLooseWeightKgChange?.(reconciledBaleDolavPreview.scrapMetalLooseWeightKg);
+      setReconciledPreview(null);
+      setReconciledBaleDolavPreview(null);
       setIsReconciled(true);
     }
   };
 
-  const canReconcile = typeof weighbridgeWeightKg === "number" && palletEntries.length > 0;
+  const canReconcile = typeof weighbridgeWeightKg === "number" && (hasPalletEntries || hasBaleDolavItems);
 
   return (
     <div className="space-y-6 pb-32">
@@ -317,7 +366,7 @@ export const StaciReviewScreen = ({
       </Card>
 
       {/* Reconcile Section */}
-      {canReconcile && onPalletEntriesChange && (
+      {canReconcile && (
         <div className="space-y-4">
           {isReconciled ? (
             <div className="flex items-center gap-3 rounded-lg border-2 border-green-500/50 bg-green-50/30 dark:bg-green-950/20 p-4">
@@ -342,6 +391,7 @@ export const StaciReviewScreen = ({
                 Reconcile to Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
               </Button>
 
+              {/* Pallet reconciliation preview */}
               {reconciledPreview && reconciledSummaryData && (
                 <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
                   <CardHeader className="pb-3">
@@ -374,6 +424,51 @@ export const StaciReviewScreen = ({
                       glassDolavWeightKg={glassDolavWeightKg}
                       scrapMetalLooseCount={scrapMetalLooseCount}
                       scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
+                      palletWeightKg={palletWeightKg}
+                      palletChargeRatePerTonne={palletChargeRatePerTonne}
+                      cardBalesRatePerTonne={cardBalesRatePerTonne}
+                      filmsRatePerTonne={filmsRatePerTonne}
+                    />
+                    <Button
+                      type="button"
+                      className="w-full h-12 text-base"
+                      onClick={handleAcceptReconciled}
+                      disabled={isSaving}
+                    >
+                      Accept Reconciled Weights
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Bale/dolav-only reconciliation preview */}
+              {reconciledBaleDolavPreview && !reconciledPreview && (
+                <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Reconciled Preview</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
+                      Current: {baleDolavTotalKg.toLocaleString()} kg
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <StaciSummaryTable
+                      summaries={[]}
+                      totalPallets={0}
+                      totalWeightKg={0}
+                      totalValue={0}
+                      goodPalletCount={goodPalletCount}
+                      palletsScrapCount={palletsScrapCount}
+                      cardBalesCount={cardBalesCount}
+                      cardBalesWeightKg={reconciledBaleDolavPreview.cardBalesWeightKg}
+                      filmsBaleCount={filmsBaleCount}
+                      filmsBaleWeightKg={reconciledBaleDolavPreview.filmsBaleWeightKg}
+                      papersDolavCount={papersDolavCount}
+                      papersDolavWeightKg={reconciledBaleDolavPreview.papersDolavWeightKg}
+                      glassDolavCount={glassDolavCount}
+                      glassDolavWeightKg={reconciledBaleDolavPreview.glassDolavWeightKg}
+                      scrapMetalLooseCount={scrapMetalLooseCount}
+                      scrapMetalLooseWeightKg={reconciledBaleDolavPreview.scrapMetalLooseWeightKg}
                       palletWeightKg={palletWeightKg}
                       palletChargeRatePerTonne={palletChargeRatePerTonne}
                       cardBalesRatePerTonne={cardBalesRatePerTonne}
