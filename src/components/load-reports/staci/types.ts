@@ -35,6 +35,7 @@ export const EMPTY_WASTE_BREAKDOWN: StaciWasteBreakdown = {
 // Waste type labels for display
 export const WASTE_TYPE_LABELS: Record<keyof StaciWasteBreakdown, string> = {
   metal: "Metal",
+  scrap_metal: "Scrap Metal",
   paper: "Paper",
   card: "Card",
   pvc: "PVC",
