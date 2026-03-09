@@ -47,6 +47,11 @@ interface StaciReviewScreenProps {
   isSaving: boolean;
   cardBalesRatePerTonne?: number;
   filmsRatePerTonne?: number;
+  cardBalesOnPallets?: boolean;
+  filmsBaleOnPallets?: boolean;
+  papersDolavOnPallets?: boolean;
+  glassDolavOnPallets?: boolean;
+  scrapMetalLooseOnPallets?: boolean;
 }
 
 /**
