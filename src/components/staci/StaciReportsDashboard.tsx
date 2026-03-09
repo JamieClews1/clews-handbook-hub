@@ -310,6 +310,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
             let cardRate = 0;
             let filmsRate = 0;
+            let scrapMetalRate = 0;
 
             for (const item of psItems ?? []) {
               const wtName = wasteTypeMap[item.rebate_item_id];
@@ -331,9 +332,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
               if (wtName === "Card Bales") cardRate = rate;
               if (wtName.startsWith("Films Baled")) filmsRate = rate;
+              if (wtName === "Scrap Ferrous") scrapMetalRate = rate;
             }
 
-            setBaleRates({ cardBalesRate: cardRate, filmsRate });
+            setBaleRates({ cardBalesRate: cardRate, filmsRate, scrapMetalRate });
           }
         }
       } catch (e) {
