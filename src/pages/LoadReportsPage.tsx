@@ -78,6 +78,11 @@ const LoadReportsPage = () => {
   const [staciGlassDolavWeightKg, setStaciGlassDolavWeightKg] = useState(0);
   const [staciScrapMetalLooseCount, setStaciScrapMetalLooseCount] = useState(0);
   const [staciScrapMetalLooseWeightKg, setStaciScrapMetalLooseWeightKg] = useState(0);
+  const [staciCardBalesOnPallets, setStaciCardBalesOnPallets] = useState(false);
+  const [staciFilmsBaleOnPallets, setStaciFilmsBaleOnPallets] = useState(false);
+  const [staciPapersDolavOnPallets, setStaciPapersDolavOnPallets] = useState(false);
+  const [staciGlassDolavOnPallets, setStaciGlassDolavOnPallets] = useState(false);
+  const [staciScrapMetalLooseOnPallets, setStaciScrapMetalLooseOnPallets] = useState(false);
   const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
   const [staciCardBalesRate, setStaciCardBalesRate] = useState(0);
   const [staciFilmsRate, setStaciFilmsRate] = useState(0);
