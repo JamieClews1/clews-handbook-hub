@@ -64,6 +64,7 @@ export const StaciSummaryTable = ({
   const filmsBaleGrossKg = filmsBaleCount * filmsBaleWeightKg;
   const papersDolavGrossKg = papersDolavCount * papersDolavWeightKg;
   const glassDolavGrossKg = glassDolavCount * glassDolavWeightKg;
+  const scrapMetalLooseGrossKg = scrapMetalLooseCount * scrapMetalLooseWeightKg;
 
   // Calculate bale values from rates
   const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesGrossKg / 1000) * cardBalesRatePerTonne : 0;

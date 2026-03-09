@@ -29,6 +29,8 @@ interface StaciReviewScreenProps {
   papersDolavWeightKg: number;
   glassDolavCount: number;
   glassDolavWeightKg: number;
+  scrapMetalLooseCount: number;
+  scrapMetalLooseWeightKg: number;
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
   weighbridgeWeightKg?: number | null;
