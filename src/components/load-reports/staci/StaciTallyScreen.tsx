@@ -874,6 +874,8 @@ export const StaciTallyScreen = ({
             papersDolavWeightKg={papersDolavWeightKg}
             glassDolavCount={glassDolavCount}
             glassDolavWeightKg={glassDolavWeightKg}
+            scrapMetalLooseCount={scrapMetalLooseCount}
+            scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
             palletWeightKg={palletWeightKg}
           />
         </div>
