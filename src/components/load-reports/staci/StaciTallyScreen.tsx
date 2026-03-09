@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film, Check, ChevronRight, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
 import { StaciSummaryTable } from "./StaciSummaryTable";
