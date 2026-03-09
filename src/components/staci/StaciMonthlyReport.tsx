@@ -361,7 +361,7 @@ export function StaciMonthlyReport({
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
                 { label: "Pallets", value: stats.totalPallets.toLocaleString() },
-                { label: "Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
+                { label: "Weight", value: `${((stats.totalWeightKg + balesDolavTotalWeightKg) / 1000).toFixed(2)} t` },
                 { label: "Gross", value: `£${stats.totalCost.toFixed(2)}` },
                 { label: "Net", value: `£${stats.netCost.toFixed(2)}` },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
