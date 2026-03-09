@@ -1044,6 +1044,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         customerId={customerId}
         customerName={customerName}
         isPortalView={isPortalView}
+        dashboardStats={stats}
+        dashboardHaulage={haulageData}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        dashboardLoading={fetching}
       />
     </div>
   );
