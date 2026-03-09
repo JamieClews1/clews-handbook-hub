@@ -657,10 +657,10 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableRow className="font-bold">
                                     <TableCell>Total</TableCell>
                                     <TableCell className="text-right">
-                                      {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.pallets_scrap_count}
+                                      {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.scrap_metal_loose_count + report.pallets_scrap_count}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}
+                                      {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg + report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg).toLocaleString()}
                                     </TableCell>
                                     <TableCell />
                                     <TableCell className="text-right font-medium text-green-600">
