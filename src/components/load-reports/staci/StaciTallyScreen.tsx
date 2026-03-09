@@ -49,6 +49,16 @@ interface StaciTallyScreenProps {
   onScrapMetalLooseCountChange: (count: number) => void;
   scrapMetalLooseWeightKg: number;
   onScrapMetalLooseWeightKgChange: (weight: number) => void;
+  cardBalesOnPallets: boolean;
+  onCardBalesOnPalletsChange: (on: boolean) => void;
+  filmsBaleOnPallets: boolean;
+  onFilmsBaleOnPalletsChange: (on: boolean) => void;
+  papersDolavOnPallets: boolean;
+  onPapersDolavOnPalletsChange: (on: boolean) => void;
+  glassDolavOnPallets: boolean;
+  onGlassDolavOnPalletsChange: (on: boolean) => void;
+  scrapMetalLooseOnPallets: boolean;
+  onScrapMetalLooseOnPalletsChange: (on: boolean) => void;
   palletWeightKg?: number;
 }
 
