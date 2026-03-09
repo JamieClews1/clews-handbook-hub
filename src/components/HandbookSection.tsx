@@ -18,21 +18,48 @@ interface HandbookSectionProps {
 const stripHtmlAndFormat = (content: string) => {
   // Convert h4 headings to bold markdown with proper spacing
   let cleaned = content
-    .replace(/<h4>(.*?)<\/h4>/gi, '\n\n**$1**\n')
-    // Convert HTML list items to bullet points - each on its own line
-    .replace(/<li>/gi, '• ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<ul>/gi, '')
-    .replace(/<\/ul>/gi, '')
-    .replace(/<ol>/gi, '')
-    .replace(/<\/ol>/gi, '')
+    .replace(/<h4>(.*?)<\/h4>/gi, '\n\n**$1**\n');
+
+  // Handle ordered lists: number each <li> sequentially
+  cleaned = cleaned.replace(/<ol>([\s\S]*?)<\/ol>/gi, (_, listContent: string) => {
+    let counter = 0;
+    return listContent.replace(/<li>([\s\S]*?)<\/li>/gi, () => {
+      counter++;
+      const itemText = arguments.length ? '' : ''; // placeholder
+      return '';
+    });
+  });
+
+  // Actually, let's do this properly with a stateful replace
+  cleaned = content
+    .replace(/<h4>(.*?)<\/h4>/gi, '\n\n**$1**\n');
+
+  // Replace <ol>...</ol> blocks with numbered items
+  cleaned = cleaned.replace(/<ol>([\s\S]*?)<\/ol>/gi, (_match, inner: string) => {
+    let i = 0;
+    return inner.replace(/<li>([\s\S]*?)<\/li>/gi, (_m: string, text: string) => {
+      i++;
+      return `${i}. ${text.trim()}\n`;
+    });
+  });
+
+  // Replace <ul>...</ul> blocks with bullet items
+  cleaned = cleaned.replace(/<ul>([\s\S]*?)<\/ul>/gi, (_match, inner: string) => {
+    return inner.replace(/<li>([\s\S]*?)<\/li>/gi, (_m: string, text: string) => {
+      return `• ${text.trim()}\n`;
+    });
+  });
+
+  // Clean remaining tags
+  cleaned = cleaned
     .replace(/<p>/gi, '')
     .replace(/<\/p>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
-    .replace(/\n{3,}/g, '\n\n') // Reduce 3+ newlines to double (for h4 spacing)
-    .replace(/(• [^\n]+\n)\n+(?=• )/g, '$1') // Remove extra newlines between bullet points
-    .replace(/^\n+/, '') // Remove leading newlines
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(• [^\n]+\n)\n+(?=• )/g, '$1')
+    .replace(/(\d+\. [^\n]+\n)\n+(?=\d+\. )/g, '$1')
+    .replace(/^\n+/, '')
     .trim();
   
   return cleaned;
