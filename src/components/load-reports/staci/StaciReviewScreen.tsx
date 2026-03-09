@@ -366,7 +366,7 @@ export const StaciReviewScreen = ({
       </Card>
 
       {/* Reconcile Section */}
-      {canReconcile && onPalletEntriesChange && (
+      {canReconcile && (
         <div className="space-y-4">
           {isReconciled ? (
             <div className="flex items-center gap-3 rounded-lg border-2 border-green-500/50 bg-green-50/30 dark:bg-green-950/20 p-4">
@@ -391,6 +391,7 @@ export const StaciReviewScreen = ({
                 Reconcile to Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
               </Button>
 
+              {/* Pallet reconciliation preview */}
               {reconciledPreview && reconciledSummaryData && (
                 <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
                   <CardHeader className="pb-3">
@@ -423,6 +424,51 @@ export const StaciReviewScreen = ({
                       glassDolavWeightKg={glassDolavWeightKg}
                       scrapMetalLooseCount={scrapMetalLooseCount}
                       scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
+                      palletWeightKg={palletWeightKg}
+                      palletChargeRatePerTonne={palletChargeRatePerTonne}
+                      cardBalesRatePerTonne={cardBalesRatePerTonne}
+                      filmsRatePerTonne={filmsRatePerTonne}
+                    />
+                    <Button
+                      type="button"
+                      className="w-full h-12 text-base"
+                      onClick={handleAcceptReconciled}
+                      disabled={isSaving}
+                    >
+                      Accept Reconciled Weights
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Bale/dolav-only reconciliation preview */}
+              {reconciledBaleDolavPreview && !reconciledPreview && (
+                <Card className="border-2 border-blue-500/50 bg-blue-50/30 dark:bg-blue-950/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Reconciled Preview</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
+                      Current: {baleDolavTotalKg.toLocaleString()} kg
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <StaciSummaryTable
+                      summaries={[]}
+                      totalPallets={0}
+                      totalWeightKg={0}
+                      totalValue={0}
+                      goodPalletCount={goodPalletCount}
+                      palletsScrapCount={palletsScrapCount}
+                      cardBalesCount={cardBalesCount}
+                      cardBalesWeightKg={reconciledBaleDolavPreview.cardBalesWeightKg}
+                      filmsBaleCount={filmsBaleCount}
+                      filmsBaleWeightKg={reconciledBaleDolavPreview.filmsBaleWeightKg}
+                      papersDolavCount={papersDolavCount}
+                      papersDolavWeightKg={reconciledBaleDolavPreview.papersDolavWeightKg}
+                      glassDolavCount={glassDolavCount}
+                      glassDolavWeightKg={reconciledBaleDolavPreview.glassDolavWeightKg}
+                      scrapMetalLooseCount={scrapMetalLooseCount}
+                      scrapMetalLooseWeightKg={reconciledBaleDolavPreview.scrapMetalLooseWeightKg}
                       palletWeightKg={palletWeightKg}
                       palletChargeRatePerTonne={palletChargeRatePerTonne}
                       cardBalesRatePerTonne={cardBalesRatePerTonne}
