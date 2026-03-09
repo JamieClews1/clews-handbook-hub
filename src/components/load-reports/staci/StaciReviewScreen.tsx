@@ -36,6 +36,11 @@ interface StaciReviewScreenProps {
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onPalletEntriesChange?: (entries: StaciPalletEntry[]) => void;
+  onCardBalesWeightKgChange?: (weight: number) => void;
+  onFilmsBaleWeightKgChange?: (weight: number) => void;
+  onPapersDolavWeightKgChange?: (weight: number) => void;
+  onGlassDolavWeightKgChange?: (weight: number) => void;
+  onScrapMetalLooseWeightKgChange?: (weight: number) => void;
   onBack: () => void;
   onSaveDraft: () => void;
   onSubmit: () => void;
