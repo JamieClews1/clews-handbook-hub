@@ -501,6 +501,11 @@ export const StaciReviewScreen = ({
                       palletChargeRatePerTonne={palletChargeRatePerTonne}
                       cardBalesRatePerTonne={cardBalesRatePerTonne}
                       filmsRatePerTonne={filmsRatePerTonne}
+                      cardBalesOnPallets={cardBalesOnPallets}
+                      filmsBaleOnPallets={filmsBaleOnPallets}
+                      papersDolavOnPallets={papersDolavOnPallets}
+                      glassDolavOnPallets={glassDolavOnPallets}
+                      scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
                     />
                     <Button
                       type="button"
