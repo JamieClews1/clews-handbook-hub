@@ -72,6 +72,8 @@ interface Props {
   dashboardStats?: DashboardStats;
   /** Dashboard haulage data */
   dashboardHaulage?: DashboardHaulage;
+  /** Total weight of bales, dolavs, scrap metal loose (kg) */
+  balesDolavTotalWeightKg?: number;
   /** Dashboard date range */
   dateFrom?: Date;
   dateTo?: Date;
@@ -85,6 +87,7 @@ export function StaciMonthlyReport({
   isPortalView = false,
   dashboardStats,
   dashboardHaulage,
+  balesDolavTotalWeightKg = 0,
   dateFrom,
   dateTo,
   dashboardLoading = false,
@@ -132,7 +135,7 @@ export function StaciMonthlyReport({
     return {
       period: { from: format(fromDate, "yyyy-MM-dd"), to: format(toDate, "yyyy-MM-dd") },
       totalPallets: stats.totalPallets,
-      totalWeightKg: Math.round(stats.totalWeightKg),
+      totalWeightKg: Math.round(stats.totalWeightKg + balesDolavTotalWeightKg),
       grossCost: +stats.totalCost.toFixed(2),
       palletRebate: +stats.palletRebate.toFixed(2),
       netCost: +stats.netCost.toFixed(2),
@@ -358,7 +361,7 @@ export function StaciMonthlyReport({
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
                 { label: "Pallets", value: stats.totalPallets.toLocaleString() },
-                { label: "Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
+                { label: "Weight", value: `${((stats.totalWeightKg + balesDolavTotalWeightKg) / 1000).toFixed(2)} t` },
                 { label: "Gross", value: `£${stats.totalCost.toFixed(2)}` },
                 { label: "Net", value: `£${stats.netCost.toFixed(2)}` },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
