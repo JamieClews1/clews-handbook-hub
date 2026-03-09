@@ -44,6 +44,10 @@ interface StaciTallyScreenProps {
   onGlassDolavCountChange: (count: number) => void;
   glassDolavWeightKg: number;
   onGlassDolavWeightKgChange: (weight: number) => void;
+  scrapMetalLooseCount: number;
+  onScrapMetalLooseCountChange: (count: number) => void;
+  scrapMetalLooseWeightKg: number;
+  onScrapMetalLooseWeightKgChange: (weight: number) => void;
   palletWeightKg?: number;
 }
 
