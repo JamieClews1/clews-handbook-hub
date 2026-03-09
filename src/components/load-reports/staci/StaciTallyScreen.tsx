@@ -78,6 +78,10 @@ export const StaciTallyScreen = ({
   onGlassDolavCountChange,
   glassDolavWeightKg,
   onGlassDolavWeightKgChange,
+  scrapMetalLooseCount,
+  onScrapMetalLooseCountChange,
+  scrapMetalLooseWeightKg,
+  onScrapMetalLooseWeightKgChange,
   palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
   const isMobile = useIsMobile();

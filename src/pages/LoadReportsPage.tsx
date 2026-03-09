@@ -563,6 +563,8 @@ const LoadReportsPage = () => {
       setStaciPapersDolavWeightKg(Number((report as any).papers_dolav_weight_kg) || 0);
       setStaciGlassDolavCount((report as any).glass_dolav_count || 0);
       setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
+      setStaciScrapMetalLooseCount((report as any).scrap_metal_loose_count || 0);
+      setStaciScrapMetalLooseWeightKg(Number((report as any).scrap_metal_loose_weight_kg) || 0);
 
       // Detect if this is a staci report by checking the site's load_report_type
       let isStaciReport = staciEntries.length > 0;
