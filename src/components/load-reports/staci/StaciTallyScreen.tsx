@@ -242,7 +242,15 @@ export const StaciTallyScreen = ({
     return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
   }, [palletEntries]);
 
-  const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0 || scrapMetalLooseWeightKg > 0;
+  const onPalletsBaleDolavCount = 
+    (cardBalesOnPallets ? cardBalesCount : 0) +
+    (filmsBaleOnPallets ? filmsBaleCount : 0) +
+    (papersDolavOnPallets ? papersDolavCount : 0) +
+    (glassDolavOnPallets ? glassDolavCount : 0) +
+    (scrapMetalLooseOnPallets ? scrapMetalLooseCount : 0);
+
+  const grandTotalPallets = totalPallets + onPalletsBaleDolavCount;
+
 
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
