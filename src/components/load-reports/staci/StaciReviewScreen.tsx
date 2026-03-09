@@ -175,6 +175,11 @@ export const StaciReviewScreen = ({
   isSaving,
   cardBalesRatePerTonne = 0,
   filmsRatePerTonne = 0,
+  cardBalesOnPallets = false,
+  filmsBaleOnPallets = false,
+  papersDolavOnPallets = false,
+  glassDolavOnPallets = false,
+  scrapMetalLooseOnPallets = false,
 }: StaciReviewScreenProps) => {
   const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
   const [reconciledBaleDolavPreview, setReconciledBaleDolavPreview] = useState<{
