@@ -285,7 +285,7 @@ export const StaciReviewScreen = ({
               </div>
             </div>
           )}
-          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0) ? (
+          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0 || scrapMetalLooseCount > 0) ? (
             <StaciSummaryTable
               summaries={summaries}
               totalPallets={totalPallets}
@@ -301,6 +301,8 @@ export const StaciReviewScreen = ({
               papersDolavWeightKg={papersDolavWeightKg}
               glassDolavCount={glassDolavCount}
               glassDolavWeightKg={glassDolavWeightKg}
+              scrapMetalLooseCount={scrapMetalLooseCount}
+              scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
               palletWeightKg={palletWeightKg}
               palletChargeRatePerTonne={palletChargeRatePerTonne}
               cardBalesRatePerTonne={cardBalesRatePerTonne}
