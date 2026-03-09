@@ -93,6 +93,16 @@ export const StaciTallyScreen = ({
   onScrapMetalLooseCountChange,
   scrapMetalLooseWeightKg,
   onScrapMetalLooseWeightKgChange,
+  cardBalesOnPallets,
+  onCardBalesOnPalletsChange,
+  filmsBaleOnPallets,
+  onFilmsBaleOnPalletsChange,
+  papersDolavOnPallets,
+  onPapersDolavOnPalletsChange,
+  glassDolavOnPallets,
+  onGlassDolavOnPalletsChange,
+  scrapMetalLooseOnPallets,
+  onScrapMetalLooseOnPalletsChange,
   palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
   const isMobile = useIsMobile();
