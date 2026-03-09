@@ -157,7 +157,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const { data: reportData } = await balesQuery;
 
-      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0 };
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0 };
       (reportData ?? []).forEach((r: any) => {
         const cardCount = Number(r.card_bales_count) || 0;
         const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
@@ -167,6 +167,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const papersPerUnit = Number(r.papers_dolav_weight_kg) || 0;
         const glassCount = Number(r.glass_dolav_count) || 0;
         const glassPerUnit = Number(r.glass_dolav_weight_kg) || 0;
+        const scrapMetalCount = Number(r.scrap_metal_loose_count) || 0;
+        const scrapMetalPerUnit = Number(r.scrap_metal_loose_weight_kg) || 0;
         agg.cardBalesCount += cardCount;
         agg.cardBalesWeightKg += cardCount * cardPerUnit;
         agg.filmsBaleCount += filmsCount;
@@ -175,7 +177,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         agg.papersDolavWeightKg += papersCount * papersPerUnit;
         agg.glassDolavCount += glassCount;
         agg.glassDolavWeightKg += glassCount * glassPerUnit;
-        agg.glassDolavWeightKg += Number(r.glass_dolav_weight_kg) || 0;
+        agg.scrapMetalLooseCount += scrapMetalCount;
+        agg.scrapMetalLooseWeightKg += scrapMetalCount * scrapMetalPerUnit;
       });
       setBalesDolavData(agg);
 
