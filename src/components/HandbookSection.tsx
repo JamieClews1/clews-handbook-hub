@@ -16,22 +16,7 @@ interface HandbookSectionProps {
 }
 
 const stripHtmlAndFormat = (content: string) => {
-  // Convert h4 headings to bold markdown with proper spacing
   let cleaned = content
-    .replace(/<h4>(.*?)<\/h4>/gi, '\n\n**$1**\n');
-
-  // Handle ordered lists: number each <li> sequentially
-  cleaned = cleaned.replace(/<ol>([\s\S]*?)<\/ol>/gi, (_, listContent: string) => {
-    let counter = 0;
-    return listContent.replace(/<li>([\s\S]*?)<\/li>/gi, () => {
-      counter++;
-      const itemText = arguments.length ? '' : ''; // placeholder
-      return '';
-    });
-  });
-
-  // Actually, let's do this properly with a stateful replace
-  cleaned = content
     .replace(/<h4>(.*?)<\/h4>/gi, '\n\n**$1**\n');
 
   // Replace <ol>...</ol> blocks with numbered items
@@ -50,7 +35,6 @@ const stripHtmlAndFormat = (content: string) => {
     });
   });
 
-  // Clean remaining tags
   cleaned = cleaned
     .replace(/<p>/gi, '')
     .replace(/<\/p>/gi, '\n')
