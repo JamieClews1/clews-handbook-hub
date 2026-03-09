@@ -468,6 +468,11 @@ const LoadReportsPage = () => {
       setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
       setStaciScrapMetalLooseCount((report as any).scrap_metal_loose_count || 0);
       setStaciScrapMetalLooseWeightKg(Number((report as any).scrap_metal_loose_weight_kg) || 0);
+      setStaciCardBalesOnPallets((report as any).card_bales_on_pallets || false);
+      setStaciFilmsBaleOnPallets((report as any).films_bale_on_pallets || false);
+      setStaciPapersDolavOnPallets((report as any).papers_dolav_on_pallets || false);
+      setStaciGlassDolavOnPallets((report as any).glass_dolav_on_pallets || false);
+      setStaciScrapMetalLooseOnPallets((report as any).scrap_metal_loose_on_pallets || false);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
