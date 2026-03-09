@@ -76,6 +76,8 @@ const LoadReportsPage = () => {
   const [staciPapersDolavWeightKg, setStaciPapersDolavWeightKg] = useState(0);
   const [staciGlassDolavCount, setStaciGlassDolavCount] = useState(0);
   const [staciGlassDolavWeightKg, setStaciGlassDolavWeightKg] = useState(0);
+  const [staciScrapMetalLooseCount, setStaciScrapMetalLooseCount] = useState(0);
+  const [staciScrapMetalLooseWeightKg, setStaciScrapMetalLooseWeightKg] = useState(0);
   const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
   const [staciCardBalesRate, setStaciCardBalesRate] = useState(0);
   const [staciFilmsRate, setStaciFilmsRate] = useState(0);
@@ -459,6 +461,8 @@ const LoadReportsPage = () => {
       setStaciPapersDolavWeightKg(Number((report as any).papers_dolav_weight_kg) || 0);
       setStaciGlassDolavCount((report as any).glass_dolav_count || 0);
       setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
+      setStaciScrapMetalLooseCount((report as any).scrap_metal_loose_count || 0);
+      setStaciScrapMetalLooseWeightKg(Number((report as any).scrap_metal_loose_weight_kg) || 0);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
@@ -559,6 +563,8 @@ const LoadReportsPage = () => {
       setStaciPapersDolavWeightKg(Number((report as any).papers_dolav_weight_kg) || 0);
       setStaciGlassDolavCount((report as any).glass_dolav_count || 0);
       setStaciGlassDolavWeightKg(Number((report as any).glass_dolav_weight_kg) || 0);
+      setStaciScrapMetalLooseCount((report as any).scrap_metal_loose_count || 0);
+      setStaciScrapMetalLooseWeightKg(Number((report as any).scrap_metal_loose_weight_kg) || 0);
 
       // Detect if this is a staci report by checking the site's load_report_type
       let isStaciReport = staciEntries.length > 0;
@@ -708,6 +714,8 @@ const LoadReportsPage = () => {
            papers_dolav_weight_kg: staciPapersDolavWeightKg,
            glass_dolav_count: staciGlassDolavCount,
            glass_dolav_weight_kg: staciGlassDolavWeightKg,
+           scrap_metal_loose_count: staciScrapMetalLooseCount,
+           scrap_metal_loose_weight_kg: staciScrapMetalLooseWeightKg,
            submitted_at: submit ? new Date().toISOString() : null,
         };
 
@@ -1017,6 +1025,10 @@ const LoadReportsPage = () => {
               onGlassDolavCountChange={setStaciGlassDolavCount}
               glassDolavWeightKg={staciGlassDolavWeightKg}
               onGlassDolavWeightKgChange={setStaciGlassDolavWeightKg}
+              scrapMetalLooseCount={staciScrapMetalLooseCount}
+              onScrapMetalLooseCountChange={setStaciScrapMetalLooseCount}
+              scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
+              onScrapMetalLooseWeightKgChange={setStaciScrapMetalLooseWeightKg}
               palletWeightKg={defaultPalletWeight}
             />
           )}
@@ -1053,6 +1065,8 @@ const LoadReportsPage = () => {
               papersDolavWeightKg={staciPapersDolavWeightKg}
               glassDolavCount={staciGlassDolavCount}
               glassDolavWeightKg={staciGlassDolavWeightKg}
+              scrapMetalLooseCount={staciScrapMetalLooseCount}
+              scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
               palletWeightKg={defaultPalletWeight}
               palletChargeRatePerTonne={staciPalletChargeRate}
               cardBalesRatePerTonne={staciCardBalesRate}

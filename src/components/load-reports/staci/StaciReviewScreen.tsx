@@ -29,6 +29,8 @@ interface StaciReviewScreenProps {
   papersDolavWeightKg: number;
   glassDolavCount: number;
   glassDolavWeightKg: number;
+  scrapMetalLooseCount: number;
+  scrapMetalLooseWeightKg: number;
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
   weighbridgeWeightKg?: number | null;
@@ -145,6 +147,8 @@ export const StaciReviewScreen = ({
   papersDolavWeightKg,
   glassDolavCount,
   glassDolavWeightKg,
+  scrapMetalLooseCount,
+  scrapMetalLooseWeightKg,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
   weighbridgeWeightKg,
@@ -185,7 +189,8 @@ export const StaciReviewScreen = ({
     (cardBalesCount * cardBalesWeightKg) +
     (filmsBaleCount * filmsBaleWeightKg) +
     (papersDolavCount * papersDolavWeightKg) +
-    (glassDolavCount * glassDolavWeightKg);
+    (glassDolavCount * glassDolavWeightKg) +
+    (scrapMetalLooseCount * scrapMetalLooseWeightKg);
 
   const handleReconcile = () => {
     if (typeof weighbridgeWeightKg !== "number") return;
@@ -280,7 +285,7 @@ export const StaciReviewScreen = ({
               </div>
             </div>
           )}
-          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0) ? (
+          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0 || scrapMetalLooseCount > 0) ? (
             <StaciSummaryTable
               summaries={summaries}
               totalPallets={totalPallets}
@@ -296,6 +301,8 @@ export const StaciReviewScreen = ({
               papersDolavWeightKg={papersDolavWeightKg}
               glassDolavCount={glassDolavCount}
               glassDolavWeightKg={glassDolavWeightKg}
+              scrapMetalLooseCount={scrapMetalLooseCount}
+              scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
               palletWeightKg={palletWeightKg}
               palletChargeRatePerTonne={palletChargeRatePerTonne}
               cardBalesRatePerTonne={cardBalesRatePerTonne}
@@ -365,6 +372,8 @@ export const StaciReviewScreen = ({
                       papersDolavWeightKg={papersDolavWeightKg}
                       glassDolavCount={glassDolavCount}
                       glassDolavWeightKg={glassDolavWeightKg}
+                      scrapMetalLooseCount={scrapMetalLooseCount}
+                      scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
                       palletWeightKg={palletWeightKg}
                       palletChargeRatePerTonne={palletChargeRatePerTonne}
                       cardBalesRatePerTonne={cardBalesRatePerTonne}
@@ -423,7 +432,7 @@ export const StaciReviewScreen = ({
               </Button>
               <Button
                 onClick={onSubmit}
-                disabled={isSaving || (palletEntries.length === 0 && papersDolavWeightKg === 0 && glassDolavWeightKg === 0 && cardBalesWeightKg === 0 && filmsBaleWeightKg === 0)}
+                disabled={isSaving || (palletEntries.length === 0 && papersDolavWeightKg === 0 && glassDolavWeightKg === 0 && cardBalesWeightKg === 0 && filmsBaleWeightKg === 0 && scrapMetalLooseWeightKg === 0)}
                 className="h-12 px-6 gap-2"
               >
                 <CheckCircle2 className="h-5 w-5" />

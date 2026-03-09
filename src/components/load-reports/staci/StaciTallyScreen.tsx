@@ -44,6 +44,10 @@ interface StaciTallyScreenProps {
   onGlassDolavCountChange: (count: number) => void;
   glassDolavWeightKg: number;
   onGlassDolavWeightKgChange: (weight: number) => void;
+  scrapMetalLooseCount: number;
+  onScrapMetalLooseCountChange: (count: number) => void;
+  scrapMetalLooseWeightKg: number;
+  onScrapMetalLooseWeightKgChange: (weight: number) => void;
   palletWeightKg?: number;
 }
 
@@ -74,6 +78,10 @@ export const StaciTallyScreen = ({
   onGlassDolavCountChange,
   glassDolavWeightKg,
   onGlassDolavWeightKgChange,
+  scrapMetalLooseCount,
+  onScrapMetalLooseCountChange,
+  scrapMetalLooseWeightKg,
+  onScrapMetalLooseWeightKgChange,
   palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
   const isMobile = useIsMobile();
@@ -213,7 +221,7 @@ export const StaciTallyScreen = ({
     return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
   }, [palletEntries]);
 
-  const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0;
+  const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0 || scrapMetalLooseWeightKg > 0;
 
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
@@ -553,6 +561,28 @@ export const StaciTallyScreen = ({
               </div>
             </CardContent>
           </Card>
+
+          {/* Scrap Metal Loose */}
+          <Card className="border-2 border-zinc-500/50 bg-zinc-50/30 dark:bg-zinc-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-500 to-zinc-600 flex items-center justify-center">
+                  <Layers className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Scrap Metal Loose</Label>
+                  <p className="text-sm text-muted-foreground">Loose scrap metal</p>
+                </div>
+                <BaleDolavInput
+                  count={scrapMetalLooseCount}
+                  totalWeightKg={scrapMetalLooseWeightKg}
+                  onCountChange={onScrapMetalLooseCountChange}
+                  onTotalWeightChange={onScrapMetalLooseWeightKgChange}
+                  compact
+                />
+              </div>
+            </CardContent>
+          </Card>
           <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
             <div className="flex items-center justify-between gap-3">
               <Button variant="outline" onClick={() => setMobileStep("pallet-entry")} className="h-12 px-4 gap-2">
@@ -793,6 +823,31 @@ export const StaciTallyScreen = ({
         </CardContent>
       </Card>
 
+      {/* Scrap Metal Loose */}
+      <Card className="border-2 border-zinc-500/50 bg-zinc-50/30 dark:bg-zinc-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-500 to-zinc-600 flex items-center justify-center">
+              <Layers className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-base font-semibold text-foreground">
+                Scrap Metal Loose
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Loose scrap metal
+              </p>
+            </div>
+            <BaleDolavInput
+              count={scrapMetalLooseCount}
+              totalWeightKg={scrapMetalLooseWeightKg}
+              onCountChange={onScrapMetalLooseCountChange}
+              onTotalWeightChange={onScrapMetalLooseWeightKgChange}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary table */}
       {summaries.length > 0 && (
         <div className="space-y-3">
@@ -819,6 +874,8 @@ export const StaciTallyScreen = ({
             papersDolavWeightKg={papersDolavWeightKg}
             glassDolavCount={glassDolavCount}
             glassDolavWeightKg={glassDolavWeightKg}
+            scrapMetalLooseCount={scrapMetalLooseCount}
+            scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
             palletWeightKg={palletWeightKg}
           />
         </div>
@@ -841,7 +898,7 @@ export const StaciTallyScreen = ({
               <div className="w-px h-10 bg-border" />
               <div>
                 <div className="text-2xl font-bold text-primary">
-                  {((totalWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg) / 1000).toFixed(2)}t
+                  {((totalWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg + scrapMetalLooseWeightKg) / 1000).toFixed(2)}t
                 </div>
                 <div className="text-xs text-muted-foreground">Total Weight</div>
               </div>

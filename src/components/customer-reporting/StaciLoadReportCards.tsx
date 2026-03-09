@@ -41,6 +41,8 @@ interface StaciReport {
   papers_dolav_weight_kg: number;
   glass_dolav_count: number;
   glass_dolav_weight_kg: number;
+  scrap_metal_loose_count: number;
+  scrap_metal_loose_weight_kg: number;
   status: string;
   pallet_entries: {
     colour: StaciPalletColour;
@@ -144,6 +146,8 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
         papers_dolav_weight_kg: Number((r as any).papers_dolav_weight_kg) || 0,
         glass_dolav_count: (r as any).glass_dolav_count || 0,
         glass_dolav_weight_kg: Number((r as any).glass_dolav_weight_kg) || 0,
+        scrap_metal_loose_count: (r as any).scrap_metal_loose_count || 0,
+        scrap_metal_loose_weight_kg: Number((r as any).scrap_metal_loose_weight_kg) || 0,
         status: r.status,
         pallet_entries: (palletsByReport[r.id] || []).map((e: any) => ({
           colour: e.colour,
@@ -455,7 +459,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                             {totalPallets} pallets
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {((totalWeightKg + (report.card_bales_count || 0) * (report.card_bales_weight_kg || 0) + (report.films_bale_count || 0) * (report.films_bale_weight_kg || 0) + (report.papers_dolav_count || 0) * (report.papers_dolav_weight_kg || 0) + (report.glass_dolav_count || 0) * (report.glass_dolav_weight_kg || 0)) / 1000).toFixed(2)}t
+                            {((totalWeightKg + (report.card_bales_count || 0) * (report.card_bales_weight_kg || 0) + (report.films_bale_count || 0) * (report.films_bale_weight_kg || 0) + (report.papers_dolav_count || 0) * (report.papers_dolav_weight_kg || 0) + (report.glass_dolav_count || 0) * (report.glass_dolav_weight_kg || 0) + (report.scrap_metal_loose_count || 0) * (report.scrap_metal_loose_weight_kg || 0)) / 1000).toFixed(2)}t
                           </Badge>
                           <Badge
                             variant="default"
@@ -551,7 +555,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                       </div>
 
                       {/* Bales & Dolavs breakdown */}
-                      {(report.card_bales_count > 0 || report.films_bale_count > 0 || report.papers_dolav_count > 0 || report.glass_dolav_count > 0 || report.pallets_scrap_count > 0) && (
+                      {(report.card_bales_count > 0 || report.films_bale_count > 0 || report.papers_dolav_count > 0 || report.glass_dolav_count > 0 || report.scrap_metal_loose_count > 0 || report.pallets_scrap_count > 0) && (
                         <div className="rounded-lg border overflow-hidden">
                           <Table>
                             <TableHeader>
@@ -623,6 +627,16 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
                                 </TableRow>
                               )}
+                              {report.scrap_metal_loose_count > 0 && (
+                                <TableRow>
+                                  <TableCell className="py-2 text-sm">Scrap Metal Loose</TableCell>
+                                  <TableCell className="text-right text-sm">{report.scrap_metal_loose_count}</TableCell>
+                                  <TableCell className="text-right text-sm">{(report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg).toLocaleString()}</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right text-sm">-</TableCell>
+                                  <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
+                                </TableRow>
+                              )}
                               {report.pallets_scrap_count > 0 && (
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Scrap Pallets</TableCell>
@@ -643,10 +657,10 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableRow className="font-bold">
                                     <TableCell>Total</TableCell>
                                     <TableCell className="text-right">
-                                      {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.pallets_scrap_count}
+                                      {report.card_bales_count + report.films_bale_count + report.papers_dolav_count + report.glass_dolav_count + report.scrap_metal_loose_count + report.pallets_scrap_count}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg).toLocaleString()}
+                                      {(report.card_bales_count * report.card_bales_weight_kg + report.films_bale_count * report.films_bale_weight_kg + report.papers_dolav_count * report.papers_dolav_weight_kg + report.glass_dolav_count * report.glass_dolav_weight_kg + report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg).toLocaleString()}
                                     </TableCell>
                                     <TableCell />
                                     <TableCell className="text-right font-medium text-green-600">

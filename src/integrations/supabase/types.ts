@@ -1465,6 +1465,8 @@ export type Database = {
           papers_dolav_count: number | null
           papers_dolav_weight_kg: number | null
           report_date: string
+          scrap_metal_loose_count: number | null
+          scrap_metal_loose_weight_kg: number | null
           site_id: string | null
           status: string
           submitted_at: string | null
@@ -1492,6 +1494,8 @@ export type Database = {
           papers_dolav_count?: number | null
           papers_dolav_weight_kg?: number | null
           report_date?: string
+          scrap_metal_loose_count?: number | null
+          scrap_metal_loose_weight_kg?: number | null
           site_id?: string | null
           status?: string
           submitted_at?: string | null
@@ -1519,6 +1523,8 @@ export type Database = {
           papers_dolav_count?: number | null
           papers_dolav_weight_kg?: number | null
           report_date?: string
+          scrap_metal_loose_count?: number | null
+          scrap_metal_loose_weight_kg?: number | null
           site_id?: string | null
           status?: string
           submitted_at?: string | null

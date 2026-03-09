@@ -24,6 +24,8 @@ interface StaciSummaryTableProps {
   papersDolavWeightKg?: number; // per-unit weight
   glassDolavCount?: number;
   glassDolavWeightKg?: number; // per-unit weight
+  scrapMetalLooseCount?: number;
+  scrapMetalLooseWeightKg?: number; // per-unit weight
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
   cardBalesRatePerTonne?: number;
@@ -45,6 +47,8 @@ export const StaciSummaryTable = ({
   papersDolavWeightKg = 0,
   glassDolavCount = 0,
   glassDolavWeightKg = 0,
+  scrapMetalLooseCount = 0,
+  scrapMetalLooseWeightKg = 0,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
   cardBalesRatePerTonne = 0,
@@ -60,6 +64,7 @@ export const StaciSummaryTable = ({
   const filmsBaleGrossKg = filmsBaleCount * filmsBaleWeightKg;
   const papersDolavGrossKg = papersDolavCount * papersDolavWeightKg;
   const glassDolavGrossKg = glassDolavCount * glassDolavWeightKg;
+  const scrapMetalLooseGrossKg = scrapMetalLooseCount * scrapMetalLooseWeightKg;
 
   // Calculate bale values from rates
   const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesGrossKg / 1000) * cardBalesRatePerTonne : 0;
@@ -255,14 +260,31 @@ export const StaciSummaryTable = ({
               <TableCell className="text-right font-medium">-</TableCell>
             </TableRow>
           )}
+          {scrapMetalLooseCount > 0 && (
+            <TableRow>
+              <TableCell>
+                <span className="text-muted-foreground">Scrap Metal Loose</span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {scrapMetalLooseCount}
+              </TableCell>
+              <TableCell className="text-right">
+                {scrapMetalLooseGrossKg.toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">{scrapMetalLooseGrossKg.toLocaleString()}</TableCell>
+              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right font-medium">-</TableCell>
+            </TableRow>
+          )}
         </TableBody>
         <TableFooter>
           <TableRow className="bg-muted font-bold">
             <TableCell>Total</TableCell>
-            <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount}</TableCell>
-            <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg).toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount + scrapMetalLooseCount}</TableCell>
+            <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg + scrapMetalLooseGrossKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">{totalPalletDeductionKg.toLocaleString()}</TableCell>
-            <TableCell className="text-right">{(totalNetWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg).toLocaleString()}</TableCell>
+            <TableCell className="text-right">{(totalNetWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg + scrapMetalLooseGrossKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
               {netTotal < 0 ? "-" : ""}£{Math.abs(netTotal).toFixed(2)}
