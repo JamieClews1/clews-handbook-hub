@@ -1118,6 +1118,11 @@ const LoadReportsPage = () => {
               onSaveDraft={() => saveReport(false)}
               onSubmit={() => saveReport(true)}
               isSaving={isSaving}
+              cardBalesOnPallets={staciCardBalesOnPallets}
+              filmsBaleOnPallets={staciFilmsBaleOnPallets}
+              papersDolavOnPallets={staciPapersDolavOnPallets}
+              glassDolavOnPallets={staciGlassDolavOnPallets}
+              scrapMetalLooseOnPallets={staciScrapMetalLooseOnPallets}
             />
           )}
 
