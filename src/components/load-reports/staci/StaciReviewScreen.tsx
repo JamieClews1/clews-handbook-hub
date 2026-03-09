@@ -189,7 +189,8 @@ export const StaciReviewScreen = ({
     (cardBalesCount * cardBalesWeightKg) +
     (filmsBaleCount * filmsBaleWeightKg) +
     (papersDolavCount * papersDolavWeightKg) +
-    (glassDolavCount * glassDolavWeightKg);
+    (glassDolavCount * glassDolavWeightKg) +
+    (scrapMetalLooseCount * scrapMetalLooseWeightKg);
 
   const handleReconcile = () => {
     if (typeof weighbridgeWeightKg !== "number") return;
