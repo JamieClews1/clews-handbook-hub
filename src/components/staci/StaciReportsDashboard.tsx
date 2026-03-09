@@ -615,7 +615,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
             {(() => {
               const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
               const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-              const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue;
+              const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+              const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
               const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
 
               return [
