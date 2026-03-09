@@ -663,7 +663,8 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                               {(() => {
                                 const cardValue = (report.card_bales_count * report.card_bales_weight_kg / 1000) * baleRates.cardBalesRate;
                                 const filmsValue = (report.films_bale_count * report.films_bale_weight_kg / 1000) * baleRates.filmsRate;
-                                const totalRebate = cardValue + filmsValue;
+                                const scrapMetalValue = (report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg / 1000) * baleRates.scrapMetalRate;
+                                const totalRebate = cardValue + filmsValue + scrapMetalValue;
                                 return (
                                   <TableRow className="font-bold">
                                     <TableCell>Total</TableCell>
