@@ -190,7 +190,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
       const { data: wasteTypes } = await supabase
         .from("load_waste_types")
         .select("id, waste_type")
-        .in("waste_type", ["Card Bales", "Films Baled- Clear", "Films Baled- Mixed Colour"]);
+        .in("waste_type", ["Card Bales", "Films Baled- Clear", "Films Baled- Mixed Colour", "Scrap Ferrous"]);
 
       const wasteTypeMap = Object.fromEntries((wasteTypes ?? []).map(w => [w.id, w.waste_type]));
 
