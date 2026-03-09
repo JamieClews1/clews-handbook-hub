@@ -20,6 +20,7 @@ export interface StaciWasteBreakdown {
 // Default empty breakdown
 export const EMPTY_WASTE_BREAKDOWN: StaciWasteBreakdown = {
   metal: 0,
+  scrap_metal: 0,
   paper: 0,
   card: 0,
   pvc: 0,
