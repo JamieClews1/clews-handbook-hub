@@ -299,6 +299,12 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
       weightKg += s.totalWeightKg;
       grossValue += s.totalValue;
       palletRebate += s.palletRebate;
+      // Include bales, dolavs, and scrap metal loose weights
+      weightKg += report.card_bales_count * report.card_bales_weight_kg;
+      weightKg += report.films_bale_count * report.films_bale_weight_kg;
+      weightKg += report.papers_dolav_count * report.papers_dolav_weight_kg;
+      weightKg += report.glass_dolav_count * report.glass_dolav_weight_kg;
+      weightKg += report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg;
     }
 
     return { pallets, weightKg, grossValue, netValue: grossValue - palletRebate, palletRebate };

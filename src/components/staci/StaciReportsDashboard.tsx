@@ -644,7 +644,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
               return [
                 { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
-                { label: "Total Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
+                { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
                 { label: "Gross Cost", value: `£${(stats.totalCost + haulageData.totalCost).toFixed(2)}` },
                 { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}`, highlight: true },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
