@@ -1063,6 +1063,8 @@ const LoadReportsPage = () => {
               papersDolavWeightKg={staciPapersDolavWeightKg}
               glassDolavCount={staciGlassDolavCount}
               glassDolavWeightKg={staciGlassDolavWeightKg}
+              scrapMetalLooseCount={staciScrapMetalLooseCount}
+              scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
               palletWeightKg={defaultPalletWeight}
               palletChargeRatePerTonne={staciPalletChargeRate}
               cardBalesRatePerTonne={staciCardBalesRate}
