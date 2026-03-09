@@ -50,6 +50,7 @@ export const WASTE_TYPE_LABELS: Record<keyof StaciWasteBreakdown, string> = {
 // Define which waste types are recyclable
 export const RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
   "metal",
+  "scrap_metal",
   "paper",
   "card",
   "hard_plastic",
