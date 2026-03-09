@@ -1054,6 +1054,16 @@ const LoadReportsPage = () => {
               onScrapMetalLooseCountChange={setStaciScrapMetalLooseCount}
               scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
               onScrapMetalLooseWeightKgChange={setStaciScrapMetalLooseWeightKg}
+              cardBalesOnPallets={staciCardBalesOnPallets}
+              onCardBalesOnPalletsChange={setStaciCardBalesOnPallets}
+              filmsBaleOnPallets={staciFilmsBaleOnPallets}
+              onFilmsBaleOnPalletsChange={setStaciFilmsBaleOnPallets}
+              papersDolavOnPallets={staciPapersDolavOnPallets}
+              onPapersDolavOnPalletsChange={setStaciPapersDolavOnPallets}
+              glassDolavOnPallets={staciGlassDolavOnPallets}
+              onGlassDolavOnPalletsChange={setStaciGlassDolavOnPallets}
+              scrapMetalLooseOnPallets={staciScrapMetalLooseOnPallets}
+              onScrapMetalLooseOnPalletsChange={setStaciScrapMetalLooseOnPallets}
               palletWeightKg={defaultPalletWeight}
             />
           )}
