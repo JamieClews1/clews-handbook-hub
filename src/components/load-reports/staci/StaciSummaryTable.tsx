@@ -170,13 +170,13 @@ export const StaciSummaryTable = ({
               </TableCell>
             </TableRow>
           )}
-          {palletChargeRatePerTonne !== 0 && (
+          {(palletChargeRatePerTonne !== 0 || baleDolavPalletWeightKg > 0) && (
             <TableRow>
               <TableCell>
                 <span className="text-muted-foreground">Pallet charge</span>
               </TableCell>
               <TableCell className="text-right font-medium">
-                {totalPallets}
+                {totalPallets + (cardBalesOnPallets ? cardBalesCount : 0) + (filmsBaleOnPallets ? filmsBaleCount : 0) + (papersDolavOnPallets ? papersDolavCount : 0) + (glassDolavOnPallets ? glassDolavCount : 0) + (scrapMetalLooseOnPallets ? scrapMetalLooseCount : 0)}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">
