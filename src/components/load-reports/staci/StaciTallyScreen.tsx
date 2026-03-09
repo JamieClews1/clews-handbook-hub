@@ -927,6 +927,11 @@ export const StaciTallyScreen = ({
             scrapMetalLooseCount={scrapMetalLooseCount}
             scrapMetalLooseWeightKg={scrapMetalLooseWeightKg}
             palletWeightKg={palletWeightKg}
+            cardBalesOnPallets={cardBalesOnPallets}
+            filmsBaleOnPallets={filmsBaleOnPallets}
+            papersDolavOnPallets={papersDolavOnPallets}
+            glassDolavOnPallets={glassDolavOnPallets}
+            scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
           />
         </div>
       )}
