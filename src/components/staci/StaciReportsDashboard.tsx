@@ -423,11 +423,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       .filter(([, kg]) => kg > 0)
       .map(([key, kg]) => ({
         key: key as keyof StaciWasteBreakdown,
-        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? key,
+        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? (key === "glass" ? "Glass" : key),
         kg,
         tonnes: kg / 1000,
         pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
-        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any),
+        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
         nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
         wood: key === WOOD_TYPE,
       }))
@@ -435,13 +435,13 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
     const recyclableKg = wasteRows.filter((w) => w.recyclable).reduce((s, w) => s + w.kg, 0);
     const nonRecoverableKg = wasteRows.filter((w) => w.nonRecoverable).reduce((s, w) => s + w.kg, 0);
-    const woodKg = 0;
+    const woodKg = wasteRows.filter((w) => w.wood).reduce((s, w) => s + w.kg, 0);
 
     return {
       colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, scrapPallets,
       palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, woodKg,
     };
-  }, [rows, dbPalletRates, dbGoodPalletRebate]);
+  }, [rows, dbPalletRates, dbGoodPalletRebate, balesDolavData]);
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
