@@ -712,6 +712,8 @@ const LoadReportsPage = () => {
            papers_dolav_weight_kg: staciPapersDolavWeightKg,
            glass_dolav_count: staciGlassDolavCount,
            glass_dolav_weight_kg: staciGlassDolavWeightKg,
+           scrap_metal_loose_count: staciScrapMetalLooseCount,
+           scrap_metal_loose_weight_kg: staciScrapMetalLooseWeightKg,
            submitted_at: submit ? new Date().toISOString() : null,
         };
 
