@@ -135,7 +135,7 @@ export function StaciMonthlyReport({
     return {
       period: { from: format(fromDate, "yyyy-MM-dd"), to: format(toDate, "yyyy-MM-dd") },
       totalPallets: stats.totalPallets,
-      totalWeightKg: Math.round(stats.totalWeightKg),
+      totalWeightKg: Math.round(stats.totalWeightKg + balesDolavTotalWeightKg),
       grossCost: +stats.totalCost.toFixed(2),
       palletRebate: +stats.palletRebate.toFixed(2),
       netCost: +stats.netCost.toFixed(2),
