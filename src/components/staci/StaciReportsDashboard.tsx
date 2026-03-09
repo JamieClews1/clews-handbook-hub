@@ -891,18 +891,27 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                         </tr>
                       )}
-                      {balesDolavData.scrapMetalLooseCount > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Scrap Metal Loose</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount > 0 ? Math.round(balesDolavData.scrapMetalLooseWeightKg / balesDolavData.scrapMetalLooseCount).toLocaleString() : "-"}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseWeightKg.toLocaleString()}</td>
-                          <td className="py-1.5 px-3 text-right">{(balesDolavData.scrapMetalLooseWeightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
-                        </tr>
-                      )}
+                      {balesDolavData.scrapMetalLooseCount > 0 && (() => {
+                        const scrapMetalValuePerTonne = baleRates.scrapMetalRate;
+                        const scrapMetalTonnes = balesDolavData.scrapMetalLooseWeightKg / 1000;
+                        const scrapMetalValue = scrapMetalTonnes * scrapMetalValuePerTonne;
+                        return (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Scrap Metal Loose</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount}</td>
+                            <td className="py-1.5 px-3 text-right">{Math.round(balesDolavData.scrapMetalLooseWeightKg / balesDolavData.scrapMetalLooseCount).toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{scrapMetalTonnes.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right text-green-600">
+                              {scrapMetalValuePerTonne !== 0 ? `-£${Math.abs(scrapMetalValuePerTonne).toFixed(2)}/t` : "-"}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-medium text-green-600">
+                              {scrapMetalValuePerTonne !== 0 ? `-£${Math.abs(scrapMetalValue).toFixed(2)}` : "-"}
+                            </td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
+                          </tr>
+                        );
+                      })()}
                     </tbody>
                     <tfoot>
                       {(() => {
