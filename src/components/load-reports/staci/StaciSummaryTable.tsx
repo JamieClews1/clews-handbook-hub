@@ -30,6 +30,11 @@ interface StaciSummaryTableProps {
   palletChargeRatePerTonne?: number;
   cardBalesRatePerTonne?: number;
   filmsRatePerTonne?: number;
+  cardBalesOnPallets?: boolean;
+  filmsBaleOnPallets?: boolean;
+  papersDolavOnPallets?: boolean;
+  glassDolavOnPallets?: boolean;
+  scrapMetalLooseOnPallets?: boolean;
 }
 
 export const StaciSummaryTable = ({
@@ -53,10 +58,24 @@ export const StaciSummaryTable = ({
   palletChargeRatePerTonne = 0,
   cardBalesRatePerTonne = 0,
   filmsRatePerTonne = 0,
+  cardBalesOnPallets = false,
+  filmsBaleOnPallets = false,
+  papersDolavOnPallets = false,
+  glassDolavOnPallets = false,
+  scrapMetalLooseOnPallets = false,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
-  const totalPalletDeductionKg = totalPallets * palletWeightKg;
-  const totalNetWeightKg = totalWeightKg - totalPalletDeductionKg;
+  
+  // Pallet weight from bale/dolav items marked "on pallets"
+  const baleDolavPalletWeightKg = 
+    (cardBalesOnPallets ? cardBalesCount * palletWeightKg : 0) +
+    (filmsBaleOnPallets ? filmsBaleCount * palletWeightKg : 0) +
+    (papersDolavOnPallets ? papersDolavCount * palletWeightKg : 0) +
+    (glassDolavOnPallets ? glassDolavCount * palletWeightKg : 0) +
+    (scrapMetalLooseOnPallets ? scrapMetalLooseCount * palletWeightKg : 0);
+  
+  const totalPalletDeductionKg = (totalPallets * palletWeightKg) + baleDolavPalletWeightKg;
+  const totalNetWeightKg = totalWeightKg - (totalPallets * palletWeightKg);
   const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
 
   // Calculate gross weights for bales/dolavs (stored value is per-unit)
@@ -66,9 +85,16 @@ export const StaciSummaryTable = ({
   const glassDolavGrossKg = glassDolavCount * glassDolavWeightKg;
   const scrapMetalLooseGrossKg = scrapMetalLooseCount * scrapMetalLooseWeightKg;
 
-  // Calculate bale values from rates
-  const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesGrossKg / 1000) * cardBalesRatePerTonne : 0;
-  const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleGrossKg / 1000) * filmsRatePerTonne : 0;
+  // Net weights for bale/dolav items (deduct pallet weight if on pallets)
+  const cardBalesNetKg = cardBalesGrossKg - (cardBalesOnPallets ? cardBalesCount * palletWeightKg : 0);
+  const filmsBaleNetKg = filmsBaleGrossKg - (filmsBaleOnPallets ? filmsBaleCount * palletWeightKg : 0);
+  const papersDolavNetKg = papersDolavGrossKg - (papersDolavOnPallets ? papersDolavCount * palletWeightKg : 0);
+  const glassDolavNetKg = glassDolavGrossKg - (glassDolavOnPallets ? glassDolavCount * palletWeightKg : 0);
+  const scrapMetalLooseNetKg = scrapMetalLooseGrossKg - (scrapMetalLooseOnPallets ? scrapMetalLooseCount * palletWeightKg : 0);
+
+  // Calculate bale values from rates (using net weight for value calculation)
+  const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesNetKg / 1000) * cardBalesRatePerTonne : 0;
+  const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleNetKg / 1000) * filmsRatePerTonne : 0;
 
   const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue;
 
