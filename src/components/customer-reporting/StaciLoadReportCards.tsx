@@ -72,7 +72,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
   const [reports, setReports] = useState<StaciReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
-  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number }>({ cardBalesRate: 0, filmsRate: 0 });
+  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number; scrapMetalRate: number }>({ cardBalesRate: 0, filmsRate: 0, scrapMetalRate: 0 });
   const palletWeightKg = 20;
 
   useEffect(() => {
