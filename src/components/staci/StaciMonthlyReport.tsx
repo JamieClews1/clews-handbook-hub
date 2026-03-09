@@ -1,23 +1,18 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Download, PenLine, CheckCircle2, Loader2, Truck, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Download, PenLine, CheckCircle2, Loader2, Truck } from "lucide-react";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/SignaturePad";
 import clewsLogo from "@/assets/clews-logo.png";
 import * as XLSX from "xlsx";
 import {
-  STACI_PALLET_RATES,
-  STACI_PALLET_GOOD_REBATE,
   WASTE_TYPE_LABELS,
   RECYCLABLE_WASTE_TYPES,
   NON_RECYCLABLE_WASTE_TYPES,
@@ -26,22 +21,6 @@ import {
   type StaciPalletColour,
   STACI_COLOUR_CONFIG,
 } from "@/components/load-reports/staci/types";
-
-const TARE_KG = 20;
-
-interface PalletRow {
-  id: string;
-  colour: StaciPalletColour;
-  weight_kg: number;
-  pallet_type: string;
-  pallet_count: number;
-  description: string | null;
-  waste_breakdown: StaciWasteBreakdown | null;
-  load_report_id: string;
-  report_date: string;
-  site_name: string | null;
-  customer_name: string | null;
-}
 
 interface SignedReport {
   id: string;
@@ -53,26 +32,68 @@ interface SignedReport {
   report_data: any;
 }
 
+interface DashboardStats {
+  colourMap: Record<string, { count: number; weightKg: number; cost: number }>;
+  totalPallets: number;
+  totalWeightKg: number;
+  totalCost: number;
+  goodPallets: number;
+  scrapPallets: number;
+  palletRebate: number;
+  netCost: number;
+  wasteRows: Array<{
+    key: string;
+    label: string;
+    kg: number;
+    tonnes: number;
+    pct: number;
+    recyclable: boolean;
+    nonRecoverable: boolean;
+    wood: boolean;
+  }>;
+  totalBreakdownWeight: number;
+  recyclableKg: number;
+  nonRecoverableKg: number;
+  woodKg: number;
+}
+
+interface DashboardHaulage {
+  artic: { loads: number; totalCost: number; rate: number };
+  pickup: { loads: number; totalCost: number; rate: number };
+  totalLoads: number;
+  totalCost: number;
+}
+
 interface Props {
   customerId?: string;
   customerName?: string;
   isPortalView?: boolean;
+  /** Dashboard-computed stats - used for admin preview & snapshot */
+  dashboardStats?: DashboardStats;
+  /** Dashboard haulage data */
+  dashboardHaulage?: DashboardHaulage;
+  /** Dashboard date range */
+  dateFrom?: Date;
+  dateTo?: Date;
+  /** Whether dashboard is still loading */
+  dashboardLoading?: boolean;
 }
 
-export function StaciMonthlyReport({ customerId, customerName, isPortalView = false }: Props) {
+export function StaciMonthlyReport({
+  customerId,
+  customerName,
+  isPortalView = false,
+  dashboardStats,
+  dashboardHaulage,
+  dateFrom,
+  dateTo,
+  dashboardLoading = false,
+}: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [dateMode, setDateMode] = useState<"month" | "custom">("month");
-  const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
-  const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(new Date()));
-  const [dateTo, setDateTo] = useState<Date>(endOfMonth(new Date()));
-  const [rows, setRows] = useState<PalletRow[]>([]);
-  const [dolavData, setDolavData] = useState<{ papersWeightKg: number; glassWeightKg: number }>({ papersWeightKg: 0, glassWeightKg: 0 });
-  const [fetching, setFetching] = useState(false);
   const [signedReports, setSignedReports] = useState<SignedReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
-  const [haulageData, setHaulageData] = useState<{ loads: number; totalCost: number; ratePerLoad: number }>({ loads: 0, totalCost: 0, ratePerLoad: 0 });
 
   // Signing state (admin only)
   const [showSignature, setShowSignature] = useState(false);
@@ -101,192 +122,46 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     loadSignedReports();
   }, [user, customerId]);
 
-  // Load pallet data for preview (admin only)
-  useEffect(() => {
-    if (isPortalView || !user) return;
-    const fetchData = async () => {
-      setFetching(true);
-      const from = format(dateFrom, "yyyy-MM-dd");
-      const to = format(dateTo, "yyyy-MM-dd");
+  const stats = dashboardStats;
+  const haulageData = dashboardHaulage ?? { artic: { loads: 0, totalCost: 0, rate: 0 }, pickup: { loads: 0, totalCost: 0, rate: 0 }, totalLoads: 0, totalCost: 0 };
+  const fromDate = dateFrom ?? new Date();
+  const toDate = dateTo ?? new Date();
 
-      const { data, error } = await supabase
-        .from("staci_pallet_entries")
-        .select("id, colour, weight_kg, pallet_type, pallet_count, description, waste_breakdown, load_report_id, load_reports!inner(report_date, status, customer_sites(site_name, customers(customer_name)))")
-        .gte("load_reports.report_date", from)
-        .lte("load_reports.report_date", to)
-        .eq("load_reports.status", "submitted");
-
-      if (error) {
-        console.error(error);
-        setFetching(false);
-        return;
-      }
-
-      const mapped: PalletRow[] = (data ?? []).map((r: any) => ({
-        id: r.id,
-        colour: r.colour,
-        weight_kg: r.weight_kg,
-        pallet_type: r.pallet_type ?? "good",
-        pallet_count: r.pallet_count ?? 1,
-        description: r.description,
-        waste_breakdown: r.waste_breakdown as StaciWasteBreakdown | null,
-        load_report_id: r.load_report_id,
-        report_date: r.load_reports?.report_date ?? "",
-        site_name: r.load_reports?.customer_sites?.site_name ?? null,
-        customer_name: r.load_reports?.customer_sites?.customers?.customer_name ?? null,
-      }));
-
-      setRows(mapped);
-
-      // Aggregate dolav data from load_reports
-      const reportIds = [...new Set(mapped.map((r) => r.load_report_id))];
-      if (reportIds.length > 0) {
-        const { data: reportData } = await supabase
-          .from("load_reports")
-          .select("papers_dolav_weight_kg, glass_dolav_weight_kg")
-          .in("id", reportIds);
-        
-        let papersTotal = 0;
-        let glassTotal = 0;
-        (reportData ?? []).forEach((r: any) => {
-          papersTotal += Number(r.papers_dolav_weight_kg) || 0;
-          glassTotal += Number(r.glass_dolav_weight_kg) || 0;
-        });
-        setDolavData({ papersWeightKg: papersTotal, glassWeightKg: glassTotal });
-      } else {
-        setDolavData({ papersWeightKg: 0, glassWeightKg: 0 });
-      }
-
-      const { data: haulageJobs } = await supabase
-        .from("data_hub_jobs")
-        .select("job_number, raw")
-        .ilike("customer", "%staci%")
-        .eq("source", "skiptrak")
-        .gte("job_date", from)
-        .lte("job_date", to);
-
-      if (haulageJobs && haulageJobs.length > 0) {
-        let totalHaulageCost = 0;
-        haulageJobs.forEach((j: any) => {
-          const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
-          if (!isNaN(cost)) totalHaulageCost += cost;
-        });
-        const avgRate = haulageJobs.length > 0 ? totalHaulageCost / haulageJobs.length : 0;
-        setHaulageData({ loads: haulageJobs.length, totalCost: totalHaulageCost, ratePerLoad: avgRate });
-      } else {
-        setHaulageData({ loads: 0, totalCost: 0, ratePerLoad: 0 });
-      }
-
-      setFetching(false);
+  const buildReportData = () => {
+    if (!stats) return null;
+    return {
+      period: { from: format(fromDate, "yyyy-MM-dd"), to: format(toDate, "yyyy-MM-dd") },
+      totalPallets: stats.totalPallets,
+      totalWeightKg: Math.round(stats.totalWeightKg),
+      grossCost: +stats.totalCost.toFixed(2),
+      palletRebate: +stats.palletRebate.toFixed(2),
+      netCost: +stats.netCost.toFixed(2),
+      goodPallets: stats.goodPallets,
+      colourBreakdown: Object.entries(stats.colourMap).map(([colour, d]) => ({
+        colour: STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
+        pallets: d.count,
+        weightKg: Math.round(d.weightKg),
+        cost: +d.cost.toFixed(2),
+      })),
+      wasteBreakdown: stats.wasteRows.map((w) => ({
+        material: w.label,
+        kg: Math.round(w.kg),
+        tonnes: +w.tonnes.toFixed(2),
+        pct: +w.pct.toFixed(1),
+        category: w.recyclable ? "Recyclable" : w.wood ? "Wood" : "Waste For Energy",
+      })),
+      recyclablePct: stats.totalBreakdownWeight > 0 ? +((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      nonRecoverablePct: stats.totalBreakdownWeight > 0 ? +((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      woodPct: stats.totalBreakdownWeight > 0 ? +((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      haulage: {
+        loads: haulageData.totalLoads,
+        ratePerLoad: haulageData.totalLoads > 0 ? +(haulageData.totalCost / haulageData.totalLoads).toFixed(2) : 0,
+        totalCost: +haulageData.totalCost.toFixed(2),
+        artic: { loads: haulageData.artic.loads, rate: +haulageData.artic.rate.toFixed(2), totalCost: +haulageData.artic.totalCost.toFixed(2) },
+        pickup: { loads: haulageData.pickup.loads, rate: +haulageData.pickup.rate.toFixed(2), totalCost: +haulageData.pickup.totalCost.toFixed(2) },
+      },
     };
-    fetchData();
-  }, [user, dateFrom, dateTo, isPortalView]);
-
-  // Compute stats
-  const stats = useMemo(() => {
-    const colourMap: Record<string, { count: number; weightKg: number; cost: number }> = {};
-    let totalPallets = 0;
-    let totalWeightKg = 0;
-    let totalCost = 0;
-    let goodPallets = 0;
-
-    rows.forEach((r) => {
-      const count = r.pallet_count;
-      const netWeight = Math.max(0, r.weight_kg - TARE_KG * count);
-      const rate = STACI_PALLET_RATES[r.colour] ?? 0;
-      const isWasteWood = r.colour === "waste_wood";
-      const lineCost = isWasteWood ? (netWeight / 1000) * rate * count : rate * count;
-
-      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
-      colourMap[r.colour].count += count;
-      colourMap[r.colour].weightKg += netWeight * count;
-      colourMap[r.colour].cost += lineCost;
-
-      totalPallets += count;
-      totalWeightKg += netWeight * count;
-      totalCost += lineCost;
-      if (r.pallet_type === "good") goodPallets += count;
-    });
-
-    const palletRebate = goodPallets * STACI_PALLET_GOOD_REBATE;
-    const netCost = totalCost - palletRebate;
-
-    // Waste breakdown
-    const wasteAgg: Record<string, number> = {};
-    let totalBreakdownWeight = 0;
-
-    rows.forEach((r) => {
-      if (!r.waste_breakdown) return;
-      const netWeight = Math.max(0, r.weight_kg - TARE_KG * r.pallet_count);
-      const entryWeight = netWeight * r.pallet_count;
-      (Object.keys(r.waste_breakdown) as (keyof StaciWasteBreakdown)[]).forEach((key) => {
-        const pct = (r.waste_breakdown as StaciWasteBreakdown)[key] ?? 0;
-        const kg = (pct / 100) * entryWeight;
-        wasteAgg[key] = (wasteAgg[key] ?? 0) + kg;
-        totalBreakdownWeight += kg;
-      });
-    });
-
-    // Add dolav weights to waste aggregation
-    if (dolavData.papersWeightKg > 0) {
-      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + dolavData.papersWeightKg;
-      totalBreakdownWeight += dolavData.papersWeightKg;
-    }
-    if (dolavData.glassWeightKg > 0) {
-      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + dolavData.glassWeightKg;
-      totalBreakdownWeight += dolavData.glassWeightKg;
-    }
-
-    const wasteRows = Object.entries(wasteAgg)
-      .filter(([, kg]) => kg > 0)
-      .map(([key, kg]) => ({
-        key,
-        label: WASTE_TYPE_LABELS[key as keyof StaciWasteBreakdown] ?? (key === "glass" ? "Glass" : key),
-        kg,
-        tonnes: kg / 1000,
-        pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
-        recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
-        nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
-        wood: key === WOOD_TYPE,
-      }))
-      .sort((a, b) => b.kg - a.kg);
-
-    const recyclableKg = wasteRows.filter((w) => w.recyclable).reduce((s, w) => s + w.kg, 0);
-    const nonRecoverableKg = wasteRows.filter((w) => w.nonRecoverable).reduce((s, w) => s + w.kg, 0);
-    const woodKg = wasteRows.filter((w) => w.wood).reduce((s, w) => s + w.kg, 0);
-
-    return { colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, woodKg };
-  }, [rows, dolavData]);
-
-  const buildReportData = () => ({
-    period: { from: format(dateFrom, "yyyy-MM-dd"), to: format(dateTo, "yyyy-MM-dd") },
-    totalPallets: stats.totalPallets,
-    totalWeightKg: Math.round(stats.totalWeightKg),
-    grossCost: +stats.totalCost.toFixed(2),
-    palletRebate: +stats.palletRebate.toFixed(2),
-    netCost: +stats.netCost.toFixed(2),
-    colourBreakdown: Object.entries(stats.colourMap).map(([colour, d]) => ({
-      colour: STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
-      pallets: d.count,
-      weightKg: Math.round(d.weightKg),
-      cost: +d.cost.toFixed(2),
-    })),
-    wasteBreakdown: stats.wasteRows.map((w) => ({
-      material: w.label,
-      kg: Math.round(w.kg),
-      tonnes: +w.tonnes.toFixed(2),
-      pct: +w.pct.toFixed(1),
-      category: w.recyclable ? "Recyclable" : w.wood ? "Wood" : "Waste For Energy",
-    })),
-    recyclablePct: stats.totalBreakdownWeight > 0 ? +((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
-    nonRecoverablePct: stats.totalBreakdownWeight > 0 ? +((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
-    woodPct: stats.totalBreakdownWeight > 0 ? +((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
-    haulage: {
-      loads: haulageData.loads,
-      ratePerLoad: +haulageData.ratePerLoad.toFixed(2),
-      totalCost: +haulageData.totalCost.toFixed(2),
-    },
-  });
+  };
 
   const handleSign = async (signatureData: string) => {
     if (!signerName.trim()) {
@@ -295,21 +170,15 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     }
     setSigning(true);
 
-    // Determine customer - use first customer from data or provided customerId
-    const cId = customerId || rows[0]?.customer_name;
-    // We need a valid customer_id UUID. Let's find it from the data.
     let resolvedCustomerId = customerId;
     if (!resolvedCustomerId) {
-      // Find from customers table by name
-      const customerNameFromData = rows[0]?.customer_name;
-      if (customerNameFromData) {
-        const { data: custData } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("customer_name", customerNameFromData)
-          .maybeSingle();
-        resolvedCustomerId = custData?.id;
-      }
+      // Find Staci customer
+      const { data: custData } = await supabase
+        .from("customers")
+        .select("id")
+        .ilike("customer_name", "%staci%")
+        .maybeSingle();
+      resolvedCustomerId = custData?.id;
     }
 
     if (!resolvedCustomerId) {
@@ -319,11 +188,16 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     }
 
     const reportData = buildReportData();
+    if (!reportData) {
+      toast({ title: "No data to sign", variant: "destructive" });
+      setSigning(false);
+      return;
+    }
 
     const { error } = await supabase.from("staci_monthly_reports").insert({
       customer_id: resolvedCustomerId,
-      period_start: format(dateFrom, "yyyy-MM-dd"),
-      period_end: format(dateTo, "yyyy-MM-dd"),
+      period_start: format(fromDate, "yyyy-MM-dd"),
+      period_end: format(toDate, "yyyy-MM-dd"),
       report_data: reportData,
       signed_by: user?.id,
       signer_name: signerName.trim(),
@@ -354,7 +228,6 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     const rd = report.report_data;
     const wb = XLSX.utils.book_new();
 
-    // Summary tab
     const summaryData = [
       ["STACI Monthly Recycling Report"],
       ["Prepared by Clews Recycling Limited"],
@@ -373,20 +246,27 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
       ["Net Cost (£)", rd.netCost],
       [],
       ["Haulage"],
-      ["Loads", rd.haulage?.loads ?? 0],
-      ["Rate per Load (£)", rd.haulage?.ratePerLoad ?? 0],
+      ["Total Loads", rd.haulage?.loads ?? 0],
       ["Total Haulage Cost (£)", rd.haulage?.totalCost ?? 0],
     ];
+    if (rd.haulage?.artic?.loads > 0) {
+      summaryData.push(["Artic Loads", rd.haulage.artic.loads]);
+      summaryData.push(["Artic Rate (£)", rd.haulage.artic.rate]);
+      summaryData.push(["Artic Total (£)", rd.haulage.artic.totalCost]);
+    }
+    if (rd.haulage?.pickup?.loads > 0) {
+      summaryData.push(["Pickup/Dolav Loads", rd.haulage.pickup.loads]);
+      summaryData.push(["Pickup/Dolav Rate (£)", rd.haulage.pickup.rate]);
+      summaryData.push(["Pickup/Dolav Total (£)", rd.haulage.pickup.totalCost]);
+    }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Summary");
 
-    // Pallet breakdown tab
     const palletData = [
       ["Colour", "Pallets", "Weight (kg)", "Cost (£)"],
       ...(rd.colourBreakdown ?? []).map((c: any) => [c.colour, c.pallets, c.weightKg, c.cost]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(palletData), "Pallet Breakdown");
 
-    // Recycling report tab
     const recyclingData = [
       ["STACI Recycling Report – Verified"],
       ["Period", `${format(new Date(report.period_start), "dd/MM/yyyy")} – ${format(new Date(report.period_end), "dd/MM/yyyy")}`],
@@ -450,7 +330,9 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
     );
   }
 
-  // ADMIN VIEW: generate, preview, sign & manage reports
+  const hasData = stats && stats.totalPallets > 0;
+
+  // ADMIN VIEW: preview using dashboard stats, sign & manage reports
   return (
     <Card>
       <CardHeader>
@@ -463,99 +345,15 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Date mode toggle + pickers */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={dateMode === "month" ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setDateMode("month");
-                setDateFrom(startOfMonth(selectedMonth));
-                setDateTo(endOfMonth(selectedMonth));
-              }}
-            >
-              Month
-            </Button>
-            <Button
-              variant={dateMode === "custom" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setDateMode("custom")}
-            >
-              Date Range
-            </Button>
-          </div>
+        {/* Period label from dashboard */}
+        <p className="text-sm font-medium text-muted-foreground">
+          Period: {format(fromDate, "dd MMM yyyy")} – {format(toDate, "dd MMM yyyy")}
+        </p>
 
-          {dateMode === "month" ? (
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  const prev = subMonths(selectedMonth, 1);
-                  setSelectedMonth(prev);
-                  setDateFrom(startOfMonth(prev));
-                  setDateTo(endOfMonth(prev));
-                }}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-medium text-sm min-w-[120px] text-center">
-                {format(selectedMonth, "MMMM yyyy")}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  const next = addMonths(selectedMonth, 1);
-                  setSelectedMonth(next);
-                  setDateFrom(startOfMonth(next));
-                  setDateTo(endOfMonth(next));
-                }}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              {fetching && <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>}
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs">From</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal text-sm")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {format(dateFrom, "dd MMM yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">To</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal text-sm")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {format(dateTo, "dd MMM yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dateTo} onSelect={(d) => d && setDateTo(d)} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {fetching && <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>}
-            </div>
-          )}
-        </div>
+        {dashboardLoading && <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>}
 
-        {/* Preview stats */}
-        {rows.length > 0 && (
+        {/* Preview stats from dashboard */}
+        {hasData && stats && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
@@ -563,7 +361,7 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
                 { label: "Weight", value: `${(stats.totalWeightKg / 1000).toFixed(2)} t` },
                 { label: "Gross", value: `£${stats.totalCost.toFixed(2)}` },
                 { label: "Net", value: `£${stats.netCost.toFixed(2)}` },
-                { label: "Haulage", value: haulageData.loads > 0 ? `${haulageData.loads} loads` : "—" },
+                { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
               ].map((k) => (
                 <div key={k.label} className="text-center p-3 border rounded-lg">
                   <p className="text-lg font-bold">{k.value}</p>
@@ -573,11 +371,14 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
             </div>
 
             {/* Haulage detail */}
-            {haulageData.loads > 0 && (
+            {haulageData.totalLoads > 0 && (
               <div className="flex items-center gap-3 p-3 border rounded-lg bg-blue-500/5">
                 <Truck className="h-5 w-5 text-blue-600" />
                 <div>
-                  <p className="font-medium text-sm">Haulage: {haulageData.loads} loads @ £{haulageData.ratePerLoad.toFixed(2)} each</p>
+                  <p className="font-medium text-sm">
+                    Haulage: {haulageData.totalLoads} loads
+                    {haulageData.totalLoads > 0 && ` @ £${(haulageData.totalCost / haulageData.totalLoads).toFixed(2)} avg`}
+                  </p>
                   <p className="text-xs text-muted-foreground">Total: £{haulageData.totalCost.toFixed(2)}</p>
                 </div>
               </div>
@@ -636,7 +437,7 @@ export function StaciMonthlyReport({ customerId, customerName, isPortalView = fa
           </div>
         )}
 
-        {rows.length === 0 && !fetching && (
+        {!hasData && !dashboardLoading && (
           <p className="text-sm text-muted-foreground text-center py-4">No data for this period.</p>
         )}
 
