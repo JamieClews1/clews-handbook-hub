@@ -5,6 +5,7 @@ export type StaciPalletType = "good" | "scrap";
 // Waste breakdown percentages per pallet
 export interface StaciWasteBreakdown {
   metal: number;
+  scrap_metal: number;
   paper: number;
   card: number;
   pvc: number;
@@ -19,6 +20,7 @@ export interface StaciWasteBreakdown {
 // Default empty breakdown
 export const EMPTY_WASTE_BREAKDOWN: StaciWasteBreakdown = {
   metal: 0,
+  scrap_metal: 0,
   paper: 0,
   card: 0,
   pvc: 0,
@@ -33,6 +35,7 @@ export const EMPTY_WASTE_BREAKDOWN: StaciWasteBreakdown = {
 // Waste type labels for display
 export const WASTE_TYPE_LABELS: Record<keyof StaciWasteBreakdown, string> = {
   metal: "Metal",
+  scrap_metal: "Scrap Metal",
   paper: "Paper",
   card: "Card",
   pvc: "PVC",
@@ -47,6 +50,7 @@ export const WASTE_TYPE_LABELS: Record<keyof StaciWasteBreakdown, string> = {
 // Define which waste types are recyclable
 export const RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
   "metal",
+  "scrap_metal",
   "paper",
   "card",
   "hard_plastic",
