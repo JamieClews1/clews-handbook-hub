@@ -374,6 +374,11 @@ export const StaciReviewScreen = ({
               palletChargeRatePerTonne={palletChargeRatePerTonne}
               cardBalesRatePerTonne={cardBalesRatePerTonne}
               filmsRatePerTonne={filmsRatePerTonne}
+              cardBalesOnPallets={cardBalesOnPallets}
+              filmsBaleOnPallets={filmsBaleOnPallets}
+              papersDolavOnPallets={papersDolavOnPallets}
+              glassDolavOnPallets={glassDolavOnPallets}
+              scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
             />
           ) : (
             <p className="text-muted-foreground text-center py-8">
