@@ -600,7 +600,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         </CardContent>
       </Card>
 
-      {rows.length === 0 && !fetching && balesDolavData.cardBalesCount === 0 && balesDolavData.filmsBaleCount === 0 && balesDolavData.papersDolavCount === 0 && balesDolavData.glassDolavCount === 0 ? (
+      {rows.length === 0 && !fetching && balesDolavData.cardBalesCount === 0 && balesDolavData.filmsBaleCount === 0 && balesDolavData.papersDolavCount === 0 && balesDolavData.glassDolavCount === 0 && balesDolavData.scrapMetalLooseCount === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             No submitted STACI load reports found for this period.
