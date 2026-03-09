@@ -85,7 +85,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
   const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
   const [dbPalletWeightCharge, setDbPalletWeightCharge] = useState<number>(-47);
-  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number }>({ cardBalesRate: 0, filmsRate: 0 });
+  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number; scrapMetalRate: number }>({ cardBalesRate: 0, filmsRate: 0, scrapMetalRate: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
