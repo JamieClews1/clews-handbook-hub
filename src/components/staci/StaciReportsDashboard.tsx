@@ -85,7 +85,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
   const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
   const [dbPalletWeightCharge, setDbPalletWeightCharge] = useState<number>(-47);
-  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number }>({ cardBalesRate: 0, filmsRate: 0 });
+  const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number; scrapMetalRate: number }>({ cardBalesRate: 0, filmsRate: 0, scrapMetalRate: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -287,7 +287,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
             const { data: wasteTypes } = await supabase
               .from("load_waste_types")
               .select("id, waste_type")
-              .in("waste_type", ["Card Bales", "Films Baled- Clear", "Films Baled- Mixed Colour"]);
+              .in("waste_type", ["Card Bales", "Films Baled- Clear", "Films Baled- Mixed Colour", "Scrap Ferrous"]);
 
             const wasteTypeMap = Object.fromEntries((wasteTypes ?? []).map(w => [w.id, w.waste_type]));
 
@@ -310,6 +310,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
             let cardRate = 0;
             let filmsRate = 0;
+            let scrapMetalRate = 0;
 
             for (const item of psItems ?? []) {
               const wtName = wasteTypeMap[item.rebate_item_id];
@@ -331,9 +332,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
               if (wtName === "Card Bales") cardRate = rate;
               if (wtName.startsWith("Films Baled")) filmsRate = rate;
+              if (wtName === "Scrap Ferrous") scrapMetalRate = rate;
             }
 
-            setBaleRates({ cardBalesRate: cardRate, filmsRate });
+            setBaleRates({ cardBalesRate: cardRate, filmsRate, scrapMetalRate });
           }
         }
       } catch (e) {
@@ -613,7 +615,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
             {(() => {
               const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
               const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-              const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue;
+              const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+              const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
               const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
 
               return [
@@ -889,27 +892,37 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
                         </tr>
                       )}
-                      {balesDolavData.scrapMetalLooseCount > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Scrap Metal Loose</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount > 0 ? Math.round(balesDolavData.scrapMetalLooseWeightKg / balesDolavData.scrapMetalLooseCount).toLocaleString() : "-"}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseWeightKg.toLocaleString()}</td>
-                          <td className="py-1.5 px-3 text-right">{(balesDolavData.scrapMetalLooseWeightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
-                        </tr>
-                      )}
+                      {balesDolavData.scrapMetalLooseCount > 0 && (() => {
+                        const scrapMetalValuePerTonne = baleRates.scrapMetalRate;
+                        const scrapMetalTonnes = balesDolavData.scrapMetalLooseWeightKg / 1000;
+                        const scrapMetalValue = scrapMetalTonnes * scrapMetalValuePerTonne;
+                        return (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Scrap Metal Loose</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount}</td>
+                            <td className="py-1.5 px-3 text-right">{Math.round(balesDolavData.scrapMetalLooseWeightKg / balesDolavData.scrapMetalLooseCount).toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{scrapMetalTonnes.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right text-green-600">
+                              {scrapMetalValuePerTonne !== 0 ? `-£${Math.abs(scrapMetalValuePerTonne).toFixed(2)}/t` : "-"}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-medium text-green-600">
+                              {scrapMetalValuePerTonne !== 0 ? `-£${Math.abs(scrapMetalValue).toFixed(2)}` : "-"}
+                            </td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
+                          </tr>
+                        );
+                      })()}
                     </tbody>
                     <tfoot>
                       {(() => {
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
+                        const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
                         const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
                         const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
                         const totalWeightT = totalWeightKg / 1000;
-                        const totalRebate = stats.palletRebate + cardValue + filmsValue;
+                        const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         return (
                           <tr className="border-t-2 font-semibold">
                             <td className="py-2 px-3">Total</td>
