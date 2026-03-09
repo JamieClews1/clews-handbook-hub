@@ -673,7 +673,12 @@ const LoadReportsPage = () => {
       const isStaci = selectedCustomer === "staci";
       
       // For Staci, calculate totals from pallet entries (accounting for pallet_count multiplier)
-      const staciTotalPallets = staciPalletEntries.reduce((sum, e) => sum + (e.pallet_count || 1), 0);
+      const staciTotalPallets = staciPalletEntries.reduce((sum, e) => sum + (e.pallet_count || 1), 0)
+        + (staciCardBalesOnPallets ? staciCardBalesCount : 0)
+        + (staciFilmsBaleOnPallets ? staciFilmsBaleCount : 0)
+        + (staciPapersDolavOnPallets ? staciPapersDolavCount : 0)
+        + (staciGlassDolavOnPallets ? staciGlassDolavCount : 0)
+        + (staciScrapMetalLooseOnPallets ? staciScrapMetalLooseCount : 0);
       const staciTotalWeight = staciPalletEntries.reduce((sum, e) => sum + e.weight_kg * (e.pallet_count || 1), 0);
       
       const { totalPallets, totalWeight } = isStaci 
