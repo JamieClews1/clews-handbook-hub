@@ -41,6 +41,8 @@ interface StaciReport {
   papers_dolav_weight_kg: number;
   glass_dolav_count: number;
   glass_dolav_weight_kg: number;
+  scrap_metal_loose_count: number;
+  scrap_metal_loose_weight_kg: number;
   status: string;
   pallet_entries: {
     colour: StaciPalletColour;
