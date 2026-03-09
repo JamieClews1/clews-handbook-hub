@@ -629,16 +629,25 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
                                 </TableRow>
                               )}
-                              {report.scrap_metal_loose_count > 0 && (
-                                <TableRow>
-                                  <TableCell className="py-2 text-sm">Scrap Metal Loose</TableCell>
-                                  <TableCell className="text-right text-sm">{report.scrap_metal_loose_count}</TableCell>
-                                  <TableCell className="text-right text-sm">{(report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg).toLocaleString()}</TableCell>
-                                  <TableCell className="text-right text-sm">-</TableCell>
-                                  <TableCell className="text-right text-sm">-</TableCell>
-                                  <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
-                                </TableRow>
-                              )}
+                              {report.scrap_metal_loose_count > 0 && (() => {
+                                const totalWt = report.scrap_metal_loose_count * report.scrap_metal_loose_weight_kg;
+                                const tonnes = totalWt / 1000;
+                                const value = tonnes * baleRates.scrapMetalRate;
+                                return (
+                                  <TableRow>
+                                    <TableCell className="py-2 text-sm">Scrap Metal Loose</TableCell>
+                                    <TableCell className="text-right text-sm">{report.scrap_metal_loose_count}</TableCell>
+                                    <TableCell className="text-right text-sm">{totalWt.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right text-sm text-green-600">
+                                      {baleRates.scrapMetalRate !== 0 ? `-£${Math.abs(baleRates.scrapMetalRate).toFixed(2)}/t` : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm font-medium text-green-600">
+                                      {baleRates.scrapMetalRate !== 0 ? `-£${value.toFixed(2)}` : "-"}
+                                    </TableCell>
+                                    <TableCell className="text-right"><Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">Rebate</Badge></TableCell>
+                                  </TableRow>
+                                );
+                              })()}
                               {report.pallets_scrap_count > 0 && (
                                 <TableRow>
                                   <TableCell className="py-2 text-sm">Scrap Pallets</TableCell>
