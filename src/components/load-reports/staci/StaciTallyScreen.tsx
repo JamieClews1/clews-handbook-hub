@@ -221,7 +221,7 @@ export const StaciTallyScreen = ({
     return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
   }, [palletEntries]);
 
-  const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0;
+  const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0 || scrapMetalLooseWeightKg > 0;
 
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
