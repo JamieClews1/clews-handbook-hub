@@ -640,7 +640,7 @@ export const StaciTallyScreen = ({
               </Button>
               <div className="flex items-center gap-4 text-center text-sm">
                 <div>
-                  <div className="font-bold">{totalPallets}</div>
+                  <div className="font-bold">{grandTotalPallets}</div>
                   <div className="text-xs text-muted-foreground">Pallets</div>
                 </div>
                 <div>
