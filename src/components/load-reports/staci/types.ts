@@ -5,6 +5,7 @@ export type StaciPalletType = "good" | "scrap";
 // Waste breakdown percentages per pallet
 export interface StaciWasteBreakdown {
   metal: number;
+  scrap_metal: number;
   paper: number;
   card: number;
   pvc: number;
