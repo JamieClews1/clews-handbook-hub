@@ -941,7 +941,7 @@ export const StaciTallyScreen = ({
 
             <div className="flex items-center gap-6 text-center">
               <div>
-                <div className="text-2xl font-bold text-foreground">{totalPallets}</div>
+                <div className="text-2xl font-bold text-foreground">{grandTotalPallets}</div>
                 <div className="text-xs text-muted-foreground">Pallets</div>
               </div>
               <div className="w-px h-10 bg-border" />
