@@ -72,6 +72,8 @@ interface Props {
   dashboardStats?: DashboardStats;
   /** Dashboard haulage data */
   dashboardHaulage?: DashboardHaulage;
+  /** Total weight of bales, dolavs, scrap metal loose (kg) */
+  balesDolavTotalWeightKg?: number;
   /** Dashboard date range */
   dateFrom?: Date;
   dateTo?: Date;

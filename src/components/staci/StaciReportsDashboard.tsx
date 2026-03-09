@@ -1069,6 +1069,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         isPortalView={isPortalView}
         dashboardStats={stats}
         dashboardHaulage={haulageData}
+        balesDolavTotalWeightKg={balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg}
         dateFrom={dateFrom}
         dateTo={dateTo}
         dashboardLoading={fetching}
