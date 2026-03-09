@@ -172,6 +172,13 @@ export const StaciReviewScreen = ({
   filmsRatePerTonne = 0,
 }: StaciReviewScreenProps) => {
   const [reconciledPreview, setReconciledPreview] = useState<StaciPalletEntry[] | null>(null);
+  const [reconciledBaleDolavPreview, setReconciledBaleDolavPreview] = useState<{
+    cardBalesWeightKg: number;
+    filmsBaleWeightKg: number;
+    papersDolavWeightKg: number;
+    glassDolavWeightKg: number;
+    scrapMetalLooseWeightKg: number;
+  } | null>(null);
   const [isReconciled, setIsReconciled] = useState(false);
 
   const { summaries, totalPallets, totalWeightKg, totalValue, palletRebate } = useMemo(
