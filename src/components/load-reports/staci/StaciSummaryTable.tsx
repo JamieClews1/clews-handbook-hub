@@ -24,6 +24,8 @@ interface StaciSummaryTableProps {
   papersDolavWeightKg?: number; // per-unit weight
   glassDolavCount?: number;
   glassDolavWeightKg?: number; // per-unit weight
+  scrapMetalLooseCount?: number;
+  scrapMetalLooseWeightKg?: number; // per-unit weight
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
   cardBalesRatePerTonne?: number;
