@@ -1023,6 +1023,10 @@ const LoadReportsPage = () => {
               onGlassDolavCountChange={setStaciGlassDolavCount}
               glassDolavWeightKg={staciGlassDolavWeightKg}
               onGlassDolavWeightKgChange={setStaciGlassDolavWeightKg}
+              scrapMetalLooseCount={staciScrapMetalLooseCount}
+              onScrapMetalLooseCountChange={setStaciScrapMetalLooseCount}
+              scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
+              onScrapMetalLooseWeightKgChange={setStaciScrapMetalLooseWeightKg}
               palletWeightKg={defaultPalletWeight}
             />
           )}
