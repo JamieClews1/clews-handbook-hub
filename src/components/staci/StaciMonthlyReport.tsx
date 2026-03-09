@@ -87,6 +87,7 @@ export function StaciMonthlyReport({
   isPortalView = false,
   dashboardStats,
   dashboardHaulage,
+  balesDolavTotalWeightKg = 0,
   dateFrom,
   dateTo,
   dashboardLoading = false,
