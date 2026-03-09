@@ -561,6 +561,28 @@ export const StaciTallyScreen = ({
               </div>
             </CardContent>
           </Card>
+
+          {/* Scrap Metal Loose */}
+          <Card className="border-2 border-zinc-500/50 bg-zinc-50/30 dark:bg-zinc-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-500 to-zinc-600 flex items-center justify-center">
+                  <Layers className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-base font-semibold">Scrap Metal Loose</Label>
+                  <p className="text-sm text-muted-foreground">Loose scrap metal</p>
+                </div>
+                <BaleDolavInput
+                  count={scrapMetalLooseCount}
+                  totalWeightKg={scrapMetalLooseWeightKg}
+                  onCountChange={onScrapMetalLooseCountChange}
+                  onTotalWeightChange={onScrapMetalLooseWeightKgChange}
+                  compact
+                />
+              </div>
+            </CardContent>
+          </Card>
           <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
             <div className="flex items-center justify-between gap-3">
               <Button variant="outline" onClick={() => setMobileStep("pallet-entry")} className="h-12 px-4 gap-2">
