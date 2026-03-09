@@ -209,23 +209,55 @@ export const StaciReviewScreen = ({
     (glassDolavCount * glassDolavWeightKg) +
     (scrapMetalLooseCount * scrapMetalLooseWeightKg);
 
+  const hasPalletEntries = palletEntries.length > 0;
+  const hasBaleDolavItems = baleDolavTotalKg > 0;
+
   const handleReconcile = () => {
     if (typeof weighbridgeWeightKg !== "number") return;
-    // Subtract bale/dolav weight so only the pallet portion is reconciled
-    const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg;
-    const reconciled = reconcileStaciEntries(palletEntries, Math.max(0, palletTargetKg));
-    setReconciledPreview(reconciled);
+
+    if (hasPalletEntries) {
+      // Subtract bale/dolav weight so only the pallet portion is reconciled
+      const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg;
+      const reconciled = reconcileStaciEntries(palletEntries, Math.max(0, palletTargetKg));
+      setReconciledPreview(reconciled);
+      setReconciledBaleDolavPreview(null);
+    } else if (hasBaleDolavItems) {
+      // No pallets — proportionally adjust bale/dolav per-unit weights to match weighbridge
+      const targetKg = weighbridgeWeightKg;
+      const currentTotal = baleDolavTotalKg;
+      if (currentTotal === 0) return;
+      const ratio = targetKg / currentTotal;
+
+      setReconciledBaleDolavPreview({
+        cardBalesWeightKg: cardBalesCount > 0 ? Math.round(cardBalesWeightKg * ratio) : cardBalesWeightKg,
+        filmsBaleWeightKg: filmsBaleCount > 0 ? Math.round(filmsBaleWeightKg * ratio) : filmsBaleWeightKg,
+        papersDolavWeightKg: papersDolavCount > 0 ? Math.round(papersDolavWeightKg * ratio) : papersDolavWeightKg,
+        glassDolavWeightKg: glassDolavCount > 0 ? Math.round(glassDolavWeightKg * ratio) : glassDolavWeightKg,
+        scrapMetalLooseWeightKg: scrapMetalLooseCount > 0 ? Math.round(scrapMetalLooseWeightKg * ratio) : scrapMetalLooseWeightKg,
+      });
+      setReconciledPreview(null);
+    }
   };
 
   const handleAcceptReconciled = () => {
     if (reconciledPreview && onPalletEntriesChange) {
       onPalletEntriesChange(reconciledPreview);
       setReconciledPreview(null);
+      setReconciledBaleDolavPreview(null);
+      setIsReconciled(true);
+    } else if (reconciledBaleDolavPreview) {
+      onCardBalesWeightKgChange?.(reconciledBaleDolavPreview.cardBalesWeightKg);
+      onFilmsBaleWeightKgChange?.(reconciledBaleDolavPreview.filmsBaleWeightKg);
+      onPapersDolavWeightKgChange?.(reconciledBaleDolavPreview.papersDolavWeightKg);
+      onGlassDolavWeightKgChange?.(reconciledBaleDolavPreview.glassDolavWeightKg);
+      onScrapMetalLooseWeightKgChange?.(reconciledBaleDolavPreview.scrapMetalLooseWeightKg);
+      setReconciledPreview(null);
+      setReconciledBaleDolavPreview(null);
       setIsReconciled(true);
     }
   };
 
-  const canReconcile = typeof weighbridgeWeightKg === "number" && palletEntries.length > 0;
+  const canReconcile = typeof weighbridgeWeightKg === "number" && (hasPalletEntries || hasBaleDolavItems);
 
   return (
     <div className="space-y-6 pb-32">
