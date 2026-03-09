@@ -147,6 +147,8 @@ export const StaciReviewScreen = ({
   papersDolavWeightKg,
   glassDolavCount,
   glassDolavWeightKg,
+  scrapMetalLooseCount,
+  scrapMetalLooseWeightKg,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
   weighbridgeWeightKg,
