@@ -917,10 +917,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       {(() => {
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
+                        const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
                         const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
                         const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
                         const totalWeightT = totalWeightKg / 1000;
-                        const totalRebate = stats.palletRebate + cardValue + filmsValue;
+                        const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         return (
                           <tr className="border-t-2 font-semibold">
                             <td className="py-2 px-3">Total</td>
