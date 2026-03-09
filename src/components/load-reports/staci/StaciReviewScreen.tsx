@@ -432,7 +432,7 @@ export const StaciReviewScreen = ({
               </Button>
               <Button
                 onClick={onSubmit}
-                disabled={isSaving || (palletEntries.length === 0 && papersDolavWeightKg === 0 && glassDolavWeightKg === 0 && cardBalesWeightKg === 0 && filmsBaleWeightKg === 0)}
+                disabled={isSaving || (palletEntries.length === 0 && papersDolavWeightKg === 0 && glassDolavWeightKg === 0 && cardBalesWeightKg === 0 && filmsBaleWeightKg === 0 && scrapMetalLooseWeightKg === 0)}
                 className="h-12 px-6 gap-2"
               >
                 <CheckCircle2 className="h-5 w-5" />
