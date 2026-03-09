@@ -146,6 +146,8 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
         papers_dolav_weight_kg: Number((r as any).papers_dolav_weight_kg) || 0,
         glass_dolav_count: (r as any).glass_dolav_count || 0,
         glass_dolav_weight_kg: Number((r as any).glass_dolav_weight_kg) || 0,
+        scrap_metal_loose_count: (r as any).scrap_metal_loose_count || 0,
+        scrap_metal_loose_weight_kg: Number((r as any).scrap_metal_loose_weight_kg) || 0,
         status: r.status,
         pallet_entries: (palletsByReport[r.id] || []).map((e: any) => ({
           colour: e.colour,

@@ -898,7 +898,7 @@ export const StaciTallyScreen = ({
               <div className="w-px h-10 bg-border" />
               <div>
                 <div className="text-2xl font-bold text-primary">
-                  {((totalWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg) / 1000).toFixed(2)}t
+                  {((totalWeightKg + cardBalesWeightKg + filmsBaleWeightKg + papersDolavWeightKg + glassDolavWeightKg + scrapMetalLooseWeightKg) / 1000).toFixed(2)}t
                 </div>
                 <div className="text-xs text-muted-foreground">Total Weight</div>
               </div>
