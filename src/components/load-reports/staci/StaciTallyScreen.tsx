@@ -772,12 +772,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Card Bales
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Baled cardboard
-              </p>
+              <Label className="text-base font-semibold text-foreground">Card Bales</Label>
+              <p className="text-sm text-muted-foreground">Baled cardboard</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={cardBalesOnPallets} onCheckedChange={(v) => onCardBalesOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={cardBalesCount}
@@ -797,12 +797,12 @@ export const StaciTallyScreen = ({
               <Film className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Films Bale
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Baled film/plastic
-              </p>
+              <Label className="text-base font-semibold text-foreground">Films Bale</Label>
+              <p className="text-sm text-muted-foreground">Baled film/plastic</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={filmsBaleOnPallets} onCheckedChange={(v) => onFilmsBaleOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={filmsBaleCount}
@@ -822,12 +822,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Papers Dolav
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Paper recycling
-              </p>
+              <Label className="text-base font-semibold text-foreground">Papers Dolav</Label>
+              <p className="text-sm text-muted-foreground">Paper recycling</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={papersDolavOnPallets} onCheckedChange={(v) => onPapersDolavOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={papersDolavCount}
@@ -847,12 +847,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Glass Dolav
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Glass recycling
-              </p>
+              <Label className="text-base font-semibold text-foreground">Glass Dolav</Label>
+              <p className="text-sm text-muted-foreground">Glass recycling</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={glassDolavOnPallets} onCheckedChange={(v) => onGlassDolavOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={glassDolavCount}
@@ -872,12 +872,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Scrap Metal Loose
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Loose scrap metal
-              </p>
+              <Label className="text-base font-semibold text-foreground">Scrap Metal Loose</Label>
+              <p className="text-sm text-muted-foreground">Loose scrap metal</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={scrapMetalLooseOnPallets} onCheckedChange={(v) => onScrapMetalLooseOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={scrapMetalLooseCount}
