@@ -1449,11 +1449,14 @@ export type Database = {
       load_reports: {
         Row: {
           card_bales_count: number | null
+          card_bales_on_pallets: boolean
           card_bales_weight_kg: number | null
           created_at: string
           films_bale_count: number | null
+          films_bale_on_pallets: boolean
           films_bale_weight_kg: number | null
           glass_dolav_count: number | null
+          glass_dolav_on_pallets: boolean
           glass_dolav_weight_kg: number | null
           id: string
           no_pallets_on_load: boolean
@@ -1463,9 +1466,11 @@ export type Database = {
           pallets_out: number | null
           pallets_scrap_count: number | null
           papers_dolav_count: number | null
+          papers_dolav_on_pallets: boolean
           papers_dolav_weight_kg: number | null
           report_date: string
           scrap_metal_loose_count: number | null
+          scrap_metal_loose_on_pallets: boolean
           scrap_metal_loose_weight_kg: number | null
           site_id: string | null
           status: string
@@ -1478,11 +1483,14 @@ export type Database = {
         }
         Insert: {
           card_bales_count?: number | null
+          card_bales_on_pallets?: boolean
           card_bales_weight_kg?: number | null
           created_at?: string
           films_bale_count?: number | null
+          films_bale_on_pallets?: boolean
           films_bale_weight_kg?: number | null
           glass_dolav_count?: number | null
+          glass_dolav_on_pallets?: boolean
           glass_dolav_weight_kg?: number | null
           id?: string
           no_pallets_on_load?: boolean
@@ -1492,9 +1500,11 @@ export type Database = {
           pallets_out?: number | null
           pallets_scrap_count?: number | null
           papers_dolav_count?: number | null
+          papers_dolav_on_pallets?: boolean
           papers_dolav_weight_kg?: number | null
           report_date?: string
           scrap_metal_loose_count?: number | null
+          scrap_metal_loose_on_pallets?: boolean
           scrap_metal_loose_weight_kg?: number | null
           site_id?: string | null
           status?: string
@@ -1507,11 +1517,14 @@ export type Database = {
         }
         Update: {
           card_bales_count?: number | null
+          card_bales_on_pallets?: boolean
           card_bales_weight_kg?: number | null
           created_at?: string
           films_bale_count?: number | null
+          films_bale_on_pallets?: boolean
           films_bale_weight_kg?: number | null
           glass_dolav_count?: number | null
+          glass_dolav_on_pallets?: boolean
           glass_dolav_weight_kg?: number | null
           id?: string
           no_pallets_on_load?: boolean
@@ -1521,9 +1534,11 @@ export type Database = {
           pallets_out?: number | null
           pallets_scrap_count?: number | null
           papers_dolav_count?: number | null
+          papers_dolav_on_pallets?: boolean
           papers_dolav_weight_kg?: number | null
           report_date?: string
           scrap_metal_loose_count?: number | null
+          scrap_metal_loose_on_pallets?: boolean
           scrap_metal_loose_weight_kg?: number | null
           site_id?: string | null
           status?: string

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Plus, Package, ClipboardList, Trash, Layers, Film, Check, ChevronRight, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StaciPalletEntryCard } from "./StaciPalletEntryCard";
 import { StaciSummaryTable } from "./StaciSummaryTable";
@@ -48,6 +49,16 @@ interface StaciTallyScreenProps {
   onScrapMetalLooseCountChange: (count: number) => void;
   scrapMetalLooseWeightKg: number;
   onScrapMetalLooseWeightKgChange: (weight: number) => void;
+  cardBalesOnPallets: boolean;
+  onCardBalesOnPalletsChange: (on: boolean) => void;
+  filmsBaleOnPallets: boolean;
+  onFilmsBaleOnPalletsChange: (on: boolean) => void;
+  papersDolavOnPallets: boolean;
+  onPapersDolavOnPalletsChange: (on: boolean) => void;
+  glassDolavOnPallets: boolean;
+  onGlassDolavOnPalletsChange: (on: boolean) => void;
+  scrapMetalLooseOnPallets: boolean;
+  onScrapMetalLooseOnPalletsChange: (on: boolean) => void;
   palletWeightKg?: number;
 }
 
@@ -82,6 +93,16 @@ export const StaciTallyScreen = ({
   onScrapMetalLooseCountChange,
   scrapMetalLooseWeightKg,
   onScrapMetalLooseWeightKgChange,
+  cardBalesOnPallets,
+  onCardBalesOnPalletsChange,
+  filmsBaleOnPallets,
+  onFilmsBaleOnPalletsChange,
+  papersDolavOnPallets,
+  onPapersDolavOnPalletsChange,
+  glassDolavOnPallets,
+  onGlassDolavOnPalletsChange,
+  scrapMetalLooseOnPallets,
+  onScrapMetalLooseOnPalletsChange,
   palletWeightKg = 20,
 }: StaciTallyScreenProps) => {
   const isMobile = useIsMobile();
@@ -221,7 +242,16 @@ export const StaciTallyScreen = ({
     return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
   }, [palletEntries]);
 
+  const onPalletsBaleDolavCount = 
+    (cardBalesOnPallets ? cardBalesCount : 0) +
+    (filmsBaleOnPallets ? filmsBaleCount : 0) +
+    (papersDolavOnPallets ? papersDolavCount : 0) +
+    (glassDolavOnPallets ? glassDolavCount : 0) +
+    (scrapMetalLooseOnPallets ? scrapMetalLooseCount : 0);
+
   const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0 || scrapMetalLooseWeightKg > 0;
+
+  const grandTotalPallets = totalPallets + onPalletsBaleDolavCount;
 
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
@@ -393,7 +423,7 @@ export const StaciTallyScreen = ({
                 </Button>
                 <div className="flex items-center gap-4 text-center text-sm">
                   <div>
-                    <div className="font-bold">{totalPallets}</div>
+                    <div className="font-bold">{grandTotalPallets}</div>
                     <div className="text-xs text-muted-foreground">Pallets</div>
                   </div>
                   <div>
@@ -485,6 +515,10 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Card Bales</Label>
                   <p className="text-sm text-muted-foreground">Baled cardboard</p>
                 </div>
+                <div className="flex items-center gap-2 mr-2">
+                  <span className="text-sm text-muted-foreground">On Pallets?</span>
+                  <Checkbox checked={cardBalesOnPallets} onCheckedChange={(v) => onCardBalesOnPalletsChange(!!v)} />
+                </div>
                 <BaleDolavInput
                   count={cardBalesCount}
                   totalWeightKg={cardBalesWeightKg}
@@ -506,6 +540,10 @@ export const StaciTallyScreen = ({
                 <div className="flex-1">
                   <Label className="text-base font-semibold">Films Bale</Label>
                   <p className="text-sm text-muted-foreground">Baled film/plastic</p>
+                </div>
+                <div className="flex items-center gap-2 mr-2">
+                  <span className="text-sm text-muted-foreground">On Pallets?</span>
+                  <Checkbox checked={filmsBaleOnPallets} onCheckedChange={(v) => onFilmsBaleOnPalletsChange(!!v)} />
                 </div>
                 <BaleDolavInput
                   count={filmsBaleCount}
@@ -529,6 +567,10 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Papers Dolav</Label>
                   <p className="text-sm text-muted-foreground">Paper recycling</p>
                 </div>
+                <div className="flex items-center gap-2 mr-2">
+                  <span className="text-sm text-muted-foreground">On Pallets?</span>
+                  <Checkbox checked={papersDolavOnPallets} onCheckedChange={(v) => onPapersDolavOnPalletsChange(!!v)} />
+                </div>
                 <BaleDolavInput
                   count={papersDolavCount}
                   totalWeightKg={papersDolavWeightKg}
@@ -550,6 +592,10 @@ export const StaciTallyScreen = ({
                 <div className="flex-1">
                   <Label className="text-base font-semibold">Glass Dolav</Label>
                   <p className="text-sm text-muted-foreground">Glass recycling</p>
+                </div>
+                <div className="flex items-center gap-2 mr-2">
+                  <span className="text-sm text-muted-foreground">On Pallets?</span>
+                  <Checkbox checked={glassDolavOnPallets} onCheckedChange={(v) => onGlassDolavOnPalletsChange(!!v)} />
                 </div>
                 <BaleDolavInput
                   count={glassDolavCount}
@@ -573,6 +619,10 @@ export const StaciTallyScreen = ({
                   <Label className="text-base font-semibold">Scrap Metal Loose</Label>
                   <p className="text-sm text-muted-foreground">Loose scrap metal</p>
                 </div>
+                <div className="flex items-center gap-2 mr-2">
+                  <span className="text-sm text-muted-foreground">On Pallets?</span>
+                  <Checkbox checked={scrapMetalLooseOnPallets} onCheckedChange={(v) => onScrapMetalLooseOnPalletsChange(!!v)} />
+                </div>
                 <BaleDolavInput
                   count={scrapMetalLooseCount}
                   totalWeightKg={scrapMetalLooseWeightKg}
@@ -591,7 +641,7 @@ export const StaciTallyScreen = ({
               </Button>
               <div className="flex items-center gap-4 text-center text-sm">
                 <div>
-                  <div className="font-bold">{totalPallets}</div>
+                  <div className="font-bold">{grandTotalPallets}</div>
                   <div className="text-xs text-muted-foreground">Pallets</div>
                 </div>
                 <div>
@@ -731,12 +781,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Card Bales
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Baled cardboard
-              </p>
+              <Label className="text-base font-semibold text-foreground">Card Bales</Label>
+              <p className="text-sm text-muted-foreground">Baled cardboard</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={cardBalesOnPallets} onCheckedChange={(v) => onCardBalesOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={cardBalesCount}
@@ -756,12 +806,12 @@ export const StaciTallyScreen = ({
               <Film className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Films Bale
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Baled film/plastic
-              </p>
+              <Label className="text-base font-semibold text-foreground">Films Bale</Label>
+              <p className="text-sm text-muted-foreground">Baled film/plastic</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={filmsBaleOnPallets} onCheckedChange={(v) => onFilmsBaleOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={filmsBaleCount}
@@ -781,12 +831,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Papers Dolav
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Paper recycling
-              </p>
+              <Label className="text-base font-semibold text-foreground">Papers Dolav</Label>
+              <p className="text-sm text-muted-foreground">Paper recycling</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={papersDolavOnPallets} onCheckedChange={(v) => onPapersDolavOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={papersDolavCount}
@@ -806,12 +856,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Glass Dolav
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Glass recycling
-              </p>
+              <Label className="text-base font-semibold text-foreground">Glass Dolav</Label>
+              <p className="text-sm text-muted-foreground">Glass recycling</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={glassDolavOnPallets} onCheckedChange={(v) => onGlassDolavOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={glassDolavCount}
@@ -831,12 +881,12 @@ export const StaciTallyScreen = ({
               <Layers className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <Label className="text-base font-semibold text-foreground">
-                Scrap Metal Loose
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Loose scrap metal
-              </p>
+              <Label className="text-base font-semibold text-foreground">Scrap Metal Loose</Label>
+              <p className="text-sm text-muted-foreground">Loose scrap metal</p>
+            </div>
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-sm text-muted-foreground">On Pallets?</span>
+              <Checkbox checked={scrapMetalLooseOnPallets} onCheckedChange={(v) => onScrapMetalLooseOnPalletsChange(!!v)} />
             </div>
             <BaleDolavInput
               count={scrapMetalLooseCount}
@@ -892,7 +942,7 @@ export const StaciTallyScreen = ({
 
             <div className="flex items-center gap-6 text-center">
               <div>
-                <div className="text-2xl font-bold text-foreground">{totalPallets}</div>
+                <div className="text-2xl font-bold text-foreground">{grandTotalPallets}</div>
                 <div className="text-xs text-muted-foreground">Pallets</div>
               </div>
               <div className="w-px h-10 bg-border" />
