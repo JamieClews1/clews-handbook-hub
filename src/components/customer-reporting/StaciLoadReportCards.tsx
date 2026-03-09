@@ -555,7 +555,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                       </div>
 
                       {/* Bales & Dolavs breakdown */}
-                      {(report.card_bales_count > 0 || report.films_bale_count > 0 || report.papers_dolav_count > 0 || report.glass_dolav_count > 0 || report.pallets_scrap_count > 0) && (
+                      {(report.card_bales_count > 0 || report.films_bale_count > 0 || report.papers_dolav_count > 0 || report.glass_dolav_count > 0 || report.scrap_metal_loose_count > 0 || report.pallets_scrap_count > 0) && (
                         <div className="rounded-lg border overflow-hidden">
                           <Table>
                             <TableHeader>
