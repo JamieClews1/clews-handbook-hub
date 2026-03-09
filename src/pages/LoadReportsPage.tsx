@@ -1074,6 +1074,11 @@ const LoadReportsPage = () => {
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               onPalletEntriesChange={setStaciPalletEntries}
+              onCardBalesWeightKgChange={setStaciCardBalesWeightKg}
+              onFilmsBaleWeightKgChange={setStaciFilmsBaleWeightKg}
+              onPapersDolavWeightKgChange={setStaciPapersDolavWeightKg}
+              onGlassDolavWeightKgChange={setStaciGlassDolavWeightKg}
+              onScrapMetalLooseWeightKgChange={setStaciScrapMetalLooseWeightKg}
               onBack={handleBack}
               onSaveDraft={() => saveReport(false)}
               onSubmit={() => saveReport(true)}
