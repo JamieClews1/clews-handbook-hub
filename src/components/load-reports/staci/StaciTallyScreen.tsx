@@ -823,6 +823,31 @@ export const StaciTallyScreen = ({
         </CardContent>
       </Card>
 
+      {/* Scrap Metal Loose */}
+      <Card className="border-2 border-zinc-500/50 bg-zinc-50/30 dark:bg-zinc-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-500 to-zinc-600 flex items-center justify-center">
+              <Layers className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-base font-semibold text-foreground">
+                Scrap Metal Loose
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Loose scrap metal
+              </p>
+            </div>
+            <BaleDolavInput
+              count={scrapMetalLooseCount}
+              totalWeightKg={scrapMetalLooseWeightKg}
+              onCountChange={onScrapMetalLooseCountChange}
+              onTotalWeightChange={onScrapMetalLooseWeightKgChange}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary table */}
       {summaries.length > 0 && (
         <div className="space-y-3">
