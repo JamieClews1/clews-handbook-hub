@@ -197,12 +197,20 @@ export const StaciReviewScreen = ({
   );
 
   // Compute pallet charge value, bale values, and effective net total
-  const totalPalletDeductionKg = totalPallets * palletWeightKg;
+  const baleDolavPalletWeightKg = 
+    (cardBalesOnPallets ? cardBalesCount * palletWeightKg : 0) +
+    (filmsBaleOnPallets ? filmsBaleCount * palletWeightKg : 0) +
+    (papersDolavOnPallets ? papersDolavCount * palletWeightKg : 0) +
+    (glassDolavOnPallets ? glassDolavCount * palletWeightKg : 0) +
+    (scrapMetalLooseOnPallets ? scrapMetalLooseCount * palletWeightKg : 0);
+  const totalPalletDeductionKg = (totalPallets * palletWeightKg) + baleDolavPalletWeightKg;
   const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
   const cardBalesGrossKg = cardBalesCount * cardBalesWeightKg;
   const filmsBaleGrossKg = filmsBaleCount * filmsBaleWeightKg;
-  const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesGrossKg / 1000) * cardBalesRatePerTonne : 0;
-  const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleGrossKg / 1000) * filmsRatePerTonne : 0;
+  const cardBalesNetKg = cardBalesGrossKg - (cardBalesOnPallets ? cardBalesCount * palletWeightKg : 0);
+  const filmsBaleNetKg = filmsBaleGrossKg - (filmsBaleOnPallets ? filmsBaleCount * palletWeightKg : 0);
+  const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesNetKg / 1000) * cardBalesRatePerTonne : 0;
+  const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleNetKg / 1000) * filmsRatePerTonne : 0;
   const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue;
 
   // Reconciled preview summaries
