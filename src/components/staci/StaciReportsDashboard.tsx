@@ -594,9 +594,13 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
   // Compute KPI financial totals for use in both KPI cards and Monthly Report
   const kpiFinancials = useMemo(() => {
-    const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
-    const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-    const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+    // Use NET weights (gross minus tare for on-pallets items) to match summary table logic
+    const cardNetKg = balesDolavData.cardBalesWeightKg - (balesDolavData.cardBalesOnPalletsCount * TARE_KG);
+    const filmsNetKg = balesDolavData.filmsBaleWeightKg - (balesDolavData.filmsBaleOnPalletsCount * TARE_KG);
+    const scrapMetalNetKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+    const cardRebateValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
+    const filmsRebateValue = (filmsNetKg / 1000) * baleRates.filmsRate;
+    const scrapMetalRebateValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
     const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
 
     // Bales/dolavs section charges (pallet weight charge for on-pallets items + scrap pallet costs)
