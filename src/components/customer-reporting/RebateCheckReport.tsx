@@ -133,23 +133,40 @@ export function RebateCheckReport() {
       }
 
       // Get configured customer sites to check which customers are already set up
-      const { data: configuredSites } = await supabase
-        .from("customer_sites")
-        .select(`
-          id,
-          site_name,
-          data_hub_site,
-          data_hub_site_2,
-          data_hub_site_3,
-          data_hub_site_4,
-          data_hub_site_5,
-          data_hub_customer,
-          customer_id,
-          customers!inner(customer_name)
-        `);
+      const [{ data: configuredSites }, { data: configuredCustomers }] = await Promise.all([
+        supabase
+          .from("customer_sites")
+          .select(`
+            id,
+            site_name,
+            data_hub_site,
+            data_hub_site_2,
+            data_hub_site_3,
+            data_hub_site_4,
+            data_hub_site_5,
+            data_hub_customer,
+            customer_id,
+            customers!inner(customer_name)
+          `),
+        supabase
+          .from("customers")
+          .select("id, customer_name, data_hub_customer")
+          .not("data_hub_customer", "is", null),
+      ]);
 
       // Build a map of data hub customer names to configured site info
       const configuredCustomerMap: Record<string, { siteName: string; customerName: string }> = {};
+      
+      // Check customer-level data_hub_customer mappings first
+      for (const cust of configuredCustomers ?? []) {
+        if (cust.data_hub_customer) {
+          configuredCustomerMap[cust.data_hub_customer.toLowerCase()] = {
+            siteName: "",
+            customerName: cust.customer_name,
+          };
+        }
+      }
+      
       for (const site of configuredSites ?? []) {
         if (site.data_hub_customer) {
           configuredCustomerMap[site.data_hub_customer.toLowerCase()] = {
