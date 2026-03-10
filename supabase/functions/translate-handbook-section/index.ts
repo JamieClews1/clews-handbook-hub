@@ -11,8 +11,10 @@ interface TranslateResponse {
 }
 
 async function translateText(texts: string[], targetLang: string, deeplApiKey: string, retries = 3): Promise<string[]> {
+  const isFreeKey = deeplApiKey.endsWith(':fx');
+  const apiUrl = isFreeKey ? 'https://api-free.deepl.com/v2/translate' : 'https://api.deepl.com/v2/translate';
   for (let attempt = 0; attempt < retries; attempt++) {
-    const response = await fetch('https://api-free.deepl.com/v2/translate', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
