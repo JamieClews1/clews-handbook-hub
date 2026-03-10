@@ -753,7 +753,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       <tr className="border-t-2 font-semibold">
                         <td className="py-2 px-3">Total</td>
                         <td className="py-2 px-3 text-right">{stats.totalPallets}</td>
-                        <td className="py-2 px-3 text-right">{((stats.totalWeightKg - stats.totalPallets * TARE_KG) / 1000).toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right">{(stats.totalWeightKg / 1000).toFixed(2)}</td>
                         <td className="py-2 px-3 text-right" />
                         <td className="py-2 px-3 text-right">£{stats.totalCost.toFixed(2)}</td>
                       </tr>
