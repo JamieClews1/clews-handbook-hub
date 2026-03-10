@@ -409,9 +409,15 @@ export function StaciMonthlyReport({
               </div>
               <div className="text-center p-3 rounded-lg bg-red-500/10">
                 <p className="text-lg font-bold text-red-600">
-                  {stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
+                  {stats.totalBreakdownWeight > 0 ? (((stats.wasteForEnergyKg ?? stats.nonRecoverableKg) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
                 </p>
                 <p className="text-xs text-muted-foreground">Waste For Energy</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-red-500/10">
+                <p className="text-lg font-bold text-red-600">
+                  {stats.totalBreakdownWeight > 0 ? (((stats.landfillKg ?? 0) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">Landfill</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-amber-500/10">
                 <p className="text-lg font-bold text-amber-600">
