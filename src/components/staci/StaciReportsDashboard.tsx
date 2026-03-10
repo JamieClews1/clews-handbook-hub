@@ -387,10 +387,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       else scrapPallets += count;
     });
 
-    // Add pallet tare weight as "Pallet Charges" — from pallet entries AND bales/dolavs "on pallets"
+    // Add pallet tare weight as "Pallet Charges" — from pallet entries, bales/dolavs "on pallets", AND scrap pallets
     const palletEntryTareCount = totalPallets; // every pallet entry sits on a wooden pallet
     const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
-    const totalWoodPallets = palletEntryTareCount + onPalletsCount;
+    const scrapPalletsCount = balesDolavData.scrapPalletsCount;
+    const totalWoodPallets = palletEntryTareCount + onPalletsCount + scrapPalletsCount;
     if (totalWoodPallets > 0) {
       const tareWeightKg = totalWoodPallets * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
