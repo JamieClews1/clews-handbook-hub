@@ -423,26 +423,32 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     });
 
     // Include bales, dolavs, and scrap metal loose in waste breakdown
+    // IMPORTANT: For items marked "on pallets", deduct tare weight from material category
+    // because the tare is already accounted for in the wood line below.
     if (balesDolavData.cardBalesWeightKg > 0) {
-      wasteAgg["card"] = (wasteAgg["card"] ?? 0) + balesDolavData.cardBalesWeightKg;
-      totalBreakdownWeight += balesDolavData.cardBalesWeightKg;
+      const netCardKg = balesDolavData.cardBalesWeightKg - (balesDolavData.cardBalesOnPalletsCount * TARE_KG);
+      wasteAgg["card"] = (wasteAgg["card"] ?? 0) + Math.max(0, netCardKg);
+      totalBreakdownWeight += Math.max(0, netCardKg);
     }
     if (balesDolavData.filmsBaleWeightKg > 0) {
-      wasteAgg["shrink_wrap"] = (wasteAgg["shrink_wrap"] ?? 0) + balesDolavData.filmsBaleWeightKg;
-      totalBreakdownWeight += balesDolavData.filmsBaleWeightKg;
+      const netFilmsKg = balesDolavData.filmsBaleWeightKg - (balesDolavData.filmsBaleOnPalletsCount * TARE_KG);
+      wasteAgg["shrink_wrap"] = (wasteAgg["shrink_wrap"] ?? 0) + Math.max(0, netFilmsKg);
+      totalBreakdownWeight += Math.max(0, netFilmsKg);
     }
     if (balesDolavData.papersDolavWeightKg > 0) {
-      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + balesDolavData.papersDolavWeightKg;
-      totalBreakdownWeight += balesDolavData.papersDolavWeightKg;
+      const netPapersKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
+      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + Math.max(0, netPapersKg);
+      totalBreakdownWeight += Math.max(0, netPapersKg);
     }
     if (balesDolavData.glassDolavWeightKg > 0) {
-      // Glass doesn't have a StaciWasteBreakdown key, add as a custom entry
-      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + balesDolavData.glassDolavWeightKg;
-      totalBreakdownWeight += balesDolavData.glassDolavWeightKg;
+      const netGlassKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
+      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + Math.max(0, netGlassKg);
+      totalBreakdownWeight += Math.max(0, netGlassKg);
     }
     if (balesDolavData.scrapMetalLooseWeightKg > 0) {
-      wasteAgg["scrap_metal"] = (wasteAgg["scrap_metal"] ?? 0) + balesDolavData.scrapMetalLooseWeightKg;
-      totalBreakdownWeight += balesDolavData.scrapMetalLooseWeightKg;
+      const netScrapKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+      wasteAgg["scrap_metal"] = (wasteAgg["scrap_metal"] ?? 0) + Math.max(0, netScrapKg);
+      totalBreakdownWeight += Math.max(0, netScrapKg);
     }
     // Add ALL pallet tare weight as wood in waste breakdown (colour pallets + on-pallets + scrap)
     const allWoodPallets = palletChargesCount + onPalletsCount + scrapPalletsCount;
