@@ -35,6 +35,7 @@ interface StaciSummaryTableProps {
   papersDolavOnPallets?: boolean;
   glassDolavOnPallets?: boolean;
   scrapMetalLooseOnPallets?: boolean;
+  weighbridgeWeightKg?: number | null;
 }
 
 export const StaciSummaryTable = ({
@@ -63,6 +64,7 @@ export const StaciSummaryTable = ({
   papersDolavOnPallets = false,
   glassDolavOnPallets = false,
   scrapMetalLooseOnPallets = false,
+  weighbridgeWeightKg,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   
@@ -100,6 +102,16 @@ export const StaciSummaryTable = ({
   const scrapPalletsWeightKg = palletsScrapCount * palletWeightKg;
   const scrapPalletChargeRate = Math.abs(palletChargeRatePerTonne !== 0 ? palletChargeRatePerTonne : STACI_PALLET_RATES["waste_wood"]);
   const scrapPalletChargeValue = (scrapPalletsWeightKg / 1000) * scrapPalletChargeRate;
+
+  // Total reconciled weight = all pallet weight + all net weights
+  const totalAllPalletWeightKg = totalPalletDeductionKg + scrapPalletsWeightKg + (goodPalletCount * palletWeightKg);
+  const totalAllNetWeightKg = totalNetWeightKg + cardBalesNetKg + filmsBaleNetKg + papersDolavNetKg + glassDolavNetKg + scrapMetalLooseNetKg;
+  const totalReconciledWeightKg = totalAllPalletWeightKg + totalAllNetWeightKg;
+
+  // Check if reconciled weight matches weighbridge within 1%
+  const weighbridgeMatch = typeof weighbridgeWeightKg === "number" && weighbridgeWeightKg > 0
+    ? Math.abs(totalReconciledWeightKg - weighbridgeWeightKg) / weighbridgeWeightKg <= 0.01
+    : null;
 
   const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue + scrapPalletChargeValue;
 
@@ -322,12 +334,27 @@ export const StaciSummaryTable = ({
             <TableCell>Total</TableCell>
             <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount + scrapMetalLooseCount}</TableCell>
             <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg + scrapMetalLooseGrossKg).toLocaleString()}</TableCell>
-            <TableCell className="text-right">{(totalPalletDeductionKg + scrapPalletsWeightKg + (goodPalletCount * palletWeightKg)).toLocaleString()}</TableCell>
-            <TableCell className="text-right">{(totalNetWeightKg + cardBalesNetKg + filmsBaleNetKg + papersDolavNetKg + glassDolavNetKg + scrapMetalLooseNetKg).toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalAllPalletWeightKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalAllNetWeightKg.toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
               {netTotal < 0 ? "-" : ""}£{Math.abs(netTotal).toFixed(2)}
             </TableCell>
+          </TableRow>
+          <TableRow className="bg-muted/80 font-semibold">
+            <TableCell colSpan={2}>Total Weight (Pallet + Net)</TableCell>
+            <TableCell className="text-right" colSpan={3}>
+              <span className="text-base">{totalReconciledWeightKg.toLocaleString()} kg</span>
+              {weighbridgeMatch === true && (
+                <span className="ml-2 text-xs text-green-600">✓ Matches weighbridge</span>
+              )}
+              {weighbridgeMatch === false && (
+                <span className="ml-2 text-xs text-destructive">
+                  ≠ Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
+                </span>
+              )}
+            </TableCell>
+            <TableCell colSpan={2} />
           </TableRow>
         </TableFooter>
       </Table>
