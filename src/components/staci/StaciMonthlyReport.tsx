@@ -49,11 +49,15 @@ interface DashboardStats {
     pct: number;
     recyclable: boolean;
     nonRecoverable: boolean;
+    wasteForEnergy?: boolean;
+    landfill?: boolean;
     wood: boolean;
   }>;
   totalBreakdownWeight: number;
   recyclableKg: number;
   nonRecoverableKg: number;
+  wasteForEnergyKg?: number;
+  landfillKg?: number;
   woodKg: number;
 }
 
