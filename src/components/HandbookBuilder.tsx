@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, FileSignature } from "lucide-react";
+import { Plus, Trash2, Edit, FileSignature, Languages } from "lucide-react";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { HandbookSignaturesList } from "@/components/HandbookSignaturesList";
+import { HandbookTranslationSettings } from "@/components/HandbookTranslationSettings";
 import {
   AlertDialog,
   AlertDialogAction,
