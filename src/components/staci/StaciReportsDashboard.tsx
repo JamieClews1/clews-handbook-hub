@@ -392,16 +392,14 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
     const scrapPalletsCount = balesDolavData.scrapPalletsCount;
     const palletChargesCount = palletEntryTareCount; // Only colour-coded pallets contribute to Pallet Charges
-    if (totalWoodPallets > 0) {
-      const tareWeightKg = totalWoodPallets * TARE_KG;
+    if (palletChargesCount > 0) {
+      const tareWeightKg = palletChargesCount * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
       const tareCharge = (tareWeightKg / 1000) * wasteWoodRate;
       if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0 };
-      colourMap["waste_wood"].count += totalWoodPallets;
+      colourMap["waste_wood"].count += palletChargesCount;
       colourMap["waste_wood"].weightKg += tareWeightKg;
       colourMap["waste_wood"].cost += tareCharge;
-      // Pallet charges are not additional pallets — don't inflate totalPallets
-      // Only add the tare weight & cost to totals
       totalWeightKg += tareWeightKg;
       totalCost += tareCharge;
     }
