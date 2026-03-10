@@ -7,7 +7,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { StaciColourSummary, STACI_COLOUR_CONFIG, STACI_PALLET_GOOD_REBATE } from "./types";
+import { StaciColourSummary, STACI_COLOUR_CONFIG, STACI_PALLET_GOOD_REBATE, STACI_PALLET_RATES } from "./types";
 
 interface StaciSummaryTableProps {
   summaries: StaciColourSummary[];
@@ -96,7 +96,12 @@ export const StaciSummaryTable = ({
   const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesNetKg / 1000) * cardBalesRatePerTonne : 0;
   const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleNetKg / 1000) * filmsRatePerTonne : 0;
 
-  const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue;
+  // Scrap pallet charge (weight × pallet charge rate per tonne)
+  const scrapPalletsWeightKg = palletsScrapCount * palletWeightKg;
+  const scrapPalletChargeRate = Math.abs(palletChargeRatePerTonne !== 0 ? palletChargeRatePerTonne : STACI_PALLET_RATES["waste_wood"]);
+  const scrapPalletChargeValue = (scrapPalletsWeightKg / 1000) * scrapPalletChargeRate;
+
+  const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue + scrapPalletChargeValue;
 
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -202,12 +207,16 @@ export const StaciSummaryTable = ({
                 {palletsScrapCount}
               </TableCell>
               <TableCell className="text-right">
-                {(palletsScrapCount * palletWeightKg).toLocaleString()}
+                {scrapPalletsWeightKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">Charge</TableCell>
-              <TableCell className="text-right font-medium">-</TableCell>
+              <TableCell className="text-right">
+                £{scrapPalletChargeRate.toFixed(2)}/tonne
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {scrapPalletChargeValue.toFixed(2)}
+              </TableCell>
             </TableRow>
           )}
           {cardBalesCount > 0 && (
