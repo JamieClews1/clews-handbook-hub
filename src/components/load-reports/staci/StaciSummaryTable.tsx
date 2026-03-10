@@ -96,7 +96,12 @@ export const StaciSummaryTable = ({
   const cardBalesValue = cardBalesRatePerTonne !== 0 ? (cardBalesNetKg / 1000) * cardBalesRatePerTonne : 0;
   const filmsBaleValue = filmsRatePerTonne !== 0 ? (filmsBaleNetKg / 1000) * filmsRatePerTonne : 0;
 
-  const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue;
+  // Scrap pallet charge (weight × pallet charge rate per tonne)
+  const scrapPalletsWeightKg = palletsScrapCount * palletWeightKg;
+  const scrapPalletChargeRate = Math.abs(palletChargeRatePerTonne !== 0 ? palletChargeRatePerTonne : STACI_PALLET_RATES["waste_wood"]);
+  const scrapPalletChargeValue = (scrapPalletsWeightKg / 1000) * scrapPalletChargeRate;
+
+  const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue + scrapPalletChargeValue;
 
   return (
     <div className="rounded-lg border overflow-hidden">
