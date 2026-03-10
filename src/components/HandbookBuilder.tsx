@@ -210,6 +210,10 @@ export const HandbookBuilder = () => {
     <Tabs defaultValue="content" className="space-y-6">
       <TabsList>
         <TabsTrigger value="content">Content Management</TabsTrigger>
+        <TabsTrigger value="translations" className="gap-2">
+          <Languages className="h-4 w-4" />
+          Translations
+        </TabsTrigger>
         <TabsTrigger value="signatures" className="gap-2">
           <FileSignature className="h-4 w-4" />
           Signatures
