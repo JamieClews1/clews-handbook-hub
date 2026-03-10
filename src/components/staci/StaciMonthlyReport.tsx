@@ -92,6 +92,8 @@ export function StaciMonthlyReport({
   dashboardStats,
   dashboardHaulage,
   balesDolavTotalWeightKg = 0,
+  monthlyNetCost = 0,
+  monthlyRecyclingInvoice = 0,
   dateFrom,
   dateTo,
   dashboardLoading = false,
