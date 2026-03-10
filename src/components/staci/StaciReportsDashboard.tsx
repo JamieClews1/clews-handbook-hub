@@ -743,7 +743,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                             {STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}
                           </td>
                           <td className="py-1.5 px-3 text-right">{d.count}</td>
-                          <td className="py-1.5 px-3 text-right">{((d.weightKg - d.count * TARE_KG) / 1000).toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
                           <td className="py-1.5 px-3 text-right">£{(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}</td>
                           <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
                         </tr>
