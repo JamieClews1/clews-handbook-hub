@@ -617,16 +617,20 @@ import * as XLSX from "xlsx";
      
      setSendingEmail(true);
      
-     try {
-       // Call edge function to send email
-       const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
-         body: {
-           to: emailRecipient,
-           subject: emailSubject,
-           body: emailBody,
-           customerName: selectedCustomer.customer.customer_name,
-         },
-       });
+      try {
+        // Generate Excel attachment
+        const { base64, filename } = getExcelBase64(selectedCustomer);
+
+        // Call edge function to send email with attachment
+        const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+          body: {
+            to: emailRecipient,
+            subject: emailSubject,
+            body: emailBody,
+            customerName: selectedCustomer.customer.customer_name,
+            attachment: { base64, filename },
+          },
+        });
  
        if (emailError) throw emailError;
  
