@@ -470,17 +470,21 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
         recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
         nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
+        wasteForEnergy: WASTE_FOR_ENERGY_TYPES.includes(key as any),
+        landfill: LANDFILL_TYPES.includes(key as any),
         wood: key === WOOD_TYPE,
       }))
       .sort((a, b) => b.kg - a.kg);
 
     const recyclableKg = wasteRows.filter((w) => w.recyclable).reduce((s, w) => s + w.kg, 0);
     const nonRecoverableKg = wasteRows.filter((w) => w.nonRecoverable).reduce((s, w) => s + w.kg, 0);
+    const wasteForEnergyKg = wasteRows.filter((w) => w.wasteForEnergy).reduce((s, w) => s + w.kg, 0);
+    const landfillKg = wasteRows.filter((w) => w.landfill).reduce((s, w) => s + w.kg, 0);
     const woodKg = wasteRows.filter((w) => w.wood).reduce((s, w) => s + w.kg, 0);
 
     return {
       colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, scrapPallets,
-      palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, woodKg,
+      palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, wasteForEnergyKg, landfillKg, woodKg,
     };
   }, [rows, dbPalletRates, dbGoodPalletRebate, balesDolavData]);
 
