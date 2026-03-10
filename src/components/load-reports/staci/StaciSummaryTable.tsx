@@ -103,6 +103,16 @@ export const StaciSummaryTable = ({
   const scrapPalletChargeRate = Math.abs(palletChargeRatePerTonne !== 0 ? palletChargeRatePerTonne : STACI_PALLET_RATES["waste_wood"]);
   const scrapPalletChargeValue = (scrapPalletsWeightKg / 1000) * scrapPalletChargeRate;
 
+  // Total reconciled weight = all pallet weight + all net weights
+  const totalAllPalletWeightKg = totalPalletDeductionKg + scrapPalletsWeightKg + (goodPalletCount * palletWeightKg);
+  const totalAllNetWeightKg = totalNetWeightKg + cardBalesNetKg + filmsBaleNetKg + papersDolavNetKg + glassDolavNetKg + scrapMetalLooseNetKg;
+  const totalReconciledWeightKg = totalAllPalletWeightKg + totalAllNetWeightKg;
+
+  // Check if reconciled weight matches weighbridge within 1%
+  const weighbridgeMatch = typeof weighbridgeWeightKg === "number" && weighbridgeWeightKg > 0
+    ? Math.abs(totalReconciledWeightKg - weighbridgeWeightKg) / weighbridgeWeightKg <= 0.01
+    : null;
+
   const netTotal = totalValue - palletRebate + palletChargeValue + cardBalesValue + filmsBaleValue + scrapPalletChargeValue;
 
   return (
