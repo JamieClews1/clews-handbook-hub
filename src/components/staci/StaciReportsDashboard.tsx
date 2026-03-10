@@ -157,7 +157,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const { data: reportData } = await balesQuery;
 
-      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0 };
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0 };
       (reportData ?? []).forEach((r: any) => {
         const cardCount = Number(r.card_bales_count) || 0;
         const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
@@ -171,14 +171,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const scrapMetalPerUnit = Number(r.scrap_metal_loose_weight_kg) || 0;
         agg.cardBalesCount += cardCount;
         agg.cardBalesWeightKg += cardCount * cardPerUnit;
+        if (r.card_bales_on_pallets) agg.cardBalesOnPalletsCount += cardCount;
         agg.filmsBaleCount += filmsCount;
         agg.filmsBaleWeightKg += filmsCount * filmsPerUnit;
+        if (r.films_bale_on_pallets) agg.filmsBaleOnPalletsCount += filmsCount;
         agg.papersDolavCount += papersCount;
         agg.papersDolavWeightKg += papersCount * papersPerUnit;
+        if (r.papers_dolav_on_pallets) agg.papersDolavOnPalletsCount += papersCount;
         agg.glassDolavCount += glassCount;
         agg.glassDolavWeightKg += glassCount * glassPerUnit;
+        if (r.glass_dolav_on_pallets) agg.glassDolavOnPalletsCount += glassCount;
         agg.scrapMetalLooseCount += scrapMetalCount;
         agg.scrapMetalLooseWeightKg += scrapMetalCount * scrapMetalPerUnit;
+        if (r.scrap_metal_loose_on_pallets) agg.scrapMetalLooseOnPalletsCount += scrapMetalCount;
       });
       setBalesDolavData(agg);
 
