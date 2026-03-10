@@ -649,37 +649,22 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         </Card>
       ) : (
         <>
-          {/* KPI cards */}
-          {(() => {
-            const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
-            const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-            const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-            const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
-            const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
-            const monthlyNetCost = haulageData.totalCost + stats.totalCost - totalRebates;
-
-            // Store for use by Monthly Report section below
-            (window as any).__staciKpis = { monthlyNetCost, monthlyRecyclingInvoice };
-
-            return (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {[
-                  { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
-                  { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
-                  { label: "Monthly Net Cost", value: `£${monthlyNetCost.toFixed(2)}`, highlight: true },
-                  { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}` },
-                  { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
-                ].map((kpi) => (
-                  <Card key={kpi.label}>
-                    <CardContent className="py-4 text-center">
-                      <p className={`text-2xl font-bold ${(kpi as any).highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
-                      <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            );
-          })()}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
+              { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
+              { label: "Monthly Net Cost", value: `£${kpiFinancials.monthlyNetCost.toFixed(2)}`, highlight: true },
+              { label: "Monthly Recycling Invoice", value: `£${kpiFinancials.monthlyRecyclingInvoice.toFixed(2)}` },
+              { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
+            ].map((kpi) => (
+              <Card key={kpi.label}>
+                <CardContent className="py-4 text-center">
+                  <p className={`text-2xl font-bold ${(kpi as any).highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
           {/* Haulage summary table */}
           {haulageData.totalLoads > 0 && (
