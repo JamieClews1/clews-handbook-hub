@@ -1084,14 +1084,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                   </table>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-4 grid grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-lg bg-green-500/10">
                     <p className="text-lg font-bold text-green-600">{stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
                     <p className="text-xs text-muted-foreground">Recyclable</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-red-500/10">
-                    <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
+                    <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.wasteForEnergyKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
                     <p className="text-xs text-muted-foreground">Waste For Energy</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-red-500/10">
+                    <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.landfillKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
+                    <p className="text-xs text-muted-foreground">Landfill</p>
                   </div>
                 </div>
               </CardContent>
