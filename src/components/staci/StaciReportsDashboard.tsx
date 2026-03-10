@@ -813,7 +813,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
           </div>
 
           {/* Pallets, Bales & Dolavs Breakdown */}
-          {(stats.goodPallets > 0 || balesDolavData.cardBalesCount > 0 || balesDolavData.filmsBaleCount > 0 || balesDolavData.papersDolavCount > 0 || balesDolavData.glassDolavCount > 0 || balesDolavData.scrapMetalLooseCount > 0) && (
+          {(stats.goodPallets > 0 || balesDolavData.cardBalesCount > 0 || balesDolavData.filmsBaleCount > 0 || balesDolavData.papersDolavCount > 0 || balesDolavData.glassDolavCount > 0 || balesDolavData.scrapMetalLooseCount > 0 || balesDolavData.scrapPalletsCount > 0) && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Pallets, Bales & Dolavs Breakdown</CardTitle>
