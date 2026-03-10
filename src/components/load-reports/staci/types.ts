@@ -203,8 +203,8 @@ export const STACI_COLOUR_CONFIG: Record<StaciPalletColour, {
     description: "Pure recyclables >300KG (Rebate)"
   },
   waste_wood: { 
-    label: "Waste Wood", 
-    bgColor: "bg-amber-700", 
+    label: "Pallet Charges", 
+    bgColor: "bg-amber-700",
     textColor: "text-white",
     description: "Pallet scrap @ £45/t"
   },

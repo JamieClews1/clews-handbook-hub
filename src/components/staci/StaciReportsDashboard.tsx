@@ -366,6 +366,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const count = r.pallet_count;
       const grossWeightPerPallet = r.weight_kg;
       const totalGrossWeight = grossWeightPerPallet * count;
+      // Net weight = gross minus 20kg tare per pallet (wooden pallet underneath)
+      const netWeight = totalGrossWeight - (count * TARE_KG);
       const rate = dbPalletRates[r.colour] ?? STACI_PALLET_RATES[r.colour] ?? 0;
       const isWasteWood = r.colour === "waste_wood";
       const lineCost = isWasteWood
@@ -374,18 +376,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
       colourMap[r.colour].count += count;
-      colourMap[r.colour].weightKg += totalGrossWeight;
+      colourMap[r.colour].weightKg += netWeight; // store NET weight for colour entries
       colourMap[r.colour].cost += lineCost;
 
       totalPallets += count;
-      totalWeightKg += totalGrossWeight;
+      totalWeightKg += netWeight;
       totalCost += lineCost;
 
       if (r.pallet_type === "good") goodPallets += count;
       else scrapPallets += count;
     });
 
-    // Add pallet tare weight as waste_wood — from pallet entries AND bales/dolavs "on pallets"
+    // Add pallet tare weight as "Pallet Charges" — from pallet entries AND bales/dolavs "on pallets"
     const palletEntryTareCount = totalPallets; // every pallet entry sits on a wooden pallet
     const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
     const totalWoodPallets = palletEntryTareCount + onPalletsCount;
@@ -397,8 +399,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       colourMap["waste_wood"].count += totalWoodPallets;
       colourMap["waste_wood"].weightKg += tareWeightKg;
       colourMap["waste_wood"].cost += tareCharge;
-      // Don't re-add palletEntryTareCount to totalPallets — those are already counted above
-      totalPallets += onPalletsCount;
+      // Pallet charges are not additional pallets — don't inflate totalPallets
+      // Only add the tare weight & cost to totals
       totalWeightKg += tareWeightKg;
       totalCost += tareCharge;
     }
