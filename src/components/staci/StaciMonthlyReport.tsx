@@ -161,10 +161,11 @@ export function StaciMonthlyReport({
         kg: Math.round(w.kg),
         tonnes: +w.tonnes.toFixed(2),
         pct: +w.pct.toFixed(1),
-        category: w.recyclable ? "Recyclable" : w.wood ? "Wood" : "Waste For Energy",
+        category: w.recyclable ? "Recyclable" : w.landfill ? "Landfill" : w.wood ? "Wood" : "Waste For Energy",
       })),
       recyclablePct: stats.totalBreakdownWeight > 0 ? +((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
-      nonRecoverablePct: stats.totalBreakdownWeight > 0 ? +((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      wasteForEnergyPct: stats.totalBreakdownWeight > 0 ? +(((stats.wasteForEnergyKg ?? stats.nonRecoverableKg) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      landfillPct: stats.totalBreakdownWeight > 0 ? +(((stats.landfillKg ?? 0) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
       woodPct: stats.totalBreakdownWeight > 0 ? +((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
       haulage: {
         loads: haulageData.totalLoads,
