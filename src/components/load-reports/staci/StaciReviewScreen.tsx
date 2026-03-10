@@ -234,8 +234,11 @@ export const StaciReviewScreen = ({
     if (typeof weighbridgeWeightKg !== "number") return;
 
     if (hasPalletEntries) {
-      // Subtract bale/dolav weight so only the pallet portion is reconciled
-      const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg;
+      // Subtract bale/dolav weight, good pallet weight, and scrap pallet weight
+      // so only the palletised material portion is reconciled
+      const goodPalletWeightKg = goodPalletCount * palletWeightKg;
+      const scrapPalletWeightKg = palletsScrapCount * palletWeightKg;
+      const palletTargetKg = weighbridgeWeightKg - baleDolavTotalKg - goodPalletWeightKg - scrapPalletWeightKg;
       const reconciled = reconcileStaciEntries(palletEntries, Math.max(0, palletTargetKg));
       setReconciledPreview(reconciled);
       setReconciledBaleDolavPreview(null);
