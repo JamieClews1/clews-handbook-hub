@@ -146,7 +146,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       // Bales/dolavs query - filter by customer sites when in portal view
       let balesQuery = supabase
         .from("load_reports")
-        .select("card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets")
+        .select("card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets, pallets_scrap_count")
         .gte("report_date", from)
         .lte("report_date", to)
         .eq("status", "submitted")
