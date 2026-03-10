@@ -16,6 +16,8 @@ import {
   WASTE_TYPE_LABELS,
   RECYCLABLE_WASTE_TYPES,
   NON_RECYCLABLE_WASTE_TYPES,
+  WASTE_FOR_ENERGY_TYPES,
+  LANDFILL_TYPES,
   WOOD_TYPE,
   type StaciWasteBreakdown,
   type StaciPalletColour,
