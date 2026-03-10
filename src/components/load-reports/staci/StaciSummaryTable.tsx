@@ -7,7 +7,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { StaciColourSummary, STACI_COLOUR_CONFIG, STACI_PALLET_GOOD_REBATE } from "./types";
+import { StaciColourSummary, STACI_COLOUR_CONFIG, STACI_PALLET_GOOD_REBATE, STACI_PALLET_RATES } from "./types";
 
 interface StaciSummaryTableProps {
   summaries: StaciColourSummary[];
