@@ -460,6 +460,7 @@ export const StaciReviewScreen = ({
                       papersDolavOnPallets={papersDolavOnPallets}
                       glassDolavOnPallets={glassDolavOnPallets}
                       scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
+                      weighbridgeWeightKg={weighbridgeWeightKg}
                     />
                     <Button
                       type="button"
