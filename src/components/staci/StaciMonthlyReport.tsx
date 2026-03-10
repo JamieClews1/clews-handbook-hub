@@ -291,7 +291,8 @@ export function StaciMonthlyReport({
       [],
       ["Category Summary", "", "", ""],
       ["Recyclable", "", "", `${rd.recyclablePct}%`],
-      ["Waste For Energy", "", "", `${rd.nonRecoverablePct}%`],
+      ["Waste For Energy", "", "", `${rd.wasteForEnergyPct ?? rd.nonRecoverablePct}%`],
+      ["Landfill", "", "", `${rd.landfillPct ?? 0}%`],
       ["Wood", "", "", `${rd.woodPct}%`],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recyclingData), "Recycling Report");
