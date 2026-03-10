@@ -979,7 +979,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                             </td>
                             <td />
                           </tr>
-                        );
+                      })()}
                     </tfoot>
                   </table>
                 </div>
