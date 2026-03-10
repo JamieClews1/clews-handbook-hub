@@ -549,6 +549,17 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     }));
   }, [stats]);
 
+  // Compute KPI financial totals for use in both KPI cards and Monthly Report
+  const kpiFinancials = useMemo(() => {
+    const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
+    const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
+    const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+    const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
+    const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
+    const monthlyNetCost = haulageData.totalCost + stats.totalCost - totalRebates;
+    return { monthlyNetCost, monthlyRecyclingInvoice };
+  }, [stats, balesDolavData, baleRates, haulageData]);
+
   return (
     <div className="space-y-8">
       {/* Date range */}
