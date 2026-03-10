@@ -378,14 +378,48 @@ import * as XLSX from "xlsx";
            let skipRoroRebate = 0;
            let skipRoroWeight = 0;
  
-           if (skipConfigs && skipConfigs.length > 0 && siteDataHubMappings.length > 0) {
-             // Get data hub jobs for these sites
-             const { data: jobs } = await supabase
-               .from("data_hub_jobs")
-               .select("waste_description, weight_t")
-               .in("site", siteDataHubMappings)
-               .gte("job_date", periodStart)
-               .lte("job_date", periodEnd);
+            if (skipConfigs && skipConfigs.length > 0 && siteDataHubMappings.length > 0) {
+              // Load rebate rules (exclusion settings) - same as useSkipRoroRebates
+              const { data: rebateRules } = await supabase
+                .from("rebate_rules")
+                .select("rule_key, is_enabled");
+              
+              const excludeSkipJobType = rebateRules?.find(r => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
+              const excludeDeliverMovement = rebateRules?.find(r => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+
+              // Get data hub jobs for these sites - MUST filter by category like useSkipRoroRebates
+              const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
+              const { data: rawJobs } = await supabase
+                .from("data_hub_jobs")
+                .select("waste_description, weight_t, category, job_type, movement_type")
+                .in("site", siteDataHubMappings)
+                .gte("job_date", periodStart)
+                .lte("job_date", periodEnd)
+                .in("category", targetCategories);
+
+              // Apply exclusion rules matching useSkipRoroRebates logic
+              let jobs = (rawJobs ?? []).map(j => ({
+                ...j,
+                // Convert Midweigh weights from kg to tonnes
+                weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
+              }));
+
+              // Rule 1: Exclude Midweigh jobs with Job Type = "SKIP"
+              if (excludeSkipJobType) {
+                jobs = jobs.filter(j => {
+                  if (j.category !== "Midweigh") return true;
+                  return (j.job_type ?? "").toUpperCase() !== "SKIP";
+                });
+              }
+              
+              // Rule 2: Exclude Skiptrak "Deliver" jobs
+              if (excludeDeliverMovement) {
+                jobs = jobs.filter(j => {
+                  if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
+                  const mt = (j.movement_type ?? "").toLowerCase();
+                  return mt !== "deliver" && mt !== "delivery";
+                });
+              }
  
              // Get rebate mappings
              const { data: mappings } = await supabase
