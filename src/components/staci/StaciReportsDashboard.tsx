@@ -991,16 +991,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         const papersNetKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
                         const glassNetKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
                         const scrapMetalNetKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+                        const scrapPalletsWeightKg = balesDolavData.scrapPalletsCount * TARE_KG;
+                        const scrapPalletsCost = (scrapPalletsWeightKg / 1000) * Math.abs(dbPalletWeightCharge);
                         const cardValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (filmsNetKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
                         const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + balesDolavData.scrapPalletsCount;
                         const netItemsWeightKg = cardNetKg + filmsNetKg + papersNetKg + glassNetKg + scrapMetalNetKg;
-                        const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG);
+                        const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG) + scrapPalletsWeightKg;
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
-                        const netValue = totalRebate - palletWeightChargeCost;
+                        const netValue = totalRebate - palletWeightChargeCost - scrapPalletsCost;
                         return (
                           <tr className="border-t-2 font-semibold">
                             <td className="py-2 px-3">Total</td>
