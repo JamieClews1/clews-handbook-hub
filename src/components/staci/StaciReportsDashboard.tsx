@@ -750,49 +750,13 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       ))}
                     </tbody>
                     <tfoot>
-                      {stats.totalPallets > 0 && (() => {
-                        const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                        const chargePerTonne = dbPalletWeightCharge;
-                        const palletWeightChargeCost = palletWeightT * chargePerTonne;
-                        return (
-                          <tr className="border-t border-border/50">
-                            <td className="py-1.5 px-3 text-muted-foreground">Pallet Weight Charges</td>
-                            <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
-                            <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
-                            <td className="py-1.5 px-3 text-right">£{Math.abs(chargePerTonne).toFixed(2)}/t</td>
-                            <td className="py-1.5 px-3 text-right font-medium">
-                              £{Math.abs(palletWeightChargeCost).toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      })()}
-                      {(() => {
-                        const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                        const totalWeightWithPallets = stats.totalWeightKg / 1000;
-                        const chargePerTonne = dbPalletWeightCharge;
-                        const palletWeightChargeCost = palletWeightT * chargePerTonne;
-                        return (
-                          <tr className="border-t-2 font-semibold">
-                            <td className="py-2 px-3">Total</td>
-                            <td className="py-2 px-3 text-right">{stats.totalPallets}</td>
-                            <td className="py-2 px-3 text-right">{totalWeightWithPallets.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-right" />
-                            <td className="py-2 px-3 text-right">£{(stats.totalCost + Math.abs(palletWeightChargeCost)).toFixed(2)}</td>
-                          </tr>
-                        );
-                      })()}
-                      {(() => {
-                        const palletWeightT = stats.totalPallets * TARE_KG / 1000;
-                        const chargePerTonne = dbPalletWeightCharge;
-                        const palletWeightChargeCost = palletWeightT * chargePerTonne;
-                        const netCost = stats.totalCost + palletWeightChargeCost;
-                        return (
-                          <tr className="font-bold text-lg">
-                            <td className="py-2 px-3" colSpan={4}>Net Pallet Cost</td>
-                            <td className="py-2 px-3 text-right">£{netCost.toFixed(2)}</td>
-                          </tr>
-                        );
-                      })()}
+                      <tr className="border-t-2 font-semibold">
+                        <td className="py-2 px-3">Total</td>
+                        <td className="py-2 px-3 text-right">{stats.totalPallets}</td>
+                        <td className="py-2 px-3 text-right">{(stats.totalWeightKg / 1000).toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right" />
+                        <td className="py-2 px-3 text-right">£{stats.totalCost.toFixed(2)}</td>
+                      </tr>
                     </tfoot>
                   </table>
                 </div>
@@ -968,8 +932,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + onPalletsCount;
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (onPalletsCount * TARE_KG);
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
+                        const itemsWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
+                        const palletTareWeightKg = onPalletsCount * TARE_KG;
+                        const totalWeightKg = itemsWeightKg + palletTareWeightKg;
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
