@@ -938,11 +938,17 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                     <tfoot>
                       {(() => {
                         const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
-                        const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
-                        const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-                        const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+                        const cardNetKg = balesDolavData.cardBalesWeightKg - (balesDolavData.cardBalesOnPalletsCount * TARE_KG);
+                        const filmsNetKg = balesDolavData.filmsBaleWeightKg - (balesDolavData.filmsBaleOnPalletsCount * TARE_KG);
+                        const papersNetKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
+                        const glassNetKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
+                        const scrapMetalNetKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+                        const cardValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
+                        const filmsValue = (filmsNetKg / 1000) * baleRates.filmsRate;
+                        const scrapMetalValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
                         const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
+                        const netItemsWeightKg = cardNetKg + filmsNetKg + papersNetKg + glassNetKg + scrapMetalNetKg;
+                        const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG);
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
