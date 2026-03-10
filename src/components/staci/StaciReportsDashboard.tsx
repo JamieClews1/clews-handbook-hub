@@ -980,11 +980,6 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                             <td />
                           </tr>
                         );
-                      })()}
-                            <td />
-                          </tr>
-                        );
-                      })()}
                     </tfoot>
                   </table>
                 </div>
