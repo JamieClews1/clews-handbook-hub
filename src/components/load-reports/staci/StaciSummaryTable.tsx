@@ -76,7 +76,7 @@ export const StaciSummaryTable = ({
   
   const totalPalletDeductionKg = (totalPallets * palletWeightKg) + baleDolavPalletWeightKg;
   const totalNetWeightKg = totalWeightKg - (totalPallets * palletWeightKg);
-  const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
+  const palletChargeValue = palletChargeRatePerTonne !== 0 ? Math.abs((totalPalletDeductionKg / 1000) * palletChargeRatePerTonne) : 0;
 
   // Calculate gross weights for bales/dolavs (stored value is per-unit)
   const cardBalesGrossKg = cardBalesCount * cardBalesWeightKg;
@@ -164,10 +164,10 @@ export const StaciSummaryTable = ({
               <TableCell className="text-right font-medium text-green-600">
                 {goodPalletCount}
               </TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">
                 {(goodPalletCount * palletWeightKg).toLocaleString()}
               </TableCell>
-              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right text-green-600">
                 -£{STACI_PALLET_GOOD_REBATE.toFixed(2)}
@@ -206,10 +206,10 @@ export const StaciSummaryTable = ({
               <TableCell className="text-right font-medium">
                 {palletsScrapCount}
               </TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">
                 {scrapPalletsWeightKg.toLocaleString()}
               </TableCell>
-              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">
                 £{scrapPalletChargeRate.toFixed(2)}/tonne
@@ -322,7 +322,7 @@ export const StaciSummaryTable = ({
             <TableCell>Total</TableCell>
             <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount + scrapMetalLooseCount}</TableCell>
             <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg + scrapMetalLooseGrossKg).toLocaleString()}</TableCell>
-            <TableCell className="text-right">{totalPalletDeductionKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{(totalPalletDeductionKg + scrapPalletsWeightKg + (goodPalletCount * palletWeightKg)).toLocaleString()}</TableCell>
             <TableCell className="text-right">{(totalNetWeightKg + cardBalesNetKg + filmsBaleNetKg + papersDolavNetKg + glassDolavNetKg + scrapMetalLooseNetKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
