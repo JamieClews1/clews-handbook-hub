@@ -942,16 +942,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
-                      {stats.totalPallets > 0 && (() => {
-                        const palletWeightT = stats.totalPallets * TARE_KG / 1000;
+                      {(() => {
+                        const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
+                        if (onPalletsCount === 0) return null;
+                        const palletWeightT = onPalletsCount * TARE_KG / 1000;
                         const chargePerTonne = dbPalletWeightCharge;
                         const palletWeightChargeCost = palletWeightT * Math.abs(chargePerTonne);
                         return (
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Pallet Weight Charge</td>
-                            <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
+                            <td className="py-1.5 px-3 text-right">{onPalletsCount}</td>
                             <td className="py-1.5 px-3 text-right">-</td>
-                            <td className="py-1.5 px-3 text-right">{(stats.totalPallets * TARE_KG).toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(onPalletsCount * TARE_KG).toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right text-destructive">£{Math.abs(chargePerTonne).toFixed(2)}/t</td>
                             <td className="py-1.5 px-3 text-right font-medium text-destructive">£{palletWeightChargeCost.toFixed(2)}</td>
@@ -962,14 +964,15 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                     </tbody>
                     <tfoot>
                       {(() => {
+                        const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + (stats.totalPallets > 0 ? stats.totalPallets : 0);
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (stats.totalPallets > 0 ? stats.totalPallets * TARE_KG : 0);
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + onPalletsCount;
+                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (onPalletsCount * TARE_KG);
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
-                        const palletWeightChargeCost = stats.totalPallets > 0 ? (stats.totalPallets * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge) : 0;
+                        const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
                         const netValue = totalRebate - palletWeightChargeCost;
                         return (
                           <tr className="border-t-2 font-semibold">
