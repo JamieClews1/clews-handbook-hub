@@ -549,6 +549,17 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     }));
   }, [stats]);
 
+  // Compute KPI financial totals for use in both KPI cards and Monthly Report
+  const kpiFinancials = useMemo(() => {
+    const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
+    const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
+    const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+    const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
+    const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
+    const monthlyNetCost = haulageData.totalCost + stats.totalCost - totalRebates;
+    return { monthlyNetCost, monthlyRecyclingInvoice };
+  }, [stats, balesDolavData, baleRates, haulageData]);
+
   return (
     <div className="space-y-8">
       {/* Date range */}
@@ -638,31 +649,21 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         </Card>
       ) : (
         <>
-          {/* KPI cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {(() => {
-              const cardRebateValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
-              const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-              const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-              const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
-              const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
-              const monthlyNetCost = haulageData.totalCost + stats.totalCost - totalRebates;
-
-              return [
-                { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
-                { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
-                { label: "Monthly Net Cost", value: `£${monthlyNetCost.toFixed(2)}`, highlight: true },
-                { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}` },
-                { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
-              ].map((kpi) => (
-                <Card key={kpi.label}>
-                  <CardContent className="py-4 text-center">
-                    <p className={`text-2xl font-bold ${(kpi as any).highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
-                    <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                  </CardContent>
-                </Card>
-              ));
-            })()}
+            {[
+              { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
+              { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
+              { label: "Monthly Net Cost", value: `£${kpiFinancials.monthlyNetCost.toFixed(2)}`, highlight: true },
+              { label: "Monthly Recycling Invoice", value: `£${kpiFinancials.monthlyRecyclingInvoice.toFixed(2)}` },
+              { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
+            ].map((kpi) => (
+              <Card key={kpi.label}>
+                <CardContent className="py-4 text-center">
+                  <p className={`text-2xl font-bold ${(kpi as any).highlight ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Haulage summary table */}
@@ -1077,6 +1078,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         dashboardStats={stats}
         dashboardHaulage={haulageData}
         balesDolavTotalWeightKg={balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg}
+        monthlyNetCost={kpiFinancials.monthlyNetCost}
+        monthlyRecyclingInvoice={kpiFinancials.monthlyRecyclingInvoice}
         dateFrom={dateFrom}
         dateTo={dateTo}
         dashboardLoading={fetching}

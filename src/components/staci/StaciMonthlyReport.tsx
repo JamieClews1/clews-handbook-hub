@@ -74,6 +74,10 @@ interface Props {
   dashboardHaulage?: DashboardHaulage;
   /** Total weight of bales, dolavs, scrap metal loose (kg) */
   balesDolavTotalWeightKg?: number;
+  /** Pre-computed Monthly Net Cost from dashboard */
+  monthlyNetCost?: number;
+  /** Pre-computed Monthly Recycling Invoice from dashboard */
+  monthlyRecyclingInvoice?: number;
   /** Dashboard date range */
   dateFrom?: Date;
   dateTo?: Date;
@@ -88,6 +92,8 @@ export function StaciMonthlyReport({
   dashboardStats,
   dashboardHaulage,
   balesDolavTotalWeightKg = 0,
+  monthlyNetCost = 0,
+  monthlyRecyclingInvoice = 0,
   dateFrom,
   dateTo,
   dashboardLoading = false,
@@ -362,8 +368,8 @@ export function StaciMonthlyReport({
               {[
                 { label: "Pallets", value: stats.totalPallets.toLocaleString() },
                 { label: "Weight", value: `${((stats.totalWeightKg + balesDolavTotalWeightKg) / 1000).toFixed(2)} t` },
-                { label: "Gross", value: `£${stats.totalCost.toFixed(2)}` },
-                { label: "Net", value: `£${stats.netCost.toFixed(2)}` },
+                { label: "Monthly Net Cost", value: `£${monthlyNetCost.toFixed(2)}` },
+                { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}` },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
               ].map((k) => (
                 <div key={k.label} className="text-center p-3 border rounded-lg">
