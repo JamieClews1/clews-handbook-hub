@@ -814,36 +814,138 @@ import * as XLSX from "xlsx";
                              </div>
                            </CollapsibleTrigger>
  
-                           <CollapsibleContent>
-                             <div className="mt-2 ml-6 border rounded-lg overflow-hidden">
-                               <Table>
-                                 <TableHeader>
-                                   <TableRow>
-                                     <TableHead>Material</TableHead>
-                                     <TableHead className="text-right">Weight (t)</TableHead>
-                                     <TableHead className="text-right">Rate (£/t)</TableHead>
-                                     <TableHead>Rate Source</TableHead>
-                                     <TableHead className="text-right">Value (£)</TableHead>
-                                   </TableRow>
-                                 </TableHeader>
-                                  <TableBody>
-                                    {siteBreakdown.materials.map((material, idx) => (
-                                      <TableRow key={idx}>
-                                        <TableCell>{material.name}</TableCell>
-                                        <TableCell className="text-right">{material.weight.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right">
-                                          {material.rate !== 0 ? `£${material.rate.toFixed(2)}` : "-"}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">{material.source}</TableCell>
-                                        <TableCell className={cn("text-right", material.rebate >= 0 ? "text-green-600" : "text-red-600")}>
-                                          £{material.rebate.toFixed(2)}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                               </Table>
-                             </div>
-                           </CollapsibleContent>
+                            <CollapsibleContent>
+                              {(() => {
+                                // Consolidate materials into categories like the Rebate Reports Total tab
+                                const categories: Record<string, { 
+                                  weight: number; 
+                                  rebate: number; 
+                                  sources: typeof siteBreakdown.materials 
+                                }> = {};
+
+                                for (const mat of siteBreakdown.materials) {
+                                  const name = mat.name.toLowerCase();
+                                  const isPalletWeightCharge = name.includes("pallet weight");
+                                  let category = "Other";
+                                  
+                                  if (name.includes("card") || name.includes("cardboard")) {
+                                    category = "Cardboard";
+                                  } else if (name.includes("paper")) {
+                                    category = "Paper";
+                                  } else if (name.includes("film")) {
+                                    category = "Films";
+                                  } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
+                                    category = "Scrap Metal";
+                                  }
+
+                                  if (!categories[category]) {
+                                    categories[category] = { weight: 0, rebate: 0, sources: [] };
+                                  }
+                                  // Pallet Weight Charge: include rebate but NOT weight in category totals
+                                  if (!isPalletWeightCharge) {
+                                    categories[category].weight += mat.weight;
+                                  }
+                                  categories[category].rebate += mat.rebate;
+                                  categories[category].sources.push(mat);
+                                }
+
+                                const consolidated = Object.entries(categories)
+                                  .filter(([_, data]) => data.weight > 0 || data.rebate !== 0)
+                                  .map(([name, data]) => ({ category: name, ...data }))
+                                  .sort((a, b) => b.rebate - a.rebate);
+
+                                const rebateRows = consolidated.filter((c) => c.rebate >= 0);
+                                const chargeRows = consolidated.filter((c) => c.rebate < 0);
+                                const rebatesTotal = rebateRows.reduce((sum, c) => sum + c.rebate, 0);
+                                const rebatesWeight = rebateRows.reduce((sum, c) => sum + c.weight, 0);
+                                const chargesTotal = chargeRows.reduce((sum, c) => sum + c.rebate, 0);
+                                const chargesWeight = chargeRows.reduce((sum, c) => sum + c.weight, 0);
+
+                                const renderCategoryRows = (rows: typeof consolidated) =>
+                                  rows.map((cat, idx) => (
+                                    <TableRow key={idx} className="border-b">
+                                      <TableCell className="font-semibold align-top">{cat.category}</TableCell>
+                                      <TableCell className="text-right align-top font-medium">{cat.weight.toFixed(2)}</TableCell>
+                                      <TableCell className="text-sm text-muted-foreground align-top">
+                                        <div className="space-y-0.5">
+                                          {cat.sources.map((src, srcIdx) => (
+                                            <div key={srcIdx}>{src.name}</div>
+                                          ))}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-sm text-muted-foreground align-top">
+                                        <div className="space-y-0.5">
+                                          {cat.sources.map((src, srcIdx) => (
+                                            <div key={srcIdx}>
+                                              {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                                        £{cat.rebate.toFixed(2)}
+                                      </TableCell>
+                                    </TableRow>
+                                  ));
+
+                                return (
+                                  <div className="mt-2 ml-6 border rounded-lg overflow-hidden">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Category</TableHead>
+                                          <TableHead className="text-right">Weight (t)</TableHead>
+                                          <TableHead colSpan={2}>Sources</TableHead>
+                                          <TableHead className="text-right">Value (£)</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {rebateRows.length > 0 && (
+                                          <>
+                                            <TableRow className="bg-green-50 dark:bg-green-950/20">
+                                              <TableCell colSpan={5} className="font-bold text-green-700 dark:text-green-400 text-base py-2">
+                                                Rebates
+                                              </TableCell>
+                                            </TableRow>
+                                            {renderCategoryRows(rebateRows)}
+                                            <TableRow className="bg-green-50/50 dark:bg-green-950/10 border-t">
+                                              <TableCell className="font-bold text-green-700 dark:text-green-400">REBATES TOTAL</TableCell>
+                                              <TableCell className="text-right font-bold text-green-700 dark:text-green-400">{rebatesWeight.toFixed(2)}</TableCell>
+                                              <TableCell colSpan={2}></TableCell>
+                                              <TableCell className="text-right font-bold text-green-600">£{rebatesTotal.toFixed(2)}</TableCell>
+                                            </TableRow>
+                                          </>
+                                        )}
+                                        {chargeRows.length > 0 && (
+                                          <>
+                                            <TableRow className="bg-red-50 dark:bg-red-950/20">
+                                              <TableCell colSpan={5} className="font-bold text-red-700 dark:text-red-400 text-base py-2">
+                                                Charges
+                                              </TableCell>
+                                            </TableRow>
+                                            {renderCategoryRows(chargeRows)}
+                                            <TableRow className="bg-red-50/50 dark:bg-red-950/10 border-t">
+                                              <TableCell className="font-bold text-red-700 dark:text-red-400">CHARGES TOTAL</TableCell>
+                                              <TableCell className="text-right font-bold text-red-700 dark:text-red-400">{chargesWeight.toFixed(2)}</TableCell>
+                                              <TableCell colSpan={2}></TableCell>
+                                              <TableCell className="text-right font-bold text-red-600">£{chargesTotal.toFixed(2)}</TableCell>
+                                            </TableRow>
+                                          </>
+                                        )}
+                                        <TableRow className="bg-muted/50 font-bold border-t-2">
+                                          <TableCell>Total</TableCell>
+                                          <TableCell className="text-right">{siteBreakdown.totalWeight.toFixed(2)}</TableCell>
+                                          <TableCell colSpan={2}></TableCell>
+                                          <TableCell className={cn("text-right", siteBreakdown.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                                            £{siteBreakdown.totalRebate.toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                );
+                              })()}
+                            </CollapsibleContent>
                          </Collapsible>
                        ))}
  
