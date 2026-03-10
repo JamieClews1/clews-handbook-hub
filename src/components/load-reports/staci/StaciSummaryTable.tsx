@@ -201,7 +201,9 @@ export const StaciSummaryTable = ({
               <TableCell className="text-right font-medium">
                 {palletsScrapCount}
               </TableCell>
-              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">
+                {(palletsScrapCount * palletWeightKg).toLocaleString()}
+              </TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">Charge</TableCell>
