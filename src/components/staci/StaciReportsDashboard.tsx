@@ -573,10 +573,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
   const pieData = useMemo(() => {
     const recyclablePct = stats.totalBreakdownWeight > 0 ? (stats.recyclableKg / stats.totalBreakdownWeight) * 100 : 0;
-    const nonRecoverablePct = stats.totalBreakdownWeight > 0 ? (stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100 : 0;
+    const wasteForEnergyPct = stats.totalBreakdownWeight > 0 ? (stats.wasteForEnergyKg / stats.totalBreakdownWeight) * 100 : 0;
+    const landfillPct = stats.totalBreakdownWeight > 0 ? (stats.landfillKg / stats.totalBreakdownWeight) * 100 : 0;
     return [
       { name: "Recyclable", value: +recyclablePct.toFixed(1), fill: "hsl(142, 71%, 45%)" },
-      { name: "Waste For Energy", value: +nonRecoverablePct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
+      { name: "Waste For Energy", value: +wasteForEnergyPct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
+      { name: "Landfill", value: +landfillPct.toFixed(1), fill: "hsl(0, 50%, 40%)" },
     ].filter((d) => d.value > 0);
   }, [stats]);
 
