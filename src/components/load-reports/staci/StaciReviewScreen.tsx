@@ -204,7 +204,7 @@ export const StaciReviewScreen = ({
     (glassDolavOnPallets ? glassDolavCount * palletWeightKg : 0) +
     (scrapMetalLooseOnPallets ? scrapMetalLooseCount * palletWeightKg : 0);
   const totalPalletDeductionKg = (totalPallets * palletWeightKg) + baleDolavPalletWeightKg;
-  const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
+  const palletChargeValue = palletChargeRatePerTonne !== 0 ? Math.abs((totalPalletDeductionKg / 1000) * palletChargeRatePerTonne) : 0;
   const cardBalesGrossKg = cardBalesCount * cardBalesWeightKg;
   const filmsBaleGrossKg = filmsBaleCount * filmsBaleWeightKg;
   const cardBalesNetKg = cardBalesGrossKg - (cardBalesOnPallets ? cardBalesCount * palletWeightKg : 0);
