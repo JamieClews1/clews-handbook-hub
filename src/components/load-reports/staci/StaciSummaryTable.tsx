@@ -35,6 +35,7 @@ interface StaciSummaryTableProps {
   papersDolavOnPallets?: boolean;
   glassDolavOnPallets?: boolean;
   scrapMetalLooseOnPallets?: boolean;
+  weighbridgeWeightKg?: number | null;
 }
 
 export const StaciSummaryTable = ({
