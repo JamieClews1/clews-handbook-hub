@@ -541,12 +541,13 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         Math.round(w.kg),
         w.tonnes.toFixed(2),
         w.pct.toFixed(1) + "%",
-        w.recyclable ? "Recyclable" : "Waste For Energy",
+        w.recyclable ? "Recyclable" : w.landfill ? "Landfill" : "Waste For Energy",
       ]),
       [],
       ["Category", "Weight (kg)", "% of Total"],
       ["Recyclable", Math.round(stats.recyclableKg), stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
-      ["Waste For Energy", Math.round(stats.nonRecoverableKg), stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
+      ["Waste For Energy", Math.round(stats.wasteForEnergyKg), stats.totalBreakdownWeight > 0 ? ((stats.wasteForEnergyKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
+      ["Landfill", Math.round(stats.landfillKg), stats.totalBreakdownWeight > 0 ? ((stats.landfillKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
     ];
     const ws3 = XLSX.utils.aoa_to_sheet(recyclingData);
     XLSX.utils.book_append_sheet(wb, ws3, "Recycling Report");
