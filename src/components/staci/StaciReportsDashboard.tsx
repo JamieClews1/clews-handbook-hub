@@ -387,21 +387,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       else scrapPallets += count;
     });
 
-    // Add pallet tare weight as "Pallet Charges" — from pallet entries, bales/dolavs "on pallets", AND scrap pallets
-    const palletEntryTareCount = totalPallets; // every pallet entry sits on a wooden pallet
+    // "Pallet Charges" in the colour breakdown only relates to colour-coded pallet entries
+    const palletEntryTareCount = totalPallets; // every colour-coded pallet entry sits on a wooden pallet
     const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
     const scrapPalletsCount = balesDolavData.scrapPalletsCount;
-    const totalWoodPallets = palletEntryTareCount + onPalletsCount + scrapPalletsCount;
-    if (totalWoodPallets > 0) {
-      const tareWeightKg = totalWoodPallets * TARE_KG;
+    const palletChargesCount = palletEntryTareCount; // Only colour-coded pallets contribute to Pallet Charges
+    if (palletChargesCount > 0) {
+      const tareWeightKg = palletChargesCount * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
       const tareCharge = (tareWeightKg / 1000) * wasteWoodRate;
       if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0 };
-      colourMap["waste_wood"].count += totalWoodPallets;
+      colourMap["waste_wood"].count += palletChargesCount;
       colourMap["waste_wood"].weightKg += tareWeightKg;
       colourMap["waste_wood"].cost += tareCharge;
-      // Pallet charges are not additional pallets — don't inflate totalPallets
-      // Only add the tare weight & cost to totals
       totalWeightKg += tareWeightKg;
       totalCost += tareCharge;
     }
@@ -446,9 +444,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       wasteAgg["scrap_metal"] = (wasteAgg["scrap_metal"] ?? 0) + balesDolavData.scrapMetalLooseWeightKg;
       totalBreakdownWeight += balesDolavData.scrapMetalLooseWeightKg;
     }
-    // Add ALL pallet tare weight as wood in waste breakdown
-    if (totalWoodPallets > 0) {
-      const tareWeightKg = totalWoodPallets * TARE_KG;
+    // Add ALL pallet tare weight as wood in waste breakdown (colour pallets + on-pallets + scrap)
+    const allWoodPallets = palletChargesCount + onPalletsCount + scrapPalletsCount;
+    if (allWoodPallets > 0) {
+      const tareWeightKg = allWoodPallets * TARE_KG;
       wasteAgg["wood"] = (wasteAgg["wood"] ?? 0) + tareWeightKg;
       totalBreakdownWeight += tareWeightKg;
     }
