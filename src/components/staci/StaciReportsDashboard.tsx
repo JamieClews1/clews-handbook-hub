@@ -937,16 +937,35 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
+                      {stats.totalPallets > 0 && (() => {
+                        const palletWeightT = stats.totalPallets * TARE_KG / 1000;
+                        const chargePerTonne = dbPalletWeightCharge;
+                        const palletWeightChargeCost = palletWeightT * Math.abs(chargePerTonne);
+                        return (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Pallet Weight Charge</td>
+                            <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
+                            <td className="py-1.5 px-3 text-right">{(stats.totalPallets * TARE_KG).toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right text-destructive">£{Math.abs(chargePerTonne).toFixed(2)}/t</td>
+                            <td className="py-1.5 px-3 text-right font-medium text-destructive">£{palletWeightChargeCost.toFixed(2)}</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Charge</span></td>
+                          </tr>
+                        );
+                      })()}
                     </tbody>
                     <tfoot>
                       {(() => {
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + (stats.totalPallets > 0 ? stats.totalPallets : 0);
+                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (stats.totalPallets > 0 ? stats.totalPallets * TARE_KG : 0);
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
+                        const palletWeightChargeCost = stats.totalPallets > 0 ? (stats.totalPallets * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge) : 0;
+                        const netValue = totalRebate - palletWeightChargeCost;
                         return (
                           <tr className="border-t-2 font-semibold">
                             <td className="py-2 px-3">Total</td>
@@ -955,9 +974,13 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                             <td className="py-2 px-3 text-right">{totalWeightKg.toLocaleString()}</td>
                             <td className="py-2 px-3 text-right">{totalWeightT.toFixed(2)}</td>
                             <td className="py-2 px-3 text-right" />
-                            <td className="py-2 px-3 text-right font-medium text-green-600">
-                              -£{totalRebate.toFixed(2)}
+                            <td className={`py-2 px-3 text-right font-medium ${netValue > 0 ? "text-green-600" : "text-destructive"}`}>
+                              {netValue >= 0 ? `-£${netValue.toFixed(2)}` : `£${Math.abs(netValue).toFixed(2)}`}
                             </td>
+                            <td />
+                          </tr>
+                        );
+                      })()}
                             <td />
                           </tr>
                         );
