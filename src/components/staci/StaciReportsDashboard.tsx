@@ -985,7 +985,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         const cardValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (filmsNetKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + balesDolavData.scrapPalletsCount;
                         const netItemsWeightKg = cardNetKg + filmsNetKg + papersNetKg + glassNetKg + scrapMetalNetKg;
                         const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG);
                         const totalWeightT = totalWeightKg / 1000;
