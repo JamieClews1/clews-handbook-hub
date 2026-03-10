@@ -387,10 +387,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       else scrapPallets += count;
     });
 
-    // Add pallet tare weight as "Pallet Charges" — from pallet entries AND bales/dolavs "on pallets"
+    // Add pallet tare weight as "Pallet Charges" — from pallet entries, bales/dolavs "on pallets", AND scrap pallets
     const palletEntryTareCount = totalPallets; // every pallet entry sits on a wooden pallet
     const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
-    const totalWoodPallets = palletEntryTareCount + onPalletsCount;
+    const scrapPalletsCount = balesDolavData.scrapPalletsCount;
+    const totalWoodPallets = palletEntryTareCount + onPalletsCount + scrapPalletsCount;
     if (totalWoodPallets > 0) {
       const tareWeightKg = totalWoodPallets * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
@@ -944,18 +945,24 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
-                      {balesDolavData.scrapPalletsCount > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Scrap Pallets</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapPalletsCount}</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Scrap</span></td>
-                        </tr>
-                      )}
+                      {balesDolavData.scrapPalletsCount > 0 && (() => {
+                        const scrapWeightKg = balesDolavData.scrapPalletsCount * TARE_KG;
+                        const scrapWeightT = scrapWeightKg / 1000;
+                        const chargePerTonne = Math.abs(dbPalletWeightCharge);
+                        const scrapCost = scrapWeightT * chargePerTonne;
+                        return (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Scrap Pallets</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.scrapPalletsCount}</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
+                            <td className="py-1.5 px-3 text-right">{scrapWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{scrapWeightT.toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right text-destructive">£{chargePerTonne.toFixed(2)}/t</td>
+                            <td className="py-1.5 px-3 text-right font-medium text-destructive">£{scrapCost.toFixed(2)}</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Charge</span></td>
+                          </tr>
+                        );
+                      })()}
                       {(() => {
                         const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
                         if (onPalletsCount === 0) return null;
@@ -984,16 +991,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         const papersNetKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
                         const glassNetKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
                         const scrapMetalNetKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+                        const scrapPalletsWeightKg = balesDolavData.scrapPalletsCount * TARE_KG;
+                        const scrapPalletsCost = (scrapPalletsWeightKg / 1000) * Math.abs(dbPalletWeightCharge);
                         const cardValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (filmsNetKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
                         const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + balesDolavData.scrapPalletsCount;
                         const netItemsWeightKg = cardNetKg + filmsNetKg + papersNetKg + glassNetKg + scrapMetalNetKg;
-                        const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG);
+                        const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG) + scrapPalletsWeightKg;
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
-                        const netValue = totalRebate - palletWeightChargeCost;
+                        const netValue = totalRebate - palletWeightChargeCost - scrapPalletsCost;
                         return (
                           <tr className="border-t-2 font-semibold">
                             <td className="py-2 px-3">Total</td>
