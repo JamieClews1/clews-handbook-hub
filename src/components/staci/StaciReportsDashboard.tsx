@@ -366,6 +366,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const count = r.pallet_count;
       const grossWeightPerPallet = r.weight_kg;
       const totalGrossWeight = grossWeightPerPallet * count;
+      // Net weight = gross minus 20kg tare per pallet (wooden pallet underneath)
+      const netWeight = totalGrossWeight - (count * TARE_KG);
       const rate = dbPalletRates[r.colour] ?? STACI_PALLET_RATES[r.colour] ?? 0;
       const isWasteWood = r.colour === "waste_wood";
       const lineCost = isWasteWood
@@ -374,11 +376,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
       colourMap[r.colour].count += count;
-      colourMap[r.colour].weightKg += totalGrossWeight;
+      colourMap[r.colour].weightKg += netWeight; // store NET weight for colour entries
       colourMap[r.colour].cost += lineCost;
 
       totalPallets += count;
-      totalWeightKg += totalGrossWeight;
+      totalWeightKg += netWeight;
       totalCost += lineCost;
 
       if (r.pallet_type === "good") goodPallets += count;
