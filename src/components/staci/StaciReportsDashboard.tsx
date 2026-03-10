@@ -69,12 +69,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   const [rows, setRows] = useState<PalletRow[]>([]);
   const [fetching, setFetching] = useState(false);
   const [balesDolavData, setBalesDolavData] = useState<{
-    cardBalesCount: number; cardBalesWeightKg: number;
-    filmsBaleCount: number; filmsBaleWeightKg: number;
-    papersDolavCount: number; papersDolavWeightKg: number;
-    glassDolavCount: number; glassDolavWeightKg: number;
-    scrapMetalLooseCount: number; scrapMetalLooseWeightKg: number;
-  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0 });
+    cardBalesCount: number; cardBalesWeightKg: number; cardBalesOnPalletsCount: number;
+    filmsBaleCount: number; filmsBaleWeightKg: number; filmsBaleOnPalletsCount: number;
+    papersDolavCount: number; papersDolavWeightKg: number; papersDolavOnPalletsCount: number;
+    glassDolavCount: number; glassDolavWeightKg: number; glassDolavOnPalletsCount: number;
+    scrapMetalLooseCount: number; scrapMetalLooseWeightKg: number; scrapMetalLooseOnPalletsCount: number;
+  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0 });
   const [haulageData, setHaulageData] = useState<{
     artic: { loads: number; totalCost: number; rate: number };
     pickup: { loads: number; totalCost: number; rate: number };
