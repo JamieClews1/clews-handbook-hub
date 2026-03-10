@@ -444,9 +444,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       wasteAgg["scrap_metal"] = (wasteAgg["scrap_metal"] ?? 0) + balesDolavData.scrapMetalLooseWeightKg;
       totalBreakdownWeight += balesDolavData.scrapMetalLooseWeightKg;
     }
-    // Add ALL pallet tare weight as wood in waste breakdown
-    if (totalWoodPallets > 0) {
-      const tareWeightKg = totalWoodPallets * TARE_KG;
+    // Add ALL pallet tare weight as wood in waste breakdown (colour pallets + on-pallets + scrap)
+    const allWoodPallets = palletChargesCount + onPalletsCount + scrapPalletsCount;
+    if (allWoodPallets > 0) {
+      const tareWeightKg = allWoodPallets * TARE_KG;
       wasteAgg["wood"] = (wasteAgg["wood"] ?? 0) + tareWeightKg;
       totalBreakdownWeight += tareWeightKg;
     }
