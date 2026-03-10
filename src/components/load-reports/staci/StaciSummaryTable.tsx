@@ -64,6 +64,7 @@ export const StaciSummaryTable = ({
   papersDolavOnPallets = false,
   glassDolavOnPallets = false,
   scrapMetalLooseOnPallets = false,
+  weighbridgeWeightKg,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   
