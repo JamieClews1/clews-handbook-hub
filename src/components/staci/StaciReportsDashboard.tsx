@@ -942,6 +942,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
+                      {balesDolavData.scrapPalletsCount > 0 && (
+                        <tr className="border-b border-border/50">
+                          <td className="py-1.5 px-3">Scrap Pallets</td>
+                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapPalletsCount}</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Scrap</span></td>
+                        </tr>
+                      )}
                       {(() => {
                         const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
                         if (onPalletsCount === 0) return null;
