@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, FileText, Palette, Scale } from "lucide-react";
 import { StaciSummaryTable } from "./StaciSummaryTable";
+import { StaciWasteTypeBreakdownTable } from "./StaciWasteTypeBreakdownTable";
 import {
   StaciPalletEntry,
   StaciColourSummary,
