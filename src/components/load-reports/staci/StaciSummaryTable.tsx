@@ -334,12 +334,27 @@ export const StaciSummaryTable = ({
             <TableCell>Total</TableCell>
             <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount + scrapMetalLooseCount}</TableCell>
             <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg + scrapMetalLooseGrossKg).toLocaleString()}</TableCell>
-            <TableCell className="text-right">{(totalPalletDeductionKg + scrapPalletsWeightKg + (goodPalletCount * palletWeightKg)).toLocaleString()}</TableCell>
-            <TableCell className="text-right">{(totalNetWeightKg + cardBalesNetKg + filmsBaleNetKg + papersDolavNetKg + glassDolavNetKg + scrapMetalLooseNetKg).toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalAllPalletWeightKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{totalAllNetWeightKg.toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
               {netTotal < 0 ? "-" : ""}£{Math.abs(netTotal).toFixed(2)}
             </TableCell>
+          </TableRow>
+          <TableRow className="bg-muted/80 font-semibold">
+            <TableCell colSpan={2}>Total Weight (Pallet + Net)</TableCell>
+            <TableCell className="text-right" colSpan={3}>
+              <span className="text-base">{totalReconciledWeightKg.toLocaleString()} kg</span>
+              {weighbridgeMatch === true && (
+                <span className="ml-2 text-xs text-green-600">✓ Matches weighbridge</span>
+              )}
+              {weighbridgeMatch === false && (
+                <span className="ml-2 text-xs text-destructive">
+                  ≠ Weighbridge ({Math.round(weighbridgeWeightKg!).toLocaleString()} kg)
+                </span>
+              )}
+            </TableCell>
+            <TableCell colSpan={2} />
           </TableRow>
         </TableFooter>
       </Table>
