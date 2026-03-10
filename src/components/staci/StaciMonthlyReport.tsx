@@ -74,6 +74,10 @@ interface Props {
   dashboardHaulage?: DashboardHaulage;
   /** Total weight of bales, dolavs, scrap metal loose (kg) */
   balesDolavTotalWeightKg?: number;
+  /** Pre-computed Monthly Net Cost from dashboard */
+  monthlyNetCost?: number;
+  /** Pre-computed Monthly Recycling Invoice from dashboard */
+  monthlyRecyclingInvoice?: number;
   /** Dashboard date range */
   dateFrom?: Date;
   dateTo?: Date;
