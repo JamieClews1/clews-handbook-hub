@@ -74,7 +74,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     papersDolavCount: number; papersDolavWeightKg: number; papersDolavOnPalletsCount: number;
     glassDolavCount: number; glassDolavWeightKg: number; glassDolavOnPalletsCount: number;
     scrapMetalLooseCount: number; scrapMetalLooseWeightKg: number; scrapMetalLooseOnPalletsCount: number;
-  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0 });
+    scrapPalletsCount: number;
+  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0 });
   const [haulageData, setHaulageData] = useState<{
     artic: { loads: number; totalCost: number; rate: number };
     pickup: { loads: number; totalCost: number; rate: number };
@@ -145,7 +146,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       // Bales/dolavs query - filter by customer sites when in portal view
       let balesQuery = supabase
         .from("load_reports")
-        .select("card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets")
+        .select("card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets, pallets_scrap_count")
         .gte("report_date", from)
         .lte("report_date", to)
         .eq("status", "submitted")
@@ -157,7 +158,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const { data: reportData } = await balesQuery;
 
-      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0 };
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0 };
       (reportData ?? []).forEach((r: any) => {
         const cardCount = Number(r.card_bales_count) || 0;
         const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
@@ -184,6 +185,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         agg.scrapMetalLooseCount += scrapMetalCount;
         agg.scrapMetalLooseWeightKg += scrapMetalCount * scrapMetalPerUnit;
         if (r.scrap_metal_loose_on_pallets) agg.scrapMetalLooseOnPalletsCount += scrapMetalCount;
+        agg.scrapPalletsCount += Number(r.pallets_scrap_count) || 0;
       });
       setBalesDolavData(agg);
 
@@ -811,7 +813,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
           </div>
 
           {/* Pallets, Bales & Dolavs Breakdown */}
-          {(stats.goodPallets > 0 || balesDolavData.cardBalesCount > 0 || balesDolavData.filmsBaleCount > 0 || balesDolavData.papersDolavCount > 0 || balesDolavData.glassDolavCount > 0 || balesDolavData.scrapMetalLooseCount > 0) && (
+          {(stats.goodPallets > 0 || balesDolavData.cardBalesCount > 0 || balesDolavData.filmsBaleCount > 0 || balesDolavData.papersDolavCount > 0 || balesDolavData.glassDolavCount > 0 || balesDolavData.scrapMetalLooseCount > 0 || balesDolavData.scrapPalletsCount > 0) && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Pallets, Bales & Dolavs Breakdown</CardTitle>
@@ -940,6 +942,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
+                      {balesDolavData.scrapPalletsCount > 0 && (
+                        <tr className="border-b border-border/50">
+                          <td className="py-1.5 px-3">Scrap Pallets</td>
+                          <td className="py-1.5 px-3 text-right">{balesDolavData.scrapPalletsCount}</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3 text-right">-</td>
+                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Scrap</span></td>
+                        </tr>
+                      )}
                       {(() => {
                         const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
                         if (onPalletsCount === 0) return null;
@@ -971,7 +985,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         const cardValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (filmsNetKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + balesDolavData.scrapPalletsCount;
                         const netItemsWeightKg = cardNetKg + filmsNetKg + papersNetKg + glassNetKg + scrapMetalNetKg;
                         const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG);
                         const totalWeightT = totalWeightKg / 1000;
