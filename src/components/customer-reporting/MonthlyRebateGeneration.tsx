@@ -518,7 +518,68 @@ import * as XLSX from "xlsx";
      }
    };
  
-   const openEmailDialog = (summary: CustomerRebateSummary) => {
+    const buildCustomerExcelData = (summary: CustomerRebateSummary) => {
+      const rows: Array<Record<string, any>> = [];
+      for (const sb of summary.siteBreakdowns) {
+        for (const mat of sb.materials) {
+          rows.push({
+            Customer: summary.customer.customer_name,
+            Site: sb.site.site_name,
+            Material: mat.name,
+            "Weight (t)": Number(mat.weight.toFixed(4)),
+            "Rate (£/t)": Number(mat.rate.toFixed(2)),
+            "Rate Source": mat.source,
+            "Value (£)": Number(mat.rebate.toFixed(2)),
+          });
+        }
+        rows.push({
+          Customer: summary.customer.customer_name,
+          Site: sb.site.site_name,
+          Material: "SITE TOTAL",
+          "Weight (t)": Number(sb.totalWeight.toFixed(4)),
+          "Rate (£/t)": "",
+          "Rate Source": "",
+          "Value (£)": Number(sb.totalRebate.toFixed(2)),
+        });
+      }
+      rows.push({
+        Customer: summary.customer.customer_name,
+        Site: "TOTAL",
+        Material: "",
+        "Weight (t)": Number(summary.totalWeight.toFixed(4)),
+        "Rate (£/t)": "",
+        "Rate Source": "",
+        "Value (£)": Number(summary.totalRebate.toFixed(2)),
+      });
+      return rows;
+    };
+
+    const buildExcelWorkbook = (summary: CustomerRebateSummary) => {
+      const rows = buildCustomerExcelData(summary);
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      const periodLabel = dateRange?.from
+        ? format(dateRange.from, "MMM-yyyy") + (dateRange?.to && dateRange.to.getMonth() !== dateRange.from.getMonth() ? `-${format(dateRange.to, "MMM-yyyy")}` : "")
+        : "Rebate";
+      XLSX.utils.book_append_sheet(workbook, worksheet, periodLabel);
+      return { workbook, periodLabel };
+    };
+
+    const downloadCustomerExcel = (summary: CustomerRebateSummary) => {
+      const { workbook, periodLabel } = buildExcelWorkbook(summary);
+      const safeName = summary.customer.customer_name.replace(/[^a-zA-Z0-9]/g, "_");
+      XLSX.writeFile(workbook, `Rebate-${safeName}-${periodLabel}.xlsx`);
+    };
+
+    const getExcelBase64 = (summary: CustomerRebateSummary): { base64: string; filename: string } => {
+      const { workbook, periodLabel } = buildExcelWorkbook(summary);
+      const safeName = summary.customer.customer_name.replace(/[^a-zA-Z0-9]/g, "_");
+      const filename = `Rebate-${safeName}-${periodLabel}.xlsx`;
+      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      return { base64: wbout, filename };
+    };
+
+    const openEmailDialog = (summary: CustomerRebateSummary) => {
      setSelectedCustomer(summary);
      
      // Find first contact with email
