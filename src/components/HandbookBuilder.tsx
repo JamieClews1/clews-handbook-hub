@@ -55,7 +55,7 @@ export const HandbookBuilder = () => {
   const [editingSubsection, setEditingSubsection] = useState<Subsection | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: "section" | "subsection"; id: string } | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
+  
 
   useEffect(() => {
     fetchSections();
