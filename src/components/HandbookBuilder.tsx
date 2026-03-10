@@ -221,15 +221,6 @@ export const HandbookBuilder = () => {
       </TabsList>
 
       <TabsContent value="content" className="space-y-6">
-        <div className="flex justify-end">
-          <Button
-            onClick={handleTranslate} 
-            disabled={isTranslating}
-            size="lg"
-          >
-            {isTranslating ? "Translating..." : "Translate All Content"}
-          </Button>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sections List */}
