@@ -821,14 +821,15 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       )}
                       {balesDolavData.cardBalesCount > 0 && (() => {
                         const cardValuePerTonne = baleRates.cardBalesRate;
-                        const cardTonnes = balesDolavData.cardBalesWeightKg / 1000;
+                        const netWeightKg = balesDolavData.cardBalesWeightKg - (balesDolavData.cardBalesOnPalletsCount * TARE_KG);
+                        const cardTonnes = netWeightKg / 1000;
                         const cardValue = cardTonnes * cardValuePerTonne;
                         return (
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Card Bales</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount}</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesCount > 0 ? Math.round(balesDolavData.cardBalesWeightKg / balesDolavData.cardBalesCount).toLocaleString() : "-"}</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.cardBalesWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{netWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{cardTonnes.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right text-green-600">
                               {cardValuePerTonne !== 0 ? `-£${Math.abs(cardValuePerTonne).toFixed(2)}/t` : "-"}
@@ -842,14 +843,15 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       })()}
                       {balesDolavData.filmsBaleCount > 0 && (() => {
                         const filmsValuePerTonne = baleRates.filmsRate;
-                        const filmsTonnes = balesDolavData.filmsBaleWeightKg / 1000;
+                        const netWeightKg = balesDolavData.filmsBaleWeightKg - (balesDolavData.filmsBaleOnPalletsCount * TARE_KG);
+                        const filmsTonnes = netWeightKg / 1000;
                         const filmsValue = filmsTonnes * filmsValuePerTonne;
                         return (
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Films Bale</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount}</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleCount > 0 ? Math.round(balesDolavData.filmsBaleWeightKg / balesDolavData.filmsBaleCount).toLocaleString() : "-"}</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.filmsBaleWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{netWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{filmsTonnes.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right text-green-600">
                               {filmsValuePerTonne !== 0 ? `-£${Math.abs(filmsValuePerTonne).toFixed(2)}/t` : "-"}
@@ -861,40 +863,47 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
-                      {balesDolavData.papersDolavCount > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Papers Dolav</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount > 0 ? Math.round(balesDolavData.papersDolavWeightKg / balesDolavData.papersDolavCount).toLocaleString() : "-"}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavWeightKg.toLocaleString()}</td>
-                          <td className="py-1.5 px-3 text-right">{(balesDolavData.papersDolavWeightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
-                        </tr>
-                      )}
-                      {balesDolavData.glassDolavCount > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Glass Dolav</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount > 0 ? Math.round(balesDolavData.glassDolavWeightKg / balesDolavData.glassDolavCount).toLocaleString() : "-"}</td>
-                          <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavWeightKg.toLocaleString()}</td>
-                          <td className="py-1.5 px-3 text-right">{(balesDolavData.glassDolavWeightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3 text-right">-</td>
-                          <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
-                        </tr>
-                      )}
+                      {balesDolavData.papersDolavCount > 0 && (() => {
+                        const netWeightKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
+                        return (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Papers Dolav</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.papersDolavCount > 0 ? Math.round(balesDolavData.papersDolavWeightKg / balesDolavData.papersDolavCount).toLocaleString() : "-"}</td>
+                            <td className="py-1.5 px-3 text-right">{netWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(netWeightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
+                          </tr>
+                        );
+                      })()}
+                      {balesDolavData.glassDolavCount > 0 && (() => {
+                        const netWeightKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
+                        return (
+                          <tr className="border-b border-border/50">
+                            <td className="py-1.5 px-3">Glass Dolav</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount}</td>
+                            <td className="py-1.5 px-3 text-right">{balesDolavData.glassDolavCount > 0 ? Math.round(balesDolavData.glassDolavWeightKg / balesDolavData.glassDolavCount).toLocaleString() : "-"}</td>
+                            <td className="py-1.5 px-3 text-right">{netWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(netWeightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
+                            <td className="py-1.5 px-3 text-right">-</td>
+                            <td className="py-1.5 px-3"><span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Rebate</span></td>
+                          </tr>
+                        );
+                      })()}
                       {balesDolavData.scrapMetalLooseCount > 0 && (() => {
                         const scrapMetalValuePerTonne = baleRates.scrapMetalRate;
-                        const scrapMetalTonnes = balesDolavData.scrapMetalLooseWeightKg / 1000;
+                        const netWeightKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+                        const scrapMetalTonnes = netWeightKg / 1000;
                         const scrapMetalValue = scrapMetalTonnes * scrapMetalValuePerTonne;
                         return (
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Scrap Metal Loose</td>
                             <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseCount}</td>
                             <td className="py-1.5 px-3 text-right">{Math.round(balesDolavData.scrapMetalLooseWeightKg / balesDolavData.scrapMetalLooseCount).toLocaleString()}</td>
-                            <td className="py-1.5 px-3 text-right">{balesDolavData.scrapMetalLooseWeightKg.toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{netWeightKg.toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{scrapMetalTonnes.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right text-green-600">
                               {scrapMetalValuePerTonne !== 0 ? `-£${Math.abs(scrapMetalValuePerTonne).toFixed(2)}/t` : "-"}
@@ -929,11 +938,17 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                     <tfoot>
                       {(() => {
                         const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
-                        const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
-                        const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
-                        const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
+                        const cardNetKg = balesDolavData.cardBalesWeightKg - (balesDolavData.cardBalesOnPalletsCount * TARE_KG);
+                        const filmsNetKg = balesDolavData.filmsBaleWeightKg - (balesDolavData.filmsBaleOnPalletsCount * TARE_KG);
+                        const papersNetKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
+                        const glassNetKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
+                        const scrapMetalNetKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+                        const cardValue = (cardNetKg / 1000) * baleRates.cardBalesRate;
+                        const filmsValue = (filmsNetKg / 1000) * baleRates.filmsRate;
+                        const scrapMetalValue = (scrapMetalNetKg / 1000) * baleRates.scrapMetalRate;
                         const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
+                        const netItemsWeightKg = cardNetKg + filmsNetKg + papersNetKg + glassNetKg + scrapMetalNetKg;
+                        const totalWeightKg = netItemsWeightKg + (onPalletsCount * TARE_KG);
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
