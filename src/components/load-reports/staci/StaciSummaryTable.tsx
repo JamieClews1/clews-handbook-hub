@@ -159,7 +159,9 @@ export const StaciSummaryTable = ({
               <TableCell className="text-right font-medium text-green-600">
                 {goodPalletCount}
               </TableCell>
-              <TableCell className="text-right">-</TableCell>
+              <TableCell className="text-right">
+                {(goodPalletCount * palletWeightKg).toLocaleString()}
+              </TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right text-green-600">
