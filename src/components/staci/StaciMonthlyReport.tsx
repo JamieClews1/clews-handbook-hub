@@ -400,7 +400,7 @@ export function StaciMonthlyReport({
             )}
 
             {/* Recycling summary */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="text-center p-3 rounded-lg bg-green-500/10">
                 <p className="text-lg font-bold text-green-600">
                   {stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
