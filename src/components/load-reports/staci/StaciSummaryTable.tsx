@@ -76,7 +76,7 @@ export const StaciSummaryTable = ({
   
   const totalPalletDeductionKg = (totalPallets * palletWeightKg) + baleDolavPalletWeightKg;
   const totalNetWeightKg = totalWeightKg - (totalPallets * palletWeightKg);
-  const palletChargeValue = palletChargeRatePerTonne !== 0 ? (totalPalletDeductionKg / 1000) * palletChargeRatePerTonne : 0;
+  const palletChargeValue = palletChargeRatePerTonne !== 0 ? Math.abs((totalPalletDeductionKg / 1000) * palletChargeRatePerTonne) : 0;
 
   // Calculate gross weights for bales/dolavs (stored value is per-unit)
   const cardBalesGrossKg = cardBalesCount * cardBalesWeightKg;
