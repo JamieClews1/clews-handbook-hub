@@ -531,48 +531,87 @@ const EditSectionDialog = ({ section, onClose, onSave }: { section: Section; onC
 
 const EditSubsectionDialog = ({ subsection, onClose, onSave }: { subsection: Subsection; onClose: () => void; onSave: () => void }) => {
   const [formData, setFormData] = useState(subsection);
+  const [isSavingAndTranslating, setIsSavingAndTranslating] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const saveSubsection = async (): Promise<string | null> => {
     if (formData.id) {
       const { error } = await supabase
         .from("handbook_subsections")
         .update(formData)
         .eq("id", formData.id);
-
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update subsection",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Subsection updated successfully",
-        });
-        onSave();
+        toast({ title: "Error", description: "Failed to update subsection", variant: "destructive" });
+        return null;
       }
+      return formData.id;
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("handbook_subsections")
-        .insert([formData]);
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create subsection",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Subsection created successfully",
-        });
-        onSave();
+        .insert([formData])
+        .select("id")
+        .single();
+      if (error || !data) {
+        toast({ title: "Error", description: "Failed to create subsection", variant: "destructive" });
+        return null;
       }
+      return data.id;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = await saveSubsection();
+    if (id) {
+      toast({ title: "Success", description: "Subsection saved successfully" });
+      onSave();
+    }
+  };
+
+  const handleSaveAndTranslate = async () => {
+    setIsSavingAndTranslating(true);
+    try {
+      const id = await saveSubsection();
+      if (!id) return;
+
+      toast({ title: "Saved", description: "Now translating to all languages..." });
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-handbook-section`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ mode: 'selective', subsection_ids: [id] }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Translation failed: ${response.status}`);
+      }
+
+      // Consume SSE stream to completion
+      const reader = response.body?.getReader();
+      if (reader) {
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+      }
+
+      toast({ title: "Success", description: "Subsection saved and translated to all languages" });
+      onSave();
+    } catch (error) {
+      toast({
+        title: "Translation Error",
+        description: error instanceof Error ? error.message : "Failed to translate",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAndTranslating(false);
     }
   };
 
@@ -690,6 +729,15 @@ const EditSubsectionDialog = ({ subsection, onClose, onSave }: { subsection: Sub
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
               <Button type="submit">Save</Button>
+              <Button
+                type="button"
+                onClick={handleSaveAndTranslate}
+                disabled={isSavingAndTranslating}
+                className="gap-2"
+              >
+                <Languages className="h-4 w-4" />
+                {isSavingAndTranslating ? "Saving & Translating..." : "Save & Translate"}
+              </Button>
             </div>
           </form>
         </CardContent>
