@@ -15,30 +15,37 @@ interface TranslateResponse {
   translations: Array<{ text: string }>;
 }
 
-async function translateText(texts: string[], targetLang: string, deeplApiKey: string): Promise<string[]> {
-  const response = await fetch('https://api-free.deepl.com/v2/translate', {
-    method: 'POST',
-    headers: {
-      'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      text: texts,
-      target_lang: targetLang,
-    }),
-  });
+async function translateText(texts: string[], targetLang: string, deeplApiKey: string, retries = 3): Promise<string[]> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const response = await fetch('https://api-free.deepl.com/v2/translate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${deeplApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: texts,
+        target_lang: targetLang,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`DeepL API error: ${response.status} - ${error}`);
+    if (response.status === 429) {
+      const backoff = Math.pow(2, attempt + 1) * 2000;
+      console.log(`Rate limited (attempt ${attempt + 1}/${retries}), waiting ${backoff}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoff));
+      continue;
+    }
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`DeepL API error: ${response.status} - ${error}`);
+    }
+
+    const data: TranslateResponse = await response.json();
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return data.translations.map(t => t.text);
   }
-
-  const data: TranslateResponse = await response.json();
-  
-  // Add delay after each successful request to respect rate limits
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return data.translations.map(t => t.text);
+  throw new Error(`DeepL rate limit exceeded after ${retries} retries`);
 }
 
 serve(async (req) => {
