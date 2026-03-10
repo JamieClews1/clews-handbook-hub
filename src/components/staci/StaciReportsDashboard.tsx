@@ -383,16 +383,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       else scrapPallets += count;
     });
 
-    // Add pallet tare weight (wooden pallets from "on pallets" bales/dolavs) as waste_wood
+    // Add pallet tare weight as waste_wood — from pallet entries AND bales/dolavs "on pallets"
+    const palletEntryTareCount = totalPallets; // every pallet entry sits on a wooden pallet
     const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
-    if (onPalletsCount > 0) {
-      const tareWeightKg = onPalletsCount * 20; // TARE_KG = 20
+    const totalWoodPallets = palletEntryTareCount + onPalletsCount;
+    if (totalWoodPallets > 0) {
+      const tareWeightKg = totalWoodPallets * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
       const tareCharge = (tareWeightKg / 1000) * wasteWoodRate;
       if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0 };
-      colourMap["waste_wood"].count += onPalletsCount;
+      colourMap["waste_wood"].count += totalWoodPallets;
       colourMap["waste_wood"].weightKg += tareWeightKg;
       colourMap["waste_wood"].cost += tareCharge;
+      // Don't re-add palletEntryTareCount to totalPallets — those are already counted above
       totalPallets += onPalletsCount;
       totalWeightKg += tareWeightKg;
       totalCost += tareCharge;
