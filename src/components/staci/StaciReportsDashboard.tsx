@@ -1060,8 +1060,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           <td className="py-1.5 px-3 text-right">{w.tonnes.toFixed(2)}</td>
                           <td className="py-1.5 px-3 text-right">{w.pct.toFixed(1)}%</td>
                           <td className="py-1.5 px-3">
-                            <span className={cn("text-xs px-2 py-0.5 rounded-full", w.recyclable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-                              {w.recyclable ? "Recyclable" : "Waste For Energy"}
+                            <span className={cn("text-xs px-2 py-0.5 rounded-full",
+                              w.recyclable ? "bg-green-100 text-green-700" :
+                              w.landfill ? "bg-red-100 text-red-700" :
+                              "bg-red-100 text-red-700"
+                            )}>
+                              {w.recyclable ? "Recyclable" : w.landfill ? "Landfill" : "Waste For Energy"}
                             </span>
                           </td>
                         </tr>
