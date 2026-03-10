@@ -11,8 +11,9 @@
  import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
  import { Input } from "@/components/ui/input";
  import { Textarea } from "@/components/ui/textarea";
- import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2 } from "lucide-react";
- import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2, Download } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import * as XLSX from "xlsx";
  import { cn } from "@/lib/utils";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
@@ -517,7 +518,68 @@
      }
    };
  
-   const openEmailDialog = (summary: CustomerRebateSummary) => {
+    const buildCustomerExcelData = (summary: CustomerRebateSummary) => {
+      const rows: Array<Record<string, any>> = [];
+      for (const sb of summary.siteBreakdowns) {
+        for (const mat of sb.materials) {
+          rows.push({
+            Customer: summary.customer.customer_name,
+            Site: sb.site.site_name,
+            Material: mat.name,
+            "Weight (t)": Number(mat.weight.toFixed(4)),
+            "Rate (£/t)": Number(mat.rate.toFixed(2)),
+            "Rate Source": mat.source,
+            "Value (£)": Number(mat.rebate.toFixed(2)),
+          });
+        }
+        rows.push({
+          Customer: summary.customer.customer_name,
+          Site: sb.site.site_name,
+          Material: "SITE TOTAL",
+          "Weight (t)": Number(sb.totalWeight.toFixed(4)),
+          "Rate (£/t)": "",
+          "Rate Source": "",
+          "Value (£)": Number(sb.totalRebate.toFixed(2)),
+        });
+      }
+      rows.push({
+        Customer: summary.customer.customer_name,
+        Site: "TOTAL",
+        Material: "",
+        "Weight (t)": Number(summary.totalWeight.toFixed(4)),
+        "Rate (£/t)": "",
+        "Rate Source": "",
+        "Value (£)": Number(summary.totalRebate.toFixed(2)),
+      });
+      return rows;
+    };
+
+    const buildExcelWorkbook = (summary: CustomerRebateSummary) => {
+      const rows = buildCustomerExcelData(summary);
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      const periodLabel = dateRange?.from
+        ? format(dateRange.from, "MMM-yyyy") + (dateRange?.to && dateRange.to.getMonth() !== dateRange.from.getMonth() ? `-${format(dateRange.to, "MMM-yyyy")}` : "")
+        : "Rebate";
+      XLSX.utils.book_append_sheet(workbook, worksheet, periodLabel);
+      return { workbook, periodLabel };
+    };
+
+    const downloadCustomerExcel = (summary: CustomerRebateSummary) => {
+      const { workbook, periodLabel } = buildExcelWorkbook(summary);
+      const safeName = summary.customer.customer_name.replace(/[^a-zA-Z0-9]/g, "_");
+      XLSX.writeFile(workbook, `Rebate-${safeName}-${periodLabel}.xlsx`);
+    };
+
+    const getExcelBase64 = (summary: CustomerRebateSummary): { base64: string; filename: string } => {
+      const { workbook, periodLabel } = buildExcelWorkbook(summary);
+      const safeName = summary.customer.customer_name.replace(/[^a-zA-Z0-9]/g, "_");
+      const filename = `Rebate-${safeName}-${periodLabel}.xlsx`;
+      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      return { base64: wbout, filename };
+    };
+
+    const openEmailDialog = (summary: CustomerRebateSummary) => {
      setSelectedCustomer(summary);
      
      // Find first contact with email
@@ -555,16 +617,20 @@
      
      setSendingEmail(true);
      
-     try {
-       // Call edge function to send email
-       const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
-         body: {
-           to: emailRecipient,
-           subject: emailSubject,
-           body: emailBody,
-           customerName: selectedCustomer.customer.customer_name,
-         },
-       });
+      try {
+        // Generate Excel attachment
+        const { base64, filename } = getExcelBase64(selectedCustomer);
+
+        // Call edge function to send email with attachment
+        const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+          body: {
+            to: emailRecipient,
+            subject: emailSubject,
+            body: emailBody,
+            customerName: selectedCustomer.customer.customer_name,
+            attachment: { base64, filename },
+          },
+        });
  
        if (emailError) throw emailError;
  
@@ -799,17 +865,25 @@
                          </div>
                        )}
  
-                       {/* Actions */}
-                       <div className="flex justify-end gap-2 pt-2 border-t">
-                         <Button
-                           variant="default"
-                           size="sm"
-                           onClick={() => openEmailDialog(summary)}
-                         >
-                           <Mail className="h-4 w-4 mr-2" />
-                           Send Rebate Notification
-                         </Button>
-                       </div>
+                        {/* Actions */}
+                        <div className="flex justify-end gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadCustomerExcel(summary)}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Excel
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => openEmailDialog(summary)}
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Send Rebate Notification
+                          </Button>
+                        </div>
                      </CardContent>
                    </CollapsibleContent>
                  </Collapsible>
