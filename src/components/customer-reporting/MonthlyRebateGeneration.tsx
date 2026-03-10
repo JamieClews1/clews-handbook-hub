@@ -11,8 +11,9 @@
  import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
  import { Input } from "@/components/ui/input";
  import { Textarea } from "@/components/ui/textarea";
- import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2 } from "lucide-react";
- import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2, Download } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import * as XLSX from "xlsx";
  import { cn } from "@/lib/utils";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
