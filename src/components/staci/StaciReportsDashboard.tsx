@@ -640,13 +640,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
               const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
               const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
               const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
-              const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
+              const monthlyNetCost = haulageData.totalCost + stats.totalCost - totalRebates;
 
               return [
                 { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
                 { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
-                { label: "Gross Cost", value: `£${(stats.totalCost + haulageData.totalCost).toFixed(2)}` },
-                { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}`, highlight: true },
+                { label: "Monthly Net Cost", value: `£${monthlyNetCost.toFixed(2)}`, highlight: true },
                 { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
               ].map((kpi) => (
                 <Card key={kpi.label}>
