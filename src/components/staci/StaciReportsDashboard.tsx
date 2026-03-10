@@ -979,6 +979,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                             </td>
                             <td />
                           </tr>
+                          </tr>
+                        );
                       })()}
                     </tfoot>
                   </table>
