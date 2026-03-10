@@ -69,12 +69,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   const [rows, setRows] = useState<PalletRow[]>([]);
   const [fetching, setFetching] = useState(false);
   const [balesDolavData, setBalesDolavData] = useState<{
-    cardBalesCount: number; cardBalesWeightKg: number;
-    filmsBaleCount: number; filmsBaleWeightKg: number;
-    papersDolavCount: number; papersDolavWeightKg: number;
-    glassDolavCount: number; glassDolavWeightKg: number;
-    scrapMetalLooseCount: number; scrapMetalLooseWeightKg: number;
-  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0 });
+    cardBalesCount: number; cardBalesWeightKg: number; cardBalesOnPalletsCount: number;
+    filmsBaleCount: number; filmsBaleWeightKg: number; filmsBaleOnPalletsCount: number;
+    papersDolavCount: number; papersDolavWeightKg: number; papersDolavOnPalletsCount: number;
+    glassDolavCount: number; glassDolavWeightKg: number; glassDolavOnPalletsCount: number;
+    scrapMetalLooseCount: number; scrapMetalLooseWeightKg: number; scrapMetalLooseOnPalletsCount: number;
+  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0 });
   const [haulageData, setHaulageData] = useState<{
     artic: { loads: number; totalCost: number; rate: number };
     pickup: { loads: number; totalCost: number; rate: number };
@@ -145,7 +145,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       // Bales/dolavs query - filter by customer sites when in portal view
       let balesQuery = supabase
         .from("load_reports")
-        .select("card_bales_count, card_bales_weight_kg, films_bale_count, films_bale_weight_kg, papers_dolav_count, papers_dolav_weight_kg, glass_dolav_count, glass_dolav_weight_kg, scrap_metal_loose_count, scrap_metal_loose_weight_kg")
+        .select("card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets")
         .gte("report_date", from)
         .lte("report_date", to)
         .eq("status", "submitted")
@@ -157,7 +157,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const { data: reportData } = await balesQuery;
 
-      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, papersDolavCount: 0, papersDolavWeightKg: 0, glassDolavCount: 0, glassDolavWeightKg: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0 };
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0 };
       (reportData ?? []).forEach((r: any) => {
         const cardCount = Number(r.card_bales_count) || 0;
         const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
@@ -171,14 +171,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const scrapMetalPerUnit = Number(r.scrap_metal_loose_weight_kg) || 0;
         agg.cardBalesCount += cardCount;
         agg.cardBalesWeightKg += cardCount * cardPerUnit;
+        if (r.card_bales_on_pallets) agg.cardBalesOnPalletsCount += cardCount;
         agg.filmsBaleCount += filmsCount;
         agg.filmsBaleWeightKg += filmsCount * filmsPerUnit;
+        if (r.films_bale_on_pallets) agg.filmsBaleOnPalletsCount += filmsCount;
         agg.papersDolavCount += papersCount;
         agg.papersDolavWeightKg += papersCount * papersPerUnit;
+        if (r.papers_dolav_on_pallets) agg.papersDolavOnPalletsCount += papersCount;
         agg.glassDolavCount += glassCount;
         agg.glassDolavWeightKg += glassCount * glassPerUnit;
+        if (r.glass_dolav_on_pallets) agg.glassDolavOnPalletsCount += glassCount;
         agg.scrapMetalLooseCount += scrapMetalCount;
         agg.scrapMetalLooseWeightKg += scrapMetalCount * scrapMetalPerUnit;
+        if (r.scrap_metal_loose_on_pallets) agg.scrapMetalLooseOnPalletsCount += scrapMetalCount;
       });
       setBalesDolavData(agg);
 
@@ -937,16 +942,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </tr>
                         );
                       })()}
-                      {stats.totalPallets > 0 && (() => {
-                        const palletWeightT = stats.totalPallets * TARE_KG / 1000;
+                      {(() => {
+                        const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
+                        if (onPalletsCount === 0) return null;
+                        const palletWeightT = onPalletsCount * TARE_KG / 1000;
                         const chargePerTonne = dbPalletWeightCharge;
                         const palletWeightChargeCost = palletWeightT * Math.abs(chargePerTonne);
                         return (
                           <tr className="border-b border-border/50">
                             <td className="py-1.5 px-3">Pallet Weight Charge</td>
-                            <td className="py-1.5 px-3 text-right">{stats.totalPallets}</td>
+                            <td className="py-1.5 px-3 text-right">{onPalletsCount}</td>
                             <td className="py-1.5 px-3 text-right">-</td>
-                            <td className="py-1.5 px-3 text-right">{(stats.totalPallets * TARE_KG).toLocaleString()}</td>
+                            <td className="py-1.5 px-3 text-right">{(onPalletsCount * TARE_KG).toLocaleString()}</td>
                             <td className="py-1.5 px-3 text-right">{palletWeightT.toFixed(2)}</td>
                             <td className="py-1.5 px-3 text-right text-destructive">£{Math.abs(chargePerTonne).toFixed(2)}/t</td>
                             <td className="py-1.5 px-3 text-right font-medium text-destructive">£{palletWeightChargeCost.toFixed(2)}</td>
@@ -957,14 +964,15 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                     </tbody>
                     <tfoot>
                       {(() => {
+                        const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + (stats.totalPallets > 0 ? stats.totalPallets : 0);
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (stats.totalPallets > 0 ? stats.totalPallets * TARE_KG : 0);
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + onPalletsCount;
+                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (onPalletsCount * TARE_KG);
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
-                        const palletWeightChargeCost = stats.totalPallets > 0 ? (stats.totalPallets * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge) : 0;
+                        const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
                         const netValue = totalRebate - palletWeightChargeCost;
                         return (
                           <tr className="border-t-2 font-semibold">
