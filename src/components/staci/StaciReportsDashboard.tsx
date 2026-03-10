@@ -598,10 +598,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     const filmsRebateValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
     const scrapMetalRebateValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
     const totalRebates = stats.palletRebate + cardRebateValue + filmsRebateValue + scrapMetalRebateValue;
-    const monthlyRecyclingInvoice = stats.totalCost - totalRebates;
-    const monthlyNetCost = haulageData.totalCost + stats.totalCost - totalRebates;
+
+    // Bales/dolavs section charges (pallet weight charge for on-pallets items + scrap pallet costs)
+    const onPalletsCount = balesDolavData.cardBalesOnPalletsCount + balesDolavData.filmsBaleOnPalletsCount + balesDolavData.papersDolavOnPalletsCount + balesDolavData.glassDolavOnPalletsCount + balesDolavData.scrapMetalLooseOnPalletsCount;
+    const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
+    const scrapPalletsCost = (balesDolavData.scrapPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
+
+    // Monthly Recycling Invoice = Pallet Colour Breakdown cost - Bales/Dolavs net value
+    // Bales/Dolavs net value = rebates - charges
+    const balesDolavNetValue = totalRebates - palletWeightChargeCost - scrapPalletsCost;
+    const monthlyRecyclingInvoice = stats.totalCost - balesDolavNetValue;
+    const monthlyNetCost = haulageData.totalCost + monthlyRecyclingInvoice;
     return { monthlyNetCost, monthlyRecyclingInvoice };
-  }, [stats, balesDolavData, baleRates, haulageData]);
+  }, [stats, balesDolavData, baleRates, haulageData, dbPalletWeightCharge]);
 
   return (
     <div className="space-y-8">
