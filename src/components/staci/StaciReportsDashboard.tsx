@@ -413,7 +413,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     rows.forEach((r) => {
       if (!r.waste_breakdown) return;
       const grossWeightPerPallet = r.weight_kg;
-      const entryWeight = grossWeightPerPallet * r.pallet_count;
+      const entryWeight = (grossWeightPerPallet - TARE_KG) * r.pallet_count;
       (Object.keys(r.waste_breakdown) as (keyof StaciWasteBreakdown)[]).forEach((key) => {
         const pct = (r.waste_breakdown as StaciWasteBreakdown)[key] ?? 0;
         const kg = (pct / 100) * entryWeight;
