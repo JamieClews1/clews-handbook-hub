@@ -932,8 +932,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         const cardValue = (balesDolavData.cardBalesWeightKg / 1000) * baleRates.cardBalesRate;
                         const filmsValue = (balesDolavData.filmsBaleWeightKg / 1000) * baleRates.filmsRate;
                         const scrapMetalValue = (balesDolavData.scrapMetalLooseWeightKg / 1000) * baleRates.scrapMetalRate;
-                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount + onPalletsCount;
-                        const totalWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + (onPalletsCount * TARE_KG);
+                        const totalQty = stats.goodPallets + balesDolavData.cardBalesCount + balesDolavData.filmsBaleCount + balesDolavData.papersDolavCount + balesDolavData.glassDolavCount + balesDolavData.scrapMetalLooseCount;
+                        const itemsWeightKg = balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg;
+                        const palletTareWeightKg = onPalletsCount * TARE_KG;
+                        const totalWeightKg = itemsWeightKg + palletTareWeightKg;
                         const totalWeightT = totalWeightKg / 1000;
                         const totalRebate = stats.palletRebate + cardValue + filmsValue + scrapMetalValue;
                         const palletWeightChargeCost = (onPalletsCount * TARE_KG / 1000) * Math.abs(dbPalletWeightCharge);
