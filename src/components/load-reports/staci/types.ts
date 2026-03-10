@@ -59,10 +59,21 @@ export const RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
   "wood",
 ];
 
-// Non-recyclable types (goes to landfill/RDF)
+// Non-recyclable types split into sub-categories
 export const NON_RECYCLABLE_WASTE_TYPES: (keyof StaciWasteBreakdown)[] = [
   "pvc",
   "rdf",
+  "landfill",
+];
+
+// Waste For Energy (RDF)
+export const WASTE_FOR_ENERGY_TYPES: (keyof StaciWasteBreakdown)[] = [
+  "rdf",
+];
+
+// Landfill types (PVC, landfill)
+export const LANDFILL_TYPES: (keyof StaciWasteBreakdown)[] = [
+  "pvc",
   "landfill",
 ];
 

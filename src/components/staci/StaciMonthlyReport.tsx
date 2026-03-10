@@ -49,11 +49,15 @@ interface DashboardStats {
     pct: number;
     recyclable: boolean;
     nonRecoverable: boolean;
+    wasteForEnergy?: boolean;
+    landfill?: boolean;
     wood: boolean;
   }>;
   totalBreakdownWeight: number;
   recyclableKg: number;
   nonRecoverableKg: number;
+  wasteForEnergyKg?: number;
+  landfillKg?: number;
   woodKg: number;
 }
 
@@ -157,10 +161,11 @@ export function StaciMonthlyReport({
         kg: Math.round(w.kg),
         tonnes: +w.tonnes.toFixed(2),
         pct: +w.pct.toFixed(1),
-        category: w.recyclable ? "Recyclable" : w.wood ? "Wood" : "Waste For Energy",
+        category: w.recyclable ? "Recyclable" : w.landfill ? "Landfill" : w.wood ? "Wood" : "Waste For Energy",
       })),
       recyclablePct: stats.totalBreakdownWeight > 0 ? +((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
-      nonRecoverablePct: stats.totalBreakdownWeight > 0 ? +((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      wasteForEnergyPct: stats.totalBreakdownWeight > 0 ? +(((stats.wasteForEnergyKg ?? stats.nonRecoverableKg) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
+      landfillPct: stats.totalBreakdownWeight > 0 ? +(((stats.landfillKg ?? 0) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
       woodPct: stats.totalBreakdownWeight > 0 ? +((stats.woodKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0,
       haulage: {
         loads: haulageData.totalLoads,
@@ -286,7 +291,8 @@ export function StaciMonthlyReport({
       [],
       ["Category Summary", "", "", ""],
       ["Recyclable", "", "", `${rd.recyclablePct}%`],
-      ["Waste For Energy", "", "", `${rd.nonRecoverablePct}%`],
+      ["Waste For Energy", "", "", `${rd.wasteForEnergyPct ?? rd.nonRecoverablePct}%`],
+      ["Landfill", "", "", `${rd.landfillPct ?? 0}%`],
       ["Wood", "", "", `${rd.woodPct}%`],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recyclingData), "Recycling Report");
@@ -394,7 +400,7 @@ export function StaciMonthlyReport({
             )}
 
             {/* Recycling summary */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="text-center p-3 rounded-lg bg-green-500/10">
                 <p className="text-lg font-bold text-green-600">
                   {stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
@@ -403,9 +409,15 @@ export function StaciMonthlyReport({
               </div>
               <div className="text-center p-3 rounded-lg bg-red-500/10">
                 <p className="text-lg font-bold text-red-600">
-                  {stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
+                  {stats.totalBreakdownWeight > 0 ? (((stats.wasteForEnergyKg ?? stats.nonRecoverableKg) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
                 </p>
                 <p className="text-xs text-muted-foreground">Waste For Energy</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-red-500/10">
+                <p className="text-lg font-bold text-red-600">
+                  {stats.totalBreakdownWeight > 0 ? (((stats.landfillKg ?? 0) / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">Landfill</p>
               </div>
               <div className="text-center p-3 rounded-lg bg-amber-500/10">
                 <p className="text-lg font-bold text-amber-600">

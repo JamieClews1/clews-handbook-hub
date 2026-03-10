@@ -16,6 +16,8 @@ import {
   WASTE_TYPE_LABELS,
   RECYCLABLE_WASTE_TYPES,
   NON_RECYCLABLE_WASTE_TYPES,
+  WASTE_FOR_ENERGY_TYPES,
+  LANDFILL_TYPES,
   WOOD_TYPE,
   type StaciWasteBreakdown,
   type StaciPalletColour,
@@ -423,26 +425,32 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     });
 
     // Include bales, dolavs, and scrap metal loose in waste breakdown
+    // IMPORTANT: For items marked "on pallets", deduct tare weight from material category
+    // because the tare is already accounted for in the wood line below.
     if (balesDolavData.cardBalesWeightKg > 0) {
-      wasteAgg["card"] = (wasteAgg["card"] ?? 0) + balesDolavData.cardBalesWeightKg;
-      totalBreakdownWeight += balesDolavData.cardBalesWeightKg;
+      const netCardKg = balesDolavData.cardBalesWeightKg - (balesDolavData.cardBalesOnPalletsCount * TARE_KG);
+      wasteAgg["card"] = (wasteAgg["card"] ?? 0) + Math.max(0, netCardKg);
+      totalBreakdownWeight += Math.max(0, netCardKg);
     }
     if (balesDolavData.filmsBaleWeightKg > 0) {
-      wasteAgg["shrink_wrap"] = (wasteAgg["shrink_wrap"] ?? 0) + balesDolavData.filmsBaleWeightKg;
-      totalBreakdownWeight += balesDolavData.filmsBaleWeightKg;
+      const netFilmsKg = balesDolavData.filmsBaleWeightKg - (balesDolavData.filmsBaleOnPalletsCount * TARE_KG);
+      wasteAgg["shrink_wrap"] = (wasteAgg["shrink_wrap"] ?? 0) + Math.max(0, netFilmsKg);
+      totalBreakdownWeight += Math.max(0, netFilmsKg);
     }
     if (balesDolavData.papersDolavWeightKg > 0) {
-      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + balesDolavData.papersDolavWeightKg;
-      totalBreakdownWeight += balesDolavData.papersDolavWeightKg;
+      const netPapersKg = balesDolavData.papersDolavWeightKg - (balesDolavData.papersDolavOnPalletsCount * TARE_KG);
+      wasteAgg["paper"] = (wasteAgg["paper"] ?? 0) + Math.max(0, netPapersKg);
+      totalBreakdownWeight += Math.max(0, netPapersKg);
     }
     if (balesDolavData.glassDolavWeightKg > 0) {
-      // Glass doesn't have a StaciWasteBreakdown key, add as a custom entry
-      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + balesDolavData.glassDolavWeightKg;
-      totalBreakdownWeight += balesDolavData.glassDolavWeightKg;
+      const netGlassKg = balesDolavData.glassDolavWeightKg - (balesDolavData.glassDolavOnPalletsCount * TARE_KG);
+      wasteAgg["glass"] = (wasteAgg["glass"] ?? 0) + Math.max(0, netGlassKg);
+      totalBreakdownWeight += Math.max(0, netGlassKg);
     }
     if (balesDolavData.scrapMetalLooseWeightKg > 0) {
-      wasteAgg["scrap_metal"] = (wasteAgg["scrap_metal"] ?? 0) + balesDolavData.scrapMetalLooseWeightKg;
-      totalBreakdownWeight += balesDolavData.scrapMetalLooseWeightKg;
+      const netScrapKg = balesDolavData.scrapMetalLooseWeightKg - (balesDolavData.scrapMetalLooseOnPalletsCount * TARE_KG);
+      wasteAgg["scrap_metal"] = (wasteAgg["scrap_metal"] ?? 0) + Math.max(0, netScrapKg);
+      totalBreakdownWeight += Math.max(0, netScrapKg);
     }
     // Add ALL pallet tare weight as wood in waste breakdown (colour pallets + on-pallets + scrap)
     const allWoodPallets = palletChargesCount + onPalletsCount + scrapPalletsCount;
@@ -462,17 +470,21 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         pct: totalBreakdownWeight > 0 ? (kg / totalBreakdownWeight) * 100 : 0,
         recyclable: RECYCLABLE_WASTE_TYPES.includes(key as any) || key === "glass",
         nonRecoverable: NON_RECYCLABLE_WASTE_TYPES.includes(key as any),
+        wasteForEnergy: WASTE_FOR_ENERGY_TYPES.includes(key as any),
+        landfill: LANDFILL_TYPES.includes(key as any),
         wood: key === WOOD_TYPE,
       }))
       .sort((a, b) => b.kg - a.kg);
 
     const recyclableKg = wasteRows.filter((w) => w.recyclable).reduce((s, w) => s + w.kg, 0);
     const nonRecoverableKg = wasteRows.filter((w) => w.nonRecoverable).reduce((s, w) => s + w.kg, 0);
+    const wasteForEnergyKg = wasteRows.filter((w) => w.wasteForEnergy).reduce((s, w) => s + w.kg, 0);
+    const landfillKg = wasteRows.filter((w) => w.landfill).reduce((s, w) => s + w.kg, 0);
     const woodKg = wasteRows.filter((w) => w.wood).reduce((s, w) => s + w.kg, 0);
 
     return {
       colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, scrapPallets,
-      palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, woodKg,
+      palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, wasteForEnergyKg, landfillKg, woodKg,
     };
   }, [rows, dbPalletRates, dbGoodPalletRebate, balesDolavData]);
 
@@ -529,12 +541,13 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         Math.round(w.kg),
         w.tonnes.toFixed(2),
         w.pct.toFixed(1) + "%",
-        w.recyclable ? "Recyclable" : "Waste For Energy",
+        w.recyclable ? "Recyclable" : w.landfill ? "Landfill" : "Waste For Energy",
       ]),
       [],
       ["Category", "Weight (kg)", "% of Total"],
       ["Recyclable", Math.round(stats.recyclableKg), stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
-      ["Waste For Energy", Math.round(stats.nonRecoverableKg), stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
+      ["Waste For Energy", Math.round(stats.wasteForEnergyKg), stats.totalBreakdownWeight > 0 ? ((stats.wasteForEnergyKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
+      ["Landfill", Math.round(stats.landfillKg), stats.totalBreakdownWeight > 0 ? ((stats.landfillKg / stats.totalBreakdownWeight) * 100).toFixed(1) + "%" : "0%"],
     ];
     const ws3 = XLSX.utils.aoa_to_sheet(recyclingData);
     XLSX.utils.book_append_sheet(wb, ws3, "Recycling Report");
@@ -561,10 +574,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
   const pieData = useMemo(() => {
     const recyclablePct = stats.totalBreakdownWeight > 0 ? (stats.recyclableKg / stats.totalBreakdownWeight) * 100 : 0;
-    const nonRecoverablePct = stats.totalBreakdownWeight > 0 ? (stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100 : 0;
+    const wasteForEnergyPct = stats.totalBreakdownWeight > 0 ? (stats.wasteForEnergyKg / stats.totalBreakdownWeight) * 100 : 0;
+    const landfillPct = stats.totalBreakdownWeight > 0 ? (stats.landfillKg / stats.totalBreakdownWeight) * 100 : 0;
     return [
       { name: "Recyclable", value: +recyclablePct.toFixed(1), fill: "hsl(142, 71%, 45%)" },
-      { name: "Waste For Energy", value: +nonRecoverablePct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
+      { name: "Waste For Energy", value: +wasteForEnergyPct.toFixed(1), fill: "hsl(0, 72%, 51%)" },
+      { name: "Landfill", value: +landfillPct.toFixed(1), fill: "hsl(0, 50%, 40%)" },
     ].filter((d) => d.value > 0);
   }, [stats]);
 
@@ -1048,8 +1063,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           <td className="py-1.5 px-3 text-right">{w.tonnes.toFixed(2)}</td>
                           <td className="py-1.5 px-3 text-right">{w.pct.toFixed(1)}%</td>
                           <td className="py-1.5 px-3">
-                            <span className={cn("text-xs px-2 py-0.5 rounded-full", w.recyclable ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-                              {w.recyclable ? "Recyclable" : "Waste For Energy"}
+                            <span className={cn("text-xs px-2 py-0.5 rounded-full",
+                              w.recyclable ? "bg-green-100 text-green-700" :
+                              w.landfill ? "bg-red-100 text-red-700" :
+                              "bg-red-100 text-red-700"
+                            )}>
+                              {w.recyclable ? "Recyclable" : w.landfill ? "Landfill" : "Waste For Energy"}
                             </span>
                           </td>
                         </tr>
@@ -1066,14 +1085,18 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                   </table>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-4 grid grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-lg bg-green-500/10">
                     <p className="text-lg font-bold text-green-600">{stats.totalBreakdownWeight > 0 ? ((stats.recyclableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
                     <p className="text-xs text-muted-foreground">Recyclable</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-red-500/10">
-                    <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.nonRecoverableKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
+                    <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.wasteForEnergyKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
                     <p className="text-xs text-muted-foreground">Waste For Energy</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-red-500/10">
+                    <p className="text-lg font-bold text-red-600">{stats.totalBreakdownWeight > 0 ? ((stats.landfillKg / stats.totalBreakdownWeight) * 100).toFixed(1) : 0}%</p>
+                    <p className="text-xs text-muted-foreground">Landfill</p>
                   </div>
                 </div>
               </CardContent>
