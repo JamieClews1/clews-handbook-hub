@@ -413,7 +413,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     rows.forEach((r) => {
       if (!r.waste_breakdown) return;
       const grossWeightPerPallet = r.weight_kg;
-      const entryWeight = grossWeightPerPallet * r.pallet_count;
+      const entryWeight = (grossWeightPerPallet - TARE_KG) * r.pallet_count;
       (Object.keys(r.waste_breakdown) as (keyof StaciWasteBreakdown)[]).forEach((key) => {
         const pct = (r.waste_breakdown as StaciWasteBreakdown)[key] ?? 0;
         const kg = (pct / 100) * entryWeight;
@@ -680,7 +680,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
               { label: "Total Pallets", value: stats.totalPallets.toLocaleString() },
-              { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg) / 1000).toFixed(2)} t` },
+              { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + balesDolavData.scrapPalletsCount * TARE_KG) / 1000).toFixed(2)} t` },
               { label: "Monthly Net Cost", value: `£${kpiFinancials.monthlyNetCost.toFixed(2)}`, highlight: true },
               { label: "Monthly Recycling Invoice", value: `£${kpiFinancials.monthlyRecyclingInvoice.toFixed(2)}` },
               { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
