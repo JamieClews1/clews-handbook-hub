@@ -385,6 +385,10 @@ export const HandbookBuilder = () => {
         </AlertDialog>
       </TabsContent>
 
+      <TabsContent value="translations">
+        <HandbookTranslationSettings />
+      </TabsContent>
+
       <TabsContent value="signatures">
         <HandbookSignaturesList />
       </TabsContent>
