@@ -393,6 +393,31 @@ export const StaciReviewScreen = ({
         </CardContent>
       </Card>
 
+      {/* Waste Type Breakdown */}
+      {palletEntries.length > 0 && (
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                <Scale className="h-5 w-5 text-white" />
+              </div>
+              <CardTitle className="text-lg">Waste Type Breakdown</CardTitle>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Material weights net of pallet tare ({palletWeightKg}kg per pallet)
+            </p>
+          </CardHeader>
+          <CardContent>
+            <StaciWasteTypeBreakdownTable
+              palletEntries={palletEntries}
+              palletWeightKg={palletWeightKg}
+              goodPalletCount={goodPalletCount}
+              palletsScrapCount={palletsScrapCount}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Reconcile Section */}
       {canReconcile && (
         <div className="space-y-4">
