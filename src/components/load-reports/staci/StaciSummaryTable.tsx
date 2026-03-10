@@ -207,12 +207,16 @@ export const StaciSummaryTable = ({
                 {palletsScrapCount}
               </TableCell>
               <TableCell className="text-right">
-                {(palletsScrapCount * palletWeightKg).toLocaleString()}
+                {scrapPalletsWeightKg.toLocaleString()}
               </TableCell>
               <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">Charge</TableCell>
-              <TableCell className="text-right font-medium">-</TableCell>
+              <TableCell className="text-right">
+                £{scrapPalletChargeRate.toFixed(2)}/tonne
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {scrapPalletChargeValue.toFixed(2)}
+              </TableCell>
             </TableRow>
           )}
           {cardBalesCount > 0 && (
