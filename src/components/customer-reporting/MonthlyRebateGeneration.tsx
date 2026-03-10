@@ -459,7 +459,7 @@ import * as XLSX from "xlsx";
                      
                      const matches = patterns.some(pattern => wasteTypeLower.includes(pattern));
                      if (matches) {
-                       totalWeight += Number(job.weight_t) || 0;
+                       totalWeight += job.weight_t;
                      }
                    }
                  }
