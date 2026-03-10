@@ -164,47 +164,6 @@ export const HandbookBuilder = () => {
     }
   };
 
-  const handleTranslate = async () => {
-    setIsTranslating(true);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-handbook`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: `Translated ${data.sections} sections and ${data.subsections} subsections`,
-        });
-        fetchSections();
-        if (selectedSection) {
-          fetchSubsections(selectedSection);
-        }
-      } else {
-        throw new Error(data.error || "Translation failed");
-      }
-    } catch (error) {
-      console.error('Translation error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to translate content",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTranslating(false);
-    }
-  };
 
   return (
     <Tabs defaultValue="content" className="space-y-6">
