@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.send-contamination-email]
 verify_jwt = true
+
+[functions.translate-handbook-section]
+verify_jwt = true
