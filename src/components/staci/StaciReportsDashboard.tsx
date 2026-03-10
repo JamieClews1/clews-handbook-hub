@@ -799,7 +799,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Qty</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Wt/Item (kg)</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total Weight (kg)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Net Total Weight (kg)</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (t)</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Value (£)</th>
