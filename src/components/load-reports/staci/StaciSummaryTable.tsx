@@ -322,7 +322,7 @@ export const StaciSummaryTable = ({
             <TableCell>Total</TableCell>
             <TableCell className="text-right">{totalPallets + cardBalesCount + filmsBaleCount + papersDolavCount + glassDolavCount + scrapMetalLooseCount}</TableCell>
             <TableCell className="text-right">{(totalWeightKg + cardBalesGrossKg + filmsBaleGrossKg + papersDolavGrossKg + glassDolavGrossKg + scrapMetalLooseGrossKg).toLocaleString()}</TableCell>
-            <TableCell className="text-right">{totalPalletDeductionKg.toLocaleString()}</TableCell>
+            <TableCell className="text-right">{(totalPalletDeductionKg + scrapPalletsWeightKg + (goodPalletCount * palletWeightKg)).toLocaleString()}</TableCell>
             <TableCell className="text-right">{(totalNetWeightKg + cardBalesNetKg + filmsBaleNetKg + papersDolavNetKg + glassDolavNetKg + scrapMetalLooseNetKg).toLocaleString()}</TableCell>
             <TableCell className="text-right">-</TableCell>
             <TableCell className={`text-right ${netTotal < 0 ? "text-green-600" : ""}`}>
