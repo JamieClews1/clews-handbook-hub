@@ -865,17 +865,25 @@ import * as XLSX from "xlsx";
                          </div>
                        )}
  
-                       {/* Actions */}
-                       <div className="flex justify-end gap-2 pt-2 border-t">
-                         <Button
-                           variant="default"
-                           size="sm"
-                           onClick={() => openEmailDialog(summary)}
-                         >
-                           <Mail className="h-4 w-4 mr-2" />
-                           Send Rebate Notification
-                         </Button>
-                       </div>
+                        {/* Actions */}
+                        <div className="flex justify-end gap-2 pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadCustomerExcel(summary)}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Excel
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => openEmailDialog(summary)}
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Send Rebate Notification
+                          </Button>
+                        </div>
                      </CardContent>
                    </CollapsibleContent>
                  </Collapsible>
