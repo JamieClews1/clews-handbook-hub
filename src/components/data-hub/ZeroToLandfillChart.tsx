@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { Settings2, Leaf, CalendarIcon } from "lucide-react";
+import { Settings2, Leaf, CalendarIcon, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -75,6 +76,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
   const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [showTable, setShowTable] = useState(false);
 
   const now = new Date();
   const maxStartDate = subYears(now, 2);
@@ -471,57 +473,66 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
 
       <ZeroToLandfillPercentChart chartData={chartData} isLoading={isLoading} viewMode={viewMode} />
 
-      {/* Tonnage Table */}
       {!isLoading && chartData.length > 0 && (
-        <Card className="col-span-2">
-          <CardHeader className="pb-2">
-             <CardTitle className="text-base">{viewMode === "week" ? "Weekly" : viewMode === "month" ? "Monthly" : "Total"} Tonnage Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">{viewMode === "week" ? "Week" : viewMode === "month" ? "Month" : "Period"}</th>
-                    <th className="text-right py-2 px-3 font-medium" style={{ color: "hsl(210, 70%, 50%)" }}>Total In</th>
-                    <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.landfill }}>Landfill</th>
-                    <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.rdf }}>RDF</th>
-                    <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.recycled }}>Recycled</th>
-                    <th className="text-right py-2 px-3 font-medium text-muted-foreground">Landfill %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {chartData.map((row) => (
-                    <tr key={row.weekFull} className="border-b border-border/50 hover:bg-muted/50">
-                      <td className="py-1.5 px-3 text-muted-foreground">{row.week}</td>
-                      <td className="py-1.5 px-3 text-right font-medium">{row.totalIn.toFixed(2)}</td>
-                      <td className="py-1.5 px-3 text-right">{row.landfill.toFixed(2)}</td>
-                      <td className="py-1.5 px-3 text-right">{row.rdf.toFixed(2)}</td>
-                      <td className="py-1.5 px-3 text-right">{row.recycled.toFixed(2)}</td>
-                      <td className="py-1.5 px-3 text-right text-muted-foreground">{row.landfillPct.toFixed(2)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 font-semibold">
-                    <td className="py-2 px-3">Total</td>
-                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.totalIn, 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.landfill, 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.rdf, 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.recycled, 0).toFixed(2)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">
-                      {(() => {
-                        const totOut = chartData.reduce((s, r) => s + r.landfill + r.rdf + r.recycled, 0);
-                        const totLf = chartData.reduce((s, r) => s + r.landfill, 0);
-                        return totOut > 0 ? (totLf / totOut * 100).toFixed(2) : "0.00";
-                      })()}%
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <Collapsible open={showTable} onOpenChange={setShowTable}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="col-span-2 mt-2 w-full justify-center gap-2 text-xs text-muted-foreground">
+              <ChevronDown className={`h-4 w-4 transition-transform ${showTable ? "rotate-180" : ""}`} />
+              {showTable ? "Hide data table" : "Show data table"}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Card className="col-span-2 mt-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{viewMode === "week" ? "Weekly" : viewMode === "month" ? "Monthly" : "Total"} Tonnage Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">{viewMode === "week" ? "Week" : viewMode === "month" ? "Month" : "Period"}</th>
+                        <th className="text-right py-2 px-3 font-medium" style={{ color: "hsl(210, 70%, 50%)" }}>Total In</th>
+                        <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.landfill }}>Landfill</th>
+                        <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.rdf }}>RDF</th>
+                        <th className="text-right py-2 px-3 font-medium" style={{ color: GROUP_COLORS.recycled }}>Recycled</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Landfill %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chartData.map((row) => (
+                        <tr key={row.weekFull} className="border-b border-border/50 hover:bg-muted/50">
+                          <td className="py-1.5 px-3 text-muted-foreground">{row.week}</td>
+                          <td className="py-1.5 px-3 text-right font-medium">{row.totalIn.toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">{row.landfill.toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">{row.rdf.toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">{row.recycled.toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right text-muted-foreground">{row.landfillPct.toFixed(2)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-semibold">
+                        <td className="py-2 px-3">Total</td>
+                        <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.totalIn, 0).toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.landfill, 0).toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.rdf, 0).toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + r.recycled, 0).toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">
+                          {(() => {
+                            const totOut = chartData.reduce((s, r) => s + r.landfill + r.rdf + r.recycled, 0);
+                            const totLf = chartData.reduce((s, r) => s + r.landfill, 0);
+                            return totOut > 0 ? (totLf / totOut * 100).toFixed(2) : "0.00";
+                          })()}%
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </>
   );
