@@ -3,30 +3,32 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Line, Legend } from "recharts";
 import { AlertTriangle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  startOfWeek, endOfWeek, format, parseISO, eachWeekOfInterval,
+  startOfWeek, endOfWeek, format, parseISO, eachWeekOfInterval, eachMonthOfInterval,
+  startOfMonth, endOfMonth, getMonth,
 } from "date-fns";
+import type { ComparisonRange } from "./TotalWasteHandled";
 
 interface WasteNotOnMidweighProps {
   externalStartDate: Date;
   externalEndDate: Date;
+  comparisonRanges?: ComparisonRange[];
 }
 
 function stringToColor(str: string, index: number): string {
   const hues = [210, 35, 142, 280, 0, 55, 180, 320, 100, 240];
   return `hsl(${hues[index % hues.length]}, 65%, 55%)`;
 }
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const COMPARISON_COLORS = ["hsl(280, 60%, 55%)", "hsl(340, 60%, 55%)"];
 
 async function fetchAllPaged(query: any) {
   let all: any[] = [];
@@ -43,7 +45,8 @@ async function fetchAllPaged(query: any) {
   return all;
 }
 
-const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMidweighProps) => {
+const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRanges = [] }: WasteNotOnMidweighProps) => {
+  const hasComparison = comparisonRanges.length > 0;
   const [selectedSite, setSelectedSite] = useState<string>("all");
   const [showTable, setShowTable] = useState(false);
 
@@ -52,18 +55,13 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
   const startStr = format(weekStart, "yyyy-MM-dd");
   const endStr = format(weekEnd, "yyyy-MM-dd");
 
-  // Fetch Midweigh SKIP records (vehicle_registration + job_date for matching)
   const { data: midweighSkipKeys, isLoading: loadingMidweigh } = useQuery({
     queryKey: ["wnm-midweigh-skip", startStr, endStr],
     queryFn: async () => {
       const all = await fetchAllPaged(
-        supabase
-          .from("data_hub_jobs")
-          .select("vehicle_registration, job_date")
-          .eq("source", "midweigh")
-          .eq("job_type", "SKIP")
-          .gte("job_date", startStr)
-          .lte("job_date", endStr)
+        supabase.from("data_hub_jobs").select("vehicle_registration, job_date")
+          .eq("source", "midweigh").eq("job_type", "SKIP")
+          .gte("job_date", startStr).lte("job_date", endStr)
       );
       const keys = new Set<string>();
       all.forEach((j: any) => {
@@ -75,24 +73,49 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
     },
   });
 
-  // Fetch all Skiptrak jobs
   const { data: skiptrakJobs, isLoading: loadingSkiptrak } = useQuery({
     queryKey: ["wnm-skiptrak-all", startStr, endStr],
-    queryFn: async () => {
-      return await fetchAllPaged(
-        supabase
-          .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, customer, site, vehicle_registration")
-          .eq("source", "skiptrak")
-          .gte("job_date", startStr)
-          .lte("job_date", endStr)
-      );
-    },
+    queryFn: async () => fetchAllPaged(
+      supabase.from("data_hub_jobs").select("job_date, weight_t, job_number, customer, site, vehicle_registration")
+        .eq("source", "skiptrak").gte("job_date", startStr).lte("job_date", endStr)
+    ),
   });
 
-  const isLoading = loadingMidweigh || loadingSkiptrak;
+  // Comparison year queries
+  const compQueries = comparisonRanges.map((range) => {
+    const cStartStr = format(range.start, "yyyy-MM-dd");
+    const cEndStr = format(range.end, "yyyy-MM-dd");
+    return {
+      year: range.year,
+      midweigh: useQuery({
+        queryKey: ["wnm-midweigh-skip-comp", cStartStr, cEndStr],
+        queryFn: async () => {
+          const all = await fetchAllPaged(
+            supabase.from("data_hub_jobs").select("vehicle_registration, job_date")
+              .eq("source", "midweigh").eq("job_type", "SKIP")
+              .gte("job_date", cStartStr).lte("job_date", cEndStr)
+          );
+          const keys = new Set<string>();
+          all.forEach((j: any) => {
+            if (j.vehicle_registration && j.job_date) {
+              keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
+            }
+          });
+          return keys;
+        },
+      }),
+      skiptrak: useQuery({
+        queryKey: ["wnm-skiptrak-all-comp", cStartStr, cEndStr],
+        queryFn: () => fetchAllPaged(
+          supabase.from("data_hub_jobs").select("job_date, weight_t, vehicle_registration")
+            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+        ),
+      }),
+    };
+  });
 
-  // Get Skiptrak jobs with NO matching Midweigh SKIP record on same date + vehicle
+  const isLoading = loadingMidweigh || loadingSkiptrak || compQueries.some(q => q.midweigh.isLoading || q.skiptrak.isLoading);
+
   const nonYardJobs = useMemo(() => {
     if (!skiptrakJobs || !midweighSkipKeys) return [];
     return skiptrakJobs.filter((j: any) => {
@@ -102,7 +125,6 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
     });
   }, [skiptrakJobs, midweighSkipKeys]);
 
-  // Unique customer-sites
   const customerSites = useMemo(() => {
     const sites = new Map<string, number>();
     nonYardJobs.forEach((j: any) => {
@@ -114,10 +136,55 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
       .map(([name, tonnes]) => ({ name, tonnes: Math.round(tonnes * 100) / 100 }));
   }, [nonYardJobs]);
 
-  // Chart data: weekly, broken down by customer-site
   const chartData = useMemo(() => {
-    if (!nonYardJobs.length) return [];
+    if (!nonYardJobs.length && !hasComparison) return [];
 
+    if (hasComparison) {
+      // Monthly comparison mode - show total by month
+      const months = eachMonthOfInterval({ start: startOfMonth(externalStartDate), end: endOfMonth(externalEndDate) });
+      const monthIndices = months.map(d => getMonth(d));
+      const currentBuckets: Record<number, number> = {};
+      monthIndices.forEach(m => { currentBuckets[m] = 0; });
+
+      nonYardJobs.forEach((job: any) => {
+        if (!job.job_date || job.weight_t == null) return;
+        const siteKey = `${job.customer || "Unknown"} – ${job.site || "Unknown"}`;
+        if (selectedSite !== "all" && siteKey !== selectedSite) return;
+        const m = getMonth(parseISO(job.job_date));
+        if (currentBuckets[m] !== undefined) currentBuckets[m] += (job.weight_t || 0);
+      });
+
+      const compData: Record<number, Record<number, number>> = {};
+      compQueries.forEach(cq => {
+        if (!cq.midweigh.data || !cq.skiptrak.data) return;
+        const monthTotals: Record<number, number> = {};
+        const cNonYard = (cq.skiptrak.data as any[]).filter((j: any) => {
+          if (!j.vehicle_registration || !j.job_date) return true;
+          const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
+          return !(cq.midweigh.data as Set<string>).has(key);
+        });
+        cNonYard.forEach((job: any) => {
+          if (!job.job_date || job.weight_t == null) return;
+          const m = getMonth(parseISO(job.job_date));
+          monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+        });
+        compData[cq.year] = monthTotals;
+      });
+
+      return monthIndices.map(m => {
+        const row: any = {
+          week: MONTH_LABELS[m],
+          weekFull: String(m),
+          total: Math.round(currentBuckets[m] * 100) / 100,
+        };
+        comparisonRanges.forEach(range => {
+          row[`total_${range.year}`] = Math.round((compData[range.year]?.[m] || 0) * 100) / 100;
+        });
+        return row;
+      });
+    }
+
+    // Standard weekly mode
     const weeks = eachWeekOfInterval({ start: weekStart, end: weekEnd }, { weekStartsOn: 1 });
     const buckets: Record<string, Record<string, number>> = {};
     weeks.forEach((ws) => { buckets[format(ws, "yyyy-MM-dd")] = {}; });
@@ -138,35 +205,25 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
         siteTotals.set(site, (siteTotals.get(site) || 0) + tonnes);
       });
     });
-    const topSites = Array.from(siteTotals.entries())
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([name]) => name);
+    const topSites = Array.from(siteTotals.entries()).sort(([, a], [, b]) => b - a).slice(0, 10).map(([name]) => name);
 
-    return Object.entries(buckets)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([weekDate, siteData]) => {
-        const row: any = { week: format(parseISO(weekDate), "dd MMM"), weekFull: weekDate };
-        let total = 0;
-        topSites.forEach((site) => {
-          const val = Math.round((siteData[site] || 0) * 100) / 100;
-          row[site] = val;
-          total += val;
-        });
-        const otherTotal = Object.entries(siteData)
-          .filter(([s]) => !topSites.includes(s))
-          .reduce((sum, [, v]) => sum + v, 0);
-        if (otherTotal > 0) {
-          row["Other"] = Math.round(otherTotal * 100) / 100;
-          total += row["Other"];
-        }
-        row.total = Math.round(total * 100) / 100;
-        return row;
+    return Object.entries(buckets).sort(([a], [b]) => a.localeCompare(b)).map(([weekDate, siteData]) => {
+      const row: any = { week: format(parseISO(weekDate), "dd MMM"), weekFull: weekDate };
+      let total = 0;
+      topSites.forEach((site) => {
+        const val = Math.round((siteData[site] || 0) * 100) / 100;
+        row[site] = val;
+        total += val;
       });
-  }, [nonYardJobs, selectedSite, weekStart, weekEnd]);
+      const otherTotal = Object.entries(siteData).filter(([s]) => !topSites.includes(s)).reduce((sum, [, v]) => sum + v, 0);
+      if (otherTotal > 0) { row["Other"] = Math.round(otherTotal * 100) / 100; total += row["Other"]; }
+      row.total = Math.round(total * 100) / 100;
+      return row;
+    });
+  }, [nonYardJobs, selectedSite, weekStart, weekEnd, hasComparison, compQueries, comparisonRanges, externalStartDate, externalEndDate]);
 
   const seriesKeys = useMemo(() => {
-    if (!chartData.length) return [];
+    if (!chartData.length || hasComparison) return [];
     const keys = new Set<string>();
     chartData.forEach((row) => {
       Object.keys(row).forEach((k) => {
@@ -174,18 +231,26 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
       });
     });
     return Array.from(keys);
-  }, [chartData]);
+  }, [chartData, hasComparison]);
 
   const chartConfig = useMemo(() => {
     const cfg: Record<string, { label: string; color: string }> = {};
-    seriesKeys.forEach((key, i) => { cfg[key] = { label: key, color: stringToColor(key, i) }; });
-    cfg.total = { label: "Total", color: "hsl(0, 0%, 40%)" };
+    if (hasComparison) {
+      const currentYear = externalStartDate.getFullYear();
+      cfg.total = { label: `Total ${currentYear}`, color: "hsl(0, 70%, 50%)" };
+      comparisonRanges.forEach((range, i) => {
+        cfg[`total_${range.year}`] = { label: `Total ${range.year}`, color: COMPARISON_COLORS[i % COMPARISON_COLORS.length] };
+      });
+    } else {
+      seriesKeys.forEach((key, i) => { cfg[key] = { label: key, color: stringToColor(key, i) }; });
+      cfg.total = { label: "Total", color: "hsl(0, 0%, 40%)" };
+    }
     return cfg;
-  }, [seriesKeys]);
+  }, [seriesKeys, hasComparison, comparisonRanges]);
 
-  const grandTotal = useMemo(() => {
-    return chartData.reduce((s, r) => s + (r.total || 0), 0);
-  }, [chartData]);
+  const grandTotal = useMemo(() => chartData.reduce((s, r) => s + (r.total || 0), 0), [chartData]);
+
+  const currentYear = externalStartDate.getFullYear();
 
   return (
     <Card>
@@ -202,22 +267,33 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={selectedSite} onValueChange={setSelectedSite}>
-            <SelectTrigger className="w-[260px]">
-              <SelectValue placeholder="All sites" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sites ({customerSites.length})</SelectItem>
-              {customerSites.map((s) => (
-                <SelectItem key={s.name} value={s.name}>
-                  {s.name} ({s.tonnes.toFixed(1)}t)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="hidden md:block text-right text-sm">
-            <div className="text-muted-foreground">Total</div>
-            <div className="font-bold text-destructive">{grandTotal.toFixed(2)}t</div>
+          {!hasComparison && (
+            <Select value={selectedSite} onValueChange={setSelectedSite}>
+              <SelectTrigger className="w-[260px]">
+                <SelectValue placeholder="All sites" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sites ({customerSites.length})</SelectItem>
+                {customerSites.map((s) => (
+                  <SelectItem key={s.name} value={s.name}>{s.name} ({s.tonnes.toFixed(1)}t)</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <div className="hidden md:flex items-center gap-3 text-sm">
+            <div className="text-right">
+              <div className="text-muted-foreground">Total{hasComparison ? ` ${currentYear}` : ""}</div>
+              <div className="font-bold text-destructive">{grandTotal.toFixed(2)}t</div>
+            </div>
+            {comparisonRanges.map((range, i) => {
+              const ct = chartData.reduce((s, r) => s + (r[`total_${range.year}`] || 0), 0);
+              return (
+                <div key={range.year} className="text-right">
+                  <div className="text-muted-foreground">Total {range.year}</div>
+                  <div className="font-semibold" style={{ color: COMPARISON_COLORS[i % COMPARISON_COLORS.length] }}>{ct.toFixed(2)}t</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </CardHeader>
@@ -226,6 +302,24 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
         {isLoading ? (
           <div className="flex items-center justify-center h-[300px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        ) : hasComparison ? (
+          <div className="w-full overflow-x-auto">
+            <div style={{ minWidth: "600px" }}>
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+                  <XAxis dataKey="week" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={60} />
+                  <YAxis tick={{ fontSize: 11 }} label={{ value: "Tonnes", angle: -90, position: "insideLeft", style: { fontSize: 12 } }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Bar dataKey="total" fill="hsl(0, 70%, 50%)" name={`Total ${currentYear}`} radius={[2, 2, 0, 0]} />
+                  {comparisonRanges.map((range, i) => (
+                    <Line key={range.year} type="monotone" dataKey={`total_${range.year}`} stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name={`Total ${range.year}`} />
+                  ))}
+                </ComposedChart>
+              </ChartContainer>
+            </div>
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
@@ -259,36 +353,66 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Week</th>
-                      {seriesKeys.map((key, i) => (
-                        <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]"
-                          style={{ color: stringToColor(key, i) }} title={key}>
-                          {key.length > 20 ? key.substring(0, 18) + "…" : key}
-                        </th>
-                      ))}
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total</th>
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">{hasComparison ? "Month" : "Week"}</th>
+                      {hasComparison ? (
+                        <>
+                          <th className="text-right py-2 px-3 font-medium text-destructive">Total {currentYear}</th>
+                          {comparisonRanges.map((range, i) => (
+                            <th key={range.year} className="text-right py-2 px-3 font-medium" style={{ color: COMPARISON_COLORS[i % COMPARISON_COLORS.length] }}>Total {range.year}</th>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {seriesKeys.map((key, i) => (
+                            <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]" style={{ color: stringToColor(key, i) }} title={key}>
+                              {key.length > 20 ? key.substring(0, 18) + "…" : key}
+                            </th>
+                          ))}
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {chartData.map((row) => (
                       <tr key={row.weekFull} className="border-b border-border/50 hover:bg-muted/50">
                         <td className="py-1.5 px-3 text-muted-foreground">{row.week}</td>
-                        {seriesKeys.map((key) => (
-                          <td key={key} className="py-1.5 px-3 text-right">{(row[key] || 0).toFixed(2)}</td>
-                        ))}
-                        <td className="py-1.5 px-3 text-right font-medium">{(row.total || 0).toFixed(2)}</td>
+                        {hasComparison ? (
+                          <>
+                            <td className="py-1.5 px-3 text-right font-medium">{(row.total || 0).toFixed(2)}</td>
+                            {comparisonRanges.map((range) => (
+                              <td key={range.year} className="py-1.5 px-3 text-right">{(row[`total_${range.year}`] || 0).toFixed(2)}</td>
+                            ))}
+                          </>
+                        ) : (
+                          <>
+                            {seriesKeys.map((key) => (
+                              <td key={key} className="py-1.5 px-3 text-right">{(row[key] || 0).toFixed(2)}</td>
+                            ))}
+                            <td className="py-1.5 px-3 text-right font-medium">{(row.total || 0).toFixed(2)}</td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 font-semibold">
                       <td className="py-2 px-3">Total</td>
-                      {seriesKeys.map((key) => (
-                        <td key={key} className="py-2 px-3 text-right">
-                          {chartData.reduce((s, r) => s + (r[key] || 0), 0).toFixed(2)}
-                        </td>
-                      ))}
-                      <td className="py-2 px-3 text-right">{grandTotal.toFixed(2)}</td>
+                      {hasComparison ? (
+                        <>
+                          <td className="py-2 px-3 text-right">{grandTotal.toFixed(2)}</td>
+                          {comparisonRanges.map((range) => (
+                            <td key={range.year} className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + (r[`total_${range.year}`] || 0), 0).toFixed(2)}</td>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {seriesKeys.map((key) => (
+                            <td key={key} className="py-2 px-3 text-right">{chartData.reduce((s, r) => s + (r[key] || 0), 0).toFixed(2)}</td>
+                          ))}
+                          <td className="py-2 px-3 text-right">{grandTotal.toFixed(2)}</td>
+                        </>
+                      )}
                     </tr>
                   </tfoot>
                 </table>
