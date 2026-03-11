@@ -82,10 +82,10 @@ export function ProjectionsDashboard() {
       const weight = j.weight_t || 0;
       const rev = getRevenue(j.raw);
       if (j.source === "midweigh") {
-        monthMap[monthKey].midweighTonnes += weight;
+        monthMap[monthKey].midweighTonnes += weight / 1000; // Midweigh stores KG
         monthMap[monthKey].midweighRevenue += rev;
       } else {
-        monthMap[monthKey].skiptrakTonnes += weight;
+        monthMap[monthKey].skiptrakTonnes += weight; // Skiptrak stores Tonnes
         monthMap[monthKey].skiptrakRevenue += rev;
       }
     });
