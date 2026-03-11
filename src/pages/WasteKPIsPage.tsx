@@ -33,9 +33,6 @@ const WasteKPIsPage = () => {
   const applyPreset = (preset: string) => {
     const now = new Date();
     setActivePreset(preset);
-    if (preset !== "ytd") {
-      setCompareYears(0);
-    }
     switch (preset) {
       case "3m":
         setStartDate(startOfMonth(subMonths(now, 2)));
