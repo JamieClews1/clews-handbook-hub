@@ -198,11 +198,12 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
       });
 
       // Compute comparison year totals by month
-      const compData: Record<number, Record<number, number>> = {};
-      compQueries.forEach(cq => {
-        if (!cq.midweigh.data || !cq.skiptrak.data) return;
-        compData[cq.year] = computeTotals(cq.midweigh.data, cq.skiptrak.data, excludeBP);
-      });
+      const compTotals: Record<number, Record<number, number>> = {};
+      if (compData) {
+        Object.entries(compData).forEach(([yearStr, data]) => {
+          compTotals[Number(yearStr)] = computeTotals(data.midweigh, data.skiptrak, excludeBP);
+        });
+      }
 
       const currentYear = externalStartDate.getFullYear();
 
