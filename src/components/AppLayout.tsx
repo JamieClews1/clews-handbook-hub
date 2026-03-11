@@ -27,6 +27,11 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate("/auth");
   };
 
+  // If not logged in, render children without sidebar/header chrome
+  if (!user) {
+    return <div className="min-h-screen">{children}</div>;
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
