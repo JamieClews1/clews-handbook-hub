@@ -180,7 +180,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
           total: Math.round(currentBuckets[m] * 100) / 100,
         };
         comparisonRanges.forEach(range => {
-          row[`total_${range.year}`] = Math.round((compData[range.year]?.[m] || 0) * 100) / 100;
+          row[`total_${range.year}`] = Math.round((compTotals[range.year]?.[m] || 0) * 100) / 100;
         });
         return row;
       });
