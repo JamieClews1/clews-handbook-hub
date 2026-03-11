@@ -190,6 +190,10 @@ export const DataHubCustomerReport = () => {
         setStartDate(startOfMonth(subMonths(now, 11)));
         setEndDate(endOfMonth(now));
         break;
+      case "ytd":
+        setStartDate(startOfYear(now));
+        setEndDate(endOfMonth(now));
+        break;
     }
   };
 
