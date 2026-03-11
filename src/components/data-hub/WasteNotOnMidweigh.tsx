@@ -247,44 +247,54 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMi
         )}
 
         {!isLoading && chartData.length > 0 && (
-          <div className="mt-6 w-full overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">Week</th>
-                  {seriesKeys.map((key, i) => (
-                    <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]"
-                      style={{ color: stringToColor(key, i) }} title={key}>
-                      {key.length > 20 ? key.substring(0, 18) + "…" : key}
-                    </th>
-                  ))}
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chartData.map((row) => (
-                  <tr key={row.weekFull} className="border-b border-border/50 hover:bg-muted/50">
-                    <td className="py-1.5 px-3 text-muted-foreground">{row.week}</td>
-                    {seriesKeys.map((key) => (
-                      <td key={key} className="py-1.5 px-3 text-right">{(row[key] || 0).toFixed(2)}</td>
+          <Collapsible open={showTable} onOpenChange={setShowTable}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="mt-4 w-full justify-center gap-2 text-xs text-muted-foreground">
+                <ChevronDown className={`h-4 w-4 transition-transform ${showTable ? "rotate-180" : ""}`} />
+                {showTable ? "Hide data table" : "Show data table"}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 w-full overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Week</th>
+                      {seriesKeys.map((key, i) => (
+                        <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]"
+                          style={{ color: stringToColor(key, i) }} title={key}>
+                          {key.length > 20 ? key.substring(0, 18) + "…" : key}
+                        </th>
+                      ))}
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chartData.map((row) => (
+                      <tr key={row.weekFull} className="border-b border-border/50 hover:bg-muted/50">
+                        <td className="py-1.5 px-3 text-muted-foreground">{row.week}</td>
+                        {seriesKeys.map((key) => (
+                          <td key={key} className="py-1.5 px-3 text-right">{(row[key] || 0).toFixed(2)}</td>
+                        ))}
+                        <td className="py-1.5 px-3 text-right font-medium">{(row.total || 0).toFixed(2)}</td>
+                      </tr>
                     ))}
-                    <td className="py-1.5 px-3 text-right font-medium">{(row.total || 0).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 font-semibold">
-                  <td className="py-2 px-3">Total</td>
-                  {seriesKeys.map((key) => (
-                    <td key={key} className="py-2 px-3 text-right">
-                      {chartData.reduce((s, r) => s + (r[key] || 0), 0).toFixed(2)}
-                    </td>
-                  ))}
-                  <td className="py-2 px-3 text-right">{grandTotal.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 font-semibold">
+                      <td className="py-2 px-3">Total</td>
+                      {seriesKeys.map((key) => (
+                        <td key={key} className="py-2 px-3 text-right">
+                          {chartData.reduce((s, r) => s + (r[key] || 0), 0).toFixed(2)}
+                        </td>
+                      ))}
+                      <td className="py-2 px-3 text-right">{grandTotal.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </CardContent>
     </Card>
