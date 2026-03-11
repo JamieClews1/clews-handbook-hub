@@ -303,13 +303,13 @@ const TotalRevenue = ({ externalStartDate, externalEndDate, comparisonRanges = [
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value, name) => {
+                    formatter={(value, name, item) => {
                       const formatted = formatCurrency(value as number);
                       // Map data keys to clearer labels
                       const labelMap: Record<string, string> = {
                         midweigh: "Midweigh",
                         skiptrak: "Skiptrak",
-                        total: "Total",
+                        total: "Total (Current Period)",
                         cumTotal: "Cumulative",
                       };
                       // Add comparison labels
@@ -324,6 +324,8 @@ const TotalRevenue = ({ externalStartDate, externalEndDate, comparisonRanges = [
               <Legend />
               <Bar dataKey="midweigh" stackId="revenue" fill="hsl(210, 70%, 50%)" radius={[0, 0, 0, 0]} name="Midweigh" />
               <Bar dataKey="skiptrak" stackId="revenue" fill="hsl(35, 85%, 55%)" radius={[4, 4, 0, 0]} name="Skiptrak" />
+              {/* Hidden bar for total tooltip visibility */}
+              <Bar dataKey="total" stackId="revenue" fill="transparent" radius={[0, 0, 0, 0]} name="Total" hide={false} />
               {showCumulative && (
                 <Line type="monotone" dataKey="cumTotal" stroke="hsl(150, 60%, 45%)" strokeWidth={2} dot={false} name="Cumulative" />
               )}
