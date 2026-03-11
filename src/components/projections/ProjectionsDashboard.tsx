@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Legend, Line } from "recharts";
 import { TrendingUp, Weight, PoundSterling, Loader2, Info } from "lucide-react";
-import { format, parseISO, startOfMonth, eachMonthOfInterval, subYears } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type MonthlyData = {
