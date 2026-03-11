@@ -83,7 +83,7 @@ const App = () => (
 
             {/* Staff-only routes with sidebar layout */}
             <Route path="/portal" element={<Staff><Index /></Staff>} />
-            <Route path="/handbook" element={<Staff><HandbookPage /></Staff>} />
+            <Route path="/handbook" element={<AppLayout><HandbookPage /></AppLayout>} />
             <Route path="/rams" element={<Staff><RAMSPage /></Staff>} />
             <Route path="/rams/:id" element={<Staff><RAMSDetailPage /></Staff>} />
             <Route path="/toolbox-talks" element={<Staff><ToolboxTalksPage /></Staff>} />
