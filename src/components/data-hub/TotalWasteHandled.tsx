@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, XAxis, YAxis, CartesianGrid, Line, ComposedChart } from "recharts";
-import { Truck } from "lucide-react";
+import { Truck, Info, X } from "lucide-react";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter,
   format, parseISO, eachWeekOfInterval, eachMonthOfInterval, eachQuarterOfInterval,
@@ -67,6 +67,7 @@ function generateBucketKeys(start: Date, end: Date, granularity: Granularity): s
 const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHandledProps) => {
   const [granularity, setGranularity] = useState<Granularity>("weekly");
   const [excludeBP, setExcludeBP] = useState(false);
+  const [showMethodology, setShowMethodology] = useState(false);
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
@@ -209,6 +210,15 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
           </div>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
+          <Button
+            variant={showMethodology ? "secondary" : "ghost"}
+            size="sm"
+            className="text-xs h-7 px-2 gap-1"
+            onClick={() => setShowMethodology(!showMethodology)}
+          >
+            <Info className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">How it's calculated</span>
+          </Button>
           <div className="flex items-center gap-2">
             <Switch id="exclude-bp" checked={excludeBP} onCheckedChange={setExcludeBP} />
             <Label htmlFor="exclude-bp" className="text-xs cursor-pointer">Excl. Biffa BP</Label>
@@ -248,6 +258,42 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
           </div>
         </div>
       </CardHeader>
+
+      {showMethodology && (
+        <div className="mx-6 mb-4 rounded-lg border border-primary/20 bg-primary/5 p-4 relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2 h-6 w-6 p-0"
+            onClick={() => setShowMethodology(false)}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+          <h4 className="text-sm font-semibold mb-3 text-primary">How "Non-Yard Skip" is Calculated</h4>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div>
+              <p className="font-medium text-foreground mb-1">Definition</p>
+              <p>Non-Yard Skip tonnage represents waste collected by skip vehicles that was <strong>not</strong> tipped at the yard weighbridge. These are off-site disposals or third-party tips.</p>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-1">Matching Logic</p>
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>All Skiptrak jobs in the date range are fetched.</li>
+                <li>All Midweigh jobs with job type <code className="bg-muted px-1 py-0.5 rounded text-xs">SKIP</code> are fetched.</li>
+                <li>Each Skiptrak job's <strong>vehicle registration</strong> (normalised, whitespace removed, uppercased) and <strong>job date</strong> are combined into a match key.</li>
+                <li>If a matching Midweigh SKIP record exists for the same vehicle + date, the Skiptrak job is <em>excluded</em> (it already appears in Yard Intake).</li>
+                <li>Remaining Skiptrak jobs are counted as <strong>Non-Yard Skip</strong>.</li>
+              </ol>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-1">Formula</p>
+              <p className="font-mono text-xs bg-muted/60 rounded px-2 py-1.5 inline-block">
+                Total Waste Handled = Yard Intake (Midweigh WASTEIN + SKIP) + Non-Yard Skip (unmatched Skiptrak)
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CardContent>
         {isLoading ? (
