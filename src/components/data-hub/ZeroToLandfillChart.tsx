@@ -76,6 +76,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
   const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [showTable, setShowTable] = useState(false);
 
   const now = new Date();
   const maxStartDate = subYears(now, 2);
