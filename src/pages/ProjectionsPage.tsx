@@ -1,11 +1,10 @@
-import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { ProjectionsDashboard } from "@/components/projections/ProjectionsDashboard";
 
 const ProjectionsPage = () => {
   return (
-    <AdminPageLayout>
+    <div className="container mx-auto py-6 px-4 max-w-7xl">
       <ProjectionsDashboard />
-    </AdminPageLayout>
+    </div>
   );
 };
 

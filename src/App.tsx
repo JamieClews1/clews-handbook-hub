@@ -120,6 +120,7 @@ const App = () => (
             <Route path="/performance-hub/stock-check" element={<Staff><StockCheckPage /></Staff>} />
             <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
+            <Route path="/performance-hub/projections" element={<Staff><ProjectionsPage /></Staff>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
