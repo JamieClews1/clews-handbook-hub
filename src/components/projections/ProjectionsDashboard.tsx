@@ -43,13 +43,13 @@ const PROJECTED_SKIPTRAK_COLOR = "hsl(35, 65%, 75%)";
 function fetchAllPages(startStr: string, endStr: string) {
   return async () => {
     const pageSize = 1000;
-    let allJobs: { job_date: string; source: string; weight_t: number | null; raw: Record<string, unknown> }[] = [];
+    let allJobs: { job_date: string; source: string; job_type: string | null; weight_t: number | null; raw: Record<string, unknown> }[] = [];
     let page = 0;
     let hasMore = true;
     while (hasMore) {
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("job_date, source, weight_t, raw")
+        .select("job_date, source, job_type, weight_t, raw")
         .gte("job_date", startStr)
         .lte("job_date", endStr)
         .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -62,10 +62,12 @@ function fetchAllPages(startStr: string, endStr: string) {
   };
 }
 
-function aggregateToMonths(jobs: { job_date: string; source: string; weight_t: number | null; raw: Record<string, unknown> }[]): MonthlyData[] {
+function aggregateToMonths(jobs: { job_date: string; source: string; job_type: string | null; weight_t: number | null; raw: Record<string, unknown> }[]): MonthlyData[] {
   const monthMap: Record<string, MonthlyData> = {};
   jobs.forEach((j) => {
     if (!j.job_date) return;
+    // Skip Midweigh SKIP jobs — this data is already represented in Skiptrak
+    if (j.source === "midweigh" && j.job_type?.toUpperCase() === "SKIP") return;
     const monthKey = format(parseISO(j.job_date), "yyyy-MM");
     if (!monthMap[monthKey]) {
       monthMap[monthKey] = { month: monthKey, midweighTonnes: 0, skiptrakTonnes: 0, midweighRevenue: 0, skiptrakRevenue: 0 };
