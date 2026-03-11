@@ -74,7 +74,6 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
   const startStr = format(weekStart, "yyyy-MM-dd");
   const endStr = format(weekEnd, "yyyy-MM-dd");
 
-  // Fetch all Midweigh INWARD jobs
   // Fetch Midweigh jobs with job_type WASTEIN or SKIP (yard intake)
   const { data: midweighYardIntake, isLoading: loadingMidweigh } = useQuery({
     queryKey: ["twh-midweigh-yard", startStr, endStr],
@@ -86,7 +85,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, site, vehicle_registration, job_type")
+          .select("job_date, weight_t, site, job_type")
           .eq("source", "midweigh")
           .in("job_type", ["WASTEIN", "SKIP"])
           .gte("job_date", startStr)
@@ -101,21 +100,9 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
     },
   });
 
-  // Build a Set of Midweigh SKIP "vehReg|date" keys for matching Skiptrak jobs
-  const midweighSkipKeys = useMemo(() => {
-    if (!midweighYardIntake) return new Set<string>();
-    const keys = new Set<string>();
-    midweighYardIntake.forEach((j: any) => {
-      if (j.job_type === "SKIP" && j.vehicle_registration && j.job_date) {
-        keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
-      }
-    });
-    return keys;
-  }, [midweighYardIntake]);
-
-  // Fetch all Skiptrak jobs in the date range
+  // Fetch Skiptrak jobs (filter by tipping_location client-side)
   const { data: skiptrakJobs, isLoading: loadingSkiptrak } = useQuery({
-    queryKey: ["twh-skiptrak-all", startStr, endStr],
+    queryKey: ["twh-skiptrak-nonyard", startStr, endStr],
     queryFn: async () => {
       let all: any[] = [];
       let from = 0;
@@ -124,7 +111,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, job_number, site, vehicle_registration")
+          .select("job_date, weight_t, site, tipping_location")
           .eq("source", "skiptrak")
           .gte("job_date", startStr)
           .lte("job_date", endStr)
@@ -155,12 +142,11 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
       buckets[key].midweighIn += (job.weight_t || 0) / 1000;
     });
 
+    // Non-Yard Skip = Skiptrak jobs where tipping_location does NOT start with "Clews Recycling"
     skiptrakJobs.forEach((job: any) => {
       if (!job.job_date || job.weight_t == null) return;
-      if (job.vehicle_registration && job.job_date) {
-        const matchKey = `${job.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${job.job_date}`;
-        if (midweighSkipKeys.has(matchKey)) return; // already counted in Midweigh yard intake
-      }
+      const tipping = (job.tipping_location || "").trim();
+      if (!tipping || tipping.toLowerCase().startsWith("clews recycling")) return;
       if (excludeBP && job.site === "BP Contract") return;
       const key = getBucketKey(parseISO(job.job_date), granularity);
       if (!buckets[key]) return;
@@ -176,7 +162,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
         skiptrakNonYard: Math.round(values.skiptrakNonYard * 100) / 100,
         total: Math.round((values.midweighIn + values.skiptrakNonYard) * 100) / 100,
       }));
-  }, [midweighYardIntake, skiptrakJobs, midweighSkipKeys, externalStartDate, externalEndDate, granularity, excludeBP]);
+  }, [midweighYardIntake, skiptrakJobs, externalStartDate, externalEndDate, granularity, excludeBP]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { midweighIn: 0, skiptrakNonYard: 0, total: 0 };
@@ -273,22 +259,26 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
           <div className="space-y-3 text-sm text-muted-foreground">
             <div>
               <p className="font-medium text-foreground mb-1">Definition</p>
-              <p>Non-Yard Skip tonnage represents waste collected by skip vehicles that was <strong>not</strong> tipped at the yard weighbridge. These are off-site disposals or third-party tips.</p>
+              <p>Non-Yard Skip tonnage represents waste collected by skip vehicles that was tipped at a <strong>third-party location</strong>, not at the Clews Recycling yard.</p>
             </div>
             <div>
-              <p className="font-medium text-foreground mb-1">Matching Logic</p>
+              <p className="font-medium text-foreground mb-1">Logic</p>
               <ol className="list-decimal list-inside space-y-1 ml-1">
                 <li>All Skiptrak jobs in the date range are fetched.</li>
-                <li>All Midweigh jobs with job type <code className="bg-muted px-1 py-0.5 rounded text-xs">SKIP</code> are fetched.</li>
-                <li>Each Skiptrak job's <strong>vehicle registration</strong> (normalised, whitespace removed, uppercased) and <strong>job date</strong> are combined into a match key.</li>
-                <li>If a matching Midweigh SKIP record exists for the same vehicle + date, the Skiptrak job is <em>excluded</em> (it already appears in Yard Intake).</li>
-                <li>Remaining Skiptrak jobs are counted as <strong>Non-Yard Skip</strong>.</li>
+                <li>Each job's <code className="bg-muted px-1 py-0.5 rounded text-xs">tipping_location</code> field is checked.</li>
+                <li>Jobs where tipping location starts with <strong>"Clews Recycling"</strong> are <em>excluded</em> — these were tipped at the yard and are already captured by Midweigh.</li>
+                <li>Jobs with no tipping location are also excluded.</li>
+                <li>All remaining Skiptrak jobs are counted as <strong>Non-Yard Skip</strong>.</li>
               </ol>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-1">Yard Intake</p>
+              <p>All Midweigh records with job type <code className="bg-muted px-1 py-0.5 rounded text-xs">WASTEIN</code> or <code className="bg-muted px-1 py-0.5 rounded text-xs">SKIP</code>.</p>
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">Formula</p>
               <p className="font-mono text-xs bg-muted/60 rounded px-2 py-1.5 inline-block">
-                Total Waste Handled = Yard Intake (Midweigh WASTEIN + SKIP) + Non-Yard Skip (unmatched Skiptrak)
+                Total Waste Handled = Yard Intake (Midweigh) + Non-Yard Skip (Skiptrak where tipping ≠ Clews Recycling)
               </p>
             </div>
           </div>
