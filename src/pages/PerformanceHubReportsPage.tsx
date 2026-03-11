@@ -7,7 +7,7 @@ import { ArrowLeft, BarChart3, Sparkles, CalendarIcon, Settings2 } from "lucide-
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
