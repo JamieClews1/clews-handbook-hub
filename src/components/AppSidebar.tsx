@@ -27,6 +27,7 @@ import {
   Upload,
   Gauge,
   Radio,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -262,6 +263,14 @@ export function AppSidebar() {
                       <Link to="/performance-hub/waste-kpis">
                         <Gauge className="h-4 w-4" />
                         {!collapsed && <span>Waste KPIs</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/projections")}>
+                      <Link to="/performance-hub/projections">
+                        <TrendingUp className="h-4 w-4" />
+                        {!collapsed && <span>Projections</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
