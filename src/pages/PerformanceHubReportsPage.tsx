@@ -48,6 +48,10 @@ const PerformanceHubReportsPage = () => {
         setStartDate(startOfMonth(subMonths(now, 23)));
         setEndDate(now);
         break;
+      case "ytd":
+        setStartDate(startOfYear(now));
+        setEndDate(now);
+        break;
     }
   };
 
