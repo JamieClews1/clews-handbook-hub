@@ -66,6 +66,7 @@ function generateBucketKeys(start: Date, end: Date, granularity: Granularity): s
 
 const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate }: WasteOnsiteOffsiteProps) => {
   const [granularity, setGranularity] = useState<Granularity>("weekly");
+  const [showTable, setShowTable] = useState(false);
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
