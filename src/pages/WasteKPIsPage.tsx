@@ -182,37 +182,35 @@ const WasteKPIsPage = () => {
               ))}
             </div>
 
-            {/* Compare previous years - only shown when YTD is active */}
-            {isYTD && (
-              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
-                <GitCompareArrows className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground mr-1">Compare:</span>
-                <Button
-                  variant={compareYears === 0 ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => setCompareYears(0)}
-                >
-                  Off
-                </Button>
-                <Button
-                  variant={compareYears === 1 ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => setCompareYears(1)}
-                >
-                  vs {currentYear - 1}
-                </Button>
-                <Button
-                  variant={compareYears === 2 ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => setCompareYears(2)}
-                >
-                  vs {currentYear - 1} & {currentYear - 2}
-                </Button>
-              </div>
-            )}
+            {/* Compare previous years */}
+            <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
+              <GitCompareArrows className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground mr-1">Compare:</span>
+              <Button
+                variant={compareYears === 0 ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setCompareYears(0)}
+              >
+                Off
+              </Button>
+              <Button
+                variant={compareYears === 1 ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setCompareYears(1)}
+              >
+                vs Prev Year
+              </Button>
+              <Button
+                variant={compareYears === 2 ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setCompareYears(2)}
+              >
+                vs Prev 2 Years
+              </Button>
+            </div>
           </div>
 
           {/* Current Year Charts */}
