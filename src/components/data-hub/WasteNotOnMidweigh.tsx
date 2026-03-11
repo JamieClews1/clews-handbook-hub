@@ -45,6 +45,7 @@ async function fetchAllPaged(query: any) {
 
 const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate }: WasteNotOnMidweighProps) => {
   const [selectedSite, setSelectedSite] = useState<string>("all");
+  const [showTable, setShowTable] = useState(false);
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
