@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Gauge, CalendarIcon } from "lucide-react";
-import { format, subMonths, startOfMonth, endOfWeek, startOfYear } from "date-fns";
+import { ArrowLeft, Gauge, CalendarIcon, GitCompareArrows } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format, subMonths, subYears, startOfMonth, endOfWeek, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
@@ -20,6 +21,8 @@ const WasteKPIsPage = () => {
   const now = new Date();
   const [startDate, setStartDate] = useState<Date>(startOfMonth(subMonths(now, 11)));
   const [endDate, setEndDate] = useState<Date>(endOfWeek(now, { weekStartsOn: 1 }));
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [compareYears, setCompareYears] = useState<number>(0); // 0 = off, 1 = vs last year, 2 = vs last 2 years
 
   useEffect(() => {
     if (!loading && !user) {
@@ -29,6 +32,10 @@ const WasteKPIsPage = () => {
 
   const applyPreset = (preset: string) => {
     const now = new Date();
+    setActivePreset(preset);
+    if (preset !== "ytd") {
+      setCompareYears(0);
+    }
     switch (preset) {
       case "3m":
         setStartDate(startOfMonth(subMonths(now, 2)));
@@ -53,6 +60,33 @@ const WasteKPIsPage = () => {
     }
   };
 
+  const handleManualDateChange = (setter: (d: Date) => void) => (d: Date | undefined) => {
+    if (d) {
+      setter(d);
+      setActivePreset(null);
+      setCompareYears(0);
+    }
+  };
+
+  const isYTD = activePreset === "ytd";
+
+  // Generate previous year date ranges for comparison
+  const previousYearRanges = useMemo(() => {
+    if (!isYTD || compareYears === 0) return [];
+    const ranges: { year: number; start: Date; end: Date }[] = [];
+    const currentYear = now.getFullYear();
+    const currentDayOfYear = now;
+
+    for (let i = 1; i <= compareYears; i++) {
+      const prevYear = currentYear - i;
+      const prevStart = startOfYear(new Date(prevYear, 0, 1));
+      // End at the same day-of-year in previous year (or end of year if we're past it)
+      const prevEnd = new Date(prevYear, currentDayOfYear.getMonth(), currentDayOfYear.getDate());
+      ranges.push({ year: prevYear, start: prevStart, end: prevEnd });
+    }
+    return ranges;
+  }, [isYTD, compareYears]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -65,6 +99,8 @@ const WasteKPIsPage = () => {
   }
 
   if (!user) return null;
+
+  const currentYear = now.getFullYear();
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,7 +146,7 @@ const WasteKPIsPage = () => {
                 <Calendar
                   mode="single"
                   selected={startDate}
-                  onSelect={(d) => d && setStartDate(d)}
+                  onSelect={handleManualDateChange(setStartDate)}
                   disabled={(d) => d > endDate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
@@ -129,7 +165,7 @@ const WasteKPIsPage = () => {
                 <Calendar
                   mode="single"
                   selected={endDate}
-                  onSelect={(d) => d && setEndDate(d)}
+                  onSelect={handleManualDateChange(setEndDate)}
                   disabled={(d) => d < startDate || d > new Date()}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
@@ -144,24 +180,83 @@ const WasteKPIsPage = () => {
                 { label: "12M", value: "12m" },
                 { label: "24M", value: "24m" },
               ].map((p) => (
-                <Button key={p.value} variant="outline" size="sm" className="text-xs h-8 px-3" onClick={() => applyPreset(p.value)}>
+                <Button
+                  key={p.value}
+                  variant={activePreset === p.value ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-8 px-3"
+                  onClick={() => applyPreset(p.value)}
+                >
                   {p.label}
                 </Button>
               ))}
             </div>
+
+            {/* Compare previous years - only shown when YTD is active */}
+            {isYTD && (
+              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
+                <GitCompareArrows className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground mr-1">Compare:</span>
+                <Button
+                  variant={compareYears === 0 ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setCompareYears(0)}
+                >
+                  Off
+                </Button>
+                <Button
+                  variant={compareYears === 1 ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setCompareYears(1)}
+                >
+                  vs {currentYear - 1}
+                </Button>
+                <Button
+                  variant={compareYears === 2 ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setCompareYears(2)}
+                >
+                  vs {currentYear - 1} & {currentYear - 2}
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Total Waste Handled */}
+          {/* Current Year Charts */}
+          {isYTD && compareYears > 0 && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
+                {currentYear} — Year to Date
+              </Badge>
+            </div>
+          )}
+
           <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} />
-
-          {/* Waste Not On Midweigh */}
           <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} />
-
-          {/* On-Site vs Off-Site Tipping */}
           <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} />
-
-          {/* Grade C Wood KPIs */}
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
+
+          {/* Previous Year Comparisons */}
+          {previousYearRanges.map((range) => (
+            <div key={range.year} className="space-y-8">
+              <div className="flex items-center gap-2 pt-4 border-t border-border">
+                <Badge variant="secondary" className="text-sm font-semibold px-3 py-1">
+                  {range.year} — Jan 1 to {format(range.end, "dd MMM")}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  Comparison period
+                </span>
+              </div>
+
+              <TotalWasteHandled externalStartDate={range.start} externalEndDate={range.end} />
+              <WasteNotOnMidweigh externalStartDate={range.start} externalEndDate={range.end} />
+              <WasteOnsiteOffsite externalStartDate={range.start} externalEndDate={range.end} />
+              <WasteKPIGradeCWood externalStartDate={range.start} externalEndDate={range.end} />
+            </div>
+          ))}
         </div>
       </main>
     </div>
