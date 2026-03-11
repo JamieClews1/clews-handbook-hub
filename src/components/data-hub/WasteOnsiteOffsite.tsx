@@ -140,17 +140,18 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
         else currentBuckets[m].offsite += job.weight_t || 0;
       });
 
-      const compData: Record<number, Record<number, number>> = {};
-      compQueries.forEach(cq => {
-        if (!cq.query.data) return;
-        const monthTotals: Record<number, number> = {};
-        cq.query.data.forEach((job: any) => {
-          if (!job.job_date || job.weight_t == null) return;
-          const m = getMonth(parseISO(job.job_date));
-          monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+      const compTotals: Record<number, Record<number, number>> = {};
+      if (compData) {
+        Object.entries(compData).forEach(([yearStr, jobs]) => {
+          const monthTotals: Record<number, number> = {};
+          (jobs as any[]).forEach((job: any) => {
+            if (!job.job_date || job.weight_t == null) return;
+            const m = getMonth(parseISO(job.job_date));
+            monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+          });
+          compTotals[Number(yearStr)] = monthTotals;
         });
-        compData[cq.year] = monthTotals;
-      });
+      }
 
       return monthIndices.map(m => {
         const row: any = {

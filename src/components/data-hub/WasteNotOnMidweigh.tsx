@@ -222,7 +222,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
       row.total = Math.round(total * 100) / 100;
       return row;
     });
-  }, [nonYardJobs, selectedSite, weekStart, weekEnd, hasComparison, compQueries, comparisonRanges, externalStartDate, externalEndDate]);
+  }, [nonYardJobs, selectedSite, weekStart, weekEnd, hasComparison, compData, comparisonRanges, externalStartDate, externalEndDate]);
 
   const seriesKeys = useMemo(() => {
     if (!chartData.length || hasComparison) return [];
