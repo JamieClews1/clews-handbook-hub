@@ -301,7 +301,25 @@ const TotalRevenue = ({ externalStartDate, externalEndDate, comparisonRanges = [
               />
               <YAxis className="text-xs" tick={{ fontSize: 11 }} tickFormatter={v => `£${(v / 1000).toFixed(0)}k`} />
               <ChartTooltip
-                content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
+                content={
+                  <ChartTooltipContent
+                    formatter={(value, name) => {
+                      const formatted = formatCurrency(value as number);
+                      // Map data keys to clearer labels
+                      const labelMap: Record<string, string> = {
+                        midweigh: "Midweigh",
+                        skiptrak: "Skiptrak",
+                        total: "Total",
+                        cumTotal: "Cumulative",
+                      };
+                      // Add comparison labels
+                      comparisonRanges.forEach((r) => {
+                        labelMap[`comp_${r.year}`] = `Total ${r.year}`;
+                      });
+                      return [formatted, labelMap[name as string] || name];
+                    }}
+                  />
+                }
               />
               <Legend />
               <Bar dataKey="midweigh" stackId="revenue" fill="hsl(210, 70%, 50%)" radius={[0, 0, 0, 0]} name="Midweigh" />
