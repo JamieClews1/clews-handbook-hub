@@ -103,22 +103,25 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
     ),
   });
 
-  const compQueries = comparisonRanges.map((range) => {
-    const cStartStr = format(range.start, "yyyy-MM-dd");
-    const cEndStr = format(range.end, "yyyy-MM-dd");
-    return {
-      year: range.year,
-      query: useQuery({
-        queryKey: ["waste-onsite-offsite-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
+  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const { data: compData, isLoading: compLoading } = useQuery({
+    queryKey: ["waste-onsite-offsite-comp", compRangeKey],
+    queryFn: async () => {
+      const results: Record<number, any[]> = {};
+      await Promise.all(comparisonRanges.map(async (range) => {
+        const cStartStr = format(range.start, "yyyy-MM-dd");
+        const cEndStr = format(range.end, "yyyy-MM-dd");
+        results[range.year] = await fetchAllPaged(
           supabase.from("data_hub_jobs").select("job_date, weight_t, tipping_location")
             .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-    };
+        );
+      }));
+      return results;
+    },
+    enabled: comparisonRanges.length > 0,
   });
 
-  const isLoading = loadingMain || compQueries.some(q => q.query.isLoading);
+  const isLoading = loadingMain || compLoading;
 
   const chartData = useMemo(() => {
     if (!skiptrakJobs) return [];

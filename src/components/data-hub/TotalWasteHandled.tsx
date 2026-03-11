@@ -141,31 +141,33 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
     ),
   });
 
-  // Fetch comparison year data
-  const compQueries = comparisonRanges.map((range) => {
-    const cStartStr = format(range.start, "yyyy-MM-dd");
-    const cEndStr = format(range.end, "yyyy-MM-dd");
-    return {
-      year: range.year,
-      midweigh: useQuery({
-        queryKey: ["twh-midweigh-yard-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
-          supabase.from("data_hub_jobs").select("job_date, weight_t, site, job_type")
-            .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
-            .gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-      skiptrak: useQuery({
-        queryKey: ["twh-skiptrak-nonyard-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
-          supabase.from("data_hub_jobs").select("job_date, weight_t, site, tipping_location")
-            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-    };
+  // Fetch comparison year data in a single query to avoid hooks-in-loop
+  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const { data: compData, isLoading: compLoading } = useQuery({
+    queryKey: ["twh-comparison", compRangeKey],
+    queryFn: async () => {
+      const results: Record<number, { midweigh: any[]; skiptrak: any[] }> = {};
+      await Promise.all(comparisonRanges.map(async (range) => {
+        const cStartStr = format(range.start, "yyyy-MM-dd");
+        const cEndStr = format(range.end, "yyyy-MM-dd");
+        const [midweigh, skiptrak] = await Promise.all([
+          fetchAllPaged(
+            supabase.from("data_hub_jobs").select("job_date, weight_t, site, job_type")
+              .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
+              .gte("job_date", cStartStr).lte("job_date", cEndStr)
+          ),
+          fetchAllPaged(
+            supabase.from("data_hub_jobs").select("job_date, weight_t, site, tipping_location")
+              .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+          ),
+        ]);
+        results[range.year] = { midweigh, skiptrak };
+      }));
+      return results;
+    },
+    enabled: comparisonRanges.length > 0,
   });
 
-  const compLoading = compQueries.some(q => q.midweigh.isLoading || q.skiptrak.isLoading);
   const isLoading = loadingMidweigh || loadingSkiptrak || compLoading;
 
   const chartData = useMemo(() => {

@@ -81,40 +81,40 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
     ),
   });
 
-  // Comparison year queries
-  const compQueries = comparisonRanges.map((range) => {
-    const cStartStr = format(range.start, "yyyy-MM-dd");
-    const cEndStr = format(range.end, "yyyy-MM-dd");
-    return {
-      year: range.year,
-      midweigh: useQuery({
-        queryKey: ["wnm-midweigh-skip-comp", cStartStr, cEndStr],
-        queryFn: async () => {
-          const all = await fetchAllPaged(
+  // Comparison year queries - single useQuery to avoid hooks-in-loop
+  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const { data: compData, isLoading: compLoading } = useQuery({
+    queryKey: ["wnm-comparison", compRangeKey],
+    queryFn: async () => {
+      const results: Record<number, { midweighKeys: Set<string>; skiptrak: any[] }> = {};
+      await Promise.all(comparisonRanges.map(async (range) => {
+        const cStartStr = format(range.start, "yyyy-MM-dd");
+        const cEndStr = format(range.end, "yyyy-MM-dd");
+        const [midweighRaw, skiptrak] = await Promise.all([
+          fetchAllPaged(
             supabase.from("data_hub_jobs").select("vehicle_registration, job_date")
               .eq("source", "midweigh").eq("job_type", "SKIP")
               .gte("job_date", cStartStr).lte("job_date", cEndStr)
-          );
-          const keys = new Set<string>();
-          all.forEach((j: any) => {
-            if (j.vehicle_registration && j.job_date) {
-              keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
-            }
-          });
-          return keys;
-        },
-      }),
-      skiptrak: useQuery({
-        queryKey: ["wnm-skiptrak-all-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
-          supabase.from("data_hub_jobs").select("job_date, weight_t, vehicle_registration")
-            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-    };
+          ),
+          fetchAllPaged(
+            supabase.from("data_hub_jobs").select("job_date, weight_t, vehicle_registration")
+              .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+          ),
+        ]);
+        const keys = new Set<string>();
+        midweighRaw.forEach((j: any) => {
+          if (j.vehicle_registration && j.job_date) {
+            keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
+          }
+        });
+        results[range.year] = { midweighKeys: keys, skiptrak };
+      }));
+      return results;
+    },
+    enabled: comparisonRanges.length > 0,
   });
 
-  const isLoading = loadingMidweigh || loadingSkiptrak || compQueries.some(q => q.midweigh.isLoading || q.skiptrak.isLoading);
+  const isLoading = loadingMidweigh || loadingSkiptrak || compLoading;
 
   const nonYardJobs = useMemo(() => {
     if (!skiptrakJobs || !midweighSkipKeys) return [];
