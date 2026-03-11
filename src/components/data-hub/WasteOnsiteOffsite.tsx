@@ -187,7 +187,7 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
       offsite: Math.round(values.offsite * 100) / 100,
       total: Math.round((values.onsite + values.offsite) * 100) / 100,
     }));
-  }, [skiptrakJobs, compQueries, externalStartDate, externalEndDate, effectiveGranularity, hasComparison, comparisonRanges]);
+  }, [skiptrakJobs, compData, externalStartDate, externalEndDate, effectiveGranularity, hasComparison, comparisonRanges]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { onsite: 0, offsite: 0, total: 0 };
