@@ -210,6 +210,15 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
           </div>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
+          <Button
+            variant={showMethodology ? "secondary" : "ghost"}
+            size="sm"
+            className="text-xs h-7 px-2 gap-1"
+            onClick={() => setShowMethodology(!showMethodology)}
+          >
+            <Info className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">How it's calculated</span>
+          </Button>
           <div className="flex items-center gap-2">
             <Switch id="exclude-bp" checked={excludeBP} onCheckedChange={setExcludeBP} />
             <Label htmlFor="exclude-bp" className="text-xs cursor-pointer">Excl. Biffa BP</Label>
