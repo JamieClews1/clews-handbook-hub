@@ -61,28 +61,21 @@ const WasteKPIsPage = () => {
     if (d) {
       setter(d);
       setActivePreset(null);
-      setCompareYears(0);
     }
   };
 
-  const isYTD = activePreset === "ytd";
-
-  // Generate previous year date ranges for comparison
+  // Generate previous year date ranges for comparison - works on any timeframe
   const previousYearRanges = useMemo(() => {
-    if (!isYTD || compareYears === 0) return [];
+    if (compareYears === 0) return [];
     const ranges: { year: number; start: Date; end: Date }[] = [];
-    const currentYear = now.getFullYear();
-    const currentDayOfYear = now;
-
+    
     for (let i = 1; i <= compareYears; i++) {
-      const prevYear = currentYear - i;
-      const prevStart = startOfYear(new Date(prevYear, 0, 1));
-      // End at the same day-of-year in previous year (or end of year if we're past it)
-      const prevEnd = new Date(prevYear, currentDayOfYear.getMonth(), currentDayOfYear.getDate());
-      ranges.push({ year: prevYear, start: prevStart, end: prevEnd });
+      const prevStart = subYears(startDate, i);
+      const prevEnd = subYears(endDate, i);
+      ranges.push({ year: prevStart.getFullYear(), start: prevStart, end: prevEnd });
     }
     return ranges;
-  }, [isYTD, compareYears]);
+  }, [compareYears, startDate.getTime(), endDate.getTime()]);
 
   if (loading) {
     return (
