@@ -267,6 +267,14 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/projections")}>
+                      <Link to="/performance-hub/projections">
+                        <TrendingUp className="h-4 w-4" />
+                        {!collapsed && <span>Projections</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/reports")}>
                       <Link to="/performance-hub/reports">
                         <BarChart3 className="h-4 w-4" />
