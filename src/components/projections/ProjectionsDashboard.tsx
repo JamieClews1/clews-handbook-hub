@@ -80,9 +80,9 @@ function aggregateToMonths(jobs: { job_date: string; source: string; job_type: s
         tonnes = (j.weight_t || 0) / 1000; // KG → tonnes
       }
     } else {
-      // Skiptrak: exclude yard jobs
-      const tipping = (j.tipping_location || "").trim();
-      if (!tipping || tipping.toLowerCase().startsWith("clews recycling")) {
+      // Skiptrak: exclude yard jobs (tipping_location starting with "Clews Recycling")
+      const tipping = (j.tipping_location || "").trim().toLowerCase();
+      if (tipping.startsWith("clews recycling")) {
         tonnes = 0; // yard job — exclude from tonnage
       } else {
         tonnes = j.weight_t || 0; // already in tonnes
