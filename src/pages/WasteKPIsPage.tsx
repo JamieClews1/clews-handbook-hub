@@ -33,9 +33,6 @@ const WasteKPIsPage = () => {
   const applyPreset = (preset: string) => {
     const now = new Date();
     setActivePreset(preset);
-    if (preset !== "ytd") {
-      setCompareYears(0);
-    }
     switch (preset) {
       case "3m":
         setStartDate(startOfMonth(subMonths(now, 2)));
@@ -64,28 +61,21 @@ const WasteKPIsPage = () => {
     if (d) {
       setter(d);
       setActivePreset(null);
-      setCompareYears(0);
     }
   };
 
-  const isYTD = activePreset === "ytd";
-
-  // Generate previous year date ranges for comparison
+  // Generate previous year date ranges for comparison - works on any timeframe
   const previousYearRanges = useMemo(() => {
-    if (!isYTD || compareYears === 0) return [];
+    if (compareYears === 0) return [];
     const ranges: { year: number; start: Date; end: Date }[] = [];
-    const currentYear = now.getFullYear();
-    const currentDayOfYear = now;
-
+    
     for (let i = 1; i <= compareYears; i++) {
-      const prevYear = currentYear - i;
-      const prevStart = startOfYear(new Date(prevYear, 0, 1));
-      // End at the same day-of-year in previous year (or end of year if we're past it)
-      const prevEnd = new Date(prevYear, currentDayOfYear.getMonth(), currentDayOfYear.getDate());
-      ranges.push({ year: prevYear, start: prevStart, end: prevEnd });
+      const prevStart = subYears(startDate, i);
+      const prevEnd = subYears(endDate, i);
+      ranges.push({ year: prevStart.getFullYear(), start: prevStart, end: prevEnd });
     }
     return ranges;
-  }, [isYTD, compareYears]);
+  }, [compareYears, startDate.getTime(), endDate.getTime()]);
 
   if (loading) {
     return (
@@ -192,45 +182,48 @@ const WasteKPIsPage = () => {
               ))}
             </div>
 
-            {/* Compare previous years - only shown when YTD is active */}
-            {isYTD && (
-              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
-                <GitCompareArrows className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground mr-1">Compare:</span>
-                <Button
-                  variant={compareYears === 0 ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => setCompareYears(0)}
-                >
-                  Off
-                </Button>
-                <Button
-                  variant={compareYears === 1 ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => setCompareYears(1)}
-                >
-                  vs {currentYear - 1}
-                </Button>
-                <Button
-                  variant={compareYears === 2 ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => setCompareYears(2)}
-                >
-                  vs {currentYear - 1} & {currentYear - 2}
-                </Button>
-              </div>
-            )}
+            {/* Compare previous years */}
+            <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
+              <GitCompareArrows className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground mr-1">Compare:</span>
+              <Button
+                variant={compareYears === 0 ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setCompareYears(0)}
+              >
+                Off
+              </Button>
+              <Button
+                variant={compareYears === 1 ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setCompareYears(1)}
+              >
+                vs Prev Year
+              </Button>
+              <Button
+                variant={compareYears === 2 ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => setCompareYears(2)}
+              >
+                vs Prev 2 Years
+              </Button>
+            </div>
           </div>
 
-          {/* Current Year Charts */}
-          {isYTD && compareYears > 0 && (
+          {/* Current period label when comparing */}
+          {compareYears > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
-                {currentYear} — Year to Date
+                Current: {format(startDate, "dd MMM yyyy")} — {format(endDate, "dd MMM yyyy")}
               </Badge>
+              {previousYearRanges.map(r => (
+                <Badge key={r.year} variant="secondary" className="text-sm px-3 py-1">
+                  vs {format(r.start, "dd MMM yyyy")} — {format(r.end, "dd MMM yyyy")}
+                </Badge>
+              ))}
             </div>
           )}
 
