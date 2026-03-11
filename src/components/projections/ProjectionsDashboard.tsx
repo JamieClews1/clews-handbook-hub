@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, XAxis, YAxis, CartesianGrid, ComposedChart, Legend, Line } from "recharts";
 import { TrendingUp, Weight, PoundSterling, Loader2, Info } from "lucide-react";
-import { format, parseISO, startOfMonth, eachMonthOfInterval, subYears } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type MonthlyData = {
@@ -38,14 +38,12 @@ const formatTonnes = (v: number) =>
 export function ProjectionsDashboard() {
   const [showMethodology, setShowMethodology] = useState(false);
 
-  // Fetch last 2 years of data for projection basis
+  // Fetch 2024 and 2025 complete years only (exclude partial 2026)
   const { data: historicalData, isLoading } = useQuery({
     queryKey: ["projections-historical"],
     queryFn: async () => {
-      const end = new Date();
-      const start = subYears(end, 2);
-      const startStr = format(start, "yyyy-MM-dd");
-      const endStr = format(end, "yyyy-MM-dd");
+      const startStr = "2024-01-01";
+      const endStr = "2025-12-31";
 
       const pageSize = 1000;
       let allJobs: { job_date: string; source: string; weight_t: number | null; raw: Record<string, unknown> }[] = [];
@@ -107,24 +105,21 @@ export function ProjectionsDashboard() {
       monthlyAvgs[calMonth].count += 1;
     });
 
-    // Apply a simple growth factor: compare last 12 months total vs prior 12 months
-    const now = new Date();
-    const last12Start = format(subYears(now, 1), "yyyy-MM");
-    const prev12Start = format(subYears(now, 2), "yyyy-MM");
-
-    let last12Rev = 0, prev12Rev = 0, last12Tonnes = 0, prev12Tonnes = 0;
+    // Compare 2025 totals vs 2024 totals for growth factor
+    let y2025Rev = 0, y2024Rev = 0, y2025Tonnes = 0, y2024Tonnes = 0;
     history.forEach((d) => {
-      if (d.month >= last12Start) {
-        last12Rev += d.midweighRevenue + d.skiptrakRevenue;
-        last12Tonnes += d.midweighTonnes + d.skiptrakTonnes;
-      } else if (d.month >= prev12Start) {
-        prev12Rev += d.midweighRevenue + d.skiptrakRevenue;
-        prev12Tonnes += d.midweighTonnes + d.skiptrakTonnes;
+      const year = d.month.substring(0, 4);
+      if (year === "2025") {
+        y2025Rev += d.midweighRevenue + d.skiptrakRevenue;
+        y2025Tonnes += d.midweighTonnes + d.skiptrakTonnes;
+      } else if (year === "2024") {
+        y2024Rev += d.midweighRevenue + d.skiptrakRevenue;
+        y2024Tonnes += d.midweighTonnes + d.skiptrakTonnes;
       }
     });
 
-    const revenueGrowth = prev12Rev > 0 ? last12Rev / prev12Rev : 1;
-    const tonnesGrowth = prev12Tonnes > 0 ? last12Tonnes / prev12Tonnes : 1;
+    const revenueGrowth = y2024Rev > 0 ? y2025Rev / y2024Rev : 1;
+    const tonnesGrowth = y2024Tonnes > 0 ? y2025Tonnes / y2024Tonnes : 1;
 
     // Generate 2026 projections
     const projected: {
@@ -226,9 +221,11 @@ export function ProjectionsDashboard() {
           <CardContent className="pt-4 text-sm text-muted-foreground space-y-2">
             <p className="font-medium text-foreground">How projections are calculated</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Monthly averages are calculated for each calendar month using the last 2 years of data to capture <strong>seasonal patterns</strong>.</li>
-              <li>A <strong>year-over-year growth factor</strong> is applied by comparing the most recent 12 months against the prior 12 months.</li>
+              <li>Based on <strong>complete 2024 and 2025 data only</strong> — partial 2026 data is excluded to avoid dilution.</li>
+              <li>Monthly averages are calculated for each calendar month across both years to capture <strong>seasonal patterns</strong>.</li>
+              <li>A <strong>year-over-year growth factor</strong> is applied by comparing 2025 totals against 2024 totals.</li>
               <li>Tonnage and revenue are projected independently to account for differing growth rates.</li>
+              <li>Midweigh weights are converted from KG to tonnes (÷1000). Skiptrak weights are already in tonnes.</li>
               <li>Midweigh revenue uses the "Total Price" field; Skiptrak uses the "Cost" field from raw job data.</li>
             </ul>
             {summaryCards && (
