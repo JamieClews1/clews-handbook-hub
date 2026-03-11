@@ -69,6 +69,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
   const [granularity, setGranularity] = useState<Granularity>("weekly");
   const [excludeBP, setExcludeBP] = useState(false);
   const [showMethodology, setShowMethodology] = useState(false);
+  const [showTable, setShowTable] = useState(false);
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
