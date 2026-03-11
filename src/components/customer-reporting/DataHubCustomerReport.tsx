@@ -410,6 +410,7 @@ export const DataHubCustomerReport = () => {
       <div className="flex flex-wrap gap-2">
         <span className="text-sm text-muted-foreground self-center mr-1">Quick select:</span>
         {[
+          { label: "YTD", value: "ytd" },
           { label: "This Month", value: "this-month" },
           { label: "Last Month", value: "last-month" },
           { label: "Last 3 Months", value: "last-3" },

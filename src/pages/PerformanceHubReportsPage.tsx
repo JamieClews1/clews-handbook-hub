@@ -143,6 +143,7 @@ const PerformanceHubReportsPage = () => {
             </Popover>
             <div className="flex gap-1.5 ml-2">
               {[
+                { label: "YTD", value: "ytd" },
                 { label: "3M", value: "3m" },
                 { label: "6M", value: "6m" },
                 { label: "12M", value: "12m" },
