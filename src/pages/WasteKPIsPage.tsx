@@ -13,6 +13,7 @@ import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
 import WasteNotOnMidweigh from "@/components/data-hub/WasteNotOnMidweigh";
 import WasteOnsiteOffsite from "@/components/data-hub/WasteOnsiteOffsite";
+import TotalRevenue from "@/components/data-hub/TotalRevenue";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
