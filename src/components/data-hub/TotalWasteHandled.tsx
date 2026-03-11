@@ -216,7 +216,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
           total: Math.round((currentBuckets[m].midweighIn + currentBuckets[m].skiptrakNonYard) * 100) / 100,
         };
         comparisonRanges.forEach(range => {
-          row[`total_${range.year}`] = Math.round((compData[range.year]?.[m] || 0) * 100) / 100;
+          row[`total_${range.year}`] = Math.round((compTotals[range.year]?.[m] || 0) * 100) / 100;
         });
         return row;
       });
