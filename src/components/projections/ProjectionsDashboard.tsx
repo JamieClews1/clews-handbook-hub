@@ -62,7 +62,7 @@ function fetchAllPages(startStr: string, endStr: string) {
   };
 }
 
-function aggregateToMonths(jobs: { job_date: string; source: string; weight_t: number | null; raw: Record<string, unknown> }[]): MonthlyData[] {
+function aggregateToMonths(jobs: { job_date: string; source: string; job_type: string | null; weight_t: number | null; raw: Record<string, unknown> }[]): MonthlyData[] {
   const monthMap: Record<string, MonthlyData> = {};
   jobs.forEach((j) => {
     if (!j.job_date) return;
