@@ -213,12 +213,17 @@ const WasteKPIsPage = () => {
             </div>
           </div>
 
-          {/* Current Year Charts */}
-          {isYTD && compareYears > 0 && (
+          {/* Current period label when comparing */}
+          {compareYears > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
-                {currentYear} — Year to Date
+                Current: {format(startDate, "dd MMM yyyy")} — {format(endDate, "dd MMM yyyy")}
               </Badge>
+              {previousYearRanges.map(r => (
+                <Badge key={r.year} variant="secondary" className="text-sm px-3 py-1">
+                  vs {format(r.start, "dd MMM yyyy")} — {format(r.end, "dd MMM yyyy")}
+                </Badge>
+              ))}
             </div>
           )}
 
