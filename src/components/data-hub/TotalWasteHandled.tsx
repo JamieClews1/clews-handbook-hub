@@ -141,31 +141,33 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
     ),
   });
 
-  // Fetch comparison year data
-  const compQueries = comparisonRanges.map((range) => {
-    const cStartStr = format(range.start, "yyyy-MM-dd");
-    const cEndStr = format(range.end, "yyyy-MM-dd");
-    return {
-      year: range.year,
-      midweigh: useQuery({
-        queryKey: ["twh-midweigh-yard-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
-          supabase.from("data_hub_jobs").select("job_date, weight_t, site, job_type")
-            .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
-            .gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-      skiptrak: useQuery({
-        queryKey: ["twh-skiptrak-nonyard-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
-          supabase.from("data_hub_jobs").select("job_date, weight_t, site, tipping_location")
-            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-    };
+  // Fetch comparison year data in a single query to avoid hooks-in-loop
+  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const { data: compData, isLoading: compLoading } = useQuery({
+    queryKey: ["twh-comparison", compRangeKey],
+    queryFn: async () => {
+      const results: Record<number, { midweigh: any[]; skiptrak: any[] }> = {};
+      await Promise.all(comparisonRanges.map(async (range) => {
+        const cStartStr = format(range.start, "yyyy-MM-dd");
+        const cEndStr = format(range.end, "yyyy-MM-dd");
+        const [midweigh, skiptrak] = await Promise.all([
+          fetchAllPaged(
+            supabase.from("data_hub_jobs").select("job_date, weight_t, site, job_type")
+              .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
+              .gte("job_date", cStartStr).lte("job_date", cEndStr)
+          ),
+          fetchAllPaged(
+            supabase.from("data_hub_jobs").select("job_date, weight_t, site, tipping_location")
+              .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+          ),
+        ]);
+        results[range.year] = { midweigh, skiptrak };
+      }));
+      return results;
+    },
+    enabled: comparisonRanges.length > 0,
   });
 
-  const compLoading = compQueries.some(q => q.midweigh.isLoading || q.skiptrak.isLoading);
   const isLoading = loadingMidweigh || loadingSkiptrak || compLoading;
 
   const chartData = useMemo(() => {
@@ -196,11 +198,12 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
       });
 
       // Compute comparison year totals by month
-      const compData: Record<number, Record<number, number>> = {};
-      compQueries.forEach(cq => {
-        if (!cq.midweigh.data || !cq.skiptrak.data) return;
-        compData[cq.year] = computeTotals(cq.midweigh.data, cq.skiptrak.data, excludeBP);
-      });
+      const compTotals: Record<number, Record<number, number>> = {};
+      if (compData) {
+        Object.entries(compData).forEach(([yearStr, data]) => {
+          compTotals[Number(yearStr)] = computeTotals(data.midweigh, data.skiptrak, excludeBP);
+        });
+      }
 
       const currentYear = externalStartDate.getFullYear();
 
@@ -213,7 +216,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
           total: Math.round((currentBuckets[m].midweighIn + currentBuckets[m].skiptrakNonYard) * 100) / 100,
         };
         comparisonRanges.forEach(range => {
-          row[`total_${range.year}`] = Math.round((compData[range.year]?.[m] || 0) * 100) / 100;
+          row[`total_${range.year}`] = Math.round((compTotals[range.year]?.[m] || 0) * 100) / 100;
         });
         return row;
       });
@@ -251,7 +254,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
         skiptrakNonYard: Math.round(values.skiptrakNonYard * 100) / 100,
         total: Math.round((values.midweighIn + values.skiptrakNonYard) * 100) / 100,
       }));
-  }, [midweighYardIntake, skiptrakJobs, compQueries, externalStartDate, externalEndDate, effectiveGranularity, excludeBP, hasComparison, comparisonRanges]);
+  }, [midweighYardIntake, skiptrakJobs, compData, externalStartDate, externalEndDate, effectiveGranularity, excludeBP, hasComparison, comparisonRanges]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { midweighIn: 0, skiptrakNonYard: 0, total: 0 };

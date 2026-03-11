@@ -81,40 +81,40 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
     ),
   });
 
-  // Comparison year queries
-  const compQueries = comparisonRanges.map((range) => {
-    const cStartStr = format(range.start, "yyyy-MM-dd");
-    const cEndStr = format(range.end, "yyyy-MM-dd");
-    return {
-      year: range.year,
-      midweigh: useQuery({
-        queryKey: ["wnm-midweigh-skip-comp", cStartStr, cEndStr],
-        queryFn: async () => {
-          const all = await fetchAllPaged(
+  // Comparison year queries - single useQuery to avoid hooks-in-loop
+  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const { data: compData, isLoading: compLoading } = useQuery({
+    queryKey: ["wnm-comparison", compRangeKey],
+    queryFn: async () => {
+      const results: Record<number, { midweighKeys: Set<string>; skiptrak: any[] }> = {};
+      await Promise.all(comparisonRanges.map(async (range) => {
+        const cStartStr = format(range.start, "yyyy-MM-dd");
+        const cEndStr = format(range.end, "yyyy-MM-dd");
+        const [midweighRaw, skiptrak] = await Promise.all([
+          fetchAllPaged(
             supabase.from("data_hub_jobs").select("vehicle_registration, job_date")
               .eq("source", "midweigh").eq("job_type", "SKIP")
               .gte("job_date", cStartStr).lte("job_date", cEndStr)
-          );
-          const keys = new Set<string>();
-          all.forEach((j: any) => {
-            if (j.vehicle_registration && j.job_date) {
-              keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
-            }
-          });
-          return keys;
-        },
-      }),
-      skiptrak: useQuery({
-        queryKey: ["wnm-skiptrak-all-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
-          supabase.from("data_hub_jobs").select("job_date, weight_t, vehicle_registration")
-            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-    };
+          ),
+          fetchAllPaged(
+            supabase.from("data_hub_jobs").select("job_date, weight_t, vehicle_registration")
+              .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+          ),
+        ]);
+        const keys = new Set<string>();
+        midweighRaw.forEach((j: any) => {
+          if (j.vehicle_registration && j.job_date) {
+            keys.add(`${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`);
+          }
+        });
+        results[range.year] = { midweighKeys: keys, skiptrak };
+      }));
+      return results;
+    },
+    enabled: comparisonRanges.length > 0,
   });
 
-  const isLoading = loadingMidweigh || loadingSkiptrak || compQueries.some(q => q.midweigh.isLoading || q.skiptrak.isLoading);
+  const isLoading = loadingMidweigh || loadingSkiptrak || compLoading;
 
   const nonYardJobs = useMemo(() => {
     if (!skiptrakJobs || !midweighSkipKeys) return [];
@@ -154,22 +154,24 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
         if (currentBuckets[m] !== undefined) currentBuckets[m] += (job.weight_t || 0);
       });
 
-      const compData: Record<number, Record<number, number>> = {};
-      compQueries.forEach(cq => {
-        if (!cq.midweigh.data || !cq.skiptrak.data) return;
-        const monthTotals: Record<number, number> = {};
-        const cNonYard = (cq.skiptrak.data as any[]).filter((j: any) => {
-          if (!j.vehicle_registration || !j.job_date) return true;
-          const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
-          return !(cq.midweigh.data as Set<string>).has(key);
+      const compTotals: Record<number, Record<number, number>> = {};
+      if (compData) {
+        Object.entries(compData).forEach(([yearStr, data]) => {
+          const year = Number(yearStr);
+          const monthTotals: Record<number, number> = {};
+          const cNonYard = data.skiptrak.filter((j: any) => {
+            if (!j.vehicle_registration || !j.job_date) return true;
+            const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
+            return !data.midweighKeys.has(key);
+          });
+          cNonYard.forEach((job: any) => {
+            if (!job.job_date || job.weight_t == null) return;
+            const m = getMonth(parseISO(job.job_date));
+            monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+          });
+          compTotals[year] = monthTotals;
         });
-        cNonYard.forEach((job: any) => {
-          if (!job.job_date || job.weight_t == null) return;
-          const m = getMonth(parseISO(job.job_date));
-          monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
-        });
-        compData[cq.year] = monthTotals;
-      });
+      }
 
       return monthIndices.map(m => {
         const row: any = {
@@ -178,7 +180,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
           total: Math.round(currentBuckets[m] * 100) / 100,
         };
         comparisonRanges.forEach(range => {
-          row[`total_${range.year}`] = Math.round((compData[range.year]?.[m] || 0) * 100) / 100;
+          row[`total_${range.year}`] = Math.round((compTotals[range.year]?.[m] || 0) * 100) / 100;
         });
         return row;
       });
@@ -220,7 +222,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
       row.total = Math.round(total * 100) / 100;
       return row;
     });
-  }, [nonYardJobs, selectedSite, weekStart, weekEnd, hasComparison, compQueries, comparisonRanges, externalStartDate, externalEndDate]);
+  }, [nonYardJobs, selectedSite, weekStart, weekEnd, hasComparison, compData, comparisonRanges, externalStartDate, externalEndDate]);
 
   const seriesKeys = useMemo(() => {
     if (!chartData.length || hasComparison) return [];

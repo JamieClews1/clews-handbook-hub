@@ -103,22 +103,25 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
     ),
   });
 
-  const compQueries = comparisonRanges.map((range) => {
-    const cStartStr = format(range.start, "yyyy-MM-dd");
-    const cEndStr = format(range.end, "yyyy-MM-dd");
-    return {
-      year: range.year,
-      query: useQuery({
-        queryKey: ["waste-onsite-offsite-comp", cStartStr, cEndStr],
-        queryFn: () => fetchAllPaged(
+  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const { data: compData, isLoading: compLoading } = useQuery({
+    queryKey: ["waste-onsite-offsite-comp", compRangeKey],
+    queryFn: async () => {
+      const results: Record<number, any[]> = {};
+      await Promise.all(comparisonRanges.map(async (range) => {
+        const cStartStr = format(range.start, "yyyy-MM-dd");
+        const cEndStr = format(range.end, "yyyy-MM-dd");
+        results[range.year] = await fetchAllPaged(
           supabase.from("data_hub_jobs").select("job_date, weight_t, tipping_location")
             .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
-        ),
-      }),
-    };
+        );
+      }));
+      return results;
+    },
+    enabled: comparisonRanges.length > 0,
   });
 
-  const isLoading = loadingMain || compQueries.some(q => q.query.isLoading);
+  const isLoading = loadingMain || compLoading;
 
   const chartData = useMemo(() => {
     if (!skiptrakJobs) return [];
@@ -137,17 +140,18 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
         else currentBuckets[m].offsite += job.weight_t || 0;
       });
 
-      const compData: Record<number, Record<number, number>> = {};
-      compQueries.forEach(cq => {
-        if (!cq.query.data) return;
-        const monthTotals: Record<number, number> = {};
-        cq.query.data.forEach((job: any) => {
-          if (!job.job_date || job.weight_t == null) return;
-          const m = getMonth(parseISO(job.job_date));
-          monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+      const compTotals: Record<number, Record<number, number>> = {};
+      if (compData) {
+        Object.entries(compData).forEach(([yearStr, jobs]) => {
+          const monthTotals: Record<number, number> = {};
+          (jobs as any[]).forEach((job: any) => {
+            if (!job.job_date || job.weight_t == null) return;
+            const m = getMonth(parseISO(job.job_date));
+            monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+          });
+          compTotals[Number(yearStr)] = monthTotals;
         });
-        compData[cq.year] = monthTotals;
-      });
+      }
 
       return monthIndices.map(m => {
         const row: any = {
@@ -158,7 +162,7 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
           total: Math.round((currentBuckets[m].onsite + currentBuckets[m].offsite) * 100) / 100,
         };
         comparisonRanges.forEach(range => {
-          row[`total_${range.year}`] = Math.round((compData[range.year]?.[m] || 0) * 100) / 100;
+          row[`total_${range.year}`] = Math.round((compTotals[range.year]?.[m] || 0) * 100) / 100;
         });
         return row;
       });
@@ -183,7 +187,7 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
       offsite: Math.round(values.offsite * 100) / 100,
       total: Math.round((values.onsite + values.offsite) * 100) / 100,
     }));
-  }, [skiptrakJobs, compQueries, externalStartDate, externalEndDate, effectiveGranularity, hasComparison, comparisonRanges]);
+  }, [skiptrakJobs, compData, externalStartDate, externalEndDate, effectiveGranularity, hasComparison, comparisonRanges]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { onsite: 0, offsite: 0, total: 0 };
