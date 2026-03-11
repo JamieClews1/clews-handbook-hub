@@ -105,24 +105,21 @@ export function ProjectionsDashboard() {
       monthlyAvgs[calMonth].count += 1;
     });
 
-    // Apply a simple growth factor: compare last 12 months total vs prior 12 months
-    const now = new Date();
-    const last12Start = format(subYears(now, 1), "yyyy-MM");
-    const prev12Start = format(subYears(now, 2), "yyyy-MM");
-
-    let last12Rev = 0, prev12Rev = 0, last12Tonnes = 0, prev12Tonnes = 0;
+    // Compare 2025 totals vs 2024 totals for growth factor
+    let y2025Rev = 0, y2024Rev = 0, y2025Tonnes = 0, y2024Tonnes = 0;
     history.forEach((d) => {
-      if (d.month >= last12Start) {
-        last12Rev += d.midweighRevenue + d.skiptrakRevenue;
-        last12Tonnes += d.midweighTonnes + d.skiptrakTonnes;
-      } else if (d.month >= prev12Start) {
-        prev12Rev += d.midweighRevenue + d.skiptrakRevenue;
-        prev12Tonnes += d.midweighTonnes + d.skiptrakTonnes;
+      const year = d.month.substring(0, 4);
+      if (year === "2025") {
+        y2025Rev += d.midweighRevenue + d.skiptrakRevenue;
+        y2025Tonnes += d.midweighTonnes + d.skiptrakTonnes;
+      } else if (year === "2024") {
+        y2024Rev += d.midweighRevenue + d.skiptrakRevenue;
+        y2024Tonnes += d.midweighTonnes + d.skiptrakTonnes;
       }
     });
 
-    const revenueGrowth = prev12Rev > 0 ? last12Rev / prev12Rev : 1;
-    const tonnesGrowth = prev12Tonnes > 0 ? last12Tonnes / prev12Tonnes : 1;
+    const revenueGrowth = y2024Rev > 0 ? y2025Rev / y2024Rev : 1;
+    const tonnesGrowth = y2024Tonnes > 0 ? y2025Tonnes / y2024Tonnes : 1;
 
     // Generate 2026 projections
     const projected: {
