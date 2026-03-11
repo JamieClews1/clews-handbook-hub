@@ -254,7 +254,7 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
         skiptrakNonYard: Math.round(values.skiptrakNonYard * 100) / 100,
         total: Math.round((values.midweighIn + values.skiptrakNonYard) * 100) / 100,
       }));
-  }, [midweighYardIntake, skiptrakJobs, compQueries, externalStartDate, externalEndDate, effectiveGranularity, excludeBP, hasComparison, comparisonRanges]);
+  }, [midweighYardIntake, skiptrakJobs, compData, externalStartDate, externalEndDate, effectiveGranularity, excludeBP, hasComparison, comparisonRanges]);
 
   const totals = useMemo(() => {
     if (!chartData.length) return { midweighIn: 0, skiptrakNonYard: 0, total: 0 };

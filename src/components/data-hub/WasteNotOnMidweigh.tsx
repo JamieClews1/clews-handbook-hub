@@ -154,22 +154,24 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
         if (currentBuckets[m] !== undefined) currentBuckets[m] += (job.weight_t || 0);
       });
 
-      const compData: Record<number, Record<number, number>> = {};
-      compQueries.forEach(cq => {
-        if (!cq.midweigh.data || !cq.skiptrak.data) return;
-        const monthTotals: Record<number, number> = {};
-        const cNonYard = (cq.skiptrak.data as any[]).filter((j: any) => {
-          if (!j.vehicle_registration || !j.job_date) return true;
-          const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
-          return !(cq.midweigh.data as Set<string>).has(key);
+      const compTotals: Record<number, Record<number, number>> = {};
+      if (compData) {
+        Object.entries(compData).forEach(([yearStr, data]) => {
+          const year = Number(yearStr);
+          const monthTotals: Record<number, number> = {};
+          const cNonYard = data.skiptrak.filter((j: any) => {
+            if (!j.vehicle_registration || !j.job_date) return true;
+            const key = `${j.vehicle_registration.replace(/\s/g, "").toUpperCase()}|${j.job_date}`;
+            return !data.midweighKeys.has(key);
+          });
+          cNonYard.forEach((job: any) => {
+            if (!job.job_date || job.weight_t == null) return;
+            const m = getMonth(parseISO(job.job_date));
+            monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
+          });
+          compTotals[year] = monthTotals;
         });
-        cNonYard.forEach((job: any) => {
-          if (!job.job_date || job.weight_t == null) return;
-          const m = getMonth(parseISO(job.job_date));
-          monthTotals[m] = (monthTotals[m] || 0) + (job.weight_t || 0);
-        });
-        compData[cq.year] = monthTotals;
-      });
+      }
 
       return monthIndices.map(m => {
         const row: any = {
