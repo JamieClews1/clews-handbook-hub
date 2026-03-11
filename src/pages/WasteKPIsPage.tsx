@@ -234,29 +234,10 @@ const WasteKPIsPage = () => {
             </div>
           )}
 
-          <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} />
-          <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} />
-          <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} />
+          <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
+          <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
+          <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
-
-          {/* Previous Year Comparisons */}
-          {previousYearRanges.map((range) => (
-            <div key={range.year} className="space-y-8">
-              <div className="flex items-center gap-2 pt-4 border-t border-border">
-                <Badge variant="secondary" className="text-sm font-semibold px-3 py-1">
-                  {range.year} — Jan 1 to {format(range.end, "dd MMM")}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  Comparison period
-                </span>
-              </div>
-
-              <TotalWasteHandled externalStartDate={range.start} externalEndDate={range.end} />
-              <WasteNotOnMidweigh externalStartDate={range.start} externalEndDate={range.end} />
-              <WasteOnsiteOffsite externalStartDate={range.start} externalEndDate={range.end} />
-              <WasteKPIGradeCWood externalStartDate={range.start} externalEndDate={range.end} />
-            </div>
-          ))}
         </div>
       </main>
     </div>
