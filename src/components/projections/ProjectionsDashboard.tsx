@@ -66,6 +66,8 @@ function aggregateToMonths(jobs: { job_date: string; source: string; job_type: s
   const monthMap: Record<string, MonthlyData> = {};
   jobs.forEach((j) => {
     if (!j.job_date) return;
+    // Skip Midweigh SKIP jobs — this data is already represented in Skiptrak
+    if (j.source === "midweigh" && j.job_type?.toUpperCase() === "SKIP") return;
     const monthKey = format(parseISO(j.job_date), "yyyy-MM");
     if (!monthMap[monthKey]) {
       monthMap[monthKey] = { month: monthKey, midweighTonnes: 0, skiptrakTonnes: 0, midweighRevenue: 0, skiptrakRevenue: 0 };
