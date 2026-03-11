@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, FileSpreadsheet, Download, AlertCircle, ChevronsUpDown, Check, CalendarIcon } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
@@ -188,6 +188,10 @@ export const DataHubCustomerReport = () => {
         break;
       case "last-12":
         setStartDate(startOfMonth(subMonths(now, 11)));
+        setEndDate(endOfMonth(now));
+        break;
+      case "ytd":
+        setStartDate(startOfYear(now));
         setEndDate(endOfMonth(now));
         break;
     }
@@ -406,6 +410,7 @@ export const DataHubCustomerReport = () => {
       <div className="flex flex-wrap gap-2">
         <span className="text-sm text-muted-foreground self-center mr-1">Quick select:</span>
         {[
+          { label: "YTD", value: "ytd" },
           { label: "This Month", value: "this-month" },
           { label: "Last Month", value: "last-month" },
           { label: "Last 3 Months", value: "last-3" },

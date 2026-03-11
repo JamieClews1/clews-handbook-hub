@@ -7,7 +7,7 @@ import { ArrowLeft, BarChart3, Sparkles, CalendarIcon, Settings2 } from "lucide-
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
@@ -46,6 +46,10 @@ const PerformanceHubReportsPage = () => {
         break;
       case "24m":
         setStartDate(startOfMonth(subMonths(now, 23)));
+        setEndDate(now);
+        break;
+      case "ytd":
+        setStartDate(startOfYear(now));
         setEndDate(now);
         break;
     }
@@ -139,6 +143,7 @@ const PerformanceHubReportsPage = () => {
             </Popover>
             <div className="flex gap-1.5 ml-2">
               {[
+                { label: "YTD", value: "ytd" },
                 { label: "3M", value: "3m" },
                 { label: "6M", value: "6m" },
                 { label: "12M", value: "12m" },

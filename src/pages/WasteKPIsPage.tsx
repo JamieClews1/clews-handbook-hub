@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Gauge, CalendarIcon } from "lucide-react";
-import { format, subMonths, startOfMonth, endOfWeek } from "date-fns";
+import { format, subMonths, startOfMonth, endOfWeek, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
@@ -44,6 +44,10 @@ const WasteKPIsPage = () => {
         break;
       case "24m":
         setStartDate(startOfMonth(subMonths(now, 23)));
+        setEndDate(now);
+        break;
+      case "ytd":
+        setStartDate(startOfYear(now));
         setEndDate(now);
         break;
     }
@@ -134,6 +138,7 @@ const WasteKPIsPage = () => {
             </Popover>
             <div className="flex gap-1.5 ml-2">
               {[
+                { label: "YTD", value: "ytd" },
                 { label: "3M", value: "3m" },
                 { label: "6M", value: "6m" },
                 { label: "12M", value: "12m" },
