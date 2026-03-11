@@ -340,36 +340,46 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate }: TotalWasteHan
         )}
 
         {!isLoading && chartData.length > 0 && (
-          <div className="mt-6 w-full overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">{periodLabel}</th>
-                  <th className="text-right py-2 px-3 font-medium" style={{ color: chartConfig.midweighIn.color }}>Yard Intake</th>
-                  <th className="text-right py-2 px-3 font-medium" style={{ color: chartConfig.skiptrakNonYard.color }}>Non-Yard Skip</th>
-                  <th className="text-right py-2 px-3 font-medium" style={{ color: chartConfig.total.color }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chartData.map((row) => (
-                  <tr key={row.bucketKey} className="border-b border-border/50 hover:bg-muted/50">
-                    <td className="py-1.5 px-3 text-muted-foreground">{row.period}</td>
-                    <td className="py-1.5 px-3 text-right">{row.midweighIn.toFixed(2)}</td>
-                    <td className="py-1.5 px-3 text-right">{row.skiptrakNonYard.toFixed(2)}</td>
-                    <td className="py-1.5 px-3 text-right font-medium">{row.total.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 font-semibold">
-                  <td className="py-2 px-3">Total</td>
-                  <td className="py-2 px-3 text-right">{totals.midweighIn.toFixed(2)}</td>
-                  <td className="py-2 px-3 text-right">{totals.skiptrakNonYard.toFixed(2)}</td>
-                  <td className="py-2 px-3 text-right">{totals.total.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <Collapsible open={showTable} onOpenChange={setShowTable}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="mt-4 w-full justify-center gap-2 text-xs text-muted-foreground">
+                <ChevronDown className={`h-4 w-4 transition-transform ${showTable ? "rotate-180" : ""}`} />
+                {showTable ? "Hide data table" : "Show data table"}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 w-full overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">{periodLabel}</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: chartConfig.midweighIn.color }}>Yard Intake</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: chartConfig.skiptrakNonYard.color }}>Non-Yard Skip</th>
+                      <th className="text-right py-2 px-3 font-medium" style={{ color: chartConfig.total.color }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chartData.map((row) => (
+                      <tr key={row.bucketKey} className="border-b border-border/50 hover:bg-muted/50">
+                        <td className="py-1.5 px-3 text-muted-foreground">{row.period}</td>
+                        <td className="py-1.5 px-3 text-right">{row.midweighIn.toFixed(2)}</td>
+                        <td className="py-1.5 px-3 text-right">{row.skiptrakNonYard.toFixed(2)}</td>
+                        <td className="py-1.5 px-3 text-right font-medium">{row.total.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 font-semibold">
+                      <td className="py-2 px-3">Total</td>
+                      <td className="py-2 px-3 text-right">{totals.midweighIn.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right">{totals.skiptrakNonYard.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right">{totals.total.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </CardContent>
     </Card>
