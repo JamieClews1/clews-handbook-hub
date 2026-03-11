@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Gauge, CalendarIcon } from "lucide-react";
-import { format, subMonths, startOfMonth, endOfWeek } from "date-fns";
+import { format, subMonths, startOfMonth, endOfWeek, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
