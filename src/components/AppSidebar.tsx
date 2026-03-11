@@ -27,6 +27,7 @@ import {
   Upload,
   Gauge,
   Radio,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
