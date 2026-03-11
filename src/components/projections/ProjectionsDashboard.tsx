@@ -221,9 +221,11 @@ export function ProjectionsDashboard() {
           <CardContent className="pt-4 text-sm text-muted-foreground space-y-2">
             <p className="font-medium text-foreground">How projections are calculated</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Monthly averages are calculated for each calendar month using the last 2 years of data to capture <strong>seasonal patterns</strong>.</li>
-              <li>A <strong>year-over-year growth factor</strong> is applied by comparing the most recent 12 months against the prior 12 months.</li>
+              <li>Based on <strong>complete 2024 and 2025 data only</strong> — partial 2026 data is excluded to avoid dilution.</li>
+              <li>Monthly averages are calculated for each calendar month across both years to capture <strong>seasonal patterns</strong>.</li>
+              <li>A <strong>year-over-year growth factor</strong> is applied by comparing 2025 totals against 2024 totals.</li>
               <li>Tonnage and revenue are projected independently to account for differing growth rates.</li>
+              <li>Midweigh weights are converted from KG to tonnes (÷1000). Skiptrak weights are already in tonnes.</li>
               <li>Midweigh revenue uses the "Total Price" field; Skiptrak uses the "Cost" field from raw job data.</li>
             </ul>
             {summaryCards && (
