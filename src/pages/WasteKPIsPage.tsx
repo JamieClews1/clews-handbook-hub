@@ -228,6 +228,7 @@ const WasteKPIsPage = () => {
             </div>
           )}
 
+          <TotalRevenue externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
