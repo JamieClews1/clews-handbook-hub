@@ -38,14 +38,12 @@ const formatTonnes = (v: number) =>
 export function ProjectionsDashboard() {
   const [showMethodology, setShowMethodology] = useState(false);
 
-  // Fetch last 2 years of data for projection basis
+  // Fetch 2024 and 2025 complete years only (exclude partial 2026)
   const { data: historicalData, isLoading } = useQuery({
     queryKey: ["projections-historical"],
     queryFn: async () => {
-      const end = new Date();
-      const start = subYears(end, 2);
-      const startStr = format(start, "yyyy-MM-dd");
-      const endStr = format(end, "yyyy-MM-dd");
+      const startStr = "2024-01-01";
+      const endStr = "2025-12-31";
 
       const pageSize = 1000;
       let allJobs: { job_date: string; source: string; weight_t: number | null; raw: Record<string, unknown> }[] = [];
