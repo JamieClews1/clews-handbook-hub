@@ -281,9 +281,20 @@ const PerformanceHubKPIs = () => {
 
   return (
     <div className="space-y-3 mb-8">
-      <h2 className="text-lg font-semibold text-foreground">
-        Annual Totals — Last full month: {lastMonthLabel}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-foreground">
+          Annual Totals — {selectedMonthLabel}
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Month:</span>
+          <MonthPicker
+            selected={selectedMonth}
+            onSelect={setSelectedMonth}
+            mode="start"
+            maxDate={endOfMonth(subMonths(now, 1))}
+          />
+        </div>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
           <Card key={kpi.label}>
