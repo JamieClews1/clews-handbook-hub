@@ -14,6 +14,7 @@ import WasteOnsiteOffsite from "@/components/data-hub/WasteOnsiteOffsite";
 import TotalRevenue from "@/components/data-hub/TotalRevenue";
 import { MonthPicker } from "@/components/MonthPicker";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
+import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
