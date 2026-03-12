@@ -55,8 +55,6 @@ const PerformanceHubPage = () => {
             PERFORMANCE HUB
           </h1>
 
-          {/* Annual Totals KPIs */}
-          <PerformanceHubKPIs />
 
           {/* Section Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
