@@ -158,9 +158,9 @@ const PerformanceHubKPIs = () => {
   const ytdStart = startOfYear(selectedMonth);
   const ytdEnd = lmEnd;
 
-  // Previous 6 months (the 6 months before the selected month)
-  const prev6Start = startOfMonth(subMonths(selectedMonth, 6));
-  const prev6End = endOfMonth(subMonths(selectedMonth, 1));
+  // Previous 6 months (selected month + 5 months before it)
+  const prev6Start = startOfMonth(subMonths(selectedMonth, 5));
+  const prev6End = lmEnd;
 
   // Same period last year (same YTD range but -1 year)
   const splyStart = subYears(ytdStart, 1);
