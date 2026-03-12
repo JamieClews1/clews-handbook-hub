@@ -51,9 +51,12 @@ const PerformanceHubPage = () => {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Title */}
-          <h1 className="text-4xl font-bold text-center text-foreground mb-12">
+          <h1 className="text-4xl font-bold text-center text-foreground mb-8">
             PERFORMANCE HUB
           </h1>
+
+          {/* Annual Totals KPIs */}
+          <PerformanceHubKPIs />
 
           {/* Section Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
