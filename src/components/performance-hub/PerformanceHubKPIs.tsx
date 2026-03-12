@@ -222,10 +222,10 @@ const PerformanceHubKPIs = () => {
     );
   }
 
-  const lastMonthLabel = format(lmStart, "MMMM yyyy");
-  const ytdLabel = `YTD ${now.getFullYear()}`;
+  const selectedMonthLabel = format(lmStart, "MMMM yyyy");
+  const ytdLabel = `YTD ${selectedMonth.getFullYear()}`;
   const prev6Label = `${format(prev6Start, "MMM")}–${format(prev6End, "MMM yyyy")}`;
-  const splyLabel = `YTD ${now.getFullYear() - 1}`;
+  const splyLabel = `YTD ${selectedMonth.getFullYear() - 1}`;
 
   const kpis: {
     label: string;
