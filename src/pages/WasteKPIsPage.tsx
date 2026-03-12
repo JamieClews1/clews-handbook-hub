@@ -2,28 +2,29 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Gauge, CalendarIcon, GitCompareArrows } from "lucide-react";
+import { ArrowLeft, Gauge, GitCompareArrows, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { format, subMonths, subYears, startOfMonth, endOfWeek, startOfYear } from "date-fns";
+import { format, subMonths, subYears, startOfMonth, endOfMonth, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
 import WasteNotOnMidweigh from "@/components/data-hub/WasteNotOnMidweigh";
 import WasteOnsiteOffsite from "@/components/data-hub/WasteOnsiteOffsite";
 import TotalRevenue from "@/components/data-hub/TotalRevenue";
+import { MonthPicker } from "@/components/MonthPicker";
+import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const latestDataDate = useLatestDataDate();
 
   const now = new Date();
   const [startDate, setStartDate] = useState<Date>(startOfMonth(subMonths(now, 11)));
-  const [endDate, setEndDate] = useState<Date>(endOfWeek(now, { weekStartsOn: 1 }));
+  const [endDate, setEndDate] = useState<Date>(endOfMonth(now));
   const [activePreset, setActivePreset] = useState<string | null>(null);
-  const [compareYears, setCompareYears] = useState<number>(0); // 0 = off, 1 = vs last year, 2 = vs last 2 years
+  const [compareYears, setCompareYears] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,39 +38,35 @@ const WasteKPIsPage = () => {
     switch (preset) {
       case "3m":
         setStartDate(startOfMonth(subMonths(now, 2)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "6m":
         setStartDate(startOfMonth(subMonths(now, 5)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "12m":
         setStartDate(startOfMonth(subMonths(now, 11)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "24m":
         setStartDate(startOfMonth(subMonths(now, 23)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "ytd":
         setStartDate(startOfYear(now));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
     }
   };
 
-  const handleManualDateChange = (setter: (d: Date) => void) => (d: Date | undefined) => {
-    if (d) {
-      setter(d);
-      setActivePreset(null);
-    }
+  const handleMonthChange = (setter: (d: Date) => void) => (d: Date) => {
+    setter(d);
+    setActivePreset(null);
   };
 
-  // Generate previous year date ranges for comparison - works on any timeframe
   const previousYearRanges = useMemo(() => {
     if (compareYears === 0) return [];
     const ranges: { year: number; start: Date; end: Date }[] = [];
-    
     for (let i = 1; i <= compareYears; i++) {
       const prevStart = subYears(startDate, i);
       const prevEnd = subYears(endDate, i);
@@ -90,8 +87,6 @@ const WasteKPIsPage = () => {
   }
 
   if (!user) return null;
-
-  const currentYear = now.getFullYear();
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,43 +121,20 @@ const WasteKPIsPage = () => {
           {/* Period Selection */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
             <span className="text-sm font-medium text-foreground mr-1">Period:</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(startDate, "dd MMM yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={handleManualDateChange(setStartDate)}
-                  disabled={(d) => d > endDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <MonthPicker
+              selected={startDate}
+              onSelect={handleMonthChange(setStartDate)}
+              mode="start"
+              maxDate={endDate}
+            />
             <span className="text-sm text-muted-foreground">to</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(endDate, "dd MMM yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={handleManualDateChange(setEndDate)}
-                  disabled={(d) => d < startDate || d > new Date()}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <MonthPicker
+              selected={endDate}
+              onSelect={handleMonthChange(setEndDate)}
+              mode="end"
+              minDate={startDate}
+              maxDate={new Date()}
+            />
             <div className="flex gap-1.5 ml-2">
               {[
                 { label: "YTD", value: "ytd" },
@@ -187,42 +159,29 @@ const WasteKPIsPage = () => {
             <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
               <GitCompareArrows className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground mr-1">Compare:</span>
-              <Button
-                variant={compareYears === 0 ? "default" : "outline"}
-                size="sm"
-                className="text-xs h-7 px-2"
-                onClick={() => setCompareYears(0)}
-              >
-                Off
-              </Button>
-              <Button
-                variant={compareYears === 1 ? "default" : "outline"}
-                size="sm"
-                className="text-xs h-7 px-2"
-                onClick={() => setCompareYears(1)}
-              >
-                vs Prev Year
-              </Button>
-              <Button
-                variant={compareYears === 2 ? "default" : "outline"}
-                size="sm"
-                className="text-xs h-7 px-2"
-                onClick={() => setCompareYears(2)}
-              >
-                vs Prev 2 Years
-              </Button>
+              <Button variant={compareYears === 0 ? "default" : "outline"} size="sm" className="text-xs h-7 px-2" onClick={() => setCompareYears(0)}>Off</Button>
+              <Button variant={compareYears === 1 ? "default" : "outline"} size="sm" className="text-xs h-7 px-2" onClick={() => setCompareYears(1)}>vs Prev Year</Button>
+              <Button variant={compareYears === 2 ? "default" : "outline"} size="sm" className="text-xs h-7 px-2" onClick={() => setCompareYears(2)}>vs Prev 2 Years</Button>
             </div>
+
+            {/* Data up to note */}
+            {latestDataDate && (
+              <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5" />
+                <span>Data up to <span className="font-medium text-foreground">{latestDataDate}</span></span>
+              </div>
+            )}
           </div>
 
           {/* Current period label when comparing */}
           {compareYears > 0 && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
-                Current: {format(startDate, "dd MMM yyyy")} — {format(endDate, "dd MMM yyyy")}
+                Current: {format(startDate, "MMM yyyy")} — {format(endDate, "MMM yyyy")}
               </Badge>
               {previousYearRanges.map(r => (
                 <Badge key={r.year} variant="secondary" className="text-sm px-3 py-1">
-                  vs {format(r.start, "dd MMM yyyy")} — {format(r.end, "dd MMM yyyy")}
+                  vs {format(r.start, "MMM yyyy")} — {format(r.end, "MMM yyyy")}
                 </Badge>
               ))}
             </div>
