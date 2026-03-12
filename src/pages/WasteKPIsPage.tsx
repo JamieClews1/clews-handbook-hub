@@ -14,6 +14,7 @@ import WasteOnsiteOffsite from "@/components/data-hub/WasteOnsiteOffsite";
 import TotalRevenue from "@/components/data-hub/TotalRevenue";
 import { MonthPicker } from "@/components/MonthPicker";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
+import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -117,6 +118,9 @@ const WasteKPIsPage = () => {
               </p>
             </div>
           </div>
+
+          {/* Annual Totals KPIs */}
+          <PerformanceHubKPIs />
 
           {/* Period Selection */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">

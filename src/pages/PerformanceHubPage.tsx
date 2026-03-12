@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle, Box } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
-import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs";
+
 
 const PerformanceHubPage = () => {
   const navigate = useNavigate();
@@ -55,8 +55,6 @@ const PerformanceHubPage = () => {
             PERFORMANCE HUB
           </h1>
 
-          {/* Annual Totals KPIs */}
-          <PerformanceHubKPIs />
 
           {/* Section Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
