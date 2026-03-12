@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,8 +7,9 @@ import {
   Recycle, Trash2, Factory, Truck, TrendingUp, TrendingDown, Minus,
 } from "lucide-react";
 import {
-  startOfMonth, endOfMonth, subMonths, subYears, format, parseISO, startOfYear,
+  startOfMonth, endOfMonth, subMonths, subYears, format, parseISO, startOfYear, isBefore, isAfter,
 } from "date-fns";
+import { MonthPicker } from "@/components/MonthPicker";
 
 /* ------------------------------------------------------------------ */
 /*  ZTL group map – shares the same localStorage key as the ZTL chart */
@@ -145,25 +146,28 @@ const PerformanceHubKPIs = () => {
   const groupMap = useMemo(() => loadGroupMap(), []);
   const now = new Date();
 
-  // Last full month
-  const lastMonth = subMonths(now, 1);
-  const lmStart = startOfMonth(lastMonth);
-  const lmEnd = endOfMonth(lastMonth);
+  // Default to last full month, but allow user to pick any month
+  const defaultMonth = startOfMonth(subMonths(now, 1));
+  const [selectedMonth, setSelectedMonth] = useState<Date>(defaultMonth);
 
-  // YTD (Jan 1 → end of last full month)
-  const ytdStart = startOfYear(now);
+  // Selected month range
+  const lmStart = startOfMonth(selectedMonth);
+  const lmEnd = endOfMonth(selectedMonth);
+
+  // YTD (Jan 1 of selected month's year → end of selected month)
+  const ytdStart = startOfYear(selectedMonth);
   const ytdEnd = lmEnd;
 
-  // Previous 6 months (the 6 months before the last full month)
-  const prev6Start = startOfMonth(subMonths(lastMonth, 6));
-  const prev6End = endOfMonth(subMonths(lastMonth, 1));
+  // Previous 6 months (the 6 months before the selected month)
+  const prev6Start = startOfMonth(subMonths(selectedMonth, 6));
+  const prev6End = endOfMonth(subMonths(selectedMonth, 1));
 
   // Same period last year (same YTD range but -1 year)
   const splyStart = subYears(ytdStart, 1);
   const splyEnd = subYears(ytdEnd, 1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["perf-hub-kpis", format(lmStart, "yyyy-MM-dd")],
+    queryKey: ["perf-hub-kpis", format(lmStart, "yyyy-MM-dd"), format(lmEnd, "yyyy-MM-dd")],
     queryFn: async () => {
       const [lastMonthData, ytdData, prev6Data, splyData] = await Promise.all([
         fetchPeriodData(format(lmStart, "yyyy-MM-dd"), format(lmEnd, "yyyy-MM-dd")),
@@ -218,10 +222,10 @@ const PerformanceHubKPIs = () => {
     );
   }
 
-  const lastMonthLabel = format(lmStart, "MMMM yyyy");
-  const ytdLabel = `YTD ${now.getFullYear()}`;
+  const selectedMonthLabel = format(lmStart, "MMMM yyyy");
+  const ytdLabel = `YTD ${selectedMonth.getFullYear()}`;
   const prev6Label = `${format(prev6Start, "MMM")}–${format(prev6End, "MMM yyyy")}`;
-  const splyLabel = `YTD ${now.getFullYear() - 1}`;
+  const splyLabel = `YTD ${selectedMonth.getFullYear() - 1}`;
 
   const kpis: {
     label: string;
@@ -277,9 +281,20 @@ const PerformanceHubKPIs = () => {
 
   return (
     <div className="space-y-3 mb-8">
-      <h2 className="text-lg font-semibold text-foreground">
-        Annual Totals — Last full month: {lastMonthLabel}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-foreground">
+          Annual Totals — {selectedMonthLabel}
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Month:</span>
+          <MonthPicker
+            selected={selectedMonth}
+            onSelect={setSelectedMonth}
+            mode="start"
+            maxDate={endOfMonth(subMonths(now, 1))}
+          />
+        </div>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
           <Card key={kpi.label}>
