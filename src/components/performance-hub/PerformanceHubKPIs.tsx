@@ -146,18 +146,21 @@ const PerformanceHubKPIs = () => {
   const groupMap = useMemo(() => loadGroupMap(), []);
   const now = new Date();
 
-  // Last full month
-  const lastMonth = subMonths(now, 1);
-  const lmStart = startOfMonth(lastMonth);
-  const lmEnd = endOfMonth(lastMonth);
+  // Default to last full month, but allow user to pick any month
+  const defaultMonth = startOfMonth(subMonths(now, 1));
+  const [selectedMonth, setSelectedMonth] = useState<Date>(defaultMonth);
 
-  // YTD (Jan 1 → end of last full month)
-  const ytdStart = startOfYear(now);
+  // Selected month range
+  const lmStart = startOfMonth(selectedMonth);
+  const lmEnd = endOfMonth(selectedMonth);
+
+  // YTD (Jan 1 of selected month's year → end of selected month)
+  const ytdStart = startOfYear(selectedMonth);
   const ytdEnd = lmEnd;
 
-  // Previous 6 months (the 6 months before the last full month)
-  const prev6Start = startOfMonth(subMonths(lastMonth, 6));
-  const prev6End = endOfMonth(subMonths(lastMonth, 1));
+  // Previous 6 months (the 6 months before the selected month)
+  const prev6Start = startOfMonth(subMonths(selectedMonth, 6));
+  const prev6End = endOfMonth(subMonths(selectedMonth, 1));
 
   // Same period last year (same YTD range but -1 year)
   const splyStart = subYears(ytdStart, 1);
