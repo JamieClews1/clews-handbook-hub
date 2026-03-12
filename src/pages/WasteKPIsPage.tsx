@@ -119,6 +119,9 @@ const WasteKPIsPage = () => {
             </div>
           </div>
 
+          {/* Annual Totals KPIs */}
+          <PerformanceHubKPIs />
+
           {/* Period Selection */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
             <span className="text-sm font-medium text-foreground mr-1">Period:</span>
