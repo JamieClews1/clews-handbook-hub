@@ -167,7 +167,7 @@ const PerformanceHubKPIs = () => {
   const splyEnd = subYears(ytdEnd, 1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["perf-hub-kpis", format(lmStart, "yyyy-MM-dd")],
+    queryKey: ["perf-hub-kpis", format(lmStart, "yyyy-MM-dd"), format(lmEnd, "yyyy-MM-dd")],
     queryFn: async () => {
       const [lastMonthData, ytdData, prev6Data, splyData] = await Promise.all([
         fetchPeriodData(format(lmStart, "yyyy-MM-dd"), format(lmEnd, "yyyy-MM-dd")),
