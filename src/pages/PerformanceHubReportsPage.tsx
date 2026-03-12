@@ -3,25 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BarChart3, Sparkles, CalendarIcon, Settings2 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear } from "date-fns";
+import { ArrowLeft, BarChart3, Sparkles, Settings2, Info } from "lucide-react";
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
 import ZeroToLandfillChart from "@/components/data-hub/ZeroToLandfillChart";
 import MidweighProductMappings from "@/components/data-hub/MidweighProductMappings";
+import { MonthPicker } from "@/components/MonthPicker";
+import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { useEffect } from "react";
 
 const PerformanceHubReportsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const latestDataDate = useLatestDataDate();
 
   const now = new Date();
   const [startDate, setStartDate] = useState<Date>(startOfMonth(subMonths(now, 11)));
-  const [endDate, setEndDate] = useState<Date>(endOfWeek(now, { weekStartsOn: 1 }));
+  const [endDate, setEndDate] = useState<Date>(endOfMonth(now));
 
   useEffect(() => {
     if (!loading && !user) {
@@ -34,23 +34,23 @@ const PerformanceHubReportsPage = () => {
     switch (preset) {
       case "3m":
         setStartDate(startOfMonth(subMonths(now, 2)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "6m":
         setStartDate(startOfMonth(subMonths(now, 5)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "12m":
         setStartDate(startOfMonth(subMonths(now, 11)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "24m":
         setStartDate(startOfMonth(subMonths(now, 23)));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
       case "ytd":
         setStartDate(startOfYear(now));
-        setEndDate(now);
+        setEndDate(endOfMonth(now));
         break;
     }
   };
@@ -104,43 +104,20 @@ const PerformanceHubReportsPage = () => {
           {/* Shared Period Selection */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
             <span className="text-sm font-medium text-foreground mr-1">Period:</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(startDate, "dd MMM yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={(d) => d && setStartDate(d)}
-                  disabled={(d) => d > endDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <MonthPicker
+              selected={startDate}
+              onSelect={setStartDate}
+              mode="start"
+              maxDate={endDate}
+            />
             <span className="text-sm text-muted-foreground">to</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(endDate, "dd MMM yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={(d) => d && setEndDate(d)}
-                  disabled={(d) => d < startDate || d > new Date()}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <MonthPicker
+              selected={endDate}
+              onSelect={setEndDate}
+              mode="end"
+              minDate={startDate}
+              maxDate={new Date()}
+            />
             <div className="flex gap-1.5 ml-2">
               {[
                 { label: "YTD", value: "ytd" },
@@ -154,6 +131,14 @@ const PerformanceHubReportsPage = () => {
                 </Button>
               ))}
             </div>
+
+            {/* Data up to note */}
+            {latestDataDate && (
+              <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5" />
+                <span>Data up to <span className="font-medium text-foreground">{latestDataDate}</span></span>
+              </div>
+            )}
           </div>
 
           {/* Zero To Landfill Chart - Double Width */}
