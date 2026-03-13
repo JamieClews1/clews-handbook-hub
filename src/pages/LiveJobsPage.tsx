@@ -2,17 +2,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Radio, Settings } from "lucide-react";
+import { ArrowLeft, Radio, Settings, MapPin } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import LiveJobsDashboard from "@/components/live-jobs/LiveJobsDashboard";
 import LiveJobsSettings from "@/components/live-jobs/LiveJobsSettings";
+import ZonesSettings from "@/components/live-jobs/ZonesSettings";
+import ZoneReport from "@/components/live-jobs/ZoneReport";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
+import { usePostcodeZones } from "@/hooks/usePostcodeZones";
 import { useEffect } from "react";
 
 const LiveJobsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { settings, loading: settingsLoading, updateSetting, refetch } = useLiveJobsSettings();
+  const { zones, loading: zonesLoading, updateZone, addZone, deleteZone } = usePostcodeZones();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -20,7 +24,7 @@ const LiveJobsPage = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading || settingsLoading) {
+  if (loading || settingsLoading || zonesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -68,6 +72,9 @@ const LiveJobsPage = () => {
               <TabsTrigger value="dashboard">
                 <Radio className="h-4 w-4 mr-1.5" /> Dashboard
               </TabsTrigger>
+              <TabsTrigger value="zones">
+                <MapPin className="h-4 w-4 mr-1.5" /> Zone Report
+              </TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-1.5" /> Settings
               </TabsTrigger>
@@ -75,8 +82,19 @@ const LiveJobsPage = () => {
             <TabsContent value="dashboard" className="mt-6">
               <LiveJobsDashboard settings={settings} />
             </TabsContent>
+            <TabsContent value="zones" className="mt-6">
+              <ZoneReport zones={zones} />
+            </TabsContent>
             <TabsContent value="settings" className="mt-6">
-              <LiveJobsSettings settings={settings} onSave={async (key, value) => { await updateSetting(key, value); await refetch(); }} />
+              <div className="space-y-6">
+                <LiveJobsSettings settings={settings} onSave={async (key, value) => { await updateSetting(key, value); await refetch(); }} />
+                <ZonesSettings
+                  zones={zones}
+                  onUpdate={updateZone}
+                  onAdd={addZone}
+                  onDelete={deleteZone}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
