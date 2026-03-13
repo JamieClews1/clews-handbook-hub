@@ -261,19 +261,46 @@ export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReport
     );
   }
 
+  const CATEGORY_OPTIONS: { label: string; value: CategoryFilter; icon: React.ReactNode }[] = [
+    { label: "All", value: "all", icon: null },
+    { label: "Skip", value: "skip", icon: <Container className="h-3.5 w-3.5" /> },
+    { label: "RoRo", value: "roro", icon: <Truck className="h-3.5 w-3.5" /> },
+    { label: "Artic", value: "artic", icon: <ArrowRightLeft className="h-3.5 w-3.5" /> },
+  ];
+
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="overview">
-          <MapPin className="h-4 w-4 mr-1.5" /> Overview
-        </TabsTrigger>
-        <TabsTrigger value="unzoned" className="gap-1.5">
-          <AlertCircle className="h-4 w-4" /> Unzoned Postcodes
-          {unzonedPostcodes.length > 0 && (
-            <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unzonedPostcodes.length}</Badge>
-          )}
-        </TabsTrigger>
-      </TabsList>
+    <div className="space-y-4">
+      {/* Category filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">Filter:</span>
+        <div className="flex gap-1">
+          {CATEGORY_OPTIONS.map(opt => (
+            <Button
+              key={opt.value}
+              variant={categoryFilter === opt.value ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setCategoryFilter(opt.value)}
+            >
+              {opt.icon}
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">
+            <MapPin className="h-4 w-4 mr-1.5" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="unzoned" className="gap-1.5">
+            <AlertCircle className="h-4 w-4" /> Unzoned Postcodes
+            {unzonedPostcodes.length > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unzonedPostcodes.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
       <TabsContent value="overview">
         <div className="space-y-6">
