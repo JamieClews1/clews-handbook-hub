@@ -232,7 +232,7 @@ export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReport
     const unzoned = Object.values(unzonedMap).sort((a, b) => b.jobCount - a.jobCount);
 
     return { zoneData: data, monthLabels: labels, unzonedPostcodes: unzoned };
-  }, [jobs, zones]);
+  }, [filteredJobs, zones]);
 
   const chartData = useMemo(() =>
     zoneData.map(d => ({
