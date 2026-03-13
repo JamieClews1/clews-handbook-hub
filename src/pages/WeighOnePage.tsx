@@ -955,6 +955,13 @@ const WeighOnePage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="midweigh" className="mt-4">
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <MidweighHistory />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Ticket Detail Dialog */}
