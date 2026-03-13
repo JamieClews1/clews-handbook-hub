@@ -10,24 +10,32 @@ import { MapPin } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
 
-type Job = {
+type RawJob = {
   job_date: string | null;
-  tipping_location: string | null;
   raw: any;
-  movement_type: string | null;
-  weight_t: number | null;
 };
 
-const UK_POSTCODE_RE = /\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i;
-const POSTCODE_PREFIX_RE = /^([A-Z]{1,2}\d+\s*\d?)/i;
+// Zone colours matching the Excel spreadsheet styling
+const ZONE_COLORS: Record<string, { bg: string; text: string; chart: string }> = {
+  "Zone 1":            { bg: "bg-green-600",  text: "text-white",            chart: "hsl(142 76% 36%)" },
+  "Zone 2":            { bg: "bg-blue-600",   text: "text-white",            chart: "hsl(217 91% 60%)" },
+  "Zone 3":            { bg: "bg-amber-500",  text: "text-white",            chart: "hsl(38 92% 50%)" },
+  "Zone 3 RoRo Only":  { bg: "bg-orange-500", text: "text-white",            chart: "hsl(25 95% 53%)" },
+  "Zone 4 RoRo Only":  { bg: "bg-red-500",    text: "text-white",            chart: "hsl(0 84% 60%)" },
+  "Unzoned":           { bg: "bg-muted",      text: "text-muted-foreground", chart: "hsl(var(--muted-foreground))" },
+};
 
-function extractPostcodePrefix(location: string | null | undefined): string | null {
-  if (!location) return null;
-  const match = location.match(UK_POSTCODE_RE);
+function getZoneStyle(zoneName: string) {
+  return ZONE_COLORS[zoneName] || ZONE_COLORS["Unzoned"];
+}
+
+const UK_POSTCODE_RE = /\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i;
+
+function extractPostcodePrefix(postcode: string | null | undefined): string | null {
+  if (!postcode) return null;
+  const match = postcode.match(UK_POSTCODE_RE);
   if (!match) return null;
   const full = match[1].toUpperCase().replace(/\s+/g, " ").trim();
-  // Return the district-level prefix e.g. "CV21 1" from "CV21 1AB"
-  // Match the format used in zones: letter(s) + digits + space + digit
   const parts = full.split(" ");
   if (parts.length >= 2) {
     return `${parts[0]} ${parts[1].charAt(0)}`;
@@ -35,12 +43,15 @@ function extractPostcodePrefix(location: string | null | undefined): string | nu
   return parts[0];
 }
 
-function matchZone(location: string | null | undefined, rawLocation: string | null | undefined, zones: PostcodeZone[]): PostcodeZone | null {
-  const prefix = extractPostcodePrefix(location) || extractPostcodePrefix(rawLocation);
+function matchZone(postcode: string | null | undefined, zones: PostcodeZone[]): PostcodeZone | null {
+  const prefix = extractPostcodePrefix(postcode);
   if (!prefix) return null;
 
   for (const zone of zones) {
-    if (zone.postcodes.some(zp => prefix.toUpperCase().startsWith(zp.toUpperCase().replace(/\s+/g, " ").trim()))) {
+    if (zone.postcodes.some(zp => {
+      const norm = zp.toUpperCase().replace(/\s+/g, " ").trim();
+      return prefix === norm || prefix.startsWith(norm);
+    })) {
       return zone;
     }
   }
@@ -48,14 +59,14 @@ function matchZone(location: string | null | undefined, rawLocation: string | nu
 }
 
 export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<RawJob[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       const since = format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd");
-      let allJobs: Job[] = [];
+      let allJobs: RawJob[] = [];
       let from = 0;
       const pageSize = 1000;
       let hasMore = true;
@@ -63,14 +74,14 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date,tipping_location,raw,movement_type,weight_t")
+          .select("job_date,raw")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .order("job_date", { ascending: false })
           .range(from, from + pageSize - 1);
 
         if (error) { console.error(error); break; }
-        allJobs = allJobs.concat((data ?? []) as Job[]);
+        allJobs = allJobs.concat((data ?? []) as RawJob[]);
         hasMore = (data?.length ?? 0) === pageSize;
         from += pageSize;
       }
@@ -81,7 +92,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
     fetchJobs();
   }, []);
 
-  const { zoneData, monthLabels } = useMemo(() => {
+  const { zoneData, monthLabels, totals } = useMemo(() => {
     const now = new Date();
     const months = [
       format(startOfMonth(subMonths(now, 2)), "yyyy-MM"),
@@ -93,14 +104,12 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       return format(new Date(+y, +mo - 1), "MMM yyyy");
     });
 
-    // Zone -> month -> { jobs, value }
-    const map: Record<string, Record<string, { jobs: number; value: number }>> = {};
-    // Include "Unzoned" for unmatched
+    const map: Record<string, Record<string, { jobs: number; revenue: number; tonnes: number }>> = {};
     const allZoneNames = [...zones.map(z => z.zone_name), "Unzoned"];
     for (const name of allZoneNames) {
       map[name] = {};
       for (const m of months) {
-        map[name][m] = { jobs: 0, value: 0 };
+        map[name][m] = { jobs: 0, revenue: 0, tonnes: 0 };
       }
     }
 
@@ -109,48 +118,72 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       const monthKey = job.job_date.substring(0, 7);
       if (!months.includes(monthKey)) continue;
 
-      const rawLoc = typeof job.raw === "object" && job.raw ? (job.raw as any).Location : null;
-      const zone = matchZone(job.tipping_location, rawLoc, zones);
+      const raw = typeof job.raw === "object" && job.raw ? job.raw : {};
+      const postcode = raw["Location Postc"] || raw["Postcode"] || null;
+      const cost = parseFloat(raw["Cost"] || raw["Price"] || "0") || 0;
+      const weight = parseFloat(raw["Nett Weight"] || "0") || 0;
+      const weightT = weight / 1000; // Convert kg to tonnes if needed — check format
+
+      const zone = matchZone(postcode, zones);
       const zoneName = zone ? zone.zone_name : "Unzoned";
 
       if (!map[zoneName]) {
         map[zoneName] = {};
-        for (const m of months) map[zoneName][m] = { jobs: 0, value: 0 };
+        for (const m of months) map[zoneName][m] = { jobs: 0, revenue: 0, tonnes: 0 };
       }
 
       map[zoneName][monthKey].jobs++;
-      map[zoneName][monthKey].value += Math.abs(job.weight_t ?? 0);
+      map[zoneName][monthKey].revenue += Math.abs(cost);
+      map[zoneName][monthKey].tonnes += Math.abs(job.job_date ? (parseFloat(String(raw["Nett Weight"] || "0")) / 1000) : 0);
     }
 
     const data = Object.entries(map).map(([zoneName, monthData]) => {
       const totalJobs = Object.values(monthData).reduce((s, v) => s + v.jobs, 0);
-      const totalValue = Object.values(monthData).reduce((s, v) => s + v.value, 0);
+      const totalRevenue = Object.values(monthData).reduce((s, v) => s + v.revenue, 0);
+      const totalTonnes = Object.values(monthData).reduce((s, v) => s + v.tonnes, 0);
       return {
         zone: zoneName,
         ...Object.fromEntries(months.map((m, i) => [`month${i}_jobs`, monthData[m]?.jobs ?? 0])),
-        ...Object.fromEntries(months.map((m, i) => [`month${i}_value`, +(monthData[m]?.value ?? 0).toFixed(2)])),
+        ...Object.fromEntries(months.map((m, i) => [`month${i}_revenue`, +(monthData[m]?.revenue ?? 0).toFixed(2)])),
+        ...Object.fromEntries(months.map((m, i) => [`month${i}_tonnes`, +(monthData[m]?.tonnes ?? 0).toFixed(2)])),
         totalJobs,
-        totalValue: +totalValue.toFixed(2),
+        totalRevenue: +totalRevenue.toFixed(2),
+        totalTonnes: +totalTonnes.toFixed(2),
       };
     }).filter(d => d.totalJobs > 0)
-      .sort((a, b) => b.totalJobs - a.totalJobs);
+      .sort((a, b) => {
+        // Sort zones in order, Unzoned last
+        if (a.zone === "Unzoned") return 1;
+        if (b.zone === "Unzoned") return -1;
+        const aOrder = zones.find(z => z.zone_name === a.zone)?.display_order ?? 999;
+        const bOrder = zones.find(z => z.zone_name === b.zone)?.display_order ?? 999;
+        return aOrder - bOrder;
+      });
 
-    return { zoneData: data, monthLabels: labels };
+    const grandTotals = {
+      jobs: data.reduce((s, d) => s + d.totalJobs, 0),
+      revenue: data.reduce((s, d) => s + d.totalRevenue, 0),
+    };
+
+    return { zoneData: data, monthLabels: labels, totals: grandTotals };
   }, [jobs, zones]);
 
+  // Chart: jobs per zone, colour-coded
   const chartData = useMemo(() =>
     zoneData.map(d => ({
       zone: d.zone,
-      [monthLabels[0]]: (d as any).month0_jobs,
-      [monthLabels[1]]: (d as any).month1_jobs,
-      [monthLabels[2]]: (d as any).month2_jobs,
-    })), [zoneData, monthLabels]);
+      jobs: d.totalJobs,
+      fill: getZoneStyle(d.zone).chart,
+    })), [zoneData]);
 
-  const chartConfig = useMemo(() => ({
-    [monthLabels[0]]: { label: monthLabels[0], color: "hsl(var(--primary))" },
-    [monthLabels[1]]: { label: monthLabels[1], color: "hsl(var(--accent))" },
-    [monthLabels[2]]: { label: monthLabels[2], color: "hsl(var(--secondary))" },
-  }), [monthLabels]);
+  const chartConfig = useMemo(() => {
+    const cfg: Record<string, { label: string; color: string }> = {};
+    zoneData.forEach(d => {
+      cfg[d.zone] = { label: d.zone, color: getZoneStyle(d.zone).chart };
+    });
+    cfg.jobs = { label: "Jobs", color: "hsl(var(--primary))" };
+    return cfg;
+  }, [zoneData]);
 
   if (loading) {
     return <Skeleton className="h-96 rounded-xl" />;
@@ -168,6 +201,25 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
 
   return (
     <div className="space-y-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {zoneData.filter(d => d.zone !== "Unzoned").map(d => {
+          const style = getZoneStyle(d.zone);
+          return (
+            <Card key={d.zone} className="overflow-hidden">
+              <div className={`h-1.5 ${style.bg}`} />
+              <CardHeader className="pb-1 pt-3">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{d.zone}</CardTitle>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <p className="text-2xl font-bold text-foreground">{d.totalJobs}</p>
+                <p className="text-xs text-muted-foreground">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {/* Chart */}
       <Card>
         <CardHeader>
@@ -182,9 +234,11 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
               <XAxis dataKey="zone" />
               <YAxis />
               <ChartTooltip content={<ChartTooltipContent />} />
-              {monthLabels.map((ml, i) => (
-                <Bar key={ml} dataKey={ml} fill={`var(--color-${ml.replace(/\s/g, "-")})`} radius={[4, 4, 0, 0]} />
-              ))}
+              <Bar dataKey="jobs" radius={[4, 4, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <rect key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
             </BarChart>
           </ChartContainer>
         </CardContent>
@@ -195,44 +249,53 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
         <CardHeader>
           <CardTitle className="text-lg">Zone Breakdown</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Zone</TableHead>
                 {monthLabels.map(ml => (
-                  <TableHead key={ml} className="text-center" colSpan={2}>{ml}</TableHead>
+                  <TableHead key={ml} className="text-center" colSpan={3}>{ml}</TableHead>
                 ))}
-                <TableHead className="text-center" colSpan={2}>Total</TableHead>
+                <TableHead className="text-center" colSpan={3}>Total</TableHead>
               </TableRow>
               <TableRow>
                 <TableHead />
                 {monthLabels.map(ml => (
-                  <>
-                    <TableHead key={`${ml}-j`} className="text-center text-xs">Jobs</TableHead>
-                    <TableHead key={`${ml}-t`} className="text-center text-xs">Tonnes</TableHead>
-                  </>
+                  <React.Fragment key={`sub-${ml}`}>
+                    <TableHead className="text-center text-xs">Jobs</TableHead>
+                    <TableHead className="text-center text-xs">Revenue</TableHead>
+                    <TableHead className="text-center text-xs">Tonnes</TableHead>
+                  </React.Fragment>
                 ))}
                 <TableHead className="text-center text-xs">Jobs</TableHead>
+                <TableHead className="text-center text-xs">Revenue</TableHead>
                 <TableHead className="text-center text-xs">Tonnes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {zoneData.map((d, i) => (
-                <TableRow key={i}>
-                  <TableCell className="font-medium">
-                    <Badge variant={d.zone === "Unzoned" ? "outline" : "default"}>{d.zone}</Badge>
-                  </TableCell>
-                  {[0, 1, 2].map(mi => (
-                    <>
-                      <TableCell key={`${mi}-j`} className="text-center">{(d as any)[`month${mi}_jobs`]}</TableCell>
-                      <TableCell key={`${mi}-v`} className="text-center text-muted-foreground">{(d as any)[`month${mi}_value`]?.toFixed(1)}</TableCell>
-                    </>
-                  ))}
-                  <TableCell className="text-center font-semibold">{d.totalJobs}</TableCell>
-                  <TableCell className="text-center font-semibold text-muted-foreground">{d.totalValue.toFixed(1)}</TableCell>
-                </TableRow>
-              ))}
+              {zoneData.map((d, i) => {
+                const style = getZoneStyle(d.zone);
+                return (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${style.bg} ${style.text}`}>
+                        {d.zone}
+                      </span>
+                    </TableCell>
+                    {[0, 1, 2].map(mi => (
+                      <React.Fragment key={mi}>
+                        <TableCell className="text-center">{(d as any)[`month${mi}_jobs`]}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">£{((d as any)[`month${mi}_revenue`] || 0).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{((d as any)[`month${mi}_tonnes`] || 0).toFixed(1)}</TableCell>
+                      </React.Fragment>
+                    ))}
+                    <TableCell className="text-center font-semibold">{d.totalJobs}</TableCell>
+                    <TableCell className="text-center font-semibold">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
+                    <TableCell className="text-center font-semibold text-muted-foreground">{d.totalTonnes.toFixed(1)}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -240,3 +303,5 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
     </div>
   );
 }
+
+import React from "react";
