@@ -1616,6 +1616,7 @@ export type Database = {
           id: string
           is_active: boolean
           pallet_weight_kg: number
+          rebate_category: string
           waste_type: string
         }
         Insert: {
@@ -1625,6 +1626,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           pallet_weight_kg?: number
+          rebate_category?: string
           waste_type: string
         }
         Update: {
@@ -1634,6 +1636,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           pallet_weight_kg?: number
+          rebate_category?: string
           waste_type?: string
         }
         Relationships: []
