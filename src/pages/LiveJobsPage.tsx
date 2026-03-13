@@ -83,7 +83,11 @@ const LiveJobsPage = () => {
               <LiveJobsDashboard settings={settings} />
             </TabsContent>
             <TabsContent value="zones" className="mt-6">
-              <ZoneReport zones={zones} />
+              <ZoneReport zones={zones} onAssignZone={async (zoneId, postcode) => {
+                const zone = zones.find(z => z.id === zoneId);
+                if (!zone) return;
+                await updateZone(zoneId, { postcodes: [...zone.postcodes, postcode] });
+              }} />
             </TabsContent>
             <TabsContent value="settings" className="mt-6">
               <div className="space-y-6">
