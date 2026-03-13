@@ -219,6 +219,21 @@ const TotalRevenue = ({ externalStartDate, externalEndDate, comparisonRanges = [
     return { midweigh, skiptrak, total: midweigh + skiptrak };
   }, [chartData]);
 
+  // Comparison totals (from first selected comparison year)
+  const compTotals = useMemo(() => {
+    if (!compData || comparisonRanges.length === 0) return null;
+    const range = comparisonRanges[0];
+    const rangeJobs = compData[range.year] || [];
+    let midweigh = 0;
+    let skiptrak = 0;
+    for (const j of rangeJobs) {
+      const rev = getRevenue(j.raw);
+      if (j.source === "midweigh") midweigh += rev;
+      else skiptrak += rev;
+    }
+    return { midweigh: Math.round(midweigh), skiptrak: Math.round(skiptrak), total: Math.round(midweigh + skiptrak), year: range.year };
+  }, [compData, comparisonRanges]);
+
   const chartConfig: Record<string, { label: string; color: string }> = {
     midweigh: { label: "Midweigh", color: "hsl(210, 70%, 50%)" },
     skiptrak: { label: "Skiptrak", color: "hsl(35, 85%, 55%)" },
