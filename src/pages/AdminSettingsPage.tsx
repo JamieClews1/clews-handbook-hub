@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { HRContactSettings } from "@/components/HRContactSettings";
+import { EmailTemplateSettings } from "@/components/EmailTemplateSettings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Mail } from "lucide-react";
 
 const AdminSettingsPage = () => {
   const navigate = useNavigate();
@@ -30,8 +33,27 @@ const AdminSettingsPage = () => {
   }
 
   return (
-    <AdminPageLayout title="Admin Settings" description="Configure system settings and HR contact information">
-      <HRContactSettings />
+    <AdminPageLayout title="Admin Settings" description="Configure system settings, HR contact information, and automated communications">
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="general" className="gap-2">
+            <Settings className="h-4 w-4" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="communications" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Communications
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general">
+          <HRContactSettings />
+        </TabsContent>
+
+        <TabsContent value="communications">
+          <EmailTemplateSettings />
+        </TabsContent>
+      </Tabs>
     </AdminPageLayout>
   );
 };
