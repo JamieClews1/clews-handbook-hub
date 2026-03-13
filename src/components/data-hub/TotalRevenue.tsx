@@ -219,6 +219,21 @@ const TotalRevenue = ({ externalStartDate, externalEndDate, comparisonRanges = [
     return { midweigh, skiptrak, total: midweigh + skiptrak };
   }, [chartData]);
 
+  // Comparison totals (from first selected comparison year)
+  const compTotals = useMemo(() => {
+    if (!compData || comparisonRanges.length === 0) return null;
+    const range = comparisonRanges[0];
+    const rangeJobs = compData[range.year] || [];
+    let midweigh = 0;
+    let skiptrak = 0;
+    for (const j of rangeJobs) {
+      const rev = getRevenue(j.raw);
+      if (j.source === "midweigh") midweigh += rev;
+      else skiptrak += rev;
+    }
+    return { midweigh: Math.round(midweigh), skiptrak: Math.round(skiptrak), total: Math.round(midweigh + skiptrak), year: range.year };
+  }, [compData, comparisonRanges]);
+
   const chartConfig: Record<string, { label: string; color: string }> = {
     midweigh: { label: "Midweigh", color: "hsl(210, 70%, 50%)" },
     skiptrak: { label: "Skiptrak", color: "hsl(35, 85%, 55%)" },
@@ -270,18 +285,25 @@ const TotalRevenue = ({ externalStartDate, externalEndDate, comparisonRanges = [
       <CardContent className="space-y-4">
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-lg border bg-muted/30 p-3 text-center">
-            <p className="text-xs text-muted-foreground">Midweigh</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totals.midweigh)}</p>
-          </div>
-          <div className="rounded-lg border bg-muted/30 p-3 text-center">
-            <p className="text-xs text-muted-foreground">Skiptrak</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totals.skiptrak)}</p>
-          </div>
-          <div className="rounded-lg border bg-primary/10 p-3 text-center">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-xl font-bold text-primary">{formatCurrency(totals.total)}</p>
-          </div>
+          {([
+            { label: "Midweigh", value: totals.midweigh, compValue: compTotals?.midweigh, accent: false },
+            { label: "Skiptrak", value: totals.skiptrak, compValue: compTotals?.skiptrak, accent: false },
+            { label: "Total", value: totals.total, compValue: compTotals?.total, accent: true },
+          ] as const).map(card => {
+            const diff = card.compValue != null ? card.value - card.compValue : null;
+            const diffPct = card.compValue != null && card.compValue !== 0 ? ((card.value - card.compValue) / card.compValue) * 100 : null;
+            return (
+              <div key={card.label} className={`rounded-lg border p-3 text-center ${card.accent ? "bg-primary/10" : "bg-muted/30"}`}>
+                <p className="text-xs text-muted-foreground">{card.label}</p>
+                <p className={`text-xl font-bold ${card.accent ? "text-primary" : "text-foreground"}`}>{formatCurrency(card.value)}</p>
+                {diff != null && (
+                  <p className={`text-xs font-semibold mt-0.5 ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
+                    {diff >= 0 ? "▲" : "▼"} {formatCurrency(Math.abs(diff))} ({diffPct != null ? `${diffPct >= 0 ? "+" : ""}${diffPct.toFixed(1)}%` : ""}) vs {compTotals?.year}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Chart */}
