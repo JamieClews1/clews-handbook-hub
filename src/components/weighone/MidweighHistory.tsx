@@ -166,13 +166,11 @@ const MidweighHistory = () => {
         )}
       </div>
 
-      {/* Cards */}
+      {/* Records */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4 h-24" />
-            </Card>
+        <div className="space-y-1">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="animate-pulse h-10 bg-muted/50 rounded" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -181,73 +179,51 @@ const MidweighHistory = () => {
           <p>No Midweigh records found for this period</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.slice(0, 200).map((job) => {
+        <div className="space-y-0 border border-border/50 rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="grid grid-cols-[100px_90px_1fr_1fr_120px_140px_80px_100px_32px] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b border-border/50">
+            <span>Job #</span>
+            <span>Date</span>
+            <span>Customer</span>
+            <span>Waste</span>
+            <span>Vehicle</span>
+            <span>Driver</span>
+            <span>Movement</span>
+            <span className="text-right">Weight</span>
+            <span></span>
+          </div>
+          {filtered.slice(0, 500).map((job) => {
             const isExpanded = expandedIds.has(job.id);
             const rawFields = isExpanded ? getRawFields(job.raw) : {};
 
             return (
-              <Card
-                key={job.id}
-                className="border-border/50 hover:border-border transition-colors cursor-pointer"
-                onClick={() => toggleExpand(job.id)}
-              >
-                <CardContent className="p-4">
-                  {/* Summary row */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-bold text-sm text-foreground">{job.job_number}</span>
-                        {job.movement_type && (
-                          <Badge variant="outline" className={
-                            job.movement_type === "INWARD"
-                              ? "bg-blue-500/10 text-blue-700 border-blue-500/30 text-[10px]"
-                              : "bg-orange-500/10 text-orange-700 border-orange-500/30 text-[10px]"
-                          }>
-                            {job.movement_type}
-                          </Badge>
-                        )}
-                        {job.job_type && (
-                          <Badge variant="outline" className="text-[10px]">{job.job_type}</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                        {job.job_date && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {format(parseISO(job.job_date), "dd MMM yyyy")}
-                          </span>
-                        )}
-                        {job.customer && (
-                          <span className="flex items-center gap-1 truncate max-w-[180px]">
-                            <User className="h-3 w-3" />
-                            {job.customer}
-                          </span>
-                        )}
-                        {job.vehicle_registration && (
-                          <span className="flex items-center gap-1 font-mono">
-                            <Truck className="h-3 w-3" />
-                            {job.vehicle_registration}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                        {job.waste_description && (
-                          <span className="truncate max-w-[200px]">{job.waste_description}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-right">
-                        <p className="font-bold text-sm tabular-nums text-foreground">{fmtWeight(job.weight_t)}</p>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
+              <div key={job.id} className="border-b border-border/30 last:border-b-0">
+                <div
+                  className="grid grid-cols-[100px_90px_1fr_1fr_120px_140px_80px_100px_32px] gap-2 px-3 py-2 items-center text-xs hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => toggleExpand(job.id)}
+                >
+                  <span className="font-mono font-bold text-foreground truncate">{job.job_number}</span>
+                  <span className="text-muted-foreground tabular-nums">{job.job_date ? format(parseISO(job.job_date), "dd/MM/yy") : "-"}</span>
+                  <span className="text-foreground truncate">{job.customer || "-"}</span>
+                  <span className="text-foreground truncate">{job.waste_description || "-"}</span>
+                  <span className="font-mono text-foreground truncate">{job.vehicle_registration || "-"}</span>
+                  <span className="text-foreground truncate">{job.driver || "-"}</span>
+                  <span>
+                    {job.movement_type && (
+                      <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${
+                        job.movement_type === "INWARD"
+                          ? "bg-blue-500/10 text-blue-700 border-blue-500/30"
+                          : "bg-orange-500/10 text-orange-700 border-orange-500/30"
+                      }`}>
+                        {job.movement_type}
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="text-right font-bold tabular-nums text-foreground">{fmtWeight(job.weight_t)}</span>
+                  <span className="flex justify-center">
+                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </span>
+                </div>
 
                   {/* Expanded detail */}
                   {isExpanded && (
