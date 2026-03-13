@@ -148,6 +148,7 @@ export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReport
 
   // Compute zone data + unzoned postcodes
   const { zoneData, monthLabels, unzonedPostcodes } = useMemo(() => {
+    const filteredList = filteredJobs;
     const now = new Date();
     const months = [
       format(startOfMonth(subMonths(now, 2)), "yyyy-MM"),
