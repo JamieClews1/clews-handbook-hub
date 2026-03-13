@@ -885,22 +885,22 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onEdit}
-      className={`rounded-lg border p-2.5 cursor-grab active:cursor-grabbing transition-all hover:shadow-md hover:scale-[1.02] select-none ${JOB_TYPE_COLORS[jobType]} ${
+      className={`rounded-lg border p-2.5 cursor-grab active:cursor-grabbing transition-all hover:shadow-lg hover:scale-[1.02] select-none shadow-sm ${JOB_TYPE_COLORS[jobType]} ${
         isDragging ? "opacity-50 scale-95" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="h-3 w-3 shrink-0 opacity-40" />
-          <span className="text-xs font-bold truncate">{job.customer_name}</span>
+          <GripVertical className="h-3 w-3 shrink-0 text-white/50" />
+          <span className="text-xs font-bold truncate text-white">{job.customer_name}</span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/5 shrink-0"
+              className="h-5 w-5 flex items-center justify-center rounded hover:bg-white/20 shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreVertical className="h-3 w-3" />
+              <MoreVertical className="h-3 w-3 text-white/70" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-36">
@@ -917,34 +917,36 @@ function JobCard({
 
       {job.site_name && (
         <div className="flex items-center gap-1 mt-1.5">
-          <MapPin className="h-3 w-3 opacity-50 shrink-0" />
-          <span className="text-[10px] truncate">{job.site_name}</span>
+          <MapPin className="h-3 w-3 text-white/60 shrink-0" />
+          <span className="text-[11px] truncate text-white/90">{job.site_name}</span>
         </div>
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className={`text-[10px] px-1.5 py-0 h-4 border-0 ${JOB_TYPE_BADGE_COLORS[jobType]}`}>
+        <Badge className={`text-[10px] px-1.5 py-0 h-4 ${JOB_TYPE_BADGE_COLORS[jobType]}`}>
           {JOB_TYPE_LABELS[jobType]}
         </Badge>
         {job.container_type && (
-          <span className="text-[10px] opacity-60">{job.container_type}</span>
+          <span className="text-[10px] text-white/70">{job.container_type}</span>
         )}
         {job.container_size && (
-          <span className="text-[10px] opacity-60">{job.container_size}</span>
+          <span className="text-[10px] text-white/70">{job.container_size}</span>
         )}
         {status === "query" && (
-          <AlertTriangle className="h-3 w-3 text-red-500" />
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white text-red-600 font-bold">
+            <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Query
+          </Badge>
         )}
         {status === "completed" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-emerald-500 text-white">Done</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/30 text-white">Done</Badge>
         )}
         {status === "in_progress" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-blue-500 text-white">In Progress</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/30 text-white">In Progress</Badge>
         )}
       </div>
 
       {job.estimated_duration_mins && (
-        <div className="flex items-center gap-1 mt-1.5 opacity-50">
+        <div className="flex items-center gap-1 mt-1.5 text-white/50">
           <Clock className="h-2.5 w-2.5" />
           <span className="text-[10px]">{job.estimated_duration_mins} min</span>
         </div>
