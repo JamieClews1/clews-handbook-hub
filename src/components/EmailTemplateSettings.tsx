@@ -269,11 +269,10 @@ export const EmailTemplateSettings = () => {
                       )}
                     </Button>
                   </div>
-                  <Textarea
-                    value={getCurrentValue(template, "body_html") as string}
-                    onChange={(e) => handleFieldChange(template.id, "body_html", e.target.value)}
-                    rows={12}
-                    className="font-mono text-xs"
+                  <CompactRichTextEditor
+                    content={getCurrentValue(template, "body_html") as string}
+                    onChange={(html) => handleFieldChange(template.id, "body_html", html)}
+                    minHeight="200px"
                   />
                 </div>
 
