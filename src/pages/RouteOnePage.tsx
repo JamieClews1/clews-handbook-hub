@@ -701,6 +701,7 @@ const RouteOnePage = () => {
                       key={job.id}
                       job={job}
                       onEdit={() => openEditDialog(job)}
+                      onView={() => setViewingJob(job)}
                       onDelete={() => deleteJob.mutate(job.id)}
                       onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
                       onDragStart={(e) => handleDragStart(e, job.id)}
