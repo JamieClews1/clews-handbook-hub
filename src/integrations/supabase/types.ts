@@ -2129,6 +2129,33 @@ export type Database = {
         }
         Relationships: []
       }
+      postcode_zones: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          postcodes: string[]
+          updated_at: string
+          zone_name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          postcodes?: string[]
+          updated_at?: string
+          zone_name: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          postcodes?: string[]
+          updated_at?: string
+          zone_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
