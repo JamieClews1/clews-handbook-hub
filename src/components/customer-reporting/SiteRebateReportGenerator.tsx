@@ -494,12 +494,13 @@ export function SiteRebateReportGenerator() {
           const uniqueDiscounts = [...new Set(materialDiscounts.map(d => d.discountPercent))];
           wetChargeSummary = `${totalAffectedWeight.toFixed(2)}t @ ${uniqueDiscounts.map(d => `-${d}%`).join(", ")}`;
           
-          // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
-          rebate_value = unaffectedWeight * rate;
-          for (const discount of materialDiscounts) {
-            rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
-          }
-        }
+           // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
+           rebate_value = unaffectedWeight * rate;
+           for (const discount of materialDiscounts) {
+             rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
+           }
+           if (isCostItem) rebate_value = -Math.abs(rebate_value);
+         }
 
         reportRows.push({
           material_name: config.material_name,

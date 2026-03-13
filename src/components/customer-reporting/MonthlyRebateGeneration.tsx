@@ -341,9 +341,10 @@ import * as XLSX from "xlsx";
                 rateSource += ` ${adjustment > 0 ? "+" : ""}${adjustment}`;
               }
 
-              // Calculate rebate value - for pallet charge this is treated as any other row
-              // (the rate itself determines whether it's a deduction via positive/negative value)
-              const rebate = weight * rate;
+              // Calculate rebate value - negate for cost items
+              const isCostItem = (material?.rebate_category ?? "rebate") === "cost";
+              let rebate = weight * rate;
+              if (isCostItem) rebate = -Math.abs(rebate);
               loadReportRebate += rebate;
               
               // Add all material weights to gross weight total (including pallet weight)
