@@ -717,7 +717,7 @@ const RouteOnePage = () => {
                     </div>
                   )}
                   {skiptrakJobs.map((sj: any) => (
-                    <SkiptrakJobCard key={sj.job_number} job={sj} />
+                    <SkiptrakJobCard key={sj.job_number} job={sj} onClick={() => setViewingSkiptrakJob(sj)} />
                   ))}
                   {totalCount === 0 && (
                     <div className="h-full flex items-center justify-center">
