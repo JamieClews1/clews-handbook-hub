@@ -225,48 +225,47 @@ const MidweighHistory = () => {
                   </span>
                 </div>
 
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div className="mt-4 pt-3 border-t border-border/50 space-y-3">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                        <Detail label="Job Number" value={job.job_number} />
-                        <Detail label="Date" value={job.job_date ? format(parseISO(job.job_date), "dd/MM/yyyy") : null} />
-                        <Detail label="Customer" value={job.customer} />
-                        <Detail label="Site" value={job.site} />
-                        <Detail label="Driver" value={job.driver} />
-                        <Detail label="Vehicle" value={job.vehicle_registration} />
-                        <Detail label="Waste Description" value={job.waste_description} />
-                        <Detail label="EWC Code" value={job.ewc} />
-                        <Detail label="Container Type" value={job.container_type} />
-                        <Detail label="Weight" value={fmtWeight(job.weight_t)} />
-                        <Detail label="Movement" value={job.movement_type} />
-                        <Detail label="Job Type" value={job.job_type} />
-                        <Detail label="Category" value={job.category} />
-                      </div>
-
-                      {/* Raw data */}
-                      {Object.keys(rawFields).length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Raw Midweigh Data</p>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs bg-muted/40 rounded-lg p-3">
-                            {Object.entries(rawFields).map(([key, val]) => (
-                              <div key={key} className="flex gap-1.5">
-                                <span className="text-muted-foreground shrink-0">{key}:</span>
-                                <span className="font-medium text-foreground truncate">{val}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                {/* Expanded detail */}
+                {isExpanded && (
+                  <div className="px-3 pb-3 pt-1 bg-muted/20">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                      <Detail label="Job Number" value={job.job_number} />
+                      <Detail label="Date" value={job.job_date ? format(parseISO(job.job_date), "dd/MM/yyyy") : null} />
+                      <Detail label="Customer" value={job.customer} />
+                      <Detail label="Site" value={job.site} />
+                      <Detail label="Driver" value={job.driver} />
+                      <Detail label="Vehicle" value={job.vehicle_registration} />
+                      <Detail label="Waste Description" value={job.waste_description} />
+                      <Detail label="EWC Code" value={job.ewc} />
+                      <Detail label="Container Type" value={job.container_type} />
+                      <Detail label="Weight" value={fmtWeight(job.weight_t)} />
+                      <Detail label="Movement" value={job.movement_type} />
+                      <Detail label="Job Type" value={job.job_type} />
+                      <Detail label="Category" value={job.category} />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                    {/* Raw data */}
+                    {Object.keys(rawFields).length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Raw Midweigh Data</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs bg-muted/40 rounded-lg p-3">
+                          {Object.entries(rawFields).map(([key, val]) => (
+                            <div key={key} className="flex gap-1.5">
+                              <span className="text-muted-foreground shrink-0">{key}:</span>
+                              <span className="font-medium text-foreground truncate">{val}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
-          {filtered.length > 200 && (
-            <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
-              Showing first 200 of {filtered.length.toLocaleString()} records. Narrow your search or date range for more.
+          {filtered.length > 500 && (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              Showing first 500 of {filtered.length.toLocaleString()} records. Narrow your search or date range.
             </div>
           )}
         </div>
