@@ -9,16 +9,39 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { MapPin, AlertCircle, Loader2 } from "lucide-react";
+import { MapPin, AlertCircle, Loader2, Container, Truck, ArrowRightLeft } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { toast } from "sonner";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
+import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 type RawJob = {
   job_date: string | null;
   weight_t: number | null;
+  container_type: string | null;
+  vehicle_registration: string | null;
   raw: any;
 };
+
+type ContainerCategory = "skip" | "roro" | "artic";
+type CategoryFilter = "all" | ContainerCategory;
+
+function categoriseContainer(
+  containerType: string | null,
+  vehicleReg: string | null,
+  settings: LiveJobsSettings
+): ContainerCategory | null {
+  if (vehicleReg) {
+    const vr = vehicleReg.toUpperCase().replace(/\s+/g, "");
+    if (settings.artic_vehicle_regs.some(r => r.replace(/\s+/g, "").toUpperCase() === vr)) return "artic";
+  }
+  if (!containerType) return null;
+  const ct = containerType.toLowerCase();
+  if (settings.artic_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "artic";
+  if (settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "roro";
+  if (settings.skip_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "skip";
+  return null;
+}
 
 // Zone colours matching the Excel spreadsheet styling
 const ZONE_COLORS: Record<string, { bg: string; text: string; chart: string }> = {
@@ -78,12 +101,14 @@ function matchZone(postcode: string | null | undefined, zones: PostcodeZone[]): 
 
 interface ZoneReportProps {
   zones: PostcodeZone[];
+  settings: LiveJobsSettings;
   onAssignZone: (zoneId: string, postcode: string) => Promise<void>;
 }
 
-export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
+export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReportProps) {
   const [jobs, setJobs] = useState<RawJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -97,7 +122,7 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date,weight_t,raw")
+          .select("job_date,weight_t,container_type,vehicle_registration,raw")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .order("job_date", { ascending: false })
@@ -115,8 +140,15 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
     fetchJobs();
   }, []);
 
+  // Filter jobs by category
+  const filteredJobs = useMemo(() => {
+    if (categoryFilter === "all") return jobs;
+    return jobs.filter(j => categoriseContainer(j.container_type, j.vehicle_registration, settings) === categoryFilter);
+  }, [jobs, categoryFilter, settings]);
+
   // Compute zone data + unzoned postcodes
   const { zoneData, monthLabels, unzonedPostcodes } = useMemo(() => {
+    const filteredList = filteredJobs;
     const now = new Date();
     const months = [
       format(startOfMonth(subMonths(now, 2)), "yyyy-MM"),
@@ -140,7 +172,7 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
     // Track unzoned postcodes with counts
     const unzonedMap: Record<string, { prefix: string; fullExample: string; jobCount: number; revenue: number; customer: string }> = {};
 
-    for (const job of jobs) {
+    for (const job of filteredList) {
       if (!job.job_date) continue;
       const monthKey = job.job_date.substring(0, 7);
       if (!months.includes(monthKey)) continue;
@@ -200,7 +232,7 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
     const unzoned = Object.values(unzonedMap).sort((a, b) => b.jobCount - a.jobCount);
 
     return { zoneData: data, monthLabels: labels, unzonedPostcodes: unzoned };
-  }, [jobs, zones]);
+  }, [filteredJobs, zones]);
 
   const chartData = useMemo(() =>
     zoneData.map(d => ({
@@ -229,19 +261,46 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
     );
   }
 
+  const CATEGORY_OPTIONS: { label: string; value: CategoryFilter; icon: React.ReactNode }[] = [
+    { label: "All", value: "all", icon: null },
+    { label: "Skip", value: "skip", icon: <Container className="h-3.5 w-3.5" /> },
+    { label: "RoRo", value: "roro", icon: <Truck className="h-3.5 w-3.5" /> },
+    { label: "Artic", value: "artic", icon: <ArrowRightLeft className="h-3.5 w-3.5" /> },
+  ];
+
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="overview">
-          <MapPin className="h-4 w-4 mr-1.5" /> Overview
-        </TabsTrigger>
-        <TabsTrigger value="unzoned" className="gap-1.5">
-          <AlertCircle className="h-4 w-4" /> Unzoned Postcodes
-          {unzonedPostcodes.length > 0 && (
-            <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unzonedPostcodes.length}</Badge>
-          )}
-        </TabsTrigger>
-      </TabsList>
+    <div className="space-y-4">
+      {/* Category filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">Filter:</span>
+        <div className="flex gap-1">
+          {CATEGORY_OPTIONS.map(opt => (
+            <Button
+              key={opt.value}
+              variant={categoryFilter === opt.value ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setCategoryFilter(opt.value)}
+            >
+              {opt.icon}
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">
+            <MapPin className="h-4 w-4 mr-1.5" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="unzoned" className="gap-1.5">
+            <AlertCircle className="h-4 w-4" /> Unzoned Postcodes
+            {unzonedPostcodes.length > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unzonedPostcodes.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
       <TabsContent value="overview">
         <div className="space-y-6">
@@ -356,6 +415,7 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
         />
       </TabsContent>
     </Tabs>
+    </div>
   );
 }
 
