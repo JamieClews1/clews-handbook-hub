@@ -258,6 +258,7 @@ export function SiteRebateReportGenerator() {
               range_type: item.value_type as "lower" | "higher" | "set",
               set_value: item.set_value,
               adjustment: (fullItem as any)?.adjustment ?? 0,
+              rebate_category: material?.rebate_category ?? "rebate",
             });
           }
 
