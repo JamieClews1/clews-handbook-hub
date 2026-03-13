@@ -101,12 +101,14 @@ function matchZone(postcode: string | null | undefined, zones: PostcodeZone[]): 
 
 interface ZoneReportProps {
   zones: PostcodeZone[];
+  settings: LiveJobsSettings;
   onAssignZone: (zoneId: string, postcode: string) => Promise<void>;
 }
 
-export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
+export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReportProps) {
   const [jobs, setJobs] = useState<RawJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -120,7 +122,7 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date,weight_t,raw")
+          .select("job_date,weight_t,container_type,vehicle_registration,raw")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .order("job_date", { ascending: false })
@@ -137,6 +139,12 @@ export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
     };
     fetchJobs();
   }, []);
+
+  // Filter jobs by category
+  const filteredJobs = useMemo(() => {
+    if (categoryFilter === "all") return jobs;
+    return jobs.filter(j => categoriseContainer(j.container_type, j.vehicle_registration, settings) === categoryFilter);
+  }, [jobs, categoryFilter, settings]);
 
   // Compute zone data + unzoned postcodes
   const { zoneData, monthLabels, unzonedPostcodes } = useMemo(() => {
