@@ -415,6 +415,7 @@ export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReport
         />
       </TabsContent>
     </Tabs>
+    </div>
   );
 }
 
