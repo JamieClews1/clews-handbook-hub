@@ -975,8 +975,8 @@ function JobCard({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={onEdit}
-      className={`rounded-lg border p-2.5 cursor-grab active:cursor-grabbing transition-all hover:shadow-lg hover:scale-[1.02] select-none shadow-sm ${JOB_TYPE_COLORS[jobType]} ${
+      onClick={onView}
+      className={`rounded-lg border p-2.5 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] select-none shadow-sm ${JOB_TYPE_COLORS[jobType]} ${
         isDragging ? "opacity-50 scale-95" : ""
       }`}
     >
