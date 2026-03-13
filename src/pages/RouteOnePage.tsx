@@ -540,6 +540,89 @@ const RouteOnePage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* View Native Job Dialog (read-only) */}
+      <Dialog open={!!viewingJob} onOpenChange={(open) => { if (!open) setViewingJob(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Job Details
+            </DialogTitle>
+          </DialogHeader>
+          {viewingJob && (() => {
+            const jt = viewingJob.job_type as JobType;
+            return (
+              <div className="space-y-4">
+                <div className={`rounded-lg p-3 ${JOB_TYPE_COLORS[jt]}`}>
+                  <p className="text-sm font-bold">{viewingJob.customer_name}</p>
+                  {viewingJob.site_name && <p className="text-xs mt-0.5 opacity-90">{viewingJob.site_name}</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <DetailRow label="Job Type" value={JOB_TYPE_LABELS[jt]} />
+                  <DetailRow label="Status" value={viewingJob.status} />
+                  <DetailRow label="Date" value={viewingJob.scheduled_date} />
+                  <DetailRow label="Duration" value={viewingJob.estimated_duration_mins ? `${viewingJob.estimated_duration_mins} min` : "—"} />
+                  <DetailRow label="Container" value={viewingJob.container_type || "—"} />
+                  <DetailRow label="Size" value={viewingJob.container_size || "—"} />
+                  <DetailRow label="Waste Type" value={viewingJob.waste_type || "—"} />
+                  <DetailRow label="PO Number" value={viewingJob.po_number || "—"} />
+                  <DetailRow label="Address" value={viewingJob.site_address || "—"} />
+                  <DetailRow label="Postcode" value={viewingJob.site_postcode || "—"} />
+                </div>
+                {viewingJob.notes && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Notes</p>
+                    <p className="text-sm bg-muted/50 rounded p-2">{viewingJob.notes}</p>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
+                    <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
+                  </Button>
+                </DialogFooter>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Skiptrak Job Dialog */}
+      <Dialog open={!!viewingSkiptrakJob} onOpenChange={(open) => { if (!open) setViewingSkiptrakJob(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Skiptrak Job Details
+            </DialogTitle>
+          </DialogHeader>
+          {viewingSkiptrakJob && (() => {
+            const mt = getSkiptrakJobType(viewingSkiptrakJob.movement_type);
+            const colorClass = mt ? JOB_TYPE_COLORS[mt] : "bg-muted text-foreground";
+            return (
+              <div className="space-y-4">
+                <div className={`rounded-lg p-3 ${colorClass}`}>
+                  <p className="text-sm font-bold">{viewingSkiptrakJob.customer || "Unknown"}</p>
+                  {viewingSkiptrakJob.site && <p className="text-xs mt-0.5 opacity-90">{viewingSkiptrakJob.site}</p>}
+                  <Badge className="mt-2 text-[10px] bg-white/20 border-0">{viewingSkiptrakJob.movement_type || "Unknown"}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <DetailRow label="Job Number" value={viewingSkiptrakJob.job_number} />
+                  <DetailRow label="Date" value={viewingSkiptrakJob.job_date || "—"} />
+                  <DetailRow label="Customer" value={viewingSkiptrakJob.customer || "—"} />
+                  <DetailRow label="Site" value={viewingSkiptrakJob.site || "—"} />
+                  <DetailRow label="Driver" value={viewingSkiptrakJob.driver || "—"} />
+                  <DetailRow label="Vehicle" value={viewingSkiptrakJob.vehicle_registration || "—"} />
+                  <DetailRow label="Container" value={viewingSkiptrakJob.container_type || "—"} />
+                  <DetailRow label="Waste" value={viewingSkiptrakJob.waste_description || "—"} />
+                  <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
+                  <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Dispatch Board */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full min-w-max">
