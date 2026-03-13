@@ -36,12 +36,25 @@ function getZoneStyle(zoneName: string) {
 
 const UK_POSTCODE_RE = /\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i;
 
+function normalizePostcode(raw: string): string | null {
+  // UK postcodes: outcode (2-4 chars) + incode (always 3 chars: digit + 2 letters)
+  // Try with space first
+  const spaced = raw.toUpperCase().replace(/\s+/g, " ").trim();
+  if (UK_POSTCODE_RE.test(spaced)) return spaced;
+  // No space — insert space before last 3 characters (the incode is always 3 chars)
+  const compact = raw.toUpperCase().replace(/\s+/g, "");
+  if (compact.length >= 5 && /^\d[A-Z]{2}$/.test(compact.slice(-3))) {
+    const withSpace = compact.slice(0, -3) + " " + compact.slice(-3);
+    if (UK_POSTCODE_RE.test(withSpace)) return withSpace;
+  }
+  return null;
+}
+
 function extractPostcodePrefix(postcode: string | null | undefined): string | null {
   if (!postcode) return null;
-  const match = postcode.match(UK_POSTCODE_RE);
-  if (!match) return null;
-  const full = match[1].toUpperCase().replace(/\s+/g, " ").trim();
-  const parts = full.split(" ");
+  const normalized = normalizePostcode(postcode);
+  if (!normalized) return null;
+  const parts = normalized.split(" ");
   if (parts.length >= 2) {
     return `${parts[0]} ${parts[1].charAt(0)}`;
   }
