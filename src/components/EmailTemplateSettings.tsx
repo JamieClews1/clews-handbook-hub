@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Save, Eye, EyeOff, Info } from "lucide-react";
+import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
 import {
   Accordion,
   AccordionContent,
@@ -269,11 +269,10 @@ export const EmailTemplateSettings = () => {
                       )}
                     </Button>
                   </div>
-                  <Textarea
-                    value={getCurrentValue(template, "body_html") as string}
-                    onChange={(e) => handleFieldChange(template.id, "body_html", e.target.value)}
-                    rows={12}
-                    className="font-mono text-xs"
+                  <CompactRichTextEditor
+                    content={getCurrentValue(template, "body_html") as string}
+                    onChange={(html) => handleFieldChange(template.id, "body_html", html)}
+                    minHeight="200px"
                   />
                 </div>
 
