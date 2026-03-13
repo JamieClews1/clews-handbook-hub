@@ -1,12 +1,17 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { MapPin } from "lucide-react";
+import { MapPin, AlertCircle, Loader2 } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
+import { toast } from "sonner";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
 
 type RawJob = {
@@ -58,7 +63,12 @@ function matchZone(postcode: string | null | undefined, zones: PostcodeZone[]): 
   return null;
 }
 
-export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
+interface ZoneReportProps {
+  zones: PostcodeZone[];
+  onAssignZone: (zoneId: string, postcode: string) => Promise<void>;
+}
+
+export default function ZoneReport({ zones, onAssignZone }: ZoneReportProps) {
   const [jobs, setJobs] = useState<RawJob[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -92,7 +102,8 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
     fetchJobs();
   }, []);
 
-  const { zoneData, monthLabels } = useMemo(() => {
+  // Compute zone data + unzoned postcodes
+  const { zoneData, monthLabels, unzonedPostcodes } = useMemo(() => {
     const now = new Date();
     const months = [
       format(startOfMonth(subMonths(now, 2)), "yyyy-MM"),
@@ -112,6 +123,9 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
         map[name][m] = { jobs: 0, revenue: 0, tonnes: 0 };
       }
     }
+
+    // Track unzoned postcodes with counts
+    const unzonedMap: Record<string, { prefix: string; fullExample: string; jobCount: number; revenue: number; customer: string }> = {};
 
     for (const job of jobs) {
       if (!job.job_date) continue;
@@ -134,6 +148,18 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       map[zoneName][monthKey].jobs++;
       map[zoneName][monthKey].revenue += Math.abs(cost);
       map[zoneName][monthKey].tonnes += tonnes;
+
+      // Track unzoned postcodes
+      if (!zone && postcode) {
+        const prefix = extractPostcodePrefix(postcode);
+        if (prefix) {
+          if (!unzonedMap[prefix]) {
+            unzonedMap[prefix] = { prefix, fullExample: postcode, jobCount: 0, revenue: 0, customer: raw["Customer"] || "Unknown" };
+          }
+          unzonedMap[prefix].jobCount++;
+          unzonedMap[prefix].revenue += Math.abs(cost);
+        }
+      }
     }
 
     const data = Object.entries(map).map(([zoneName, monthData]) => {
@@ -158,7 +184,9 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
         return aOrder - bOrder;
       });
 
-    return { zoneData: data, monthLabels: labels };
+    const unzoned = Object.values(unzonedMap).sort((a, b) => b.jobCount - a.jobCount);
+
+    return { zoneData: data, monthLabels: labels, unzonedPostcodes: unzoned };
   }, [jobs, zones]);
 
   const chartData = useMemo(() =>
@@ -189,107 +217,255 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {zoneData.map(d => {
-          const style = getZoneStyle(d.zone);
-          return (
-            <Card key={d.zone} className="overflow-hidden">
-              <div className={`h-1.5 ${style.bg}`} />
-              <CardHeader className="pb-1 pt-3">
-                <CardTitle className="text-xs font-medium text-muted-foreground">{d.zone}</CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <p className="text-2xl font-bold text-foreground">{d.totalJobs}</p>
-                <p className="text-sm font-semibold text-green-600">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                <p className="text-xs text-muted-foreground">{d.totalTonnes.toFixed(1)}t</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="overview">
+          <MapPin className="h-4 w-4 mr-1.5" /> Overview
+        </TabsTrigger>
+        <TabsTrigger value="unzoned" className="gap-1.5">
+          <AlertCircle className="h-4 w-4" /> Unzoned Postcodes
+          {unzonedPostcodes.length > 0 && (
+            <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{unzonedPostcodes.length}</Badge>
+          )}
+        </TabsTrigger>
+      </TabsList>
 
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MapPin className="h-5 w-5" /> Jobs by Zone — Last 3 Months
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[350px] w-full">
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="zone" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="jobs" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <TabsContent value="overview">
+        <div className="space-y-6">
+          {/* Summary cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {zoneData.map(d => {
+              const style = getZoneStyle(d.zone);
+              return (
+                <Card key={d.zone} className="overflow-hidden">
+                  <div className={`h-1.5 ${style.bg}`} />
+                  <CardHeader className="pb-1 pt-3">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">{d.zone}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <p className="text-2xl font-bold text-foreground">{d.totalJobs}</p>
+                    <p className="text-sm font-semibold text-green-600">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                    <p className="text-xs text-muted-foreground">{d.totalTonnes.toFixed(1)}t</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-      {/* Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Zone Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Zone</TableHead>
-                {monthLabels.map(ml => (
-                  <TableHead key={ml} className="text-center" colSpan={3}>{ml}</TableHead>
-                ))}
-                <TableHead className="text-center" colSpan={3}>Total</TableHead>
-              </TableRow>
-              <TableRow>
-                <TableHead />
-                {monthLabels.map(ml => (
-                  <React.Fragment key={`sub-${ml}`}>
+          {/* Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5" /> Jobs by Zone — Last 3 Months
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="zone" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="jobs" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Zone Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Zone</TableHead>
+                    {monthLabels.map(ml => (
+                      <TableHead key={ml} className="text-center" colSpan={3}>{ml}</TableHead>
+                    ))}
+                    <TableHead className="text-center" colSpan={3}>Total</TableHead>
+                  </TableRow>
+                  <TableRow>
+                    <TableHead />
+                    {monthLabels.map(ml => (
+                      <React.Fragment key={`sub-${ml}`}>
+                        <TableHead className="text-center text-xs">Jobs</TableHead>
+                        <TableHead className="text-center text-xs">Revenue</TableHead>
+                        <TableHead className="text-center text-xs">Tonnes</TableHead>
+                      </React.Fragment>
+                    ))}
                     <TableHead className="text-center text-xs">Jobs</TableHead>
                     <TableHead className="text-center text-xs">Revenue</TableHead>
                     <TableHead className="text-center text-xs">Tonnes</TableHead>
-                  </React.Fragment>
-                ))}
-                <TableHead className="text-center text-xs">Jobs</TableHead>
-                <TableHead className="text-center text-xs">Revenue</TableHead>
-                <TableHead className="text-center text-xs">Tonnes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {zoneData.map((d, i) => {
-                const style = getZoneStyle(d.zone);
-                return (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${style.bg} ${style.text}`}>
-                        {d.zone}
-                      </span>
-                    </TableCell>
-                    {[0, 1, 2].map(mi => (
-                      <React.Fragment key={mi}>
-                        <TableCell className="text-center">{(d as any)[`month${mi}_jobs`]}</TableCell>
-                        <TableCell className="text-center text-muted-foreground">£{((d as any)[`month${mi}_revenue`] || 0).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
-                        <TableCell className="text-center text-muted-foreground">{((d as any)[`month${mi}_tonnes`] || 0).toFixed(1)}</TableCell>
-                      </React.Fragment>
-                    ))}
-                    <TableCell className="text-center font-semibold">{d.totalJobs}</TableCell>
-                    <TableCell className="text-center font-semibold text-green-600">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
-                    <TableCell className="text-center font-semibold text-muted-foreground">{d.totalTonnes.toFixed(1)}</TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {zoneData.map((d, i) => {
+                    const style = getZoneStyle(d.zone);
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${style.bg} ${style.text}`}>
+                            {d.zone}
+                          </span>
+                        </TableCell>
+                        {[0, 1, 2].map(mi => (
+                          <React.Fragment key={mi}>
+                            <TableCell className="text-center">{(d as any)[`month${mi}_jobs`]}</TableCell>
+                            <TableCell className="text-center text-muted-foreground">£{((d as any)[`month${mi}_revenue`] || 0).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
+                            <TableCell className="text-center text-muted-foreground">{((d as any)[`month${mi}_tonnes`] || 0).toFixed(1)}</TableCell>
+                          </React.Fragment>
+                        ))}
+                        <TableCell className="text-center font-semibold">{d.totalJobs}</TableCell>
+                        <TableCell className="text-center font-semibold text-green-600">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
+                        <TableCell className="text-center font-semibold text-muted-foreground">{d.totalTonnes.toFixed(1)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="unzoned">
+        <UnzonedPostcodesTable
+          postcodes={unzonedPostcodes}
+          zones={zones}
+          onAssignZone={onAssignZone}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+// ── Unzoned Postcodes Sub-component ──
+
+type UnzonedEntry = { prefix: string; fullExample: string; jobCount: number; revenue: number; customer: string };
+
+function UnzonedPostcodesTable({
+  postcodes,
+  zones,
+  onAssignZone,
+}: {
+  postcodes: UnzonedEntry[];
+  zones: PostcodeZone[];
+  onAssignZone: (zoneId: string, postcode: string) => Promise<void>;
+}) {
+  const [assigning, setAssigning] = useState<string | null>(null);
+  const [selections, setSelections] = useState<Record<string, string>>({});
+
+  const handleAssign = useCallback(async (prefix: string) => {
+    const zoneId = selections[prefix];
+    if (!zoneId) return;
+    setAssigning(prefix);
+    try {
+      await onAssignZone(zoneId, prefix);
+      toast.success(`${prefix} assigned to zone`);
+      // Remove from selections
+      setSelections(prev => {
+        const next = { ...prev };
+        delete next[prefix];
+        return next;
+      });
+    } catch {
+      toast.error("Failed to assign postcode");
+    }
+    setAssigning(null);
+  }, [selections, onAssignZone]);
+
+  if (postcodes.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          🎉 All postcodes from the last 3 months are assigned to a zone.
         </CardContent>
       </Card>
-    </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          Unzoned Postcodes ({postcodes.length})
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          These postcode prefixes appeared in Skiptrak data but don't match any zone. Assign them to a zone to include them in reporting.
+        </p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Postcode Prefix</TableHead>
+              <TableHead>Example</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="text-center">Jobs</TableHead>
+              <TableHead className="text-center">Revenue</TableHead>
+              <TableHead>Assign to Zone</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {postcodes.map(pc => (
+              <TableRow key={pc.prefix}>
+                <TableCell className="font-mono font-semibold">{pc.prefix}</TableCell>
+                <TableCell className="text-muted-foreground font-mono text-xs">{pc.fullExample}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{pc.customer}</TableCell>
+                <TableCell className="text-center">
+                  <Badge variant="secondary">{pc.jobCount}</Badge>
+                </TableCell>
+                <TableCell className="text-center text-sm">
+                  £{pc.revenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={selections[pc.prefix] || ""}
+                    onValueChange={v => setSelections(prev => ({ ...prev, [pc.prefix]: v }))}
+                  >
+                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                      <SelectValue placeholder="Select zone..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {zones.map(z => {
+                        const style = getZoneStyle(z.zone_name);
+                        return (
+                          <SelectItem key={z.id} value={z.id}>
+                            <span className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${style.bg}`} />
+                              {z.zone_name}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-8 text-xs"
+                    disabled={!selections[pc.prefix] || assigning === pc.prefix}
+                    onClick={() => handleAssign(pc.prefix)}
+                  >
+                    {assigning === pc.prefix ? <Loader2 className="h-3 w-3 animate-spin" /> : "Assign"}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
