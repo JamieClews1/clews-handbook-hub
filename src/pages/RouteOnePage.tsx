@@ -623,8 +623,10 @@ const RouteOnePage = () => {
                     />
                   ))}
                   {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
-                    <div className="border-t border-border/50 my-1 pt-1">
-                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Skiptrak</span>
+                    <div className="border-t border-dashed border-border my-2 pt-2 flex items-center gap-2">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Skiptrak</span>
+                      <div className="h-px flex-1 bg-border" />
                     </div>
                   )}
                   {skiptrakJobs.map((sj: any) => (
