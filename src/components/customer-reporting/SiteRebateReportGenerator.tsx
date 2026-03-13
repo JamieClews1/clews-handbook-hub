@@ -473,7 +473,10 @@ export function SiteRebateReportGenerator() {
         const weight_tonnes = isPalletCharge ? totalPalletWeight : (lineItemWeights[config.material_name] ?? 0);
 
         // Calculate rebate value with wet charge discount applied
+        // For cost items (rebate_category === "cost"), negate the value
+        const isCostItem = config.rebate_category === "cost";
         let rebate_value = weight_tonnes * rate;
+        if (isCostItem) rebate_value = -Math.abs(rebate_value);
         let hasWetCharge = false;
         let wetChargeSummary = "";
         
