@@ -9,16 +9,39 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { MapPin, AlertCircle, Loader2 } from "lucide-react";
+import { MapPin, AlertCircle, Loader2, Container, Truck, ArrowRightLeft } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { toast } from "sonner";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
+import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 type RawJob = {
   job_date: string | null;
   weight_t: number | null;
+  container_type: string | null;
+  vehicle_registration: string | null;
   raw: any;
 };
+
+type ContainerCategory = "skip" | "roro" | "artic";
+type CategoryFilter = "all" | ContainerCategory;
+
+function categoriseContainer(
+  containerType: string | null,
+  vehicleReg: string | null,
+  settings: LiveJobsSettings
+): ContainerCategory | null {
+  if (vehicleReg) {
+    const vr = vehicleReg.toUpperCase().replace(/\s+/g, "");
+    if (settings.artic_vehicle_regs.some(r => r.replace(/\s+/g, "").toUpperCase() === vr)) return "artic";
+  }
+  if (!containerType) return null;
+  const ct = containerType.toLowerCase();
+  if (settings.artic_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "artic";
+  if (settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "roro";
+  if (settings.skip_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "skip";
+  return null;
+}
 
 // Zone colours matching the Excel spreadsheet styling
 const ZONE_COLORS: Record<string, { bg: string; text: string; chart: string }> = {
