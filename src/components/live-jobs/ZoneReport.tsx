@@ -1,17 +1,17 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
 import { MapPin } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
 
 type RawJob = {
   job_date: string | null;
+  weight_t: number | null;
   raw: any;
 };
 
@@ -74,7 +74,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date,raw")
+          .select("job_date,weight_t,raw")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .order("job_date", { ascending: false })
@@ -92,7 +92,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
     fetchJobs();
   }, []);
 
-  const { zoneData, monthLabels, totals } = useMemo(() => {
+  const { zoneData, monthLabels } = useMemo(() => {
     const now = new Date();
     const months = [
       format(startOfMonth(subMonths(now, 2)), "yyyy-MM"),
@@ -121,8 +121,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       const raw = typeof job.raw === "object" && job.raw ? job.raw : {};
       const postcode = raw["Location Postc"] || raw["Postcode"] || null;
       const cost = parseFloat(raw["Cost"] || raw["Price"] || "0") || 0;
-      const weight = parseFloat(raw["Nett Weight"] || "0") || 0;
-      const weightT = weight / 1000; // Convert kg to tonnes if needed — check format
+      const tonnes = Math.abs(job.weight_t ?? 0);
 
       const zone = matchZone(postcode, zones);
       const zoneName = zone ? zone.zone_name : "Unzoned";
@@ -134,7 +133,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
 
       map[zoneName][monthKey].jobs++;
       map[zoneName][monthKey].revenue += Math.abs(cost);
-      map[zoneName][monthKey].tonnes += Math.abs(job.job_date ? (parseFloat(String(raw["Nett Weight"] || "0")) / 1000) : 0);
+      map[zoneName][monthKey].tonnes += tonnes;
     }
 
     const data = Object.entries(map).map(([zoneName, monthData]) => {
@@ -152,7 +151,6 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
       };
     }).filter(d => d.totalJobs > 0)
       .sort((a, b) => {
-        // Sort zones in order, Unzoned last
         if (a.zone === "Unzoned") return 1;
         if (b.zone === "Unzoned") return -1;
         const aOrder = zones.find(z => z.zone_name === a.zone)?.display_order ?? 999;
@@ -160,15 +158,9 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
         return aOrder - bOrder;
       });
 
-    const grandTotals = {
-      jobs: data.reduce((s, d) => s + d.totalJobs, 0),
-      revenue: data.reduce((s, d) => s + d.totalRevenue, 0),
-    };
-
-    return { zoneData: data, monthLabels: labels, totals: grandTotals };
+    return { zoneData: data, monthLabels: labels };
   }, [jobs, zones]);
 
-  // Chart: jobs per zone, colour-coded
   const chartData = useMemo(() =>
     zoneData.map(d => ({
       zone: d.zone,
@@ -178,12 +170,9 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
 
   const chartConfig = useMemo(() => {
     const cfg: Record<string, { label: string; color: string }> = {};
-    zoneData.forEach(d => {
-      cfg[d.zone] = { label: d.zone, color: getZoneStyle(d.zone).chart };
-    });
-    cfg.jobs = { label: "Jobs", color: "hsl(var(--primary))" };
+    cfg.jobs = { label: "Total Jobs", color: "hsl(var(--primary))" };
     return cfg;
-  }, [zoneData]);
+  }, []);
 
   if (loading) {
     return <Skeleton className="h-96 rounded-xl" />;
@@ -202,8 +191,8 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {zoneData.filter(d => d.zone !== "Unzoned").map(d => {
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {zoneData.map(d => {
           const style = getZoneStyle(d.zone);
           return (
             <Card key={d.zone} className="overflow-hidden">
@@ -213,7 +202,8 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
               </CardHeader>
               <CardContent className="pb-3">
                 <p className="text-2xl font-bold text-foreground">{d.totalJobs}</p>
-                <p className="text-xs text-muted-foreground">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                <p className="text-sm font-semibold text-green-600">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                <p className="text-xs text-muted-foreground">{d.totalTonnes.toFixed(1)}t</p>
               </CardContent>
             </Card>
           );
@@ -236,7 +226,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="jobs" radius={[4, 4, 0, 0]}>
                 {chartData.map((entry, index) => (
-                  <rect key={`cell-${index}`} fill={entry.fill} />
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Bar>
             </BarChart>
@@ -291,7 +281,7 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
                       </React.Fragment>
                     ))}
                     <TableCell className="text-center font-semibold">{d.totalJobs}</TableCell>
-                    <TableCell className="text-center font-semibold">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
+                    <TableCell className="text-center font-semibold text-green-600">£{d.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</TableCell>
                     <TableCell className="text-center font-semibold text-muted-foreground">{d.totalTonnes.toFixed(1)}</TableCell>
                   </TableRow>
                 );
@@ -303,5 +293,3 @@ export default function ZoneReport({ zones }: { zones: PostcodeZone[] }) {
     </div>
   );
 }
-
-import React from "react";
