@@ -972,42 +972,42 @@ function SkiptrakJobCard({ job }: { job: any }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const colorClass = mappedType
     ? JOB_TYPE_COLORS[mappedType]
-    : "bg-muted/30 border-border/60 text-foreground";
+    : "bg-muted border-border text-foreground";
   const badgeClass = mappedType
     ? JOB_TYPE_BADGE_COLORS[mappedType]
-    : "";
+    : "bg-muted text-muted-foreground";
 
   return (
-    <div className={`rounded-lg border border-dashed p-2.5 ${colorClass}`}>
+    <div className={`rounded-lg border-2 border-dashed p-2.5 shadow-sm ${colorClass} ${!mappedType ? "border-border" : "border-white/30"}`}>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-bold truncate">{job.customer || "Unknown"}</span>
+        <span className={`text-xs font-bold truncate ${mappedType ? "text-white" : "text-foreground"}`}>{job.customer || "Unknown"}</span>
       </div>
       {job.site && (
         <div className="flex items-center gap-1 mt-1">
-          <MapPin className="h-3 w-3 opacity-50 shrink-0" />
-          <span className="text-[10px] truncate">{job.site}</span>
+          <MapPin className={`h-3 w-3 shrink-0 ${mappedType ? "text-white/60" : "text-muted-foreground"}`} />
+          <span className={`text-[11px] truncate ${mappedType ? "text-white/90" : "text-muted-foreground"}`}>{job.site}</span>
         </div>
       )}
       {job.tipping_location && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[10px] opacity-70">→ {job.tipping_location}</span>
+          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>→ {job.tipping_location}</span>
         </div>
       )}
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
         {job.movement_type && (
-          <Badge className={`text-[10px] px-1.5 py-0 h-4 border-0 ${badgeClass || "bg-muted text-muted-foreground"}`}>
+          <Badge className={`text-[10px] px-1.5 py-0 h-4 ${badgeClass}`}>
             {job.movement_type}
           </Badge>
         )}
         {job.container_type && (
-          <span className="text-[10px] opacity-60">{job.container_type}</span>
+          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>{job.container_type}</span>
         )}
         {job.weight_t != null && job.weight_t > 0 && (
-          <span className="text-[10px] opacity-60">{job.weight_t}t</span>
+          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>{job.weight_t}t</span>
         )}
       </div>
       <div className="mt-1">
-        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5">Skiptrak #{job.job_number}</Badge>
+        <Badge className={`text-[9px] px-1 py-0 h-3.5 ${mappedType ? "bg-white/20 text-white border-0" : "bg-muted text-muted-foreground"}`}>Skiptrak #{job.job_number}</Badge>
       </div>
     </div>
   );
