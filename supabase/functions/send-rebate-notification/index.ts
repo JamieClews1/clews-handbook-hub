@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailPayload: Record<string, unknown> = {
-      from: "Clews Recycling <accounts@clewsrecycling.co.uk>",
+      from: "Clews Recycling <accounts@noreply.clewsrecycling.co.uk>",
       to: [to],
       subject: subject,
       html: `
