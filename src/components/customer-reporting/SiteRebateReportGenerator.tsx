@@ -46,6 +46,7 @@ type RebateConfig = {
   range_type: "lower" | "higher" | "set";
   set_value: number | null;
   adjustment: number;
+  rebate_category: string;
 };
 
 type RebateReportRow = {
