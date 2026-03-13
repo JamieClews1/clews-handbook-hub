@@ -1065,6 +1065,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          available_variables: string[] | null
+          body_html: string
+          created_at: string
+          description: string | null
+          id: string
+          sender_email: string
+          sender_name: string
+          subject_template: string
+          template_key: string
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          available_variables?: string[] | null
+          body_html: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          sender_email?: string
+          sender_name?: string
+          subject_template: string
+          template_key: string
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          available_variables?: string[] | null
+          body_html?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          sender_email?: string
+          sender_name?: string
+          subject_template?: string
+          template_key?: string
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       facility_recycling_forms: {
         Row: {
           additional_comments: string | null

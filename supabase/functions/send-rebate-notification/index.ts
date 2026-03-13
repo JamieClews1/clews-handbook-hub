@@ -60,18 +60,31 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending rebate notification to ${to} for ${customerName}`);
 
+    // Fetch email template from database
+    const { data: templateData } = await supabase
+      .from("email_templates")
+      .select("*")
+      .eq("template_key", "rebate_notification")
+      .single();
+
     const htmlBody = body.replace(/\n/g, "<br>");
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY is not configured");
-    }
+    // Use template from DB or fall back to defaults
+    let senderName = "Clews Recycling";
+    let senderEmail = "accounts@noreply.clewsrecycling.co.uk";
+    let emailHtml: string;
 
-    const emailPayload: Record<string, unknown> = {
-      from: "Clews Recycling <accounts@noreply.clewsrecycling.co.uk>",
-      to: [to],
-      subject: subject,
-      html: `
+    if (templateData) {
+      senderName = templateData.sender_name;
+      senderEmail = templateData.sender_email;
+      // Replace variables in the template
+      emailHtml = templateData.body_html
+        .replace(/\{\{body\}\}/g, htmlBody)
+        .replace(/\{\{subject\}\}/g, subject)
+        .replace(/\{\{customerName\}\}/g, customerName || "");
+    } else {
+      // Fallback if template not found
+      emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f4f4f4; padding: 20px; border-bottom: 3px solid #22c55e;">
             <h1 style="color: #333; margin: 0; font-size: 24px;">Rebate Notification</h1>
@@ -86,7 +99,19 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="margin: 5px 0 0 0;">This is an automated message. Please do not reply directly to this email.</p>
           </div>
         </div>
-      `,
+      `;
+    }
+
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    const emailPayload: Record<string, unknown> = {
+      from: `${senderName} <${senderEmail}>`,
+      to: [to],
+      subject: subject,
+      html: emailHtml,
     };
 
     if (attachment?.base64 && attachment?.filename) {
