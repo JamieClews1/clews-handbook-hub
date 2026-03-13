@@ -53,19 +53,19 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
 };
 
 const JOB_TYPE_COLORS: Record<JobType, string> = {
-  delivery: "bg-emerald-500/15 border-emerald-500/40 text-emerald-700",
-  exchange: "bg-amber-500/15 border-amber-500/40 text-amber-700",
-  collection: "bg-orange-500/15 border-orange-500/40 text-orange-700",
-  waste_truck: "bg-blue-500/15 border-blue-500/40 text-blue-700",
-  wasted_journey: "bg-red-500/15 border-red-500/40 text-red-700",
+  delivery: "bg-emerald-600 border-emerald-700 text-white",
+  exchange: "bg-amber-500 border-amber-600 text-white",
+  collection: "bg-orange-500 border-orange-600 text-white",
+  waste_truck: "bg-blue-600 border-blue-700 text-white",
+  wasted_journey: "bg-red-600 border-red-700 text-white",
 };
 
 const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
-  delivery: "bg-emerald-500 text-white hover:bg-emerald-600",
-  exchange: "bg-amber-500 text-white hover:bg-amber-600",
-  collection: "bg-orange-500 text-white hover:bg-orange-600",
-  waste_truck: "bg-blue-500 text-white hover:bg-blue-600",
-  wasted_journey: "bg-red-500 text-white hover:bg-red-600",
+  delivery: "bg-white/25 text-white hover:bg-white/35 border-0",
+  exchange: "bg-white/25 text-white hover:bg-white/35 border-0",
+  collection: "bg-white/25 text-white hover:bg-white/35 border-0",
+  waste_truck: "bg-white/25 text-white hover:bg-white/35 border-0",
+  wasted_journey: "bg-white/25 text-white hover:bg-white/35 border-0",
 };
 
 const STATUS_COLORS: Record<JobStatus, string> = {
