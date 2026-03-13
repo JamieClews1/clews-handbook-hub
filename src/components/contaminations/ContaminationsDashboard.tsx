@@ -158,6 +158,7 @@ const ContaminationsDashboard = ({ onSelectQuery, onViewAll }: Props) => {
           job_date: j.job_date,
           vehicle_reg: j.vehicle_registration,
           data_hub_job_id: j.id,
+          postcode: extractPostcode(j.tipping_location) || extractPostcode(j.raw?.Location),
           status: "query",
         }));
 
