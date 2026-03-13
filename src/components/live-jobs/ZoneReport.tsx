@@ -172,7 +172,7 @@ export default function ZoneReport({ zones, settings, onAssignZone }: ZoneReport
     // Track unzoned postcodes with counts
     const unzonedMap: Record<string, { prefix: string; fullExample: string; jobCount: number; revenue: number; customer: string }> = {};
 
-    for (const job of jobs) {
+    for (const job of filteredList) {
       if (!job.job_date) continue;
       const monthKey = job.job_date.substring(0, 7);
       if (!months.includes(monthKey)) continue;
