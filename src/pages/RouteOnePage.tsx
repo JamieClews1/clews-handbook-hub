@@ -1055,7 +1055,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 }
 
 // Skiptrak Job Card (read-only, from data_hub_jobs)
-function SkiptrakJobCard({ job }: { job: any }) {
+function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const colorClass = mappedType
     ? JOB_TYPE_COLORS[mappedType]
