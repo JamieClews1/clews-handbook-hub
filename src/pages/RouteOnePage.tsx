@@ -1100,4 +1100,14 @@ function SkiptrakJobCard({ job }: { job: any }) {
   );
 }
 
+// Simple detail row for view dialogs
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className="text-sm text-foreground">{value}</p>
+    </div>
+  );
+}
+
 export default RouteOnePage;
