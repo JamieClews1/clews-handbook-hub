@@ -1065,7 +1065,10 @@ function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
     : "bg-muted text-muted-foreground";
 
   return (
-    <div className={`rounded-lg border-2 border-dashed p-2.5 shadow-sm ${colorClass} ${!mappedType ? "border-border" : "border-white/30"}`}>
+    <div
+      onClick={onClick}
+      className={`rounded-lg border-2 border-dashed p-2.5 shadow-sm cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all ${colorClass} ${!mappedType ? "border-border" : "border-white/30"}`}
+    >
       <div className="flex items-center gap-1.5">
         <span className={`text-xs font-bold truncate ${mappedType ? "text-white" : "text-foreground"}`}>{job.customer || "Unknown"}</span>
       </div>
