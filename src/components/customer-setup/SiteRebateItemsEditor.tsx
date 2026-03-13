@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 // Local input component to prevent stalling while typing
 function AdjustmentInput({ 
@@ -48,6 +49,7 @@ type WasteType = {
   id: string;
   waste_type: string;
   display_order: number;
+  rebate_category: string;
 };
 
 type RebateItem = {
@@ -59,12 +61,12 @@ type RebateItem = {
 type PriceSetItem = {
   id: string;
   price_set_id: string;
-  material_id: string; // references load_waste_types.id (stored in rebate_item_id column)
-  value_type_item_id: string; // references rebate_items.id, or "__custom__" / "__bespoke__" for special values
+  material_id: string;
+  value_type_item_id: string;
   display_order: number;
   value_type: "lower" | "higher" | "set" | "bespoke";
   set_value: number | null;
-  adjustment: number | null; // +/- adjustment in £/tonne
+  adjustment: number | null;
 };
 
 type RebateRule = {
@@ -106,7 +108,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       ] = await Promise.all([
         supabase
           .from("load_waste_types")
-          .select("id, waste_type, display_order")
+          .select("id, waste_type, display_order, rebate_category")
           .eq("is_active", true)
           .order("display_order", { ascending: true }),
         supabase
@@ -133,7 +135,6 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       setAllRebateItems((rebateItems ?? []) as RebateItem[]);
       setRebateRules((rulesData ?? []) as RebateRule[]);
       
-      // Fetch the value_type_item_id separately since types haven't regenerated
       let valueTypeItemMap: Record<string, string | null> = {};
       
       for (const item of psItems ?? []) {
@@ -147,12 +148,9 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         }
       }
       
-      // Map DB structure to our local type
       const mappedItems = (psItems ?? []).map((item: any) => {
         const valueTypeItemId = valueTypeItemMap[item.id];
-        // If value_type is "set" and no value_type_item_id, it's a custom value
         const isCustom = item.value_type === "set" && !valueTypeItemId;
-        // If value_type is "bespoke", it's a bespoke at time value
         const isBespoke = item.value_type === "bespoke";
         
         return {
@@ -182,8 +180,18 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
   const usedMaterialIds = new Set(priceSetItems.map((p) => p.material_id));
   const availableMaterials = allMaterials.filter((m) => !usedMaterialIds.has(m.id));
 
-  const addMaterial = async () => {
-    if (!selectedMaterialId) return;
+  const getMaterialCategory = (materialId: string): string => {
+    return allMaterials.find((m) => m.id === materialId)?.rebate_category ?? "rebate";
+  };
+
+  const rebateItems = priceSetItems.filter((p) => getMaterialCategory(p.material_id) === "rebate");
+  const costItems = priceSetItems.filter((p) => getMaterialCategory(p.material_id) === "cost");
+  const availableRebateMaterials = availableMaterials.filter((m) => m.rebate_category === "rebate");
+  const availableCostMaterials = availableMaterials.filter((m) => m.rebate_category === "cost");
+
+  const addMaterial = async (materialId?: string) => {
+    const matId = materialId || selectedMaterialId;
+    if (!matId) return;
     setSaving(true);
     try {
       const maxOrder = priceSetItems.reduce((max, p) => Math.max(max, p.display_order), 0);
@@ -191,7 +199,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         .from("rebate_price_set_items")
         .insert({
           price_set_id: priceSetId,
-          rebate_item_id: selectedMaterialId,
+          rebate_item_id: matId,
           display_order: maxOrder + 10,
           value_type: "lower",
           set_value: null,
@@ -214,7 +222,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       
       setPriceSetItems((prev) => [...prev, newItem]);
       setSelectedMaterialId("");
-      toast({ title: "Added", description: "Material added to rebate set." });
+      toast({ title: "Added", description: "Material added." });
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to add material.", variant: "destructive" });
     } finally {
@@ -228,8 +236,6 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       const isCustom = value === "__custom__";
       const isBespoke = value === "__bespoke__";
       
-      // If custom or bespoke, clear value_type_item_id and set value_type to "set" or "bespoke"
-      // If selecting a rebate item, set value_type_item_id and reset to "lower"
       let updateData: any;
       if (isCustom) {
         updateData = { value_type_item_id: null, value_type: "set", set_value: null };
@@ -338,7 +344,7 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
       if (error) throw error;
 
       setPriceSetItems((prev) => prev.filter((p) => p.id !== itemId));
-      toast({ title: "Removed", description: "Material removed from rebate set." });
+      toast({ title: "Removed", description: "Material removed." });
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to remove material.", variant: "destructive" });
     } finally {
@@ -375,8 +381,153 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     return <div className="text-sm text-muted-foreground py-4">Loading materials...</div>;
   }
 
+  const renderItemsTable = (items: PriceSetItem[], isCost: boolean) => {
+    if (items.length === 0) return null;
+
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Material</TableHead>
+              <TableHead>Value Type</TableHead>
+              <TableHead>Range</TableHead>
+              <TableHead>Adjustment</TableHead>
+              <TableHead className="w-10"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((psi) => {
+              const isCustom = psi.value_type_item_id === "__custom__";
+              const isBespoke = psi.value_type_item_id === "__bespoke__";
+              
+              return (
+                <TableRow key={psi.id}>
+                  <TableCell className="font-medium">
+                    {getMaterialName(psi.material_id)}
+                    {isCost && (
+                      <span className="text-xs text-destructive ml-1">(cost)</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={psi.value_type_item_id || "__none__"}
+                      onValueChange={(val) => updateValueTypeItem(psi.id, val === "__none__" ? "" : val)}
+                      disabled={saving}
+                    >
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="Select value type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">
+                          <span className="text-muted-foreground">Select value type...</span>
+                        </SelectItem>
+                        <SelectItem value="__custom__">
+                          <span className="font-medium">Custom</span>
+                        </SelectItem>
+                        <SelectItem value="__bespoke__">
+                          <span className="font-medium">Bespoke at time</span>
+                        </SelectItem>
+                        {allRebateItems.map((ri) => (
+                          <SelectItem key={ri.id} value={ri.id}>
+                            {ri.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    {isCustom ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground">{isCost ? "-£" : "£"}</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-24"
+                          value={psi.set_value ?? ""}
+                          onChange={(e) => updateCustomValue(psi.id, e.target.value)}
+                          placeholder="0.00"
+                          disabled={saving}
+                        />
+                        <span className="text-muted-foreground text-sm">/tonne</span>
+                      </div>
+                    ) : isBespoke ? (
+                      <span className="text-sm text-muted-foreground italic">Set at report time</span>
+                    ) : (
+                      <Select
+                        value={psi.value_type === "set" ? "lower" : psi.value_type}
+                        onValueChange={(val) => updateRange(psi.id, val as "lower" | "higher")}
+                        disabled={saving || !psi.value_type_item_id}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lower">lower</SelectItem>
+                          <SelectItem value="higher">higher</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!isCustom && psi.value_type_item_id && (
+                      <AdjustmentInput
+                        value={psi.adjustment ?? 0}
+                        onSave={(value) => updateAdjustment(psi.id, value)}
+                        disabled={saving}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeMaterial(psi.id)}
+                      disabled={saving}
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  const renderAddMaterial = (materials: WasteType[], label: string) => {
+    if (materials.length === 0) return null;
+
+    return (
+      <div className="flex items-end gap-2">
+        <div className="flex-1 space-y-1">
+          <Label className="text-sm">Add {label}</Label>
+          <Select value={selectedMaterialId} onValueChange={setSelectedMaterialId} disabled={saving}>
+            <SelectTrigger>
+              <SelectValue placeholder={`Select a ${label.toLowerCase()} material to add`} />
+            </SelectTrigger>
+            <SelectContent>
+              {materials.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.waste_type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => addMaterial()} disabled={!selectedMaterialId || saving || !materials.some(m => m.id === selectedMaterialId)} size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          Add
+        </Button>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <Label className="text-base font-medium">Rebate Configuration for "{priceSetName}"</Label>
@@ -386,141 +537,45 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
         </div>
       </div>
 
-      {priceSetItems.length > 0 && (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Material</TableHead>
-                <TableHead>Value Type</TableHead>
-                <TableHead>Range</TableHead>
-                <TableHead>Adjustment</TableHead>
-                <TableHead className="w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {priceSetItems.map((psi) => {
-                const isCustom = psi.value_type_item_id === "__custom__";
-                const isBespoke = psi.value_type_item_id === "__bespoke__";
-                
-                return (
-                  <TableRow key={psi.id}>
-                    <TableCell className="font-medium">{getMaterialName(psi.material_id)}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={psi.value_type_item_id || "__none__"}
-                        onValueChange={(val) => updateValueTypeItem(psi.id, val === "__none__" ? "" : val)}
-                        disabled={saving}
-                      >
-                        <SelectTrigger className="w-[220px]">
-                          <SelectValue placeholder="Select value type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">
-                            <span className="text-muted-foreground">Select value type...</span>
-                          </SelectItem>
-                          <SelectItem value="__custom__">
-                            <span className="font-medium">Custom</span>
-                          </SelectItem>
-                          <SelectItem value="__bespoke__">
-                            <span className="font-medium">Bespoke at time</span>
-                          </SelectItem>
-                          {allRebateItems.map((ri) => (
-                            <SelectItem key={ri.id} value={ri.id}>
-                              {ri.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      {isCustom ? (
-                        <div className="flex items-center gap-1">
-                          <span className="text-muted-foreground">£</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="w-24"
-                            value={psi.set_value ?? ""}
-                            onChange={(e) => updateCustomValue(psi.id, e.target.value)}
-                            placeholder="0.00"
-                            disabled={saving}
-                          />
-                          <span className="text-muted-foreground text-sm">/tonne</span>
-                        </div>
-                      ) : isBespoke ? (
-                        <span className="text-sm text-muted-foreground italic">Set at report time</span>
-                      ) : (
-                        <Select
-                          value={psi.value_type === "set" ? "lower" : psi.value_type}
-                          onValueChange={(val) => updateRange(psi.id, val as "lower" | "higher")}
-                          disabled={saving || !psi.value_type_item_id}
-                        >
-                          <SelectTrigger className="w-[120px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="lower">lower</SelectItem>
-                            <SelectItem value="higher">higher</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {!isCustom && psi.value_type_item_id && (
-                        <AdjustmentInput
-                          value={psi.adjustment ?? 0}
-                          onSave={(value) => updateAdjustment(psi.id, value)}
-                          disabled={saving}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeMaterial(psi.id)}
-                        disabled={saving}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+      {/* Rebates Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-green-600" />
+          <Label className="text-sm font-semibold text-green-700 dark:text-green-400">Rebates</Label>
+          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs">
+            {rebateItems.length} items
+          </Badge>
         </div>
-      )}
+        <p className="text-xs text-muted-foreground">
+          Revenue-generating materials — values applied as positive rebates to the customer
+        </p>
+        {renderItemsTable(rebateItems, false)}
+        {rebateItems.length === 0 && (
+          <p className="text-sm text-muted-foreground py-2">No rebate materials configured yet.</p>
+        )}
+        {renderAddMaterial(availableRebateMaterials, "rebate")}
+      </div>
 
-      {priceSetItems.length === 0 && (
-        <p className="text-sm text-muted-foreground py-2">No materials configured for this rebate set yet.</p>
-      )}
+      <Separator />
 
-      {availableMaterials.length > 0 && (
-        <div className="flex items-end gap-2">
-          <div className="flex-1 space-y-1">
-            <Label className="text-sm">Add material</Label>
-            <Select value={selectedMaterialId} onValueChange={setSelectedMaterialId} disabled={saving}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a material to add" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableMaterials.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.waste_type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={addMaterial} disabled={!selectedMaterialId || saving} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+      {/* Costs Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingDown className="h-4 w-4 text-destructive" />
+          <Label className="text-sm font-semibold text-destructive">Costs</Label>
+          <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-xs">
+            {costItems.length} items
+          </Badge>
         </div>
-      )}
+        <p className="text-xs text-muted-foreground">
+          Cost-incurring materials (Wood, Waste, Pallet Weight) — values deducted as charges
+        </p>
+        {renderItemsTable(costItems, true)}
+        {costItems.length === 0 && (
+          <p className="text-sm text-muted-foreground py-2">No cost materials configured yet.</p>
+        )}
+        {renderAddMaterial(availableCostMaterials, "cost")}
+      </div>
 
       {availableMaterials.length === 0 && priceSetItems.length > 0 && (
         <p className="text-xs text-muted-foreground">All available materials have been added.</p>
