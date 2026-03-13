@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
+import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -825,6 +826,7 @@ const WeighOnePage = () => {
       <Tabs defaultValue="log">
         <TabsList>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4" /> Transaction Log</TabsTrigger>
+          <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4" /> Midweigh Data</TabsTrigger>
         </TabsList>
         <TabsContent value="log" className="mt-4">
           <Card className="border-border/50">
@@ -950,6 +952,13 @@ const WeighOnePage = () => {
                   </Table>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="midweigh" className="mt-4">
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <MidweighHistory />
             </CardContent>
           </Card>
         </TabsContent>
