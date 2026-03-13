@@ -86,6 +86,8 @@ const RouteOnePage = () => {
   const [editingJob, setEditingJob] = useState<any | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
+  const [viewingJob, setViewingJob] = useState<any | null>(null);
+  const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
 
   // New job form
   const [jobForm, setJobForm] = useState({
