@@ -306,7 +306,7 @@ import * as XLSX from "xlsx";
              // Get material name
              const { data: material } = await supabase
                .from("load_waste_types")
-               .select("waste_type")
+               .select("waste_type, rebate_category")
                .eq("id", item.rebate_item_id)
                .single();
 
