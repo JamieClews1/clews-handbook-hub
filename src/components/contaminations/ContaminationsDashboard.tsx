@@ -21,6 +21,14 @@ const statusColors: Record<string, string> = {
   resolved: "bg-muted",
 };
 
+const UK_POSTCODE_RE = /\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i;
+
+const extractPostcode = (location: string | null | undefined): string | null => {
+  if (!location) return null;
+  const match = location.match(UK_POSTCODE_RE);
+  return match ? match[1].toUpperCase().replace(/\s+/g, ' ').trim() : null;
+};
+
 const ContaminationsDashboard = ({ onSelectQuery, onViewAll }: Props) => {
   const { user } = useAuth();
   const [scanning, setScanning] = useState(false);
