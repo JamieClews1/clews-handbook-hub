@@ -950,6 +950,7 @@ function JobFormFields({
 function JobCard({
   job,
   onEdit,
+  onView,
   onDelete,
   onStatusChange,
   onDragStart,
@@ -958,6 +959,7 @@ function JobCard({
 }: {
   job: any;
   onEdit: () => void;
+  onView: () => void;
   onDelete: () => void;
   onStatusChange: (status: JobStatus) => void;
   onDragStart: (e: React.DragEvent) => void;
