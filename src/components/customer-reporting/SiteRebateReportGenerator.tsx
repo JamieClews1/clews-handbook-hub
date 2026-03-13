@@ -46,6 +46,7 @@ type RebateConfig = {
   range_type: "lower" | "higher" | "set";
   set_value: number | null;
   adjustment: number;
+  rebate_category: string;
 };
 
 type RebateReportRow = {
@@ -233,7 +234,7 @@ export function SiteRebateReportGenerator() {
             // Get material name
             const { data: material } = await supabase
               .from("load_waste_types")
-              .select("waste_type")
+              .select("waste_type, rebate_category")
               .eq("id", item.rebate_item_id)
               .single();
 
@@ -257,6 +258,7 @@ export function SiteRebateReportGenerator() {
               range_type: item.value_type as "lower" | "higher" | "set",
               set_value: item.set_value,
               adjustment: (fullItem as any)?.adjustment ?? 0,
+              rebate_category: material?.rebate_category ?? "rebate",
             });
           }
 
@@ -471,7 +473,10 @@ export function SiteRebateReportGenerator() {
         const weight_tonnes = isPalletCharge ? totalPalletWeight : (lineItemWeights[config.material_name] ?? 0);
 
         // Calculate rebate value with wet charge discount applied
+        // For cost items (rebate_category === "cost"), negate the value
+        const isCostItem = config.rebate_category === "cost";
         let rebate_value = weight_tonnes * rate;
+        if (isCostItem) rebate_value = -Math.abs(rebate_value);
         let hasWetCharge = false;
         let wetChargeSummary = "";
         
@@ -489,12 +494,13 @@ export function SiteRebateReportGenerator() {
           const uniqueDiscounts = [...new Set(materialDiscounts.map(d => d.discountPercent))];
           wetChargeSummary = `${totalAffectedWeight.toFixed(2)}t @ ${uniqueDiscounts.map(d => `-${d}%`).join(", ")}`;
           
-          // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
-          rebate_value = unaffectedWeight * rate;
-          for (const discount of materialDiscounts) {
-            rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
-          }
-        }
+           // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
+           rebate_value = unaffectedWeight * rate;
+           for (const discount of materialDiscounts) {
+             rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
+           }
+           if (isCostItem) rebate_value = -Math.abs(rebate_value);
+         }
 
         reportRows.push({
           material_name: config.material_name,
