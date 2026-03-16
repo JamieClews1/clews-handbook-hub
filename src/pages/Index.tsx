@@ -98,9 +98,12 @@ const Index = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Welcome */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back. Here's your operational overview.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Welcome back. Here's your operational overview.</p>
+        </div>
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">v1.0.0</span>
       </div>
 
       {/* Quick Stats */}
