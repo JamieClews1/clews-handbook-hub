@@ -225,9 +225,9 @@ export const TallyScreen = ({
 
             <Button
               onClick={onReview}
-              className="h-12 px-6 gap-2 text-base"
+              className="h-12 px-6 gap-2 text-base font-semibold"
             >
-              <span className="hidden sm:inline">Review</span>
+              Review
               <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
