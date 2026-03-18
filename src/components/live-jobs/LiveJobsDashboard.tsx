@@ -454,10 +454,15 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-5 w-5" />
-          Sites Over Free Rental ({sites.length})
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Sites Over Free Rental ({sites.length})
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={() => downloadOverRentalExcel(sites)}>
+            <Download className="h-4 w-4 mr-1" /> Download Excel
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground">
           These sites have not had a collection or exchange within the rental free period. Rental charges may apply.
         </p>
