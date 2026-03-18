@@ -47,7 +47,7 @@ export const TallyScreen = ({
   const isEvri = customerType === "evri";
 
   return (
-    <div className="space-y-4 pb-32">
+    <div className="space-y-4 pb-40 sm:pb-32">
       {/* Tally Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {lineItems.map((item, index) => (
@@ -140,7 +140,7 @@ export const TallyScreen = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {lineItems
                     .filter((item) => item.pallet_count > 0)
-                    .map((item, idx) => {
+                    .map((item) => {
                       const originalIndex = lineItems.findIndex(
                         (li) => li.waste_type === item.waste_type
                       );
@@ -182,50 +182,62 @@ export const TallyScreen = ({
       {/* Fixed Bottom Summary Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
         <div className="container mx-auto max-w-5xl">
-          <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="outline"
-              onClick={onBack}
-              className="h-12 px-4 gap-2"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="hidden sm:inline">Back</span>
-            </Button>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                className="h-12 px-4 gap-2 shrink-0"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>Back</span>
+              </Button>
 
-            <div className="flex items-center gap-4 sm:gap-6 text-center">
-              <div>
-                <div className="text-2xl font-bold text-foreground">{totalPallets}</div>
-                <div className="text-xs text-muted-foreground">Pallets</div>
-              </div>
-              <div className="w-px h-10 bg-border" />
-              <div>
-                <div className="text-2xl font-bold text-primary">{totalWeight.toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground">Total KG</div>
-              </div>
-              {weighbridgeWeightKg != null && (
-                <>
-                  <div className="w-px h-10 bg-border" />
-                  <div>
-                    <div className={`text-2xl font-bold ${
-                      Math.abs(totalWeight - weighbridgeWeightKg) <= 50 
-                        ? "text-green-600" 
-                        : "text-orange-500"
-                    }`}>
-                      {totalWeight - weighbridgeWeightKg > 0 ? "+" : ""}
-                      {(totalWeight - weighbridgeWeightKg).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
-                      <Scale className="h-3 w-3" />
-                      vs Verified
-                    </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-center gap-3 sm:gap-6 text-center overflow-x-auto px-1">
+                  <div className="min-w-[70px]">
+                    <div className="text-xl sm:text-2xl font-bold text-foreground whitespace-nowrap">{totalPallets}</div>
+                    <div className="text-xs text-muted-foreground">Pallets</div>
                   </div>
-                </>
-              )}
+                  <div className="w-px h-10 bg-border shrink-0" />
+                  <div className="min-w-[95px]">
+                    <div className="text-xl sm:text-2xl font-bold text-primary whitespace-nowrap">{totalWeight.toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">Total KG</div>
+                  </div>
+                  {weighbridgeWeightKg != null && (
+                    <>
+                      <div className="w-px h-10 bg-border shrink-0" />
+                      <div className="min-w-[95px]">
+                        <div className={`text-xl sm:text-2xl font-bold whitespace-nowrap ${
+                          Math.abs(totalWeight - weighbridgeWeightKg) <= 50
+                            ? "text-green-600"
+                            : "text-orange-500"
+                        }`}>
+                          {totalWeight - weighbridgeWeightKg > 0 ? "+" : ""}
+                          {(totalWeight - weighbridgeWeightKg).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 justify-center whitespace-nowrap">
+                          <Scale className="h-3 w-3" />
+                          vs Verified
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                onClick={onReview}
+                className="hidden sm:inline-flex h-12 px-6 gap-2 text-base font-semibold shrink-0"
+              >
+                Review
+                <ArrowRight className="h-5 w-5" />
+              </Button>
             </div>
 
             <Button
               onClick={onReview}
-              className="h-12 px-6 gap-2 text-base font-semibold"
+              className="sm:hidden w-full h-12 gap-2 text-base font-semibold"
             >
               Review
               <ArrowRight className="h-5 w-5" />
