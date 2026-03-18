@@ -47,3 +47,9 @@ verify_jwt = true
 
 [functions.translate-handbook-section]
 verify_jwt = true
+
+[functions.generate-toolbox-talk]
+verify_jwt = true
+
+[functions.send-credit-invite]
+verify_jwt = true

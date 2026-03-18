@@ -6,11 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff } from "lucide-react";
+import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff, Sparkles } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
 import { UserSelector } from "./UserSelector";
 import { TranslationSaveDialog, TranslationOption } from "./TranslationSaveDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ToolboxTalk {
   id: string;
@@ -37,6 +46,12 @@ export const ToolboxTalkBuilder = () => {
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [pendingSaveTalkId, setPendingSaveTalkId] = useState<string | null>(null);
+
+  // AI Generator state
+  const [showAiDialog, setShowAiDialog] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiUserTypes, setAiUserTypes] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -80,6 +95,59 @@ export const ToolboxTalkBuilder = () => {
     setAssignedUsers([]);
     setEditingTalk(null);
     setIsCreating(false);
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiTopic.trim()) {
+      toast({ title: "Enter a topic", description: "Please describe what the Toolbox Talk should be about.", variant: "destructive" });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-toolbox-talk`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ topic: aiTopic, userTypes: aiUserTypes.length > 0 ? aiUserTypes : undefined }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate");
+      }
+      const result = await response.json();
+      setTitle(result.title || "");
+      setContent(result.content || "");
+      if (aiUserTypes.length > 0) {
+        setUserTypes(aiUserTypes.includes("all") ? USER_TYPES : aiUserTypes);
+      }
+      setShowAiDialog(false);
+      setAiTopic("");
+      setAiUserTypes([]);
+      setIsCreating(true);
+      toast({ title: "Generated!", description: "Your AI Toolbox Talk is ready to edit and save." });
+    } catch (error: any) {
+      console.error("AI generation error:", error);
+      toast({ title: "Generation failed", description: error.message || "Something went wrong", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAiUserTypeToggle = (type: string) => {
+    if (type === "all") {
+      setAiUserTypes(prev => prev.includes("all") ? [] : ["all"]);
+      return;
+    }
+    setAiUserTypes(prev => {
+      const filtered = prev.filter(t => t !== "all");
+      return filtered.includes(type) ? filtered.filter(t => t !== type) : [...filtered, type];
+    });
   };
 
   const handleEdit = (talk: ToolboxTalk) => {
@@ -360,10 +428,16 @@ export const ToolboxTalkBuilder = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Toolbox Talks ({toolboxTalks.length})</h3>
-        <Button onClick={() => setIsCreating(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Toolbox Talk
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowAiDialog(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Generate with AI
+          </Button>
+          <Button onClick={() => setIsCreating(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Toolbox Talk
+          </Button>
+        </div>
       </div>
 
       {toolboxTalks.length === 0 ? (
@@ -451,6 +525,71 @@ export const ToolboxTalkBuilder = () => {
         documentType="Toolbox Talk"
         isNew={!editingTalk}
       />
+
+      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Generate Toolbox Talk with AI
+            </DialogTitle>
+            <DialogDescription>
+              Describe the topic and we'll generate a full Toolbox Talk for you to review and edit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="ai-topic">Topic / Subject</Label>
+              <Textarea
+                id="ai-topic"
+                placeholder="e.g. Working safely around moving vehicles on site"
+                value={aiTopic}
+                onChange={(e) => setAiTopic(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label>Who is this for?</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {["all", ...USER_TYPES].map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    variant={
+                      type === "all"
+                        ? aiUserTypes.includes("all") ? "default" : "outline"
+                        : aiUserTypes.includes(type) ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => handleAiUserTypeToggle(type)}
+                    className="capitalize"
+                  >
+                    {type === "all" ? "All Staff" : type}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAiDialog(false)} disabled={isGenerating}>
+              Cancel
+            </Button>
+            <Button onClick={handleAiGenerate} disabled={isGenerating} className="gap-2">
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Generate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
