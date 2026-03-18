@@ -97,6 +97,59 @@ export const ToolboxTalkBuilder = () => {
     setIsCreating(false);
   };
 
+  const handleAiGenerate = async () => {
+    if (!aiTopic.trim()) {
+      toast({ title: "Enter a topic", description: "Please describe what the Toolbox Talk should be about.", variant: "destructive" });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-toolbox-talk`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ topic: aiTopic, userTypes: aiUserTypes.length > 0 ? aiUserTypes : undefined }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate");
+      }
+      const result = await response.json();
+      setTitle(result.title || "");
+      setContent(result.content || "");
+      if (aiUserTypes.length > 0) {
+        setUserTypes(aiUserTypes.includes("all") ? USER_TYPES : aiUserTypes);
+      }
+      setShowAiDialog(false);
+      setAiTopic("");
+      setAiUserTypes([]);
+      setIsCreating(true);
+      toast({ title: "Generated!", description: "Your AI Toolbox Talk is ready to edit and save." });
+    } catch (error: any) {
+      console.error("AI generation error:", error);
+      toast({ title: "Generation failed", description: error.message || "Something went wrong", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAiUserTypeToggle = (type: string) => {
+    if (type === "all") {
+      setAiUserTypes(prev => prev.includes("all") ? [] : ["all"]);
+      return;
+    }
+    setAiUserTypes(prev => {
+      const filtered = prev.filter(t => t !== "all");
+      return filtered.includes(type) ? filtered.filter(t => t !== type) : [...filtered, type];
+    });
+  };
+
   const handleEdit = (talk: ToolboxTalk) => {
     setEditingTalk(talk);
     setTitle(talk.title);
