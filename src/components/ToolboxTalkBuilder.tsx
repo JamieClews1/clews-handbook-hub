@@ -428,10 +428,16 @@ export const ToolboxTalkBuilder = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Toolbox Talks ({toolboxTalks.length})</h3>
-        <Button onClick={() => setIsCreating(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Toolbox Talk
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowAiDialog(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Generate with AI
+          </Button>
+          <Button onClick={() => setIsCreating(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Toolbox Talk
+          </Button>
+        </div>
       </div>
 
       {toolboxTalks.length === 0 ? (
