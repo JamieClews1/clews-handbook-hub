@@ -525,6 +525,71 @@ export const ToolboxTalkBuilder = () => {
         documentType="Toolbox Talk"
         isNew={!editingTalk}
       />
+
+      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Generate Toolbox Talk with AI
+            </DialogTitle>
+            <DialogDescription>
+              Describe the topic and we'll generate a full Toolbox Talk for you to review and edit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="ai-topic">Topic / Subject</Label>
+              <Textarea
+                id="ai-topic"
+                placeholder="e.g. Working safely around moving vehicles on site"
+                value={aiTopic}
+                onChange={(e) => setAiTopic(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label>Who is this for?</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {["all", ...USER_TYPES].map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    variant={
+                      type === "all"
+                        ? aiUserTypes.includes("all") ? "default" : "outline"
+                        : aiUserTypes.includes(type) ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => handleAiUserTypeToggle(type)}
+                    className="capitalize"
+                  >
+                    {type === "all" ? "All Staff" : type}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAiDialog(false)} disabled={isGenerating}>
+              Cancel
+            </Button>
+            <Button onClick={handleAiGenerate} disabled={isGenerating} className="gap-2">
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Generate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
