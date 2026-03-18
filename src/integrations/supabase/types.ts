@@ -395,6 +395,7 @@ export type Database = {
           eori_number: string | null
           holding_company: string | null
           id: string
+          invited_email: string | null
           invoice_address: string | null
           invoice_address_postcode: string | null
           invoice_email: string | null
@@ -431,6 +432,7 @@ export type Database = {
           eori_number?: string | null
           holding_company?: string | null
           id?: string
+          invited_email?: string | null
           invoice_address?: string | null
           invoice_address_postcode?: string | null
           invoice_email?: string | null
@@ -467,6 +469,7 @@ export type Database = {
           eori_number?: string | null
           holding_company?: string | null
           id?: string
+          invited_email?: string | null
           invoice_address?: string | null
           invoice_address_postcode?: string | null
           invoice_email?: string | null
