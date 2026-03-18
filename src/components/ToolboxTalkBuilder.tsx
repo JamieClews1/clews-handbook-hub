@@ -6,11 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff } from "lucide-react";
+import { Plus, Save, Trash2, Edit, Printer, Eye, EyeOff, Sparkles } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { ToolboxTalkPrintDialog } from "./ToolboxTalkPrintDialog";
 import { UserSelector } from "./UserSelector";
 import { TranslationSaveDialog, TranslationOption } from "./TranslationSaveDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ToolboxTalk {
   id: string;
