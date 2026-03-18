@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignaturePad } from "@/components/SignaturePad";
 import { toast } from "sonner";
-import { Plus, Copy, Eye, Check, X, ExternalLink } from "lucide-react";
+import { Plus, Copy, Eye, Check, X, Send, Mail } from "lucide-react";
 import { format } from "date-fns";
 
 type CreditApplication = {
@@ -28,7 +28,6 @@ type CreditApplication = {
   created_at: string;
   account_number: string | null;
   credit_limit_set: number | null;
-  // All other fields
   holding_company: string | null;
   registered_office: string | null;
   registered_office_postcode: string | null;
@@ -45,12 +44,12 @@ type CreditApplication = {
   applicant_signature: string | null;
   applicant_print_name: string | null;
   applicant_signed_date: string | null;
+  invited_email?: string | null;
 };
 
 export function CreditApplicationsManager() {
   const [applications, setApplications] = useState<CreditApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [viewApp, setViewApp] = useState<CreditApplication | null>(null);
   const [approveOpen, setApproveOpen] = useState(false);
   const [approvalForm, setApprovalForm] = useState({
@@ -62,6 +61,11 @@ export function CreditApplicationsManager() {
   });
   const [showApprovalSig, setShowApprovalSig] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Send invite dialog
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [sending, setSending] = useState(false);
 
   const loadApplications = async () => {
     setLoading(true);
@@ -80,20 +84,50 @@ export function CreditApplicationsManager() {
 
   useEffect(() => { loadApplications(); }, []);
 
-  const createApplication = async () => {
-    setCreating(true);
+  const sendInvite = async () => {
+    if (!inviteEmail.trim()) { toast.error("Please enter an email address"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())) { toast.error("Please enter a valid email address"); return; }
+
+    setSending(true);
+
+    // 1. Create the application
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("credit_account_applications").insert({
-      created_by: userData.user?.id,
-      status: "pending",
-    });
-    if (error) {
+    const { data: newApp, error: createErr } = await supabase
+      .from("credit_account_applications")
+      .insert({
+        created_by: userData.user?.id,
+        status: "pending",
+        invited_email: inviteEmail.trim(),
+      } as any)
+      .select()
+      .single();
+
+    if (createErr || !newApp) {
       toast.error("Failed to create application");
-    } else {
-      toast.success("Application created — copy the link to send to the customer");
-      await loadApplications();
+      setSending(false);
+      return;
     }
-    setCreating(false);
+
+    // 2. Send email via edge function
+    const { error: fnErr } = await supabase.functions.invoke("send-credit-invite", {
+      body: {
+        email: inviteEmail.trim(),
+        shareToken: (newApp as any).share_token,
+        applicationId: (newApp as any).id,
+      },
+    });
+
+    setSending(false);
+
+    if (fnErr) {
+      toast.error("Application created but failed to send email. You can copy the link manually.");
+    } else {
+      toast.success(`Invite sent to ${inviteEmail.trim()}`);
+    }
+
+    setInviteOpen(false);
+    setInviteEmail("");
+    await loadApplications();
   };
 
   const copyLink = (shareToken: string) => {
@@ -104,8 +138,8 @@ export function CreditApplicationsManager() {
 
   const statusBadge = (status: string) => {
     switch (status) {
-      case "pending": return <Badge variant="outline" className="text-amber-600 border-amber-300">Pending</Badge>;
-      case "submitted": return <Badge variant="outline" className="text-blue-600 border-blue-300">Submitted</Badge>;
+      case "pending": return <Badge variant="outline" className="text-amber-600 border-amber-300">Awaiting Customer</Badge>;
+      case "submitted": return <Badge variant="outline" className="text-blue-600 border-blue-300">Awaiting Review</Badge>;
       case "approved": return <Badge variant="outline" className="text-green-600 border-green-300">Approved</Badge>;
       case "rejected": return <Badge variant="destructive">Rejected</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
@@ -145,7 +179,7 @@ export function CreditApplicationsManager() {
 
     setSaving(false);
     if (error) { toast.error("Failed to save approval"); return; }
-    toast.success(approvalForm.approved ? "Application approved" : "Application rejected");
+    toast.success(approvalForm.approved ? "Application approved — customer is now set up" : "Application rejected");
     setApproveOpen(false);
     setViewApp(null);
     await loadApplications();
@@ -159,15 +193,33 @@ export function CreditApplicationsManager() {
     await loadApplications();
   };
 
+  const resendInvite = async (app: CreditApplication) => {
+    const email = app.invited_email;
+    if (!email) { toast.error("No email on record"); return; }
+
+    setSending(true);
+    const { error } = await supabase.functions.invoke("send-credit-invite", {
+      body: {
+        email,
+        shareToken: app.share_token,
+        applicationId: app.id,
+      },
+    });
+    setSending(false);
+
+    if (error) { toast.error("Failed to resend invite"); return; }
+    toast.success(`Invite resent to ${email}`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Credit Account Applications</h3>
-          <p className="text-sm text-muted-foreground">Create and send credit application forms to new customers</p>
+          <p className="text-sm text-muted-foreground">Send credit application forms to new customers for completion</p>
         </div>
-        <Button onClick={createApplication} disabled={creating}>
-          <Plus className="h-4 w-4 mr-1" />{creating ? "Creating..." : "New Application"}
+        <Button onClick={() => setInviteOpen(true)}>
+          <Send className="h-4 w-4 mr-1" />Send Application
         </Button>
       </div>
 
@@ -178,7 +230,7 @@ export function CreditApplicationsManager() {
       ) : applications.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            No credit applications yet. Click "New Application" to create one.
+            No credit applications yet. Click "Send Application" to invite a customer.
           </CardContent>
         </Card>
       ) : (
@@ -187,10 +239,10 @@ export function CreditApplicationsManager() {
             <TableHeader>
               <TableRow>
                 <TableHead>Business</TableHead>
-                <TableHead>Contact</TableHead>
+                <TableHead>Sent To</TableHead>
                 <TableHead>Credit</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -198,12 +250,17 @@ export function CreditApplicationsManager() {
               {applications.map((app) => (
                 <TableRow key={app.id}>
                   <TableCell className="font-medium">{app.business_name || "—"}</TableCell>
-                  <TableCell>{app.contact_name || "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{(app as any).invited_email || app.invoice_email || "—"}</TableCell>
                   <TableCell>{app.credit_requested ? `£${app.credit_requested.toLocaleString()}` : "—"}</TableCell>
                   <TableCell>{statusBadge(app.status)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{format(new Date(app.created_at), "dd MMM yyyy")}</TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
+                      {app.status === "pending" && (
+                        <Button variant="ghost" size="icon" onClick={() => resendInvite(app)} title="Resend invite" disabled={sending}>
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => copyLink(app.share_token)} title="Copy link">
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -211,11 +268,11 @@ export function CreditApplicationsManager() {
                         <Eye className="h-4 w-4" />
                       </Button>
                       {app.status === "submitted" && (
-                        <Button variant="ghost" size="icon" onClick={() => openApproval(app)} title="Review & Approve">
-                          <Check className="h-4 w-4 text-green-600" />
+                        <Button variant="outline" size="sm" onClick={() => openApproval(app)} className="gap-1 text-green-600 border-green-300 hover:bg-green-50">
+                          <Check className="h-4 w-4" />Review
                         </Button>
                       )}
-                      {(app.status === "pending") && (
+                      {app.status === "pending" && (
                         <Button variant="ghost" size="icon" onClick={() => deleteApplication(app.id)} title="Delete">
                           <X className="h-4 w-4 text-destructive" />
                         </Button>
@@ -228,6 +285,36 @@ export function CreditApplicationsManager() {
           </Table>
         </div>
       )}
+
+      {/* Send Invite Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Credit Application</DialogTitle>
+            <DialogDescription>Enter the customer's email address. They'll receive a link to complete the credit application form.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Customer Email *</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="customer@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") sendInvite(); }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setInviteOpen(false); setInviteEmail(""); }} disabled={sending}>Cancel</Button>
+            <Button onClick={sendInvite} disabled={sending} className="gap-1">
+              <Send className="h-4 w-4" />
+              {sending ? "Sending..." : "Send Invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View Application Dialog */}
       <Dialog open={!!viewApp && !approveOpen} onOpenChange={(open) => { if (!open) setViewApp(null); }}>
@@ -323,7 +410,7 @@ export function CreditApplicationsManager() {
       <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Approve / Reject Application</DialogTitle>
+            <DialogTitle>Accounts Review & Sign Off</DialogTitle>
             <DialogDescription>{viewApp?.business_name} — Credit requested: £{viewApp?.credit_requested?.toLocaleString() ?? "N/A"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -382,7 +469,7 @@ export function CreditApplicationsManager() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setApproveOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={submitApproval} disabled={saving}>
-              {saving ? "Saving..." : approvalForm.approved ? "Approve" : "Reject"}
+              {saving ? "Saving..." : approvalForm.approved ? "Approve & Set Up" : "Reject"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -391,10 +478,10 @@ export function CreditApplicationsManager() {
   );
 }
 
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
+function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground text-xs">{label}</span>
       <p className="font-medium">{value || "—"}</p>
     </div>
   );
