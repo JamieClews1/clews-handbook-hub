@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
-import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
+import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
@@ -422,6 +424,22 @@ type OverRentalSite = {
   containerTypes: string[];
 };
 
+function downloadOverRentalExcel(sites: OverRentalSite[]) {
+  const rows = sites.map(s => ({
+    Customer: s.customer,
+    Site: s.site,
+    Type: s.category.charAt(0).toUpperCase() + s.category.slice(1),
+    "On-Site": s.netOnSite,
+    "Days Since Activity": s.daysSinceActivity ?? "",
+    "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+    "Container Types": s.containerTypes.join(", "),
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Over Rental");
+  XLSX.writeFile(wb, `Over_Rental_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+}
+
 function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
   if (sites.length === 0) {
     return (
@@ -436,10 +454,15 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-5 w-5" />
-          Sites Over Free Rental ({sites.length})
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Sites Over Free Rental ({sites.length})
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={() => downloadOverRentalExcel(sites)}>
+            <Download className="h-4 w-4 mr-1" /> Download Excel
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground">
           These sites have not had a collection or exchange within the rental free period. Rental charges may apply.
         </p>
