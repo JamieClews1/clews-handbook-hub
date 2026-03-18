@@ -1,0 +1,1 @@
+ALTER TABLE public.credit_account_applications ADD COLUMN IF NOT EXISTS invited_email text;
