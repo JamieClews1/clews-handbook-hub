@@ -269,7 +269,7 @@ const ContaminationsDashboard = ({ onSelectQuery, onViewAll }: Props) => {
             <div className="flex flex-wrap gap-3">
               {Object.entries(byOwner).map(([name, count]) => (
                 <Badge key={name} variant="outline" className="text-sm py-1 px-3">
-                  {name}: <span className="font-bold ml-1">{count}</span>
+                  {name}: <span className="font-bold ml-1">{count as number}</span>
                 </Badge>
               ))}
             </div>
