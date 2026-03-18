@@ -53,6 +53,14 @@ export const ToolboxTalkBuilder = () => {
   const [aiUserTypes, setAiUserTypes] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Form state
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [userTypes, setUserTypes] = useState<string[]>([]);
+  const [isMandatory, setIsMandatory] = useState(false);
+  const [assignedUsers, setAssignedUsers] = useState<string[]>([]);
+  const [isPublished, setIsPublished] = useState(false);
+
   useEffect(() => {
     fetchToolboxTalks();
   }, []);
