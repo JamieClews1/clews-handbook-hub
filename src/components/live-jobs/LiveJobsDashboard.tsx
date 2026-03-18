@@ -424,6 +424,22 @@ type OverRentalSite = {
   containerTypes: string[];
 };
 
+function downloadOverRentalExcel(sites: OverRentalSite[]) {
+  const rows = sites.map(s => ({
+    Customer: s.customer,
+    Site: s.site,
+    Type: s.category.charAt(0).toUpperCase() + s.category.slice(1),
+    "On-Site": s.netOnSite,
+    "Days Since Activity": s.daysSinceActivity ?? "",
+    "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+    "Container Types": s.containerTypes.join(", "),
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Over Rental");
+  XLSX.writeFile(wb, `Over_Rental_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+}
+
 function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
   if (sites.length === 0) {
     return (
