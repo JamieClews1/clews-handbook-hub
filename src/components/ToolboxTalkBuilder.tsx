@@ -560,7 +560,7 @@ export const ToolboxTalkBuilder = () => {
         </DialogContent>
       </Dialog>
 
-
+      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
