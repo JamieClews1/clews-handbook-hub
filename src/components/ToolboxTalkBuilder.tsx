@@ -297,8 +297,8 @@ export const ToolboxTalkBuilder = () => {
       }
 
       setShowTranslationDialog(false);
-      resetForm();
       fetchToolboxTalks();
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error("Error saving toolbox talk:", error);
       toast({
