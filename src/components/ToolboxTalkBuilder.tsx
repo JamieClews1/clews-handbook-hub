@@ -46,6 +46,7 @@ export const ToolboxTalkBuilder = () => {
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [pendingSaveTalkId, setPendingSaveTalkId] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   // AI Generator state
   const [showAiDialog, setShowAiDialog] = useState(false);
