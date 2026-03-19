@@ -46,6 +46,7 @@ export const ToolboxTalkBuilder = () => {
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [pendingSaveTalkId, setPendingSaveTalkId] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   // AI Generator state
   const [showAiDialog, setShowAiDialog] = useState(false);
@@ -296,8 +297,8 @@ export const ToolboxTalkBuilder = () => {
       }
 
       setShowTranslationDialog(false);
-      resetForm();
       fetchToolboxTalks();
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error("Error saving toolbox talk:", error);
       toast({
@@ -525,6 +526,39 @@ export const ToolboxTalkBuilder = () => {
         documentType="Toolbox Talk"
         isNew={!editingTalk}
       />
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Toolbox Talk Saved!</DialogTitle>
+            <DialogDescription>
+              Your Toolbox Talk has been saved successfully. What would you like to do next?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                resetForm();
+              }}
+            >
+              View Toolbox Talks
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessDialog(false);
+                resetForm();
+                setIsCreating(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create Another
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
         <DialogContent className="sm:max-w-md">
