@@ -252,12 +252,19 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   }
 
   function downloadLiveJobsExcel() {
-    const allRows: Record<string, string | number>[] = [];
-    for (const s of liveSites) {
-      allRows.push({
+    const wb = XLSX.utils.book_new();
+
+    const categories: { key: ContainerCategory; label: string }[] = [
+      { key: "skip", label: "Skips" },
+      { key: "roro", label: "RoRos" },
+      { key: "artic", label: "Waste Trucks" },
+    ];
+
+    for (const { key, label } of categories) {
+      const filtered = liveSites.filter(s => s.category === key);
+      const rows = filtered.map(s => ({
         Customer: s.customer,
         Site: s.site,
-        Category: s.category.charAt(0).toUpperCase() + s.category.slice(1),
         "On-Site": s.netOnSite,
         Delivered: s.delivered,
         Exchanged: s.exchanged,
@@ -266,11 +273,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
         "Over Rental": s.isOverRental ? "Yes" : "No",
         "Container Types": s.containerTypes.join(", "),
-      });
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{}]);
+      XLSX.utils.book_append_sheet(wb, ws, label);
     }
-    const ws = XLSX.utils.json_to_sheet(allRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Live Jobs");
+
     XLSX.writeFile(wb, `Live_Jobs_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   }
 
