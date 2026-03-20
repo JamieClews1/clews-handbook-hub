@@ -205,6 +205,15 @@ export const DiaryWeekView = () => {
         <div className="flex justify-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
+      ) : isMobile ? (
+        <DiaryMobileListView
+          weekStart={weekStart}
+          cards={cards}
+          onAddCard={addCard}
+          onUpdateCard={updateCard}
+          onDeleteCard={deleteCard}
+          onDuplicateCard={duplicateCard}
+        />
       ) : (
         <DndContext
           sensors={sensors}
