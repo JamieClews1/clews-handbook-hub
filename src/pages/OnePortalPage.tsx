@@ -12,6 +12,7 @@ import {
   Recycle,
   Users,
   HardHat,
+  CalendarDays,
 } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
@@ -65,6 +66,13 @@ const sections = [
     description: "Partner compliance, documents and questionnaires",
     icon: Users,
     href: "/duty-of-care",
+  },
+  {
+    title: "Diary",
+    description: "Weekly outlook and gentle planning journal",
+    icon: CalendarDays,
+    href: "/diary",
+    variant: "calm" as const,
   },
   {
     title: "Waste Reporting",
