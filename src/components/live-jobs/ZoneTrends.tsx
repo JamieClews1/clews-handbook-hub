@@ -64,6 +64,7 @@ type RawJob = {
   weight_t: number | null;
   raw: any;
   movement_type?: string | null;
+  site?: string | null;
 };
 
 interface ZoneTrendsProps {
