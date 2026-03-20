@@ -262,18 +262,25 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
 
     for (const { key, label } of categories) {
       const filtered = liveSites.filter(s => s.category === key);
-      const rows = filtered.map(s => ({
-        Customer: s.customer,
-        Site: s.site,
-        "On-Site": s.netOnSite,
-        Delivered: s.delivered,
-        Exchanged: s.exchanged,
-        Collected: s.collected,
-        "Days Since Activity": s.daysSinceActivity ?? "",
-        "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
-        "Over Rental": s.isOverRental ? "Yes" : "No",
-        "Container Types": s.containerTypes.join(", "),
-      }));
+      const rows: Record<string, string | number>[] = [];
+      for (const s of filtered) {
+        const lineCount = key === "artic" ? 1 : Math.max(1, s.netOnSite);
+        for (let i = 0; i < lineCount; i++) {
+          rows.push({
+            Customer: s.customer,
+            Site: s.site,
+            [key === "artic" ? "Visits" : "Unit"]: i + 1,
+            ...(key !== "artic" ? { "Total On-Site": s.netOnSite } : {}),
+            Delivered: s.delivered,
+            Exchanged: s.exchanged,
+            Collected: s.collected,
+            "Days Since Activity": s.daysSinceActivity ?? "",
+            "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+            "Over Rental": s.isOverRental ? "Yes" : "No",
+            "Container Types": s.containerTypes.join(", "),
+          });
+        }
+      }
       const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{}]);
       XLSX.utils.book_append_sheet(wb, ws, label);
     }
