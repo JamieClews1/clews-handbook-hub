@@ -69,7 +69,7 @@ interface ZoneTrendsProps {
 }
 
 export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
-  const { postcodeTrends, monthLabels } = useMemo(() => {
+  const { postcodeTrends, zoneTrends, monthLabels } = useMemo(() => {
     const now = new Date();
     const months = [
       format(startOfMonth(subMonths(now, 2)), "yyyy-MM"),
@@ -81,8 +81,8 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
       return format(new Date(+y, +mo - 1), "MMM yy");
     });
 
-    // Collect per-postcode-prefix, per-month
-    const map: Record<string, { prefix: string; zone: string; zoneColor: string; months: number[]; total: number }> = {};
+    const pcMap: Record<string, { prefix: string; zone: string; zoneColor: string; months: number[]; total: number }> = {};
+    const zMap: Record<string, { zone: string; zoneColor: string; months: number[]; total: number }> = {};
 
     for (const job of jobs) {
       if (!job.job_date) continue;
@@ -95,37 +95,39 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
       const prefix = extractPostcodePrefix(postcode);
       if (!prefix) continue;
 
-      if (!map[prefix]) {
-        const zone = matchZone(prefix, zones);
-        const zoneName = zone ? zone.zone_name : "Out of Zones";
-        map[prefix] = {
-          prefix,
-          zone: zoneName,
-          zoneColor: ZONE_COLORS[zoneName] || ZONE_COLORS["Unzoned"],
-          months: [0, 0, 0],
-          total: 0,
-        };
+      const zone = matchZone(prefix, zones);
+      const zoneName = zone ? zone.zone_name : "Out of Zones";
+      const color = ZONE_COLORS[zoneName] || ZONE_COLORS["Unzoned"];
+
+      // Postcode level
+      if (!pcMap[prefix]) {
+        pcMap[prefix] = { prefix, zone: zoneName, zoneColor: color, months: [0, 0, 0], total: 0 };
       }
-      map[prefix].months[monthIdx]++;
-      map[prefix].total++;
+      pcMap[prefix].months[monthIdx]++;
+      pcMap[prefix].total++;
+
+      // Zone level
+      if (!zMap[zoneName]) {
+        zMap[zoneName] = { zone: zoneName, zoneColor: color, months: [0, 0, 0], total: 0 };
+      }
+      zMap[zoneName].months[monthIdx]++;
+      zMap[zoneName].total++;
     }
 
-    // Sort by total descending
-    const trends = Object.values(map)
-      .filter(t => t.total > 0)
-      .sort((a, b) => b.total - a.total);
+    const pcTrends = Object.values(pcMap).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
+    const zTrends = Object.values(zMap).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
 
-    return { postcodeTrends: trends, monthLabels: labels };
+    return { postcodeTrends: pcTrends, zoneTrends: zTrends, monthLabels: labels };
   }, [jobs, zones]);
 
-  // Top 20 for chart
-  const chartData = useMemo(() =>
-    postcodeTrends.slice(0, 20).map(t => ({
-      prefix: t.prefix,
-      total: t.total,
-      fill: t.zoneColor,
-    })),
+  const postcodeChartData = useMemo(() =>
+    postcodeTrends.slice(0, 20).map(t => ({ name: t.prefix, total: t.total, fill: t.zoneColor })),
     [postcodeTrends]
+  );
+
+  const zoneChartData = useMemo(() =>
+    zoneTrends.map(t => ({ name: t.zone, total: t.total, fill: t.zoneColor })),
+    [zoneTrends]
   );
 
   const chartConfig = { total: { label: "Jobs", color: "hsl(var(--primary))" } };
@@ -142,32 +144,73 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Horizontal bar chart — top 20 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5" /> Top Postcodes — Last 3 Months
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(300, chartData.length * 32) }}>
-            <BarChart data={chartData} layout="vertical" margin={{ left: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="prefix" width={55} tick={{ fontSize: 12 }} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20}>
-                {chartData.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="zones">
+        <TabsList>
+          <TabsTrigger value="zones">
+            <MapPin className="h-4 w-4 mr-1.5" /> By Zone
+          </TabsTrigger>
+          <TabsTrigger value="postcodes">
+            <TrendingUp className="h-4 w-4 mr-1.5" /> By Postcode
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Full table */}
-      <PostcodeBreakdownTable postcodeTrends={postcodeTrends} monthLabels={monthLabels} />
+        <TabsContent value="zones" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5" /> Jobs by Zone — Last 3 Months
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(250, zoneChartData.length * 40) }}>
+                <BarChart data={zoneChartData} layout="vertical" margin={{ left: 120 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" width={115} tick={{ fontSize: 12 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
+                    {zoneChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+          <PostcodeBreakdownTable
+            postcodeTrends={zoneTrends.map(z => ({ prefix: z.zone, zone: z.zone, zoneColor: z.zoneColor, months: z.months, total: z.total }))}
+            monthLabels={monthLabels}
+            label="Zone"
+            showZoneColumn={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="postcodes" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5" /> Top Postcodes — Last 3 Months
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(300, postcodeChartData.length * 32) }}>
+                <BarChart data={postcodeChartData} layout="vertical" margin={{ left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" width={55} tick={{ fontSize: 12 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20}>
+                    {postcodeChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+          <PostcodeBreakdownTable postcodeTrends={postcodeTrends} monthLabels={monthLabels} label="Postcode" showZoneColumn />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
