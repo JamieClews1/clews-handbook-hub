@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { TrendingUp, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, Minus, ArrowUpDown, ChevronsUpDown } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
 
