@@ -32,27 +32,24 @@ function categoriseContainer(
   vehicleReg: string | null,
   settings: LiveJobsSettings
 ): ContainerCategory | null {
-  // Check vehicle reg first for artic identification
+  const ct = containerType?.toLowerCase() ?? "";
+
+  // Check container type keywords FIRST — these are the most reliable signal
+  const isSkip = ct && settings.skip_container_keywords.some(kw => ct.includes(kw.toLowerCase()));
+  const isRoro = ct && settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()));
+  const isArticContainer = ct && settings.artic_container_keywords.some(kw => ct.includes(kw.toLowerCase()));
+
+  // If container type clearly identifies skip or roro, use that regardless of vehicle
+  if (isRoro) return "roro";
+  if (isSkip) return "skip";
+  if (isArticContainer) return "artic";
+
+  // Fall back to vehicle reg only when container type is empty or unrecognised
   if (vehicleReg) {
     const vr = vehicleReg.toUpperCase().replace(/\s+/g, "");
     if (settings.artic_vehicle_regs.some(r => r.replace(/\s+/g, "").toUpperCase() === vr)) return "artic";
   }
 
-  if (!containerType) return null;
-  const ct = containerType.toLowerCase();
-
-  // Check artic keywords
-  if (settings.artic_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "artic";
-
-  // Check roro keywords
-  if (settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "roro";
-
-  // Check skip keywords (but roro takes priority)
-  if (settings.skip_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) {
-    // Double-check it's not actually roro
-    if (settings.roro_container_keywords.some(kw => ct.includes(kw.toLowerCase()))) return "roro";
-    return "skip";
-  }
   return null;
 }
 
