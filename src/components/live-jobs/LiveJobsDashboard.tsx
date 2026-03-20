@@ -96,7 +96,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -125,6 +125,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           lastDeliveryOrExchangeDate: null,
           lastCollectionDate: null,
           containerTypes: new Set(),
+          containerTypeBreakdown: {},
         };
       }
 
@@ -135,7 +136,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         siteMap[key].latestCustomerDate = job.job_date;
       }
 
-      if (job.container_type) siteMap[key].containerTypes.add(job.container_type);
+      if (job.container_type) {
+        siteMap[key].containerTypes.add(job.container_type);
+        if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0 };
+        }
+        const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
+        if (isDelivery(job.movement_type)) ctb.delivered++;
+        if (isCollection(job.movement_type)) ctb.collected++;
+        if (isExchange(job.movement_type)) ctb.exchanged++;
+      }
 
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
       if (isCollection(job.movement_type)) siteMap[key].collected++;
@@ -264,21 +274,52 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       const filtered = liveSites.filter(s => s.category === key);
       const rows: Record<string, string | number>[] = [];
       for (const s of filtered) {
-        const lineCount = key === "artic" ? 1 : Math.max(1, s.netOnSite);
-        for (let i = 0; i < lineCount; i++) {
+        if (key === "artic") {
           rows.push({
             Customer: s.customer,
             Site: s.site,
-            [key === "artic" ? "Visits" : "Unit"]: i + 1,
-            ...(key !== "artic" ? { "Total On-Site": s.netOnSite } : {}),
+            "Container Type": s.containerTypes.join(", "),
+            Visits: s.netOnSite,
             Delivered: s.delivered,
             Exchanged: s.exchanged,
             Collected: s.collected,
             "Days Since Activity": s.daysSinceActivity ?? "",
             "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
-            "Over Rental": s.isOverRental ? "Yes" : "No",
-            "Container Types": s.containerTypes.join(", "),
           });
+        } else {
+          // Get the breakdown from the original siteMap data
+          const breakdownEntries = Object.entries(s.containerTypeBreakdown || {});
+          if (breakdownEntries.length === 0) {
+            rows.push({
+              Customer: s.customer,
+              Site: s.site,
+              "Container Type": "Unknown",
+              "Net On-Site": s.netOnSite,
+              Delivered: s.delivered,
+              Exchanged: s.exchanged,
+              Collected: s.collected,
+              "Days Since Activity": s.daysSinceActivity ?? "",
+              "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+              "Over Rental": s.isOverRental ? "Yes" : "No",
+            });
+          } else {
+            for (const [ctName, ctCounts] of breakdownEntries) {
+              const ctNet = ctCounts.delivered - ctCounts.collected;
+              if (ctNet <= 0 && breakdownEntries.length > 1) continue; // skip cleared container types
+              rows.push({
+                Customer: s.customer,
+                Site: s.site,
+                "Container Type": ctName,
+                "Net On-Site": Math.max(0, ctNet),
+                Delivered: ctCounts.delivered,
+                Exchanged: ctCounts.exchanged,
+                Collected: ctCounts.collected,
+                "Days Since Activity": s.daysSinceActivity ?? "",
+                "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+                "Over Rental": s.isOverRental ? "Yes" : "No",
+              });
+            }
+          }
         }
       }
       const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{}]);
