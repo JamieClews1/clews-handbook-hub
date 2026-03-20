@@ -13,6 +13,7 @@ import {
   Box,
   Trash2,
   Map,
+  Calendar,
   DollarSign,
   BarChart3,
   Settings,
