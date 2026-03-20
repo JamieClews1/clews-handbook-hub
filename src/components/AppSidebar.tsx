@@ -237,6 +237,15 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/diary")}>
+                      <Link to="/diary">
+                        <Calendar className="h-4 w-4" />
+                        {!collapsed && <span>Diary</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
