@@ -51,6 +51,7 @@ import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
 import DriverAppPage from "./pages/DriverAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
+import DiaryPage from "./pages/DiaryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
