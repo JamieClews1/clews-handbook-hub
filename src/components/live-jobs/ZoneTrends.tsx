@@ -168,7 +168,7 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
     const zTrends = Object.values(zMap).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
 
     return { postcodeTrends: pcTrends, zoneTrends: zTrends, monthLabels: labels };
-  }, [jobs, zones, newSitesOnly, historicalPrefixes]);
+  }, [jobs, zones, newSitesOnly, historicalSites]);
 
   const postcodeChartData = useMemo(() =>
     postcodeTrends.slice(0, 20).map(t => ({ name: t.prefix, total: t.total, fill: t.zoneColor })),
