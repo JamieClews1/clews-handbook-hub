@@ -2,15 +2,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Radio, Settings, MapPin } from "lucide-react";
+import { ArrowLeft, Radio, Settings, MapPin, TrendingUp } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import LiveJobsDashboard from "@/components/live-jobs/LiveJobsDashboard";
 import LiveJobsSettings from "@/components/live-jobs/LiveJobsSettings";
 import ZonesSettings from "@/components/live-jobs/ZonesSettings";
 import ZoneReport from "@/components/live-jobs/ZoneReport";
+import ZoneTrends from "@/components/live-jobs/ZoneTrends";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { usePostcodeZones } from "@/hooks/usePostcodeZones";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format, startOfMonth, subMonths } from "date-fns";
 
 const LiveJobsPage = () => {
   const navigate = useNavigate();
