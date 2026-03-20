@@ -15,6 +15,8 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from "@dnd-kit/core";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DiaryMobileListView } from "./DiaryMobileListView";
 
 export interface DiaryCard {
   id: string;
