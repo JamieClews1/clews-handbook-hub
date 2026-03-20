@@ -64,6 +64,7 @@ type RawJob = {
   weight_t: number | null;
   raw: any;
   movement_type?: string | null;
+  site?: string | null;
 };
 
 interface ZoneTrendsProps {
@@ -73,7 +74,7 @@ interface ZoneTrendsProps {
 
 export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
   const [newSitesOnly, setNewSitesOnly] = useState(false);
-  const [historicalPrefixes, setHistoricalPrefixes] = useState<Set<string> | null>(null);
+  const [historicalSites, setHistoricalSites] = useState<Set<string> | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   const threeMonthsAgo = useMemo(() =>
@@ -81,37 +82,35 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
     []
   );
 
+  // Fetch all historical delivery site names before the 3-month window
   useEffect(() => {
-    if (!newSitesOnly || historicalPrefixes !== null) return;
+    if (!newSitesOnly || historicalSites !== null) return;
     const fetchHistory = async () => {
       setLoadingHistory(true);
-      const prefixes = new Set<string>();
+      const sites = new Set<string>();
       let from = 0;
       const pageSize = 1000;
       let hasMore = true;
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("raw")
+          .select("site")
           .eq("source", "skiptrak")
           .eq("movement_type", "delivery")
           .lt("job_date", threeMonthsAgo)
           .range(from, from + pageSize - 1);
         if (error) { console.error(error); break; }
         for (const row of data ?? []) {
-          const r = typeof row.raw === "object" && row.raw ? (row.raw as any) : {};
-          const pc = r["Location Postc"] || r["Postcode"] || null;
-          const prefix = extractPostcodePrefix(pc);
-          if (prefix) prefixes.add(prefix);
+          if (row.site) sites.add(row.site.trim().toUpperCase());
         }
         hasMore = (data?.length ?? 0) === pageSize;
         from += pageSize;
       }
-      setHistoricalPrefixes(prefixes);
+      setHistoricalSites(sites);
       setLoadingHistory(false);
     };
     fetchHistory();
-  }, [newSitesOnly, historicalPrefixes, threeMonthsAgo]);
+  }, [newSitesOnly, historicalSites, threeMonthsAgo]);
 
   const { postcodeTrends, zoneTrends, monthLabels } = useMemo(() => {
     const now = new Date();
@@ -128,11 +127,9 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
     const filteredJobs = newSitesOnly
       ? jobs.filter(j => {
           if (j.movement_type !== "delivery") return false;
-          const raw = typeof j.raw === "object" && j.raw ? j.raw : {};
-          const pc = raw["Location Postc"] || raw["Postcode"] || null;
-          const prefix = extractPostcodePrefix(pc);
-          if (!prefix) return false;
-          return historicalPrefixes ? !historicalPrefixes.has(prefix) : true;
+          const siteName = j.site?.trim().toUpperCase();
+          if (!siteName) return false;
+          return historicalSites ? !historicalSites.has(siteName) : true;
         })
       : jobs;
 
@@ -171,7 +168,7 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
     const zTrends = Object.values(zMap).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
 
     return { postcodeTrends: pcTrends, zoneTrends: zTrends, monthLabels: labels };
-  }, [jobs, zones, newSitesOnly, historicalPrefixes]);
+  }, [jobs, zones, newSitesOnly, historicalSites]);
 
   const postcodeChartData = useMemo(() =>
     postcodeTrends.slice(0, 20).map(t => ({ name: t.prefix, total: t.total, fill: t.zoneColor })),
