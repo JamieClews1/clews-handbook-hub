@@ -166,68 +166,119 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
       </Card>
 
       {/* Full table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Postcode Breakdown</CardTitle>
-          <p className="text-sm text-muted-foreground">{postcodeTrends.length} postcodes found</p>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8">#</TableHead>
-                <TableHead>Postcode</TableHead>
-                <TableHead>Zone</TableHead>
-                {monthLabels.map(ml => (
-                  <TableHead key={ml} className="text-center">{ml}</TableHead>
-                ))}
-                <TableHead className="text-center">Total</TableHead>
-                <TableHead className="text-center">Trend</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {postcodeTrends.map((t, i) => {
-                // Trend: compare latest month to previous month
-                const prev = t.months[1];
-                const curr = t.months[2];
-                const diff = curr - prev;
-                return (
-                  <TableRow key={t.prefix}>
-                    <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
-                    <TableCell className="font-mono font-semibold text-sm">{t.prefix}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="text-xs"
-                        style={{ borderColor: t.zoneColor, color: t.zoneColor }}
-                      >
-                        {t.zone}
-                      </Badge>
-                    </TableCell>
-                    {t.months.map((m, mi) => (
-                      <TableCell key={mi} className="text-center tabular-nums">{m}</TableCell>
-                    ))}
-                    <TableCell className="text-center font-semibold tabular-nums">{t.total}</TableCell>
-                    <TableCell className="text-center">
-                      {diff > 0 ? (
-                        <span className="inline-flex items-center gap-0.5 text-green-600 text-xs font-medium">
-                          <ArrowUp className="h-3 w-3" /> {diff}
-                        </span>
-                      ) : diff < 0 ? (
-                        <span className="inline-flex items-center gap-0.5 text-red-500 text-xs font-medium">
-                          <ArrowDown className="h-3 w-3" /> {Math.abs(diff)}
-                        </span>
-                      ) : (
-                        <Minus className="h-3 w-3 text-muted-foreground mx-auto" />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <PostcodeBreakdownTable postcodeTrends={postcodeTrends} monthLabels={monthLabels} />
+    </div>
+  );
+}
+
+type SortField = "total" | "trend";
+type SortDir = "asc" | "desc";
+
+function PostcodeBreakdownTable({ postcodeTrends, monthLabels }: { postcodeTrends: ZoneTrendsProps["jobs"] extends any ? typeof postcodeTrends : never; monthLabels: string[] }) {
+  const [sortField, setSortField] = useState<SortField>("total");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === "desc" ? "asc" : "desc");
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const withTrend = postcodeTrends.map(t => ({
+      ...t,
+      trend: t.months[2] - t.months[1],
+    }));
+    return withTrend.sort((a, b) => {
+      const mul = sortDir === "desc" ? -1 : 1;
+      if (sortField === "total") return mul * (a.total - b.total);
+      return mul * (a.trend - b.trend);
+    });
+  }, [postcodeTrends, sortField, sortDir]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Postcode Breakdown</CardTitle>
+        <p className="text-sm text-muted-foreground">{postcodeTrends.length} postcodes found</p>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-8">#</TableHead>
+              <TableHead>Postcode</TableHead>
+              <TableHead>Zone</TableHead>
+              {monthLabels.map(ml => (
+                <TableHead key={ml} className="text-center">{ml}</TableHead>
+              ))}
+              <TableHead className="text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 font-semibold text-xs gap-1 hover:bg-transparent"
+                  onClick={() => toggleSort("total")}
+                >
+                  Total
+                  <ChevronsUpDown className={`h-3 w-3 ${sortField === "total" ? "text-foreground" : "text-muted-foreground/50"}`} />
+                </Button>
+              </TableHead>
+              <TableHead className="text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 font-semibold text-xs gap-1 hover:bg-transparent"
+                  onClick={() => toggleSort("trend")}
+                >
+                  Trend
+                  <ChevronsUpDown className={`h-3 w-3 ${sortField === "trend" ? "text-foreground" : "text-muted-foreground/50"}`} />
+                </Button>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sorted.map((t, i) => {
+              const diff = t.trend;
+              return (
+                <TableRow key={t.prefix}>
+                  <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
+                  <TableCell className="font-mono font-semibold text-sm">{t.prefix}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="text-xs"
+                      style={{ borderColor: t.zoneColor, color: t.zoneColor }}
+                    >
+                      {t.zone}
+                    </Badge>
+                  </TableCell>
+                  {t.months.map((m, mi) => (
+                    <TableCell key={mi} className="text-center tabular-nums">{m}</TableCell>
+                  ))}
+                  <TableCell className="text-center font-semibold tabular-nums">{t.total}</TableCell>
+                  <TableCell className="text-center">
+                    {diff > 0 ? (
+                      <span className="inline-flex items-center gap-0.5 text-green-600 text-xs font-medium">
+                        <ArrowUp className="h-3 w-3" /> {diff}
+                      </span>
+                    ) : diff < 0 ? (
+                      <span className="inline-flex items-center gap-0.5 text-red-500 text-xs font-medium">
+                        <ArrowDown className="h-3 w-3" /> {Math.abs(diff)}
+                      </span>
+                    ) : (
+                      <Minus className="h-3 w-3 text-muted-foreground mx-auto" />
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
     </div>
   );
 }
