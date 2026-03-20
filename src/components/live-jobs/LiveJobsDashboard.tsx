@@ -125,6 +125,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           lastDeliveryOrExchangeDate: null,
           lastCollectionDate: null,
           containerTypes: new Set(),
+          containerTypeBreakdown: {},
         };
       }
 
