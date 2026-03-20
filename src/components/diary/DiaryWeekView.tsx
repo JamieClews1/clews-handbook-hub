@@ -91,18 +91,16 @@ export const DiaryWeekView = () => {
       .filter((c) => c.day_of_week === dayIndex)
       .reduce((m, c) => Math.max(m, c.display_order), -1);
 
-    const newCard: Partial<DiaryCard> = {
-      user_id: user.id,
-      day_of_week: dayIndex,
-      week_start: weekStartStr,
-      content: "",
-      color: "default",
-      display_order: maxOrder + 1,
-    };
-
     const { data, error } = await supabase
       .from("diary_cards")
-      .insert(newCard)
+      .insert({
+        user_id: user.id,
+        day_of_week: dayIndex,
+        week_start: weekStartStr,
+        content: "",
+        color: "default",
+        display_order: maxOrder + 1,
+      })
       .select()
       .single();
 
