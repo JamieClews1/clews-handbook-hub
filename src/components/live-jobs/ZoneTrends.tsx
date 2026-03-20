@@ -246,16 +246,16 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Postcode Breakdown</CardTitle>
-        <p className="text-sm text-muted-foreground">{postcodeTrends.length} postcodes found</p>
+        <CardTitle className="text-lg">{label} Breakdown</CardTitle>
+        <p className="text-sm text-muted-foreground">{postcodeTrends.length} {label.toLowerCase()}s found</p>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-8">#</TableHead>
-              <TableHead>Postcode</TableHead>
-              <TableHead>Zone</TableHead>
+              <TableHead>{label}</TableHead>
+              {showZoneColumn && <TableHead>Zone</TableHead>}
               {monthLabels.map(ml => (
                 <TableHead key={ml} className="text-center">{ml}</TableHead>
               ))}
@@ -289,15 +289,16 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode
               return (
                 <TableRow key={t.prefix}>
                   <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
-                  <TableCell className="font-mono font-semibold text-sm">{t.prefix}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="text-xs"
-                      style={{ borderColor: t.zoneColor, color: t.zoneColor }}
-                    >
-                      {t.zone}
-                    </Badge>
+                  <TableCell className="font-semibold text-sm">{t.prefix}</TableCell>
+                  {showZoneColumn && (
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="text-xs"
+                        style={{ borderColor: t.zoneColor, color: t.zoneColor }}
+                      >
+                        {t.zone}
+                      </Badge>
                   </TableCell>
                   {t.months.map((m, mi) => (
                     <TableCell key={mi} className="text-center tabular-nums">{m}</TableCell>
