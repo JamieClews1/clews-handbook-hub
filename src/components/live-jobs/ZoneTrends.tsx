@@ -1,13 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { TrendingUp, ArrowUp, ArrowDown, Minus, ChevronsUpDown, MapPin } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, Minus, ChevronsUpDown, MapPin, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfMonth, subMonths } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
 
 const UK_POSTCODE_RE = /\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i;
@@ -46,7 +49,6 @@ function matchZone(prefix: string, zones: PostcodeZone[]): PostcodeZone | null {
   return null;
 }
 
-// Zone colours
 const ZONE_COLORS: Record<string, string> = {
   "Zone 1": "hsl(142 76% 36%)",
   "Zone 2": "hsl(217 91% 60%)",
@@ -61,6 +63,7 @@ type RawJob = {
   job_date: string | null;
   weight_t: number | null;
   raw: any;
+  movement_type?: string | null;
 };
 
 interface ZoneTrendsProps {
@@ -69,6 +72,47 @@ interface ZoneTrendsProps {
 }
 
 export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
+  const [newSitesOnly, setNewSitesOnly] = useState(false);
+  const [historicalPrefixes, setHistoricalPrefixes] = useState<Set<string> | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const threeMonthsAgo = useMemo(() =>
+    format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd"),
+    []
+  );
+
+  useEffect(() => {
+    if (!newSitesOnly || historicalPrefixes !== null) return;
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      const prefixes = new Set<string>();
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("raw")
+          .eq("source", "skiptrak")
+          .eq("movement_type", "delivery")
+          .lt("job_date", threeMonthsAgo)
+          .range(from, from + pageSize - 1);
+        if (error) { console.error(error); break; }
+        for (const row of data ?? []) {
+          const r = typeof row.raw === "object" && row.raw ? (row.raw as any) : {};
+          const pc = r["Location Postc"] || r["Postcode"] || null;
+          const prefix = extractPostcodePrefix(pc);
+          if (prefix) prefixes.add(prefix);
+        }
+        hasMore = (data?.length ?? 0) === pageSize;
+        from += pageSize;
+      }
+      setHistoricalPrefixes(prefixes);
+      setLoadingHistory(false);
+    };
+    fetchHistory();
+  }, [newSitesOnly, historicalPrefixes, threeMonthsAgo]);
+
   const { postcodeTrends, zoneTrends, monthLabels } = useMemo(() => {
     const now = new Date();
     const months = [
@@ -81,10 +125,21 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
       return format(new Date(+y, +mo - 1), "MMM yy");
     });
 
+    const filteredJobs = newSitesOnly
+      ? jobs.filter(j => {
+          if (j.movement_type !== "delivery") return false;
+          const raw = typeof j.raw === "object" && j.raw ? j.raw : {};
+          const pc = raw["Location Postc"] || raw["Postcode"] || null;
+          const prefix = extractPostcodePrefix(pc);
+          if (!prefix) return false;
+          return historicalPrefixes ? !historicalPrefixes.has(prefix) : true;
+        })
+      : jobs;
+
     const pcMap: Record<string, { prefix: string; zone: string; zoneColor: string; months: number[]; total: number }> = {};
     const zMap: Record<string, { zone: string; zoneColor: string; months: number[]; total: number }> = {};
 
-    for (const job of jobs) {
+    for (const job of filteredJobs) {
       if (!job.job_date) continue;
       const monthKey = job.job_date.substring(0, 7);
       const monthIdx = months.indexOf(monthKey);
@@ -99,14 +154,12 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
       const zoneName = zone ? zone.zone_name : "Out of Zones";
       const color = ZONE_COLORS[zoneName] || ZONE_COLORS["Unzoned"];
 
-      // Postcode level
       if (!pcMap[prefix]) {
         pcMap[prefix] = { prefix, zone: zoneName, zoneColor: color, months: [0, 0, 0], total: 0 };
       }
       pcMap[prefix].months[monthIdx]++;
       pcMap[prefix].total++;
 
-      // Zone level
       if (!zMap[zoneName]) {
         zMap[zoneName] = { zone: zoneName, zoneColor: color, months: [0, 0, 0], total: 0 };
       }
@@ -118,7 +171,7 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
     const zTrends = Object.values(zMap).filter(t => t.total > 0).sort((a, b) => b.total - a.total);
 
     return { postcodeTrends: pcTrends, zoneTrends: zTrends, monthLabels: labels };
-  }, [jobs, zones]);
+  }, [jobs, zones, newSitesOnly, historicalPrefixes]);
 
   const postcodeChartData = useMemo(() =>
     postcodeTrends.slice(0, 20).map(t => ({ name: t.prefix, total: t.total, fill: t.zoneColor })),
@@ -132,85 +185,121 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
 
   const chartConfig = { total: { label: "Jobs", color: "hsl(var(--primary))" } };
 
-  if (postcodeTrends.length === 0) {
+  if (postcodeTrends.length === 0 && !loadingHistory) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
-          No postcode data available for the last 3 months.
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <NewSitesToggle checked={newSitesOnly} onCheckedChange={setNewSitesOnly} loading={loadingHistory} />
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            {newSitesOnly
+              ? "No new delivery sites found in the last 3 months."
+              : "No postcode data available for the last 3 months."}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="zones">
-        <TabsList>
-          <TabsTrigger value="zones">
-            <MapPin className="h-4 w-4 mr-1.5" /> By Zone
-          </TabsTrigger>
-          <TabsTrigger value="postcodes">
-            <TrendingUp className="h-4 w-4 mr-1.5" /> By Postcode
-          </TabsTrigger>
-        </TabsList>
+      <NewSitesToggle checked={newSitesOnly} onCheckedChange={setNewSitesOnly} loading={loadingHistory} />
 
-        <TabsContent value="zones" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <MapPin className="h-5 w-5" /> Jobs by Zone — Last 3 Months
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(250, zoneChartData.length * 40) }}>
-                <BarChart data={zoneChartData} layout="vertical" margin={{ left: 120 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" width={115} tick={{ fontSize: 12 }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
-                    {zoneChartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-          <PostcodeBreakdownTable
-            postcodeTrends={zoneTrends.map(z => ({ prefix: z.zone, zone: z.zone, zoneColor: z.zoneColor, months: z.months, total: z.total }))}
-            monthLabels={monthLabels}
-            label="Zone"
-            showZoneColumn={false}
-          />
-        </TabsContent>
+      {loadingHistory ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        </div>
+      ) : (
+        <Tabs defaultValue="zones">
+          <TabsList>
+            <TabsTrigger value="zones">
+              <MapPin className="h-4 w-4 mr-1.5" /> By Zone
+            </TabsTrigger>
+            <TabsTrigger value="postcodes">
+              <TrendingUp className="h-4 w-4 mr-1.5" /> By Postcode
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="postcodes" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <TrendingUp className="h-5 w-5" /> Top Postcodes — Last 3 Months
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(300, postcodeChartData.length * 32) }}>
-                <BarChart data={postcodeChartData} layout="vertical" margin={{ left: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" width={55} tick={{ fontSize: 12 }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20}>
-                    {postcodeChartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-          <PostcodeBreakdownTable postcodeTrends={postcodeTrends} monthLabels={monthLabels} label="Postcode" showZoneColumn />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="zones" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <MapPin className="h-5 w-5" /> Jobs by Zone — Last 3 Months
+                  {newSitesOnly && <Badge variant="secondary" className="text-xs"><Sparkles className="h-3 w-3 mr-1" />New Sites</Badge>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(250, zoneChartData.length * 40) }}>
+                  <BarChart data={zoneChartData} layout="vertical" margin={{ left: 120 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" />
+                    <YAxis type="category" dataKey="name" width={115} tick={{ fontSize: 12 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={24}>
+                      {zoneChartData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+            <PostcodeBreakdownTable
+              postcodeTrends={zoneTrends.map(z => ({ prefix: z.zone, zone: z.zone, zoneColor: z.zoneColor, months: z.months, total: z.total }))}
+              monthLabels={monthLabels}
+              label="Zone"
+              showZoneColumn={false}
+            />
+          </TabsContent>
+
+          <TabsContent value="postcodes" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <TrendingUp className="h-5 w-5" />
+                  {newSitesOnly ? "New Delivery Sites" : "Top Postcodes"} — Last 3 Months
+                  {newSitesOnly && <Badge variant="secondary" className="text-xs"><Sparkles className="h-3 w-3 mr-1" />New Sites</Badge>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(300, postcodeChartData.length * 32) }}>
+                  <BarChart data={postcodeChartData} layout="vertical" margin={{ left: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" />
+                    <YAxis type="category" dataKey="name" width={55} tick={{ fontSize: 12 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20}>
+                      {postcodeChartData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+            <PostcodeBreakdownTable postcodeTrends={postcodeTrends} monthLabels={monthLabels} label="Postcode" showZoneColumn />
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
+  );
+}
+
+function NewSitesToggle({ checked, onCheckedChange, loading }: { checked: boolean; onCheckedChange: (v: boolean) => void; loading: boolean }) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+      <Sparkles className="h-4 w-4 text-muted-foreground" />
+      <Label htmlFor="new-sites-toggle" className="text-sm font-medium cursor-pointer flex-1">
+        New Sites Only
+        <span className="block text-xs text-muted-foreground font-normal">
+          Show only postcodes where we delivered for the first time
+        </span>
+      </Label>
+      <Switch
+        id="new-sites-toggle"
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        disabled={loading}
+      />
     </div>
   );
 }
@@ -260,23 +349,13 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode
                 <TableHead key={ml} className="text-center">{ml}</TableHead>
               ))}
               <TableHead className="text-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 font-semibold text-xs gap-1 hover:bg-transparent"
-                  onClick={() => toggleSort("total")}
-                >
+                <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold text-xs gap-1 hover:bg-transparent" onClick={() => toggleSort("total")}>
                   Total
                   <ChevronsUpDown className={`h-3 w-3 ${sortField === "total" ? "text-foreground" : "text-muted-foreground/50"}`} />
                 </Button>
               </TableHead>
               <TableHead className="text-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 font-semibold text-xs gap-1 hover:bg-transparent"
-                  onClick={() => toggleSort("trend")}
-                >
+                <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold text-xs gap-1 hover:bg-transparent" onClick={() => toggleSort("trend")}>
                   Trend
                   <ChevronsUpDown className={`h-3 w-3 ${sortField === "trend" ? "text-foreground" : "text-muted-foreground/50"}`} />
                 </Button>
@@ -292,11 +371,7 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode
                   <TableCell className="font-semibold text-sm">{t.prefix}</TableCell>
                   {showZoneColumn && (
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="text-xs"
-                        style={{ borderColor: t.zoneColor, color: t.zoneColor }}
-                      >
+                      <Badge variant="outline" className="text-xs" style={{ borderColor: t.zoneColor, color: t.zoneColor }}>
                         {t.zone}
                       </Badge>
                     </TableCell>
