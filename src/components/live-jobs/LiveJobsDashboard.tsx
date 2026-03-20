@@ -136,7 +136,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         siteMap[key].latestCustomerDate = job.job_date;
       }
 
-      if (job.container_type) siteMap[key].containerTypes.add(job.container_type);
+      if (job.container_type) {
+        siteMap[key].containerTypes.add(job.container_type);
+        if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0 };
+        }
+        const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
+        if (isDelivery(job.movement_type)) ctb.delivered++;
+        if (isCollection(job.movement_type)) ctb.collected++;
+        if (isExchange(job.movement_type)) ctb.exchanged++;
+      }
 
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
       if (isCollection(job.movement_type)) siteMap[key].collected++;
