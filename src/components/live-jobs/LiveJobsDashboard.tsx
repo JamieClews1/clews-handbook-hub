@@ -179,12 +179,19 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       .map(s => {
         const netFromDeliveries = s.delivered - s.collected;
         const totalMovements = s.delivered + s.collected + s.exchanged;
-        // Artics (waste trucks) don't stay on-site, so count sites visited instead
-        const netOnSite = s.category === "artic"
-          ? totalMovements  // For artics, this represents visit count
-          : Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
-        const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
+        // Artics (waste trucks) don't stay on-site, so count sites visited instead
+        let netOnSite: number;
+        if (s.category === "artic") {
+          netOnSite = totalMovements; // For artics, this represents visit count
+        } else if (collectionClearedIt && netFromDeliveries <= 0) {
+          // Last action was a collection and all deliveries are accounted for — site is clear
+          netOnSite = 0;
+        } else {
+          // If there are exchanges and net >= 0, at least 1 container is on-site
+          netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
+        }
+        const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
       })
