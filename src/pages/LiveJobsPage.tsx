@@ -19,6 +19,7 @@ type TrendsJob = {
   job_date: string | null;
   weight_t: number | null;
   raw: any;
+  movement_type: string | null;
 };
 
 const LiveJobsPage = () => {
