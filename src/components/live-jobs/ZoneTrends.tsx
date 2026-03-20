@@ -418,8 +418,6 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode
     </Card>
   );
 }
-  return null;
-}
 
 // Zone colours
 const ZONE_COLORS: Record<string, string> = {
