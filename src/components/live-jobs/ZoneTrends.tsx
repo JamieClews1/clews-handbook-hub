@@ -218,7 +218,7 @@ export default function ZoneTrends({ jobs, zones }: ZoneTrendsProps) {
 type SortField = "total" | "trend";
 type SortDir = "asc" | "desc";
 
-function PostcodeBreakdownTable({ postcodeTrends, monthLabels }: { postcodeTrends: { prefix: string; zone: string; zoneColor: string; months: number[]; total: number }[]; monthLabels: string[] }) {
+function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode", showZoneColumn = true }: { postcodeTrends: { prefix: string; zone: string; zoneColor: string; months: number[]; total: number }[]; monthLabels: string[]; label?: string; showZoneColumn?: boolean }) {
   const [sortField, setSortField] = useState<SortField>("total");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
