@@ -52,7 +52,7 @@ const LiveJobsPage = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("job_date,weight_t,raw,movement_type")
+          .select("job_date,weight_t,raw,movement_type,site")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .order("job_date", { ascending: false })
