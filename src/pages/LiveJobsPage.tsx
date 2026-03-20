@@ -15,17 +15,57 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, subMonths } from "date-fns";
 
+type TrendsJob = {
+  job_date: string | null;
+  weight_t: number | null;
+  raw: any;
+};
+
 const LiveJobsPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { settings, loading: settingsLoading, updateSetting, refetch } = useLiveJobsSettings();
   const { zones, loading: zonesLoading, updateZone, addZone, deleteZone } = usePostcodeZones();
+  const [trendsJobs, setTrendsJobs] = useState<TrendsJob[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
+  const [trendsLoaded, setTrendsLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Lazy-load trends data when tab is selected
+  useEffect(() => {
+    if (activeTab !== "trends" || trendsLoaded) return;
+    const fetchTrendsJobs = async () => {
+      setTrendsLoading(true);
+      const since = format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd");
+      let allJobs: TrendsJob[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("job_date,weight_t,raw")
+          .eq("source", "skiptrak")
+          .gte("job_date", since)
+          .order("job_date", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) { console.error(error); break; }
+        allJobs = allJobs.concat((data ?? []) as TrendsJob[]);
+        hasMore = (data?.length ?? 0) === pageSize;
+        from += pageSize;
+      }
+      setTrendsJobs(allJobs);
+      setTrendsLoaded(true);
+      setTrendsLoading(false);
+    };
+    fetchTrendsJobs();
+  }, [activeTab, trendsLoaded]);
 
   if (loading || settingsLoading || zonesLoading) {
     return (
@@ -70,13 +110,16 @@ const LiveJobsPage = () => {
             </div>
           </div>
 
-          <Tabs defaultValue="dashboard">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="dashboard">
                 <Radio className="h-4 w-4 mr-1.5" /> Dashboard
               </TabsTrigger>
               <TabsTrigger value="zones">
                 <MapPin className="h-4 w-4 mr-1.5" /> Zone Report
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="border border-border bg-background text-foreground shadow-sm rounded-full px-5 font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TrendingUp className="h-4 w-4 mr-1.5" /> Zone Trends
               </TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-1.5" /> Settings
@@ -91,6 +134,15 @@ const LiveJobsPage = () => {
                 if (!zone) return;
                 await updateZone(zoneId, { postcodes: [...zone.postcodes, postcode] });
               }} />
+            </TabsContent>
+            <TabsContent value="trends" className="mt-6">
+              {trendsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+                </div>
+              ) : (
+                <ZoneTrends jobs={trendsJobs} zones={zones} />
+              )}
             </TabsContent>
             <TabsContent value="settings" className="mt-6">
               <div className="space-y-6">
