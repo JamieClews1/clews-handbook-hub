@@ -295,11 +295,14 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels, label = "Postcode
                       <Badge
                         variant="outline"
                         className="text-xs"
-                        style={{ borderColor: t.zoneColor, color: t.zoneColor }}
-                      >
-                        {t.zone}
-                      </Badge>
+                      variant="outline"
+                      className="text-xs"
+                      style={{ borderColor: t.zoneColor, color: t.zoneColor }}
+                    >
+                      {t.zone}
+                    </Badge>
                   </TableCell>
+                  )}
                   {t.months.map((m, mi) => (
                     <TableCell key={mi} className="text-center tabular-nums">{m}</TableCell>
                   ))}
