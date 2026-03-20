@@ -279,6 +279,5 @@ function PostcodeBreakdownTable({ postcodeTrends, monthLabels }: { postcodeTrend
         </Table>
       </CardContent>
     </Card>
-    </div>
   );
 }
