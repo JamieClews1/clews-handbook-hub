@@ -1044,6 +1044,69 @@ export type Database = {
         }
         Relationships: []
       }
+      diary_cards: {
+        Row: {
+          color: string | null
+          content: string
+          created_at: string
+          day_of_week: number
+          display_order: number
+          id: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          color?: string | null
+          content?: string
+          created_at?: string
+          day_of_week: number
+          display_order?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          color?: string | null
+          content?: string
+          created_at?: string
+          day_of_week?: number
+          display_order?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      diary_week_notes: {
+        Row: {
+          created_at: string
+          id: string
+          note: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       document_types: {
         Row: {
           category: string
