@@ -68,6 +68,13 @@ const sections = [
     href: "/duty-of-care",
   },
   {
+    title: "Diary",
+    description: "Weekly outlook and gentle planning journal",
+    icon: CalendarDays,
+    href: "/diary",
+    variant: "calm" as const,
+  },
+  {
     title: "Waste Reporting",
     description: "Facility recycling forms and waste documentation",
     icon: Recycle,

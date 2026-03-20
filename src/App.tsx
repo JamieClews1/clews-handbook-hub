@@ -122,6 +122,7 @@ const App = () => (
             <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
             <Route path="/performance-hub/projections" element={<Staff><ProjectionsPage /></Staff>} />
+            <Route path="/diary" element={<Staff><DiaryPage /></Staff>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
