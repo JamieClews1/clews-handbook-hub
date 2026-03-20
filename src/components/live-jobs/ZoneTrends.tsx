@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
-import { TrendingUp, ArrowUp, ArrowDown, Minus, ArrowUpDown, ChevronsUpDown } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, Minus, ChevronsUpDown, MapPin } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfMonth, subMonths } from "date-fns";
 import type { PostcodeZone } from "@/hooks/usePostcodeZones";
 
