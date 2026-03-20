@@ -51,6 +51,7 @@ function addDays(date: Date, days: number): Date {
 }
 
 export const DiaryWeekView = () => {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const { toast } = useToast();
   const [cards, setCards] = useState<DiaryCard[]>([]);
