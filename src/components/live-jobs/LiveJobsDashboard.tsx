@@ -247,9 +247,38 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     );
   }
 
+  function downloadLiveJobsExcel() {
+    const allRows: Record<string, string | number>[] = [];
+    for (const s of liveSites) {
+      allRows.push({
+        Customer: s.customer,
+        Site: s.site,
+        Category: s.category.charAt(0).toUpperCase() + s.category.slice(1),
+        "On-Site": s.netOnSite,
+        Delivered: s.delivered,
+        Exchanged: s.exchanged,
+        Collected: s.collected,
+        "Days Since Activity": s.daysSinceActivity ?? "",
+        "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+        "Over Rental": s.isOverRental ? "Yes" : "No",
+        "Container Types": s.containerTypes.join(", "),
+      });
+    }
+    const ws = XLSX.utils.json_to_sheet(allRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Live Jobs");
+    XLSX.writeFile(wb, `Live_Jobs_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Summary Cards ── */}
+      <div className="flex items-center justify-between mb-2">
+        <div />
+        <Button variant="outline" size="sm" onClick={downloadLiveJobsExcel}>
+          <Download className="h-4 w-4 mr-1" /> Export All
+        </Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
