@@ -379,10 +379,11 @@ const RouteOnePage = () => {
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "day" | "week")}>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "day" | "week" | "list")}>
             <TabsList className="h-8">
               <TabsTrigger value="day" className="text-xs px-3 h-7">Day</TabsTrigger>
               <TabsTrigger value="week" className="text-xs px-3 h-7">Week</TabsTrigger>
+              <TabsTrigger value="list" className="text-xs px-3 h-7"><List className="h-3 w-3 mr-1" />List</TabsTrigger>
             </TabsList>
           </Tabs>
 
