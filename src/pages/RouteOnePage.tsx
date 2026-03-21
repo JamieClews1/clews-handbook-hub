@@ -626,7 +626,127 @@ const RouteOnePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dispatch Board */}
+      {/* List View */}
+      {viewMode === "list" ? (
+        <div className="flex-1 overflow-auto p-4">
+          <div className="rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">Status</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead className="hidden md:table-cell">Type</TableHead>
+                  <TableHead className="hidden md:table-cell">Container</TableHead>
+                  <TableHead className="hidden lg:table-cell">Size</TableHead>
+                  <TableHead className="hidden lg:table-cell">Waste</TableHead>
+                  <TableHead>Driver</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
+                  <TableHead className="hidden lg:table-cell">PO</TableHead>
+                  <TableHead className="hidden lg:table-cell">Source</TableHead>
+                  <TableHead className="w-[40px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Native jobs */}
+                {jobs.map((job: any) => {
+                  const jt = job.job_type as JobType;
+                  const status = job.status as JobStatus;
+                  const driver = drivers.find((d: any) => d.id === job.assigned_driver_id);
+                  return (
+                    <TableRow
+                      key={job.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setViewingJob(job)}
+                    >
+                      <TableCell>
+                        <div className={`w-3 h-3 rounded-full ${
+                          status === "completed" ? "bg-emerald-500" :
+                          status === "in_progress" ? "bg-blue-500" :
+                          status === "query" ? "bg-red-500" :
+                          status === "assigned" ? "bg-primary" :
+                          "bg-muted-foreground/30"
+                        }`} />
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">{job.customer_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{job.site_name || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge className={`text-[10px] ${JOB_TYPE_COLORS[jt]}`}>{JOB_TYPE_LABELS[jt]}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{job.container_type || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{job.container_size || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{job.waste_type || "—"}</TableCell>
+                      <TableCell className="text-sm">{driver?.driver_name || "Unassigned"}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{job.scheduled_date ? format(new Date(job.scheduled_date), "dd/MM/yy") : ""}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{job.po_number || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline" className="text-[10px]">Native</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted" onClick={(e) => e.stopPropagation()}>
+                              <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-36">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(job); }}><Pencil className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "completed" } }); }}>Mark Complete</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "query" } }); }}>Flag as Query</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteJob.mutate(job.id); }} className="text-destructive">Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {/* Skiptrak jobs */}
+                {skiptrakScheduledJobs.map((sj: any) => {
+                  const mt = getSkiptrakJobType(sj.movement_type);
+                  return (
+                    <TableRow
+                      key={`st-${sj.job_number}`}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setViewingSkiptrakJob(sj)}
+                    >
+                      <TableCell>
+                        <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border border-dashed border-muted-foreground/40" />
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">{sj.customer || "Unknown"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{sj.site || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {mt ? (
+                          <Badge className={`text-[10px] ${JOB_TYPE_COLORS[mt]}`}>{sj.movement_type}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{sj.movement_type || "—"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{sj.container_type || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">—</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{sj.waste_description || "—"}</TableCell>
+                      <TableCell className="text-sm">{sj.driver || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{sj.job_date ? format(new Date(sj.job_date), "dd/MM/yy") : ""}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">—</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="secondary" className="text-[10px]">Skiptrak</Badge>
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  );
+                })}
+                {jobs.length === 0 && skiptrakScheduledJobs.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
+                      No jobs found for this period
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : (
+      /* Dispatch Board (Kanban) */
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full min-w-max">
           {/* Unassigned Column */}
@@ -744,6 +864,7 @@ const RouteOnePage = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };
