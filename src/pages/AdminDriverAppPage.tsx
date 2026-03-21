@@ -132,7 +132,7 @@ const features = [
 
 const AdminDriverAppPage = () => {
   return (
-    <AdminPageLayout>
+    <AdminPageLayout title="Mobile Driver App" description="Build and setup guide for the RouteOne driver mobile application">
       <div className="space-y-6">
         {/* Header */}
         <div>
