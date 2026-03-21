@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
-    VitePWA({
+    mode === "production" &&
+      VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "clews-logo.png"],
       manifest: {
@@ -68,7 +69,7 @@ export default defineConfig(({ mode }) => ({
           },
         ],
       },
-    }),
+      }),
   ].filter(Boolean),
   resolve: {
     alias: {
