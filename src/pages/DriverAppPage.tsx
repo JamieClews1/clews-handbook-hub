@@ -777,10 +777,133 @@ const InfoItem = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+/* ─── Skiptrak Job Card (read-only) ───────────── */
+const SkiptrakDriverCard = ({ job, onClick }: { job: any; onClick: () => void }) => {
+  const mt = job.movement_type?.toLowerCase().trim() || "";
+  let jobType: JobType = "delivery";
+  if (mt.includes("exchange") || mt.includes("swap")) jobType = "exchange";
+  else if (mt.includes("collect") || mt.includes("removal") || mt.includes("uplift")) jobType = "collection";
+  else if (mt.includes("waste") || mt.includes("tip")) jobType = "waste_truck";
+  else if (mt.includes("wasted") || mt.includes("abortive") || mt.includes("failed")) jobType = "wasted_journey";
+  else if (mt.includes("deliver")) jobType = "delivery";
+
+  const colors = JOB_TYPE_COLORS[jobType];
+
+  return (
+    <Card
+      onClick={onClick}
+      className={cn("border-l-4 border-dashed cursor-pointer active:scale-[0.98] transition-transform", colors.border, colors.bg)}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={cn("text-xs font-bold", colors.badge)}>
+                {job.movement_type || "Unknown"}
+              </Badge>
+              <Badge variant="secondary" className="text-[10px]">Skiptrak</Badge>
+            </div>
+            <h3 className="font-bold text-base text-foreground truncate">{job.customer || "Unknown"}</h3>
+            {job.site && (
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{job.site}</span>
+              </p>
+            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {job.container_type && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 shrink-0" />
+                  {job.container_type}
+                </p>
+              )}
+              {job.weight_t != null && job.weight_t > 0 && (
+                <span className="text-xs text-muted-foreground">{job.weight_t}t</span>
+              )}
+            </div>
+            <span className="text-[11px] text-muted-foreground font-mono">#{job.job_number}</span>
+          </div>
+          <ChevronRight className="w-6 h-6 text-muted-foreground shrink-0 mt-1" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+/* ─── Skiptrak Job Detail (read-only) ─────────── */
+const SkiptrakJobDetailView = ({ job, onBack }: { job: any; onBack: () => void }) => {
+  const handleNavigate = () => {
+    const address = job.site || "";
+    if (address) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, "_blank");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-6">
+      <div className="p-4 border-b-4 border-muted bg-muted/30">
+        <button onClick={onBack} className="flex items-center gap-2 text-muted-foreground mb-3 active:opacity-70">
+          <ChevronLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">Back to Jobs</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs">Skiptrak</Badge>
+          <span className="text-xs text-muted-foreground font-mono">#{job.job_number}</span>
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mt-2">{job.customer || "Unknown"}</h1>
+      </div>
+      <div className="p-4 space-y-4">
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Location</h2>
+            {job.site && (
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="font-semibold text-foreground">{job.site}</p>
+              </div>
+            )}
+            {job.tipping_location && (
+              <div className="flex items-start gap-3">
+                <Navigation className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Tipping Location</p>
+                  <p className="font-semibold text-foreground">{job.tipping_location}</p>
+                </div>
+              </div>
+            )}
+            <Button
+              onClick={handleNavigate}
+              className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-3"
+              disabled={!job.site}
+            >
+              <Navigation className="w-6 h-6" />
+              Navigate to Site
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Job Details</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {job.movement_type && <InfoItem label="Movement" value={job.movement_type} />}
+              {job.container_type && <InfoItem label="Container" value={job.container_type} />}
+              {job.waste_description && <InfoItem label="Waste" value={job.waste_description} />}
+              {job.weight_t != null && <InfoItem label="Weight" value={`${job.weight_t}t`} />}
+              {job.vehicle_registration && <InfoItem label="Vehicle" value={job.vehicle_registration} />}
+              {job.job_date && <InfoItem label="Date" value={job.job_date} />}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Jobs Dashboard ──────────────────────────── */
 const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () => void }) => {
   const queryClient = useQueryClient();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedSkiptrakJob, setSelectedSkiptrakJob] = useState<any | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -799,9 +922,40 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
     refetchInterval: 30000,
   });
 
+  // Fetch Skiptrak jobs matched by driver name
+  const { data: skiptrakJobs = [] } = useQuery({
+    queryKey: ["driver-skiptrak-jobs", driver.driver_name, today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location")
+        .eq("source", "skiptrak")
+        .eq("job_date", today)
+        .not("driver", "is", null)
+        .order("job_date");
+      if (error) throw error;
+      // Filter by driver name match
+      const normalized = driver.driver_name.toLowerCase().trim().replace(/[.\-_]/g, " ");
+      return (data ?? []).filter((j: any) => {
+        const d = (j.driver || "").toLowerCase().trim().replace(/[.\-_]/g, " ");
+        return d === normalized || d.includes(normalized) || normalized.includes(d);
+      });
+    },
+    refetchInterval: 60000,
+  });
+
   const handleJobUpdated = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["driver-jobs", driver.id, today] });
   }, [queryClient, driver.id, today]);
+
+  if (selectedSkiptrakJob) {
+    return (
+      <SkiptrakJobDetailView
+        job={selectedSkiptrakJob}
+        onBack={() => setSelectedSkiptrakJob(null)}
+      />
+    );
+  }
 
   if (selectedJob) {
     return (
@@ -819,6 +973,7 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
 
   const completedCount = jobs.filter((j) => j.status === "completed").length;
   const inProgressJob = jobs.find((j) => j.status === "in_progress");
+  const totalJobs = jobs.length + skiptrakJobs.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -852,7 +1007,7 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
           <div>
             <p className="text-zinc-400 text-sm">{format(new Date(), "EEEE, d MMMM yyyy")}</p>
             <p className="text-2xl font-bold mt-1">
-              {jobs.length} Job{jobs.length !== 1 ? "s" : ""} Today
+              {totalJobs} Job{totalJobs !== 1 ? "s" : ""} Today
             </p>
           </div>
           {jobs.length > 0 && (
@@ -891,16 +1046,28 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
-        ) : jobs.length === 0 ? (
+        ) : totalJobs === 0 ? (
           <div className="text-center py-20 space-y-3">
             <Truck className="w-16 h-16 text-muted-foreground mx-auto opacity-30" />
             <p className="text-xl font-semibold text-muted-foreground">No jobs assigned</p>
             <p className="text-sm text-muted-foreground">Check back later for new assignments</p>
           </div>
         ) : (
-          jobs.map((job) => (
-            <DriverJobCard key={job.id} job={job} onClick={() => setSelectedJob(job)} />
-          ))
+          <>
+            {jobs.map((job) => (
+              <DriverJobCard key={job.id} job={job} onClick={() => setSelectedJob(job)} />
+            ))}
+            {skiptrakJobs.length > 0 && jobs.length > 0 && (
+              <div className="flex items-center gap-3 py-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Skiptrak Jobs</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            {skiptrakJobs.map((sj: any) => (
+              <SkiptrakDriverCard key={sj.job_number} job={sj} onClick={() => setSelectedSkiptrakJob(sj)} />
+            ))}
+          </>
         )}
       </div>
     </div>
