@@ -23,6 +23,7 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminCustomersPage from "./pages/AdminCustomersPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminQuestionnairesPage from "./pages/AdminQuestionnairesPage";
+import AdminDriverAppPage from "./pages/AdminDriverAppPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MassSignOffPage from "./pages/MassSignOffPage";
 import DutyOfCarePage from "./pages/DutyOfCarePage";
