@@ -58,18 +58,19 @@ When the user provides spreadsheet data for creating load reports, respond with 
 \`\`\`action
 {
   "action": "create_load_reports",
-  "reports": [
-    {
-      "report_date": "YYYY-MM-DD",
-      "job_number": "string",
-      "order_number": "string or null",
-      "total_weight_kg": number,
-      "total_pallets": number,
-      "pallet_weight_kg": number,
-      "net_weight_kg": number,
-      "site_id": "uuid or null"
-    }
-  ],
+      "reports": [
+        {
+          "report_date": "YYYY-MM-DD",
+          "job_number": "string",
+          "order_number": "string or null",
+          "total_weight_kg": number,
+          "total_pallets": number,
+          "pallet_weight_kg": number,
+          "net_weight_kg": number,
+          "waste_type": "string (e.g. Card Loose, Card Bales, Films Baled- Clear, Paper Bales / loose, etc.)",
+          "site_id": "uuid or null"
+        }
+      ],
   "site_name": "name of the site/customer if mentioned"
 }
 \`\`\`
