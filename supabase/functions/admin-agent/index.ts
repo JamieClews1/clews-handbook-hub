@@ -58,18 +58,19 @@ When the user provides spreadsheet data for creating load reports, respond with 
 \`\`\`action
 {
   "action": "create_load_reports",
-  "reports": [
-    {
-      "report_date": "YYYY-MM-DD",
-      "job_number": "string",
-      "order_number": "string or null",
-      "total_weight_kg": number,
-      "total_pallets": number,
-      "pallet_weight_kg": number,
-      "net_weight_kg": number,
-      "site_id": "uuid or null"
-    }
-  ],
+      "reports": [
+        {
+          "report_date": "YYYY-MM-DD",
+          "job_number": "string",
+          "order_number": "string or null",
+          "total_weight_kg": number,
+          "total_pallets": number,
+          "pallet_weight_kg": number,
+          "net_weight_kg": number,
+          "waste_type": "string (e.g. Card Loose, Card Bales, Films Baled- Clear, Paper Bales / loose, etc.)",
+          "site_id": "uuid or null"
+        }
+      ],
   "site_name": "name of the site/customer if mentioned"
 }
 \`\`\`
@@ -169,11 +170,12 @@ async function createLoadReports(
         continue;
       }
 
-      // Create a single line item for the full load
+      // Create a line item for the full load using the waste type from the data
       if (newReport) {
+        const wasteType = report.waste_type || "Card Loose";
         await supabase.from("load_line_items").insert({
           load_report_id: newReport.id,
-          waste_type: "Mixed Recycling",
+          waste_type: wasteType,
           pallet_count: totalPallets,
           avg_weight_kg: totalPallets > 0 ? totalWeightKg / totalPallets : totalWeightKg,
           total_weight_kg: totalWeightKg,
