@@ -340,23 +340,65 @@ export function AdminAgentWidget() {
         actionData.operator_id = session.user.id;
         actionData.operator_name = profile?.full_name || "Admin Agent";
       } else if (action.action === "update_load_reports") {
-        // Resolve target site name to ID if present in updates
-        if (action.target_site_name) {
+        const resolvedTargetSiteName = action.target_site_name || action.site_name;
+        let targetSiteId: string | null = null;
+
+        if (resolvedTargetSiteName) {
           const { data: targetSites } = await supabase
             .from("customer_sites")
             .select("id, site_name")
-            .ilike("site_name", `%${action.target_site_name}%`)
+            .ilike("site_name", `%${resolvedTargetSiteName}%`)
             .limit(1);
           if (targetSites && targetSites.length > 0) {
-            const targetSiteId = targetSites[0].id;
-            // Replace site_id in all updates
-            action.updates = (action.updates || []).map((u: any) => ({
-              ...u,
-              changes: { ...u.changes, site_id: targetSiteId },
-            }));
+            targetSiteId = targetSites[0].id;
           }
         }
-        actionData.updates = action.updates;
+
+        actionData.updates = (action.updates || []).map((u: any) => {
+          const changes = { ...(u.changes || {}) };
+          const updateSiteName = changes.site_name || changes.site;
+
+          if (!targetSiteId && updateSiteName) {
+            // Keep a marker for fallback resolution below if AI put the site name inside changes
+            changes.__target_site_name = updateSiteName;
+          }
+
+          delete changes.site_name;
+          delete changes.site;
+
+          if (targetSiteId) {
+            changes.site_id = targetSiteId;
+          }
+
+          return {
+            ...u,
+            changes,
+          };
+        });
+
+        if (!targetSiteId) {
+          for (const update of actionData.updates) {
+            const fallbackSiteName = update.changes?.__target_site_name;
+            if (!fallbackSiteName) continue;
+
+            const { data: fallbackSites } = await supabase
+              .from("customer_sites")
+              .select("id, site_name")
+              .ilike("site_name", `%${fallbackSiteName}%`)
+              .limit(1);
+
+            if (fallbackSites && fallbackSites.length > 0) {
+              update.changes.site_id = fallbackSites[0].id;
+            }
+
+            delete update.changes.__target_site_name;
+          }
+        } else {
+          actionData.updates.forEach((update: any) => {
+            delete update.changes?.__target_site_name;
+          });
+        }
+
         actionData.line_item_updates = action.line_item_updates;
       } else if (action.action === "delete_load_reports") {
         actionData.report_ids = action.report_ids;
