@@ -325,3 +325,60 @@ async function deleteLoadReports(
 
   return results;
 }
+
+async function queryReports(
+  supabase: any,
+  data: { filters: { site_name?: string; customer_name?: string; date_from?: string; date_to?: string; job_number?: string } },
+) {
+  try {
+    let query = supabase
+      .from("load_reports")
+      .select("id, report_date, notes, total_weight_kg, total_pallets, status, site_id, customer_sites(id, site_name, customers(customer_name))")
+      .order("report_date", { ascending: false })
+      .limit(50);
+
+    if (data.filters.date_from) {
+      query = query.gte("report_date", data.filters.date_from);
+    }
+    if (data.filters.date_to) {
+      query = query.lte("report_date", data.filters.date_to);
+    }
+    if (data.filters.job_number) {
+      query = query.eq("notes", data.filters.job_number);
+    }
+
+    const { data: reports, error } = await query;
+    if (error) return { reports: [], error: error.message };
+
+    // Filter by site/customer name in-memory (since ilike on joins is complex)
+    let filtered = reports || [];
+    if (data.filters.site_name) {
+      const sn = data.filters.site_name.toLowerCase();
+      filtered = filtered.filter((r: any) => 
+        r.customer_sites?.site_name?.toLowerCase().includes(sn)
+      );
+    }
+    if (data.filters.customer_name) {
+      const cn = data.filters.customer_name.toLowerCase();
+      filtered = filtered.filter((r: any) => 
+        r.customer_sites?.customers?.customer_name?.toLowerCase().includes(cn)
+      );
+    }
+
+    // Return a simplified format for the AI
+    const simplified = filtered.map((r: any) => ({
+      id: r.id,
+      date: r.report_date,
+      job_number: r.notes,
+      weight_kg: r.total_weight_kg,
+      pallets: r.total_pallets,
+      site: r.customer_sites?.site_name || "Unassigned",
+      customer: r.customer_sites?.customers?.customer_name || "Unknown",
+      status: r.status,
+    }));
+
+    return { reports: simplified, count: simplified.length };
+  } catch (err: any) {
+    return { reports: [], error: err.message };
+  }
+}
