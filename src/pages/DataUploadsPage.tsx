@@ -640,6 +640,42 @@ const DataUploadsPage = () => {
         title: "Upload complete",
         description: summary,
       });
+
+      // --- Orphaned jobs detection ---
+      // Find the earliest date in the uploaded data
+      const uploadedDates = jobsToUpsert
+        .map((j) => j.job_date)
+        .filter((d): d is string => !!d)
+        .sort();
+      const minUploadDate = uploadedDates.length > 0 ? uploadedDates[0] : null;
+
+      if (minUploadDate) {
+        const uploadedJobNumbers = new Set(jobsToUpsert.map((j) => j.job_number));
+
+        // Fetch all existing DB jobs for this source from minUploadDate onward
+        let allExisting: { id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[] = [];
+        let fetchFrom = 0;
+        const fetchBatch = 1000;
+        while (true) {
+          const { data: existingBatch, error: fetchErr } = await supabase
+            .from("data_hub_jobs")
+            .select("id, job_number, customer, site, job_date")
+            .eq("source", source)
+            .gte("job_date", minUploadDate)
+            .range(fetchFrom, fetchFrom + fetchBatch - 1);
+          if (fetchErr) { console.error("Orphan check fetch error:", fetchErr); break; }
+          if (!existingBatch || existingBatch.length === 0) break;
+          allExisting.push(...existingBatch);
+          if (existingBatch.length < fetchBatch) break;
+          fetchFrom += fetchBatch;
+        }
+
+        const orphans = allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number));
+        if (orphans.length > 0) {
+          setOrphanedJobs(orphans);
+          setOrphanDialogOpen(true);
+        }
+      }
     } catch (e: any) {
       console.error(e);
       toast({
