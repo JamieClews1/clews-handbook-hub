@@ -98,7 +98,13 @@ To delete reports:
 \`\`\`
 
 DATA CONTEXT:
-Available tables: customers, customer_sites, load_reports, load_line_items, rebate_price_sets, rebate_items, customer_site_price_sets
+Available tables: customers, customer_sites, load_reports, load_line_items, rebate_price_sets, rebate_items, customer_site_price_sets, data_hub_jobs
+
+IMPORTANT - WEIGHT LOOKUP:
+- Amazon load reports get their weights from Skiptrak job numbers in the data_hub_jobs table
+- When creating Amazon reports, if no weight is provided in the spreadsheet, the system automatically looks up the weight from data_hub_jobs using the job_number
+- Skiptrak stores weight in TONNES (weight_t column), so it must be multiplied by 1000 to get KG
+- You can set total_weight_kg to 0 and include "lookup_weight": true in the report - the system will fetch it from Skiptrak
 
 RULES:
 - Convert DD/MM/YYYY dates to YYYY-MM-DD
@@ -169,8 +175,26 @@ async function createLoadReports(
         }
       }
 
-      const totalWeightKg = report.total_weight_kg || (report.weight_t ? report.weight_t * 1000 : 0);
+      let totalWeightKg = report.total_weight_kg || (report.weight_t ? report.weight_t * 1000 : 0);
       const totalPallets = report.total_pallets || report.number_of_pallets || 0;
+
+      // If weight is 0 or lookup_weight flag is set, try to get weight from Skiptrak (data_hub_jobs)
+      if ((totalWeightKg === 0 || report.lookup_weight) && report.job_number) {
+        const jobNum = report.job_number.toString();
+        const { data: jobMatch } = await supabase
+          .from("data_hub_jobs")
+          .select("weight_t, source")
+          .eq("job_number", jobNum)
+          .limit(1)
+          .maybeSingle();
+
+        if (jobMatch && jobMatch.weight_t) {
+          // Skiptrak stores in tonnes, convert to KG
+          totalWeightKg = jobMatch.source === "midweigh"
+            ? jobMatch.weight_t  // Midweigh already in KG
+            : jobMatch.weight_t * 1000;  // Skiptrak in tonnes
+        }
+      }
 
       const { data: newReport, error: reportError } = await supabase
         .from("load_reports")
