@@ -212,6 +212,11 @@ const DataUploadsPage = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Orphaned jobs detection after upload
+  const [orphanedJobs, setOrphanedJobs] = useState<{ id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[]>([]);
+  const [orphanDialogOpen, setOrphanDialogOpen] = useState(false);
+  const [isDeletingOrphans, setIsDeletingOrphans] = useState(false);
+
   const [lastParsedPreview, setLastParsedPreview] = useState<
     | null
     | {
@@ -337,6 +342,28 @@ const DataUploadsPage = () => {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteOrphans = async () => {
+    setIsDeletingOrphans(true);
+    try {
+      const ids = orphanedJobs.map((j) => j.id);
+      for (const idChunk of chunk(ids, 200)) {
+        const { error } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
+        if (error) throw error;
+      }
+      toast({
+        title: "Jobs deleted",
+        description: `${orphanedJobs.length} orphaned job(s) removed.`,
+      });
+      setOrphanedJobs([]);
+      setOrphanDialogOpen(false);
+      loadJobs();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsDeletingOrphans(false);
     }
   };
 
@@ -635,6 +662,42 @@ const DataUploadsPage = () => {
         title: "Upload complete",
         description: summary,
       });
+
+      // --- Orphaned jobs detection ---
+      // Find the earliest date in the uploaded data
+      const uploadedDates = jobsToUpsert
+        .map((j) => j.job_date)
+        .filter((d): d is string => !!d)
+        .sort();
+      const minUploadDate = uploadedDates.length > 0 ? uploadedDates[0] : null;
+
+      if (minUploadDate) {
+        const uploadedJobNumbers = new Set(jobsToUpsert.map((j) => j.job_number));
+
+        // Fetch all existing DB jobs for this source from minUploadDate onward
+        let allExisting: { id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[] = [];
+        let fetchFrom = 0;
+        const fetchBatch = 1000;
+        while (true) {
+          const { data: existingBatch, error: fetchErr } = await supabase
+            .from("data_hub_jobs")
+            .select("id, job_number, customer, site, job_date")
+            .eq("source", source)
+            .gte("job_date", minUploadDate)
+            .range(fetchFrom, fetchFrom + fetchBatch - 1);
+          if (fetchErr) { console.error("Orphan check fetch error:", fetchErr); break; }
+          if (!existingBatch || existingBatch.length === 0) break;
+          allExisting.push(...existingBatch);
+          if (existingBatch.length < fetchBatch) break;
+          fetchFrom += fetchBatch;
+        }
+
+        const orphans = allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number));
+        if (orphans.length > 0) {
+          setOrphanedJobs(orphans);
+          setOrphanDialogOpen(true);
+        }
+      }
     } catch (e: any) {
       console.error(e);
       toast({
@@ -1084,6 +1147,57 @@ const DataUploadsPage = () => {
           </Card>
         </div>
       </main>
+
+      {/* Orphaned Jobs Dialog */}
+      <AlertDialog open={orphanDialogOpen} onOpenChange={(open) => { if (!open) { setOrphanDialogOpen(false); setOrphanedJobs([]); } }}>
+        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Jobs Missing From Upload</AlertDialogTitle>
+            <AlertDialogDescription>
+              {orphanedJobs.length} job(s) exist in the database but were not found in the file you just uploaded (from the upload's earliest date onward). Would you like to delete them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="overflow-auto max-h-[40vh] border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Job #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orphanedJobs.slice(0, 100).map((j) => (
+                  <TableRow key={j.id}>
+                    <TableCell className="font-mono text-sm">{j.job_number}</TableCell>
+                    <TableCell>{j.customer ?? "—"}</TableCell>
+                    <TableCell>{j.site ?? "—"}</TableCell>
+                    <TableCell>{j.job_date ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {orphanedJobs.length > 100 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground text-sm">
+                      … and {orphanedJobs.length - 100} more
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingOrphans}>Keep All</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void handleDeleteOrphans(); }}
+              disabled={isDeletingOrphans}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingOrphans ? "Deleting…" : `Delete ${orphanedJobs.length} Job(s)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
