@@ -446,7 +446,53 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   );
 }
 
+type SortField = "customer" | "site" | "netOnSite" | "delivered" | "exchanged" | "collected" | "containerType";
+type SortDir = "asc" | "desc";
+
+function extractBinSize(containerType: string): number {
+  const match = containerType.match(/(\d+)\s*(?:yard|yd|cu)/i);
+  if (match) return parseInt(match[1], 10);
+  const numMatch = containerType.match(/^(\d+)/);
+  if (numMatch) return parseInt(numMatch[1], 10);
+  return 0;
+}
+
+function primaryContainerSize(containerTypes: string[]): number {
+  if (containerTypes.length === 0) return 0;
+  return Math.max(...containerTypes.map(extractBinSize));
+}
+
 function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[] }>; label: string }) {
+  const [sortField, setSortField] = useState<SortField>("netOnSite");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir(field === "customer" || field === "site" ? "asc" : "desc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    const arr = [...sites];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      switch (sortField) {
+        case "customer": return dir * a.customer.localeCompare(b.customer);
+        case "site": return dir * a.site.localeCompare(b.site);
+        case "netOnSite": return dir * (a.netOnSite - b.netOnSite);
+        case "delivered": return dir * (a.delivered - b.delivered);
+        case "exchanged": return dir * (a.exchanged - b.exchanged);
+        case "collected": return dir * (a.collected - b.collected);
+        case "containerType": return dir * (primaryContainerSize(a.containerTypes) - primaryContainerSize(b.containerTypes));
+        default: return 0;
+      }
+    });
+    return arr;
+  }, [sites, sortField, sortDir]);
+
   if (sites.length === 0) {
     return (
       <Card>
@@ -457,23 +503,32 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
     );
   }
 
+  const SortHeader = ({ field, children, className }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none hover:text-foreground ${className ?? ""}`} onClick={() => toggleSort(field)}>
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {sortField === field && <span className="text-xs">{sortDir === "asc" ? "▲" : "▼"}</span>}
+      </span>
+    </TableHead>
+  );
+
   return (
     <Card>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Site</TableHead>
-              <TableHead className="text-center">On-Site</TableHead>
-              <TableHead className="text-center">Delivered</TableHead>
-              <TableHead className="text-center">Exchanged</TableHead>
-              <TableHead className="text-center">Collected</TableHead>
-              <TableHead>Container Types</TableHead>
+              <SortHeader field="customer">Customer</SortHeader>
+              <SortHeader field="site">Site</SortHeader>
+              <SortHeader field="netOnSite" className="text-center">On-Site</SortHeader>
+              <SortHeader field="delivered" className="text-center">Delivered</SortHeader>
+              <SortHeader field="exchanged" className="text-center">Exchanged</SortHeader>
+              <SortHeader field="collected" className="text-center">Collected</SortHeader>
+              <SortHeader field="containerType">Container Types</SortHeader>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sites.map((s, i) => (
+            {sorted.map((s, i) => (
               <TableRow key={i}>
                 <TableCell className="font-medium">{s.customer}</TableCell>
                 <TableCell>{s.site}</TableCell>
