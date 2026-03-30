@@ -14,7 +14,7 @@ interface Message {
   content: string;
   attachment?: { name: string; data: any[] };
   actionPending?: any;
-  actionResult?: { created: number; errors: string[] };
+  actionResult?: { created?: number; updated?: number; deleted?: number; errors: string[] };
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-agent`;
