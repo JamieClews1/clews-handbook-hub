@@ -169,11 +169,12 @@ async function createLoadReports(
         continue;
       }
 
-      // Create a single line item for the full load
+      // Create a line item for the full load using the waste type from the data
       if (newReport) {
+        const wasteType = report.waste_type || "Card Loose";
         await supabase.from("load_line_items").insert({
           load_report_id: newReport.id,
-          waste_type: "Mixed Recycling",
+          waste_type: wasteType,
           pallet_count: totalPallets,
           avg_weight_kg: totalPallets > 0 ? totalWeightKg / totalPallets : totalWeightKg,
           total_weight_kg: totalWeightKg,
