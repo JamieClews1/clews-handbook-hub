@@ -195,7 +195,7 @@ export function AdminAgentWidget() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      // Look up site_id if a site name was mentioned
+      // Look up site_id if a site name was mentioned (for create actions)
       let siteId: string | null = null;
       if (action.site_name) {
         const { data: sites } = await supabase
@@ -212,6 +212,19 @@ export function AdminAgentWidget() {
         .eq("id", session.user.id)
         .single();
 
+      const actionData: any = {};
+      if (action.action === "create_load_reports") {
+        actionData.reports = action.reports;
+        actionData.site_id = siteId;
+        actionData.operator_id = session.user.id;
+        actionData.operator_name = profile?.full_name || "Admin Agent";
+      } else if (action.action === "update_load_reports") {
+        actionData.updates = action.updates;
+        actionData.line_item_updates = action.line_item_updates;
+      } else if (action.action === "delete_load_reports") {
+        actionData.report_ids = action.report_ids;
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -221,12 +234,7 @@ export function AdminAgentWidget() {
         },
         body: JSON.stringify({
           action: action.action,
-          actionData: {
-            reports: action.reports,
-            site_id: siteId,
-            operator_id: session.user.id,
-            operator_name: profile?.full_name || "Admin Agent",
-          },
+          actionData,
         }),
       });
 
@@ -240,8 +248,10 @@ export function AdminAgentWidget() {
         )
       );
 
-      if (result.created > 0) {
-        toast({ title: `Created ${result.created} load reports successfully` });
+      const successCount = result.created || result.updated || result.deleted || 0;
+      const actionLabel = action.action === "create_load_reports" ? "created" : action.action === "update_load_reports" ? "updated" : "deleted";
+      if (successCount > 0) {
+        toast({ title: `${actionLabel.charAt(0).toUpperCase() + actionLabel.slice(1)} ${successCount} load reports successfully` });
       }
       if (result.errors?.length > 0) {
         toast({ title: `${result.errors.length} errors occurred`, variant: "destructive" });
