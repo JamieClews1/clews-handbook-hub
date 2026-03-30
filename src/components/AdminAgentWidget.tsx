@@ -341,21 +341,22 @@ export function AdminAgentWidget() {
                       {msg.attachment.name} ({msg.attachment.data.length} rows)
                     </div>
                   )}
-                  <div className="prose prose-sm max-w-none dark:prose-invert [&>p]:mb-1 [&>p:last-child]:mb-0">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <div className="prose prose-sm max-w-none dark:prose-invert [&>p]:mb-1 [&>p:last-child]:mb-0 [&>pre]:hidden [&>code]:hidden [&_code]:text-xs [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:mb-0.5">
+                    <ReactMarkdown>{cleanResponseText(msg.content)}</ReactMarkdown>
                   </div>
 
                   {/* Action confirmation */}
                   {msg.actionPending && (
                     <div className="mt-2 pt-2 border-t border-border/50">
                       <p className="text-xs font-medium mb-2">
-                        {msg.actionPending.action === "create_load_reports"
+                        {msg.actionPending.description || 
+                          (msg.actionPending.action === "create_load_reports"
                           ? `Ready to create ${msg.actionPending.reports?.length || 0} load reports?`
                           : msg.actionPending.action === "update_load_reports"
-                          ? `Ready to update ${msg.actionPending.updates?.length || 0} load reports?`
+                          ? `Ready to update ${msg.actionPending.updates?.length || 0} records?`
                           : msg.actionPending.action === "delete_load_reports"
-                          ? `Ready to delete ${msg.actionPending.report_ids?.length || 0} load reports?`
-                          : "Confirm this action?"}
+                          ? `Ready to delete ${msg.actionPending.report_ids?.length || 0} records?`
+                          : "Confirm this action?")}
                       </p>
                       {msg.actionPending.description && (
                         <p className="text-xs text-muted-foreground mb-2">{msg.actionPending.description}</p>
