@@ -3,8 +3,8 @@
  * based on customer name or site's load_report_type.
  * 
  * Mapping:
- * - Britvic, Staci, Standard (other) → skiptrak (weight in tonnes)
- * - Vantiva, Amazon, Evri → midweigh (weight in KG, needs conversion)
+ * - Britvic, Staci, Amazon, Standard (other) → skiptrak (weight in tonnes)
+ * - Vantiva, Evri → midweigh (weight in KG, needs conversion)
  */
 
 // Customer types that use Midweigh for weighbridge data
