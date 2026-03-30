@@ -337,8 +337,17 @@ export function AdminAgentWidget() {
                   {msg.actionPending && (
                     <div className="mt-2 pt-2 border-t border-border/50">
                       <p className="text-xs font-medium mb-2">
-                        Ready to create {msg.actionPending.reports?.length || 0} load reports?
+                        {msg.actionPending.action === "create_load_reports"
+                          ? `Ready to create ${msg.actionPending.reports?.length || 0} load reports?`
+                          : msg.actionPending.action === "update_load_reports"
+                          ? `Ready to update ${msg.actionPending.updates?.length || 0} load reports?`
+                          : msg.actionPending.action === "delete_load_reports"
+                          ? `Ready to delete ${msg.actionPending.report_ids?.length || 0} load reports?`
+                          : "Confirm this action?"}
                       </p>
+                      {msg.actionPending.description && (
+                        <p className="text-xs text-muted-foreground mb-2">{msg.actionPending.description}</p>
+                      )}
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -367,10 +376,22 @@ export function AdminAgentWidget() {
                   {/* Action result */}
                   {msg.actionResult && (
                     <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
-                      {msg.actionResult.created > 0 && (
+                      {(msg.actionResult.created ?? 0) > 0 && (
                         <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                           <CheckCircle className="h-3 w-3" />
                           Created {msg.actionResult.created} load reports
+                        </div>
+                      )}
+                      {(msg.actionResult.updated ?? 0) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle className="h-3 w-3" />
+                          Updated {msg.actionResult.updated} load reports
+                        </div>
+                      )}
+                      {(msg.actionResult.deleted ?? 0) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle className="h-3 w-3" />
+                          Deleted {msg.actionResult.deleted} load reports
                         </div>
                       )}
                       {msg.actionResult.errors?.map((err, i) => (
