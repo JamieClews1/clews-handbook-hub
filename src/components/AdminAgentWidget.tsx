@@ -182,13 +182,26 @@ export function AdminAgentWidget() {
       // Check if the AI returned an action
       const actionResult = extractAction(assistantText);
       if (actionResult) {
-        setMessages((prev) =>
-          prev.map((m, i) =>
-            i === prev.length - 1
-              ? { ...m, content: actionResult.cleanText, actionPending: actionResult.action }
-              : m
-          )
-        );
+        // If it's a query action, execute it automatically and feed results back to AI
+        if (actionResult.action.action === "query_reports") {
+          setMessages((prev) =>
+            prev.map((m, i) =>
+              i === prev.length - 1 ? { ...m, content: actionResult.cleanText } : m
+            )
+          );
+          await handleQueryAndContinue(actionResult.action, [
+            ...allMessages,
+            { role: "assistant" as const, content: assistantText },
+          ]);
+        } else {
+          setMessages((prev) =>
+            prev.map((m, i) =>
+              i === prev.length - 1
+                ? { ...m, content: actionResult.cleanText, actionPending: actionResult.action }
+                : m
+            )
+          );
+        }
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
