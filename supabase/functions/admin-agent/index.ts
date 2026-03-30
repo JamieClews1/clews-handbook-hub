@@ -175,8 +175,26 @@ async function createLoadReports(
         }
       }
 
-      const totalWeightKg = report.total_weight_kg || (report.weight_t ? report.weight_t * 1000 : 0);
+      let totalWeightKg = report.total_weight_kg || (report.weight_t ? report.weight_t * 1000 : 0);
       const totalPallets = report.total_pallets || report.number_of_pallets || 0;
+
+      // If weight is 0 or lookup_weight flag is set, try to get weight from Skiptrak (data_hub_jobs)
+      if ((totalWeightKg === 0 || report.lookup_weight) && report.job_number) {
+        const jobNum = report.job_number.toString();
+        const { data: jobMatch } = await supabase
+          .from("data_hub_jobs")
+          .select("weight_t, source")
+          .eq("job_number", jobNum)
+          .limit(1)
+          .maybeSingle();
+
+        if (jobMatch && jobMatch.weight_t) {
+          // Skiptrak stores in tonnes, convert to KG
+          totalWeightKg = jobMatch.source === "midweigh"
+            ? jobMatch.weight_t  // Midweigh already in KG
+            : jobMatch.weight_t * 1000;  // Skiptrak in tonnes
+        }
+      }
 
       const { data: newReport, error: reportError } = await supabase
         .from("load_reports")
