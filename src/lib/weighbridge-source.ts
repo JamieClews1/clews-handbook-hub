@@ -3,15 +3,15 @@
  * based on customer name or site's load_report_type.
  * 
  * Mapping:
- * - Britvic, Staci, Standard (other) → skiptrak (weight in tonnes)
- * - Vantiva, Amazon, Evri → midweigh (weight in KG, needs conversion)
+ * - Britvic, Staci, Amazon, Standard (other) → skiptrak (weight in tonnes)
+ * - Vantiva, Evri → midweigh (weight in KG, needs conversion)
  */
 
 // Customer types that use Midweigh for weighbridge data
-const MIDWEIGH_CUSTOMERS = ["vantiva", "amazon", "evri"];
+const MIDWEIGH_CUSTOMERS = ["vantiva", "evri"];
 
 // Customer types that use Skiptrak for weighbridge data
-const SKIPTRAK_CUSTOMERS = ["britvic", "staci", "other"];
+const SKIPTRAK_CUSTOMERS = ["britvic", "staci", "amazon", "other"];
 
 export function getWeighbridgeSource(customerType: string | null | undefined): "skiptrak" | "midweigh" {
   if (!customerType) return "skiptrak"; // Default to skiptrak
