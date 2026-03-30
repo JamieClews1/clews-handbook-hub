@@ -237,17 +237,34 @@ async function createLoadReports(
         continue;
       }
 
-      // Create a line item for the full load using the waste type from the data
+      // Create line items - split into material (net) and pallet wood weight
       if (newReport) {
         const wasteType = report.waste_type || "Card Loose";
+        const palletWeightPerUnit = 20; // Standard 20kg per pallet
+        const totalPalletWeightKg = totalPallets * palletWeightPerUnit;
+        const netMaterialWeightKg = Math.max(0, totalWeightKg - totalPalletWeightKg);
+
+        // Material line item (net weight after pallet deduction)
         await supabase.from("load_line_items").insert({
           load_report_id: newReport.id,
           waste_type: wasteType,
           pallet_count: totalPallets,
-          avg_weight_kg: totalPallets > 0 ? totalWeightKg / totalPallets : totalWeightKg,
-          total_weight_kg: totalWeightKg,
+          avg_weight_kg: totalPallets > 0 ? netMaterialWeightKg / totalPallets : netMaterialWeightKg,
+          total_weight_kg: netMaterialWeightKg,
           display_order: 0,
         });
+
+        // Pallet weight charge line item (only if there are pallets)
+        if (totalPallets > 0 && totalPalletWeightKg > 0) {
+          await supabase.from("load_line_items").insert({
+            load_report_id: newReport.id,
+            waste_type: "Pallet Weight Charge",
+            pallet_count: 0,
+            avg_weight_kg: totalPalletWeightKg,
+            total_weight_kg: totalPalletWeightKg,
+            display_order: 1,
+          });
+        }
       }
 
       results.created++;
