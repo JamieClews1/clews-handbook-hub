@@ -211,7 +211,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
 
         const { data: material } = await supabase
           .from("load_waste_types")
-          .select("waste_type")
+          .select("waste_type, rebate_category")
           .eq("id", item.rebate_item_id)
           .single();
 
@@ -233,6 +233,8 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           value_type_name: valueTypeName,
           range_type: item.value_type as "lower" | "higher" | "set",
           set_value: item.set_value,
+          adjustment: (fullItem as any)?.adjustment ?? 0,
+          rebate_category: material?.rebate_category ?? "rebate",
         });
       }
 
@@ -250,25 +252,27 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         .select("item_id, lower_range, higher_range, month_start")
         .in("month_start", monthStarts);
 
-      // Build a map keyed by item_id, averaging across months if multiple
-      const monthlyValueMap: Record<string, { lower: number; higher: number; count: number }> = {};
+      // Use the latest month's values when spanning multiple months
+      const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
+      const sortedMonthStarts = [...monthStarts].sort();
+      const latestMonthStart = sortedMonthStarts[sortedMonthStarts.length - 1];
+
       for (const mv of monthlyValues ?? []) {
-        if (!monthlyValueMap[mv.item_id]) {
-          monthlyValueMap[mv.item_id] = { lower: 0, higher: 0, count: 0 };
-        }
-        monthlyValueMap[mv.item_id].lower += mv.lower_range ?? 0;
-        monthlyValueMap[mv.item_id].higher += mv.higher_range ?? 0;
-        monthlyValueMap[mv.item_id].count += 1;
+        if (mv.month_start !== latestMonthStart) continue;
+        monthlyValueMap[mv.item_id] = {
+          lower: mv.lower_range ?? 0,
+          higher: mv.higher_range ?? 0,
+        };
       }
 
-      // Average the values
-      const averagedMonthlyMap: Record<string, { lower: number; higher: number }> = {};
-      for (const itemId of Object.keys(monthlyValueMap)) {
-        const val = monthlyValueMap[itemId];
-        averagedMonthlyMap[itemId] = {
-          lower: val.count > 0 ? val.lower / val.count : 0,
-          higher: val.count > 0 ? val.higher / val.count : 0,
-        };
+      // Fallback: if latest month has no values for an item, use the most recent available
+      for (const mv of monthlyValues ?? []) {
+        if (!monthlyValueMap[mv.item_id]) {
+          monthlyValueMap[mv.item_id] = {
+            lower: mv.lower_range ?? 0,
+            higher: mv.higher_range ?? 0,
+          };
+        }
       }
 
       // Get Load Report data for this site within date range
@@ -277,7 +281,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       
       const { data: loadReports } = await supabase
         .from("load_reports")
-        .select("id, report_date, status, total_pallets, operator_name, vehicle_reg, total_weight_kg, notes")
+        .select("id, report_date, status, total_pallets, no_pallets_on_load, wet_charge_percent, operator_name, vehicle_reg, total_weight_kg, notes")
         .eq("site_id", selectedSiteId)
         .gte("report_date", rangeStart)
         .lte("report_date", rangeEnd)
@@ -293,21 +297,24 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       const palletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) : 20;
 
       const loadReportIds = (loadReports ?? []).map((r) => r.id);
-      
-      const totalPalletCount = (loadReports ?? []).reduce((sum, r) => sum + (r.total_pallets ?? 0), 0);
-      const totalPalletWeightTonnes = (totalPalletCount * palletWeightKg) / 1000;
-      
+      const noPalletsByReportId: Record<string, boolean> = {};
+      for (const r of loadReports ?? []) {
+        noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+      }
+
       let lineItemWeights: Record<string, number> = {};
-      
-      lineItemWeights["Pallet Weight Charge"] = totalPalletWeightTonnes;
-      
-      // Fetch individual reports with their line items for the cards
+      let totalPalletWeightTonnes = 0;
       const loadReportsWithItems: LoadReportCardData[] = [];
+      const wetChargeDiscounts: Record<string, { affectedWeight: number; discountPercent: number }[]> = {};
+      const wetChargePercentByReportId: Record<string, number> = {};
+      for (const r of loadReports ?? []) {
+        wetChargePercentByReportId[r.id] = (r as any).wet_charge_percent ?? 0;
+      }
       
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
           .from("load_line_items")
-          .select("load_report_id, waste_type, pallet_count, total_weight_kg")
+          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied")
           .in("load_report_id", loadReportIds);
         
         // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
@@ -317,7 +324,6 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         
         let weighbridgeMap: Record<string, number> = {};
         if (jobNumbers.length > 0) {
-          // Determine source based on site's load_report_type
           const source = getWeighbridgeSource(site.load_report_type);
           
           const { data: dataHubJobs } = await supabase
@@ -329,12 +335,11 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           for (const job of dataHubJobs ?? []) {
             const weightInTonnes = convertWeightToTonnes(job.weight_t, source);
             if (weightInTonnes != null) {
-              weighbridgeMap[job.job_number] = weightInTonnes * 1000; // Convert tonnes to kg for display
+              weighbridgeMap[job.job_number] = weightInTonnes * 1000;
             }
           }
         }
         
-        // Build individual report data
         for (const report of loadReports ?? []) {
           const reportLineItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
           const weighbridgeWeightKg = report.notes ? weighbridgeMap[report.notes] ?? null : null;
@@ -347,21 +352,48 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
             total_pallets: report.total_pallets ?? 0,
             total_weight_kg: report.total_weight_kg ?? 0,
             notes: report.notes || null,
+            no_pallets_on_load: (report as any).no_pallets_on_load ?? null,
+            wet_charge_percent: (report as any).wet_charge_percent ?? null,
             line_items: reportLineItems.map((li) => ({
               waste_type: li.waste_type,
               pallet_count: li.pallet_count,
               total_weight_kg: Number(li.total_weight_kg),
+              wet_charge_applied: (li as any).wet_charge_applied ?? false,
             })),
-            calculated_rebate: 0, // Will be calculated by the component
+            calculated_rebate: 0,
             weighbridge_weight_kg: weighbridgeWeightKg,
           });
         }
-        
+
         for (const item of lineItems ?? []) {
-          const weightTonnes = Number(item.total_weight_kg) / 1000;
-          lineItemWeights[item.waste_type] = (lineItemWeights[item.waste_type] ?? 0) + weightTonnes;
+          const wasteType = item.waste_type;
+          if (wasteType.toLowerCase().includes("pallet weight")) continue;
+
+          const grossKg = Number(item.total_weight_kg) || 0;
+          const palletCount = Number(item.pallet_count) || 0;
+          const noPallets = noPalletsByReportId[item.load_report_id] ?? false;
+          const palletKg = noPallets ? 0 : palletCount * palletWeightKg;
+          const actualKg = Math.max(0, grossKg - palletKg);
+          const actualTonnes = actualKg / 1000;
+
+          lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+          totalPalletWeightTonnes += palletKg / 1000;
+
+          const wetChargeApplied = (item as any).wet_charge_applied ?? false;
+          const wetChargePercent = wetChargePercentByReportId[item.load_report_id] ?? 0;
+          if (wetChargeApplied && wetChargePercent > 0) {
+            if (!wetChargeDiscounts[wasteType]) {
+              wetChargeDiscounts[wasteType] = [];
+            }
+            wetChargeDiscounts[wasteType].push({
+              affectedWeight: actualTonnes,
+              discountPercent: wetChargePercent,
+            });
+          }
         }
       }
+
+      lineItemWeights["__PALLET_WEIGHT__"] = (lineItemWeights["__PALLET_WEIGHT__"] ?? 0) + totalPalletWeightTonnes;
 
       // Build report rows
       const reportRows: RebateReportRow[] = [];
@@ -374,12 +406,10 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           rate = config.set_value;
           rateSource = "Custom";
         } else if (config.value_type_item_id) {
-          const monthVal = averagedMonthlyMap[config.value_type_item_id];
+          const monthVal = monthlyValueMap[config.value_type_item_id];
           if (monthVal) {
             rate = config.range_type === "higher" ? monthVal.higher : monthVal.lower;
-            rateSource = monthsInRange.length > 1 
-              ? `${config.value_type_name} (${config.range_type}, avg)`
-              : `${config.value_type_name} (${config.range_type})`;
+            rateSource = `${config.value_type_name} (${config.range_type})`;
           } else {
             rateSource = "No monthly value";
           }
@@ -387,13 +417,37 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           rateSource = "Not configured";
         }
 
-        const weight_tonnes = lineItemWeights[config.material_name] ?? 0;
+        if (config.adjustment !== 0) {
+          rate += config.adjustment;
+          rateSource += ` ${config.adjustment > 0 ? "+" : ""}${config.adjustment}`;
+        }
+
+        const isPalletCharge = config.material_name.toLowerCase().includes("pallet");
+        const weight_tonnes = isPalletCharge
+          ? (lineItemWeights["__PALLET_WEIGHT__"] ?? 0)
+          : (lineItemWeights[config.material_name] ?? 0);
+
+        const isCostItem = config.rebate_category === "cost";
+        let rebate_value = weight_tonnes * rate;
+        if (isCostItem) rebate_value = -Math.abs(rebate_value);
+
+        const materialDiscounts = wetChargeDiscounts[config.material_name];
+        if (materialDiscounts && materialDiscounts.length > 0 && !isPalletCharge) {
+          const totalWeight = lineItemWeights[config.material_name] ?? 0;
+          const unaffectedWeight = totalWeight - materialDiscounts.reduce((sum, d) => sum + d.affectedWeight, 0);
+
+          rebate_value = unaffectedWeight * rate;
+          for (const discount of materialDiscounts) {
+            rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
+          }
+          if (isCostItem) rebate_value = -Math.abs(rebate_value);
+        }
 
         reportRows.push({
           material_name: config.material_name,
           weight_tonnes,
           rate_per_tonne: rate,
-          rebate_value: weight_tonnes * rate,
+          rebate_value,
           rate_source: rateSource,
         });
       }
