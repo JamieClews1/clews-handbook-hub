@@ -1147,6 +1147,57 @@ const DataUploadsPage = () => {
           </Card>
         </div>
       </main>
+
+      {/* Orphaned Jobs Dialog */}
+      <AlertDialog open={orphanDialogOpen} onOpenChange={(open) => { if (!open) { setOrphanDialogOpen(false); setOrphanedJobs([]); } }}>
+        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Jobs Missing From Upload</AlertDialogTitle>
+            <AlertDialogDescription>
+              {orphanedJobs.length} job(s) exist in the database but were not found in the file you just uploaded (from the upload's earliest date onward). Would you like to delete them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="overflow-auto max-h-[40vh] border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Job #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orphanedJobs.slice(0, 100).map((j) => (
+                  <TableRow key={j.id}>
+                    <TableCell className="font-mono text-sm">{j.job_number}</TableCell>
+                    <TableCell>{j.customer ?? "—"}</TableCell>
+                    <TableCell>{j.site ?? "—"}</TableCell>
+                    <TableCell>{j.job_date ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {orphanedJobs.length > 100 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground text-sm">
+                      … and {orphanedJobs.length - 100} more
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingOrphans}>Keep All</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void handleDeleteOrphans(); }}
+              disabled={isDeletingOrphans}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingOrphans ? "Deleting…" : `Delete ${orphanedJobs.length} Job(s)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
