@@ -345,6 +345,28 @@ const DataUploadsPage = () => {
     }
   };
 
+  const handleDeleteOrphans = async () => {
+    setIsDeletingOrphans(true);
+    try {
+      const ids = orphanedJobs.map((j) => j.id);
+      for (const idChunk of chunk(ids, 200)) {
+        const { error } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
+        if (error) throw error;
+      }
+      toast({
+        title: "Jobs deleted",
+        description: `${orphanedJobs.length} orphaned job(s) removed.`,
+      });
+      setOrphanedJobs([]);
+      setOrphanDialogOpen(false);
+      loadJobs();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsDeletingOrphans(false);
+    }
+  };
+
   useEffect(() => {
     const el = rawPreviewScrollRef.current;
     if (!el) return;
