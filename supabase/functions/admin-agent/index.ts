@@ -252,3 +252,70 @@ async function createLoadReports(
 
   return results;
 }
+
+async function updateLoadReports(
+  supabase: any,
+  data: { updates?: any[]; line_item_updates?: any[] },
+) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+
+  if (data.updates) {
+    for (const update of data.updates) {
+      try {
+        const { error } = await supabase
+          .from("load_reports")
+          .update(update.changes)
+          .eq("id", update.report_id);
+        if (error) {
+          results.errors.push(`Report ${update.report_id}: ${error.message}`);
+        } else {
+          results.updated++;
+        }
+      } catch (err: any) {
+        results.errors.push(`Report ${update.report_id}: ${err.message}`);
+      }
+    }
+  }
+
+  if (data.line_item_updates) {
+    for (const update of data.line_item_updates) {
+      try {
+        const { error } = await supabase
+          .from("load_line_items")
+          .update(update.changes)
+          .eq("load_report_id", update.report_id);
+        if (error) {
+          results.errors.push(`Line items for ${update.report_id}: ${error.message}`);
+        }
+      } catch (err: any) {
+        results.errors.push(`Line items for ${update.report_id}: ${err.message}`);
+      }
+    }
+  }
+
+  return results;
+}
+
+async function deleteLoadReports(
+  supabase: any,
+  data: { report_ids: string[] },
+) {
+  const results: { deleted: number; errors: string[] } = { deleted: 0, errors: [] };
+
+  for (const id of data.report_ids) {
+    try {
+      // Delete line items first
+      await supabase.from("load_line_items").delete().eq("load_report_id", id);
+      const { error } = await supabase.from("load_reports").delete().eq("id", id);
+      if (error) {
+        results.errors.push(`Report ${id}: ${error.message}`);
+      } else {
+        results.deleted++;
+      }
+    } catch (err: any) {
+      results.errors.push(`Report ${id}: ${err.message}`);
+    }
+  }
+
+  return results;
+}
