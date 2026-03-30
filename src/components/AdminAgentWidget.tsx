@@ -358,7 +358,7 @@ export function AdminAgentWidget() {
                   {msg.actionResult && (
                     <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
                       {msg.actionResult.created > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-green-600">
+                        <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                           <CheckCircle className="h-3 w-3" />
                           Created {msg.actionResult.created} load reports
                         </div>
