@@ -182,13 +182,26 @@ export function AdminAgentWidget() {
       // Check if the AI returned an action
       const actionResult = extractAction(assistantText);
       if (actionResult) {
-        setMessages((prev) =>
-          prev.map((m, i) =>
-            i === prev.length - 1
-              ? { ...m, content: actionResult.cleanText, actionPending: actionResult.action }
-              : m
-          )
-        );
+        // If it's a query action, execute it automatically and feed results back to AI
+        if (actionResult.action.action === "query_reports") {
+          setMessages((prev) =>
+            prev.map((m, i) =>
+              i === prev.length - 1 ? { ...m, content: actionResult.cleanText } : m
+            )
+          );
+          await handleQueryAndContinue(actionResult.action, [
+            ...allMessages,
+            { role: "assistant" as const, content: assistantText },
+          ]);
+        } else {
+          setMessages((prev) =>
+            prev.map((m, i) =>
+              i === prev.length - 1
+                ? { ...m, content: actionResult.cleanText, actionPending: actionResult.action }
+                : m
+            )
+          );
+        }
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -198,6 +211,102 @@ export function AdminAgentWidget() {
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleQueryAndContinue = async (queryAction: any, conversationSoFar: any[]) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      // Execute the query
+      const queryResp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: "query_reports",
+          actionData: { filters: queryAction.filters },
+        }),
+      });
+
+      const queryResult = await queryResp.json();
+
+      // Feed results back to AI as a system-like message
+      const queryResultMessage = {
+        role: "user" as const,
+        content: `[System: Query results - found ${queryResult.count || 0} reports]\n${JSON.stringify(queryResult.reports || [], null, 2)}\n\nPlease now propose the specific update/delete action using the real report IDs from above.`,
+      };
+
+      // Send another AI request with the query results
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          messages: [...conversationSoFar, queryResultMessage].map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+
+      const reader = resp.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantText = "";
+
+      const upsertAssistant = (text: string) => {
+        assistantText = text;
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.actionResult) {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleanResponseText(text) } : m));
+          }
+          return [...prev, { id: crypto.randomUUID(), role: "assistant", content: cleanResponseText(text) }];
+        });
+      };
+
+      let streamDone = false;
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) upsertAssistant(assistantText + content);
+          } catch { break; }
+        }
+      }
+
+      // Extract final action
+      const finalAction = extractAction(assistantText);
+      if (finalAction && finalAction.action.action !== "query_reports") {
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === prev.length - 1
+              ? { ...m, content: finalAction.cleanText, actionPending: finalAction.action }
+              : m
+          )
+        );
+      }
+    } catch (e: any) {
+      toast({ title: "Query failed", description: e.message, variant: "destructive" });
     }
   };
 
@@ -231,6 +340,22 @@ export function AdminAgentWidget() {
         actionData.operator_id = session.user.id;
         actionData.operator_name = profile?.full_name || "Admin Agent";
       } else if (action.action === "update_load_reports") {
+        // Resolve target site name to ID if present in updates
+        if (action.target_site_name) {
+          const { data: targetSites } = await supabase
+            .from("customer_sites")
+            .select("id, site_name")
+            .ilike("site_name", `%${action.target_site_name}%`)
+            .limit(1);
+          if (targetSites && targetSites.length > 0) {
+            const targetSiteId = targetSites[0].id;
+            // Replace site_id in all updates
+            action.updates = (action.updates || []).map((u: any) => ({
+              ...u,
+              changes: { ...u.changes, site_id: targetSiteId },
+            }));
+          }
+        }
         actionData.updates = action.updates;
         actionData.line_item_updates = action.line_item_updates;
       } else if (action.action === "delete_load_reports") {

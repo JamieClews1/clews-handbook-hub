@@ -62,6 +62,13 @@ serve(async (req) => {
       });
     }
 
+    if (action === "query_reports") {
+      const result = await queryReports(adminClient, actionData);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Otherwise, it's a chat request - use AI to understand intent
     const systemPrompt = `You are a friendly admin assistant bot for "One Portal", a waste management system. Staff use you to manage load reports quickly.
 
@@ -77,24 +84,36 @@ CAPABILITIES:
 1. Create load reports from spreadsheet data
 2. Update load reports (move between sites, change waste types/weights/dates)
 3. Delete load reports
-4. Answer questions about customers, sites, and reports
+4. Query/search load reports
+5. Answer questions about customers, sites, and reports
+
+CRITICAL - QUERY BEFORE UPDATE/DELETE:
+- You MUST ALWAYS query the database first before proposing any update or delete action
+- NEVER guess or fabricate report IDs - always use query_reports first to find them
+- When a user says "move all reports from EMA1 to BHX4", first query to find the actual reports, then propose the update with real IDs
+- The query action is automatic - the system will execute it and feed results back to you
 
 HIDDEN ACTION FORMAT (user never sees this - the app strips it automatically):
 When you want to perform an action, write your friendly message first, then at the very end put the action block.
+
+To QUERY reports first (always do this before update/delete):
+\`\`\`action
+{"action":"query_reports","filters":{"site_name":"EMA1","date_from":"2026-01-01","date_to":"2026-12-31","customer_name":"Amazon"}}
+\`\`\`
 
 To create reports:
 \`\`\`action
 {"action":"create_load_reports","reports":[{"report_date":"YYYY-MM-DD","job_number":"string","total_weight_kg":0,"total_pallets":0,"waste_type":"Card Loose"}],"site_name":"site name"}
 \`\`\`
 
-To update reports:
+To update reports (only after querying to get real IDs):
 \`\`\`action
-{"action":"update_load_reports","updates":[{"report_id":"uuid","changes":{"site_id":"uuid"}}],"line_item_updates":[{"report_id":"uuid","changes":{"waste_type":"new type"}}],"description":"summary"}
+{"action":"update_load_reports","updates":[{"report_id":"actual-uuid-from-query","changes":{"site_id":"uuid"}}],"line_item_updates":[{"report_id":"uuid","changes":{"waste_type":"new type"}}],"description":"summary"}
 \`\`\`
 
-To delete reports:
+To delete reports (only after querying to get real IDs):
 \`\`\`action
-{"action":"delete_load_reports","report_ids":["uuid"],"description":"summary"}
+{"action":"delete_load_reports","report_ids":["actual-uuid-from-query"],"description":"summary"}
 \`\`\`
 
 DATA CONTEXT:
@@ -111,6 +130,7 @@ RULES:
 - Convert tonnes to KG (×1000)
 - Always confirm before acting
 - Ask for clarification if data is ambiguous
+- ALWAYS query first before updating or deleting - never use placeholder IDs
 - Waste types include: Card Loose, Card Bales, Films Baled- Clear, Paper Bales / loose, Waste, Pallet Weight Charge, etc.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -304,4 +324,61 @@ async function deleteLoadReports(
   }
 
   return results;
+}
+
+async function queryReports(
+  supabase: any,
+  data: { filters: { site_name?: string; customer_name?: string; date_from?: string; date_to?: string; job_number?: string } },
+) {
+  try {
+    let query = supabase
+      .from("load_reports")
+      .select("id, report_date, notes, total_weight_kg, total_pallets, status, site_id, customer_sites(id, site_name, customers(customer_name))")
+      .order("report_date", { ascending: false })
+      .limit(50);
+
+    if (data.filters.date_from) {
+      query = query.gte("report_date", data.filters.date_from);
+    }
+    if (data.filters.date_to) {
+      query = query.lte("report_date", data.filters.date_to);
+    }
+    if (data.filters.job_number) {
+      query = query.eq("notes", data.filters.job_number);
+    }
+
+    const { data: reports, error } = await query;
+    if (error) return { reports: [], error: error.message };
+
+    // Filter by site/customer name in-memory (since ilike on joins is complex)
+    let filtered = reports || [];
+    if (data.filters.site_name) {
+      const sn = data.filters.site_name.toLowerCase();
+      filtered = filtered.filter((r: any) => 
+        r.customer_sites?.site_name?.toLowerCase().includes(sn)
+      );
+    }
+    if (data.filters.customer_name) {
+      const cn = data.filters.customer_name.toLowerCase();
+      filtered = filtered.filter((r: any) => 
+        r.customer_sites?.customers?.customer_name?.toLowerCase().includes(cn)
+      );
+    }
+
+    // Return a simplified format for the AI
+    const simplified = filtered.map((r: any) => ({
+      id: r.id,
+      date: r.report_date,
+      job_number: r.notes,
+      weight_kg: r.total_weight_kg,
+      pallets: r.total_pallets,
+      site: r.customer_sites?.site_name || "Unassigned",
+      customer: r.customer_sites?.customers?.customer_name || "Unknown",
+      status: r.status,
+    }));
+
+    return { reports: simplified, count: simplified.length };
+  } catch (err: any) {
+    return { reports: [], error: err.message };
+  }
 }
