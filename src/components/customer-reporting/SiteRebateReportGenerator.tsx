@@ -274,23 +274,27 @@ export function SiteRebateReportGenerator() {
             .select("item_id, lower_range, higher_range, month_start")
             .in("month_start", monthStarts);
 
-          // Average the monthly values across the range
-          const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
+          // Use the latest month's values when spanning multiple months
+          const sortedMonthStarts = [...monthStarts].sort();
+          const latestMonthStart = sortedMonthStarts[sortedMonthStarts.length - 1];
           
           for (const mv of monthlyValues ?? []) {
-            if (!valueAccumulator[mv.item_id]) {
-              valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
-            }
-            valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
-            valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
-            valueAccumulator[mv.item_id].count += 1;
+            // Only use values from the latest month in the range
+            if (mv.month_start !== latestMonthStart) continue;
+            monthlyValueMap[mv.item_id] = {
+              lower: mv.lower_range ?? 0,
+              higher: mv.higher_range ?? 0,
+            };
           }
           
-          for (const [itemId, acc] of Object.entries(valueAccumulator)) {
-            monthlyValueMap[itemId] = {
-              lower: acc.count > 0 ? acc.lowerSum / acc.count : 0,
-              higher: acc.count > 0 ? acc.higherSum / acc.count : 0,
-            };
+          // Fallback: if latest month has no values for an item, use the most recent available
+          for (const mv of monthlyValues ?? []) {
+            if (!monthlyValueMap[mv.item_id]) {
+              monthlyValueMap[mv.item_id] = {
+                lower: mv.lower_range ?? 0,
+                higher: mv.higher_range ?? 0,
+              };
+            }
           }
 
           // Get Load Report data for this site within the date range
