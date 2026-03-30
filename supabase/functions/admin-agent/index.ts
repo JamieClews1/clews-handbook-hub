@@ -48,6 +48,20 @@ serve(async (req) => {
       });
     }
 
+    if (action === "update_load_reports") {
+      const result = await updateLoadReports(adminClient, actionData);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "delete_load_reports") {
+      const result = await deleteLoadReports(adminClient, actionData);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Otherwise, it's a chat request - use AI to understand intent
     const systemPrompt = `You are an AI admin assistant for a waste management portal called "One Portal". You help with administrative tasks.
 
