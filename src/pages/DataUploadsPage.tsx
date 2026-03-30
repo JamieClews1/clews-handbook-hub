@@ -212,6 +212,11 @@ const DataUploadsPage = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Orphaned jobs detection after upload
+  const [orphanedJobs, setOrphanedJobs] = useState<{ id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[]>([]);
+  const [orphanDialogOpen, setOrphanDialogOpen] = useState(false);
+  const [isDeletingOrphans, setIsDeletingOrphans] = useState(false);
+
   const [lastParsedPreview, setLastParsedPreview] = useState<
     | null
     | {
