@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
+import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 
 import { CustomerTypeSelector, CustomerType } from "@/components/load-reports/CustomerTypeSelector";
 import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
@@ -320,10 +321,7 @@ const LoadReportsPage = () => {
 
     setWeighbridgeLoading(true);
     try {
-      // Determine which source to use based on customer type
-      // Britvic, Staci, Standard (other) use Skiptrak; Vantiva, Amazon, Evri use Midweigh
-      const usesMidweigh = selectedCustomer && ["vantiva", "amazon", "evri"].includes(selectedCustomer);
-      const source = usesMidweigh ? "midweigh" : "skiptrak";
+      const source = getWeighbridgeSource(selectedCustomer);
 
       const { data, error } = await supabase
         .from("data_hub_jobs")
