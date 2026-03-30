@@ -331,12 +331,28 @@ async function queryReports(
   data: { filters: { site_name?: string; customer_name?: string; date_from?: string; date_to?: string; job_number?: string } },
 ) {
   try {
+    // If site_name filter provided, resolve to site_id first for efficient DB filtering
+    let siteIds: string[] = [];
+    if (data.filters.site_name) {
+      const { data: sites } = await supabase
+        .from("customer_sites")
+        .select("id, site_name")
+        .ilike("site_name", `%${data.filters.site_name}%`);
+      siteIds = (sites || []).map((s: any) => s.id);
+      if (siteIds.length === 0) {
+        return { reports: [], count: 0, message: `No site found matching "${data.filters.site_name}"` };
+      }
+    }
+
     let query = supabase
       .from("load_reports")
       .select("id, report_date, notes, total_weight_kg, total_pallets, status, site_id, customer_sites(id, site_name, customers(customer_name))")
       .order("report_date", { ascending: false })
-      .limit(50);
+      .limit(200);
 
+    if (siteIds.length > 0) {
+      query = query.in("site_id", siteIds);
+    }
     if (data.filters.date_from) {
       query = query.gte("report_date", data.filters.date_from);
     }
@@ -350,14 +366,7 @@ async function queryReports(
     const { data: reports, error } = await query;
     if (error) return { reports: [], error: error.message };
 
-    // Filter by site/customer name in-memory (since ilike on joins is complex)
     let filtered = reports || [];
-    if (data.filters.site_name) {
-      const sn = data.filters.site_name.toLowerCase();
-      filtered = filtered.filter((r: any) => 
-        r.customer_sites?.site_name?.toLowerCase().includes(sn)
-      );
-    }
     if (data.filters.customer_name) {
       const cn = data.filters.customer_name.toLowerCase();
       filtered = filtered.filter((r: any) => 
@@ -365,7 +374,6 @@ async function queryReports(
       );
     }
 
-    // Return a simplified format for the AI
     const simplified = filtered.map((r: any) => ({
       id: r.id,
       date: r.report_date,
