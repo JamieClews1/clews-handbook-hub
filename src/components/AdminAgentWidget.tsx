@@ -340,6 +340,22 @@ export function AdminAgentWidget() {
         actionData.operator_id = session.user.id;
         actionData.operator_name = profile?.full_name || "Admin Agent";
       } else if (action.action === "update_load_reports") {
+        // Resolve target site name to ID if present in updates
+        if (action.target_site_name) {
+          const { data: targetSites } = await supabase
+            .from("customer_sites")
+            .select("id, site_name")
+            .ilike("site_name", `%${action.target_site_name}%`)
+            .limit(1);
+          if (targetSites && targetSites.length > 0) {
+            const targetSiteId = targetSites[0].id;
+            // Replace site_id in all updates
+            action.updates = (action.updates || []).map((u: any) => ({
+              ...u,
+              changes: { ...u.changes, site_id: targetSiteId },
+            }));
+          }
+        }
         actionData.updates = action.updates;
         actionData.line_item_updates = action.line_item_updates;
       } else if (action.action === "delete_load_reports") {
