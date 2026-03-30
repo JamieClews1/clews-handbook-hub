@@ -66,12 +66,24 @@ export function AdminAgentWidget() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const cleanResponseText = (text: string): string => {
+    // Strip action blocks, JSON blocks, and any remaining code fences
+    let clean = text.replace(/```action[\s\S]*?```/g, "");
+    clean = clean.replace(/```json[\s\S]*?```/g, "");
+    clean = clean.replace(/```[\s\S]*?```/g, "");
+    // Remove stray UUIDs
+    clean = clean.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g, "");
+    // Clean up excess whitespace
+    clean = clean.replace(/\n{3,}/g, "\n\n").trim();
+    return clean;
+  };
+
   const extractAction = (text: string): { cleanText: string; action: any } | null => {
     const actionMatch = text.match(/```action\s*([\s\S]*?)```/);
     if (!actionMatch) return null;
     try {
       const action = JSON.parse(actionMatch[1].trim());
-      const cleanText = text.replace(/```action[\s\S]*?```/, "").trim();
+      const cleanText = cleanResponseText(text);
       return { cleanText, action };
     } catch {
       return null;
