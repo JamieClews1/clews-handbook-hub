@@ -62,6 +62,13 @@ serve(async (req) => {
       });
     }
 
+    if (action === "query_reports") {
+      const result = await queryReports(adminClient, actionData);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Otherwise, it's a chat request - use AI to understand intent
     const systemPrompt = `You are a friendly admin assistant bot for "One Portal", a waste management system. Staff use you to manage load reports quickly.
 
