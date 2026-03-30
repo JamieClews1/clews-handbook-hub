@@ -321,10 +321,7 @@ const LoadReportsPage = () => {
 
     setWeighbridgeLoading(true);
     try {
-      // Determine which source to use based on customer type
-      // Britvic, Staci, Standard (other) use Skiptrak; Vantiva, Amazon, Evri use Midweigh
-      const usesMidweigh = selectedCustomer && ["vantiva", "amazon", "evri"].includes(selectedCustomer);
-      const source = usesMidweigh ? "midweigh" : "skiptrak";
+      const source = getWeighbridgeSource(selectedCustomer);
 
       const { data, error } = await supabase
         .from("data_hub_jobs")
