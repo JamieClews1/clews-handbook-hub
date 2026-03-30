@@ -310,7 +310,7 @@ export function AdminAgentWidget() {
     }
   };
 
-
+  const handleConfirmAction = async (messageId: string, action: any) => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
