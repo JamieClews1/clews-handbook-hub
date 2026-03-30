@@ -214,7 +214,103 @@ export function AdminAgentWidget() {
     }
   };
 
-  const handleConfirmAction = async (messageId: string, action: any) => {
+  const handleQueryAndContinue = async (queryAction: any, conversationSoFar: any[]) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      // Execute the query
+      const queryResp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: "query_reports",
+          actionData: { filters: queryAction.filters },
+        }),
+      });
+
+      const queryResult = await queryResp.json();
+
+      // Feed results back to AI as a system-like message
+      const queryResultMessage = {
+        role: "user" as const,
+        content: `[System: Query results - found ${queryResult.count || 0} reports]\n${JSON.stringify(queryResult.reports || [], null, 2)}\n\nPlease now propose the specific update/delete action using the real report IDs from above.`,
+      };
+
+      // Send another AI request with the query results
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          messages: [...conversationSoFar, queryResultMessage].map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+
+      const reader = resp.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantText = "";
+
+      const upsertAssistant = (text: string) => {
+        assistantText = text;
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.actionResult) {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleanResponseText(text) } : m));
+          }
+          return [...prev, { id: crypto.randomUUID(), role: "assistant", content: cleanResponseText(text) }];
+        });
+      };
+
+      let streamDone = false;
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) upsertAssistant(assistantText + content);
+          } catch { break; }
+        }
+      }
+
+      // Extract final action
+      const finalAction = extractAction(assistantText);
+      if (finalAction && finalAction.action.action !== "query_reports") {
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === prev.length - 1
+              ? { ...m, content: finalAction.cleanText, actionPending: finalAction.action }
+              : m
+          )
+        );
+      }
+    } catch (e: any) {
+      toast({ title: "Query failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
