@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { AdminAgentWidget } from "@/components/AdminAgentWidget";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Search, Bell, Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -95,6 +96,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
+      <AdminAgentWidget />
     </SidebarProvider>
   );
 }
