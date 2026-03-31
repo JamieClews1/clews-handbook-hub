@@ -66,9 +66,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         };
       } catch { /* fall through */ }
     }
+    // Default to last 30 days
+    const now = new Date();
     return {
-      from: startOfMonth(subMonths(new Date(), 1)),
-      to: endOfMonth(new Date()),
+      from: subDays(now, 30),
+      to: now,
     };
   });
 
@@ -89,6 +91,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
+  const [autoLoaded, setAutoLoaded] = useState(false);
   
   // PO editing state
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -100,6 +103,67 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     loadSites();
     loadNotificationEmail();
   }, [customerId, accessibleSiteIds]);
+
+  // Auto-select most active site and generate report on first load
+  useEffect(() => {
+    if (autoLoaded || sites.length === 0) return;
+    // If user already has a saved site selection, use that
+    const savedSiteId = sessionStorage.getItem("portal-site-report-siteId");
+    if (savedSiteId && sites.some(s => s.id === savedSiteId)) {
+      setSelectedSiteId(savedSiteId);
+      setAutoLoaded(true);
+      return;
+    }
+    // Otherwise find the most active site by querying recent job counts
+    const findMostActiveSite = async () => {
+      const now = new Date();
+      const thirtyDaysAgo = format(subDays(now, 30), "yyyy-MM-dd");
+      const today = format(now, "yyyy-MM-dd");
+      
+      let bestSiteId = sites[0].id;
+      let bestCount = 0;
+      
+      for (const site of sites) {
+        const siteNames = [
+          site.data_hub_site,
+          site.data_hub_site_2,
+          site.data_hub_site_3,
+          site.data_hub_site_4,
+          site.data_hub_site_5,
+        ].filter(Boolean) as string[];
+        
+        const dataHubCustomer = site.data_hub_customer;
+        if (siteNames.length === 0 && !dataHubCustomer) continue;
+        
+        let query = supabase
+          .from("data_hub_jobs")
+          .select("id", { count: "exact", head: true })
+          .gte("job_date", thirtyDaysAgo)
+          .lte("job_date", today);
+        
+        if (dataHubCustomer) query = query.eq("customer", dataHubCustomer);
+        if (siteNames.length > 0) query = query.in("site", siteNames);
+        
+        const { count } = await query;
+        if ((count ?? 0) > bestCount) {
+          bestCount = count ?? 0;
+          bestSiteId = site.id;
+        }
+      }
+      
+      setSelectedSiteId(bestSiteId);
+      setAutoLoaded(true);
+    };
+    
+    findMostActiveSite();
+  }, [sites, autoLoaded]);
+
+  // Auto-generate report once site is auto-selected
+  useEffect(() => {
+    if (autoLoaded && selectedSiteId && !reportGenerated && dateRange?.from && dateRange?.to) {
+      generateReport();
+    }
+  }, [autoLoaded, selectedSiteId]);
 
   const loadSites = async () => {
     let query = supabase
