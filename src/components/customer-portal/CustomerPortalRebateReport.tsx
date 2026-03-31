@@ -632,20 +632,27 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     ];
     for (const report of individualReports) {
       for (const li of report.line_items) {
+        if (li.waste_type.toLowerCase().includes("pallet weight")) continue;
         // Find rate for this material
         const materialConfig = reportData.find((r) => r.material_name === li.waste_type);
         const rate = materialConfig?.rate_per_tonne ?? 0;
-        const weightT = li.total_weight_kg / 1000;
-        const rebate = weightT * rate;
+        const isCost = materialConfig ? materialConfig.rebate_value < 0 : false;
+        // Use net weight (gross minus pallet tare) to match portal display
+        const noPallets = report.no_pallets_on_load ?? false;
+        const palletKg = noPallets ? 0 : (li.pallet_count ?? 0) * palletWeightKgState;
+        const netKg = Math.max(0, li.total_weight_kg - palletKg);
+        const weightT = netKg / 1000;
+        let rebate = weightT * rate;
+        if (isCost) rebate = -Math.abs(rebate);
         lineItemsRows.push([
           format(new Date(report.report_date), "dd/MM/yyyy"),
           report.operator_name,
           report.notes || "-",
           li.waste_type,
           li.pallet_count,
-          round2(li.total_weight_kg),
+          round2(netKg),
           round4(weightT),
-          round2(rate),
+          round2(isCost ? -Math.abs(rate) : rate),
           round2(rebate),
         ]);
       }
