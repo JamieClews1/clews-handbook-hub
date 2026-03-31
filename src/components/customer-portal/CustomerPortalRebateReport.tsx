@@ -661,7 +661,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         const palletWeightT = (report.total_pallets * palletWeightKgState) / 1000;
         const palletConfig = reportData.find((r) => r.material_name === "Pallet Weight Charge");
         const palletRate = palletConfig?.rate_per_tonne ?? 0;
-        const palletRebate = palletWeightT * palletRate;
+        const palletRebate = -(Math.abs(palletWeightT * palletRate));
         lineItemsRows.push([
           format(new Date(report.report_date), "dd/MM/yyyy"),
           report.operator_name,
@@ -670,7 +670,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           report.total_pallets,
           round2(report.total_pallets * palletWeightKgState),
           round4(palletWeightT),
-          round2(palletRate),
+          round2(-Math.abs(palletRate)),
           round2(palletRebate),
         ]);
       }
