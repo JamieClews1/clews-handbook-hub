@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
@@ -25,18 +25,24 @@ interface ReportingPeriodSelectorProps {
   dateRange: DateRange | undefined;
 }
 
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
 export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRange }: ReportingPeriodSelectorProps) {
   const [periods, setPeriods] = useState<ReportingPeriod[]>([]);
   const [hasCustomPeriods, setHasCustomPeriods] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"period" | "month" | "custom">("month");
   const [selectedPeriodId, setSelectedPeriodId] = useState("");
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      // Check if customer has custom periods enabled
       const { data: customer } = await supabase
         .from("customers")
         .select("custom_reporting_periods_enabled")
@@ -67,16 +73,13 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
     const period = periods.find((p) => p.id === periodId);
     if (!period) return;
 
-    // Find the previous period to determine start date
     const idx = periods.findIndex((p) => p.id === periodId);
     let startDate: Date;
     if (idx > 0) {
-      // Start is the day after the previous period's end date
       const prevEnd = new Date(periods[idx - 1].period_end_date + "T00:00:00");
       startDate = new Date(prevEnd);
       startDate.setDate(startDate.getDate() + 1);
     } else {
-      // First period: assume start is beginning of the month referenced
       const endDate = new Date(period.period_end_date + "T00:00:00");
       startDate = startOfMonth(endDate);
     }
@@ -85,48 +88,116 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
     onDateRangeChange({ from: startDate, to: endDate });
   };
 
+  const handleMonthClick = (monthIndex: number) => {
+    const from = new Date(viewYear, monthIndex, 1);
+    const to = endOfMonth(from);
+    onDateRangeChange({ from, to });
+    setMonthPickerOpen(false);
+  };
+
+  const currentYear = new Date().getFullYear();
+
+  // Determine which month is currently selected
+  const selectedMonth = dateRange?.from ? dateRange.from.getMonth() : -1;
+  const selectedYear = dateRange?.from ? dateRange.from.getFullYear() : -1;
+
+  const monthPickerLabel = dateRange?.from && dateRange?.to
+    ? `${format(dateRange.from, "dd MMM yyyy")} – ${format(dateRange.to, "dd MMM yyyy")}`
+    : "Select a month";
+
   if (loading) return null;
 
-  // No custom periods - just show standard date range picker
+  // No custom periods - show month picker + custom range
   if (!hasCustomPeriods) {
     return (
       <div className="space-y-2">
         <Label>Date Range</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dateRange && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "dd MMM yyyy")} - {format(dateRange.to, "dd MMM yyyy")}
-                  </>
-                ) : (
-                  format(dateRange.from, "dd MMM yyyy")
-                )
-              ) : (
-                <span>Pick a date range</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={onDateRangeChange}
-              numberOfMonths={2}
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="flex gap-2">
+          {/* Month picker */}
+          <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="flex-1 justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {monthPickerLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[260px] p-3" align="start">
+              <div className="flex items-center justify-between mb-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={viewYear <= currentYear - 3}
+                  onClick={() => setViewYear((y) => y - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-semibold">{viewYear}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={viewYear >= currentYear}
+                  onClick={() => setViewYear((y) => y + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {MONTHS.map((m, i) => {
+                  const sel = selectedYear === viewYear && selectedMonth === i;
+                  const futureMonth = viewYear === currentYear && i > new Date().getMonth();
+                  return (
+                    <Button
+                      key={m}
+                      variant={sel ? "default" : "outline"}
+                      size="sm"
+                      className={cn("text-xs h-8", futureMonth && "opacity-40 pointer-events-none")}
+                      disabled={futureMonth}
+                      onClick={() => handleMonthClick(i)}
+                    >
+                      {m}
+                    </Button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 pt-3 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    onDateRangeChange({ from: subDays(now, 30), to: now });
+                    setMonthPickerOpen(false);
+                  }}
+                >
+                  Last 30 Days
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Custom range calendar */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" title="Custom date range">
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={onDateRangeChange}
+                numberOfMonths={2}
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     );
   }
@@ -138,7 +209,7 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
       <Tabs value={mode} onValueChange={(v) => setMode(v as "period" | "month" | "custom")} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="period">Reporting Period</TabsTrigger>
-          <TabsTrigger value="month">Calendar Month</TabsTrigger>
+          <TabsTrigger value="month">Month</TabsTrigger>
           <TabsTrigger value="custom">Custom Range</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -158,48 +229,59 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
         </Select>
       )}
 
-      {mode === "month" && (() => {
-        const months = [
-          "January", "February", "March", "April", "May", "June",
-          "July", "August", "September", "October", "November", "December"
-        ];
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const years = [currentYear - 1, currentYear, currentYear + 1];
-        
-        const handleMonthSelect = (monthYear: string) => {
-          const [yearStr, monthStr] = monthYear.split("-");
-          const year = parseInt(yearStr);
-          const month = parseInt(monthStr) - 1;
-          const from = new Date(year, month, 1);
-          const to = endOfMonth(from);
-          onDateRangeChange({ from, to });
-        };
-        
-        const selectedValue = dateRange?.from
-          ? `${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}`
-          : "";
-        
-        return (
-          <Select value={selectedValue} onValueChange={handleMonthSelect}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a month" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) =>
-                months.map((monthName, idx) => {
-                  const value = `${year}-${String(idx + 1).padStart(2, "0")}`;
-                  return (
-                    <SelectItem key={value} value={value}>
-                      {monthName} {year}
-                    </SelectItem>
-                  );
-                })
-              )}
-            </SelectContent>
-          </Select>
-        );
-      })()}
+      {mode === "month" && (
+        <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange?.from
+                ? format(dateRange.from, "MMMM yyyy")
+                : "Select a month"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[260px] p-3" align="start">
+            <div className="flex items-center justify-between mb-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={viewYear <= currentYear - 3}
+                onClick={() => setViewYear((y) => y - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-semibold">{viewYear}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={viewYear >= currentYear}
+                onClick={() => setViewYear((y) => y + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {MONTHS.map((m, i) => {
+                const sel = selectedYear === viewYear && selectedMonth === i;
+                const futureMonth = viewYear === currentYear && i > new Date().getMonth();
+                return (
+                  <Button
+                    key={m}
+                    variant={sel ? "default" : "outline"}
+                    size="sm"
+                    className={cn("text-xs h-8", futureMonth && "opacity-40 pointer-events-none")}
+                    disabled={futureMonth}
+                    onClick={() => handleMonthClick(i)}
+                  >
+                    {m}
+                  </Button>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
 
       {mode === "custom" && (
         <Popover>
