@@ -823,7 +823,34 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
             </div>
           </div>
 
-          <Tabs defaultValue="total" className="w-full">
+          <RebateReportLockControls
+            lockedReport={lockedReport}
+            valueChanges={valueChanges}
+            loading={lockLoading}
+            onLock={async () => {
+              const combinedSnapshot = {
+                reportData,
+                skipRoroSummaries,
+                totalRebate: combinedTotalRebate,
+                totalWeight: combinedTotalWeight,
+              };
+              return lockReport(combinedSnapshot, rebateValuesSnapshotRef.current, combinedTotalRebate, combinedTotalWeight);
+            }}
+            onUnlock={unlockReport}
+            onDismissChanges={dismissChanges}
+            onUpdateWithNewValues={async () => {
+              await generateReport();
+              const combinedSnapshot = {
+                reportData,
+                skipRoroSummaries,
+                totalRebate: combinedTotalRebate,
+                totalWeight: combinedTotalWeight,
+              };
+              return lockReport(combinedSnapshot, rebateValuesSnapshotRef.current, combinedTotalRebate, combinedTotalWeight);
+            }}
+          />
+
+
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="total">Total</TabsTrigger>
               <TabsTrigger value="load-reports">Load Reports</TabsTrigger>
