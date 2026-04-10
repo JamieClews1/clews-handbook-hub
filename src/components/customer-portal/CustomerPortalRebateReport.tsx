@@ -495,6 +495,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       setIndividualReports(loadReportsWithItems);
       setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);
+      refreshLock();
     } catch (error: any) {
       console.error("Error generating report:", error);
       toast({
