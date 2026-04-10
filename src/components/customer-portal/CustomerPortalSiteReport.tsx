@@ -465,6 +465,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       ["Total Jobs:", filteredJobRecords.length],
       ["Total Weight (t):", round2(totalWeight)],
       ["Total Cost (£):", round2(totalCost)],
+      ["Total Haulage (£):", round2(totalHaulageCost)],
       [],
       [],
     ];
@@ -493,7 +494,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
     ws["!cols"] = [
       { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
-      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       ...(hasTotalPallets ? [{ wch: 10 }] : []),
       ...(hasPallet ? [{ wch: 12 }, { wch: 12 }] : []),
     ];
