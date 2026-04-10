@@ -127,7 +127,24 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     selectedSite?.data_hub_customer ?? undefined
   );
 
-  useEffect(() => {
+  // Lock mechanism
+  const {
+    lockedReport,
+    valueChanges,
+    loading: lockLoading,
+    lockReport,
+    unlockReport,
+    dismissChanges,
+    refreshLock,
+  } = useLockedRebateReport(
+    selectedSiteId || null,
+    customerId,
+    dateRange?.from,
+    dateRange?.to,
+    "portal_rebate"
+  );
+
+
     loadSites();
   }, [customerId, accessibleSiteIds]);
 
