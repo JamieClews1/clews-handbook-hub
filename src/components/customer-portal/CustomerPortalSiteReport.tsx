@@ -740,6 +740,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           <TableCell className="text-right">
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
                           </TableCell>
+                          {hasPalletData && (
+                            <TableCell className="text-right">
+                              {palletData[job.job_number]?.pet || "-"}
+                            </TableCell>
+                          )}
+                          {hasPalletData && (
+                            <TableCell className="text-right">
+                              {palletData[job.job_number]?.cans || "-"}
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}
@@ -751,7 +761,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
             <p className="text-muted-foreground text-center py-8">
               No job records found for this site and date range.
             </p>
-          )}
+          );
+          })()}
         </div>
       )}
     </div>
