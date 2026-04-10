@@ -90,6 +90,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [loading, setLoading] = useState(false);
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [palletData, setPalletData] = useState<Record<string, { pet: number; cans: number }>>({});
+  const [totalPalletsData, setTotalPalletsData] = useState<Record<string, number>>({});
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [autoLoaded, setAutoLoaded] = useState(false);
@@ -199,24 +200,37 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const fetchPalletData = async (jobs: JobRecord[]) => {
     if (!jobs.length) {
       setPalletData({});
+      setTotalPalletsData({});
       return;
     }
     const jobNumbers = jobs.map(j => j.job_number).filter(Boolean);
     if (!jobNumbers.length) {
       setPalletData({});
+      setTotalPalletsData({});
       return;
     }
 
     // Load reports store job numbers in the 'notes' field
     const { data: reports } = await supabase
       .from("load_reports")
-      .select("id, notes")
+      .select("id, notes, total_pallets")
       .in("notes", jobNumbers);
 
     if (!reports || reports.length === 0) {
       setPalletData({});
+      setTotalPalletsData({});
       return;
     }
+
+    // Build total pallets map from load reports
+    const totalPalletsMap: Record<string, number> = {};
+    for (const r of reports) {
+      const jobNum = r.notes?.trim();
+      if (jobNum && r.total_pallets > 0) {
+        totalPalletsMap[jobNum] = (totalPalletsMap[jobNum] || 0) + r.total_pallets;
+      }
+    }
+    setTotalPalletsData(totalPalletsMap);
 
     const reportIds = reports.map(r => r.id);
     const noteToReportId = new Map(reports.map(r => [r.notes?.trim(), r.id]));
@@ -456,7 +470,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     ];
 
     const hasPallet = Object.keys(palletData).length > 0;
-    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
+    const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       getOrderNumber(job) || "",
@@ -468,6 +483,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       job.vehicle_registration || "",
       job.weight_t != null ? round2(job.weight_t) : "",
       getJobCost(job) != null ? round2(getJobCost(job)!) : "",
+      ...(hasTotalPallets ? [totalPalletsData[job.job_number] || ""] : []),
       ...(hasPallet ? [palletData[job.job_number]?.pet || "", palletData[job.job_number]?.cans || ""] : []),
     ]);
 
@@ -477,6 +493,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     ws["!cols"] = [
       { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
       { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      ...(hasTotalPallets ? [{ wch: 10 }] : []),
       ...(hasPallet ? [{ wch: 12 }, { wch: 12 }] : []),
     ];
 
@@ -646,6 +663,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
           {(() => {
             const hasPalletData = Object.keys(palletData).length > 0;
+            const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
             return filteredJobRecords.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 font-medium">Detailed Job Records</div>
@@ -664,6 +682,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                       <TableHead className="text-right">Cost (£)</TableHead>
+                      {hasTotalPallets && <TableHead className="text-right">Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
                     </TableRow>
@@ -743,6 +762,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           <TableCell className="text-right">
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
                           </TableCell>
+                          {hasTotalPallets && (
+                            <TableCell className="text-right font-medium">
+                              {totalPalletsData[job.job_number] || "-"}
+                            </TableCell>
+                          )}
                           {hasPalletData && (
                             <TableCell className="text-right">
                               {palletData[job.job_number]?.pet || "-"}
