@@ -168,7 +168,7 @@ const CustomerPortalPage = () => {
                   Back
                 </Button>
               </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
             </div>
           </div>
         </header>
@@ -199,7 +199,7 @@ const CustomerPortalPage = () => {
                   Admin
                 </Button>
               </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
             </div>
           </div>
         </header>
@@ -223,7 +223,7 @@ const CustomerPortalPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
               {isAdmin && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
                   <Shield className="h-3 w-3" />
