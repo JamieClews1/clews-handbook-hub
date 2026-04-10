@@ -89,6 +89,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [dateRange]);
   const [loading, setLoading] = useState(false);
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
+  const [palletData, setPalletData] = useState<Record<string, { pet: number; cans: number }>>({});
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [autoLoaded, setAutoLoaded] = useState(false);
@@ -195,6 +196,53 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     }
   };
 
+  const fetchPalletData = async (jobs: JobRecord[]) => {
+    if (!jobs.length) {
+      setPalletData({});
+      return;
+    }
+    const jobNumbers = jobs.map(j => j.job_number).filter(Boolean);
+    if (!jobNumbers.length) {
+      setPalletData({});
+      return;
+    }
+
+    // Load reports store job numbers in the 'notes' field
+    const { data: reports } = await supabase
+      .from("load_reports")
+      .select("id, notes")
+      .in("notes", jobNumbers);
+
+    if (!reports || reports.length === 0) {
+      setPalletData({});
+      return;
+    }
+
+    const reportIds = reports.map(r => r.id);
+    const noteToReportId = new Map(reports.map(r => [r.notes?.trim(), r.id]));
+
+    const { data: lineItems } = await supabase
+      .from("load_line_items")
+      .select("load_report_id, waste_type, pallet_count")
+      .in("load_report_id", reportIds)
+      .in("waste_type", ["Pallets of PET", "Pallets of Cans"]);
+
+    const reportIdToJobNumber = new Map<string, string>();
+    for (const [note, reportId] of noteToReportId) {
+      if (note && reportId) reportIdToJobNumber.set(reportId, note);
+    }
+
+    const result: Record<string, { pet: number; cans: number }> = {};
+    for (const li of lineItems ?? []) {
+      const jobNum = reportIdToJobNumber.get(li.load_report_id);
+      if (!jobNum) continue;
+      if (!result[jobNum]) result[jobNum] = { pet: 0, cans: 0 };
+      if (li.waste_type === "Pallets of PET") result[jobNum].pet += li.pallet_count;
+      if (li.waste_type === "Pallets of Cans") result[jobNum].cans += li.pallet_count;
+    }
+    setPalletData(result);
+  };
+
   const generateReport = async () => {
     if (!selectedSiteId || !dateRange?.from || !dateRange?.to) return;
 
@@ -246,6 +294,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       setJobRecords(jobs ?? []);
       setReportGenerated(true);
+
+      // Fetch PET/Cans pallet counts from load reports
+      await fetchPalletData(jobs ?? []);
     } catch (error) {
       console.error("Error generating report:", error);
     } finally {
@@ -404,7 +455,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       [],
     ];
 
-    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
+    const hasPallet = Object.keys(palletData).length > 0;
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       getOrderNumber(job) || "",
@@ -416,6 +468,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       job.vehicle_registration || "",
       job.weight_t != null ? round2(job.weight_t) : "",
       getJobCost(job) != null ? round2(getJobCost(job)!) : "",
+      ...(hasPallet ? [palletData[job.job_number]?.pet || "", palletData[job.job_number]?.cans || ""] : []),
     ]);
 
     const wsData = [...headerData, detailHeaders, ...detailData];
@@ -424,6 +477,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     ws["!cols"] = [
       { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
       { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      ...(hasPallet ? [{ wch: 12 }, { wch: 12 }] : []),
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, "Site Report");
@@ -590,7 +644,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
             </div>
           )}
 
-          {filteredJobRecords.length > 0 ? (
+          {(() => {
+            const hasPalletData = Object.keys(palletData).length > 0;
+            return filteredJobRecords.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 font-medium">Detailed Job Records</div>
               <div className="overflow-x-auto">
@@ -608,6 +664,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                       <TableHead className="text-right">Cost (£)</TableHead>
+                      {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
+                      {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -685,6 +743,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           <TableCell className="text-right">
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
                           </TableCell>
+                          {hasPalletData && (
+                            <TableCell className="text-right">
+                              {palletData[job.job_number]?.pet || "-"}
+                            </TableCell>
+                          )}
+                          {hasPalletData && (
+                            <TableCell className="text-right">
+                              {palletData[job.job_number]?.cans || "-"}
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}
@@ -696,7 +764,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
             <p className="text-muted-foreground text-center py-8">
               No job records found for this site and date range.
             </p>
-          )}
+          );
+          })()}
         </div>
       )}
     </div>
