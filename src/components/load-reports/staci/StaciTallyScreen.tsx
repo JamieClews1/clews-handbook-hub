@@ -411,7 +411,7 @@ export const StaciTallyScreen = ({
                   onClick={handleNoMorePallets}
                   variant="outline"
                   className="h-12 w-full gap-2"
-                  disabled={validEntryCount === 0 && !hasDolavData}
+                   disabled={validEntryCount === 0 && !hasDolavData && !hasPalletOnlyData}
                 >
                   <Check className="h-4 w-4" />
                   No More Palletised Waste
@@ -653,7 +653,7 @@ export const StaciTallyScreen = ({
               <Button
                 onClick={onReview}
                 className="h-12 px-6 gap-2"
-                disabled={validEntryCount === 0 && !hasDolavData}
+                 disabled={validEntryCount === 0 && !hasDolavData && !hasPalletOnlyData}
               >
                 Review
                 <ArrowRight className="h-5 w-5" />
@@ -963,7 +963,7 @@ export const StaciTallyScreen = ({
             <Button 
               onClick={onReview} 
               className="h-12 px-6 gap-2 text-base"
-              disabled={validEntryCount === 0 && !hasDolavData}
+              disabled={validEntryCount === 0 && !hasDolavData && !hasPalletOnlyData}
             >
               <span className="hidden sm:inline">Review</span>
               <ArrowRight className="h-5 w-5" />
