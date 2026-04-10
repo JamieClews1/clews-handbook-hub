@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Download } from "lucide-react";
@@ -77,9 +78,8 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
         if (!s.data_hub_customer) continue;
         const dhSites = [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]
           .filter((v): v is string => !!v);
-        if (dhSites.length > 0) {
-          siteMatchers.push({ customer: s.data_hub_customer, sites: dhSites });
-        }
+        // Allow customer-only matching when no sites are configured (e.g. midweigh customers)
+        siteMatchers.push({ customer: s.data_hub_customer, sites: dhSites });
       }
 
       if (siteMatchers.length === 0) {
@@ -89,8 +89,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       }
 
       // 3. Determine source based on customer type
-      const usesMidweigh = ["vantiva", "amazon", "evri"].includes(customerType);
-      const source = usesMidweigh ? "midweigh" : "skiptrak";
+      const source = getWeighbridgeSource(customerType);
 
       // 4. Get all data_hub_jobs for these customers in the date range
       const uniqueCustomers = [...new Set(siteMatchers.map(m => m.customer))];
@@ -106,25 +105,31 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
           .gte("job_date", dateFrom)
           .lte("job_date", dateTo)
           .order("job_date", { ascending: false })
-          .limit(500);
+          .limit(1000);
 
         if (jobs) allJobs = [...allJobs, ...jobs];
       }
 
       // 5. Filter jobs to only those matching a site in our rebate list
+      const isMidweighSource = source === "midweigh";
       const matchedJobs = allJobs.filter(job => {
-        const container = (job.container_type ?? "").toLowerCase();
-        const ewc = ((job as any).ewc ?? "").trim();
+        // For midweigh customers (Evri, Vantiva), ALL jobs need load reports
+        if (!isMidweighSource) {
+          const container = (job.container_type ?? "").toLowerCase();
+          const ewc = ((job as any).ewc ?? "").trim();
 
-        // Curtain side loads always need load reports
-        const isCurtain = container.includes("curtain");
-        // Britvic: EWC 02 07 99 jobs also need load reports
-        const isBritvicEwcMatch = customerType === "britvic" && ewc === "02 07 99";
+          // Curtain side loads always need load reports
+          const isCurtain = container.includes("curtain");
+          // Britvic: EWC 02 07 99 jobs also need load reports
+          const isBritvicEwcMatch = customerType === "britvic" && ewc === "02 07 99";
 
-        if (!isCurtain && !isBritvicEwcMatch) return false;
+          if (!isCurtain && !isBritvicEwcMatch) return false;
+        }
 
         return siteMatchers.some(m => {
           if (m.customer.toLowerCase() !== (job.customer ?? "").toLowerCase()) return false;
+          // If no sites configured, match on customer name only
+          if (m.sites.length === 0) return true;
           return m.sites.some(s => s.toLowerCase() === (job.site ?? "").toLowerCase());
         });
       });
