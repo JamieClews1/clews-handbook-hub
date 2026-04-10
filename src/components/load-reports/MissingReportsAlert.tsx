@@ -98,7 +98,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       for (const cust of uniqueCustomers) {
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("job_number, job_date, customer, site, container_type, source")
+          .select("job_number, job_date, customer, site, container_type, source, ewc")
           .eq("source", source)
           .eq("customer", cust)
           .gte("job_date", dateFrom)
@@ -111,9 +111,15 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
 
       // 5. Filter jobs to only those matching a site in our rebate list
       const matchedJobs = allJobs.filter(job => {
-        // Only curtain side loads need load reports — skip RoRo, skips, etc.
         const container = (job.container_type ?? "").toLowerCase();
-        if (!container.includes("curtain")) return false;
+        const ewc = ((job as any).ewc ?? "").trim();
+
+        // Curtain side loads always need load reports
+        const isCurtain = container.includes("curtain");
+        // Britvic: EWC 02 07 99 jobs also need load reports
+        const isBritvicEwcMatch = customerType === "britvic" && ewc === "02 07 99";
+
+        if (!isCurtain && !isBritvicEwcMatch) return false;
 
         return siteMatchers.some(m => {
           if (m.customer.toLowerCase() !== (job.customer ?? "").toLowerCase()) return false;
