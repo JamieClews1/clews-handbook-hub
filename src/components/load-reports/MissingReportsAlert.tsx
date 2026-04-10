@@ -112,16 +112,20 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       }
 
       // 5. Filter jobs to only those matching a site in our rebate list
+      const isMidweighSource = source === "midweigh";
       const matchedJobs = allJobs.filter(job => {
-        const container = (job.container_type ?? "").toLowerCase();
-        const ewc = ((job as any).ewc ?? "").trim();
+        // For midweigh customers (Evri, Vantiva), ALL jobs need load reports
+        if (!isMidweighSource) {
+          const container = (job.container_type ?? "").toLowerCase();
+          const ewc = ((job as any).ewc ?? "").trim();
 
-        // Curtain side loads always need load reports
-        const isCurtain = container.includes("curtain");
-        // Britvic: EWC 02 07 99 jobs also need load reports
-        const isBritvicEwcMatch = customerType === "britvic" && ewc === "02 07 99";
+          // Curtain side loads always need load reports
+          const isCurtain = container.includes("curtain");
+          // Britvic: EWC 02 07 99 jobs also need load reports
+          const isBritvicEwcMatch = customerType === "britvic" && ewc === "02 07 99";
 
-        if (!isCurtain && !isBritvicEwcMatch) return false;
+          if (!isCurtain && !isBritvicEwcMatch) return false;
+        }
 
         return siteMatchers.some(m => {
           if (m.customer.toLowerCase() !== (job.customer ?? "").toLowerCase()) return false;
