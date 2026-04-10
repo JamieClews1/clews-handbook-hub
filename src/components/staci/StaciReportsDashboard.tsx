@@ -83,7 +83,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     pickup: { loads: number; totalCost: number; rate: number };
     totalLoads: number;
     totalCost: number;
-  }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
+    jobs: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }>;
+  }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0, jobs: [] });
 
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
   const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
