@@ -68,6 +68,7 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
   return (
     <div className={`group flex items-center gap-3 py-3 border-b border-border/30 last:border-b-0 ${colorClass} px-1 -mx-1 rounded`}>
       <span className="shrink-0 text-base" title={categoryInfo.label}>{categoryInfo.icon}</span>
+      <div className="flex-1 min-w-0">
         {isEditing ? (
           <input
             ref={inputRef}
