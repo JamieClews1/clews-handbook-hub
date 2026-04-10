@@ -541,13 +541,13 @@ import * as XLSX from "xlsx";
        summaries.sort((a, b) => b.totalRebate - a.totalRebate);
 
         // Fetch locked reports for this period
-        const periodStart = format(dateRange.from, "yyyy-MM-dd");
-        const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+        const lockPeriodStart = format(dateRange.from, "yyyy-MM-dd");
+        const lockPeriodEnd = format(dateRange.to, "yyyy-MM-dd");
         const { data: lockedReports } = await supabase
           .from("locked_rebate_reports")
           .select("site_id")
-          .eq("period_start", periodStart)
-          .eq("period_end", periodEnd);
+          .eq("period_start", lockPeriodStart)
+          .eq("period_end", lockPeriodEnd);
         
         const lockedIds = new Set((lockedReports ?? []).map(r => r.site_id).filter((id): id is string => !!id));
         setLockedSiteIds(lockedIds);
