@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Trash2, Copy } from "lucide-react";
 import type { DiaryCard } from "./DiaryWeekView";
+import { DIARY_CATEGORIES } from "./DiaryWeekView";
 
 const COLOR_OPTIONS = [
   { key: "default", class: "bg-card" },
@@ -120,6 +121,28 @@ export const DiaryCardItem = ({ card, onUpdate, onDelete, onDuplicate }: DiaryCa
         </div>
       )}
 
+      {/* Category selector */}
+      <div className="flex items-center gap-1 px-2 pt-2 pb-0">
+        {DIARY_CATEGORIES.map((cat) => {
+          const isActive = (card.category ?? null) === cat.key;
+          return (
+            <button
+              key={cat.key ?? "general"}
+              onClick={(e) => { e.stopPropagation(); onUpdate(card.id, { category: cat.key }); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              title={cat.label}
+              className={`text-xs px-1.5 py-0.5 rounded-md transition-all ${
+                isActive
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50"
+              }`}
+            >
+              {cat.icon}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Content */}
       {isEditing ? (
         <textarea
@@ -129,16 +152,13 @@ export const DiaryCardItem = ({ card, onUpdate, onDelete, onDuplicate }: DiaryCa
           onBlur={handleBlur}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="Write something..."
-          className="w-full bg-transparent border-0 outline-none resize-none text-sm text-foreground p-3 min-h-[48px] placeholder:text-muted-foreground/40"
+          className="w-full bg-transparent border-0 outline-none resize-none text-sm text-foreground p-3 pt-1.5 min-h-[48px] placeholder:text-muted-foreground/40"
           rows={2}
         />
       ) : (
         <div
           onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-          onPointerDown={(e) => {
-            // Allow drag unless they click to edit
-          }}
-          className="p-3 text-sm text-foreground cursor-text min-h-[48px] whitespace-pre-wrap break-words"
+          className="p-3 pt-1.5 text-sm text-foreground cursor-text min-h-[48px] whitespace-pre-wrap break-words"
         >
           {card.content || <span className="text-muted-foreground/40 italic">Empty</span>}
         </div>

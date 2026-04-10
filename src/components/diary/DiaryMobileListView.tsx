@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, Trash2, Copy, Check } from "lucide-react";
 import type { DiaryCard } from "./DiaryWeekView";
+import { DIARY_CATEGORIES } from "./DiaryWeekView";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -62,9 +63,11 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
 
   const colorClass = getColorClass(card.color);
 
+  const categoryInfo = DIARY_CATEGORIES.find((c) => c.key === card.category) ?? DIARY_CATEGORIES[0];
+
   return (
-    <div className={`group flex items-center gap-3 py-3 border-b border-border/30 last:border-b-0 ${colorClass} px-1 -mx-1 rounded`}>      
-      <div className="flex-1 min-w-0">
+    <div className={`group flex items-center gap-3 py-3 border-b border-border/30 last:border-b-0 ${colorClass} px-1 -mx-1 rounded`}>
+      <span className="shrink-0 text-base" title={categoryInfo.label}>{categoryInfo.icon}</span>
         {isEditing ? (
           <input
             ref={inputRef}
