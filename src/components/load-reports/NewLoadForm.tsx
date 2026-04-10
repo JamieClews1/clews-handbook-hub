@@ -176,7 +176,13 @@ export const NewLoadForm = ({
               placeholder="e.g. AB12 CDE"
               className="h-14 text-lg uppercase"
               autoComplete="off"
+              list="frequent-vehicles"
             />
+            <datalist id="frequent-vehicles">
+              {frequentVehicles.map((reg) => (
+                <option key={reg} value={reg} />
+              ))}
+            </datalist>
           </div>
 
           <div className="space-y-2">
