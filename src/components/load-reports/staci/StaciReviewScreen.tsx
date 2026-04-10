@@ -356,7 +356,7 @@ export const StaciReviewScreen = ({
               </div>
             </div>
           )}
-          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0 || scrapMetalLooseCount > 0) ? (
+          {(summaries.length > 0 || cardBalesCount > 0 || filmsBaleCount > 0 || papersDolavCount > 0 || glassDolavCount > 0 || scrapMetalLooseCount > 0 || goodPalletCount > 0 || palletsScrapCount > 0) ? (
             <StaciSummaryTable
               summaries={summaries}
               totalPallets={totalPallets}
