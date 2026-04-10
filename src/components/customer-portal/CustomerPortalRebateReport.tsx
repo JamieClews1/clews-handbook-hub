@@ -99,6 +99,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const [priceSetName, setPriceSetName] = useState("");
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
+  const rebateValuesSnapshotRef = useRef<Record<string, { lower: number; higher: number; name: string }>>({});
 
   // Get site data hub mappings for Skip/RoRo calculation
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
