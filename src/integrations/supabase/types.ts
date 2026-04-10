@@ -1677,6 +1677,7 @@ export type Database = {
       load_waste_types: {
         Row: {
           created_at: string
+          customer_type_filter: string[] | null
           default_avg_weight_kg: number
           display_order: number
           id: string
@@ -1687,6 +1688,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_type_filter?: string[] | null
           default_avg_weight_kg?: number
           display_order?: number
           id?: string
@@ -1697,6 +1699,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_type_filter?: string[] | null
           default_avg_weight_kg?: number
           display_order?: number
           id?: string

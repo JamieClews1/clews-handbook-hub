@@ -365,8 +365,17 @@ const LoadReportsPage = () => {
     }, 300);
   };
 
+  const filterWasteTypesByCustomer = (types: WasteType[]) => {
+    return types.filter((wt: any) => {
+      const filter = wt.customer_type_filter;
+      if (!filter || filter.length === 0) return true;
+      return selectedCustomer ? filter.includes(selectedCustomer) : false;
+    });
+  };
+
   const initializeLineItems = () => {
-    const items: LineItem[] = wasteTypes.map((wt) => ({
+    const filtered = filterWasteTypesByCustomer(wasteTypes);
+    const items: LineItem[] = filtered.map((wt) => ({
       waste_type: wt.waste_type,
       pallet_count: 0,
       avg_weight_kg: Number(wt.default_avg_weight_kg),
@@ -407,7 +416,12 @@ const LoadReportsPage = () => {
 
     if (!error && data) {
       setWasteTypes(data);
-      const items: LineItem[] = data.map((wt) => ({
+      const filtered = data.filter((wt: any) => {
+        const filter = wt.customer_type_filter;
+        if (!filter || filter.length === 0) return true;
+        return selectedCustomer ? filter.includes(selectedCustomer) : false;
+      });
+      const items: LineItem[] = filtered.map((wt) => ({
         waste_type: wt.waste_type,
         pallet_count: 0,
         avg_weight_kg: Number(wt.default_avg_weight_kg),
