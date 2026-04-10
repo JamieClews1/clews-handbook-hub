@@ -738,7 +738,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       <tr className="border-b">
                         <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Loads</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate/Load</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total (£)</th>
                       </tr>
                     </thead>
