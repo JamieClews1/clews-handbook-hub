@@ -1045,6 +1045,33 @@ export function SiteRebateReportGenerator() {
             </div>
           </div>
 
+          <RebateReportLockControls
+            lockedReport={lockedReport}
+            valueChanges={valueChanges}
+            loading={lockLoading}
+            onLock={async () => {
+              const combinedSnapshot = {
+                reportData,
+                skipRoroSummaries,
+                totalRebate: combinedTotalRebate,
+                totalWeight: combinedTotalWeight,
+              };
+              return lockReport(combinedSnapshot, rebateValuesSnapshotRef.current, combinedTotalRebate, combinedTotalWeight);
+            }}
+            onUnlock={unlockReport}
+            onDismissChanges={dismissChanges}
+            onUpdateWithNewValues={async () => {
+              await generateReport();
+              const combinedSnapshot = {
+                reportData,
+                skipRoroSummaries,
+                totalRebate: combinedTotalRebate,
+                totalWeight: combinedTotalWeight,
+              };
+              return lockReport(combinedSnapshot, rebateValuesSnapshotRef.current, combinedTotalRebate, combinedTotalWeight);
+            }}
+          />
+
           <Tabs defaultValue="total" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="total">Total</TabsTrigger>
