@@ -334,23 +334,23 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [jobRecords, selectedWasteTypes]);
 
   const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
-  const totalCost = filteredJobRecords.reduce((sum, r) => {
-    const rawObj = r.raw && typeof r.raw === "object" && !Array.isArray(r.raw) ? (r.raw as Record<string, unknown>) : null;
-    const cost = rawObj?.Cost;
-    return sum + (typeof cost === "number" ? cost : typeof cost === "string" ? parseFloat(cost) || 0 : 0);
-  }, 0);
+  const totalCost = filteredJobRecords.reduce((sum, r) => sum + (getJobCost(r) || 0), 0);
+  const totalHaulageCost = filteredJobRecords.reduce((sum, r) => sum + (getHaulageCost(r) || 0), 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
-  const getJobCost = (job: JobRecord): number | null => {
+  const getRawNumber = (job: JobRecord, key: string): number | null => {
     const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
-    const cost = rawObj?.Cost;
-    if (typeof cost === "number") return cost;
-    if (typeof cost === "string") {
-      const parsed = parseFloat(cost);
+    const val = rawObj?.[key];
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+      const parsed = parseFloat(val);
       return isNaN(parsed) ? null : parsed;
     }
     return null;
   };
+
+  const getJobCost = (job: JobRecord): number | null => getRawNumber(job, "Cost");
+  const getHaulageCost = (job: JobRecord): number | null => getRawNumber(job, "Haulage Cost");
 
   const getOrderNumber = (job: JobRecord): string | null => {
     // Prefer override value if set
@@ -465,13 +465,14 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       ["Total Jobs:", filteredJobRecords.length],
       ["Total Weight (t):", round2(totalWeight)],
       ["Total Cost (£):", round2(totalCost)],
+      ["Total Haulage (£):", round2(totalHaulageCost)],
       [],
       [],
     ];
 
     const hasPallet = Object.keys(palletData).length > 0;
     const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
-    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", "Haulage (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       getOrderNumber(job) || "",
@@ -483,6 +484,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       job.vehicle_registration || "",
       job.weight_t != null ? round2(job.weight_t) : "",
       getJobCost(job) != null ? round2(getJobCost(job)!) : "",
+      getHaulageCost(job) != null ? round2(getHaulageCost(job)!) : "",
       ...(hasTotalPallets ? [totalPalletsData[job.job_number] || ""] : []),
       ...(hasPallet ? [palletData[job.job_number]?.pet || "", palletData[job.job_number]?.cans || ""] : []),
     ]);
@@ -492,7 +494,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
     ws["!cols"] = [
       { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
-      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       ...(hasTotalPallets ? [{ wch: 10 }] : []),
       ...(hasPallet ? [{ wch: 12 }, { wch: 12 }] : []),
     ];
@@ -682,6 +684,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                       <TableHead className="text-right">Cost (£)</TableHead>
+                      <TableHead className="text-right">Haulage (£)</TableHead>
                       {hasTotalPallets && <TableHead className="text-right">Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
@@ -761,6 +764,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           </TableCell>
                           <TableCell className="text-right">
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {(() => { const hc = getHaulageCost(job); return hc !== null ? `£${hc.toFixed(2)}` : "-"; })()}
                           </TableCell>
                           {hasTotalPallets && (
                             <TableCell className="text-right font-medium">
