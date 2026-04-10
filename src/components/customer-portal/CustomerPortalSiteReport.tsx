@@ -196,6 +196,53 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     }
   };
 
+  const fetchPalletData = async (jobs: JobRecord[]) => {
+    if (!jobs.length) {
+      setPalletData({});
+      return;
+    }
+    const jobNumbers = jobs.map(j => j.job_number).filter(Boolean);
+    if (!jobNumbers.length) {
+      setPalletData({});
+      return;
+    }
+
+    // Load reports store job numbers in the 'notes' field
+    const { data: reports } = await supabase
+      .from("load_reports")
+      .select("id, notes")
+      .in("notes", jobNumbers);
+
+    if (!reports || reports.length === 0) {
+      setPalletData({});
+      return;
+    }
+
+    const reportIds = reports.map(r => r.id);
+    const noteToReportId = new Map(reports.map(r => [r.notes?.trim(), r.id]));
+
+    const { data: lineItems } = await supabase
+      .from("load_line_items")
+      .select("load_report_id, waste_type, pallet_count")
+      .in("load_report_id", reportIds)
+      .in("waste_type", ["Pallets of PET", "Pallets of Cans"]);
+
+    const reportIdToJobNumber = new Map<string, string>();
+    for (const [note, reportId] of noteToReportId) {
+      if (note && reportId) reportIdToJobNumber.set(reportId, note);
+    }
+
+    const result: Record<string, { pet: number; cans: number }> = {};
+    for (const li of lineItems ?? []) {
+      const jobNum = reportIdToJobNumber.get(li.load_report_id);
+      if (!jobNum) continue;
+      if (!result[jobNum]) result[jobNum] = { pet: 0, cans: 0 };
+      if (li.waste_type === "Pallets of PET") result[jobNum].pet += li.pallet_count;
+      if (li.waste_type === "Pallets of Cans") result[jobNum].cans += li.pallet_count;
+    }
+    setPalletData(result);
+  };
+
   const generateReport = async () => {
     if (!selectedSiteId || !dateRange?.from || !dateRange?.to) return;
 
