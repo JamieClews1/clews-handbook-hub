@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,8 @@ import { SkipRoroRebateTab } from "./SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { DateRange } from "react-day-picker";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
+import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
+import { RebateReportLockControls } from "./RebateReportLockControls";
 
 type Customer = {
   id: string;
