@@ -250,6 +250,7 @@ export const StaciTallyScreen = ({
     (scrapMetalLooseOnPallets ? scrapMetalLooseCount : 0);
 
   const hasDolavData = papersDolavWeightKg > 0 || glassDolavWeightKg > 0 || cardBalesWeightKg > 0 || filmsBaleWeightKg > 0 || scrapMetalLooseWeightKg > 0;
+  const hasPalletOnlyData = palletsScrapCount > 0 || goodPalletCount > 0;
 
   const grandTotalPallets = totalPallets + onPalletsBaleDolavCount;
 
