@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
+import w1Logo from "@/assets/w1-logo.png";
 
 interface CustomerPortalLoginProps {
   onLoginSuccess: () => void;
@@ -65,7 +65,7 @@ export const CustomerPortalLogin = ({ onLoginSuccess }: CustomerPortalLoginProps
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={clewsLogo} alt="Clews Recycling" className="h-16 w-auto mx-auto mb-6" />
+          <img src={w1Logo} alt="WasteOne" className="h-16 w-auto mx-auto mb-6" />
           <div className="flex items-center justify-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
               <Building2 className="h-5 w-5 text-primary-foreground" />

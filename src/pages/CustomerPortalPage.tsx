@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
+import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
 import { CustomerPortalContactForm } from "@/components/customer-portal/CustomerPortalContactForm";
@@ -168,7 +168,7 @@ const CustomerPortalPage = () => {
                   Back
                 </Button>
               </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
             </div>
           </div>
         </header>
@@ -199,7 +199,7 @@ const CustomerPortalPage = () => {
                   Admin
                 </Button>
               </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
             </div>
           </div>
         </header>
@@ -223,7 +223,7 @@ const CustomerPortalPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
+              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
               {isAdmin && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
                   <Shield className="h-3 w-3" />
@@ -260,8 +260,8 @@ const CustomerPortalPage = () => {
         <div className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
             <div className="flex items-center gap-4 flex-1">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                <Building2 className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Customer Portal</h1>
