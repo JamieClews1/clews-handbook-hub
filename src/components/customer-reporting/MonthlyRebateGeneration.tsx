@@ -87,7 +87,8 @@ import * as XLSX from "xlsx";
    const [customerSummaries, setCustomerSummaries] = useState<CustomerRebateSummary[]>([]);
    const [generated, setGenerated] = useState(false);
    const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
-   const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
+    const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
+    const [lockedSiteIds, setLockedSiteIds] = useState<Set<string>>(new Set());
    
    // Email dialog state
    const [emailDialogOpen, setEmailDialogOpen] = useState(false);
