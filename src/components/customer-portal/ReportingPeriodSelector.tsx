@@ -59,8 +59,34 @@ export function ReportingPeriodSelector({ customerId, onDateRangeChange, dateRan
           .eq("customer_id", customerId)
           .order("display_order");
 
-        setPeriods(periodsData ?? []);
+        const loadedPeriods = periodsData ?? [];
+        setPeriods(loadedPeriods);
         setMode("period");
+
+        // Auto-select the current period based on today's date
+        if (loadedPeriods.length > 0) {
+          const today = new Date();
+          const todayStr = today.toISOString().slice(0, 10);
+          // Find the first period whose end date is >= today
+          let autoSelect = loadedPeriods.find((p) => p.period_end_date >= todayStr);
+          // Fallback to last period if all have passed
+          if (!autoSelect) autoSelect = loadedPeriods[loadedPeriods.length - 1];
+
+          setSelectedPeriodId(autoSelect.id);
+
+          const idx = loadedPeriods.findIndex((p) => p.id === autoSelect!.id);
+          let startDate: Date;
+          if (idx > 0) {
+            const prevEnd = new Date(loadedPeriods[idx - 1].period_end_date + "T00:00:00");
+            startDate = new Date(prevEnd);
+            startDate.setDate(startDate.getDate() + 1);
+          } else {
+            const endDate = new Date(autoSelect.period_end_date + "T00:00:00");
+            startDate = startOfMonth(endDate);
+          }
+          const endDate = new Date(autoSelect.period_end_date + "T00:00:00");
+          onDateRangeChange({ from: startDate, to: endDate });
+        }
       }
 
       setLoading(false);
