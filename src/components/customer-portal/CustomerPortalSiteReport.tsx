@@ -200,24 +200,37 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const fetchPalletData = async (jobs: JobRecord[]) => {
     if (!jobs.length) {
       setPalletData({});
+      setTotalPalletsData({});
       return;
     }
     const jobNumbers = jobs.map(j => j.job_number).filter(Boolean);
     if (!jobNumbers.length) {
       setPalletData({});
+      setTotalPalletsData({});
       return;
     }
 
     // Load reports store job numbers in the 'notes' field
     const { data: reports } = await supabase
       .from("load_reports")
-      .select("id, notes")
+      .select("id, notes, total_pallets")
       .in("notes", jobNumbers);
 
     if (!reports || reports.length === 0) {
       setPalletData({});
+      setTotalPalletsData({});
       return;
     }
+
+    // Build total pallets map from load reports
+    const totalPalletsMap: Record<string, number> = {};
+    for (const r of reports) {
+      const jobNum = r.notes?.trim();
+      if (jobNum && r.total_pallets > 0) {
+        totalPalletsMap[jobNum] = (totalPalletsMap[jobNum] || 0) + r.total_pallets;
+      }
+    }
+    setTotalPalletsData(totalPalletsMap);
 
     const reportIds = reports.map(r => r.id);
     const noteToReportId = new Map(reports.map(r => [r.notes?.trim(), r.id]));
