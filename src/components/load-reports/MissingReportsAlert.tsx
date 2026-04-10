@@ -78,9 +78,8 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
         if (!s.data_hub_customer) continue;
         const dhSites = [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]
           .filter((v): v is string => !!v);
-        if (dhSites.length > 0) {
-          siteMatchers.push({ customer: s.data_hub_customer, sites: dhSites });
-        }
+        // Allow customer-only matching when no sites are configured (e.g. midweigh customers)
+        siteMatchers.push({ customer: s.data_hub_customer, sites: dhSites });
       }
 
       if (siteMatchers.length === 0) {
