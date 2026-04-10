@@ -660,6 +660,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
           {(() => {
             const hasPalletData = Object.keys(palletData).length > 0;
+            const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
             return filteredJobRecords.length > 0 ? (
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 font-medium">Detailed Job Records</div>
@@ -678,6 +679,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                       <TableHead className="text-right">Cost (£)</TableHead>
+                      {hasTotalPallets && <TableHead className="text-right">Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
                     </TableRow>
