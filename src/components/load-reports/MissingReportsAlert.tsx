@@ -17,6 +17,7 @@ interface MissingJob {
   site: string | null;
   container_type: string | null;
   weight_t: number | null;
+  vehicle_registration: string | null;
   source: string;
 }
 
@@ -100,7 +101,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       for (const cust of uniqueCustomers) {
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("job_number, job_date, customer, site, container_type, source, ewc, weight_t")
+          .select("job_number, job_date, customer, site, container_type, source, ewc, weight_t, vehicle_registration")
           .eq("source", source)
           .eq("customer", cust)
           .gte("job_date", dateFrom)
@@ -172,10 +173,11 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       "Customer": job.customer || "",
       "Site": job.site || "",
       "Container Type": job.container_type || "",
+      "Vehicle Reg": job.vehicle_registration || "",
       "Weight (t)": job.weight_t != null ? (job.source === "midweigh" ? (job.weight_t / 1000).toFixed(3) : job.weight_t.toFixed(3)) : "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 12 }];
+    ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 12 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Missing Reports");
     XLSX.writeFile(wb, `missing-reports-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
