@@ -1707,6 +1707,75 @@ export type Database = {
         }
         Relationships: []
       }
+      locked_rebate_reports: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          locked_at: string
+          locked_by: string | null
+          notes: string | null
+          period_end: string
+          period_start: string
+          rebate_values_snapshot: Json
+          report_snapshot: Json
+          report_type: string
+          site_id: string | null
+          total_rebate: number | null
+          total_weight: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          notes?: string | null
+          period_end: string
+          period_start: string
+          rebate_values_snapshot?: Json
+          report_snapshot?: Json
+          report_type?: string
+          site_id?: string | null
+          total_rebate?: number | null
+          total_weight?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          rebate_values_snapshot?: Json
+          report_snapshot?: Json
+          report_type?: string
+          site_id?: string | null
+          total_rebate?: number | null
+          total_weight?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locked_rebate_reports_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locked_rebate_reports_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       midweigh_product_mappings: {
         Row: {
           created_at: string

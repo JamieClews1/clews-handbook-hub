@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,8 @@ import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
+import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
+import { RebateReportLockControls } from "@/components/customer-reporting/RebateReportLockControls";
 
 type Site = {
   id: string;
@@ -97,6 +99,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const [priceSetName, setPriceSetName] = useState("");
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
+  const rebateValuesSnapshotRef = useRef<Record<string, { lower: number; higher: number; name: string }>>({});
 
   // Get site data hub mappings for Skip/RoRo calculation
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
@@ -122,6 +125,23 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     siteDataHubMappings,
     reportGenerated ? customerId : undefined,
     selectedSite?.data_hub_customer ?? undefined
+  );
+
+  // Lock mechanism
+  const {
+    lockedReport,
+    valueChanges,
+    loading: lockLoading,
+    lockReport,
+    unlockReport,
+    dismissChanges,
+    refreshLock,
+  } = useLockedRebateReport(
+    selectedSiteId || null,
+    customerId,
+    dateRange?.from,
+    dateRange?.to,
+    "portal_rebate"
   );
 
   useEffect(() => {
@@ -275,7 +295,26 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         }
       }
 
-      // Get Load Report data for this site within date range
+      // Build rebate values snapshot for locking
+      const valSnapshot: Record<string, { lower: number; higher: number; name: string }> = {};
+      const allValueTypeItemIds = rebateConfigs
+        .map(c => c.value_type_item_id)
+        .filter((id): id is string => !!id);
+      
+      if (allValueTypeItemIds.length > 0) {
+        const { data: rebateItemsForSnapshot } = await supabase
+          .from("rebate_items")
+          .select("id, name")
+          .in("id", allValueTypeItemIds);
+        
+        for (const [itemId, vals] of Object.entries(monthlyValueMap)) {
+          const itemName = rebateItemsForSnapshot?.find(ri => ri.id === itemId)?.name || itemId;
+          valSnapshot[itemId] = { ...vals, name: itemName };
+        }
+      }
+      rebateValuesSnapshotRef.current = valSnapshot;
+
+
       const rangeStart = format(dateRange.from, "yyyy-MM-dd");
       const rangeEnd = format(dateRange.to, "yyyy-MM-dd");
       
@@ -456,6 +495,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       setIndividualReports(loadReportsWithItems);
       setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);
+      refreshLock();
     } catch (error: any) {
       console.error("Error generating report:", error);
       toast({
@@ -782,6 +822,33 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
               </Badge>
             </div>
           </div>
+
+          <RebateReportLockControls
+            lockedReport={lockedReport}
+            valueChanges={valueChanges}
+            loading={lockLoading}
+            onLock={async () => {
+              const combinedSnapshot = {
+                reportData,
+                skipRoroSummaries,
+                totalRebate: combinedTotalRebate,
+                totalWeight: combinedTotalWeight,
+              };
+              return lockReport(combinedSnapshot, rebateValuesSnapshotRef.current, combinedTotalRebate, combinedTotalWeight);
+            }}
+            onUnlock={unlockReport}
+            onDismissChanges={dismissChanges}
+            onUpdateWithNewValues={async () => {
+              await generateReport();
+              const combinedSnapshot = {
+                reportData,
+                skipRoroSummaries,
+                totalRebate: combinedTotalRebate,
+                totalWeight: combinedTotalWeight,
+              };
+              return lockReport(combinedSnapshot, rebateValuesSnapshotRef.current, combinedTotalRebate, combinedTotalWeight);
+            }}
+          />
 
           <Tabs defaultValue="total" className="w-full">
             <TabsList className="grid w-full grid-cols-3">

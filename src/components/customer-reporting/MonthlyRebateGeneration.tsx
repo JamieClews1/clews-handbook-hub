@@ -11,7 +11,7 @@
  import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
  import { Input } from "@/components/ui/input";
  import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2, Download } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2, Download, Lock } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import * as XLSX from "xlsx";
  import { cn } from "@/lib/utils";
@@ -87,7 +87,8 @@ import * as XLSX from "xlsx";
    const [customerSummaries, setCustomerSummaries] = useState<CustomerRebateSummary[]>([]);
    const [generated, setGenerated] = useState(false);
    const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
-   const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
+    const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
+    const [lockedSiteIds, setLockedSiteIds] = useState<Set<string>>(new Set());
    
    // Email dialog state
    const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -538,9 +539,21 @@ import * as XLSX from "xlsx";
  
        // Sort by total rebate descending
        summaries.sort((a, b) => b.totalRebate - a.totalRebate);
- 
-       setCustomerSummaries(summaries);
-       setGenerated(true);
+
+        // Fetch locked reports for this period
+        const lockPeriodStart = format(dateRange.from, "yyyy-MM-dd");
+        const lockPeriodEnd = format(dateRange.to, "yyyy-MM-dd");
+        const { data: lockedReports } = await supabase
+          .from("locked_rebate_reports")
+          .select("site_id")
+          .eq("period_start", lockPeriodStart)
+          .eq("period_end", lockPeriodEnd);
+        
+        const lockedIds = new Set((lockedReports ?? []).map(r => r.site_id).filter((id): id is string => !!id));
+        setLockedSiteIds(lockedIds);
+
+        setCustomerSummaries(summaries);
+        setGenerated(true);
      } catch (error: any) {
        console.error("Error generating summaries:", error);
        toast({
@@ -838,10 +851,16 @@ import * as XLSX from "xlsx";
                                  ) : (
                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                  )}
-                                 <span className="font-medium">{siteBreakdown.site.site_name}</span>
-                                 <span className="text-sm text-muted-foreground">
-                                   ({siteBreakdown.totalWeight.toFixed(2)}t)
-                                 </span>
+                                  <span className="font-medium">{siteBreakdown.site.site_name}</span>
+                                  {lockedSiteIds.has(siteBreakdown.site.id) && (
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700">
+                                      <Lock className="h-3 w-3 mr-1" />
+                                      Locked
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm text-muted-foreground">
+                                    ({siteBreakdown.totalWeight.toFixed(2)}t)
+                                  </span>
                                </div>
                                <span className={cn("font-semibold", siteBreakdown.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
                                  £{siteBreakdown.totalRebate.toFixed(2)}
