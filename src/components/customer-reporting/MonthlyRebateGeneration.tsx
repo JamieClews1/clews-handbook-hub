@@ -851,10 +851,16 @@ import * as XLSX from "xlsx";
                                  ) : (
                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                  )}
-                                 <span className="font-medium">{siteBreakdown.site.site_name}</span>
-                                 <span className="text-sm text-muted-foreground">
-                                   ({siteBreakdown.totalWeight.toFixed(2)}t)
-                                 </span>
+                                  <span className="font-medium">{siteBreakdown.site.site_name}</span>
+                                  {lockedSiteIds.has(siteBreakdown.site.id) && (
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700">
+                                      <Lock className="h-3 w-3 mr-1" />
+                                      Locked
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm text-muted-foreground">
+                                    ({siteBreakdown.totalWeight.toFixed(2)}t)
+                                  </span>
                                </div>
                                <span className={cn("font-semibold", siteBreakdown.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
                                  £{siteBreakdown.totalRebate.toFixed(2)}
