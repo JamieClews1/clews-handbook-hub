@@ -118,7 +118,25 @@ export function SiteRebateReportGenerator() {
     effectiveDataHubCustomer
   );
 
-  useEffect(() => {
+  // Lock mechanism
+  const effectiveSiteIdForLock = isCustomerMidweighMode ? null : (selectedSiteId || null);
+  const {
+    lockedReport,
+    valueChanges,
+    loading: lockLoading,
+    lockReport,
+    unlockReport,
+    dismissChanges,
+    refreshLock,
+  } = useLockedRebateReport(
+    effectiveSiteIdForLock,
+    selectedCustomerId,
+    dateRange?.from,
+    dateRange?.to,
+    "site_rebate"
+  );
+
+
     loadCustomers();
   }, []);
 
