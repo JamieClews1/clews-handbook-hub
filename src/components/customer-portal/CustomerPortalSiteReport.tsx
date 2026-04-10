@@ -89,6 +89,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [dateRange]);
   const [loading, setLoading] = useState(false);
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
+  const [palletData, setPalletData] = useState<Record<string, { pet: number; cans: number }>>({});
   const [reportGenerated, setReportGenerated] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [autoLoaded, setAutoLoaded] = useState(false);
