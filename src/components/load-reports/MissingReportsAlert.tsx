@@ -90,8 +90,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       }
 
       // 3. Determine source based on customer type
-      const usesMidweigh = ["vantiva", "amazon", "evri"].includes(customerType);
-      const source = usesMidweigh ? "midweigh" : "skiptrak";
+      const source = getWeighbridgeSource(customerType);
 
       // 4. Get all data_hub_jobs for these customers in the date range
       const uniqueCustomers = [...new Set(siteMatchers.map(m => m.customer))];
