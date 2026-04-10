@@ -759,6 +759,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           <TableCell className="text-right">
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
                           </TableCell>
+                          {hasTotalPallets && (
+                            <TableCell className="text-right font-medium">
+                              {totalPalletsData[job.job_number] || "-"}
+                            </TableCell>
+                          )}
                           {hasPalletData && (
                             <TableCell className="text-right">
                               {palletData[job.job_number]?.pet || "-"}
