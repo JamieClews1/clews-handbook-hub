@@ -136,7 +136,7 @@ export function SiteRebateReportGenerator() {
     "site_rebate"
   );
 
-
+  useEffect(() => {
     loadCustomers();
   }, []);
 
