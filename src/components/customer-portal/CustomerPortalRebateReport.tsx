@@ -144,7 +144,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     "portal_rebate"
   );
 
-
+  useEffect(() => {
     loadSites();
   }, [customerId, accessibleSiteIds]);
 
