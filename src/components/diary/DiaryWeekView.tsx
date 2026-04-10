@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { DiaryDayColumn } from "./DiaryDayColumn";
 import { DiaryWeekNote } from "./DiaryWeekNote";
 import { DiaryWeekNav } from "./DiaryWeekNav";
+import { DiaryCategoryRow } from "./DiaryCategoryRow";
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +26,39 @@ export const DIARY_CATEGORIES = [
   { key: "maintenance", label: "Maintenance", icon: "🔧" },
 ] as const;
 
+export const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+  general: {
+    bg: "bg-slate-50/50 dark:bg-slate-900/20",
+    border: "border-slate-200 dark:border-slate-700/50",
+    text: "text-slate-700 dark:text-slate-300",
+    badge: "bg-slate-200 dark:bg-slate-700",
+  },
+  drivers: {
+    bg: "bg-blue-50/50 dark:bg-blue-900/20",
+    border: "border-blue-200 dark:border-blue-700/50",
+    text: "text-blue-700 dark:text-blue-300",
+    badge: "bg-blue-200 dark:bg-blue-700",
+  },
+  loads_in: {
+    bg: "bg-emerald-50/50 dark:bg-emerald-900/20",
+    border: "border-emerald-200 dark:border-emerald-700/50",
+    text: "text-emerald-700 dark:text-emerald-300",
+    badge: "bg-emerald-200 dark:bg-emerald-700",
+  },
+  loads_out: {
+    bg: "bg-amber-50/50 dark:bg-amber-900/20",
+    border: "border-amber-200 dark:border-amber-700/50",
+    text: "text-amber-700 dark:text-amber-300",
+    badge: "bg-amber-200 dark:bg-amber-700",
+  },
+  maintenance: {
+    bg: "bg-rose-50/50 dark:bg-rose-900/20",
+    border: "border-rose-200 dark:border-rose-700/50",
+    text: "text-rose-700 dark:text-rose-300",
+    badge: "bg-rose-200 dark:bg-rose-700",
+  },
+};
+
 export interface DiaryCard {
   id: string;
   user_id: string;
@@ -37,7 +70,6 @@ export interface DiaryCard {
   category: string | null;
 }
 
-const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function getMonday(date: Date): Date {
@@ -97,10 +129,10 @@ export const DiaryWeekView = () => {
     fetchCards();
   }, [fetchCards]);
 
-  const addCard = async (dayIndex: number) => {
+  const addCard = async (dayIndex: number, category: string | null = null) => {
     if (!user) return;
     const maxOrder = cards
-      .filter((c) => c.day_of_week === dayIndex)
+      .filter((c) => c.day_of_week === dayIndex && c.category === category)
       .reduce((m, c) => Math.max(m, c.display_order), -1);
 
     const { data, error } = await supabase
@@ -112,6 +144,7 @@ export const DiaryWeekView = () => {
         content: "",
         color: "default",
         display_order: maxOrder + 1,
+        category,
       })
       .select()
       .single();
@@ -138,7 +171,7 @@ export const DiaryWeekView = () => {
   const duplicateCard = async (card: DiaryCard) => {
     if (!user) return;
     const maxOrder = cards
-      .filter((c) => c.day_of_week === card.day_of_week)
+      .filter((c) => c.day_of_week === card.day_of_week && c.category === card.category)
       .reduce((m, c) => Math.max(m, c.display_order), -1);
 
     const { data, error } = await supabase
@@ -150,6 +183,7 @@ export const DiaryWeekView = () => {
         content: card.content,
         color: card.color,
         display_order: maxOrder + 1,
+        category: card.category,
       })
       .select()
       .single();
@@ -169,23 +203,34 @@ export const DiaryWeekView = () => {
     const cardId = active.id as string;
     const overId = over.id as string;
 
-    // over.id is either a card id or "day-{index}"
+    // droppable id format: "cat-{catKey}-day-{dayIndex}" or card id
     let targetDay: number;
-    if (overId.startsWith("day-")) {
-      targetDay = parseInt(overId.split("-")[1], 10);
+    let targetCategory: string | null | undefined;
+
+    if (overId.startsWith("cat-")) {
+      const parts = overId.split("-day-");
+      targetDay = parseInt(parts[1], 10);
+      const catPart = parts[0].replace("cat-", "");
+      targetCategory = catPart === "general" ? null : catPart;
     } else {
       const overCard = cards.find((c) => c.id === overId);
       if (!overCard) return;
       targetDay = overCard.day_of_week;
+      targetCategory = overCard.category;
     }
 
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
 
-    if (card.day_of_week !== targetDay) {
-      const dayCards = cards.filter((c) => c.day_of_week === targetDay);
+    const updates: Partial<DiaryCard> = {};
+    if (card.day_of_week !== targetDay) updates.day_of_week = targetDay;
+    if (targetCategory !== undefined && card.category !== targetCategory) updates.category = targetCategory;
+
+    if (Object.keys(updates).length > 0) {
+      const dayCards = cards.filter((c) => c.day_of_week === targetDay && c.category === targetCategory);
       const maxOrder = dayCards.reduce((m, c) => Math.max(m, c.display_order), -1);
-      await updateCard(cardId, { day_of_week: targetDay, display_order: maxOrder + 1 });
+      updates.display_order = maxOrder + 1;
+      await updateCard(cardId, updates);
     }
   };
 
@@ -230,20 +275,43 @@ export const DiaryWeekView = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-7 gap-2 lg:gap-3">
-            {DAY_NAMES.map((name, i) => {
+          {/* Day headers */}
+          <div className="grid grid-cols-[120px_repeat(7,1fr)] gap-0 mb-1">
+            <div />
+            {DAY_SHORT.map((day, i) => {
               const dayDate = addDays(weekStart, i);
               const isToday = formatDate(dayDate) === formatDate(new Date());
+              const dateStr = dayDate.getDate().toString();
               return (
-                <DiaryDayColumn
-                  key={i}
-                  dayIndex={i}
-                  dayName={name}
-                  dayShort={DAY_SHORT[i]}
-                  dayDate={dayDate}
-                  isToday={isToday}
-                  cards={cards.filter((c) => c.day_of_week === i)}
-                  onAddCard={() => addCard(i)}
+                <div key={i} className="text-center pb-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{day}</p>
+                  <div
+                    className={`inline-flex items-center justify-center w-7 h-7 rounded-full mt-0.5 text-sm font-semibold ${
+                      isToday ? "bg-primary text-primary-foreground" : "text-foreground"
+                    }`}
+                  >
+                    {dateStr}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Category rows */}
+          <div className="space-y-3">
+            {DIARY_CATEGORIES.map((cat) => {
+              const catKey = cat.key ?? "general";
+              const colorClasses = CATEGORY_COLORS[catKey];
+              const catCards = cards.filter((c) => (c.category ?? "general") === catKey || (c.category === null && catKey === "general"));
+              return (
+                <DiaryCategoryRow
+                  key={catKey}
+                  categoryKey={cat.key}
+                  categoryLabel={cat.label}
+                  colorClasses={colorClasses}
+                  weekStart={weekStart}
+                  cards={catCards}
+                  onAddCard={addCard}
                   onUpdateCard={updateCard}
                   onDeleteCard={deleteCard}
                   onDuplicateCard={duplicateCard}
@@ -251,6 +319,7 @@ export const DiaryWeekView = () => {
               );
             })}
           </div>
+
           <DragOverlay>
             {activeCard ? (
               <div className="bg-card rounded-lg p-3 shadow-lg border border-border/50 opacity-90 rotate-2 max-w-[180px]">
