@@ -341,16 +341,19 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
-  const getJobCost = (job: JobRecord): number | null => {
+  const getRawNumber = (job: JobRecord, key: string): number | null => {
     const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
-    const cost = rawObj?.Cost;
-    if (typeof cost === "number") return cost;
-    if (typeof cost === "string") {
-      const parsed = parseFloat(cost);
+    const val = rawObj?.[key];
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+      const parsed = parseFloat(val);
       return isNaN(parsed) ? null : parsed;
     }
     return null;
   };
+
+  const getJobCost = (job: JobRecord): number | null => getRawNumber(job, "Cost");
+  const getHaulageCost = (job: JobRecord): number | null => getRawNumber(job, "Haulage Cost");
 
   const getOrderNumber = (job: JobRecord): string | null => {
     // Prefer override value if set
