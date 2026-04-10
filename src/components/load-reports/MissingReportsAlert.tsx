@@ -98,7 +98,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       for (const cust of uniqueCustomers) {
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("job_number, job_date, customer, site, container_type, source")
+          .select("job_number, job_date, customer, site, container_type, source, ewc")
           .eq("source", source)
           .eq("customer", cust)
           .gte("job_date", dateFrom)
