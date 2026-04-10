@@ -64,9 +64,7 @@ export function AppSidebar() {
         <div className="px-4 py-3 mb-2">
           {!collapsed ? (
             <Link to="/portal" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-                <span className="text-sidebar-primary-foreground font-bold text-sm">W1</span>
-              </div>
+              <img src="/logo.png" alt="W1" className="w-8 h-8 rounded-lg" />
               <div>
                 <span className="font-bold text-sidebar-foreground text-lg tracking-tight">WasteOne</span>
                 <span className="block text-[10px] text-sidebar-foreground/50 -mt-1 tracking-widest uppercase">Platform</span>
@@ -74,9 +72,7 @@ export function AppSidebar() {
             </Link>
           ) : (
             <Link to="/portal" className="flex justify-center">
-              <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-                <span className="text-sidebar-primary-foreground font-bold text-sm">W1</span>
-              </div>
+              <img src="/logo.png" alt="W1" className="w-8 h-8 rounded-lg" />
             </Link>
           )}
         </div>
