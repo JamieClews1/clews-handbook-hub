@@ -295,7 +295,26 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         }
       }
 
-      // Get Load Report data for this site within date range
+      // Build rebate values snapshot for locking
+      const valSnapshot: Record<string, { lower: number; higher: number; name: string }> = {};
+      const allValueTypeItemIds = rebateConfigs
+        .map(c => c.value_type_item_id)
+        .filter((id): id is string => !!id);
+      
+      if (allValueTypeItemIds.length > 0) {
+        const { data: rebateItemsForSnapshot } = await supabase
+          .from("rebate_items")
+          .select("id, name")
+          .in("id", allValueTypeItemIds);
+        
+        for (const [itemId, vals] of Object.entries(monthlyValueMap)) {
+          const itemName = rebateItemsForSnapshot?.find(ri => ri.id === itemId)?.name || itemId;
+          valSnapshot[itemId] = { ...vals, name: itemName };
+        }
+      }
+      rebateValuesSnapshotRef.current = valSnapshot;
+
+
       const rangeStart = format(dateRange.from, "yyyy-MM-dd");
       const rangeEnd = format(dateRange.to, "yyyy-MM-dd");
       
