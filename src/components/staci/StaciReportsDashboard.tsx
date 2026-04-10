@@ -743,35 +743,25 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Job #</th>
                         <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Loads</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate/Load</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total (£)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Cost (£)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {haulageData.artic.loads > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Artic</td>
-                          <td className="py-1.5 px-3 text-right">{haulageData.artic.loads}</td>
-                          <td className="py-1.5 px-3 text-right">£{haulageData.artic.rate.toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right font-medium">£{haulageData.artic.totalCost.toFixed(2)}</td>
+                      {haulageData.jobs.map((job, idx) => (
+                        <tr key={`${job.jobNumber}-${idx}`} className="border-b border-border/50">
+                          <td className="py-1.5 px-3">{job.jobDate ? format(new Date(job.jobDate), "dd/MM/yyyy") : "-"}</td>
+                          <td className="py-1.5 px-3">{job.jobNumber}</td>
+                          <td className="py-1.5 px-3">{job.type === 'pickup' ? 'Pickup / Dolav' : 'Artic'}</td>
+                          <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
                         </tr>
-                      )}
-                      {haulageData.pickup.loads > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Pickup / Dolav Box</td>
-                          <td className="py-1.5 px-3 text-right">{haulageData.pickup.loads}</td>
-                          <td className="py-1.5 px-3 text-right">£{haulageData.pickup.rate.toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right font-medium">£{haulageData.pickup.totalCost.toFixed(2)}</td>
-                        </tr>
-                      )}
+                      ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
-                        <td className="py-2 px-3">Total</td>
-                        <td className="py-2 px-3 text-right">{haulageData.totalLoads}</td>
-                        <td className="py-2 px-3 text-right" />
+                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.totalLoads} loads)</td>
                         <td className="py-2 px-3 text-right">£{haulageData.totalCost.toFixed(2)}</td>
                       </tr>
                     </tfoot>
