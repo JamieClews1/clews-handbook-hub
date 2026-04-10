@@ -76,6 +76,31 @@ export const NewLoadForm = ({
   isDeleting = false,
 }: NewLoadFormProps) => {
   const isMobile = useIsMobile();
+  const [frequentVehicles, setFrequentVehicles] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchFrequentVehicles = async () => {
+      const { data } = await supabase
+        .from("load_reports")
+        .select("vehicle_reg")
+        .not("vehicle_reg", "is", null)
+        .neq("vehicle_reg", "");
+      
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach((r) => {
+          const reg = (r.vehicle_reg || "").toUpperCase().trim();
+          if (reg) counts[reg] = (counts[reg] || 0) + 1;
+        });
+        const sorted = Object.entries(counts)
+          .filter(([, c]) => c >= 2)
+          .sort((a, b) => b[1] - a[1])
+          .map(([reg]) => reg);
+        setFrequentVehicles(sorted);
+      }
+    };
+    fetchFrequentVehicles();
+  }, []);
 
   return (
     <div className="space-y-6">
