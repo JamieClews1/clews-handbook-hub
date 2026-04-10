@@ -471,7 +471,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
     const hasPallet = Object.keys(palletData).length > 0;
     const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
-    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", "Haulage (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       getOrderNumber(job) || "",
@@ -483,6 +483,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       job.vehicle_registration || "",
       job.weight_t != null ? round2(job.weight_t) : "",
       getJobCost(job) != null ? round2(getJobCost(job)!) : "",
+      getHaulageCost(job) != null ? round2(getHaulageCost(job)!) : "",
       ...(hasTotalPallets ? [totalPalletsData[job.job_number] || ""] : []),
       ...(hasPallet ? [palletData[job.job_number]?.pet || "", palletData[job.job_number]?.cans || ""] : []),
     ]);
@@ -682,6 +683,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
                       <TableHead className="text-right">Cost (£)</TableHead>
+                      <TableHead className="text-right">Haulage (£)</TableHead>
                       {hasTotalPallets && <TableHead className="text-right">Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
@@ -761,6 +763,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           </TableCell>
                           <TableCell className="text-right">
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {(() => { const hc = getHaulageCost(job); return hc !== null ? `£${hc.toFixed(2)}` : "-"; })()}
                           </TableCell>
                           {hasTotalPallets && (
                             <TableCell className="text-right font-medium">
