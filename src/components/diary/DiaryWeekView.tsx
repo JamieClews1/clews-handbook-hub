@@ -18,6 +18,14 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DiaryMobileListView } from "./DiaryMobileListView";
 
+export const DIARY_CATEGORIES = [
+  { key: null, label: "General", icon: "📝" },
+  { key: "drivers", label: "Drivers", icon: "🚛" },
+  { key: "loads_in", label: "Loads In", icon: "📥" },
+  { key: "loads_out", label: "Loads Out", icon: "📤" },
+  { key: "maintenance", label: "Maintenance", icon: "🔧" },
+] as const;
+
 export interface DiaryCard {
   id: string;
   user_id: string;
@@ -26,6 +34,7 @@ export interface DiaryCard {
   content: string;
   color: string;
   display_order: number;
+  category: string | null;
 }
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
