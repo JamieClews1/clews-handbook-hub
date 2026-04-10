@@ -125,7 +125,7 @@ export const CustomerPortalLogin = ({ onLoginSuccess }: CustomerPortalLoginProps
 
             <div className="mt-6 pt-4 border-t border-border/50">
               <p className="text-xs text-muted-foreground text-center">
-                Need access? Contact your account manager at Clews Recycling.
+                Need access? Contact your account manager at WasteOne.
               </p>
             </div>
           </CardContent>
