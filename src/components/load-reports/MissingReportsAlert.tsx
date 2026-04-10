@@ -128,6 +128,8 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
 
         return siteMatchers.some(m => {
           if (m.customer.toLowerCase() !== (job.customer ?? "").toLowerCase()) return false;
+          // If no sites configured, match on customer name only
+          if (m.sites.length === 0) return true;
           return m.sites.some(s => s.toLowerCase() === (job.site ?? "").toLowerCase());
         });
       });
