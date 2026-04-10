@@ -200,18 +200,20 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const { data: hjData } = customerId
           ? await supabase
               .from("data_hub_jobs")
-              .select("job_number, raw, container_type")
+              .select("job_number, job_date, raw, container_type")
               .eq("customer", dataHubCustomerName!)
               .eq("source", "skiptrak")
               .gte("job_date", from)
               .lte("job_date", to)
+              .order("job_date", { ascending: true })
           : await supabase
               .from("data_hub_jobs")
-              .select("job_number, raw, container_type")
+              .select("job_number, job_date, raw, container_type")
               .ilike("customer", "%staci%")
               .eq("source", "skiptrak")
               .gte("job_date", from)
-              .lte("job_date", to);
+              .lte("job_date", to)
+              .order("job_date", { ascending: true });
         haulageJobs = hjData ?? [];
       }
 
