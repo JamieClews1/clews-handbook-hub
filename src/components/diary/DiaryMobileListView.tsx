@@ -1,22 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, Trash2, Copy, Check } from "lucide-react";
 import type { DiaryCard } from "./DiaryWeekView";
-import { DIARY_CATEGORIES } from "./DiaryWeekView";
+import { DIARY_CATEGORIES, CATEGORY_COLORS } from "./DiaryWeekView";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const COLOR_OPTIONS = [
-  { key: "default", class: "bg-card" },
-  { key: "rose", class: "bg-rose-50 dark:bg-rose-950/30" },
-  { key: "amber", class: "bg-amber-50 dark:bg-amber-950/30" },
-  { key: "emerald", class: "bg-emerald-50 dark:bg-emerald-950/30" },
-  { key: "sky", class: "bg-sky-50 dark:bg-sky-950/30" },
-  { key: "violet", class: "bg-violet-50 dark:bg-violet-950/30" },
-];
-
-function getColorClass(color: string): string {
-  return COLOR_OPTIONS.find((c) => c.key === color)?.class || "";
-}
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -61,13 +48,8 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
     if (card.content || inputRef.current?.value) setIsEditing(false);
   };
 
-  const colorClass = getColorClass(card.color);
-
-  const categoryInfo = DIARY_CATEGORIES.find((c) => c.key === card.category) ?? DIARY_CATEGORIES[0];
-
   return (
-    <div className={`group flex items-center gap-3 py-3 border-b border-border/30 last:border-b-0 ${colorClass} px-1 -mx-1 rounded`}>
-      <span className="shrink-0 text-base" title={categoryInfo.label}>{categoryInfo.icon}</span>
+    <div className="group flex items-center gap-3 py-3 border-b border-border/30 last:border-b-0 px-1 -mx-1 rounded">
       <div className="flex-1 min-w-0">
         {isEditing ? (
           <input
@@ -88,7 +70,6 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
         <button
           onClick={() => onDuplicate(card)}
@@ -103,11 +84,6 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
           <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
       </div>
-
-      {/* Completion circle (decorative, like the reference) */}
-      <button className="shrink-0 w-7 h-7 rounded-full border-2 border-muted-foreground/20 flex items-center justify-center hover:border-primary/50 transition-colors">
-        <Check className="h-3.5 w-3.5 text-muted-foreground/30" />
-      </button>
     </div>
   );
 };
@@ -115,7 +91,7 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
 interface DiaryMobileListViewProps {
   weekStart: Date;
   cards: DiaryCard[];
-  onAddCard: (dayIndex: number) => void;
+  onAddCard: (dayIndex: number, category?: string | null) => void;
   onUpdateCard: (id: string, updates: Partial<DiaryCard>) => void;
   onDeleteCard: (id: string) => void;
   onDuplicateCard: (card: DiaryCard) => void;
@@ -134,9 +110,6 @@ export const DiaryMobileListView = ({
       {Array.from({ length: 7 }, (_, i) => {
         const dayDate = addDays(weekStart, i);
         const isToday = formatDate(dayDate) === formatDate(new Date());
-        const dayCards = cards
-          .filter((c) => c.day_of_week === i)
-          .sort((a, b) => a.display_order - b.display_order);
 
         const dateLabel = dayDate.toLocaleDateString("en-GB", {
           day: "numeric",
@@ -156,27 +129,40 @@ export const DiaryMobileListView = ({
             </div>
             <div className={`h-px w-full mb-2 ${isToday ? "bg-primary" : "bg-border"}`} />
 
-            {/* Cards */}
-            <div>
-              {dayCards.map((card) => (
-                <MobileCard
-                  key={card.id}
-                  card={card}
-                  onUpdate={onUpdateCard}
-                  onDelete={onDeleteCard}
-                  onDuplicate={onDuplicateCard}
-                />
-              ))}
-            </div>
+            {/* Category sections */}
+            {DIARY_CATEGORIES.map((cat) => {
+              const catKey = cat.key ?? "general";
+              const colorClasses = CATEGORY_COLORS[catKey];
+              const catCards = cards
+                .filter((c) => c.day_of_week === i && (c.category ?? "general") === catKey || (c.category === null && catKey === "general" && c.day_of_week === i))
+                .sort((a, b) => a.display_order - b.display_order);
 
-            {/* Add button */}
-            <button
-              onClick={() => onAddCard(i)}
-              className="flex items-center gap-2 py-2 text-muted-foreground/40 hover:text-muted-foreground text-sm transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add</span>
-            </button>
+              // Deduplicate
+              const uniqueCards = [...new Map(catCards.map(c => [c.id, c])).values()];
+
+              return (
+                <div key={catKey} className={`rounded-lg ${colorClasses.bg} border ${colorClasses.border} p-2 mb-2`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-xs font-semibold ${colorClasses.text}`}>{cat.label}</span>
+                    <button
+                      onClick={() => onAddCard(i, cat.key)}
+                      className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {uniqueCards.map((card) => (
+                    <MobileCard
+                      key={card.id}
+                      card={card}
+                      onUpdate={onUpdateCard}
+                      onDelete={onDeleteCard}
+                      onDuplicate={onDuplicateCard}
+                    />
+                  ))}
+                </div>
+              );
+            })}
           </div>
         );
       })}
