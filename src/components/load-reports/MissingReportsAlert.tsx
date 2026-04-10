@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Download } from "lucide-react";
 import { format, subMonths, startOfMonth } from "date-fns";
+import * as XLSX from "xlsx";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -157,6 +159,21 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
     }
   };
 
+  const exportMissingToExcel = () => {
+    const rows = missingJobs.map((job) => ({
+      "Job Number": job.job_number,
+      "Date": job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+      "Customer": job.customer || "",
+      "Site": job.site || "",
+      "Container Type": job.container_type || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 18 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Missing Reports");
+    XLSX.writeFile(wb, `missing-reports-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  };
+
   if (loading || missingJobs.length === 0) return null;
 
   return (
@@ -178,9 +195,15 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0">
-            <p className="text-sm text-orange-600 dark:text-orange-400 mb-3">
-              These jobs have no load report but belong to customers with rebate setups.
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm text-orange-600 dark:text-orange-400">
+                These jobs have no load report but belong to customers with rebate setups.
+              </p>
+              <Button variant="outline" size="sm" onClick={exportMissingToExcel} className="gap-1.5 shrink-0 ml-3">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
