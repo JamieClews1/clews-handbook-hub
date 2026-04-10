@@ -46,6 +46,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [reports, setReports] = useState<LoadReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilterEnabled, setDateFilterEnabled] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -55,7 +56,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
   useEffect(() => {
     fetchReports();
-  }, [dateFrom, dateTo, customerType]);
+  }, [dateFrom, dateTo, customerType, dateFilterEnabled]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -83,9 +84,13 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       let query = supabase
         .from("load_reports")
         .select("*, customer_sites(site_name, customers(customer_name))")
-        .gte("report_date", dateFrom)
-        .lte("report_date", dateTo)
         .order("report_date", { ascending: false });
+
+      if (dateFilterEnabled) {
+        query = query.gte("report_date", dateFrom).lte("report_date", dateTo);
+      } else {
+        query = query.limit(30);
+      }
 
       // Filter by site_ids if we have a customer type selected
       if (customerType && siteIds.length > 0) {
@@ -258,26 +263,43 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               className="pl-10 h-12"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">From</label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="h-10"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">To</label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="h-10"
-              />
-            </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="dateFilterToggle"
+              checked={dateFilterEnabled}
+              onChange={(e) => setDateFilterEnabled(e.target.checked)}
+              className="rounded border-input"
+            />
+            <label htmlFor="dateFilterToggle" className="text-sm text-muted-foreground cursor-pointer">
+              Filter by date range
+            </label>
           </div>
+          {dateFilterEnabled && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">From</label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">To</label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          )}
+          {!dateFilterEnabled && (
+            <p className="text-xs text-muted-foreground">Showing last 30 reports</p>
+          )}
         </CardContent>
       </Card>
 
