@@ -318,6 +318,27 @@ export function SiteRebateReportGenerator() {
             }
           }
 
+          // Build rebate values snapshot for locking
+          const valSnapshot: Record<string, { lower: number; higher: number; name: string }> = {};
+          // Get rebate item names for the snapshot
+          const allValueTypeItemIds = rebateConfigs
+            .map(c => c.value_type_item_id)
+            .filter((id): id is string => !!id);
+          
+          if (allValueTypeItemIds.length > 0) {
+            const { data: rebateItemsForSnapshot } = await supabase
+              .from("rebate_items")
+              .select("id, name")
+              .in("id", allValueTypeItemIds);
+            
+            for (const [itemId, vals] of Object.entries(monthlyValueMap)) {
+              const itemName = rebateItemsForSnapshot?.find(ri => ri.id === itemId)?.name || itemId;
+              valSnapshot[itemId] = { ...vals, name: itemName };
+            }
+          }
+          rebateValuesSnapshotRef.current = valSnapshot;
+
+
           // Get Load Report data for this site within the date range
           const periodStart = format(rangeStart, "yyyy-MM-dd");
           const periodEnd = format(rangeEnd, "yyyy-MM-dd");
