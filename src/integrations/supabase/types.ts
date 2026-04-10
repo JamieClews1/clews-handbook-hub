@@ -1046,6 +1046,7 @@ export type Database = {
       }
       diary_cards: {
         Row: {
+          category: string | null
           color: string | null
           content: string
           created_at: string
@@ -1057,6 +1058,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          category?: string | null
           color?: string | null
           content?: string
           created_at?: string
@@ -1068,6 +1070,7 @@ export type Database = {
           week_start: string
         }
         Update: {
+          category?: string | null
           color?: string | null
           content?: string
           created_at?: string
