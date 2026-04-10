@@ -16,6 +16,7 @@ interface MissingJob {
   customer: string | null;
   site: string | null;
   container_type: string | null;
+  weight_t: number | null;
   source: string;
 }
 
