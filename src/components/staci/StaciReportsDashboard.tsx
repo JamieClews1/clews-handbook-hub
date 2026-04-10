@@ -220,11 +220,14 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       if (haulageJobs.length > 0) {
         let articLoads = 0, articCost = 0;
         let pickupLoads = 0, pickupCost = 0;
+        const jobsList: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }> = [];
         haulageJobs.forEach((j: any) => {
           const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
           if (isNaN(cost)) return;
           const ct = (j.container_type ?? j.raw?.["Container Type"] ?? "").toLowerCase();
           const isPickup = ct.includes("dolav") || ct.includes("pickup") || ct.includes("box");
+          const type = isPickup ? 'pickup' as const : 'artic' as const;
+          jobsList.push({ jobNumber: j.job_number, jobDate: j.job_date ?? "", containerType: j.container_type ?? "", cost, type });
           if (isPickup) { pickupLoads++; pickupCost += cost; }
           else { articLoads++; articCost += cost; }
         });
@@ -233,9 +236,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
           pickup: { loads: pickupLoads, totalCost: pickupCost, rate: pickupLoads > 0 ? pickupCost / pickupLoads : 15 },
           totalLoads: articLoads + pickupLoads,
           totalCost: articCost + pickupCost,
+          jobs: jobsList,
         });
       } else {
-        setHaulageData({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
+        setHaulageData({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0, jobs: [] });
       }
 
       const { data: ratesData } = await supabase
