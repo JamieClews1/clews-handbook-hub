@@ -105,7 +105,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
           .gte("job_date", dateFrom)
           .lte("job_date", dateTo)
           .order("job_date", { ascending: false })
-          .limit(500);
+          .limit(1000);
 
         if (jobs) allJobs = [...allJobs, ...jobs];
       }
