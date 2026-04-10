@@ -247,6 +247,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       setJobRecords(jobs ?? []);
       setReportGenerated(true);
+
+      // Fetch PET/Cans pallet counts from load reports
+      await fetchPalletData(jobs ?? []);
     } catch (error) {
       console.error("Error generating report:", error);
     } finally {
