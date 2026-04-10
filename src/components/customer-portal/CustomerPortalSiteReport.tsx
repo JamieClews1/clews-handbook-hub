@@ -455,7 +455,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       [],
     ];
 
-    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)"];
+    const hasPallet = Object.keys(palletData).length > 0;
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       getOrderNumber(job) || "",
@@ -467,6 +468,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       job.vehicle_registration || "",
       job.weight_t != null ? round2(job.weight_t) : "",
       getJobCost(job) != null ? round2(getJobCost(job)!) : "",
+      ...(hasPallet ? [palletData[job.job_number]?.pet || "", palletData[job.job_number]?.cans || ""] : []),
     ]);
 
     const wsData = [...headerData, detailHeaders, ...detailData];
@@ -475,6 +477,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     ws["!cols"] = [
       { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
       { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      ...(hasPallet ? [{ wch: 12 }, { wch: 12 }] : []),
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, "Site Report");
