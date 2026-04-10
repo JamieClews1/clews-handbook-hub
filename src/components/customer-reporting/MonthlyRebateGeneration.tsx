@@ -539,9 +539,21 @@ import * as XLSX from "xlsx";
  
        // Sort by total rebate descending
        summaries.sort((a, b) => b.totalRebate - a.totalRebate);
- 
-       setCustomerSummaries(summaries);
-       setGenerated(true);
+
+        // Fetch locked reports for this period
+        const periodStart = format(dateRange.from, "yyyy-MM-dd");
+        const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+        const { data: lockedReports } = await supabase
+          .from("locked_rebate_reports")
+          .select("site_id")
+          .eq("period_start", periodStart)
+          .eq("period_end", periodEnd);
+        
+        const lockedIds = new Set((lockedReports ?? []).map(r => r.site_id).filter((id): id is string => !!id));
+        setLockedSiteIds(lockedIds);
+
+        setCustomerSummaries(summaries);
+        setGenerated(true);
      } catch (error: any) {
        console.error("Error generating summaries:", error);
        toast({
