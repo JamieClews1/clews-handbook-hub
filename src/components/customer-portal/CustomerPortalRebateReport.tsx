@@ -850,7 +850,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
             }}
           />
 
-
+          <Tabs defaultValue="total" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="total">Total</TabsTrigger>
               <TabsTrigger value="load-reports">Load Reports</TabsTrigger>
