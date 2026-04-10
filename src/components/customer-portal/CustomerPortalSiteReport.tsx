@@ -333,11 +333,6 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     );
   }, [jobRecords, selectedWasteTypes]);
 
-  const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
-  const totalCost = filteredJobRecords.reduce((sum, r) => sum + (getJobCost(r) || 0), 0);
-  const totalHaulageCost = filteredJobRecords.reduce((sum, r) => sum + (getHaulageCost(r) || 0), 0);
-  const selectedSite = sites.find((s) => s.id === selectedSiteId);
-
   const getRawNumber = (job: JobRecord, key: string): number | null => {
     const rawObj = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
     const val = rawObj?.[key];
@@ -351,6 +346,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
   const getJobCost = (job: JobRecord): number | null => getRawNumber(job, "Cost");
   const getHaulageCost = (job: JobRecord): number | null => getRawNumber(job, "Haulage Cost");
+
+  const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
+  const totalCost = filteredJobRecords.reduce((sum, r) => sum + (getJobCost(r) || 0), 0);
+  const totalHaulageCost = filteredJobRecords.reduce((sum, r) => sum + (getHaulageCost(r) || 0), 0);
+  const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
   const getOrderNumber = (job: JobRecord): string | null => {
     // Prefer override value if set
