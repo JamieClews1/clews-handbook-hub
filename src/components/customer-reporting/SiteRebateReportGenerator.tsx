@@ -79,6 +79,7 @@ export function SiteRebateReportGenerator() {
   const [priceSetName, setPriceSetName] = useState("");
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
+  const rebateValuesSnapshotRef = useRef<Record<string, { lower: number; higher: number; name: string }>>({});
 
   // Check if "Customer Midweigh" virtual option is selected
   const isCustomerMidweighMode = selectedSiteId === "__CUSTOMER_MIDWEIGH__";
