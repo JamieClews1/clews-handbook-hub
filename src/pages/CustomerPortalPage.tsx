@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
+import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
 import { CustomerPortalContactForm } from "@/components/customer-portal/CustomerPortalContactForm";
