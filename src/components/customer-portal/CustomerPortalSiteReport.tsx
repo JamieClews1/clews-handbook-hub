@@ -334,11 +334,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [jobRecords, selectedWasteTypes]);
 
   const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
-  const totalCost = filteredJobRecords.reduce((sum, r) => {
-    const rawObj = r.raw && typeof r.raw === "object" && !Array.isArray(r.raw) ? (r.raw as Record<string, unknown>) : null;
-    const cost = rawObj?.Cost;
-    return sum + (typeof cost === "number" ? cost : typeof cost === "string" ? parseFloat(cost) || 0 : 0);
-  }, 0);
+  const totalCost = filteredJobRecords.reduce((sum, r) => sum + (getJobCost(r) || 0), 0);
+  const totalHaulageCost = filteredJobRecords.reduce((sum, r) => sum + (getHaulageCost(r) || 0), 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
   const getRawNumber = (job: JobRecord, key: string): number | null => {
