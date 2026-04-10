@@ -83,7 +83,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     pickup: { loads: number; totalCost: number; rate: number };
     totalLoads: number;
     totalCost: number;
-  }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
+    jobs: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }>;
+  }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0, jobs: [] });
 
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
   const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
@@ -199,29 +200,34 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const { data: hjData } = customerId
           ? await supabase
               .from("data_hub_jobs")
-              .select("job_number, raw, container_type")
+              .select("job_number, job_date, raw, container_type")
               .eq("customer", dataHubCustomerName!)
               .eq("source", "skiptrak")
               .gte("job_date", from)
               .lte("job_date", to)
+              .order("job_date", { ascending: true })
           : await supabase
               .from("data_hub_jobs")
-              .select("job_number, raw, container_type")
+              .select("job_number, job_date, raw, container_type")
               .ilike("customer", "%staci%")
               .eq("source", "skiptrak")
               .gte("job_date", from)
-              .lte("job_date", to);
+              .lte("job_date", to)
+              .order("job_date", { ascending: true });
         haulageJobs = hjData ?? [];
       }
 
       if (haulageJobs.length > 0) {
         let articLoads = 0, articCost = 0;
         let pickupLoads = 0, pickupCost = 0;
+        const jobsList: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }> = [];
         haulageJobs.forEach((j: any) => {
           const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
           if (isNaN(cost)) return;
           const ct = (j.container_type ?? j.raw?.["Container Type"] ?? "").toLowerCase();
           const isPickup = ct.includes("dolav") || ct.includes("pickup") || ct.includes("box");
+          const type = isPickup ? 'pickup' as const : 'artic' as const;
+          jobsList.push({ jobNumber: j.job_number, jobDate: j.job_date ?? "", containerType: j.container_type ?? "", cost, type });
           if (isPickup) { pickupLoads++; pickupCost += cost; }
           else { articLoads++; articCost += cost; }
         });
@@ -230,9 +236,10 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
           pickup: { loads: pickupLoads, totalCost: pickupCost, rate: pickupLoads > 0 ? pickupCost / pickupLoads : 15 },
           totalLoads: articLoads + pickupLoads,
           totalCost: articCost + pickupCost,
+          jobs: jobsList,
         });
       } else {
-        setHaulageData({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0 });
+        setHaulageData({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0, jobs: [] });
       }
 
       const { data: ratesData } = await supabase
@@ -736,35 +743,25 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Job #</th>
                         <th className="text-left py-2 px-3 font-medium text-muted-foreground">Type</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Loads</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate/Load</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Total (£)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Cost (£)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {haulageData.artic.loads > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Artic</td>
-                          <td className="py-1.5 px-3 text-right">{haulageData.artic.loads}</td>
-                          <td className="py-1.5 px-3 text-right">£{haulageData.artic.rate.toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right font-medium">£{haulageData.artic.totalCost.toFixed(2)}</td>
+                      {haulageData.jobs.map((job, idx) => (
+                        <tr key={`${job.jobNumber}-${idx}`} className="border-b border-border/50">
+                          <td className="py-1.5 px-3">{job.jobDate ? format(new Date(job.jobDate), "dd/MM/yyyy") : "-"}</td>
+                          <td className="py-1.5 px-3">{job.jobNumber}</td>
+                          <td className="py-1.5 px-3">{job.type === 'pickup' ? 'Pickup / Dolav' : 'Artic'}</td>
+                          <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
                         </tr>
-                      )}
-                      {haulageData.pickup.loads > 0 && (
-                        <tr className="border-b border-border/50">
-                          <td className="py-1.5 px-3">Pickup / Dolav Box</td>
-                          <td className="py-1.5 px-3 text-right">{haulageData.pickup.loads}</td>
-                          <td className="py-1.5 px-3 text-right">£{haulageData.pickup.rate.toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right font-medium">£{haulageData.pickup.totalCost.toFixed(2)}</td>
-                        </tr>
-                      )}
+                      ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
-                        <td className="py-2 px-3">Total</td>
-                        <td className="py-2 px-3 text-right">{haulageData.totalLoads}</td>
-                        <td className="py-2 px-3 text-right" />
+                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.totalLoads} loads)</td>
                         <td className="py-2 px-3 text-right">£{haulageData.totalCost.toFixed(2)}</td>
                       </tr>
                     </tfoot>
