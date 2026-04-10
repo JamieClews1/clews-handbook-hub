@@ -159,6 +159,21 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
     }
   };
 
+  const exportMissingToExcel = () => {
+    const rows = missingJobs.map((job) => ({
+      "Job Number": job.job_number,
+      "Date": job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+      "Customer": job.customer || "",
+      "Site": job.site || "",
+      "Container Type": job.container_type || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 18 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Missing Reports");
+    XLSX.writeFile(wb, `missing-reports-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  };
+
   if (loading || missingJobs.length === 0) return null;
 
   return (
