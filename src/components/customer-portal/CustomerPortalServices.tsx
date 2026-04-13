@@ -66,7 +66,7 @@ type RequestType = "new" | "exchange" | "collection";
 export const CustomerPortalServices = ({ customerId, customerName, accessibleSiteIds }: Props) => {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [sites, setSites] = useState<{ id: string; site_name: string; data_hub_site: string | null; data_hub_customer: string | null }[]>([]);
+  const [sites, setSites] = useState<{ id: string; site_name: string; data_hub_site: string | null; data_hub_site_2: string | null; data_hub_site_3: string | null; data_hub_site_4: string | null; data_hub_site_5: string | null; data_hub_customer: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [onSiteContainers, setOnSiteContainers] = useState<OnSiteContainer[]>([]);
   const [loadingOnSite, setLoadingOnSite] = useState(true);
@@ -98,7 +98,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     setLoadingOnSite(true);
 
     // Load accessible sites
-    let siteQuery = supabase.from("customer_sites").select("id, site_name, data_hub_site, data_hub_customer").eq("customer_id", customerId);
+    let siteQuery = supabase.from("customer_sites").select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, data_hub_customer").eq("customer_id", customerId);
     if (accessibleSiteIds && accessibleSiteIds.length > 0) {
       siteQuery = siteQuery.in("id", accessibleSiteIds);
     }
@@ -132,7 +132,10 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     const siteAliases: { siteName: string; dataHubNames: string[] }[] = [];
     for (const s of loadedSites) {
       const names: string[] = [];
-      if (s.data_hub_site) names.push(s.data_hub_site);
+      // Include all data_hub_site fields (up to 5 aliases per site)
+      for (const field of [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]) {
+        if (field && !names.includes(field)) names.push(field);
+      }
       // Also try site_name as fallback
       if (!names.includes(s.site_name)) names.push(s.site_name);
       if (names.length > 0) siteAliases.push({ siteName: s.site_name, dataHubNames: names });
