@@ -229,7 +229,20 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       b.collection_date && b.collection_date >= today &&
       !["completed", "cancelled"].includes(b.status)
     ).sort((a, b) => (a.collection_date || "").localeCompare(b.collection_date || ""));
-  }, [bookings]);
+  }, [bookings, siteFilter, sites]);
+
+  const filteredOnSite = useMemo(() => {
+    if (siteFilter === "all") return onSiteContainers;
+    const siteName = sites.find(s => s.id === siteFilter)?.site_name;
+    if (!siteName) return onSiteContainers;
+    return onSiteContainers.filter(c => c.siteName === siteName);
+  }, [onSiteContainers, siteFilter, sites]);
+
+  const filteredBookingsHistory = useMemo(() => {
+    const nonUpcoming = bookings.filter(b => !upcomingBookings.includes(b));
+    if (siteFilter === "all") return nonUpcoming;
+    return nonUpcoming.filter(b => b.site_id === siteFilter);
+  }, [bookings, upcomingBookings, siteFilter]);
 
   const openRequestDialog = (type: RequestType, site?: string, container?: string) => {
     setRequestType(type);
