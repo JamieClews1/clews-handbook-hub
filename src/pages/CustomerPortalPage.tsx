@@ -293,7 +293,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 2 : 4;
+            const tabCount = isStaciCustomer ? 3 : 5;
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
             <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
@@ -318,6 +318,11 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="bookings" className="flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Bookings</span>
+                <span className="sm:hidden">Book</span>
+              </TabsTrigger>
               <TabsTrigger value="contact" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 <span className="hidden sm:inline">Contact Us</span>
