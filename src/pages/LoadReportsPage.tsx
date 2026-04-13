@@ -116,13 +116,23 @@ const LoadReportsPage = () => {
     fetchDefaultPalletWeight();
   }, []);
 
-  // Handle edit query parameter from external navigation
+  // Handle edit/create query parameters from external navigation
   useEffect(() => {
     const editId = searchParams.get("edit");
+    const createJob = searchParams.get("job");
     if (editId && user && !loading) {
-      // Clear the query param to prevent re-triggering
       setSearchParams({}, { replace: true });
       handleEditReport(editId);
+    } else if (createJob && user && !loading) {
+      const jobDate = searchParams.get("date") || "";
+      const vehicle = searchParams.get("vehicle") || "";
+      setSearchParams({}, { replace: true });
+      // Open new report form, then pre-fill fields after reset
+      handleNewReport().then(() => {
+        setJobNumber(createJob);
+        if (jobDate) setReportDate(jobDate);
+        if (vehicle) setVehicleReg(vehicle);
+      });
     }
   }, [searchParams, user, loading]);
 
