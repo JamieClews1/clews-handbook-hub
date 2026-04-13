@@ -161,7 +161,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     while (hasMore) {
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("site, container_type, movement_type, job_date")
+        .select("site, container_type, waste_description, movement_type, job_date")
         .eq("source", "skiptrak")
         .gte("job_date", since)
         .in("movement_type", ["Deliver", "Exchange", "Collect"])
@@ -185,7 +185,8 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       const alias = siteAliases.find(a => a.dataHubNames.some(n => n.toLowerCase() === job.site!.toLowerCase()));
       if (!alias) continue;
 
-      const key = `${alias.siteName}|||${job.container_type}`;
+      const wasteDesc = job.waste_description || "Unknown";
+      const key = `${alias.siteName}|||${job.container_type}|||${wasteDesc}`;
       if (!containerMap[key]) {
         containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null };
       }
@@ -216,11 +217,12 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       }
 
       if (netCount <= 0) continue;
-      const [siteName, containerType] = key.split("|||");
+      const [siteName, containerType, wasteType] = key.split("|||");
       const days = val.lastActivity ? differenceInDays(new Date(), new Date(val.lastActivity)) : 0;
       results.push({
         siteName,
         containerType,
+        wasteType,
         count: netCount,
         lastActivityDate: val.lastActivity,
         daysOnSite: days,
@@ -396,8 +398,9 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 <TableRow>
                   <TableHead>Site</TableHead>
                   <TableHead>Container</TableHead>
+                  <TableHead>Waste Type</TableHead>
                   <TableHead className="text-center">Qty</TableHead>
-                  <TableHead>Days On Site</TableHead>
+                  <TableHead>Last Activity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -406,6 +409,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                   <TableRow key={i}>
                     <TableCell className="font-medium">{c.siteName}</TableCell>
                     <TableCell>{c.containerType}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{c.wasteType}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="secondary">{c.count}</Badge>
                     </TableCell>
