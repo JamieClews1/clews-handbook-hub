@@ -14,6 +14,7 @@ import { Download, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import clewsLogo from "@/assets/clews-logo.png";
+import { formatLoadReportDate, formatLoadReportDateLocale } from "@/lib/load-report-dates";
 
 interface CertificateOfDestructionProps {
   open: boolean;
@@ -210,7 +211,7 @@ export const CertificateOfDestruction = ({
         y += 8;
       };
 
-      const formattedDate = new Date(reportDate).toLocaleDateString("en-GB", {
+      const formattedDate = formatLoadReportDateLocale(reportDate, "en-GB", {
         day: "2-digit",
         month: "long",
         year: "numeric",
@@ -323,7 +324,7 @@ export const CertificateOfDestruction = ({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Date:</span>
               <span className="font-medium">
-                {new Date(reportDate).toLocaleDateString("en-GB")}
+                {formatLoadReportDate(reportDate, "dd/MM/yyyy")}
               </span>
             </div>
             {customerName && (

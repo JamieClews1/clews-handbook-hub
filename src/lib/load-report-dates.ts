@@ -47,3 +47,23 @@ export function formatLoadReportDate(
   if (!parsedDate) return dateStr ?? "";
   return format(parsedDate, dateFormat);
 }
+
+export function formatLoadReportDateLocale(
+  dateStr: string | null | undefined,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const parsedDate = parseLoadReportDate(dateStr);
+  if (!parsedDate) return dateStr ?? "";
+  return parsedDate.toLocaleDateString(locale, options);
+}
+
+export function normalizeLoadReportDate(dateStr: string | null | undefined): string {
+  const parsedDate = parseLoadReportDate(dateStr);
+  if (!parsedDate) return dateStr ?? "";
+  return format(parsedDate, "yyyy-MM-dd");
+}
+
+export function getTodayLoadReportDate(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}

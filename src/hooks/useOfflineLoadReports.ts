@@ -14,6 +14,7 @@ import {
 } from '@/lib/offline-db';
 import { syncPendingReports, addSyncListener, isOnline } from '@/lib/sync-service';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeLoadReportDate } from '@/lib/load-report-dates';
 
 export interface UseOfflineLoadReportsReturn {
   reports: OfflineLoadReport[];
@@ -131,9 +132,11 @@ export function useOfflineLoadReports(userId?: string): UseOfflineLoadReportsRet
   ): Promise<string> => {
     const localId = generateLocalId();
     const now = new Date().toISOString();
+    const normalizedReportDate = normalizeLoadReportDate(reportData.reportDate);
     
     const report: OfflineLoadReport = {
       ...reportData,
+      reportDate: normalizedReportDate || reportData.reportDate,
       localId,
       syncStatus: 'pending',
       createdAt: now,
@@ -161,6 +164,9 @@ export function useOfflineLoadReports(userId?: string): UseOfflineLoadReportsRet
     const updated: OfflineLoadReport = {
       ...existing,
       ...updates,
+      reportDate: updates.reportDate
+        ? normalizeLoadReportDate(updates.reportDate) || updates.reportDate
+        : existing.reportDate,
       updatedAt: new Date().toISOString(),
       syncStatus: 'pending', // Mark for re-sync
     };

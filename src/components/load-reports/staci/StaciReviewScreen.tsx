@@ -13,6 +13,7 @@ import {
   getTotalPercentage,
   calculatePalletColour,
 } from "./types";
+import { formatLoadReportDate } from "@/lib/load-report-dates";
 
 interface StaciReviewScreenProps {
   operatorName: string;
@@ -307,7 +308,7 @@ export const StaciReviewScreen = ({
             </div>
             <div>
               <span className="text-muted-foreground">Date:</span>
-              <p className="font-medium">{new Date(reportDate).toLocaleDateString()}</p>
+              <p className="font-medium">{formatLoadReportDate(reportDate, "dd/MM/yyyy")}</p>
             </div>
             {vehicleReg && (
               <div>
