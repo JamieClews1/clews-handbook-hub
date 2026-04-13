@@ -67,12 +67,3 @@ export function normalizeLoadReportDate(dateStr: string | null | undefined): str
 export function getTodayLoadReportDate(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
-
-export function normalizeLoadReportDate(dateStr: string | null | undefined): string {
-  const parsedDate = parseLoadReportDate(dateStr);
-  return parsedDate ? format(parsedDate, "yyyy-MM-dd") : "";
-}
-
-export function getTodayLoadReportDate(): string {
-  return format(new Date(), "yyyy-MM-dd");
-}
