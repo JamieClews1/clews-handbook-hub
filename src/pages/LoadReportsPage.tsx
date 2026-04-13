@@ -127,11 +127,12 @@ const LoadReportsPage = () => {
       const jobDate = searchParams.get("date") || "";
       const vehicle = searchParams.get("vehicle") || "";
       setSearchParams({}, { replace: true });
-      // Pre-fill and open new report form
-      setJobNumber(createJob);
-      if (jobDate) setReportDate(jobDate);
-      if (vehicle) setVehicleReg(vehicle);
-      handleNewReport();
+      // Open new report form, then pre-fill fields after reset
+      handleNewReport().then(() => {
+        setJobNumber(createJob);
+        if (jobDate) setReportDate(jobDate);
+        if (vehicle) setVehicleReg(vehicle);
+      });
     }
   }, [searchParams, user, loading]);
 
