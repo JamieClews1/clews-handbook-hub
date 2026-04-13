@@ -227,9 +227,10 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     const today = format(new Date(), "yyyy-MM-dd");
     return bookings.filter(b =>
       b.collection_date && b.collection_date >= today &&
-      !["completed", "cancelled"].includes(b.status)
+      !["completed", "cancelled"].includes(b.status) &&
+      (siteFilter === "all" || b.site_id === siteFilter)
     ).sort((a, b) => (a.collection_date || "").localeCompare(b.collection_date || ""));
-  }, [bookings, siteFilter, sites]);
+  }, [bookings, siteFilter]);
 
   const filteredOnSite = useMemo(() => {
     if (siteFilter === "all") return onSiteContainers;
