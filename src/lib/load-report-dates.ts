@@ -47,3 +47,12 @@ export function formatLoadReportDate(
   if (!parsedDate) return dateStr ?? "";
   return format(parsedDate, dateFormat);
 }
+
+export function normalizeLoadReportDate(dateStr: string | null | undefined): string {
+  const parsedDate = parseLoadReportDate(dateStr);
+  return parsedDate ? format(parsedDate, "yyyy-MM-dd") : "";
+}
+
+export function getTodayLoadReportDate(): string {
+  return format(new Date(), "yyyy-MM-dd");
+}
