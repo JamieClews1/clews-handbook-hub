@@ -153,8 +153,11 @@ export const BookingsManagement = () => {
       vehicle_reg: form.vehicle_reg || null,
     };
 
+    const statusTyped = form.status as "pending" | "confirmed" | "scheduled" | "in_progress" | "completed" | "cancelled";
+    const typedPayload = { ...payload, status: statusTyped };
+
     if (editingBooking) {
-      const { error } = await supabase.from("bookings").update(payload).eq("id", editingBooking.id);
+      const { error } = await supabase.from("bookings").update(typedPayload).eq("id", editingBooking.id);
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
         return;
@@ -162,10 +165,9 @@ export const BookingsManagement = () => {
       toast({ title: "Booking updated" });
     } else {
       const { error } = await supabase.from("bookings").insert({
-        ...payload,
-        created_by: user?.id,
+        ...typedPayload,
         source: "admin",
-      });
+      } as any);
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
         return;
