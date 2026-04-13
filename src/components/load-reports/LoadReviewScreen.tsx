@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Send, Truck } from "lucide-react";
 import { LineItem } from "./TallyScreen";
 import { Droplets } from "lucide-react";
 import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
+import { parseLoadReportDate } from "@/lib/load-report-dates";
 
 interface LoadReviewScreenProps {
   operatorName: string;
@@ -87,7 +88,7 @@ export const LoadReviewScreen = ({
             <div>
               <CardTitle className="text-lg">Load Report Summary</CardTitle>
               <p className="text-sm text-muted-foreground">
-                {new Date(reportDate).toLocaleDateString("en-GB", {
+                {(parseLoadReportDate(reportDate) ?? new Date(reportDate)).toLocaleDateString("en-GB", {
                   weekday: "long",
                   year: "numeric",
                   month: "long",
