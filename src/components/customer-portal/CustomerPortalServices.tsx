@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Eye, Calendar, Container, ArrowRightLeft, Truck, Package, Clock } from "lucide-react";
+import { Plus, Eye, Calendar, Container, ArrowRightLeft, Truck, Package, Clock, Search } from "lucide-react";
 import { format, subMonths, startOfMonth, differenceInDays } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -75,6 +75,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
   const [prefillSite, setPrefillSite] = useState("");
   const [prefillContainer, setPrefillContainer] = useState("");
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
+  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [form, setForm] = useState({
     site_id: "",
     collection_date: "",
@@ -226,9 +227,23 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     const today = format(new Date(), "yyyy-MM-dd");
     return bookings.filter(b =>
       b.collection_date && b.collection_date >= today &&
-      !["completed", "cancelled"].includes(b.status)
+      !["completed", "cancelled"].includes(b.status) &&
+      (siteFilter === "all" || b.site_id === siteFilter)
     ).sort((a, b) => (a.collection_date || "").localeCompare(b.collection_date || ""));
-  }, [bookings]);
+  }, [bookings, siteFilter]);
+
+  const filteredOnSite = useMemo(() => {
+    if (siteFilter === "all") return onSiteContainers;
+    const siteName = sites.find(s => s.id === siteFilter)?.site_name;
+    if (!siteName) return onSiteContainers;
+    return onSiteContainers.filter(c => c.siteName === siteName);
+  }, [onSiteContainers, siteFilter, sites]);
+
+  const filteredBookingsHistory = useMemo(() => {
+    const nonUpcoming = bookings.filter(b => !upcomingBookings.includes(b));
+    if (siteFilter === "all") return nonUpcoming;
+    return nonUpcoming.filter(b => b.site_id === siteFilter);
+  }, [bookings, upcomingBookings, siteFilter]);
 
   const openRequestDialog = (type: RequestType, site?: string, container?: string) => {
     setRequestType(type);
@@ -289,10 +304,28 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     fetchData();
   };
 
-  const totalOnSite = onSiteContainers.reduce((sum, c) => sum + c.count, 0);
+  const totalOnSite = filteredOnSite.reduce((sum, c) => sum + c.count, 0);
 
   return (
     <div className="space-y-6">
+      {/* Site Filter */}
+      {sites.length > 1 && (
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Select value={siteFilter} onValueChange={setSiteFilter}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Filter by site" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {sites.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
@@ -342,7 +375,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
         <CardContent>
           {loadingOnSite ? (
             <div className="text-center py-6 text-muted-foreground">Loading on-site data...</div>
-          ) : onSiteContainers.length === 0 ? (
+          ) : filteredOnSite.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">No containers currently on site.</div>
           ) : (
             <Table>
@@ -356,7 +389,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {onSiteContainers.map((c, i) => (
+                {filteredOnSite.map((c, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{c.siteName}</TableCell>
                     <TableCell>{c.containerType}</TableCell>
@@ -462,7 +495,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       </Card>
 
       {/* All Bookings History */}
-      {bookings.length > upcomingBookings.length && (
+      {filteredBookingsHistory.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Booking History</CardTitle>
@@ -481,7 +514,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.filter(b => !upcomingBookings.includes(b)).map(b => (
+                {filteredBookingsHistory.map(b => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono font-medium text-sm">{b.booking_reference}</TableCell>
                     <TableCell>{getSiteName(b.site_id)}</TableCell>
