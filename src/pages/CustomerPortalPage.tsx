@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -14,6 +14,7 @@ import { CustomerPortalContactForm } from "@/components/customer-portal/Customer
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
 import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
+import { CustomerPortalBookings } from "@/components/customer-portal/CustomerPortalBookings";
 
 type PortalMembership = {
   id: string;
@@ -292,7 +293,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 2 : 4;
+            const tabCount = isStaciCustomer ? 3 : 5;
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
             <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
@@ -317,6 +318,11 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="bookings" className="flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Bookings</span>
+                <span className="sm:hidden">Book</span>
+              </TabsTrigger>
               <TabsTrigger value="contact" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 <span className="hidden sm:inline">Contact Us</span>
@@ -372,6 +378,26 @@ const CustomerPortalPage = () => {
                   isPortalView={!isAdmin}
                 />
               )}
+            </TabsContent>
+
+            <TabsContent value="bookings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Collection Bookings</CardTitle>
+                  <CardDescription>
+                    View your bookings and request new collections
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalBookings
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
+                    />
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="contact">

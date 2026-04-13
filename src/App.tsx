@@ -54,6 +54,7 @@ import DriverAppPage from "./pages/DriverAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
 import DiaryPage from "./pages/DiaryPage";
 import BookingsPage from "./pages/BookingsPage";
+import PublicBookingPage from "./pages/PublicBookingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ const App = () => (
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
             <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
             <Route path="/driver" element={<DriverAppPage />} />
+            <Route path="/book" element={<PublicBookingPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
