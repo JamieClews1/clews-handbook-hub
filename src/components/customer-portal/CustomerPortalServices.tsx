@@ -43,6 +43,7 @@ type Booking = {
 type OnSiteContainer = {
   siteName: string;
   containerType: string;
+  wasteType: string;
   count: number;
   lastActivityDate: string | null;
   daysOnSite: number;
@@ -51,6 +52,7 @@ type OnSiteContainer = {
 type DataHubJob = {
   site: string | null;
   container_type: string | null;
+  waste_description: string | null;
   movement_type: string | null;
   job_date: string | null;
 };
