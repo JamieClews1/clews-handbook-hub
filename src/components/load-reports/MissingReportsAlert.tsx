@@ -28,11 +28,19 @@ interface MissingReportsAlertProps {
 }
 
 export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) => {
+  const [, setSearchParams] = useSearchParams();
   const dateFrom = format(new Date(new Date().getFullYear(), 0, 1), "yyyy-MM-dd");
   const dateTo = format(new Date(), "yyyy-MM-dd");
   const [missingJobs, setMissingJobs] = useState<MissingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(true);
+
+  const handleCreateReport = (job: MissingJob) => {
+    const params: Record<string, string> = { job: job.job_number };
+    if (job.job_date) params.date = job.job_date;
+    if (job.vehicle_registration) params.vehicle = job.vehicle_registration;
+    setSearchParams(params);
+  };
 
   useEffect(() => {
     fetchMissingJobs();
@@ -224,6 +232,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden sm:table-cell">Customer</th>
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden md:table-cell">Site</th>
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden md:table-cell">Container</th>
+                    <th className="py-2 px-3 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -236,6 +245,17 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                       <td className="py-2 px-3 hidden sm:table-cell">{job.customer || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.site || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.container_type || "-"}</td>
+                      <td className="py-2 px-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Create load report"
+                          onClick={() => handleCreateReport(job)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
