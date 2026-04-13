@@ -414,10 +414,11 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                       <Badge variant="secondary">{c.count}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 text-sm">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className={c.daysOnSite > 28 ? "text-orange-600 font-medium" : ""}>
-                          {c.daysOnSite}d
+                        <span>{c.lastActivityDate ? format(new Date(c.lastActivityDate + "T00:00:00"), "dd/MM/yyyy") : "—"}</span>
+                        <span className={`text-xs ${c.daysOnSite > 28 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          ({c.daysOnSite}d ago)
                         </span>
                       </div>
                     </TableCell>
