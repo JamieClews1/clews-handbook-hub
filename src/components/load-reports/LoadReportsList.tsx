@@ -18,6 +18,7 @@ import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
+import { formatLoadReportDate } from "@/lib/load-report-dates";
 import { MissingReportsAlert } from "./MissingReportsAlert";
 import { CertificateOfDestruction } from "./CertificateOfDestruction";
 
@@ -337,7 +338,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                 {filteredReports.map((report) => (
                   <TableRow key={report.id}>
                     <TableCell className="font-medium">
-                      {format(new Date(report.report_date), "dd/MM/yyyy")}
+                      {formatLoadReportDate(report.report_date, "dd/MM/yyyy")}
                     </TableCell>
                     <TableCell>{report.customer_name || "-"}</TableCell>
                     <TableCell className="hidden sm:table-cell">
