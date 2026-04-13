@@ -171,7 +171,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const exportCSV = () => {
     const headers = ["Date", "Customer", "Job Number", "Vehicle", "Pallets", "Weight (KG)", "Status"];
     const rows = filteredReports.map((r) => [
-      format(new Date(r.report_date), "dd/MM/yyyy"),
+      formatLoadReportDate(r.report_date, "dd/MM/yyyy"),
       r.customer_name || "",
       r.notes || "",
       r.vehicle_reg || "",
