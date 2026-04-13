@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Eye, Calendar, Container, ArrowRightLeft, Truck, Package, Clock } from "lucide-react";
+import { Plus, Eye, Calendar, Container, ArrowRightLeft, Truck, Package, Clock, Search } from "lucide-react";
 import { format, subMonths, startOfMonth, differenceInDays } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
