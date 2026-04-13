@@ -380,6 +380,26 @@ const CustomerPortalPage = () => {
               )}
             </TabsContent>
 
+            <TabsContent value="bookings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Collection Bookings</CardTitle>
+                  <CardDescription>
+                    View your bookings and request new collections
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalBookings
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="contact">
               <Card>
                 <CardHeader>
