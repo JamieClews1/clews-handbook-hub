@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -14,6 +14,7 @@ import { CustomerPortalContactForm } from "@/components/customer-portal/Customer
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
 import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
+import { CustomerPortalBookings } from "@/components/customer-portal/CustomerPortalBookings";
 
 type PortalMembership = {
   id: string;
