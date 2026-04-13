@@ -173,30 +173,31 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       from += pageSize;
     }
 
-    // Compute net on-site per site + container type
-    const containerMap: Record<string, { delivered: number; collected: number; lastDelivery: string | null }> = {};
+    // Compute on-site per site + container type
+    // Logic: net = delivers - collects. Exchanges prove a container is on site (swap old for new).
+    // If net <= 0 but there are recent exchanges, at least 1 container is still on site.
+    const containerMap: Record<string, { delivered: number; collected: number; exchanges: number; lastActivity: string | null; lastMovement: string | null }> = {};
 
     for (const job of allJobs) {
       if (!job.site || !job.container_type) continue;
-      // Map data_hub site name back to display name
       const alias = siteAliases.find(a => a.dataHubNames.some(n => n.toLowerCase() === job.site!.toLowerCase()));
       if (!alias) continue;
 
       const key = `${alias.siteName}|||${job.container_type}`;
       if (!containerMap[key]) {
-        containerMap[key] = { delivered: 0, collected: 0, lastDelivery: null };
+        containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null };
+      }
+
+      // Track latest activity date and movement type
+      if (job.job_date && (!containerMap[key].lastActivity || job.job_date > containerMap[key].lastActivity!)) {
+        containerMap[key].lastActivity = job.job_date;
+        containerMap[key].lastMovement = job.movement_type;
       }
 
       if (job.movement_type === "Deliver") {
         containerMap[key].delivered++;
-        if (job.job_date && (!containerMap[key].lastDelivery || job.job_date > containerMap[key].lastDelivery!)) {
-          containerMap[key].lastDelivery = job.job_date;
-        }
       } else if (job.movement_type === "Exchange") {
-        // Exchange = collect + deliver, net zero but update last delivery
-        if (job.job_date && (!containerMap[key].lastDelivery || job.job_date > containerMap[key].lastDelivery!)) {
-          containerMap[key].lastDelivery = job.job_date;
-        }
+        containerMap[key].exchanges++;
       } else if (job.movement_type === "Collect") {
         containerMap[key].collected++;
       }
@@ -204,15 +205,22 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
 
     const results: OnSiteContainer[] = [];
     for (const [key, val] of Object.entries(containerMap)) {
-      const netCount = val.delivered - val.collected;
+      let netCount = val.delivered - val.collected;
+
+      // If there are exchanges and last movement wasn't a standalone collect,
+      // there's at least 1 container on site
+      if (netCount <= 0 && val.exchanges > 0 && val.lastMovement !== "Collect") {
+        netCount = 1;
+      }
+
       if (netCount <= 0) continue;
       const [siteName, containerType] = key.split("|||");
-      const days = val.lastDelivery ? differenceInDays(new Date(), new Date(val.lastDelivery)) : 0;
+      const days = val.lastActivity ? differenceInDays(new Date(), new Date(val.lastActivity)) : 0;
       results.push({
         siteName,
         containerType,
         count: netCount,
-        lastActivityDate: val.lastDelivery,
+        lastActivityDate: val.lastActivity,
         daysOnSite: days,
       });
     }
