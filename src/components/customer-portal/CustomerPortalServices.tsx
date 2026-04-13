@@ -43,6 +43,7 @@ type Booking = {
 type OnSiteContainer = {
   siteName: string;
   containerType: string;
+  wasteType: string;
   count: number;
   lastActivityDate: string | null;
   daysOnSite: number;
@@ -51,6 +52,7 @@ type OnSiteContainer = {
 type DataHubJob = {
   site: string | null;
   container_type: string | null;
+  waste_description: string | null;
   movement_type: string | null;
   job_date: string | null;
 };
@@ -159,7 +161,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     while (hasMore) {
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("site, container_type, movement_type, job_date")
+        .select("site, container_type, waste_description, movement_type, job_date")
         .eq("source", "skiptrak")
         .gte("job_date", since)
         .in("movement_type", ["Deliver", "Exchange", "Collect"])
@@ -183,7 +185,8 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       const alias = siteAliases.find(a => a.dataHubNames.some(n => n.toLowerCase() === job.site!.toLowerCase()));
       if (!alias) continue;
 
-      const key = `${alias.siteName}|||${job.container_type}`;
+      const wasteDesc = job.waste_description || "Unknown";
+      const key = `${alias.siteName}|||${job.container_type}|||${wasteDesc}`;
       if (!containerMap[key]) {
         containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null };
       }
@@ -214,11 +217,12 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       }
 
       if (netCount <= 0) continue;
-      const [siteName, containerType] = key.split("|||");
+      const [siteName, containerType, wasteType] = key.split("|||");
       const days = val.lastActivity ? differenceInDays(new Date(), new Date(val.lastActivity)) : 0;
       results.push({
         siteName,
         containerType,
+        wasteType,
         count: netCount,
         lastActivityDate: val.lastActivity,
         daysOnSite: days,
@@ -394,8 +398,9 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 <TableRow>
                   <TableHead>Site</TableHead>
                   <TableHead>Container</TableHead>
+                  <TableHead>Waste Type</TableHead>
                   <TableHead className="text-center">Qty</TableHead>
-                  <TableHead>Days On Site</TableHead>
+                  <TableHead>Last Activity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -404,14 +409,16 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                   <TableRow key={i}>
                     <TableCell className="font-medium">{c.siteName}</TableCell>
                     <TableCell>{c.containerType}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{c.wasteType}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="secondary">{c.count}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 text-sm">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className={c.daysOnSite > 28 ? "text-orange-600 font-medium" : ""}>
-                          {c.daysOnSite}d
+                        <span>{c.lastActivityDate ? format(new Date(c.lastActivityDate + "T00:00:00"), "dd/MM/yyyy") : "—"}</span>
+                        <span className={`text-xs ${c.daysOnSite > 28 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          ({c.daysOnSite}d ago)
                         </span>
                       </div>
                     </TableCell>
