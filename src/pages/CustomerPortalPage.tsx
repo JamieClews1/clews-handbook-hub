@@ -14,7 +14,7 @@ import { CustomerPortalContactForm } from "@/components/customer-portal/Customer
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
 import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
-import { CustomerPortalBookings } from "@/components/customer-portal/CustomerPortalBookings";
+import { CustomerPortalServices } from "@/components/customer-portal/CustomerPortalServices";
 
 type PortalMembership = {
   id: string;
