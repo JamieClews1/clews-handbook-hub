@@ -177,7 +177,8 @@ export function useSkipRoroRebates(
       }
 
       // Also query for Midweigh data where site is blank - match by customer name
-      if (dataHubCustomer) {
+      // Only do this when there are no site-specific mappings (i.e. customer-level "no site" report)
+      if (dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
           .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
