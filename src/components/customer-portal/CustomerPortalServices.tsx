@@ -304,10 +304,28 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     fetchData();
   };
 
-  const totalOnSite = onSiteContainers.reduce((sum, c) => sum + c.count, 0);
+  const totalOnSite = filteredOnSite.reduce((sum, c) => sum + c.count, 0);
 
   return (
     <div className="space-y-6">
+      {/* Site Filter */}
+      {sites.length > 1 && (
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Select value={siteFilter} onValueChange={setSiteFilter}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Filter by site" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {sites.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
