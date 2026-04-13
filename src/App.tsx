@@ -53,6 +53,7 @@ import WeighOnePage from "./pages/WeighOnePage";
 import DriverAppPage from "./pages/DriverAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
 import DiaryPage from "./pages/DiaryPage";
+import BookingsPage from "./pages/BookingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -125,6 +126,7 @@ const App = () => (
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
             <Route path="/performance-hub/projections" element={<Staff><ProjectionsPage /></Staff>} />
             <Route path="/diary" element={<Staff><DiaryPage /></Staff>} />
+            <Route path="/bookings" element={<Staff><BookingsPage /></Staff>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

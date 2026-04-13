@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          assigned_driver: string | null
+          booking_date: string
+          booking_reference: string
+          collection_date: string | null
+          collection_time_slot: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          container_type: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          internal_notes: string | null
+          quantity: number | null
+          site_id: string | null
+          source: string | null
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
+          vehicle_reg: string | null
+          waste_type: string | null
+        }
+        Insert: {
+          assigned_driver?: string | null
+          booking_date?: string
+          booking_reference: string
+          collection_date?: string | null
+          collection_time_slot?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          quantity?: number | null
+          site_id?: string | null
+          source?: string | null
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          vehicle_reg?: string | null
+          waste_type?: string | null
+        }
+        Update: {
+          assigned_driver?: string | null
+          booking_date?: string
+          booking_reference?: string
+          collection_date?: string | null
+          collection_time_slot?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          quantity?: number | null
+          site_id?: string | null
+          source?: string | null
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          vehicle_reg?: string | null
+          waste_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_contacts: {
         Row: {
           contact_type: string
@@ -4156,6 +4246,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      booking_status:
+        | "pending"
+        | "confirmed"
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
       route_one_job_status:
         | "unassigned"
         | "assigned"
@@ -4299,6 +4396,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      booking_status: [
+        "pending",
+        "confirmed",
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
       route_one_job_status: [
         "unassigned",
         "assigned",
