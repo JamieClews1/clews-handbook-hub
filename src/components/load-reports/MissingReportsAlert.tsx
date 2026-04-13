@@ -5,10 +5,11 @@ import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Download } from "lucide-react";
-import { format, subMonths, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { formatLoadReportDate } from "@/lib/load-report-dates";
 
 interface MissingJob {
   job_number: string;
@@ -169,7 +170,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
   const exportMissingToExcel = () => {
     const rows = missingJobs.map((job) => ({
       "Job Number": job.job_number,
-      "Date": job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+      "Date": job.job_date ? formatLoadReportDate(job.job_date, "dd/MM/yyyy") : "",
       "Customer": job.customer || "",
       "Site": job.site || "",
       "Container Type": job.container_type || "",
@@ -229,7 +230,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                     <tr key={`${job.job_number}-${job.source}`} className="border-b border-orange-100 dark:border-orange-900/50">
                       <td className="py-2 px-3 font-semibold">{job.job_number}</td>
                       <td className="py-2 px-3">
-                        {job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}
+                        {job.job_date ? formatLoadReportDate(job.job_date, "dd/MM/yyyy") : "-"}
                       </td>
                       <td className="py-2 px-3 hidden sm:table-cell">{job.customer || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.site || "-"}</td>

@@ -5,6 +5,7 @@ import {
   deleteOfflineReport,
   OfflineLoadReport,
 } from './offline-db';
+import { normalizeLoadReportDate } from './load-report-dates';
 
 let isSyncing = false;
 let syncListeners: Array<() => void> = [];
@@ -62,7 +63,7 @@ async function syncSingleReport(report: OfflineLoadReport): Promise<void> {
     vehicle_reg: report.vehicleReg,
     notes: report.jobNumber,
     site_id: report.siteId,
-    report_date: report.reportDate,
+    report_date: normalizeLoadReportDate(report.reportDate) || report.reportDate,
     total_pallets: report.totalPallets,
     total_weight_kg: report.totalWeightKg,
     pallets_out: report.palletsOut || 0,

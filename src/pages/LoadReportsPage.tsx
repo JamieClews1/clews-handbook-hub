@@ -7,6 +7,7 @@ import { ArrowLeft, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
+import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
 
 import { CustomerTypeSelector, CustomerType } from "@/components/load-reports/CustomerTypeSelector";
 import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
@@ -57,7 +58,7 @@ const LoadReportsPage = () => {
   const [operatorName, setOperatorName] = useState("");
   const [vehicleReg, setVehicleReg] = useState("");
   const [jobNumber, setJobNumber] = useState("");
-  const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
+  const [reportDate, setReportDate] = useState(getTodayLoadReportDate());
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [weighbridgeWeightKg, setWeighbridgeWeightKg] = useState<number | null>(null);
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
@@ -341,7 +342,7 @@ const LoadReportsPage = () => {
 
         // Update report date to match the job date if available
         if (data.job_date) {
-          setReportDate(data.job_date);
+          setReportDate(normalizeLoadReportDate(data.job_date));
         }
       } else {
         setWeighbridgeWeightKg(null);
@@ -396,7 +397,7 @@ const LoadReportsPage = () => {
     setPalletsOut(0);
     setNoPalletsOnLoad(false);
     setWetChargePercent(0);
-    setReportDate(new Date().toISOString().split("T")[0]);
+    setReportDate(getTodayLoadReportDate());
     
     // Reset Staci state
     setStaciPalletEntries([]);
@@ -461,7 +462,7 @@ const LoadReportsPage = () => {
       setVehicleReg(report.vehicle_reg || "");
       setJobNumber(report.notes || "");
       setSelectedSiteId(report.site_id || "");
-      setReportDate(report.report_date);
+      setReportDate(normalizeLoadReportDate(report.report_date));
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
@@ -568,7 +569,7 @@ const LoadReportsPage = () => {
       setVehicleReg(report.vehicle_reg || "");
       setJobNumber(report.notes || "");
       setSelectedSiteId(report.site_id || "");
-      setReportDate(report.report_date);
+      setReportDate(normalizeLoadReportDate(report.report_date));
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
@@ -696,6 +697,7 @@ const LoadReportsPage = () => {
       const { totalPallets, totalWeight } = isStaci 
         ? { totalPallets: staciTotalPallets, totalWeight: staciTotalWeight }
         : calculateTotals();
+      const normalizedReportDate = normalizeLoadReportDate(reportDate) || getTodayLoadReportDate();
 
       // Use offline-first storage for standard flow
       if (!isStaci) {
@@ -715,7 +717,7 @@ const LoadReportsPage = () => {
           vehicleReg: vehicleReg || null,
           jobNumber: jobNumber || null,
           siteId: selectedSiteId || null,
-          reportDate: reportDate,
+          reportDate: normalizedReportDate,
           status: submit ? "submitted" : "draft",
           totalPallets: totalPallets,
           totalWeightKg: totalWeight,
@@ -732,7 +734,7 @@ const LoadReportsPage = () => {
           vehicle_reg: vehicleReg || null,
           notes: jobNumber || null,
           site_id: selectedSiteId || null,
-          report_date: reportDate,
+          report_date: normalizedReportDate,
           status: submit ? "submitted" : "draft",
           total_pallets: totalPallets,
           total_weight_kg: totalWeight,
