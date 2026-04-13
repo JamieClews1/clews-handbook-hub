@@ -375,7 +375,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
         <CardContent>
           {loadingOnSite ? (
             <div className="text-center py-6 text-muted-foreground">Loading on-site data...</div>
-          ) : onSiteContainers.length === 0 ? (
+          ) : filteredOnSite.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">No containers currently on site.</div>
           ) : (
             <Table>
@@ -389,7 +389,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {onSiteContainers.map((c, i) => (
+                {filteredOnSite.map((c, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-medium">{c.siteName}</TableCell>
                     <TableCell>{c.containerType}</TableCell>
@@ -495,7 +495,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       </Card>
 
       {/* All Bookings History */}
-      {bookings.length > upcomingBookings.length && (
+      {filteredBookingsHistory.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Booking History</CardTitle>
@@ -514,7 +514,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.filter(b => !upcomingBookings.includes(b)).map(b => (
+                {filteredBookingsHistory.map(b => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono font-medium text-sm">{b.booking_reference}</TableCell>
                     <TableCell>{getSiteName(b.site_id)}</TableCell>
