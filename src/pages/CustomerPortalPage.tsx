@@ -14,7 +14,7 @@ import { CustomerPortalContactForm } from "@/components/customer-portal/Customer
 import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortalLogin";
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
 import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
-import { CustomerPortalBookings } from "@/components/customer-portal/CustomerPortalBookings";
+import { CustomerPortalServices } from "@/components/customer-portal/CustomerPortalServices";
 
 type PortalMembership = {
   id: string;
@@ -381,23 +381,13 @@ const CustomerPortalPage = () => {
             </TabsContent>
 
             <TabsContent value="bookings">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Collection Bookings</CardTitle>
-                  <CardDescription>
-                    View your bookings and request new collections
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {currentCustomerId && currentCustomer && (
-                    <CustomerPortalBookings
-                      customerId={currentCustomerId}
-                      customerName={currentCustomer.customer_name}
-                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+              {currentCustomerId && currentCustomer && (
+                <CustomerPortalServices
+                  customerId={currentCustomerId}
+                  customerName={currentCustomer.customer_name}
+                  accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="contact">
