@@ -75,6 +75,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
   const [prefillSite, setPrefillSite] = useState("");
   const [prefillContainer, setPrefillContainer] = useState("");
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
+  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [form, setForm] = useState({
     site_id: "",
     collection_date: "",
