@@ -11,23 +11,21 @@ interface DiaryWeekNavProps {
 
 export const DiaryWeekNav = ({ weekLabel, isCurrentWeek, onPrev, onNext, onToday }: DiaryWeekNavProps) => {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={onPrev} className="h-8 w-8">
+    <div className="flex items-center gap-3">
+      {!isCurrentWeek && (
+        <Button variant="outline" size="sm" onClick={onToday} className="text-xs rounded-full px-3 h-7">
+          Today
+        </Button>
+      )}
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" onClick={onPrev} className="h-7 w-7 rounded-full">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-base font-bold text-foreground min-w-[200px] text-center">
-          {weekLabel}
-        </span>
-        <Button variant="ghost" size="icon" onClick={onNext} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={onNext} className="h-7 w-7 rounded-full">
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      {!isCurrentWeek && (
-        <Button variant="outline" size="sm" onClick={onToday} className="text-xs">
-          This week
-        </Button>
-      )}
+      <span className="text-sm font-medium text-muted-foreground">{weekLabel}</span>
     </div>
   );
 };

@@ -27,36 +27,11 @@ export const DIARY_CATEGORIES = [
 ] as const;
 
 export const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
-  general: {
-    bg: "bg-slate-50/50 dark:bg-slate-900/20",
-    border: "border-slate-200 dark:border-slate-700/50",
-    text: "text-slate-700 dark:text-slate-300",
-    badge: "bg-slate-200 dark:bg-slate-700",
-  },
-  drivers: {
-    bg: "bg-blue-50/50 dark:bg-blue-900/20",
-    border: "border-blue-200 dark:border-blue-700/50",
-    text: "text-blue-700 dark:text-blue-300",
-    badge: "bg-blue-200 dark:bg-blue-700",
-  },
-  loads_in: {
-    bg: "bg-emerald-50/50 dark:bg-emerald-900/20",
-    border: "border-emerald-200 dark:border-emerald-700/50",
-    text: "text-emerald-700 dark:text-emerald-300",
-    badge: "bg-emerald-200 dark:bg-emerald-700",
-  },
-  loads_out: {
-    bg: "bg-amber-50/50 dark:bg-amber-900/20",
-    border: "border-amber-200 dark:border-amber-700/50",
-    text: "text-amber-700 dark:text-amber-300",
-    badge: "bg-amber-200 dark:bg-amber-700",
-  },
-  maintenance: {
-    bg: "bg-rose-50/50 dark:bg-rose-900/20",
-    border: "border-rose-200 dark:border-rose-700/50",
-    text: "text-rose-700 dark:text-rose-300",
-    badge: "bg-rose-200 dark:bg-rose-700",
-  },
+  general: { bg: "", border: "border-slate-300", text: "text-slate-500", badge: "bg-slate-200" },
+  drivers: { bg: "", border: "border-blue-400", text: "text-blue-600", badge: "bg-blue-200" },
+  loads_in: { bg: "", border: "border-emerald-400", text: "text-emerald-600", badge: "bg-emerald-200" },
+  loads_out: { bg: "", border: "border-amber-400", text: "text-amber-600", badge: "bg-amber-200" },
+  maintenance: { bg: "", border: "border-rose-400", text: "text-rose-600", badge: "bg-rose-200" },
 };
 
 export interface DiaryCard {
@@ -203,7 +178,6 @@ export const DiaryWeekView = () => {
     const cardId = active.id as string;
     const overId = over.id as string;
 
-    // droppable id format: "cat-{catKey}-day-{dayIndex}" or card id
     let targetDay: number;
     let targetCategory: string | null | undefined;
 
@@ -239,14 +213,18 @@ export const DiaryWeekView = () => {
   const goToThisWeek = () => setWeekStart(getMonday(new Date()));
 
   const isCurrentWeek = formatDate(getMonday(new Date())) === weekStartStr;
+  const today = formatDate(new Date());
 
   const weekEndDate = addDays(weekStart, 6);
-  const weekLabel = `${weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${weekEndDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+  const monthYear = weekStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Month title - large and bold like Tweek */}
+      <h2 className="text-3xl font-black text-foreground tracking-tight">{monthYear}</h2>
+
       <DiaryWeekNav
-        weekLabel={weekLabel}
+        weekLabel={`${weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${weekEndDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
         isCurrentWeek={isCurrentWeek}
         onPrev={goToPrevWeek}
         onNext={goToNextWeek}
@@ -275,59 +253,75 @@ export const DiaryWeekView = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {/* Day headers */}
-          <div className="grid grid-cols-[120px_repeat(5,1fr)_0.5fr_0.5fr] gap-0 mb-1">
-            <div />
+          {/* Day headers — Tweek style */}
+          <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] gap-0">
             {DAY_SHORT.map((day, i) => {
               const dayDate = addDays(weekStart, i);
-              const isToday = formatDate(dayDate) === formatDate(new Date());
-              const dayNum = dayDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+              const dayStr = formatDate(dayDate);
+              const isToday = dayStr === today;
+              const isPast = dayStr < today;
               const isWeekend = i >= 5;
+              const dateLabel = dayDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
               return (
-                <div key={i} className={`pb-3 ${isWeekend ? "text-center" : "pl-2"}`}>
-                  {isToday ? (
-                    <div className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-2.5 py-1">
-                      <span className="text-sm font-bold">{dayNum}</span>
-                      <span className="text-xs font-semibold opacity-80">{day}</span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1.5">
-                      <span className={`text-sm font-bold ${isWeekend ? "text-muted-foreground/60" : "text-foreground"}`}>{dayNum}</span>
-                      <span className={`text-xs font-medium ${isWeekend ? "text-muted-foreground/40" : "text-muted-foreground"}`}>{day}</span>
-                    </div>
-                  )}
+                <div
+                  key={i}
+                  className={`px-2 pb-2 ${isToday ? "border-b-[3px] border-primary" : "border-b border-border/30"}`}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className={`text-sm font-bold ${
+                      isToday ? "text-primary" : isPast ? "text-muted-foreground/40" : isWeekend ? "text-muted-foreground/50" : "text-foreground"
+                    }`}>
+                      {dateLabel}
+                    </span>
+                    <span className={`text-xs font-semibold ${
+                      isToday ? "text-primary" : isPast ? "text-muted-foreground/30" : isWeekend ? "text-muted-foreground/40" : "text-muted-foreground/60"
+                    }`}>
+                      {day}
+                    </span>
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Category rows */}
-          <div className="space-y-0 border-t border-border/20">
+          {/* Category rows — minimal with just a small colored label */}
+          <div>
             {DIARY_CATEGORIES.map((cat) => {
               const catKey = cat.key ?? "general";
               const colorClasses = CATEGORY_COLORS[catKey];
               const catCards = cards.filter((c) => (c.category ?? "general") === catKey || (c.category === null && catKey === "general"));
+              const hasCards = catCards.length > 0;
+
               return (
-                <DiaryCategoryRow
-                  key={catKey}
-                  categoryKey={cat.key}
-                  categoryLabel={cat.label}
-                  colorClasses={colorClasses}
-                  weekStart={weekStart}
-                  cards={catCards}
-                  onAddCard={addCard}
-                  onUpdateCard={updateCard}
-                  onDeleteCard={deleteCard}
-                  onDuplicateCard={duplicateCard}
-                />
+                <div key={catKey}>
+                  {/* Subtle category divider */}
+                  <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] gap-0">
+                    <div className="px-2 pt-2 pb-0.5 col-span-7">
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${colorClasses.text}`}>
+                        {categoryLabel(cat)}
+                      </span>
+                    </div>
+                  </div>
+                  <DiaryCategoryRow
+                    categoryKey={cat.key}
+                    categoryLabel={cat.label}
+                    colorClasses={colorClasses}
+                    weekStart={weekStart}
+                    cards={catCards}
+                    onAddCard={addCard}
+                    onUpdateCard={updateCard}
+                    onDeleteCard={deleteCard}
+                    onDuplicateCard={duplicateCard}
+                  />
+                </div>
               );
             })}
           </div>
 
           <DragOverlay>
             {activeCard ? (
-              <div className="bg-card rounded-lg p-3 shadow-lg border border-border/50 opacity-90 rotate-2 max-w-[180px]">
-                <p className="text-sm text-foreground">{activeCard.content || "Empty card"}</p>
+              <div className="bg-card rounded px-2 py-1.5 shadow-lg border border-border/30 opacity-90 rotate-1 max-w-[200px]">
+                <p className="text-[13px] text-foreground">{activeCard.content || "Empty"}</p>
               </div>
             ) : null}
           </DragOverlay>
@@ -336,3 +330,7 @@ export const DiaryWeekView = () => {
     </div>
   );
 };
+
+function categoryLabel(cat: { key: string | null; label: string }) {
+  return cat.label;
+}
