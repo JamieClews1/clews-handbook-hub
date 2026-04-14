@@ -264,7 +264,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     return nonUpcoming.filter(b => b.site_id === siteFilter);
   }, [bookings, upcomingBookings, siteFilter]);
 
-  const openRequestDialog = (type: RequestType, site?: string, container?: string) => {
+  const openRequestDialog = (type: RequestType, site?: string, container?: string, wasteType?: string) => {
     setRequestType(type);
     setPrefillSite(site || "");
     setPrefillContainer(container || "");
@@ -276,16 +276,12 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       collection_date: "",
       collection_time_slot: "",
       container_type: container || "",
-      waste_type: "",
+      waste_type: wasteType || "",
       quantity: 1,
       contact_name: "",
       contact_email: "",
       contact_phone: "",
-      special_instructions: type === "exchange"
-        ? `Exchange request for ${container || "container"} at ${site || "site"}`
-        : type === "collection"
-          ? `Collection request for ${container || "container"} at ${site || "site"}`
-          : "",
+      special_instructions: "",
     });
     setCreateOpen(true);
   };
@@ -296,7 +292,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       return;
     }
 
-    const { error } = await supabase.from("bookings").insert({
+    const { error, data } = await supabase.from("bookings").insert({
       customer_id: customerId,
       site_id: form.site_id,
       collection_date: form.collection_date || null,
@@ -310,11 +306,30 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       special_instructions: form.special_instructions || null,
       source: "portal",
       status: "pending" as const,
-    } as any);
+    } as any).select("booking_reference").single();
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
+    }
+
+    // Send email notification to orders
+    const siteName = sites.find(s => s.id === form.site_id)?.site_name || "Unknown";
+    try {
+      await supabase.functions.invoke("booking-notification", {
+        body: {
+          requestType,
+          customerName,
+          siteName,
+          containerType: form.container_type || "Not specified",
+          wasteType: form.waste_type || "Not specified",
+          preferredDate: form.collection_date || null,
+          specialInstructions: form.special_instructions || null,
+          bookingReference: (data as any)?.booking_reference || "—",
+        },
+      });
+    } catch (e) {
+      console.error("Failed to send notification:", e);
     }
 
     const typeLabel = requestType === "exchange" ? "Exchange" : requestType === "collection" ? "Collection" : "Service";
@@ -437,7 +452,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          onClick={() => openRequestDialog("exchange", c.siteName, c.containerType)}
+                          onClick={() => openRequestDialog("exchange", c.siteName, c.containerType, c.wasteType)}
                         >
                           <ArrowRightLeft className="h-3 w-3 mr-1" />
                           Exchange
@@ -446,7 +461,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          onClick={() => openRequestDialog("collection", c.siteName, c.containerType)}
+                          onClick={() => openRequestDialog("collection", c.siteName, c.containerType, c.wasteType)}
                         >
                           <Truck className="h-3 w-3 mr-1" />
                           Collect
@@ -572,65 +587,70 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Site *</Label>
-              <Select value={form.site_id} onValueChange={v => setForm({ ...form, site_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Select site" /></SelectTrigger>
-                <SelectContent>
-                  {sites.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Preferred Date</Label>
-                <Input type="date" value={form.collection_date} onChange={e => setForm({ ...form, collection_date: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Time Slot</Label>
-                <Select value={form.collection_time_slot} onValueChange={v => setForm({ ...form, collection_time_slot: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Container Type</Label>
-                <Select value={form.container_type} onValueChange={v => setForm({ ...form, container_type: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {CONTAINER_TYPES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Waste Type</Label>
-                <Input value={form.waste_type} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. General Waste" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Name</Label>
-              <Input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Contact Email</Label>
-                <Input type="email" value={form.contact_email} onChange={e => setForm({ ...form, contact_email: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Contact Phone</Label>
-                <Input value={form.contact_phone} onChange={e => setForm({ ...form, contact_phone: e.target.value })} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Special Instructions</Label>
-              <Textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} rows={2} placeholder="Access requirements, specific location on site, etc." />
-            </div>
+            {/* Show bin details as read-only summary for exchange/collection */}
+            {(requestType === "exchange" || requestType === "collection") && prefillSite ? (
+              <>
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Site</span>
+                    <span className="font-medium">{prefillSite}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Container</span>
+                    <span className="font-medium">{form.container_type}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Waste Type</span>
+                    <span className="font-medium">{form.waste_type}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Preferred Date</Label>
+                  <Input type="date" value={form.collection_date} onChange={e => setForm({ ...form, collection_date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} rows={2} placeholder="Any special requirements..." />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Site *</Label>
+                  <Select value={form.site_id} onValueChange={v => setForm({ ...form, site_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select site" /></SelectTrigger>
+                    <SelectContent>
+                      {sites.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Preferred Date</Label>
+                    <Input type="date" value={form.collection_date} onChange={e => setForm({ ...form, collection_date: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Container Type</Label>
+                    <Select value={form.container_type} onValueChange={v => setForm({ ...form, container_type: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        {CONTAINER_TYPES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Waste Type</Label>
+                  <Input value={form.waste_type} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. General Waste" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} rows={2} placeholder="Access requirements, specific location on site, etc." />
+                </div>
+              </>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate}>Submit Request</Button>
