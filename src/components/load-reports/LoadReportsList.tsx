@@ -85,7 +85,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       // Build the reports query
       let query = supabase
         .from("load_reports")
-        .select("*, customer_sites(site_name), load_line_items(waste_type, pallet_count)")
+        .select("*, customer_sites(site_name)")
         .order("report_date", { ascending: false });
 
       if (dateFilterEnabled) {
@@ -114,39 +114,40 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         .filter((n): n is string => !!n);
 
       let weighbridgeMap: Record<string, number> = {};
+      let wasteDescMap: Record<string, string> = {};
       if (jobNumbers.length > 0) {
         // Determine the source based on customer type
         const source = getWeighbridgeSource(customerType);
         
         const { data: jobsData } = await supabase
           .from("data_hub_jobs")
-          .select("job_number, weight_t")
+          .select("job_number, weight_t, waste_description")
           .eq("source", source)
           .in("job_number", jobNumbers);
 
         if (jobsData) {
-          weighbridgeMap = jobsData.reduce((acc, job) => {
+          for (const job of jobsData) {
             const weightInTonnes = convertWeightToTonnes(job.weight_t, source);
             if (weightInTonnes != null) {
-              acc[job.job_number] = weightInTonnes * 1000; // Convert tonnes to kg for display
+              weighbridgeMap[job.job_number] = weightInTonnes * 1000;
             }
-            return acc;
-          }, {} as Record<string, number>);
+            if (job.waste_description) {
+              wasteDescMap[job.job_number] = job.waste_description;
+            }
+          }
         }
       }
 
       // Attach weighbridge weights to reports
       const reportsWithWeighbridge = (data || []).map((report: any) => {
-        // Extract waste types with pallets > 0 from line items
-        const wasteTypes = (report.load_line_items || [])
-          .filter((li: any) => li.pallet_count > 0)
-          .map((li: any) => li.waste_type as string);
+        const jobNum = report.notes?.trim();
+        const wasteDesc = jobNum ? wasteDescMap[jobNum] : null;
 
         return {
           ...report,
-          weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
+          weighbridge_weight_kg: jobNum ? weighbridgeMap[jobNum] ?? null : null,
           site_name: report.customer_sites?.site_name ?? null,
-          waste_types: wasteTypes,
+          waste_types: wasteDesc ? [wasteDesc] : [],
         };
       });
 
