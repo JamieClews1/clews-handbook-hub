@@ -433,7 +433,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          onClick={() => openRequestDialog("exchange", c.siteName, c.containerType)}
+                          onClick={() => openRequestDialog("exchange", c.siteName, c.containerType, c.wasteType)}
                         >
                           <ArrowRightLeft className="h-3 w-3 mr-1" />
                           Exchange
@@ -442,7 +442,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          onClick={() => openRequestDialog("collection", c.siteName, c.containerType)}
+                          onClick={() => openRequestDialog("collection", c.siteName, c.containerType, c.wasteType)}
                         >
                           <Truck className="h-3 w-3 mr-1" />
                           Collect
