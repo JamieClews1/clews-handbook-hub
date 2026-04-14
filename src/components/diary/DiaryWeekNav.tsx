@@ -16,7 +16,7 @@ export const DiaryWeekNav = ({ weekLabel, isCurrentWeek, onPrev, onNext, onToday
         <Button variant="ghost" size="icon" onClick={onPrev} className="h-8 w-8">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm font-medium text-foreground min-w-[180px] text-center">
+        <span className="text-base font-bold text-foreground min-w-[200px] text-center">
           {weekLabel}
         </span>
         <Button variant="ghost" size="icon" onClick={onNext} className="h-8 w-8">

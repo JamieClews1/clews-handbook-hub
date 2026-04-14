@@ -276,29 +276,33 @@ export const DiaryWeekView = () => {
           onDragEnd={handleDragEnd}
         >
           {/* Day headers */}
-          <div className="grid grid-cols-[120px_repeat(7,1fr)] gap-0 mb-1">
+          <div className="grid grid-cols-[120px_repeat(5,1fr)_0.5fr_0.5fr] gap-0 mb-1">
             <div />
             {DAY_SHORT.map((day, i) => {
               const dayDate = addDays(weekStart, i);
               const isToday = formatDate(dayDate) === formatDate(new Date());
-              const dateStr = dayDate.getDate().toString();
+              const dayNum = dayDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+              const isWeekend = i >= 5;
               return (
-                <div key={i} className="text-center pb-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{day}</p>
-                  <div
-                    className={`inline-flex items-center justify-center w-7 h-7 rounded-full mt-0.5 text-sm font-semibold ${
-                      isToday ? "bg-primary text-primary-foreground" : "text-foreground"
-                    }`}
-                  >
-                    {dateStr}
-                  </div>
+                <div key={i} className={`pb-3 ${isWeekend ? "text-center" : "pl-2"}`}>
+                  {isToday ? (
+                    <div className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-2.5 py-1">
+                      <span className="text-sm font-bold">{dayNum}</span>
+                      <span className="text-xs font-semibold opacity-80">{day}</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className={`text-sm font-bold ${isWeekend ? "text-muted-foreground/60" : "text-foreground"}`}>{dayNum}</span>
+                      <span className={`text-xs font-medium ${isWeekend ? "text-muted-foreground/40" : "text-muted-foreground"}`}>{day}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
           {/* Category rows */}
-          <div className="space-y-3">
+          <div className="space-y-0 border-t border-border/20">
             {DIARY_CATEGORIES.map((cat) => {
               const catKey = cat.key ?? "general";
               const colorClasses = CATEGORY_COLORS[catKey];
