@@ -33,7 +33,8 @@ interface LoadReport {
   created_at: string;
   notes: string | null;
   weighbridge_weight_kg?: number | null;
-  customer_name?: string | null;
+  site_name?: string | null;
+  waste_types?: string[];
 }
 
 interface LoadReportsListProps {
@@ -84,7 +85,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       // Build the reports query
       let query = supabase
         .from("load_reports")
-        .select("*, customer_sites(site_name, customers(customer_name))")
+        .select("*, customer_sites(site_name), load_line_items(waste_type, pallet_count)")
         .order("report_date", { ascending: false });
 
       if (dateFilterEnabled) {
@@ -135,11 +136,19 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       }
 
       // Attach weighbridge weights to reports
-      const reportsWithWeighbridge = (data || []).map((report: any) => ({
-        ...report,
-        weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
-        customer_name: report.customer_sites?.customers?.customer_name ?? null,
-      }));
+      const reportsWithWeighbridge = (data || []).map((report: any) => {
+        // Extract waste types with pallets > 0 from line items
+        const wasteTypes = (report.load_line_items || [])
+          .filter((li: any) => li.pallet_count > 0)
+          .map((li: any) => li.waste_type as string);
+
+        return {
+          ...report,
+          weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
+          site_name: report.customer_sites?.site_name ?? null,
+          waste_types: wasteTypes,
+        };
+      });
 
       setReports(reportsWithWeighbridge);
     } catch (error: any) {
@@ -162,19 +171,20 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const filteredReports = reports.filter((report) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      (report.customer_name?.toLowerCase().includes(searchLower) ?? false) ||
+      (report.site_name?.toLowerCase().includes(searchLower) ?? false) ||
       (report.notes?.toLowerCase().includes(searchLower) ?? false) ||
       (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false)
     );
   });
 
   const exportCSV = () => {
-    const headers = ["Date", "Customer", "Job Number", "Vehicle", "Pallets", "Weight (KG)", "Status"];
+    const headers = ["Date", "Site", "Job Number", "Vehicle", "Waste Types", "Pallets", "Weight (KG)", "Status"];
     const rows = filteredReports.map((r) => [
       formatLoadReportDate(r.report_date, "dd/MM/yyyy"),
-      r.customer_name || "",
+      r.site_name || "",
       r.notes || "",
       r.vehicle_reg || "",
+      (r.waste_types || []).join("; "),
       r.total_pallets.toString(),
       r.total_weight_kg.toString(),
       r.status,
@@ -258,7 +268,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by customer, job number or vehicle..."
+              placeholder="Search by site, job number or vehicle..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-12"
@@ -325,9 +335,10 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
                   <TableHead className="hidden sm:table-cell">Job Number</TableHead>
                   <TableHead className="hidden md:table-cell">Vehicle</TableHead>
+                  <TableHead className="hidden lg:table-cell">Waste Type</TableHead>
                   <TableHead className="text-center">Pallets</TableHead>
                   <TableHead className="text-right">Weight (KG)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
@@ -340,12 +351,17 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     <TableCell className="font-medium">
                       {formatLoadReportDate(report.report_date, "dd/MM/yyyy")}
                     </TableCell>
-                    <TableCell>{report.customer_name || "-"}</TableCell>
+                    <TableCell>{report.site_name || "-"}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {report.notes || "-"}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {report.vehicle_reg || "-"}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm">
+                      {report.waste_types && report.waste_types.length > 0
+                        ? report.waste_types.join(", ")
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-center font-semibold">
                       {report.total_pallets}
@@ -405,7 +421,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         totalPallets={codReport?.total_pallets ?? 0}
         reportId={codReport?.id ?? ""}
         jobNumber={codReport?.notes ?? undefined}
-        customerName={codReport?.customer_name ?? undefined}
+        customerName={codReport?.site_name ?? undefined}
         onGenerated={() => {
           if (codReport) {
             setCodGeneratedIds(prev => new Set(prev).add(codReport.id));
