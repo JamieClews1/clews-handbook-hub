@@ -587,65 +587,70 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Site *</Label>
-              <Select value={form.site_id} onValueChange={v => setForm({ ...form, site_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Select site" /></SelectTrigger>
-                <SelectContent>
-                  {sites.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Preferred Date</Label>
-                <Input type="date" value={form.collection_date} onChange={e => setForm({ ...form, collection_date: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Time Slot</Label>
-                <Select value={form.collection_time_slot} onValueChange={v => setForm({ ...form, collection_time_slot: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Container Type</Label>
-                <Select value={form.container_type} onValueChange={v => setForm({ ...form, container_type: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {CONTAINER_TYPES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Waste Type</Label>
-                <Input value={form.waste_type} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. General Waste" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Name</Label>
-              <Input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Contact Email</Label>
-                <Input type="email" value={form.contact_email} onChange={e => setForm({ ...form, contact_email: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Contact Phone</Label>
-                <Input value={form.contact_phone} onChange={e => setForm({ ...form, contact_phone: e.target.value })} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Special Instructions</Label>
-              <Textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} rows={2} placeholder="Access requirements, specific location on site, etc." />
-            </div>
+            {/* Show bin details as read-only summary for exchange/collection */}
+            {(requestType === "exchange" || requestType === "collection") && prefillSite ? (
+              <>
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Site</span>
+                    <span className="font-medium">{prefillSite}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Container</span>
+                    <span className="font-medium">{form.container_type}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Waste Type</span>
+                    <span className="font-medium">{form.waste_type}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Preferred Date</Label>
+                  <Input type="date" value={form.collection_date} onChange={e => setForm({ ...form, collection_date: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} rows={2} placeholder="Any special requirements..." />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Site *</Label>
+                  <Select value={form.site_id} onValueChange={v => setForm({ ...form, site_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select site" /></SelectTrigger>
+                    <SelectContent>
+                      {sites.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Preferred Date</Label>
+                    <Input type="date" value={form.collection_date} onChange={e => setForm({ ...form, collection_date: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Container Type</Label>
+                    <Select value={form.container_type} onValueChange={v => setForm({ ...form, container_type: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        {CONTAINER_TYPES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Waste Type</Label>
+                  <Input value={form.waste_type} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. General Waste" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Textarea value={form.special_instructions} onChange={e => setForm({ ...form, special_instructions: e.target.value })} rows={2} placeholder="Access requirements, specific location on site, etc." />
+                </div>
+              </>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate}>Submit Request</Button>
