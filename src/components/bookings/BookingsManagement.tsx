@@ -319,11 +319,11 @@ export const BookingsManagement = () => {
                   <TableCell className="font-mono font-medium">{b.booking_reference}</TableCell>
                   <TableCell>{getCustomerName(b.customer_id)}</TableCell>
                   <TableCell>{getSiteName(b.site_id)}</TableCell>
-                  <TableCell className="font-mono text-xs">{b.site_id && latestSkiptrak[b.site_id] ? latestSkiptrak[b.site_id] : "—"}</TableCell>
                   <TableCell>
                     {b.collection_date ? format(new Date(b.collection_date + "T00:00:00"), "dd/MM/yyyy") : "—"}
                   </TableCell>
                   <TableCell>{b.container_type || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{b.site_id && latestSkiptrak[b.site_id] ? latestSkiptrak[b.site_id] : "—"}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={STATUS_COLORS[b.status] || ""}>
                       {b.status.replace("_", " ")}
