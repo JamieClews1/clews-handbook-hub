@@ -9,9 +9,10 @@ interface DiaryCardItemProps {
   onUpdate: (id: string, updates: Partial<DiaryCard>) => void;
   onDelete: (id: string) => void;
   onDuplicate: (card: DiaryCard) => void;
+  isPast?: boolean;
 }
 
-export const DiaryCardItem = ({ card, onUpdate, onDelete, onDuplicate }: DiaryCardItemProps) => {
+export const DiaryCardItem = ({ card, onUpdate, onDelete, onDuplicate, isPast }: DiaryCardItemProps) => {
   const [isEditing, setIsEditing] = useState(!card.content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -58,27 +59,26 @@ export const DiaryCardItem = ({ card, onUpdate, onDelete, onDuplicate }: DiaryCa
     <div
       ref={setNodeRef}
       style={style}
-      className="group relative rounded-md border border-border/20 bg-card/80 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing"
+      className="group relative border-b border-border/15 cursor-grab active:cursor-grabbing hover:bg-muted/30 transition-colors"
       {...attributes}
       {...listeners}
     >
       {/* Action buttons */}
-      <div className="absolute -top-2 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
+      <div className="absolute top-0.5 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
         <button
           onClick={(e) => { e.stopPropagation(); onDuplicate(card); }}
-          className="w-5 h-5 rounded-full bg-muted border border-border/50 shadow-sm flex items-center justify-center hover:scale-110 transition-transform"
+          className="w-5 h-5 rounded-full bg-muted/80 flex items-center justify-center hover:scale-110 transition-transform"
         >
           <Copy className="h-2.5 w-2.5 text-muted-foreground" />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(card.id); }}
-          className="w-5 h-5 rounded-full bg-muted border border-border/50 shadow-sm flex items-center justify-center hover:scale-110 transition-transform hover:bg-destructive/10"
+          className="w-5 h-5 rounded-full bg-muted/80 flex items-center justify-center hover:scale-110 transition-transform hover:bg-destructive/10"
         >
           <Trash2 className="h-2.5 w-2.5 text-muted-foreground" />
         </button>
       </div>
 
-      {/* Content */}
       {isEditing ? (
         <textarea
           ref={textareaRef}
@@ -87,15 +87,17 @@ export const DiaryCardItem = ({ card, onUpdate, onDelete, onDuplicate }: DiaryCa
           onBlur={handleBlur}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="Write something..."
-          className="w-full bg-transparent border-0 outline-none resize-none text-xs text-foreground p-2 min-h-[36px] placeholder:text-muted-foreground/40"
-          rows={2}
+          className="w-full bg-transparent border-0 outline-none resize-none text-[13px] leading-snug text-foreground py-1.5 px-1 min-h-[28px] placeholder:text-muted-foreground/30"
+          rows={1}
         />
       ) : (
         <div
           onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-          className="p-2 text-xs text-foreground cursor-text min-h-[36px] whitespace-pre-wrap break-words"
+          className={`py-1.5 px-1 text-[13px] leading-snug cursor-text min-h-[28px] whitespace-pre-wrap break-words ${
+            isPast ? "text-muted-foreground/50" : "text-foreground"
+          }`}
         >
-          {card.content || <span className="text-muted-foreground/40 italic">Empty</span>}
+          {card.content || <span className="text-muted-foreground/30 italic">Empty</span>}
         </div>
       )}
     </div>
