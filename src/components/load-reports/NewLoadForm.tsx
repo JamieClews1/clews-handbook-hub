@@ -47,6 +47,8 @@ interface NewLoadFormProps {
   onLookupWeighbridgeWeight?: () => void;
   noPalletsOnLoad?: boolean;
   onNoPalletsOnLoadChange?: (checked: boolean) => void;
+  excludeFromRebate?: boolean;
+  onExcludeFromRebateChange?: (checked: boolean) => void;
   onStartTally: () => void;
   isValid: boolean;
   isEditing?: boolean;
@@ -69,6 +71,8 @@ export const NewLoadForm = ({
   onLookupWeighbridgeWeight,
   noPalletsOnLoad = false,
   onNoPalletsOnLoadChange,
+  excludeFromRebate = false,
+  onExcludeFromRebateChange,
   onStartTally,
   isValid,
   isEditing = false,
@@ -277,6 +281,29 @@ export const NewLoadForm = ({
                 </Label>
                 <p className="text-sm text-muted-foreground">
                   Bales were not on pallets, so pallet weight will not be deducted
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Exclude from Rebate Checkbox */}
+          {onExcludeFromRebateChange && (
+            <div className="flex items-center space-x-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
+              <Checkbox
+                id="excludeFromRebate"
+                checked={excludeFromRebate}
+                onCheckedChange={(checked) => onExcludeFromRebateChange(checked === true)}
+                className="h-5 w-5"
+              />
+              <div className="flex-1">
+                <Label
+                  htmlFor="excludeFromRebate"
+                  className="text-base font-medium cursor-pointer"
+                >
+                  Exclude from Monthly Rebate Report
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  This load will not be included in rebate calculations (e.g. liquid loads)
                 </p>
               </div>
             </div>
