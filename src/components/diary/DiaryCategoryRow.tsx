@@ -121,7 +121,7 @@ const DroppableDay = ({
       </div>
       <button
         onClick={() => onAddCard(dayIndex, categoryKey)}
-        className="w-full flex items-center justify-center py-0.5 rounded text-muted-foreground/20 hover:text-muted-foreground/60 transition-all mt-0.5"
+        className="w-full flex items-center justify-center py-0.5 rounded text-muted-foreground/50 hover:text-muted-foreground transition-all mt-0.5"
       >
         <Plus className="h-3 w-3" />
       </button>
