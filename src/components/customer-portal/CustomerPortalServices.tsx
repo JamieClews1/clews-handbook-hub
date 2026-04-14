@@ -46,6 +46,7 @@ type OnSiteContainer = {
   wasteType: string;
   count: number;
   lastActivityDate: string | null;
+  lastJobNumber: string | null;
   daysOnSite: number;
 };
 
@@ -55,6 +56,7 @@ type DataHubJob = {
   waste_description: string | null;
   movement_type: string | null;
   job_date: string | null;
+  job_number: string | null;
 };
 
 interface Props {
@@ -161,7 +163,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     while (hasMore) {
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("site, container_type, waste_description, movement_type, job_date")
+        .select("site, container_type, waste_description, movement_type, job_date, job_number")
         .eq("source", "skiptrak")
         .gte("job_date", since)
         .in("movement_type", ["Deliver", "Exchange", "Collect"])
@@ -178,7 +180,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     // Compute on-site per site + container type
     // Logic: net = delivers - collects. Exchanges prove a container is on site (swap old for new).
     // If net <= 0 but there are recent exchanges, at least 1 container is still on site.
-    const containerMap: Record<string, { delivered: number; collected: number; exchanges: number; lastActivity: string | null; lastMovement: string | null }> = {};
+    const containerMap: Record<string, { delivered: number; collected: number; exchanges: number; lastActivity: string | null; lastMovement: string | null; lastJobNumber: string | null }> = {};
 
     for (const job of allJobs) {
       if (!job.site || !job.container_type) continue;
@@ -188,13 +190,14 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       const wasteDesc = job.waste_description || "Unknown";
       const key = `${alias.siteName}|||${job.container_type}|||${wasteDesc}`;
       if (!containerMap[key]) {
-        containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null };
+        containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null, lastJobNumber: null };
       }
 
       // Track latest activity date and movement type
       if (job.job_date && (!containerMap[key].lastActivity || job.job_date > containerMap[key].lastActivity!)) {
         containerMap[key].lastActivity = job.job_date;
         containerMap[key].lastMovement = job.movement_type;
+        containerMap[key].lastJobNumber = job.job_number;
       }
 
       if (job.movement_type === "Deliver") {
@@ -225,6 +228,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
         wasteType,
         count: netCount,
         lastActivityDate: val.lastActivity,
+        lastJobNumber: val.lastJobNumber,
         daysOnSite: days,
       });
     }
@@ -414,12 +418,17 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                       <Badge variant="secondary">{c.count}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5 text-sm">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{c.lastActivityDate ? format(new Date(c.lastActivityDate + "T00:00:00"), "dd/MM/yyyy") : "—"}</span>
-                        <span className={`text-xs ${c.daysOnSite > 28 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                          ({c.daysOnSite}d ago)
-                        </span>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{c.lastActivityDate ? format(new Date(c.lastActivityDate + "T00:00:00"), "dd/MM/yyyy") : "—"}</span>
+                          <span className={`text-xs ${c.daysOnSite > 28 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            ({c.daysOnSite}d ago)
+                          </span>
+                        </div>
+                        {c.lastJobNumber && (
+                          <span className="text-xs text-muted-foreground font-mono">{c.lastJobNumber}</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
