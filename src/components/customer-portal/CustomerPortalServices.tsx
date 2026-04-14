@@ -292,7 +292,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       return;
     }
 
-    const { error } = await supabase.from("bookings").insert({
+    const { error, data } = await supabase.from("bookings").insert({
       customer_id: customerId,
       site_id: form.site_id,
       collection_date: form.collection_date || null,
@@ -306,11 +306,30 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       special_instructions: form.special_instructions || null,
       source: "portal",
       status: "pending" as const,
-    } as any);
+    } as any).select("booking_reference").single();
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
+    }
+
+    // Send email notification to orders
+    const siteName = sites.find(s => s.id === form.site_id)?.site_name || "Unknown";
+    try {
+      await supabase.functions.invoke("booking-notification", {
+        body: {
+          requestType,
+          customerName,
+          siteName,
+          containerType: form.container_type || "Not specified",
+          wasteType: form.waste_type || "Not specified",
+          preferredDate: form.collection_date || null,
+          specialInstructions: form.special_instructions || null,
+          bookingReference: (data as any)?.booking_reference || "—",
+        },
+      });
+    } catch (e) {
+      console.error("Failed to send notification:", e);
     }
 
     const typeLabel = requestType === "exchange" ? "Exchange" : requestType === "collection" ? "Collection" : "Service";
