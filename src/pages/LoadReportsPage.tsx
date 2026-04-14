@@ -737,6 +737,7 @@ const LoadReportsPage = () => {
           totalWeightKg: totalWeight,
           palletsOut: palletsOut,
           noPalletsOnLoad: noPalletsOnLoad,
+          excludeFromRebate: excludeFromRebate,
           wetChargePercent: wetChargePercent,
           lineItems: offlineLineItems,
         });
@@ -769,6 +770,7 @@ const LoadReportsPage = () => {
            papers_dolav_on_pallets: staciPapersDolavOnPallets,
            glass_dolav_on_pallets: staciGlassDolavOnPallets,
            scrap_metal_loose_on_pallets: staciScrapMetalLooseOnPallets,
+           exclude_from_rebate: excludeFromRebate,
            submitted_at: submit ? new Date().toISOString() : null,
         };
 
