@@ -253,7 +253,8 @@ import * as XLSX from "xlsx";
             .eq("site_id", site.id)
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
-            .eq("status", "submitted");
+            .eq("status", "submitted")
+            .eq("exclude_from_rebate", false);
 
           const loadReportIds = (loadReports ?? []).map(r => r.id);
           

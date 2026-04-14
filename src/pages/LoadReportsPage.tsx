@@ -64,6 +64,7 @@ const LoadReportsPage = () => {
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
   const [palletsOut, setPalletsOut] = useState(0);
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
+  const [excludeFromRebate, setExcludeFromRebate] = useState(false);
   const [wetChargePercent, setWetChargePercent] = useState(0);
 
   // Staci-specific state
@@ -406,6 +407,7 @@ const LoadReportsPage = () => {
     setSelectedSiteId("");
     setPalletsOut(0);
     setNoPalletsOnLoad(false);
+    setExcludeFromRebate(false);
     setWetChargePercent(0);
     setReportDate(getTodayLoadReportDate());
     
@@ -475,6 +477,7 @@ const LoadReportsPage = () => {
       setReportDate(normalizeLoadReportDate(report.report_date));
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
+      setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
@@ -582,6 +585,7 @@ const LoadReportsPage = () => {
       setReportDate(normalizeLoadReportDate(report.report_date));
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
+      setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
@@ -733,6 +737,7 @@ const LoadReportsPage = () => {
           totalWeightKg: totalWeight,
           palletsOut: palletsOut,
           noPalletsOnLoad: noPalletsOnLoad,
+          excludeFromRebate: excludeFromRebate,
           wetChargePercent: wetChargePercent,
           lineItems: offlineLineItems,
         });
@@ -765,6 +770,7 @@ const LoadReportsPage = () => {
            papers_dolav_on_pallets: staciPapersDolavOnPallets,
            glass_dolav_on_pallets: staciGlassDolavOnPallets,
            scrap_metal_loose_on_pallets: staciScrapMetalLooseOnPallets,
+           exclude_from_rebate: excludeFromRebate,
            submitted_at: submit ? new Date().toISOString() : null,
         };
 
@@ -1040,6 +1046,8 @@ const LoadReportsPage = () => {
               onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}
               noPalletsOnLoad={noPalletsOnLoad}
               onNoPalletsOnLoadChange={setNoPalletsOnLoad}
+              excludeFromRebate={excludeFromRebate}
+              onExcludeFromRebateChange={setExcludeFromRebate}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
               isEditing={!!currentReportId}

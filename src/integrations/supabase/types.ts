@@ -1653,6 +1653,7 @@ export type Database = {
           card_bales_on_pallets: boolean
           card_bales_weight_kg: number | null
           created_at: string
+          exclude_from_rebate: boolean
           films_bale_count: number | null
           films_bale_on_pallets: boolean
           films_bale_weight_kg: number | null
@@ -1687,6 +1688,7 @@ export type Database = {
           card_bales_on_pallets?: boolean
           card_bales_weight_kg?: number | null
           created_at?: string
+          exclude_from_rebate?: boolean
           films_bale_count?: number | null
           films_bale_on_pallets?: boolean
           films_bale_weight_kg?: number | null
@@ -1721,6 +1723,7 @@ export type Database = {
           card_bales_on_pallets?: boolean
           card_bales_weight_kg?: number | null
           created_at?: string
+          exclude_from_rebate?: boolean
           films_bale_count?: number | null
           films_bale_on_pallets?: boolean
           films_bale_weight_kg?: number | null

@@ -265,7 +265,8 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         const { data: loadReports } = await supabase
           .from("load_reports")
           .select("id, notes, no_pallets_on_load")
-          .in("notes", allJobNumbers);
+          .in("notes", allJobNumbers)
+          .eq("exclude_from_rebate", false);
 
         if (loadReports && loadReports.length > 0) {
           const loadReportIds = loadReports.map(lr => lr.id);

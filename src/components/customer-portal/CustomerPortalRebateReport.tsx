@@ -325,6 +325,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         .gte("report_date", rangeStart)
         .lte("report_date", rangeEnd)
         .eq("status", "submitted")
+        .eq("exclude_from_rebate", false)
         .order("report_date", { ascending: false });
 
       const { data: palletWeightSetting } = await supabase
