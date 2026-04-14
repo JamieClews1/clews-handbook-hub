@@ -298,6 +298,7 @@ export const BookingsManagement = () => {
               <TableHead>Site</TableHead>
               <TableHead>Collection Date</TableHead>
               <TableHead>Container</TableHead>
+              <TableHead>Latest Skiptrak #</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Source</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -306,11 +307,11 @@ export const BookingsManagement = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No bookings found</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No bookings found</TableCell>
               </TableRow>
             ) : (
               filtered.map((b) => (
@@ -318,6 +319,7 @@ export const BookingsManagement = () => {
                   <TableCell className="font-mono font-medium">{b.booking_reference}</TableCell>
                   <TableCell>{getCustomerName(b.customer_id)}</TableCell>
                   <TableCell>{getSiteName(b.site_id)}</TableCell>
+                  <TableCell className="font-mono text-xs">{b.site_id && latestSkiptrak[b.site_id] ? latestSkiptrak[b.site_id] : "—"}</TableCell>
                   <TableCell>
                     {b.collection_date ? format(new Date(b.collection_date + "T00:00:00"), "dd/MM/yyyy") : "—"}
                   </TableCell>
