@@ -16,6 +16,7 @@ export interface OfflineLoadReport {
   totalWeightKg: number;
   palletsOut?: number;
   noPalletsOnLoad?: boolean;
+  excludeFromRebate?: boolean;
   wetChargePercent?: number;
   lineItems: OfflineLineItem[];
   createdAt: string;
