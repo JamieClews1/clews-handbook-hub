@@ -35,6 +35,7 @@ interface LoadReport {
   weighbridge_weight_kg?: number | null;
   site_name?: string | null;
   waste_types?: string[];
+  exclude_from_rebate?: boolean;
 }
 
 interface LoadReportsListProps {
@@ -348,13 +349,18 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               </TableHeader>
               <TableBody>
                 {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
+                  <TableRow key={report.id} className={report.exclude_from_rebate ? "bg-red-50 dark:bg-red-950/20" : ""}>
                     <TableCell className="font-medium">
                       {formatLoadReportDate(report.report_date, "dd/MM/yyyy")}
                     </TableCell>
                     <TableCell>{report.site_name || "-"}</TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      {report.notes || "-"}
+                      <div className="flex items-center gap-1.5">
+                        {report.notes || "-"}
+                        {report.exclude_from_rebate && (
+                          <span className="text-xs font-medium text-red-600 dark:text-red-400">(Excluded from Rebate)</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {report.vehicle_reg || "-"}
