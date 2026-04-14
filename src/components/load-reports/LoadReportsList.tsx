@@ -33,7 +33,8 @@ interface LoadReport {
   created_at: string;
   notes: string | null;
   weighbridge_weight_kg?: number | null;
-  customer_name?: string | null;
+  site_name?: string | null;
+  waste_types?: string[];
 }
 
 interface LoadReportsListProps {
