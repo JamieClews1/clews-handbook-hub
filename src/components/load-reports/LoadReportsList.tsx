@@ -35,6 +35,8 @@ interface LoadReport {
   weighbridge_weight_kg?: number | null;
   site_name?: string | null;
   waste_types?: string[];
+  exclude_from_rebate?: boolean;
+  last_activity_job?: string | null;
 }
 
 interface LoadReportsListProps {
@@ -135,18 +137,39 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         }
       }
 
-      // Attach weighbridge weights to reports
+      // Fetch last activity (most recent job ticket) per site
+      const siteNames = [...new Set((data || []).map((r: any) => r.customer_sites?.site_name).filter(Boolean))];
+      let lastActivityMap: Record<string, string> = {};
+      if (siteNames.length > 0) {
+        const source = getWeighbridgeSource(customerType);
+        for (const siteName of siteNames) {
+          const { data: latestJob } = await supabase
+            .from("data_hub_jobs")
+            .select("job_number")
+            .eq("source", source)
+            .eq("site", siteName)
+            .order("job_date", { ascending: false })
+            .limit(1);
+          if (latestJob && latestJob.length > 0) {
+            lastActivityMap[siteName] = latestJob[0].job_number;
+          }
+        }
+      }
+
+      // Attach weighbridge weights and last activity to reports
       const reportsWithWeighbridge = (data || []).map((report: any) => {
-        // Extract waste types with pallets > 0 from line items
         const wasteTypes = (report.load_line_items || [])
           .filter((li: any) => li.pallet_count > 0)
           .map((li: any) => li.waste_type as string);
 
+        const siteName = report.customer_sites?.site_name ?? null;
+
         return {
           ...report,
           weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
-          site_name: report.customer_sites?.site_name ?? null,
+          site_name: siteName,
           waste_types: wasteTypes,
+          last_activity_job: siteName ? lastActivityMap[siteName] ?? null : null,
         };
       });
 
@@ -342,6 +365,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                   <TableHead className="text-center">Pallets</TableHead>
                   <TableHead className="text-right">Weight (KG)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="hidden xl:table-cell">Last Activity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -371,6 +395,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     </TableCell>
                     <TableCell className="text-center">
                       {getStatusBadge(report.status, report)}
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
+                      {report.last_activity_job || "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       <TooltipProvider>
