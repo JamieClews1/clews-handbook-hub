@@ -1014,6 +1014,7 @@ export type Database = {
           job_date: string | null
           job_number: string
           job_type: string | null
+          manual_edit_note: string | null
           movement_type: string | null
           order_number_override: string | null
           raw: Json
@@ -1036,6 +1037,7 @@ export type Database = {
           job_date?: string | null
           job_number: string
           job_type?: string | null
+          manual_edit_note?: string | null
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
@@ -1058,6 +1060,7 @@ export type Database = {
           job_date?: string | null
           job_number?: string
           job_type?: string | null
+          manual_edit_note?: string | null
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json

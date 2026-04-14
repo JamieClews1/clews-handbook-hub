@@ -1,0 +1,1 @@
+ALTER TABLE public.data_hub_jobs ADD COLUMN manual_edit_note text;
