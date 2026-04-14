@@ -351,6 +351,7 @@ export function SiteRebateReportGenerator() {
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
             .eq("status", "submitted")
+            .eq("exclude_from_rebate", false)
             .order("report_date", { ascending: false });
 
           // Get pallet weight setting
