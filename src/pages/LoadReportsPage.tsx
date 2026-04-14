@@ -477,6 +477,7 @@ const LoadReportsPage = () => {
       setReportDate(normalizeLoadReportDate(report.report_date));
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
+      setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
@@ -584,6 +585,7 @@ const LoadReportsPage = () => {
       setReportDate(normalizeLoadReportDate(report.report_date));
       setPalletsOut((report as any).pallets_out || 0);
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
+      setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
