@@ -40,11 +40,7 @@ const DiaryPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto px-4 py-8 max-w-[1600px]">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Diary</h1>
-          <p className="text-sm text-muted-foreground/60 mt-1">Your weekly outlook</p>
-        </div>
+      <main className="mx-auto px-6 py-6 max-w-[1600px]">
         <DiaryWeekView />
       </main>
     </div>
