@@ -64,6 +64,7 @@ const LoadReportsPage = () => {
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
   const [palletsOut, setPalletsOut] = useState(0);
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
+  const [excludeFromRebate, setExcludeFromRebate] = useState(false);
   const [wetChargePercent, setWetChargePercent] = useState(0);
 
   // Staci-specific state
@@ -406,6 +407,7 @@ const LoadReportsPage = () => {
     setSelectedSiteId("");
     setPalletsOut(0);
     setNoPalletsOnLoad(false);
+    setExcludeFromRebate(false);
     setWetChargePercent(0);
     setReportDate(getTodayLoadReportDate());
     
