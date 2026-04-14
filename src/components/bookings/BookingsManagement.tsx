@@ -481,6 +481,7 @@ export const BookingsManagement = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">Time Slot</span><span>{viewBooking.collection_time_slot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Container</span><span>{viewBooking.container_type || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Waste Type</span><span>{viewBooking.waste_type || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Latest Skiptrak #</span><span className="font-mono">{viewBooking.site_id && latestSkiptrak[viewBooking.site_id] ? latestSkiptrak[viewBooking.site_id] : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Qty</span><span>{viewBooking.quantity || 1}</span></div>
               {viewBooking.contact_name && <div className="flex justify-between"><span className="text-muted-foreground">Contact</span><span>{viewBooking.contact_name}</span></div>}
               {viewBooking.contact_email && <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{viewBooking.contact_email}</span></div>}
