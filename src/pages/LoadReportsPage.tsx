@@ -1046,6 +1046,8 @@ const LoadReportsPage = () => {
               onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}
               noPalletsOnLoad={noPalletsOnLoad}
               onNoPalletsOnLoadChange={setNoPalletsOnLoad}
+              excludeFromRebate={excludeFromRebate}
+              onExcludeFromRebateChange={setExcludeFromRebate}
               onStartTally={handleStartTally}
               isValid={operatorName.trim().length > 0}
               isEditing={!!currentReportId}
