@@ -40,14 +40,14 @@ export const DiaryCategoryRow = ({
   onDuplicateCard,
 }: DiaryCategoryRowProps) => {
   return (
-    <div className={`rounded-xl border ${colorClasses.border} ${colorClasses.bg} overflow-hidden`}>
+    <div className="overflow-hidden">
       {/* Category header */}
-      <div className={`px-4 py-2 flex items-center gap-2 border-b ${colorClasses.border}`}>
-        <span className={`text-sm font-semibold ${colorClasses.text}`}>{categoryLabel}</span>
+      <div className={`px-3 py-1.5 flex items-center gap-2 border-l-4 ${colorClasses.border}`}>
+        <span className={`text-xs font-bold uppercase tracking-wider ${colorClasses.text}`}>{categoryLabel}</span>
       </div>
 
-      {/* 7-day grid */}
-      <div className="grid grid-cols-7 divide-x divide-border/20 min-h-[100px]">
+      {/* 7-day grid — weekends narrower */}
+      <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] divide-x divide-border/10 min-h-[80px]">
         {Array.from({ length: 7 }, (_, dayIndex) => {
           const dayDate = addDays(weekStart, dayIndex);
           const isToday = formatDate(dayDate) === formatDate(new Date());
