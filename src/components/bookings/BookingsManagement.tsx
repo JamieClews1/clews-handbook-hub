@@ -84,6 +84,7 @@ export const BookingsManagement = () => {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [latestSkiptrak, setLatestSkiptrak] = useState<Record<string, string>>({});
 
   const filteredSites = form.customer_id
     ? sites.filter((s) => s.customer_id === form.customer_id)
@@ -98,11 +99,47 @@ export const BookingsManagement = () => {
     const [bRes, cRes, sRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("customers").select("id, customer_name, customer_code").eq("is_active", true).order("customer_name"),
-      supabase.from("customer_sites").select("id, site_name, customer_id").order("site_name"),
+      supabase.from("customer_sites").select("id, site_name, customer_id, data_hub_site").order("site_name"),
     ]);
     if (bRes.data) setBookings(bRes.data as Booking[]);
     if (cRes.data) setCustomers(cRes.data);
     if (sRes.data) setSites(sRes.data);
+
+    // Fetch latest skiptrak job number per site
+    if (bRes.data && sRes.data) {
+      const siteIds = [...new Set(bRes.data.map((b: any) => b.site_id).filter(Boolean))];
+      const siteMap = new Map(sRes.data.map((s: any) => [s.id, s.data_hub_site]));
+      const dhSites = siteIds.map((id) => siteMap.get(id)).filter(Boolean) as string[];
+      
+      if (dhSites.length > 0) {
+        const { data: jobs } = await supabase
+          .from("data_hub_jobs")
+          .select("job_number, site, job_date")
+          .eq("source", "skiptrak")
+          .in("site", dhSites)
+          .order("job_date", { ascending: false })
+          .limit(500);
+        
+        if (jobs) {
+          // Build map: data_hub_site -> latest job_number
+          const siteJobMap: Record<string, string> = {};
+          for (const j of jobs) {
+            if (j.site && !siteJobMap[j.site]) {
+              siteJobMap[j.site] = j.job_number;
+            }
+          }
+          // Convert to site_id -> job_number
+          const result: Record<string, string> = {};
+          for (const [siteId, dhSite] of siteMap.entries()) {
+            if (dhSite && siteJobMap[dhSite]) {
+              result[siteId] = siteJobMap[dhSite];
+            }
+          }
+          setLatestSkiptrak(result);
+        }
+      }
+    }
+
     setLoading(false);
   };
 
