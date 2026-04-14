@@ -84,6 +84,7 @@ export const BookingsManagement = () => {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [viewBooking, setViewBooking] = useState<Booking | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [latestSkiptrak, setLatestSkiptrak] = useState<Record<string, string>>({});
 
   const filteredSites = form.customer_id
     ? sites.filter((s) => s.customer_id === form.customer_id)
@@ -98,11 +99,47 @@ export const BookingsManagement = () => {
     const [bRes, cRes, sRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("customers").select("id, customer_name, customer_code").eq("is_active", true).order("customer_name"),
-      supabase.from("customer_sites").select("id, site_name, customer_id").order("site_name"),
+      supabase.from("customer_sites").select("id, site_name, customer_id, data_hub_site").order("site_name"),
     ]);
     if (bRes.data) setBookings(bRes.data as Booking[]);
     if (cRes.data) setCustomers(cRes.data);
     if (sRes.data) setSites(sRes.data);
+
+    // Fetch latest skiptrak job number per site
+    if (bRes.data && sRes.data) {
+      const siteIds = [...new Set(bRes.data.map((b: any) => b.site_id).filter(Boolean))];
+      const siteMap = new Map(sRes.data.map((s: any) => [s.id, s.data_hub_site]));
+      const dhSites = siteIds.map((id) => siteMap.get(id)).filter(Boolean) as string[];
+      
+      if (dhSites.length > 0) {
+        const { data: jobs } = await supabase
+          .from("data_hub_jobs")
+          .select("job_number, site, job_date")
+          .eq("source", "skiptrak")
+          .in("site", dhSites)
+          .order("job_date", { ascending: false })
+          .limit(500);
+        
+        if (jobs) {
+          // Build map: data_hub_site -> latest job_number
+          const siteJobMap: Record<string, string> = {};
+          for (const j of jobs) {
+            if (j.site && !siteJobMap[j.site]) {
+              siteJobMap[j.site] = j.job_number;
+            }
+          }
+          // Convert to site_id -> job_number
+          const result: Record<string, string> = {};
+          for (const [siteId, dhSite] of siteMap.entries()) {
+            if (dhSite && siteJobMap[dhSite]) {
+              result[siteId] = siteJobMap[dhSite];
+            }
+          }
+          setLatestSkiptrak(result);
+        }
+      }
+    }
+
     setLoading(false);
   };
 
@@ -261,6 +298,7 @@ export const BookingsManagement = () => {
               <TableHead>Site</TableHead>
               <TableHead>Collection Date</TableHead>
               <TableHead>Container</TableHead>
+              <TableHead>Latest Skiptrak #</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Source</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -269,11 +307,11 @@ export const BookingsManagement = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No bookings found</TableCell>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No bookings found</TableCell>
               </TableRow>
             ) : (
               filtered.map((b) => (
@@ -281,6 +319,7 @@ export const BookingsManagement = () => {
                   <TableCell className="font-mono font-medium">{b.booking_reference}</TableCell>
                   <TableCell>{getCustomerName(b.customer_id)}</TableCell>
                   <TableCell>{getSiteName(b.site_id)}</TableCell>
+                  <TableCell className="font-mono text-xs">{b.site_id && latestSkiptrak[b.site_id] ? latestSkiptrak[b.site_id] : "—"}</TableCell>
                   <TableCell>
                     {b.collection_date ? format(new Date(b.collection_date + "T00:00:00"), "dd/MM/yyyy") : "—"}
                   </TableCell>
@@ -442,6 +481,7 @@ export const BookingsManagement = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">Time Slot</span><span>{viewBooking.collection_time_slot || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Container</span><span>{viewBooking.container_type || "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Waste Type</span><span>{viewBooking.waste_type || "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Latest Skiptrak #</span><span className="font-mono">{viewBooking.site_id && latestSkiptrak[viewBooking.site_id] ? latestSkiptrak[viewBooking.site_id] : "—"}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Qty</span><span>{viewBooking.quantity || 1}</span></div>
               {viewBooking.contact_name && <div className="flex justify-between"><span className="text-muted-foreground">Contact</span><span>{viewBooking.contact_name}</span></div>}
               {viewBooking.contact_email && <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{viewBooking.contact_email}</span></div>}
