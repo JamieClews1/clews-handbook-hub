@@ -25,8 +25,8 @@ const DiaryPage = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+    <div className="min-h-screen bg-white dark:bg-background">
+      <header className="sticky top-0 z-50 bg-white dark:bg-background border-b border-border/30">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/one-portal">
@@ -42,7 +42,7 @@ const DiaryPage = () => {
 
       <main className="mx-auto px-4 py-8 max-w-[1600px]">
         <div className="mb-8">
-          <h1 className="text-2xl font-light text-foreground tracking-tight">Diary</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Diary</h1>
           <p className="text-sm text-muted-foreground/60 mt-1">Your weekly outlook</p>
         </div>
         <DiaryWeekView />
