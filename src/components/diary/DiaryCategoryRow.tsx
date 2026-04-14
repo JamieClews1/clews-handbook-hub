@@ -40,39 +40,37 @@ export const DiaryCategoryRow = ({
   onDuplicateCard,
 }: DiaryCategoryRowProps) => {
   return (
-    <div className="overflow-hidden">
-      {/* Category header */}
-      <div className={`px-3 py-1.5 flex items-center gap-2 border-l-4 ${colorClasses.border}`}>
+    <div className="grid grid-cols-[120px_repeat(5,1fr)_0.5fr_0.5fr] border-b border-border/10">
+      {/* Category label */}
+      <div className={`flex items-start pt-2 pl-3 border-l-4 ${colorClasses.border}`}>
         <span className={`text-xs font-bold uppercase tracking-wider ${colorClasses.text}`}>{categoryLabel}</span>
       </div>
 
-      {/* 7-day grid — weekends narrower */}
-      <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] divide-x divide-border/10 min-h-[80px]">
-        {Array.from({ length: 7 }, (_, dayIndex) => {
-          const dayDate = addDays(weekStart, dayIndex);
-          const isToday = formatDate(dayDate) === formatDate(new Date());
-          const dayCards = cards
-            .filter((c) => c.day_of_week === dayIndex)
-            .sort((a, b) => a.display_order - b.display_order);
-          const droppableId = `cat-${categoryKey ?? "general"}-day-${dayIndex}`;
+      {/* 7 day cells — weekends narrower via grid */}
+      {Array.from({ length: 7 }, (_, dayIndex) => {
+        const dayDate = addDays(weekStart, dayIndex);
+        const isToday = formatDate(dayDate) === formatDate(new Date());
+        const dayCards = cards
+          .filter((c) => c.day_of_week === dayIndex)
+          .sort((a, b) => a.display_order - b.display_order);
+        const droppableId = `cat-${categoryKey ?? "general"}-day-${dayIndex}`;
 
-          return (
-            <DroppableDay
-              key={dayIndex}
-              droppableId={droppableId}
-              dayIndex={dayIndex}
-              isToday={isToday}
-              dayDate={dayDate}
-              dayCards={dayCards}
-              categoryKey={categoryKey}
-              onAddCard={onAddCard}
-              onUpdateCard={onUpdateCard}
-              onDeleteCard={onDeleteCard}
-              onDuplicateCard={onDuplicateCard}
-            />
-          );
-        })}
-      </div>
+        return (
+          <DroppableDay
+            key={dayIndex}
+            droppableId={droppableId}
+            dayIndex={dayIndex}
+            isToday={isToday}
+            dayDate={dayDate}
+            dayCards={dayCards}
+            categoryKey={categoryKey}
+            onAddCard={onAddCard}
+            onUpdateCard={onUpdateCard}
+            onDeleteCard={onDeleteCard}
+            onDuplicateCard={onDuplicateCard}
+          />
+        );
+      })}
     </div>
   );
 };

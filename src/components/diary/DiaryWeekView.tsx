@@ -302,7 +302,7 @@ export const DiaryWeekView = () => {
           </div>
 
           {/* Category rows */}
-          <div className="grid grid-cols-[120px_1fr] gap-0">
+          <div className="space-y-0 border-t border-border/20">
             {DIARY_CATEGORIES.map((cat) => {
               const catKey = cat.key ?? "general";
               const colorClasses = CATEGORY_COLORS[catKey];
