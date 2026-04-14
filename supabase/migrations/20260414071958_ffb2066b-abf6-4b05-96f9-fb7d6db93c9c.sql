@@ -1,0 +1,1 @@
+ALTER TABLE public.load_reports ADD COLUMN exclude_from_rebate boolean NOT NULL DEFAULT false;
