@@ -264,7 +264,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     return nonUpcoming.filter(b => b.site_id === siteFilter);
   }, [bookings, upcomingBookings, siteFilter]);
 
-  const openRequestDialog = (type: RequestType, site?: string, container?: string) => {
+  const openRequestDialog = (type: RequestType, site?: string, container?: string, wasteType?: string) => {
     setRequestType(type);
     setPrefillSite(site || "");
     setPrefillContainer(container || "");
@@ -276,16 +276,12 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       collection_date: "",
       collection_time_slot: "",
       container_type: container || "",
-      waste_type: "",
+      waste_type: wasteType || "",
       quantity: 1,
       contact_name: "",
       contact_email: "",
       contact_phone: "",
-      special_instructions: type === "exchange"
-        ? `Exchange request for ${container || "container"} at ${site || "site"}`
-        : type === "collection"
-          ? `Collection request for ${container || "container"} at ${site || "site"}`
-          : "",
+      special_instructions: "",
     });
     setCreateOpen(true);
   };
