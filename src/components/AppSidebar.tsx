@@ -450,6 +450,9 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
       </SidebarContent>
+      <SidebarFooter className="p-0">
+        <VersionBadge />
+      </SidebarFooter>
     </Sidebar>
   );
 }
