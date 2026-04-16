@@ -113,6 +113,9 @@ const PricingCMSPage = () => {
 
   return (
     <AdminPageLayout title="Pricing CMS" description="Manage skip & container pricing. Changes are reflected on the marketing site via the API.">
+      <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-400">
+        ⚠️ All pricing shown and entered is <strong>exclusive of VAT</strong>.
+      </div>
       {/* API Endpoint */}
       <Card className="mb-6">
         <CardHeader className="pb-3">
