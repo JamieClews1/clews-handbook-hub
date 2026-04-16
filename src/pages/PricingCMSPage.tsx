@@ -31,6 +31,14 @@ type WasteType = {
   is_active: boolean;
 };
 
+type PricingTier = "residential" | "tier1_trade" | "tier2_trade";
+
+const TIER_LABELS: Record<PricingTier, string> = {
+  residential: "Residential Price Matrix",
+  tier1_trade: "Tier 1 Trade",
+  tier2_trade: "Tier 2 Trade",
+};
+
 type PricingEntry = {
   id: string;
   skip_size_id: string;
@@ -38,6 +46,7 @@ type PricingEntry = {
   waste_type_id: string;
   status: "price" | "call_for_quote" | "not_available";
   price_ex_vat: number | null;
+  tier: PricingTier;
 };
 
 const PricingCMSPage = () => {
@@ -49,6 +58,7 @@ const PricingCMSPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedSkipSize, setSelectedSkipSize] = useState<string>("");
+  const [selectedTier, setSelectedTier] = useState<PricingTier>("residential");
   const [apiEndpoint, setApiEndpoint] = useState("");
 
   useEffect(() => {
@@ -78,7 +88,7 @@ const PricingCMSPage = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const getEntry = (zoneId: string, wasteTypeId: string): PricingEntry | undefined =>
-    entries.find(e => e.skip_size_id === selectedSkipSize && e.zone_id === zoneId && e.waste_type_id === wasteTypeId);
+    entries.find(e => e.skip_size_id === selectedSkipSize && e.zone_id === zoneId && e.waste_type_id === wasteTypeId && e.tier === selectedTier);
 
   const updateEntry = async (zoneId: string, wasteTypeId: string, status: string, price: number | null) => {
     const existing = getEntry(zoneId, wasteTypeId);
@@ -96,6 +106,7 @@ const PricingCMSPage = () => {
         waste_type_id: wasteTypeId,
         status: status as any,
         price_ex_vat: price,
+        tier: selectedTier,
       } as any).select().single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       if (data) setEntries(prev => [...prev, data as PricingEntry]);
@@ -133,12 +144,21 @@ const PricingCMSPage = () => {
 
       <Tabs defaultValue="matrix">
         <TabsList>
-          <TabsTrigger value="matrix">Price Matrix</TabsTrigger>
+          <TabsTrigger value="matrix">Price Matrices</TabsTrigger>
           <TabsTrigger value="sizes">Skip Sizes</TabsTrigger>
           <TabsTrigger value="wastes">Waste Types</TabsTrigger>
         </TabsList>
 
         <TabsContent value="matrix" className="mt-4">
+          {/* Tier selector tabs */}
+          <Tabs value={selectedTier} onValueChange={(v) => setSelectedTier(v as PricingTier)} className="mb-4">
+            <TabsList>
+              {(Object.entries(TIER_LABELS) as [PricingTier, string][]).map(([key, label]) => (
+                <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
           {/* Skip size selector */}
           <div className="mb-4 flex items-center gap-3">
             <Label className="text-sm font-medium">Container:</Label>
