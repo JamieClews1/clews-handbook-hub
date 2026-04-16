@@ -556,6 +556,30 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
 
   return (
     <Card>
+      {allContainerTypes.length > 1 && (
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
+            <Badge
+              variant={selectedTypes.size === 0 ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setSelectedTypes(new Set())}
+            >
+              All ({sites.length})
+            </Badge>
+            {allContainerTypes.map(ct => (
+              <Badge
+                key={ct}
+                variant={selectedTypes.has(ct) ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => toggleType(ct)}
+              >
+                {ct}
+              </Badge>
+            ))}
+          </div>
+        </CardHeader>
+      )}
       <CardContent className="p-0">
         <Table>
           <TableHeader>
