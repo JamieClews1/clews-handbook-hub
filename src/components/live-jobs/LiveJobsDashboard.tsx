@@ -462,9 +462,51 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[] }>; label: string }) {
+function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }>; label: string }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+
+  // Collect all unique container types across all sites in this tab
+  const allContainerTypes = useMemo(() => {
+    const types = new Set<string>();
+    for (const s of sites) {
+      for (const ct of s.containerTypes) types.add(ct);
+    }
+    return Array.from(types).sort((a, b) => {
+      const sizeA = extractBinSize(a);
+      const sizeB = extractBinSize(b);
+      if (sizeA !== sizeB) return sizeA - sizeB;
+      return a.localeCompare(b);
+    });
+  }, [sites]);
+
+  const toggleType = (ct: string) => {
+    setSelectedTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(ct)) next.delete(ct); else next.add(ct);
+      return next;
+    });
+  };
+
+  // Filter sites by selected container types
+  const filteredSites = useMemo(() => {
+    if (selectedTypes.size === 0) return sites;
+    return sites
+      .map(s => {
+        const matchingTypes = s.containerTypes.filter(ct => selectedTypes.has(ct));
+        if (matchingTypes.length === 0) return null;
+        // Recalculate net on-site from matching container type breakdowns only
+        let delivered = 0, collected = 0, exchanged = 0;
+        for (const ct of matchingTypes) {
+          const b = s.containerTypeBreakdown[ct];
+          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; }
+        }
+        const netOnSite = Math.max(0, delivered - collected);
+        return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
+  }, [sites, selectedTypes]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -476,7 +518,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
   };
 
   const sorted = useMemo(() => {
-    const arr = [...sites];
+    const arr = [...filteredSites];
     const dir = sortDir === "asc" ? 1 : -1;
     arr.sort((a, b) => {
       switch (sortField) {
@@ -491,7 +533,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
       }
     });
     return arr;
-  }, [sites, sortField, sortDir]);
+  }, [filteredSites, sortField, sortDir]);
 
   if (sites.length === 0) {
     return (
