@@ -2438,6 +2438,118 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_entries: {
+        Row: {
+          created_at: string
+          id: string
+          price_ex_vat: number | null
+          skip_size_id: string
+          status: Database["public"]["Enums"]["pricing_status"]
+          updated_at: string
+          waste_type_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          price_ex_vat?: number | null
+          skip_size_id: string
+          status?: Database["public"]["Enums"]["pricing_status"]
+          updated_at?: string
+          waste_type_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          price_ex_vat?: number | null
+          skip_size_id?: string
+          status?: Database["public"]["Enums"]["pricing_status"]
+          updated_at?: string
+          waste_type_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_entries_skip_size_id_fkey"
+            columns: ["skip_size_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_skip_sizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_entries_waste_type_id_fkey"
+            columns: ["waste_type_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_waste_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_entries_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "postcode_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_skip_sizes: {
+        Row: {
+          created_at: string
+          display_name: string
+          display_order: number
+          id: string
+          is_active: boolean
+          size_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          size_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          size_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing_waste_types: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          updated_at: string
+          waste_type_name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          waste_type_name: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          waste_type_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -4259,6 +4371,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      pricing_status: "price" | "call_for_quote" | "not_available"
       route_one_job_status:
         | "unassigned"
         | "assigned"
@@ -4410,6 +4523,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      pricing_status: ["price", "call_for_quote", "not_available"],
       route_one_job_status: [
         "unassigned",
         "assigned",
