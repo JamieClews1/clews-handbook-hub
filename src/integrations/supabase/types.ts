@@ -2445,6 +2445,7 @@ export type Database = {
           price_ex_vat: number | null
           skip_size_id: string
           status: Database["public"]["Enums"]["pricing_status"]
+          tier: string
           updated_at: string
           waste_type_id: string
           zone_id: string
@@ -2455,6 +2456,7 @@ export type Database = {
           price_ex_vat?: number | null
           skip_size_id: string
           status?: Database["public"]["Enums"]["pricing_status"]
+          tier?: string
           updated_at?: string
           waste_type_id: string
           zone_id: string
@@ -2465,6 +2467,7 @@ export type Database = {
           price_ex_vat?: number | null
           skip_size_id?: string
           status?: Database["public"]["Enums"]["pricing_status"]
+          tier?: string
           updated_at?: string
           waste_type_id?: string
           zone_id?: string
