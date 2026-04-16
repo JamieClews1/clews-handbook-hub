@@ -21,7 +21,7 @@ serve(async (req) => {
       supabase.from("pricing_skip_sizes").select("id, display_name, size_code, display_order").eq("is_active", true).order("display_order"),
       supabase.from("postcode_zones").select("id, zone_name, postcodes, display_order").order("display_order"),
       supabase.from("pricing_waste_types").select("id, waste_type_name, display_order").eq("is_active", true).order("display_order"),
-      supabase.from("pricing_entries").select("skip_size_id, zone_id, waste_type_id, status, price_ex_vat"),
+      supabase.from("pricing_entries").select("skip_size_id, zone_id, waste_type_id, status, price_ex_vat, tier"),
     ]);
 
     if (sizesRes.error || zonesRes.error || wastesRes.error || entriesRes.error) {
@@ -33,7 +33,7 @@ serve(async (req) => {
     const zoneMap = Object.fromEntries((zonesRes.data || []).map(z => [z.id, z]));
     const wasteMap = Object.fromEntries((wastesRes.data || []).map(w => [w.id, w]));
 
-    const pricing: Record<string, Record<string, Record<string, { status: string; price: number | null }>>> = {};
+    const pricing: Record<string, Record<string, Record<string, Record<string, { status: string; price: number | null }>>>> = {};
 
     for (const entry of entriesRes.data || []) {
       const size = sizeMap[entry.skip_size_id];
@@ -41,9 +41,11 @@ serve(async (req) => {
       const waste = wasteMap[entry.waste_type_id];
       if (!size || !zone || !waste) continue;
 
-      if (!pricing[size.size_code]) pricing[size.size_code] = {};
-      if (!pricing[size.size_code][zone.zone_name]) pricing[size.size_code][zone.zone_name] = {};
-      pricing[size.size_code][zone.zone_name][waste.waste_type_name] = {
+      const tier = entry.tier || "residential";
+      if (!pricing[tier]) pricing[tier] = {};
+      if (!pricing[tier][size.size_code]) pricing[tier][size.size_code] = {};
+      if (!pricing[tier][size.size_code][zone.zone_name]) pricing[tier][size.size_code][zone.zone_name] = {};
+      pricing[tier][size.size_code][zone.zone_name][waste.waste_type_name] = {
         status: entry.status,
         price: entry.price_ex_vat,
       };
