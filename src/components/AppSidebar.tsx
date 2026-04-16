@@ -436,6 +436,14 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive("/admin/pricing")}>
+                        <Link to="/admin/pricing">
+                          <DollarSign className="h-4 w-4" />
+                          {!collapsed && <span>Pricing CMS</span>}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/settings")}>
                         <Link to="/admin/settings">
                           <Settings className="h-4 w-4" />
