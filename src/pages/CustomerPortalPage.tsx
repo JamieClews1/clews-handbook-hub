@@ -469,6 +469,7 @@ const CustomerPortalPage = () => {
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
                       accessibleSiteIds={effectiveAccessibleSiteIds}
+                      isBroker={!!currentCustomer.is_broker}
                     />
                   )}
                 </CardContent>

@@ -47,11 +47,12 @@ interface CustomerPortalSiteReportProps {
   customerId: string;
   customerName: string;
   accessibleSiteIds?: string[];
+  isBroker?: boolean;
 }
 
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 
-export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds }: CustomerPortalSiteReportProps) {
+export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds, isBroker = false }: CustomerPortalSiteReportProps) {
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState(() => sessionStorage.getItem("portal-site-report-siteId") || "");
@@ -173,19 +174,51 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
       .order("site_name");
 
-    // If explicit accessible site IDs are provided (e.g. broker view), use those
-    // directly and do NOT constrain by customer_id (broker sites belong to other customers).
     if (accessibleSiteIds && accessibleSiteIds.length > 0) {
       query = query.in("id", accessibleSiteIds);
     } else if (accessibleSiteIds && accessibleSiteIds.length === 0) {
-      setSites([]);
-      return;
+      if (!isBroker) {
+        setSites([]);
+        return;
+      }
     } else {
       query = query.eq("customer_id", customerId);
     }
 
     const { data } = await query;
-    setSites(data ?? []);
+    const configuredSites = data ?? [];
+
+    if (configuredSites.length > 0 || !isBroker) {
+      setSites(configuredSites);
+      return;
+    }
+
+    const { data: liveSites } = await supabase
+      .from("data_hub_jobs")
+      .select("site")
+      .eq("customer", customerName)
+      .not("site", "is", null);
+
+    const uniqueLiveSites = Array.from(
+      new Set(
+        (liveSites ?? [])
+          .map((row: any) => (typeof row.site === "string" ? row.site.trim() : ""))
+          .filter(Boolean)
+      )
+    )
+      .sort((a, b) => a.localeCompare(b))
+      .map((siteName) => ({
+        id: `live:${siteName}`,
+        site_name: siteName,
+        data_hub_customer: customerName,
+        data_hub_site: siteName,
+        data_hub_site_2: null,
+        data_hub_site_3: null,
+        data_hub_site_4: null,
+        data_hub_site_5: null,
+      }));
+
+    setSites(uniqueLiveSites);
   };
 
   const loadNotificationEmail = async () => {
