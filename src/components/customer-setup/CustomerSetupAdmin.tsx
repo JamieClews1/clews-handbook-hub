@@ -30,6 +30,7 @@ type Customer = {
   customer_name: string;
   po_notification_email: string | null;
   custom_reporting_periods_enabled: boolean;
+  is_broker: boolean;
   is_active: boolean;
   data_hub_customer: string | null;
   created_at: string;
@@ -46,6 +47,7 @@ type CustomerSite = {
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
   data_hub_site_5: string | null;
+  broker_subclient: string | null;
   owner_contact_id: string | null;
   created_at: string;
   updated_at: string;
@@ -121,7 +123,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", custom_reporting_periods_enabled: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", custom_reporting_periods_enabled: false, is_broker: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -142,6 +144,7 @@ export function CustomerSetupAdmin() {
     data_hub_site_3: "",
     data_hub_site_4: "",
     data_hub_site_5: "",
+    broker_subclient: "",
     owner_contact_id: "",
     price_set_id: "",
     load_report_type: "",
@@ -221,7 +224,7 @@ export function CustomerSetupAdmin() {
   const loadCustomers = async () => {
     const { data, error } = await supabase
       .from("customers")
-      .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_active,data_hub_customer,created_at,updated_at")
+      .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_broker,is_active,data_hub_customer,created_at,updated_at")
       .order("customer_name", { ascending: true });
     if (error) throw error;
     setCustomers((data ?? []) as Customer[]);
@@ -235,7 +238,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,owner_contact_id,load_report_type,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,load_report_type,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -391,6 +394,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_3: "",
       data_hub_site_4: "",
       data_hub_site_5: "",
+      broker_subclient: "",
       owner_contact_id: "",
       price_set_id: "",
       load_report_type: "",
@@ -410,6 +414,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_3: site.data_hub_site_3 ?? "",
       data_hub_site_4: site.data_hub_site_4 ?? "",
       data_hub_site_5: site.data_hub_site_5 ?? "",
+      broker_subclient: (site as any).broker_subclient ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
       price_set_id: existingPriceSetId,
       load_report_type: (site as any).load_report_type ?? "",
@@ -436,6 +441,7 @@ export function CustomerSetupAdmin() {
         data_hub_site_3: siteForm.data_hub_site_3.trim() || null,
         data_hub_site_4: siteForm.data_hub_site_4.trim() || null,
         data_hub_site_5: siteForm.data_hub_site_5.trim() || null,
+        broker_subclient: siteForm.broker_subclient.trim() || null,
         owner_contact_id: siteForm.owner_contact_id || null,
         load_report_type: siteForm.load_report_type || null,
       };
@@ -584,7 +590,8 @@ export function CustomerSetupAdmin() {
       customer_code: customer.customer_code, 
       customer_name: customer.customer_name,
       po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk",
-      custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false
+      custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
+      is_broker: customer.is_broker ?? false,
     });
     setEditCustomerOpen(true);
   };
@@ -609,7 +616,8 @@ export function CustomerSetupAdmin() {
           customer_code: parsed.data.customer_code, 
           customer_name: parsed.data.customer_name,
           po_notification_email: editCustomerForm.po_notification_email.trim() || null,
-          custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled
+          custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
+          is_broker: editCustomerForm.is_broker,
         })
         .eq("id", editingCustomer.id);
       if (error) throw error;
@@ -1391,6 +1399,19 @@ export function CustomerSetupAdmin() {
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, custom_reporting_periods_enabled: v }))}
               />
             </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Broker account</Label>
+                <p className="text-xs text-muted-foreground">
+                  Mark this customer as a broker (e.g. Project Waste). Their portal users will see a Sub-client → Site dropdown to filter the sites they manage.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.is_broker}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_broker: v }))}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditCustomerOpen(false)} disabled={savingCustomer}>
@@ -1464,6 +1485,21 @@ export function CustomerSetupAdmin() {
                 />
               </div>
             </div>
+
+            {selectedCustomer?.is_broker && (
+              <div className="grid gap-2">
+                <Label htmlFor="broker_subclient">Sub-client (broker grouping)</Label>
+                <Input
+                  id="broker_subclient"
+                  value={siteForm.broker_subclient}
+                  onChange={(e) => setSiteForm((p) => ({ ...p, broker_subclient: e.target.value }))}
+                  placeholder="e.g. ACME Ltd"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Used in the broker's portal to group sites by end-client.
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label>Owner contact</Label>

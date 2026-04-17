@@ -24,6 +24,7 @@ type PortalMembership = {
     id: string;
     customer_name: string;
     customer_code: string;
+    is_broker?: boolean | null;
   };
 };
 
@@ -31,7 +32,13 @@ type Customer = {
   id: string;
   customer_name: string;
   customer_code: string;
+  is_broker?: boolean | null;
 };
+
+type PortalSite = { id: string; site_name: string; broker_subclient: string | null };
+
+const ALL_SUBCLIENTS = "__all__";
+const ALL_SITES = "__all_sites__";
 
 const CustomerPortalPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -39,8 +46,11 @@ const CustomerPortalPage = () => {
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [accessibleSites, setAccessibleSites] = useState<{ id: string; site_name: string }[]>([]);
+  const [accessibleSites, setAccessibleSites] = useState<PortalSite[]>([]);
   const [accessibleSiteIds, setAccessibleSiteIds] = useState<string[]>([]);
+  const [adminBrokerSites, setAdminBrokerSites] = useState<PortalSite[]>([]);
+  const [selectedSubclient, setSelectedSubclient] = useState<string>(ALL_SUBCLIENTS);
+  const [selectedBrokerSiteId, setSelectedBrokerSiteId] = useState<string>(ALL_SITES);
 
   useEffect(() => {
     const loadData = async () => {
@@ -56,7 +66,7 @@ const CustomerPortalPage = () => {
       if (isAdmin) {
         const { data: customersData } = await supabase
           .from("customers")
-          .select("id, customer_name, customer_code")
+          .select("id, customer_name, customer_code, is_broker")
           .order("customer_name");
         
         if (customersData && customersData.length > 0) {
@@ -77,7 +87,8 @@ const CustomerPortalPage = () => {
           customers (
             id,
             customer_name,
-            customer_code
+            customer_code,
+            is_broker
           )
         `)
         .eq("user_id", user.id)
@@ -85,38 +96,48 @@ const CustomerPortalPage = () => {
 
       if (!error && data) {
         setMembership(data as unknown as PortalMembership);
-        
-        // Compute accessible site IDs from explicit access + owner contact
-        const siteIdSet = new Set<string>();
+        const isBroker = !!(data as any).customers?.is_broker;
 
-        // 1. Explicit site access records
-        const { data: explicitAccess } = await supabase
-          .from("customer_portal_site_access")
-          .select("site_id")
-          .eq("membership_id", data.id);
-        (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
-
-        // 2. Sites where user is the owner contact
-        if (data.contact_id) {
-          const { data: ownerSites } = await supabase
+        if (isBroker) {
+          // Brokers see ALL sites under their broker customer account
+          const { data: brokerSites } = await supabase
             .from("customer_sites")
-            .select("id")
+            .select("id, site_name, broker_subclient")
             .eq("customer_id", data.customer_id)
-            .eq("owner_contact_id", data.contact_id);
-          (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
-        }
-
-        const siteIdArray = Array.from(siteIdSet);
-        setAccessibleSiteIds(siteIdArray);
-
-        if (siteIdArray.length > 0) {
-          const { data: sitesData } = await supabase
-            .from("customer_sites")
-            .select("id, site_name")
-            .in("id", siteIdArray);
-          setAccessibleSites(sitesData ?? []);
+            .order("site_name");
+          const sitesArr = (brokerSites ?? []) as PortalSite[];
+          setAccessibleSites(sitesArr);
+          setAccessibleSiteIds(sitesArr.map(s => s.id));
         } else {
-          setAccessibleSites([]);
+          // Non-broker: explicit site access + owner contact
+          const siteIdSet = new Set<string>();
+          const { data: explicitAccess } = await supabase
+            .from("customer_portal_site_access")
+            .select("site_id")
+            .eq("membership_id", data.id);
+          (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
+
+          if (data.contact_id) {
+            const { data: ownerSites } = await supabase
+              .from("customer_sites")
+              .select("id")
+              .eq("customer_id", data.customer_id)
+              .eq("owner_contact_id", data.contact_id);
+            (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
+          }
+
+          const siteIdArray = Array.from(siteIdSet);
+          setAccessibleSiteIds(siteIdArray);
+
+          if (siteIdArray.length > 0) {
+            const { data: sitesData } = await supabase
+              .from("customer_sites")
+              .select("id, site_name, broker_subclient")
+              .in("id", siteIdArray);
+            setAccessibleSites((sitesData ?? []) as PortalSite[]);
+          } else {
+            setAccessibleSites([]);
+          }
         }
       }
       setLoadingMembership(false);
@@ -124,6 +145,26 @@ const CustomerPortalPage = () => {
 
     loadData();
   }, [user, isAdmin]);
+
+  // For admin viewing a broker customer, load broker's sites for the dropdown
+  useEffect(() => {
+    const loadAdminBrokerSites = async () => {
+      const cust = customers.find(c => c.id === selectedCustomerId);
+      if (!isAdmin || !cust?.is_broker || !selectedCustomerId) {
+        setAdminBrokerSites([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("customer_sites")
+        .select("id, site_name, broker_subclient")
+        .eq("customer_id", selectedCustomerId)
+        .order("site_name");
+      setAdminBrokerSites((data ?? []) as PortalSite[]);
+    };
+    loadAdminBrokerSites();
+    setSelectedSubclient(ALL_SUBCLIENTS);
+    setSelectedBrokerSiteId(ALL_SITES);
+  }, [isAdmin, selectedCustomerId, customers]);
 
   const handleLogout = async () => {
     await signOut();
@@ -280,7 +321,7 @@ const CustomerPortalPage = () => {
                 <SelectContent>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
-                      {customer.customer_name}
+                      {customer.customer_name}{customer.is_broker ? " (Broker)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -289,11 +330,87 @@ const CustomerPortalPage = () => {
           </div>
 
           {(() => {
+            // Broker filter row: shows Sub-client + Site dropdowns when the
+            // current customer is a broker. Filters the site set passed to all tabs.
+            const brokerSitesSource: PortalSite[] = isAdmin ? adminBrokerSites : accessibleSites;
+            const isBrokerView = !!currentCustomer?.is_broker && brokerSitesSource.length > 0;
+            if (!isBrokerView) return null;
+
+            const subclients = Array.from(
+              new Set(
+                brokerSitesSource
+                  .map(s => (s.broker_subclient || "").trim())
+                  .filter(s => s.length > 0)
+              )
+            ).sort();
+
+            const sitesForSubclient = selectedSubclient === ALL_SUBCLIENTS
+              ? brokerSitesSource
+              : brokerSitesSource.filter(s => (s.broker_subclient || "").trim() === selectedSubclient);
+
+            return (
+              <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-xl border border-border bg-muted/30">
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Sub-client</label>
+                  <Select
+                    value={selectedSubclient}
+                    onValueChange={(v) => {
+                      setSelectedSubclient(v);
+                      setSelectedBrokerSiteId(ALL_SITES);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_SUBCLIENTS}>All sub-clients</SelectItem>
+                      {subclients.map((sc) => (
+                        <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Site</label>
+                  <Select value={selectedBrokerSiteId} onValueChange={setSelectedBrokerSiteId}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_SITES}>All sites</SelectItem>
+                      {sitesForSubclient.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            );
+          })()}
+
+          {(() => {
             const isStaciCustomer = currentCustomer?.customer_name?.toLowerCase().includes("staci");
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
             const tabCount = isStaciCustomer ? 3 : 5;
+
+            // Compute effective site filter for child components.
+            // Broker mode: derive from broker dropdowns.
+            // Otherwise: existing behaviour (membership-based for non-admins, unrestricted for admins).
+            const brokerSitesSource: PortalSite[] = isAdmin ? adminBrokerSites : accessibleSites;
+            const isBrokerView = !!currentCustomer?.is_broker && brokerSitesSource.length > 0;
+            let effectiveAccessibleSiteIds: string[] | undefined;
+            if (isBrokerView) {
+              if (selectedBrokerSiteId !== ALL_SITES) {
+                effectiveAccessibleSiteIds = [selectedBrokerSiteId];
+              } else if (selectedSubclient !== ALL_SUBCLIENTS) {
+                effectiveAccessibleSiteIds = brokerSitesSource
+                  .filter(s => (s.broker_subclient || "").trim() === selectedSubclient)
+                  .map(s => s.id);
+              } else {
+                effectiveAccessibleSiteIds = brokerSitesSource.map(s => s.id);
+              }
+            } else {
+              effectiveAccessibleSiteIds = !isAdmin ? accessibleSiteIds : undefined;
+            }
+
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
             <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
@@ -343,7 +460,7 @@ const CustomerPortalPage = () => {
                     <CustomerPortalSiteReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
-                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
                     />
                   )}
                 </CardContent>
@@ -363,7 +480,7 @@ const CustomerPortalPage = () => {
                     <CustomerPortalRebateReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
-                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
                     />
                   )}
                 </CardContent>
@@ -385,7 +502,7 @@ const CustomerPortalPage = () => {
                 <CustomerPortalServices
                   customerId={currentCustomerId}
                   customerName={currentCustomer.customer_name}
-                  accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
+                  accessibleSiteIds={effectiveAccessibleSiteIds}
                 />
               )}
             </TabsContent>
