@@ -4361,6 +4361,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_portal_user_access_data_hub_job: {
+        Args: { _job_customer: string; _job_site: string; _user_id: string }
+        Returns: boolean
+      }
       generate_ticket_number: { Args: never; Returns: string }
       has_role: {
         Args: {
