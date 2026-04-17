@@ -152,6 +152,60 @@ export function CustomerSetupAdmin() {
   });
   const [savingSite, setSavingSite] = useState(false);
   const [newRebateSetInline, setNewRebateSetInline] = useState("");
+  const [skiptrakCustomers, setSkiptrakCustomers] = useState<string[]>([]);
+  const [skiptrakSitesByCustomer, setSkiptrakSitesByCustomer] = useState<Record<string, string[]>>({});
+  const [skiptrakAllSites, setSkiptrakAllSites] = useState<string[]>([]);
+  const [loadingSkiptrak, setLoadingSkiptrak] = useState(false);
+
+  const loadSkiptrakOptions = async () => {
+    if (skiptrakCustomers.length > 0 || loadingSkiptrak) return;
+    setLoadingSkiptrak(true);
+    try {
+      // Fetch distinct customer/site pairs from Skiptrak data
+      const pageSize = 1000;
+      let from = 0;
+      const all: { customer: string | null; site: string | null }[] = [];
+      // Loop through pages until exhausted
+      while (true) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("customer, site")
+          .eq("source", "skiptrak")
+          .not("customer", "is", null)
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+        if (from > 200000) break; // safety
+      }
+      const custSet = new Set<string>();
+      const siteSet = new Set<string>();
+      const sitesByCust: Record<string, Set<string>> = {};
+      for (const row of all) {
+        const c = (row.customer || "").trim();
+        const s = (row.site || "").trim();
+        if (c) custSet.add(c);
+        if (s) siteSet.add(s);
+        if (c && s) {
+          if (!sitesByCust[c]) sitesByCust[c] = new Set();
+          sitesByCust[c].add(s);
+        }
+      }
+      setSkiptrakCustomers(Array.from(custSet).sort());
+      setSkiptrakAllSites(Array.from(siteSet).sort());
+      const map: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(sitesByCust)) map[k] = Array.from(v).sort();
+      setSkiptrakSitesByCustomer(map);
+    } catch (err) {
+      console.error("Failed to load Skiptrak options", err);
+    } finally {
+      setLoadingSkiptrak(false);
+    }
+  };
+
+
 
   // Available load report types - matches CustomerTypeSelector options
   const LOAD_REPORT_TYPES = [
