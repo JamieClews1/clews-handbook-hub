@@ -321,13 +321,68 @@ const CustomerPortalPage = () => {
                 <SelectContent>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
-                      {customer.customer_name}
+                      {customer.customer_name}{customer.is_broker ? " (Broker)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
           </div>
+
+          {(() => {
+            // Broker filter row: shows Sub-client + Site dropdowns when the
+            // current customer is a broker. Filters the site set passed to all tabs.
+            const brokerSitesSource: PortalSite[] = isAdmin ? adminBrokerSites : accessibleSites;
+            const isBrokerView = !!currentCustomer?.is_broker && brokerSitesSource.length > 0;
+            if (!isBrokerView) return null;
+
+            const subclients = Array.from(
+              new Set(
+                brokerSitesSource
+                  .map(s => (s.broker_subclient || "").trim())
+                  .filter(s => s.length > 0)
+              )
+            ).sort();
+
+            const sitesForSubclient = selectedSubclient === ALL_SUBCLIENTS
+              ? brokerSitesSource
+              : brokerSitesSource.filter(s => (s.broker_subclient || "").trim() === selectedSubclient);
+
+            return (
+              <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-xl border border-border bg-muted/30">
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Sub-client</label>
+                  <Select
+                    value={selectedSubclient}
+                    onValueChange={(v) => {
+                      setSelectedSubclient(v);
+                      setSelectedBrokerSiteId(ALL_SITES);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_SUBCLIENTS}>All sub-clients</SelectItem>
+                      {subclients.map((sc) => (
+                        <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Site</label>
+                  <Select value={selectedBrokerSiteId} onValueChange={setSelectedBrokerSiteId}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_SITES}>All sites</SelectItem>
+                      {sitesForSubclient.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            );
+          })()}
 
           {(() => {
             const isStaciCustomer = currentCustomer?.customer_name?.toLowerCase().includes("staci");
