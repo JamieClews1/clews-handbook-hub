@@ -845,6 +845,7 @@ export type Database = {
       }
       customer_sites: {
         Row: {
+          broker_subclient: string | null
           created_at: string
           customer_id: string
           data_hub_customer: string | null
@@ -860,6 +861,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          broker_subclient?: string | null
           created_at?: string
           customer_id: string
           data_hub_customer?: string | null
@@ -875,6 +877,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          broker_subclient?: string | null
           created_at?: string
           customer_id?: string
           data_hub_customer?: string | null
@@ -975,6 +978,7 @@ export type Database = {
           data_hub_customer: string | null
           id: string
           is_active: boolean
+          is_broker: boolean
           po_notification_email: string | null
           updated_at: string
         }
@@ -986,6 +990,7 @@ export type Database = {
           data_hub_customer?: string | null
           id?: string
           is_active?: boolean
+          is_broker?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }
@@ -997,6 +1002,7 @@ export type Database = {
           data_hub_customer?: string | null
           id?: string
           is_active?: boolean
+          is_broker?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }
