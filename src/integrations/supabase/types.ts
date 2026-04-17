@@ -1275,6 +1275,56 @@ export type Database = {
         }
         Relationships: []
       }
+      enquiries: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          internal_notes: string | null
+          message: string
+          status: string
+          subject: string
+          updated_at: string
+          urgency: string
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          internal_notes?: string | null
+          message: string
+          status?: string
+          subject: string
+          updated_at?: string
+          urgency?: string
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          internal_notes?: string | null
+          message?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          urgency?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enquiries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facility_recycling_forms: {
         Row: {
           additional_comments: string | null
