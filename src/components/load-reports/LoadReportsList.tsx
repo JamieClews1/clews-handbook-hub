@@ -51,6 +51,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilterEnabled, setDateFilterEnabled] = useState(false);
+  const [allReports, setAllReports] = useState(false);
   const [unreconciledOnly, setUnreconciledOnly] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
@@ -62,7 +63,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   useEffect(() => {
     const t = setTimeout(() => fetchReports(), searchTerm ? 250 : 0);
     return () => clearTimeout(t);
-  }, [dateFrom, dateTo, customerType, dateFilterEnabled, searchTerm]);
+  }, [dateFrom, dateTo, customerType, dateFilterEnabled, searchTerm, allReports]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -97,7 +98,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       } else if (searchTerm.trim()) {
         // When searching, look across all reports (notes/operator/vehicle/site)
         const term = `%${searchTerm.trim()}%`;
-        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term}`).limit(200);
+        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term}`).limit(allReports ? 5000 : 200);
+      } else if (allReports) {
+        query = query.limit(5000);
       } else {
         query = query.limit(30);
       }
@@ -323,11 +326,29 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               type="checkbox"
               id="dateFilterToggle"
               checked={dateFilterEnabled}
-              onChange={(e) => setDateFilterEnabled(e.target.checked)}
+              onChange={(e) => {
+                setDateFilterEnabled(e.target.checked);
+                if (e.target.checked) setAllReports(false);
+              }}
               className="rounded border-input"
             />
             <label htmlFor="dateFilterToggle" className="text-sm text-muted-foreground cursor-pointer">
               Filter by date range
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="allReportsToggle"
+              checked={allReports}
+              onChange={(e) => {
+                setAllReports(e.target.checked);
+                if (e.target.checked) setDateFilterEnabled(false);
+              }}
+              className="rounded border-input"
+            />
+            <label htmlFor="allReportsToggle" className="text-sm text-muted-foreground cursor-pointer">
+              All Reports (search entire history)
             </label>
           </div>
           {dateFilterEnabled && (
@@ -352,8 +373,11 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               </div>
             </div>
           )}
-          {!dateFilterEnabled && (
+          {!dateFilterEnabled && !allReports && (
             <p className="text-xs text-muted-foreground">Showing last 30 reports</p>
+          )}
+          {allReports && (
+            <p className="text-xs text-muted-foreground">Searching all reports — use the search box above to filter</p>
           )}
         </CardContent>
       </Card>
