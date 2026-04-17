@@ -51,6 +51,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilterEnabled, setDateFilterEnabled] = useState(false);
+  const [unreconciledOnly, setUnreconciledOnly] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -193,11 +194,13 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
   const filteredReports = reports.filter((report) => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       (report.site_name?.toLowerCase().includes(searchLower) ?? false) ||
       (report.notes?.toLowerCase().includes(searchLower) ?? false) ||
-      (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false)
-    );
+      (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false);
+    if (!matchesSearch) return false;
+    if (unreconciledOnly && !needsReconciliation(report)) return false;
+    return true;
   });
 
   const exportCSV = () => {
@@ -298,6 +301,19 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
             />
           </div>
           <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="unreconciledToggle"
+              checked={unreconciledOnly}
+              onChange={(e) => setUnreconciledOnly(e.target.checked)}
+              className="rounded border-input"
+            />
+            <label htmlFor="unreconciledToggle" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+              Show only unreconciled reports
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="dateFilterToggle"
