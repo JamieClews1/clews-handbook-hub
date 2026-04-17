@@ -460,26 +460,6 @@ const CustomerPortalPage = () => {
                     <CustomerPortalSiteReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
-                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="rebate-reports">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rebate Reports</CardTitle>
-                  <CardDescription>
-                    Download rebate reports based on your site pricing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {currentCustomerId && currentCustomer && (
-                    <CustomerPortalRebateReport 
-                      customerId={currentCustomerId}
-                      customerName={currentCustomer.customer_name}
                       accessibleSiteIds={effectiveAccessibleSiteIds}
                     />
                   )}
