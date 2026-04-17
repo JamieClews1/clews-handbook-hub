@@ -24,6 +24,7 @@ type PortalMembership = {
     id: string;
     customer_name: string;
     customer_code: string;
+    is_broker?: boolean | null;
   };
 };
 
@@ -31,7 +32,13 @@ type Customer = {
   id: string;
   customer_name: string;
   customer_code: string;
+  is_broker?: boolean | null;
 };
+
+type PortalSite = { id: string; site_name: string; broker_subclient: string | null };
+
+const ALL_SUBCLIENTS = "__all__";
+const ALL_SITES = "__all_sites__";
 
 const CustomerPortalPage = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -39,8 +46,11 @@ const CustomerPortalPage = () => {
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [accessibleSites, setAccessibleSites] = useState<{ id: string; site_name: string }[]>([]);
+  const [accessibleSites, setAccessibleSites] = useState<PortalSite[]>([]);
   const [accessibleSiteIds, setAccessibleSiteIds] = useState<string[]>([]);
+  const [adminBrokerSites, setAdminBrokerSites] = useState<PortalSite[]>([]);
+  const [selectedSubclient, setSelectedSubclient] = useState<string>(ALL_SUBCLIENTS);
+  const [selectedBrokerSiteId, setSelectedBrokerSiteId] = useState<string>(ALL_SITES);
 
   useEffect(() => {
     const loadData = async () => {
