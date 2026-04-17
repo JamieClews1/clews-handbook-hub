@@ -47,11 +47,12 @@ interface CustomerPortalSiteReportProps {
   customerId: string;
   customerName: string;
   accessibleSiteIds?: string[];
+  isBroker?: boolean;
 }
 
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 
-export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds }: CustomerPortalSiteReportProps) {
+export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds, isBroker = false }: CustomerPortalSiteReportProps) {
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState(() => sessionStorage.getItem("portal-site-report-siteId") || "");
