@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 
 type Site = {
   id: string;
@@ -25,11 +26,6 @@ type Site = {
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
   data_hub_site_5: string | null;
-};
-
-type BrokerJobSiteRow = {
-  customer: string | null;
-  site: string | null;
 };
 
 type JobRecord = {
@@ -54,54 +50,6 @@ interface CustomerPortalSiteReportProps {
   accessibleSiteIds?: string[];
   isBroker?: boolean;
 }
-
-import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
-
-const normalizeBrokerCustomerName = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[.,'\"]/g, " ")
-    .replace(/\b(limited|ltd|plc|llp)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const getBrokerCustomerSearchPrefix = (value: string) =>
-  value
-    .replace(/\b(limited|ltd|plc|llp)\b/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const getBrokerSkiptrakSiteData = async (brokerName: string) => {
-  const normalizedBrokerName = normalizeBrokerCustomerName(brokerName);
-  const searchPrefix = getBrokerCustomerSearchPrefix(brokerName) || brokerName.trim();
-
-  if (!normalizedBrokerName || !searchPrefix) {
-    return { aliases: [] as string[], siteNames: [] as string[] };
-  }
-
-  const { data, error } = await supabase
-    .from("data_hub_jobs")
-    .select("customer, site")
-    .eq("source", "skiptrak")
-    .not("site", "is", null)
-    .ilike("customer", `${searchPrefix}%`);
-
-  if (error) throw error;
-
-  const scopedRows = (data ?? []).filter(
-    (row): row is BrokerJobSiteRow =>
-      typeof row.customer === "string" &&
-      typeof row.site === "string" &&
-      row.site.trim().length > 0 &&
-      normalizeBrokerCustomerName(row.customer) === normalizedBrokerName
-  );
-
-  return {
-    aliases: Array.from(new Set(scopedRows.map((row) => row.customer.trim()))).sort((a, b) => a.localeCompare(b)),
-    siteNames: Array.from(new Set(scopedRows.map((row) => row.site.trim()))).sort((a, b) => a.localeCompare(b)),
-  };
-};
 
 export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds, isBroker = false }: CustomerPortalSiteReportProps) {
   const { toast } = useToast();
@@ -187,11 +135,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
           site.data_hub_site_5,
         ].filter(Boolean) as string[];
 
-        const customerFilters = isBroker
-          ? brokerCustomerAliases
-          : site.data_hub_customer
-            ? [site.data_hub_customer]
-            : [];
+        const customerFilters = site.data_hub_customer
+          ? [site.data_hub_customer]
+          : [];
 
         if (siteNames.length === 0 && customerFilters.length === 0) continue;
         
@@ -201,7 +147,6 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
           .gte("job_date", thirtyDaysAgo)
           .lte("job_date", today);
 
-        if (isBroker) query = query.eq("source", "skiptrak");
         if (customerFilters.length > 0) query = query.in("customer", customerFilters);
         if (siteNames.length > 0) query = query.in("site", siteNames);
         
@@ -227,30 +172,6 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [autoLoaded, selectedSiteId]);
 
   const loadSites = async () => {
-    if (isBroker) {
-      try {
-        const { aliases, siteNames } = await getBrokerSkiptrakSiteData(customerName);
-        setBrokerCustomerAliases(aliases);
-        setSites(siteNames.map((siteName) => ({
-          id: `live:${siteName}`,
-          site_name: siteName,
-          data_hub_customer: customerName,
-          data_hub_site: siteName,
-          data_hub_site_2: null,
-          data_hub_site_3: null,
-          data_hub_site_4: null,
-          data_hub_site_5: null,
-        })));
-      } catch (error) {
-        console.error("Error loading broker sites:", error);
-        setBrokerCustomerAliases([]);
-        setSites([]);
-      }
-      return;
-    }
-
-    setBrokerCustomerAliases([]);
-
     if (accessibleSiteIds) {
       if (accessibleSiteIds.length > 0) {
         const { data } = await supabase
@@ -259,10 +180,12 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
           .in("id", accessibleSiteIds)
           .order("site_name");
 
+        setBrokerCustomerAliases([]);
         setSites(data ?? []);
         return;
       }
 
+      setBrokerCustomerAliases([]);
       setSites([]);
       return;
     }
@@ -273,6 +196,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       .eq("customer_id", customerId)
       .order("site_name");
 
+    setBrokerCustomerAliases([]);
     setSites(data ?? []);
   };
 
@@ -366,11 +290,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         site.data_hub_site_5,
       ].filter(Boolean) as string[];
 
-      const customerFilters = isBroker
-        ? brokerCustomerAliases
-        : site.data_hub_customer
-          ? [site.data_hub_customer]
-          : [];
+      const customerFilters = site.data_hub_customer
+        ? [site.data_hub_customer]
+        : [];
 
       if (siteNames.length === 0 && customerFilters.length === 0) {
         setJobRecords([]);
@@ -388,7 +310,6 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
 
-      if (isBroker) query = query.eq("source", "skiptrak");
       if (customerFilters.length > 0) query = query.in("customer", customerFilters);
 
       if (siteNames.length > 0) {
@@ -609,7 +530,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, {} as Record<string, { count: number; weight: number }>);
 
   const sortedSummary = Object.entries(wasteSummary)
-    .map(([desc, data]) => ({ desc, ...data }))
+    .map(([desc, data]) => ({ desc, count: data.count, weight: data.weight }))
     .sort((a, b) => b.weight - a.weight);
 
   return (
