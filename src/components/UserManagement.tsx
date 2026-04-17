@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff, UserCog, UserPlus, Key } from "lucide-react";
+import { Shield, ShieldOff, UserCog, UserPlus, Key, Search } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,8 @@ interface UserProfile {
   created_at: string;
   user_types: string[];
   isAdmin: boolean;
+  isCustomer: boolean;
+  customerNames: string[];
 }
 
 const USER_TYPES = [
@@ -28,6 +31,8 @@ const USER_TYPES = [
   { value: "office", label: "Office" },
   { value: "management", label: "Management" },
 ];
+
+type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned";
 
 export const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -44,6 +49,9 @@ export const UserManagement = () => {
   const [passwordUser, setPasswordUser] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
+  const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
+  const [staffTab, setStaffTab] = useState<StaffTab>("all");
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,89 +61,61 @@ export const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
-      // Fetch all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (profilesError) throw profilesError;
+      const [profilesRes, rolesRes, membershipsRes] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role").eq("role", "admin"),
+        supabase.from("customer_portal_memberships").select("user_id, customers(customer_name)"),
+      ]);
 
-      // Fetch all user roles
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .eq("role", "admin");
+      if (profilesRes.error) throw profilesRes.error;
+      if (rolesRes.error) throw rolesRes.error;
+      if (membershipsRes.error) throw membershipsRes.error;
 
-      if (rolesError) throw rolesError;
+      const adminUserIds = new Set(rolesRes.data?.map(r => r.user_id) || []);
+      const customerMap = new Map<string, string[]>();
+      (membershipsRes.data || []).forEach((m: any) => {
+        const list = customerMap.get(m.user_id) || [];
+        const name = m.customers?.customer_name;
+        if (name && !list.includes(name)) list.push(name);
+        customerMap.set(m.user_id, list);
+      });
 
-      // Combine the data
-      const adminUserIds = new Set(roles?.map(r => r.user_id) || []);
-      const usersWithRoles = profiles?.map(profile => ({
+      const usersWithRoles: UserProfile[] = (profilesRes.data || []).map(profile => ({
         ...profile,
         user_types: profile.user_types || [],
         isAdmin: adminUserIds.has(profile.id),
-      })) || [];
+        isCustomer: customerMap.has(profile.id),
+        customerNames: customerMap.get(profile.id) || [],
+      }));
 
       setUsers(usersWithRoles);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGrantAdmin = (user: UserProfile) => {
-    setSelectedUser(user);
-    setActionType("grant");
-  };
-
-  const handleRevokeAdmin = (user: UserProfile) => {
-    setSelectedUser(user);
-    setActionType("revoke");
-  };
-
-  const handleEditTypes = (user: UserProfile) => {
-    setEditingUser(user);
-    setSelectedTypes(user.user_types || []);
-  };
-
+  const handleGrantAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("grant"); };
+  const handleRevokeAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("revoke"); };
+  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); };
   const handleTypeToggle = (type: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
+    setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
   const saveUserTypes = async () => {
     if (!editingUser) return;
-
     try {
       const { error } = await supabase
         .from("profiles")
         .update({ user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[] })
         .eq("id", editingUser.id);
-
       if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `User types updated for ${emailToUsername(editingUser.email)}`,
-      });
-
+      toast({ title: "Success", description: `User types updated for ${emailToUsername(editingUser.email)}` });
       fetchUsers();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setEditingUser(null);
       setSelectedTypes([]);
@@ -144,109 +124,58 @@ export const UserManagement = () => {
 
   const handleCreateUser = async () => {
     if (!newUsername.trim()) {
-      toast({
-        title: "Error",
-        description: "Username is required",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Username is required", variant: "destructive" });
       return;
     }
-
-    // Validate username format
     if (!/^[a-zA-Z0-9._-]+$/.test(newUsername.trim())) {
-      toast({
-        title: "Error",
-        description: "Username can only contain letters, numbers, dots, underscores, and hyphens",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Username can only contain letters, numbers, dots, underscores, and hyphens", variant: "destructive" });
       return;
     }
-
     setCreating(true);
     try {
       const email = usernameToEmail(newUsername);
       const { data, error } = await supabase.functions.invoke("create-user", {
-        body: {
-          email: email,
-          full_name: newUserName.trim() || null,
-          user_types: newUserTypes,
-        },
+        body: { email, full_name: newUserName.trim() || null, user_types: newUserTypes },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      toast({
-        title: "User Created",
-        description: `User "${newUsername}" has been created. Set their password using the Password button.`,
-      });
-
+      toast({ title: "User Created", description: `User "${newUsername}" has been created. Set their password using the Password button.` });
       setShowCreateDialog(false);
       setNewUsername("");
       setNewUserName("");
       setNewUserTypes([]);
       fetchUsers();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setCreating(false);
     }
   };
 
   const handleNewUserTypeToggle = (type: string) => {
-    setNewUserTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
+    setNewUserTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
-  const handleSetPassword = (user: UserProfile) => {
-    setPasswordUser(user);
-    setNewPassword("");
-  };
+  const handleSetPassword = (user: UserProfile) => { setPasswordUser(user); setNewPassword(""); };
 
   const savePassword = async () => {
     if (!passwordUser || !newPassword) return;
-
     if (newPassword.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
       return;
     }
-
     setSettingPassword(true);
     try {
       const { data, error } = await supabase.functions.invoke("set-user-password", {
-        body: {
-          user_id: passwordUser.id,
-          password: newPassword,
-        },
+        body: { user_id: passwordUser.id, password: newPassword },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      toast({
-        title: "Success",
-        description: `Password updated for ${emailToUsername(passwordUser.email)}`,
-      });
-
+      toast({ title: "Success", description: `Password updated for ${emailToUsername(passwordUser.email)}` });
       setPasswordUser(null);
       setNewPassword("");
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setSettingPassword(false);
     }
@@ -254,49 +183,67 @@ export const UserManagement = () => {
 
   const confirmAction = async () => {
     if (!selectedUser || !actionType) return;
-
     try {
       if (actionType === "grant") {
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: selectedUser.id,
-            role: "admin",
-          });
-
+        const { error } = await supabase.from("user_roles").insert({ user_id: selectedUser.id, role: "admin" });
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: `Admin rights granted to ${emailToUsername(selectedUser.email)}`,
-        });
+        toast({ title: "Success", description: `Admin rights granted to ${emailToUsername(selectedUser.email)}` });
       } else {
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", selectedUser.id)
-          .eq("role", "admin");
-
+        const { error } = await supabase.from("user_roles").delete().eq("user_id", selectedUser.id).eq("role", "admin");
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: `Admin rights revoked from ${emailToUsername(selectedUser.email)}`,
-        });
+        toast({ title: "Success", description: `Admin rights revoked from ${emailToUsername(selectedUser.email)}` });
       }
-
       fetchUsers();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setSelectedUser(null);
       setActionType(null);
     }
   };
+
+  // Partition users
+  const { staffUsers, customerUsers } = useMemo(() => {
+    const staff: UserProfile[] = [];
+    const customers: UserProfile[] = [];
+    for (const u of users) {
+      if (u.isCustomer) customers.push(u);
+      else staff.push(u);
+    }
+    return { staffUsers: staff, customerUsers: customers };
+  }, [users]);
+
+  const filterBySearch = (list: UserProfile[]) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(u =>
+      emailToUsername(u.email).toLowerCase().includes(q) ||
+      (u.full_name || "").toLowerCase().includes(q) ||
+      u.customerNames.some(c => c.toLowerCase().includes(q))
+    );
+  };
+
+  const filteredStaff = useMemo(() => {
+    let list = staffUsers;
+    if (staffTab === "unassigned") {
+      list = list.filter(u => !u.user_types || u.user_types.length === 0);
+    } else if (staffTab !== "all") {
+      list = list.filter(u => u.user_types?.includes(staffTab));
+    }
+    return filterBySearch(list);
+  }, [staffUsers, staffTab, search]);
+
+  const filteredCustomers = useMemo(() => filterBySearch(customerUsers), [customerUsers, search]);
+
+  const counts = useMemo(() => ({
+    all: staffUsers.length,
+    office: staffUsers.filter(u => u.user_types?.includes("office")).length,
+    yard: staffUsers.filter(u => u.user_types?.includes("yard")).length,
+    driver: staffUsers.filter(u => u.user_types?.includes("driver")).length,
+    management: staffUsers.filter(u => u.user_types?.includes("management")).length,
+    unassigned: staffUsers.filter(u => !u.user_types || u.user_types.length === 0).length,
+    customers: customerUsers.length,
+  }), [staffUsers, customerUsers]);
 
   if (loading) {
     return (
@@ -306,117 +253,164 @@ export const UserManagement = () => {
     );
   }
 
+  const renderStaffActions = (user: UserProfile) => (
+    <div className="flex gap-2 flex-wrap">
+      <Button variant="outline" size="sm" onClick={() => handleEditTypes(user)} className="gap-1">
+        <UserCog className="h-4 w-4" /> Types
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
+        <Key className="h-4 w-4" /> Password
+      </Button>
+      {user.isAdmin ? (
+        <Button variant="outline" size="sm" onClick={() => handleRevokeAdmin(user)} className="gap-1">
+          <ShieldOff className="h-4 w-4" /> Revoke
+        </Button>
+      ) : (
+        <Button variant="default" size="sm" onClick={() => handleGrantAdmin(user)} className="gap-1">
+          <Shield className="h-4 w-4" /> Admin
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-2">
           <h2 className="text-2xl font-bold">User Management</h2>
           <div className="flex gap-2">
             <Button onClick={() => setShowCreateDialog(true)} size="sm" className="gap-1">
-              <UserPlus className="h-4 w-4" />
-              Create User
+              <UserPlus className="h-4 w-4" /> Create User
             </Button>
-            <Button onClick={fetchUsers} variant="outline" size="sm">
-              Refresh
-            </Button>
+            <Button onClick={fetchUsers} variant="outline" size="sm">Refresh</Button>
           </div>
         </div>
 
-        <div className="border rounded-lg overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>User Types</TableHead>
-                <TableHead>Compliance Status</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{emailToUsername(user.email)}</TableCell>
-                  <TableCell>{user.full_name || "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {user.user_types && user.user_types.length > 0 ? (
-                        user.user_types.map(type => (
-                          <Badge key={type} variant="secondary" className="text-xs">
-                            {USER_TYPES.find(t => t.value === type)?.label || type}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-muted-foreground text-sm">None</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <UserComplianceView 
-                      userId={user.id} 
-                      userTypes={user.user_types} 
-                      userName={user.full_name || user.email}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {user.isAdmin ? (
-                      <span className="inline-flex items-center gap-1 text-primary">
-                        <Shield className="h-4 w-4" />
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">User</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditTypes(user)}
-                        className="gap-1"
-                      >
-                        <UserCog className="h-4 w-4" />
-                        Types
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSetPassword(user)}
-                        className="gap-1"
-                      >
-                        <Key className="h-4 w-4" />
-                        Password
-                      </Button>
-                      {user.isAdmin ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRevokeAdmin(user)}
-                          className="gap-1"
-                        >
-                          <ShieldOff className="h-4 w-4" />
-                          Revoke
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleGrantAdmin(user)}
-                          className="gap-1"
-                        >
-                          <Shield className="h-4 w-4" />
-                          Admin
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, username or customer..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+          />
         </div>
+
+        <Tabs value={topTab} onValueChange={(v) => setTopTab(v as "staff" | "customers")}>
+          <TabsList>
+            <TabsTrigger value="staff">Staff ({staffUsers.length})</TabsTrigger>
+            <TabsTrigger value="customers">Customers ({counts.customers})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="staff" className="space-y-4">
+            <Tabs value={staffTab} onValueChange={(v) => setStaffTab(v as StaffTab)}>
+              <TabsList className="flex-wrap h-auto">
+                <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+                <TabsTrigger value="office">Office ({counts.office})</TabsTrigger>
+                <TabsTrigger value="yard">Yard ({counts.yard})</TabsTrigger>
+                <TabsTrigger value="driver">Drivers ({counts.driver})</TabsTrigger>
+                <TabsTrigger value="management">Management ({counts.management})</TabsTrigger>
+                <TabsTrigger value="unassigned">Unassigned ({counts.unassigned})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Full Name</TableHead>
+                    <TableHead>User Types</TableHead>
+                    <TableHead>Compliance Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStaff.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No staff users found.
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredStaff.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{emailToUsername(user.email)}</TableCell>
+                      <TableCell>{user.full_name || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {user.user_types && user.user_types.length > 0 ? (
+                            user.user_types.map(type => (
+                              <Badge key={type} variant="secondary" className="text-xs">
+                                {USER_TYPES.find(t => t.value === type)?.label || type}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-sm">None</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <UserComplianceView userId={user.id} userTypes={user.user_types} userName={user.full_name || user.email} />
+                      </TableCell>
+                      <TableCell>
+                        {user.isAdmin ? (
+                          <span className="inline-flex items-center gap-1 text-primary">
+                            <Shield className="h-4 w-4" /> Admin
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">User</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{renderStaffActions(user)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="customers" className="space-y-4">
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Full Name</TableHead>
+                    <TableHead>Customer(s)</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No customer portal users found.
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredCustomers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{emailToUsername(user.email)}</TableCell>
+                      <TableCell>{user.full_name || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {user.customerNames.map(name => (
+                            <Badge key={name} variant="outline" className="text-xs">{name}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
+                          <Key className="h-4 w-4" /> Password
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Edit User Types Dialog */}
@@ -436,19 +430,13 @@ export const UserManagement = () => {
                   checked={selectedTypes.includes(type.value)}
                   onCheckedChange={() => handleTypeToggle(type.value)}
                 />
-                <Label htmlFor={type.value} className="cursor-pointer">
-                  {type.label}
-                </Label>
+                <Label htmlFor={type.value} className="cursor-pointer">{type.label}</Label>
               </div>
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              Cancel
-            </Button>
-            <Button onClick={saveUserTypes}>
-              Save Changes
-            </Button>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+            <Button onClick={saveUserTypes}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -468,9 +456,7 @@ export const UserManagement = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmAction}>
-              Confirm
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmAction}>Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -480,58 +466,33 @@ export const UserManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New User</DialogTitle>
-            <DialogDescription>
-              Add a new user to the system. Set their password after creation.
-            </DialogDescription>
+            <DialogDescription>Add a new user to the system. Set their password after creation.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username *</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="john.smith"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Letters, numbers, dots, underscores, and hyphens only
-              </p>
+              <Input id="username" type="text" placeholder="john.smith" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Letters, numbers, dots, underscores, and hyphens only</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                placeholder="John Smith"
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-              />
+              <Input id="fullName" placeholder="John Smith" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>User Types</Label>
               <div className="space-y-2">
                 {USER_TYPES.map(type => (
                   <div key={type.value} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={`new-${type.value}`}
-                      checked={newUserTypes.includes(type.value)}
-                      onCheckedChange={() => handleNewUserTypeToggle(type.value)}
-                    />
-                    <Label htmlFor={`new-${type.value}`} className="cursor-pointer">
-                      {type.label}
-                    </Label>
+                    <Checkbox id={`new-${type.value}`} checked={newUserTypes.includes(type.value)} onCheckedChange={() => handleNewUserTypeToggle(type.value)} />
+                    <Label htmlFor={`new-${type.value}`} className="cursor-pointer">{type.label}</Label>
                   </div>
                 ))}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateUser} disabled={creating}>
-              {creating ? "Creating..." : "Create User"}
-            </Button>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateUser} disabled={creating}>{creating ? "Creating..." : "Create User"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -541,29 +502,17 @@ export const UserManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Set Password</DialogTitle>
-            <DialogDescription>
-              Set a new password for {passwordUser?.email}
-            </DialogDescription>
+            <DialogDescription>Set a new password for {passwordUser?.email}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Enter new password (min 6 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+              <Input id="newPassword" type="password" placeholder="Enter new password (min 6 characters)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordUser(null)}>
-              Cancel
-            </Button>
-            <Button onClick={savePassword} disabled={settingPassword || newPassword.length < 6}>
-              {settingPassword ? "Saving..." : "Set Password"}
-            </Button>
+            <Button variant="outline" onClick={() => setPasswordUser(null)}>Cancel</Button>
+            <Button onClick={savePassword} disabled={settingPassword || newPassword.length < 6}>{settingPassword ? "Saving..." : "Set Password"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
