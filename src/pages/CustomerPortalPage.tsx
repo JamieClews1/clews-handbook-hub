@@ -156,7 +156,6 @@ const CustomerPortalPage = () => {
       const { data } = await supabase
         .from("customer_sites")
         .select("id, site_name, broker_subclient")
-        .eq("customer_id", selectedCustomerId)
         .order("site_name");
       setAdminBrokerSites((data ?? []) as PortalSite[]);
     };
