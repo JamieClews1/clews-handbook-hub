@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
+import { DataHubCombobox } from "./DataHubCombobox";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
@@ -151,6 +152,60 @@ export function CustomerSetupAdmin() {
   });
   const [savingSite, setSavingSite] = useState(false);
   const [newRebateSetInline, setNewRebateSetInline] = useState("");
+  const [skiptrakCustomers, setSkiptrakCustomers] = useState<string[]>([]);
+  const [skiptrakSitesByCustomer, setSkiptrakSitesByCustomer] = useState<Record<string, string[]>>({});
+  const [skiptrakAllSites, setSkiptrakAllSites] = useState<string[]>([]);
+  const [loadingSkiptrak, setLoadingSkiptrak] = useState(false);
+
+  const loadSkiptrakOptions = async () => {
+    if (skiptrakCustomers.length > 0 || loadingSkiptrak) return;
+    setLoadingSkiptrak(true);
+    try {
+      // Fetch distinct customer/site pairs from Skiptrak data
+      const pageSize = 1000;
+      let from = 0;
+      const all: { customer: string | null; site: string | null }[] = [];
+      // Loop through pages until exhausted
+      while (true) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("customer, site")
+          .eq("source", "skiptrak")
+          .not("customer", "is", null)
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+        if (from > 200000) break; // safety
+      }
+      const custSet = new Set<string>();
+      const siteSet = new Set<string>();
+      const sitesByCust: Record<string, Set<string>> = {};
+      for (const row of all) {
+        const c = (row.customer || "").trim();
+        const s = (row.site || "").trim();
+        if (c) custSet.add(c);
+        if (s) siteSet.add(s);
+        if (c && s) {
+          if (!sitesByCust[c]) sitesByCust[c] = new Set();
+          sitesByCust[c].add(s);
+        }
+      }
+      setSkiptrakCustomers(Array.from(custSet).sort());
+      setSkiptrakAllSites(Array.from(siteSet).sort());
+      const map: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(sitesByCust)) map[k] = Array.from(v).sort();
+      setSkiptrakSitesByCustomer(map);
+    } catch (err) {
+      console.error("Failed to load Skiptrak options", err);
+    } finally {
+      setLoadingSkiptrak(false);
+    }
+  };
+
+
 
   // Available load report types - matches CustomerTypeSelector options
   const LOAD_REPORT_TYPES = [
@@ -401,6 +456,7 @@ export function CustomerSetupAdmin() {
     });
     setNewRebateSetInline("");
     setEditSiteOpen(true);
+    loadSkiptrakOptions();
   };
 
   const openEditSite = (site: CustomerSite & { load_report_type?: string | null }) => {
@@ -421,6 +477,7 @@ export function CustomerSetupAdmin() {
     });
     setNewRebateSetInline("");
     setEditSiteOpen(true);
+    loadSkiptrakOptions();
   };
 
   const saveSite = async () => {
@@ -1446,44 +1503,47 @@ export function CustomerSetupAdmin() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="dh_customer">Data Hub customer</Label>
-                <Input
-                  id="dh_customer"
+                <DataHubCombobox
                   value={siteForm.data_hub_customer}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_customer: e.target.value }))}
-                  placeholder="Exact string in uploads"
+                  onChange={(v) => setSiteForm((p) => ({ ...p, data_hub_customer: v }))}
+                  options={skiptrakCustomers}
+                  placeholder={loadingSkiptrak ? "Loading Skiptrak data…" : "Select or type customer"}
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
               <Label>Data Hub sites (up to 5)</Label>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Input
-                  value={siteForm.data_hub_site}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site: e.target.value }))}
-                  placeholder="Site 1"
-                />
-                <Input
-                  value={siteForm.data_hub_site_2}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_2: e.target.value }))}
-                  placeholder="Site 2"
-                />
-                <Input
-                  value={siteForm.data_hub_site_3}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_3: e.target.value }))}
-                  placeholder="Site 3"
-                />
-                <Input
-                  value={siteForm.data_hub_site_4}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_4: e.target.value }))}
-                  placeholder="Site 4"
-                />
-                <Input
-                  value={siteForm.data_hub_site_5}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_5: e.target.value }))}
-                  placeholder="Site 5"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground -mt-1">
+                {siteForm.data_hub_customer
+                  ? `Showing sites for "${siteForm.data_hub_customer}". Type to add a new value.`
+                  : "Showing all Skiptrak sites. Pick a Data Hub customer above to narrow down."}
+              </p>
+              {(() => {
+                const siteOptions = siteForm.data_hub_customer && skiptrakSitesByCustomer[siteForm.data_hub_customer]
+                  ? skiptrakSitesByCustomer[siteForm.data_hub_customer]
+                  : skiptrakAllSites;
+                const slots: Array<keyof typeof siteForm> = [
+                  "data_hub_site",
+                  "data_hub_site_2",
+                  "data_hub_site_3",
+                  "data_hub_site_4",
+                  "data_hub_site_5",
+                ];
+                return (
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {slots.map((key, idx) => (
+                      <DataHubCombobox
+                        key={key}
+                        value={(siteForm[key] as string) || ""}
+                        onChange={(v) => setSiteForm((p) => ({ ...p, [key]: v }))}
+                        options={siteOptions}
+                        placeholder={`Site ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {selectedCustomer?.is_broker && (
