@@ -390,6 +390,27 @@ const CustomerPortalPage = () => {
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
             const tabCount = isStaciCustomer ? 3 : 5;
+
+            // Compute effective site filter for child components.
+            // Broker mode: derive from broker dropdowns.
+            // Otherwise: existing behaviour (membership-based for non-admins, unrestricted for admins).
+            const brokerSitesSource: PortalSite[] = isAdmin ? adminBrokerSites : accessibleSites;
+            const isBrokerView = !!currentCustomer?.is_broker && brokerSitesSource.length > 0;
+            let effectiveAccessibleSiteIds: string[] | undefined;
+            if (isBrokerView) {
+              if (selectedBrokerSiteId !== ALL_SITES) {
+                effectiveAccessibleSiteIds = [selectedBrokerSiteId];
+              } else if (selectedSubclient !== ALL_SUBCLIENTS) {
+                effectiveAccessibleSiteIds = brokerSitesSource
+                  .filter(s => (s.broker_subclient || "").trim() === selectedSubclient)
+                  .map(s => s.id);
+              } else {
+                effectiveAccessibleSiteIds = brokerSitesSource.map(s => s.id);
+              }
+            } else {
+              effectiveAccessibleSiteIds = !isAdmin ? accessibleSiteIds : undefined;
+            }
+
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
             <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
@@ -459,14 +480,7 @@ const CustomerPortalPage = () => {
                     <CustomerPortalRebateReport 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
-                      accessibleSiteIds={!isAdmin ? accessibleSiteIds : undefined}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="staci-reports">
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
               {currentCustomerId && (
                 <StaciReportsDashboard
                   customerId={currentCustomerId}
