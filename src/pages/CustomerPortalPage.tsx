@@ -66,7 +66,7 @@ const CustomerPortalPage = () => {
       if (isAdmin) {
         const { data: customersData } = await supabase
           .from("customers")
-          .select("id, customer_name, customer_code")
+          .select("id, customer_name, customer_code, is_broker")
           .order("customer_name");
         
         if (customersData && customersData.length > 0) {
@@ -87,7 +87,8 @@ const CustomerPortalPage = () => {
           customers (
             id,
             customer_name,
-            customer_code
+            customer_code,
+            is_broker
           )
         `)
         .eq("user_id", user.id)
@@ -95,38 +96,48 @@ const CustomerPortalPage = () => {
 
       if (!error && data) {
         setMembership(data as unknown as PortalMembership);
-        
-        // Compute accessible site IDs from explicit access + owner contact
-        const siteIdSet = new Set<string>();
+        const isBroker = !!(data as any).customers?.is_broker;
 
-        // 1. Explicit site access records
-        const { data: explicitAccess } = await supabase
-          .from("customer_portal_site_access")
-          .select("site_id")
-          .eq("membership_id", data.id);
-        (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
-
-        // 2. Sites where user is the owner contact
-        if (data.contact_id) {
-          const { data: ownerSites } = await supabase
+        if (isBroker) {
+          // Brokers see ALL sites under their broker customer account
+          const { data: brokerSites } = await supabase
             .from("customer_sites")
-            .select("id")
+            .select("id, site_name, broker_subclient")
             .eq("customer_id", data.customer_id)
-            .eq("owner_contact_id", data.contact_id);
-          (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
-        }
-
-        const siteIdArray = Array.from(siteIdSet);
-        setAccessibleSiteIds(siteIdArray);
-
-        if (siteIdArray.length > 0) {
-          const { data: sitesData } = await supabase
-            .from("customer_sites")
-            .select("id, site_name")
-            .in("id", siteIdArray);
-          setAccessibleSites(sitesData ?? []);
+            .order("site_name");
+          const sitesArr = (brokerSites ?? []) as PortalSite[];
+          setAccessibleSites(sitesArr);
+          setAccessibleSiteIds(sitesArr.map(s => s.id));
         } else {
-          setAccessibleSites([]);
+          // Non-broker: explicit site access + owner contact
+          const siteIdSet = new Set<string>();
+          const { data: explicitAccess } = await supabase
+            .from("customer_portal_site_access")
+            .select("site_id")
+            .eq("membership_id", data.id);
+          (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
+
+          if (data.contact_id) {
+            const { data: ownerSites } = await supabase
+              .from("customer_sites")
+              .select("id")
+              .eq("customer_id", data.customer_id)
+              .eq("owner_contact_id", data.contact_id);
+            (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
+          }
+
+          const siteIdArray = Array.from(siteIdSet);
+          setAccessibleSiteIds(siteIdArray);
+
+          if (siteIdArray.length > 0) {
+            const { data: sitesData } = await supabase
+              .from("customer_sites")
+              .select("id, site_name, broker_subclient")
+              .in("id", siteIdArray);
+            setAccessibleSites((sitesData ?? []) as PortalSite[]);
+          } else {
+            setAccessibleSites([]);
+          }
         }
       }
       setLoadingMembership(false);
@@ -134,6 +145,26 @@ const CustomerPortalPage = () => {
 
     loadData();
   }, [user, isAdmin]);
+
+  // For admin viewing a broker customer, load broker's sites for the dropdown
+  useEffect(() => {
+    const loadAdminBrokerSites = async () => {
+      const cust = customers.find(c => c.id === selectedCustomerId);
+      if (!isAdmin || !cust?.is_broker || !selectedCustomerId) {
+        setAdminBrokerSites([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("customer_sites")
+        .select("id, site_name, broker_subclient")
+        .eq("customer_id", selectedCustomerId)
+        .order("site_name");
+      setAdminBrokerSites((data ?? []) as PortalSite[]);
+    };
+    loadAdminBrokerSites();
+    setSelectedSubclient(ALL_SUBCLIENTS);
+    setSelectedBrokerSiteId(ALL_SITES);
+  }, [isAdmin, selectedCustomerId, customers]);
 
   const handleLogout = async () => {
     await signOut();
