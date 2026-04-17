@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 
 type Site = {
   id: string;
@@ -27,6 +28,28 @@ type Site = {
   data_hub_site_5: string | null;
 };
 
+type JobRecord = {
+  id: string;
+  job_date: string;
+  job_number: string;
+  container_type: string | null;
+  ewc: string | null;
+  waste_description: string | null;
+  weight_t: number | null;
+  vehicle_registration: string | null;
+  category: string | null;
+  movement_type: string | null;
+  site: string | null;
+  raw: unknown;
+  order_number_override: string | null;
+};
+
+interface CustomerPortalSiteReportProps {
+  customerId: string;
+  customerName: string;
+  accessibleSiteIds?: string[];
+  isBroker?: boolean;
+}
 
 export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds, isBroker = false }: CustomerPortalSiteReportProps) {
   const { toast } = useToast();
@@ -507,7 +530,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, {} as Record<string, { count: number; weight: number }>);
 
   const sortedSummary = Object.entries(wasteSummary)
-    .map(([desc, data]) => ({ desc, ...data }))
+    .map(([desc, data]) => ({ desc, count: data.count, weight: data.weight }))
     .sort((a, b) => b.weight - a.weight);
 
   return (
