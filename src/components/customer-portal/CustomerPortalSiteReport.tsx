@@ -105,7 +105,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   useEffect(() => {
     loadSites();
     loadNotificationEmail();
-  }, [customerId, accessibleSiteIds]);
+  }, [customerId, customerName, accessibleSiteIds, isBroker]);
 
   // Auto-select most active site and generate report on first load
   useEffect(() => {
@@ -169,23 +169,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [autoLoaded, selectedSiteId]);
 
   const loadSites = async () => {
-    if (accessibleSiteIds) {
-      if (accessibleSiteIds.length > 0) {
-        const { data } = await supabase
-          .from("customer_sites")
-          .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-          .in("id", accessibleSiteIds)
-          .order("site_name");
-
-        setSites(data ?? []);
-        return;
-      }
-
-      if (!isBroker) {
-        setSites([]);
-        return;
-      }
-
+    if (isBroker) {
       const { data: liveSites } = await supabase
         .from("data_hub_jobs")
         .select("site")
@@ -212,6 +196,22 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         }));
 
       setSites(uniqueLiveSites);
+      return;
+    }
+
+    if (accessibleSiteIds) {
+      if (accessibleSiteIds.length > 0) {
+        const { data } = await supabase
+          .from("customer_sites")
+          .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+          .in("id", accessibleSiteIds)
+          .order("site_name");
+
+        setSites(data ?? []);
+        return;
+      }
+
+      setSites([]);
       return;
     }
 
