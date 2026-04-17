@@ -1503,44 +1503,47 @@ export function CustomerSetupAdmin() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="dh_customer">Data Hub customer</Label>
-                <Input
-                  id="dh_customer"
+                <DataHubCombobox
                   value={siteForm.data_hub_customer}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_customer: e.target.value }))}
-                  placeholder="Exact string in uploads"
+                  onChange={(v) => setSiteForm((p) => ({ ...p, data_hub_customer: v }))}
+                  options={skiptrakCustomers}
+                  placeholder={loadingSkiptrak ? "Loading Skiptrak data…" : "Select or type customer"}
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
               <Label>Data Hub sites (up to 5)</Label>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Input
-                  value={siteForm.data_hub_site}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site: e.target.value }))}
-                  placeholder="Site 1"
-                />
-                <Input
-                  value={siteForm.data_hub_site_2}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_2: e.target.value }))}
-                  placeholder="Site 2"
-                />
-                <Input
-                  value={siteForm.data_hub_site_3}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_3: e.target.value }))}
-                  placeholder="Site 3"
-                />
-                <Input
-                  value={siteForm.data_hub_site_4}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_4: e.target.value }))}
-                  placeholder="Site 4"
-                />
-                <Input
-                  value={siteForm.data_hub_site_5}
-                  onChange={(e) => setSiteForm((p) => ({ ...p, data_hub_site_5: e.target.value }))}
-                  placeholder="Site 5"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground -mt-1">
+                {siteForm.data_hub_customer
+                  ? `Showing sites for "${siteForm.data_hub_customer}". Type to add a new value.`
+                  : "Showing all Skiptrak sites. Pick a Data Hub customer above to narrow down."}
+              </p>
+              {(() => {
+                const siteOptions = siteForm.data_hub_customer && skiptrakSitesByCustomer[siteForm.data_hub_customer]
+                  ? skiptrakSitesByCustomer[siteForm.data_hub_customer]
+                  : skiptrakAllSites;
+                const slots: Array<keyof typeof siteForm> = [
+                  "data_hub_site",
+                  "data_hub_site_2",
+                  "data_hub_site_3",
+                  "data_hub_site_4",
+                  "data_hub_site_5",
+                ];
+                return (
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {slots.map((key, idx) => (
+                      <DataHubCombobox
+                        key={key}
+                        value={(siteForm[key] as string) || ""}
+                        onChange={(v) => setSiteForm((p) => ({ ...p, [key]: v }))}
+                        options={siteOptions}
+                        placeholder={`Site ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {selectedCustomer?.is_broker && (
