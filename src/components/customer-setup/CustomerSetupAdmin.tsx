@@ -477,6 +477,7 @@ export function CustomerSetupAdmin() {
     });
     setNewRebateSetInline("");
     setEditSiteOpen(true);
+    loadSkiptrakOptions();
   };
 
   const saveSite = async () => {
