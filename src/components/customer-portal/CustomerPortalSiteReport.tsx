@@ -169,56 +169,59 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   }, [autoLoaded, selectedSiteId]);
 
   const loadSites = async () => {
-    let query = supabase
-      .from("customer_sites")
-      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-      .order("site_name");
+    if (accessibleSiteIds) {
+      if (accessibleSiteIds.length > 0) {
+        const { data } = await supabase
+          .from("customer_sites")
+          .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+          .in("id", accessibleSiteIds)
+          .order("site_name");
 
-    if (accessibleSiteIds && accessibleSiteIds.length > 0) {
-      query = query.in("id", accessibleSiteIds);
-    } else if (accessibleSiteIds && accessibleSiteIds.length === 0) {
+        setSites(data ?? []);
+        return;
+      }
+
       if (!isBroker) {
         setSites([]);
         return;
       }
-    } else {
-      query = query.eq("customer_id", customerId);
-    }
 
-    const { data } = await query;
-    const configuredSites = data ?? [];
+      const { data: liveSites } = await supabase
+        .from("data_hub_jobs")
+        .select("site")
+        .eq("customer", customerName)
+        .not("site", "is", null);
 
-    if (configuredSites.length > 0 || !isBroker) {
-      setSites(configuredSites);
+      const uniqueLiveSites = Array.from(
+        new Set(
+          (liveSites ?? [])
+            .map((row: any) => (typeof row.site === "string" ? row.site.trim() : ""))
+            .filter(Boolean)
+        )
+      )
+        .sort((a, b) => a.localeCompare(b))
+        .map((siteName) => ({
+          id: `live:${siteName}`,
+          site_name: siteName,
+          data_hub_customer: customerName,
+          data_hub_site: siteName,
+          data_hub_site_2: null,
+          data_hub_site_3: null,
+          data_hub_site_4: null,
+          data_hub_site_5: null,
+        }));
+
+      setSites(uniqueLiveSites);
       return;
     }
 
-    const { data: liveSites } = await supabase
-      .from("data_hub_jobs")
-      .select("site")
-      .eq("customer", customerName)
-      .not("site", "is", null);
+    const { data } = await supabase
+      .from("customer_sites")
+      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+      .eq("customer_id", customerId)
+      .order("site_name");
 
-    const uniqueLiveSites = Array.from(
-      new Set(
-        (liveSites ?? [])
-          .map((row: any) => (typeof row.site === "string" ? row.site.trim() : ""))
-          .filter(Boolean)
-      )
-    )
-      .sort((a, b) => a.localeCompare(b))
-      .map((siteName) => ({
-        id: `live:${siteName}`,
-        site_name: siteName,
-        data_hub_customer: customerName,
-        data_hub_site: siteName,
-        data_hub_site_2: null,
-        data_hub_site_3: null,
-        data_hub_site_4: null,
-        data_hub_site_5: null,
-      }));
-
-    setSites(uniqueLiveSites);
+    setSites(data ?? []);
   };
 
   const loadNotificationEmail = async () => {
