@@ -244,6 +244,98 @@ export function CustomerSetupAdmin() {
   // Create portal login state (for contacts without portal access)
   const [creatingPortalLogin, setCreatingPortalLogin] = useState(false);
 
+  const [syncingBrokerSites, setSyncingBrokerSites] = useState(false);
+
+  const normalizeBrokerName = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[.,'"]/g, " ")
+      .replace(/\b(limited|ltd|plc|llp)\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const syncBrokerSitesFromSkiptrak = async () => {
+    if (!selectedCustomer || !selectedCustomerId) return;
+    const brokerName = selectedCustomer.customer_name?.trim();
+    if (!brokerName) {
+      toast({ title: "Missing customer name", description: "Cannot sync without a customer name.", variant: "destructive" });
+      return;
+    }
+    setSyncingBrokerSites(true);
+    try {
+      const normalizedBroker = normalizeBrokerName(brokerName);
+      const searchPrefix = brokerName.replace(/\b(limited|ltd|plc|llp)\b/gi, " ").replace(/\s+/g, " ").trim() || brokerName;
+
+      // Fetch all Skiptrak rows whose customer name approximately matches the broker
+      const pageSize = 1000;
+      let from = 0;
+      const allRows: { customer: string | null; site: string | null }[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("customer, site")
+          .eq("source", "skiptrak")
+          .not("site", "is", null)
+          .ilike("customer", `${searchPrefix}%`)
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRows.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+        if (from > 200000) break;
+      }
+
+      // Filter strictly to rows where normalized customer name matches the broker
+      const matchedSites = new Set<string>();
+      const matchedCustomers = new Set<string>();
+      for (const row of allRows) {
+        const c = (row.customer || "").trim();
+        const s = (row.site || "").trim();
+        if (!c || !s) continue;
+        if (normalizeBrokerName(c) !== normalizedBroker) continue;
+        matchedSites.add(s);
+        matchedCustomers.add(c);
+      }
+
+      if (matchedSites.size === 0) {
+        toast({ title: "No Skiptrak sites found", description: `No Skiptrak jobs were found for "${brokerName}".`, variant: "destructive" });
+        return;
+      }
+
+      // Determine which sites are already present (case-insensitive name match)
+      const existingNames = new Set(sites.map((s) => s.site_name.trim().toLowerCase()));
+      const customerAlias = Array.from(matchedCustomers)[0] ?? brokerName;
+      const toInsert = Array.from(matchedSites)
+        .filter((siteName) => !existingNames.has(siteName.toLowerCase()))
+        .map((siteName) => ({
+          customer_id: selectedCustomerId,
+          site_name: siteName,
+          data_hub_customer: customerAlias,
+          data_hub_site: siteName,
+        }));
+
+      if (toInsert.length === 0) {
+        toast({ title: "Already in sync", description: `All ${matchedSites.size} Skiptrak site(s) for this broker are already added.` });
+        return;
+      }
+
+      const { error: insertError } = await supabase.from("customer_sites").insert(toInsert);
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Broker sites synced",
+        description: `Added ${toInsert.length} new site(s) from Skiptrak. Skipped ${matchedSites.size - toInsert.length} already present.`,
+      });
+      await loadCustomerDetails(selectedCustomerId);
+    } catch (e: any) {
+      toast({ title: "Sync failed", description: e?.message ?? "Failed to sync broker sites.", variant: "destructive" });
+    } finally {
+      setSyncingBrokerSites(false);
+    }
+  };
+
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
