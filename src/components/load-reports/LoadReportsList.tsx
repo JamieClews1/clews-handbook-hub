@@ -60,8 +60,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchReports();
-  }, [dateFrom, dateTo, customerType, dateFilterEnabled]);
+    const t = setTimeout(() => fetchReports(), searchTerm ? 250 : 0);
+    return () => clearTimeout(t);
+  }, [dateFrom, dateTo, customerType, dateFilterEnabled, searchTerm]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -93,6 +94,10 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
       if (dateFilterEnabled) {
         query = query.gte("report_date", dateFrom).lte("report_date", dateTo);
+      } else if (searchTerm.trim()) {
+        // When searching, look across all reports (notes/operator/vehicle/site)
+        const term = `%${searchTerm.trim()}%`;
+        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term}`).limit(200);
       } else {
         query = query.limit(30);
       }
