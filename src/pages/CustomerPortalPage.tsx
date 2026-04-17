@@ -99,12 +99,17 @@ const CustomerPortalPage = () => {
         const isBroker = !!(data as any).customers?.is_broker;
 
         if (isBroker) {
-          // Brokers see ALL sites across the system (no manual assignment needed)
-          const { data: brokerSites } = await supabase
+          // Brokers see sites whose Skiptrak customer mapping matches the broker's name
+          const brokerName = (data as any).customers?.customer_name?.trim().toLowerCase() ?? "";
+          const { data: allSites } = await supabase
             .from("customer_sites")
-            .select("id, site_name, broker_subclient")
+            .select("id, site_name, broker_subclient, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
             .order("site_name");
-          const sitesArr = (brokerSites ?? []) as PortalSite[];
+          const matched = (allSites ?? []).filter((s: any) => {
+            const fields = [s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5];
+            return fields.some((f) => typeof f === "string" && f.trim().toLowerCase() === brokerName);
+          });
+          const sitesArr: PortalSite[] = matched.map((s: any) => ({ id: s.id, site_name: s.site_name, broker_subclient: s.broker_subclient }));
           setAccessibleSites(sitesArr);
           setAccessibleSiteIds(sitesArr.map(s => s.id));
         } else {
@@ -153,11 +158,16 @@ const CustomerPortalPage = () => {
         setAdminBrokerSites([]);
         return;
       }
+      const brokerName = cust.customer_name.trim().toLowerCase();
       const { data } = await supabase
         .from("customer_sites")
-        .select("id, site_name, broker_subclient")
+        .select("id, site_name, broker_subclient, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
         .order("site_name");
-      setAdminBrokerSites((data ?? []) as PortalSite[]);
+      const matched = (data ?? []).filter((s: any) => {
+        const fields = [s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5];
+        return fields.some((f) => typeof f === "string" && f.trim().toLowerCase() === brokerName);
+      });
+      setAdminBrokerSites(matched.map((s: any) => ({ id: s.id, site_name: s.site_name, broker_subclient: s.broker_subclient })));
     };
     loadAdminBrokerSites();
     setSelectedSubclient(ALL_SUBCLIENTS);
