@@ -456,6 +456,7 @@ export function CustomerSetupAdmin() {
     });
     setNewRebateSetInline("");
     setEditSiteOpen(true);
+    loadSkiptrakOptions();
   };
 
   const openEditSite = (site: CustomerSite & { load_report_type?: string | null }) => {
