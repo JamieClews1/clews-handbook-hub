@@ -27,6 +27,11 @@ type Site = {
   data_hub_site_5: string | null;
 };
 
+type BrokerJobSiteRow = {
+  customer: string | null;
+  site: string | null;
+};
+
 type JobRecord = {
   id: string;
   job_date: string;
@@ -52,9 +57,56 @@ interface CustomerPortalSiteReportProps {
 
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 
+const normalizeBrokerCustomerName = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[.,'\"]/g, " ")
+    .replace(/\b(limited|ltd|plc|llp)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getBrokerCustomerSearchPrefix = (value: string) =>
+  value
+    .replace(/\b(limited|ltd|plc|llp)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getBrokerSkiptrakSiteData = async (brokerName: string) => {
+  const normalizedBrokerName = normalizeBrokerCustomerName(brokerName);
+  const searchPrefix = getBrokerCustomerSearchPrefix(brokerName) || brokerName.trim();
+
+  if (!normalizedBrokerName || !searchPrefix) {
+    return { aliases: [] as string[], siteNames: [] as string[] };
+  }
+
+  const { data, error } = await supabase
+    .from("data_hub_jobs")
+    .select("customer, site")
+    .eq("source", "skiptrak")
+    .not("site", "is", null)
+    .ilike("customer", `${searchPrefix}%`);
+
+  if (error) throw error;
+
+  const scopedRows = (data ?? []).filter(
+    (row): row is BrokerJobSiteRow =>
+      typeof row.customer === "string" &&
+      typeof row.site === "string" &&
+      row.site.trim().length > 0 &&
+      normalizeBrokerCustomerName(row.customer) === normalizedBrokerName
+  );
+
+  return {
+    aliases: Array.from(new Set(scopedRows.map((row) => row.customer.trim()))).sort((a, b) => a.localeCompare(b)),
+    siteNames: Array.from(new Set(scopedRows.map((row) => row.site.trim()))).sort((a, b) => a.localeCompare(b)),
+  };
+};
+
 export function CustomerPortalSiteReport({ customerId, customerName, accessibleSiteIds, isBroker = false }: CustomerPortalSiteReportProps) {
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);
+  const [brokerCustomerAliases, setBrokerCustomerAliases] = useState<string[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState(() => sessionStorage.getItem("portal-site-report-siteId") || "");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const saved = sessionStorage.getItem("portal-site-report-dateRange");
@@ -134,17 +186,23 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
           site.data_hub_site_4,
           site.data_hub_site_5,
         ].filter(Boolean) as string[];
-        
-        const dataHubCustomer = site.data_hub_customer;
-        if (siteNames.length === 0 && !dataHubCustomer) continue;
+
+        const customerFilters = isBroker
+          ? brokerCustomerAliases
+          : site.data_hub_customer
+            ? [site.data_hub_customer]
+            : [];
+
+        if (siteNames.length === 0 && customerFilters.length === 0) continue;
         
         let query = supabase
           .from("data_hub_jobs")
           .select("id", { count: "exact", head: true })
           .gte("job_date", thirtyDaysAgo)
           .lte("job_date", today);
-        
-        if (dataHubCustomer) query = query.eq("customer", dataHubCustomer);
+
+        if (isBroker) query = query.eq("source", "skiptrak");
+        if (customerFilters.length > 0) query = query.in("customer", customerFilters);
         if (siteNames.length > 0) query = query.in("site", siteNames);
         
         const { count } = await query;
@@ -159,7 +217,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     };
     
     findMostActiveSite();
-  }, [sites, autoLoaded]);
+  }, [sites, autoLoaded, isBroker, brokerCustomerAliases]);
 
   // Auto-generate report once site is auto-selected
   useEffect(() => {
@@ -170,21 +228,10 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
   const loadSites = async () => {
     if (isBroker) {
-      const { data: liveSites } = await supabase
-        .from("data_hub_jobs")
-        .select("site")
-        .eq("customer", customerName)
-        .not("site", "is", null);
-
-      const uniqueLiveSites = Array.from(
-        new Set(
-          (liveSites ?? [])
-            .map((row: any) => (typeof row.site === "string" ? row.site.trim() : ""))
-            .filter(Boolean)
-        )
-      )
-        .sort((a, b) => a.localeCompare(b))
-        .map((siteName) => ({
+      try {
+        const { aliases, siteNames } = await getBrokerSkiptrakSiteData(customerName);
+        setBrokerCustomerAliases(aliases);
+        setSites(siteNames.map((siteName) => ({
           id: `live:${siteName}`,
           site_name: siteName,
           data_hub_customer: customerName,
@@ -193,11 +240,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
           data_hub_site_3: null,
           data_hub_site_4: null,
           data_hub_site_5: null,
-        }));
-
-      setSites(uniqueLiveSites);
+        })));
+      } catch (error) {
+        console.error("Error loading broker sites:", error);
+        setBrokerCustomerAliases([]);
+        setSites([]);
+      }
       return;
     }
+
+    setBrokerCustomerAliases([]);
 
     if (accessibleSiteIds) {
       if (accessibleSiteIds.length > 0) {
@@ -314,9 +366,13 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         site.data_hub_site_5,
       ].filter(Boolean) as string[];
 
-      const dataHubCustomer = site.data_hub_customer;
+      const customerFilters = isBroker
+        ? brokerCustomerAliases
+        : site.data_hub_customer
+          ? [site.data_hub_customer]
+          : [];
 
-      if (siteNames.length === 0 && !dataHubCustomer) {
+      if (siteNames.length === 0 && customerFilters.length === 0) {
         setJobRecords([]);
         setReportGenerated(true);
         return;
@@ -332,9 +388,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
 
-      if (dataHubCustomer) {
-        query = query.eq("customer", dataHubCustomer);
-      }
+      if (isBroker) query = query.eq("source", "skiptrak");
+      if (customerFilters.length > 0) query = query.in("customer", customerFilters);
 
       if (siteNames.length > 0) {
         query = query.in("site", siteNames);
