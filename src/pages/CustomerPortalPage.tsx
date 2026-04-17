@@ -99,11 +99,10 @@ const CustomerPortalPage = () => {
         const isBroker = !!(data as any).customers?.is_broker;
 
         if (isBroker) {
-          // Brokers see ALL sites under their broker customer account
+          // Brokers see ALL sites across the system (no manual assignment needed)
           const { data: brokerSites } = await supabase
             .from("customer_sites")
             .select("id, site_name, broker_subclient")
-            .eq("customer_id", data.customer_id)
             .order("site_name");
           const sitesArr = (brokerSites ?? []) as PortalSite[];
           setAccessibleSites(sitesArr);
