@@ -158,11 +158,16 @@ const CustomerPortalPage = () => {
         setAdminBrokerSites([]);
         return;
       }
+      const brokerName = cust.customer_name.trim().toLowerCase();
       const { data } = await supabase
         .from("customer_sites")
-        .select("id, site_name, broker_subclient")
+        .select("id, site_name, broker_subclient, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
         .order("site_name");
-      setAdminBrokerSites((data ?? []) as PortalSite[]);
+      const matched = (data ?? []).filter((s: any) => {
+        const fields = [s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5];
+        return fields.some((f) => typeof f === "string" && f.trim().toLowerCase() === brokerName);
+      });
+      setAdminBrokerSites(matched.map((s: any) => ({ id: s.id, site_name: s.site_name, broker_subclient: s.broker_subclient })));
     };
     loadAdminBrokerSites();
     setSelectedSubclient(ALL_SUBCLIENTS);
