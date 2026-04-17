@@ -1122,9 +1122,24 @@ export function CustomerSetupAdmin() {
                   <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
                     <div>
                       <h3 className="text-lg font-semibold">Sites</h3>
-                      <p className="text-sm text-muted-foreground">Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedCustomer.is_broker
+                          ? "Broker account: use 'Sync Sites from Skiptrak' to auto-add every site assigned to this broker in Skiptrak."
+                          : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
+                      </p>
                     </div>
-                    <Button onClick={openCreateSite}>New site</Button>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCustomer.is_broker && (
+                        <Button
+                          variant="outline"
+                          onClick={syncBrokerSitesFromSkiptrak}
+                          disabled={syncingBrokerSites}
+                        >
+                          {syncingBrokerSites ? "Syncing…" : "Sync Sites from Skiptrak"}
+                        </Button>
+                      )}
+                      <Button onClick={openCreateSite}>New site</Button>
+                    </div>
                   </div>
 
                   <div className="rounded-md border border-border overflow-hidden">
