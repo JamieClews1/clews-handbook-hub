@@ -436,7 +436,12 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                       {report.total_pallets}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      {report.total_weight_kg.toLocaleString()}
+                      <div>{report.total_weight_kg.toLocaleString()}</div>
+                      {report.weighbridge_weight_kg != null && (
+                        <div className="text-xs font-normal text-muted-foreground">
+                          Net: {report.weighbridge_weight_kg.toLocaleString()} kg
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       {getStatusBadge(report.status, report)}
