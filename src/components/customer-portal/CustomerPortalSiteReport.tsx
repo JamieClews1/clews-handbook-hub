@@ -171,17 +171,19 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     let query = supabase
       .from("customer_sites")
       .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-      .eq("customer_id", customerId)
       .order("site_name");
-    
-    // Filter to only accessible sites for portal users
+
+    // If explicit accessible site IDs are provided (e.g. broker view), use those
+    // directly and do NOT constrain by customer_id (broker sites belong to other customers).
     if (accessibleSiteIds && accessibleSiteIds.length > 0) {
       query = query.in("id", accessibleSiteIds);
     } else if (accessibleSiteIds && accessibleSiteIds.length === 0) {
       setSites([]);
       return;
+    } else {
+      query = query.eq("customer_id", customerId);
     }
-    
+
     const { data } = await query;
     setSites(data ?? []);
   };
