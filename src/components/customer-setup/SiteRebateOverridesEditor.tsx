@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type RebateItem = { id: string; name: string };
+type WasteType = { id: string; waste_type: string; rebate_category: string };
 
 type Override = {
   id: string;
@@ -23,6 +24,7 @@ type Override = {
   end_date: string;
   set_value: number;
   notes: string | null;
+  waste_type: string | null;
 };
 
 type Props = {
@@ -30,15 +32,19 @@ type Props = {
   siteName: string;
 };
 
+const ALL_WASTE_TYPES_VALUE = "__all__";
+
 export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rebateItems, setRebateItems] = useState<RebateItem[]>([]);
+  const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
   const [overrides, setOverrides] = useState<Override[]>([]);
 
   // Form state for new override
   const [newItemId, setNewItemId] = useState("");
+  const [newWasteType, setNewWasteType] = useState<string>(ALL_WASTE_TYPES_VALUE);
   const [newStart, setNewStart] = useState<Date | undefined>();
   const [newEnd, setNewEnd] = useState<Date | undefined>();
   const [newValue, setNewValue] = useState("");
@@ -47,15 +53,21 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: items }, { data: ovs }] = await Promise.all([
+      const [{ data: items }, { data: wts }, { data: ovs }] = await Promise.all([
         supabase.from("rebate_items").select("id, name").order("sort_order"),
         supabase
+          .from("load_waste_types")
+          .select("id, waste_type, rebate_category")
+          .eq("is_active", true)
+          .order("display_order"),
+        supabase
           .from("customer_site_rebate_overrides")
-          .select("id, rebate_item_id, start_date, end_date, set_value, notes")
+          .select("id, rebate_item_id, start_date, end_date, set_value, notes, waste_type")
           .eq("site_id", siteId)
           .order("start_date", { ascending: false }),
       ]);
       setRebateItems((items ?? []) as RebateItem[]);
+      setWasteTypes((wts ?? []) as WasteType[]);
       setOverrides((ovs ?? []) as Override[]);
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to load overrides.", variant: "destructive" });
@@ -94,13 +106,15 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
           end_date: format(newEnd, "yyyy-MM-dd"),
           set_value: num,
           notes: newNotes.trim() || null,
+          waste_type: newWasteType === ALL_WASTE_TYPES_VALUE ? null : newWasteType,
         })
-        .select("id, rebate_item_id, start_date, end_date, set_value, notes")
+        .select("id, rebate_item_id, start_date, end_date, set_value, notes, waste_type")
         .single();
 
       if (error) throw error;
       setOverrides((prev) => [data as Override, ...prev]);
       setNewItemId("");
+      setNewWasteType(ALL_WASTE_TYPES_VALUE);
       setNewStart(undefined);
       setNewEnd(undefined);
       setNewValue("");
@@ -141,8 +155,8 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
       </div>
       <p className="text-xs text-muted-foreground">
         Temporarily override the £/tonne rate for a specific material at <span className="font-medium">{siteName}</span> within
-        a date window. When a load report's date falls inside the window, the override rate is used instead of the normal
-        monthly rebate value.
+        a date window. Optionally limit the override to a single waste type (e.g. <em>Card Bales</em> only) so other waste types
+        sharing the same rebate item (e.g. <em>Card Loose</em>) keep their normal rate.
       </p>
 
       {overrides.length > 0 ? (
@@ -151,6 +165,7 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Material</TableHead>
+                <TableHead>Waste Type</TableHead>
                 <TableHead>Window</TableHead>
                 <TableHead>Rate</TableHead>
                 <TableHead>Notes</TableHead>
@@ -161,6 +176,13 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
               {overrides.map((o) => (
                 <TableRow key={o.id}>
                   <TableCell className="font-medium">{itemName(o.rebate_item_id)}</TableCell>
+                  <TableCell className="text-sm">
+                    {o.waste_type ? (
+                      <span className="font-medium">{o.waste_type}</span>
+                    ) : (
+                      <span className="text-muted-foreground italic">All waste types</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">
                     {format(new Date(o.start_date + "T00:00:00"), "d MMM yyyy")} →{" "}
                     {format(new Date(o.end_date + "T00:00:00"), "d MMM yyyy")}
@@ -190,9 +212,9 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
       {/* Add new override */}
       <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
         <Label className="text-sm font-medium">Add Override</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2">
           <div className="space-y-1">
-            <Label className="text-xs">Material</Label>
+            <Label className="text-xs">Material (rebate item)</Label>
             <Select value={newItemId} onValueChange={setNewItemId} disabled={saving}>
               <SelectTrigger>
                 <SelectValue placeholder="Select material" />
@@ -201,6 +223,22 @@ export function SiteRebateOverridesEditor({ siteId, siteName }: Props) {
                 {rebateItems.map((ri) => (
                   <SelectItem key={ri.id} value={ri.id}>
                     {ri.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Waste Type (optional)</Label>
+            <Select value={newWasteType} onValueChange={setNewWasteType} disabled={saving}>
+              <SelectTrigger>
+                <SelectValue placeholder="All waste types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_WASTE_TYPES_VALUE}>All waste types</SelectItem>
+                {wasteTypes.map((wt) => (
+                  <SelectItem key={wt.id} value={wt.waste_type}>
+                    {wt.waste_type}
                   </SelectItem>
                 ))}
               </SelectContent>
