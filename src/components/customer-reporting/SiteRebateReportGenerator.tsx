@@ -230,6 +230,8 @@ export function SiteRebateReportGenerator() {
       const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
       let loadReportsWithItems: LoadReportCardData[] = [];
       let lineItemWeights: Record<string, number> = {};
+      let overrideWeights: Record<string, Record<string, number>> = {};
+      let overrideMeta: Record<string, { rate: number; start_date: string; end_date: string; notes: string | null }> = {};
       let palletWeightKg = 20;
 
       // Only process price set if one exists
@@ -366,9 +368,42 @@ export function SiteRebateReportGenerator() {
           // Get all line items from matching load reports
           const loadReportIds = (loadReports ?? []).map((r) => r.id);
           const noPalletsByReportId: Record<string, boolean> = {};
+          const reportDateById: Record<string, string> = {};
           for (const r of loadReports ?? []) {
             noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+            reportDateById[r.id] = (r as any).report_date;
           }
+
+          // Fetch active rebate overrides for this site that overlap the report period
+          const overrideRebateItemIds = rebateConfigs
+            .map((c) => c.value_type_item_id)
+            .filter((id): id is string => !!id);
+          let siteOverrides: Array<{
+            id: string;
+            rebate_item_id: string;
+            start_date: string;
+            end_date: string;
+            set_value: number;
+            notes: string | null;
+          }> = [];
+          if (overrideRebateItemIds.length > 0) {
+            const { data: ovs } = await supabase
+              .from("customer_site_rebate_overrides")
+              .select("id, rebate_item_id, start_date, end_date, set_value, notes")
+              .eq("site_id", selectedSiteId)
+              .in("rebate_item_id", overrideRebateItemIds)
+              .lte("start_date", periodEnd)
+              .gte("end_date", periodStart);
+            siteOverrides = (ovs ?? []) as any;
+          }
+          // Map material_name -> list of overrides applicable to this material
+          const overridesByMaterialName: Record<string, typeof siteOverrides> = {};
+          for (const cfg of rebateConfigs) {
+            if (!cfg.value_type_item_id) continue;
+            const matches = siteOverrides.filter((o) => o.rebate_item_id === cfg.value_type_item_id);
+            if (matches.length > 0) overridesByMaterialName[cfg.material_name] = matches;
+          }
+          // (overrideWeights & overrideMeta hoisted to outer scope above)
 
           if (loadReportIds.length > 0) {
             const { data: lineItems } = await supabase
@@ -450,7 +485,27 @@ export function SiteRebateReportGenerator() {
               const actualKg = Math.max(0, grossKg - palletKg);
               const actualTonnes = actualKg / 1000;
 
-              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+              // Check for an active override matching this line's report date + material
+              const reportDate = reportDateById[item.load_report_id];
+              const materialOverrides = overridesByMaterialName[wasteType] ?? [];
+              const matchedOverride = materialOverrides.find(
+                (o) => reportDate && reportDate >= o.start_date && reportDate <= o.end_date
+              );
+
+              if (matchedOverride) {
+                // Bucket this weight under the override; subtract from normal weight
+                if (!overrideWeights[wasteType]) overrideWeights[wasteType] = {};
+                overrideWeights[wasteType][matchedOverride.id] =
+                  (overrideWeights[wasteType][matchedOverride.id] ?? 0) + actualTonnes;
+                overrideMeta[matchedOverride.id] = {
+                  rate: Number(matchedOverride.set_value),
+                  start_date: matchedOverride.start_date,
+                  end_date: matchedOverride.end_date,
+                  notes: matchedOverride.notes,
+                };
+              } else {
+                lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+              }
               totalPalletWeightTonnes += palletKg / 1000;
               
               // Track wet charge discount for this item
@@ -560,7 +615,27 @@ export function SiteRebateReportGenerator() {
         });
       }
 
-      setReportData(reportRows);
+      // Add extra report rows for any overridden weight (one row per active override)
+      for (const config of rebateConfigs) {
+        const matBuckets = overrideWeights[config.material_name];
+        if (!matBuckets) continue;
+        const isCostItem = config.rebate_category === "cost";
+        for (const [overrideId, weight_tonnes] of Object.entries(matBuckets)) {
+          const meta = overrideMeta[overrideId];
+          if (!meta || weight_tonnes <= 0) continue;
+          let rebate_value = weight_tonnes * meta.rate;
+          if (isCostItem) rebate_value = -Math.abs(rebate_value);
+          const fmt = (d: string) => format(new Date(d + "T00:00:00"), "d MMM");
+          reportRows.push({
+            material_name: `${config.material_name} (Override)`,
+            weight_tonnes,
+            rate_per_tonne: meta.rate,
+            rebate_value,
+            rate_source: `Override ${fmt(meta.start_date)}–${fmt(meta.end_date)}${meta.notes ? ` · ${meta.notes}` : ""}`,
+          });
+        }
+      }
+
       setIndividualReports(loadReportsWithItems);
       setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);

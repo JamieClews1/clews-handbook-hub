@@ -783,6 +783,57 @@ export type Database = {
           },
         ]
       }
+      customer_site_rebate_overrides: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          notes: string | null
+          rebate_item_id: string
+          set_value: number
+          site_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          notes?: string | null
+          rebate_item_id: string
+          set_value: number
+          site_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          notes?: string | null
+          rebate_item_id?: string
+          set_value?: number
+          site_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_site_rebate_overrides_rebate_item_id_fkey"
+            columns: ["rebate_item_id"]
+            isOneToOne: false
+            referencedRelation: "rebate_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_site_rebate_overrides_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_site_skip_rebates: {
         Row: {
           adjustment: number | null

@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
+import { SiteRebateOverridesEditor } from "./SiteRebateOverridesEditor";
 import { DataHubCombobox } from "./DataHubCombobox";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
@@ -1776,6 +1777,12 @@ export function CustomerSetupAdmin() {
                   priceSetName={priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "Rebate Set"}
                   loadReportType={siteForm.load_report_type}
                 />
+                {editingSite && (
+                  <>
+                    <Separator />
+                    <SiteRebateOverridesEditor siteId={editingSite.id} siteName={siteForm.site_name || "this site"} />
+                  </>
+                )}
               </>
             )}
             {siteForm.price_set_id && !siteForm.load_report_type && (
