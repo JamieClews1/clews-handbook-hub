@@ -403,9 +403,7 @@ export function SiteRebateReportGenerator() {
             const matches = siteOverrides.filter((o) => o.rebate_item_id === cfg.value_type_item_id);
             if (matches.length > 0) overridesByMaterialName[cfg.material_name] = matches;
           }
-          // Track overridden weight per (material_name + override_id)
-          const overrideWeights: Record<string, Record<string, number>> = {};
-          const overrideMeta: Record<string, { rate: number; start_date: string; end_date: string; notes: string | null }> = {};
+          // (overrideWeights & overrideMeta hoisted to outer scope above)
 
           if (loadReportIds.length > 0) {
             const { data: lineItems } = await supabase
