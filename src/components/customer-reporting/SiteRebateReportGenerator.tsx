@@ -230,6 +230,8 @@ export function SiteRebateReportGenerator() {
       const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
       let loadReportsWithItems: LoadReportCardData[] = [];
       let lineItemWeights: Record<string, number> = {};
+      let overrideWeights: Record<string, Record<string, number>> = {};
+      let overrideMeta: Record<string, { rate: number; start_date: string; end_date: string; notes: string | null }> = {};
       let palletWeightKg = 20;
 
       // Only process price set if one exists
