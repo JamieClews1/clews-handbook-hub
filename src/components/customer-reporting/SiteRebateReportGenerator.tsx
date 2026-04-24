@@ -485,7 +485,27 @@ export function SiteRebateReportGenerator() {
               const actualKg = Math.max(0, grossKg - palletKg);
               const actualTonnes = actualKg / 1000;
 
-              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+              // Check for an active override matching this line's report date + material
+              const reportDate = reportDateById[item.load_report_id];
+              const materialOverrides = overridesByMaterialName[wasteType] ?? [];
+              const matchedOverride = materialOverrides.find(
+                (o) => reportDate && reportDate >= o.start_date && reportDate <= o.end_date
+              );
+
+              if (matchedOverride) {
+                // Bucket this weight under the override; subtract from normal weight
+                if (!overrideWeights[wasteType]) overrideWeights[wasteType] = {};
+                overrideWeights[wasteType][matchedOverride.id] =
+                  (overrideWeights[wasteType][matchedOverride.id] ?? 0) + actualTonnes;
+                overrideMeta[matchedOverride.id] = {
+                  rate: Number(matchedOverride.set_value),
+                  start_date: matchedOverride.start_date,
+                  end_date: matchedOverride.end_date,
+                  notes: matchedOverride.notes,
+                };
+              } else {
+                lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualTonnes;
+              }
               totalPalletWeightTonnes += palletKg / 1000;
               
               // Track wet charge discount for this item
