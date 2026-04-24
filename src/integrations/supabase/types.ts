@@ -794,6 +794,7 @@ export type Database = {
           site_id: string
           start_date: string
           updated_at: string
+          waste_type: string | null
         }
         Insert: {
           created_at?: string
@@ -805,6 +806,7 @@ export type Database = {
           site_id: string
           start_date: string
           updated_at?: string
+          waste_type?: string | null
         }
         Update: {
           created_at?: string
@@ -816,6 +818,7 @@ export type Database = {
           site_id?: string
           start_date?: string
           updated_at?: string
+          waste_type?: string | null
         }
         Relationships: [
           {
