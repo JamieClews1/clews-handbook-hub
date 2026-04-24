@@ -1777,6 +1777,12 @@ export function CustomerSetupAdmin() {
                   priceSetName={priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "Rebate Set"}
                   loadReportType={siteForm.load_report_type}
                 />
+                {editingSite && (
+                  <>
+                    <Separator />
+                    <SiteRebateOverridesEditor siteId={editingSite.id} siteName={siteForm.site_name || "this site"} />
+                  </>
+                )}
               </>
             )}
             {siteForm.price_set_id && !siteForm.load_report_type && (
