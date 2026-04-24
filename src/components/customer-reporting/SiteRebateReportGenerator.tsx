@@ -385,22 +385,31 @@ export function SiteRebateReportGenerator() {
             end_date: string;
             set_value: number;
             notes: string | null;
+            waste_type: string | null;
           }> = [];
           if (overrideRebateItemIds.length > 0) {
             const { data: ovs } = await supabase
               .from("customer_site_rebate_overrides")
-              .select("id, rebate_item_id, start_date, end_date, set_value, notes")
+              .select("id, rebate_item_id, start_date, end_date, set_value, notes, waste_type")
               .eq("site_id", selectedSiteId)
               .in("rebate_item_id", overrideRebateItemIds)
               .lte("start_date", periodEnd)
               .gte("end_date", periodStart);
             siteOverrides = (ovs ?? []) as any;
           }
-          // Map material_name -> list of overrides applicable to this material
+          // Map material_name (load waste_type) -> list of overrides applicable to that waste type.
+          // An override applies to a waste type if:
+          //   - it targets the same rebate item AND
+          //   - either has no waste_type filter (applies to all waste types on this rebate item)
+          //     or its waste_type matches this material exactly.
           const overridesByMaterialName: Record<string, typeof siteOverrides> = {};
           for (const cfg of rebateConfigs) {
             if (!cfg.value_type_item_id) continue;
-            const matches = siteOverrides.filter((o) => o.rebate_item_id === cfg.value_type_item_id);
+            const matches = siteOverrides.filter(
+              (o) =>
+                o.rebate_item_id === cfg.value_type_item_id &&
+                (!o.waste_type || o.waste_type === cfg.material_name)
+            );
             if (matches.length > 0) overridesByMaterialName[cfg.material_name] = matches;
           }
           // (overrideWeights & overrideMeta hoisted to outer scope above)
