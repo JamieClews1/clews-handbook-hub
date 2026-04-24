@@ -615,7 +615,27 @@ export function SiteRebateReportGenerator() {
         });
       }
 
-      setReportData(reportRows);
+      // Add extra report rows for any overridden weight (one row per active override)
+      for (const config of rebateConfigs) {
+        const matBuckets = overrideWeights[config.material_name];
+        if (!matBuckets) continue;
+        const isCostItem = config.rebate_category === "cost";
+        for (const [overrideId, weight_tonnes] of Object.entries(matBuckets)) {
+          const meta = overrideMeta[overrideId];
+          if (!meta || weight_tonnes <= 0) continue;
+          let rebate_value = weight_tonnes * meta.rate;
+          if (isCostItem) rebate_value = -Math.abs(rebate_value);
+          const fmt = (d: string) => format(new Date(d + "T00:00:00"), "d MMM");
+          reportRows.push({
+            material_name: `${config.material_name} (Override)`,
+            weight_tonnes,
+            rate_per_tonne: meta.rate,
+            rebate_value,
+            rate_source: `Override ${fmt(meta.start_date)}–${fmt(meta.end_date)}${meta.notes ? ` · ${meta.notes}` : ""}`,
+          });
+        }
+      }
+
       setIndividualReports(loadReportsWithItems);
       setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);
