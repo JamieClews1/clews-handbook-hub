@@ -338,9 +338,48 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
 
       const loadReportIds = (loadReports ?? []).map((r) => r.id);
       const noPalletsByReportId: Record<string, boolean> = {};
+      const reportDateById: Record<string, string> = {};
       for (const r of loadReports ?? []) {
         noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+        reportDateById[r.id] = (r as any).report_date;
       }
+
+      // Fetch active rebate overrides for this site that overlap the report period
+      const overrideRebateItemIds = rebateConfigs
+        .map((c) => c.value_type_item_id)
+        .filter((id): id is string => !!id);
+      let siteOverrides: Array<{
+        id: string;
+        rebate_item_id: string;
+        start_date: string;
+        end_date: string;
+        set_value: number;
+        notes: string | null;
+        waste_type: string | null;
+      }> = [];
+      if (overrideRebateItemIds.length > 0) {
+        const { data: ovs } = await supabase
+          .from("customer_site_rebate_overrides")
+          .select("id, rebate_item_id, start_date, end_date, set_value, notes, waste_type")
+          .eq("site_id", selectedSiteId)
+          .in("rebate_item_id", overrideRebateItemIds)
+          .lte("start_date", rangeEnd)
+          .gte("end_date", rangeStart);
+        siteOverrides = (ovs ?? []) as any;
+      }
+      // Map material_name (load waste_type) -> applicable overrides
+      const overridesByMaterialName: Record<string, typeof siteOverrides> = {};
+      for (const cfg of rebateConfigs) {
+        if (!cfg.value_type_item_id) continue;
+        const matches = siteOverrides.filter(
+          (o) =>
+            o.rebate_item_id === cfg.value_type_item_id &&
+            (!o.waste_type || o.waste_type === cfg.material_name)
+        );
+        if (matches.length > 0) overridesByMaterialName[cfg.material_name] = matches;
+      }
+      const overrideWeights: Record<string, Record<string, number>> = {};
+      const overrideMeta: Record<string, { rate: number; start_date: string; end_date: string; notes: string | null }> = {};
 
       let lineItemWeights: Record<string, number> = {};
       let totalPalletWeightTonnes = 0;
