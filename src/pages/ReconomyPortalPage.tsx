@@ -130,6 +130,12 @@ const ReconomyPortalPage = () => {
             accessOk = true;
           }
         });
+        // Capture the user's own underlying customer name (e.g. "Reconomy (UK) Limited")
+        const ownMembership = memberships[0];
+        if (ownMembership) {
+          const ownCustomer = group.find((c) => c.id === ownMembership.customer_id);
+          if (ownCustomer) setOwnCustomerName(ownCustomer.customer_name);
+        }
       }
       setHasAccess(accessOk);
 
