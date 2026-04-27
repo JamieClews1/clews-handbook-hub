@@ -34,6 +34,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
     surcharge_amount: "0.00",
     active: true,
     notes: "",
+    customer_match: "",
   });
 
   async function fetchRates() {
@@ -41,6 +42,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
     const { data, error } = await supabase
       .from("fuel_surcharge_rates")
       .select("*")
+      .order("customer_match", { ascending: true, nullsFirst: true })
       .order("effective_from_date", { ascending: false })
       .order("vehicle_category")
       .order("zone");
@@ -62,6 +64,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
       surcharge_amount: "0.00",
       active: true,
       notes: "",
+      customer_match: "",
     });
     setOpen(true);
   }
@@ -75,18 +78,22 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
       surcharge_amount: r.surcharge_amount.toString(),
       active: r.active,
       notes: r.notes ?? "",
+      customer_match: r.customer_match ?? "",
     });
     setOpen(true);
   }
 
   async function save() {
+    const customerMatch = form.customer_match.trim();
     const payload = {
       effective_from_date: form.effective_from_date,
       vehicle_category: form.vehicle_category,
-      zone: form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone,
+      // Customer-specific rates are flat fees that ignore zone (stored as 'NA')
+      zone: customerMatch || form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone,
       surcharge_amount: Number(form.surcharge_amount),
       active: form.active,
       notes: form.notes || null,
+      customer_match: customerMatch || null,
     };
     if (Number.isNaN(payload.surcharge_amount)) {
       toast({ title: "Invalid amount", variant: "destructive" });
@@ -173,18 +180,29 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
                   <div>
                     <Label>Zone</Label>
                     <Select
-                      value={form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone}
-                      disabled={form.vehicle_category === "Weighbridge Tip"}
+                      value={form.customer_match.trim() || form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone}
+                      disabled={!!form.customer_match.trim() || form.vehicle_category === "Weighbridge Tip"}
                       onValueChange={(v) => setForm({ ...form, zone: v as SurchargeZone })}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {ZONES.filter((z) => form.vehicle_category === "Weighbridge Tip" ? z === "NA" : z !== "NA").map((z) => (
+                        {ZONES.filter((z) => (form.customer_match.trim() || form.vehicle_category === "Weighbridge Tip") ? z === "NA" : z !== "NA").map((z) => (
                           <SelectItem key={z} value={z}>{z}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div>
+                  <Label>Customer (optional)</Label>
+                  <Input
+                    value={form.customer_match}
+                    onChange={(e) => setForm({ ...form, customer_match: e.target.value })}
+                    placeholder="Leave blank for all customers — e.g. 'Go Green Limited'"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customer-specific rates override the standard zone-based rate (case-insensitive contains match) and apply as a flat fee for any zone.
+                  </p>
                 </div>
                 <div>
                   <Label>Notes</Label>
@@ -212,6 +230,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Effective From</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Vehicle Category</TableHead>
                   <TableHead>Zone</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
@@ -224,8 +243,11 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
                 {rates.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.effective_from_date}</TableCell>
+                    <TableCell className="font-medium">
+                      {r.customer_match ? r.customer_match : <span className="text-muted-foreground">All customers</span>}
+                    </TableCell>
                     <TableCell>{r.vehicle_category}</TableCell>
-                    <TableCell>{r.zone}</TableCell>
+                    <TableCell>{r.customer_match ? <span className="text-muted-foreground">Any</span> : r.zone}</TableCell>
                     <TableCell className="text-right font-medium">{formatGBP(Number(r.surcharge_amount))}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{r.notes ?? ""}</TableCell>
                     <TableCell>
@@ -245,7 +267,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
                   </TableRow>
                 ))}
                 {rates.length === 0 && (
-                  <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground">No rates configured</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 8 : 7} className="text-center text-muted-foreground">No rates configured</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

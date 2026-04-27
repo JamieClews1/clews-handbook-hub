@@ -1512,6 +1512,7 @@ export type Database = {
           active: boolean
           created_at: string
           created_by: string | null
+          customer_match: string | null
           effective_from_date: string
           id: string
           notes: string | null
@@ -1524,6 +1525,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           created_by?: string | null
+          customer_match?: string | null
           effective_from_date: string
           id?: string
           notes?: string | null
@@ -1536,6 +1538,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           created_by?: string | null
+          customer_match?: string | null
           effective_from_date?: string
           id?: string
           notes?: string | null
