@@ -381,7 +381,7 @@ const ReconomyPortalPage = () => {
               {!isAdmin && user && (
                 <CustomerPortalProfile
                   userEmail={user.email || ""}
-                  customerName="Reconomy Group"
+                  customerName={ownCustomerName || "Reconomy Group"}
                   managedSites={Object.values(allSitesByCustomer).flat()}
                 />
               )}
