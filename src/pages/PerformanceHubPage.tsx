@@ -147,6 +147,21 @@ const PerformanceHubPage = () => {
                 </div>
               </div>
             </Link>
+
+            {/* Fuel Surcharges */}
+            <Link to="/performance-hub/fuel-surcharges" className="group">
+              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <Fuel className="h-12 w-12 text-primary-foreground" />
+                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
+                    Fuel Surcharges
+                  </h2>
+                  <p className="text-primary-foreground/80 text-sm">
+                    Auto-calculated temporary fuel surcharges by vehicle type and zone
+                  </p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
       </main>
