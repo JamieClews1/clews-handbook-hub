@@ -52,6 +52,7 @@ import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
 import DriverAppPage from "./pages/DriverAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
+import FuelSurchargesPage from "./pages/FuelSurchargesPage";
 import DiaryPage from "./pages/DiaryPage";
 import BookingsPage from "./pages/BookingsPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
