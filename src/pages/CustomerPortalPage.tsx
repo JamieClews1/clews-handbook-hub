@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -15,6 +15,7 @@ import { CustomerPortalLogin } from "@/components/customer-portal/CustomerPortal
 import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPortalProfile";
 import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
 import { CustomerPortalServices } from "@/components/customer-portal/CustomerPortalServices";
+import { CustomerPortalFuelSurcharges } from "@/components/customer-portal/CustomerPortalFuelSurcharges";
 
 type PortalMembership = {
   id: string;
@@ -389,7 +390,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 3 : 5;
+            const tabCount = isStaciCustomer ? 4 : 6;
 
             // Compute effective site filter for child components.
             // Broker mode: derive from broker dropdowns.
@@ -413,7 +414,7 @@ const CustomerPortalPage = () => {
 
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
-            <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
+            <TabsList className={`grid w-full max-w-2xl ${tabCount === 4 ? "grid-cols-4" : "grid-cols-6"}`}>
               {!isStaciCustomer && (
                 <TabsTrigger value="site-reports" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -435,6 +436,11 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="fuel-surcharges" className="flex items-center gap-2">
+                <Fuel className="h-4 w-4" />
+                <span className="hidden sm:inline">Fuel Surcharges</span>
+                <span className="sm:hidden">Fuel</span>
+              </TabsTrigger>
               <TabsTrigger value="bookings" className="flex items-center gap-2">
                 <CalendarCheck className="h-4 w-4" />
                 <span className="hidden sm:inline">Bookings</span>
@@ -494,6 +500,16 @@ const CustomerPortalPage = () => {
                   customerId={currentCustomerId}
                   customerName={currentCustomer?.customer_name}
                   isPortalView={!isAdmin}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="fuel-surcharges">
+              {currentCustomerId && currentCustomer && (
+                <CustomerPortalFuelSurcharges
+                  customerId={currentCustomerId}
+                  customerName={currentCustomer.customer_name}
+                  accessibleSiteIds={effectiveAccessibleSiteIds}
                 />
               )}
             </TabsContent>
