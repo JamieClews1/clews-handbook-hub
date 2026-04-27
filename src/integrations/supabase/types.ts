@@ -4520,6 +4520,10 @@ export type Database = {
         Returns: boolean
       }
       is_management: { Args: { _user_id: string }; Returns: boolean }
+      user_has_reconomy_membership: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
