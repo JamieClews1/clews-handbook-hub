@@ -157,36 +157,13 @@ const ReconomyPortalPage = () => {
         group.forEach((c) => {
           accessMap[c.id] = undefined;
         });
-      } else {
-        // Non-admin: combine explicit site_access + owner_contact matches
-        for (const m of memberships) {
-          const cust = group.find((g) => g.id === m.customer_id);
-          if (!cust) continue;
-
-          if (cust.is_broker) {
-            // Broker model: all sites for that customer
-            accessMap[m.customer_id] = (allSitesMap[m.customer_id] ?? []).map((s) => s.id);
-            continue;
-          }
-
-          const idSet = new Set<string>();
-          const { data: explicit } = await supabase
-            .from("customer_portal_site_access")
-            .select("site_id")
-            .eq("membership_id", m.id);
-          (explicit ?? []).forEach((row: any) => idSet.add(row.site_id));
-
-          if (m.contact_id) {
-            (sitesByCustomer[m.customer_id] ?? []).forEach((s: any) => {
-              if (s.owner_contact_id === m.contact_id) idSet.add(s.id);
-            });
-          }
-
-          // Merge with any prior-collected access for the same customer
-          const prior = accessMap[m.customer_id];
-          if (prior !== undefined) prior.forEach((id) => idSet.add(id));
-          accessMap[m.customer_id] = Array.from(idSet);
-        }
+      } else if (memberships.length > 0) {
+        // Reconomy is an umbrella group — if the user has a membership to ANY
+        // Reconomy entity, grant broker-style access to ALL sub-brands so they
+        // can switch between Circle Waste, Ecofficiency, AMA Waste, etc.
+        group.forEach((c) => {
+          accessMap[c.id] = (allSitesMap[c.id] ?? []).map((s) => s.id);
+        });
       }
       setSiteAccessByCustomer(accessMap);
       setLoadingData(false);
