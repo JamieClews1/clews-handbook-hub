@@ -51,6 +51,16 @@ const ALL_CUSTOMERS = "__all_reconomy__";
 const ALL_SUBCLIENTS = "__all_subclients__";
 const ALL_SITES = "__all_sites__";
 
+// Virtual merged entity: combines "Reconomy (UK) Limited" + "Reconomy Solutions"
+// into a single sub-brand button/scope.
+const RECONOMY_MERGED_ID = "__reconomy_merged__";
+const RECONOMY_MERGED_NAME = "Reconomy";
+const isReconomyCoreName = (name: string | null | undefined) => {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return lower.includes("reconomy (uk)") || lower.includes("reconomy solutions");
+};
+
 const matchesReconomy = (name: string | null | undefined) => {
   if (!name) return false;
   const lower = name.toLowerCase();
@@ -180,8 +190,24 @@ const ReconomyPortalPage = () => {
   // Customers that should appear in the dropdown / aggregate views.
   // For non-admins this is restricted to those they actually have access to.
   const visibleCustomers = useMemo(() => {
-    if (isAdmin) return groupCustomers;
-    return groupCustomers.filter((c) => siteAccessByCustomer[c.id] !== undefined);
+    const base = isAdmin
+      ? groupCustomers
+      : groupCustomers.filter((c) => siteAccessByCustomer[c.id] !== undefined);
+
+    // Collapse "Reconomy (UK) Limited" + "Reconomy Solutions" into a single
+    // virtual entry so the user sees one "Reconomy" sub-brand button.
+    const coreReconomy = base.filter((c) => isReconomyCoreName(c.customer_name));
+    if (coreReconomy.length === 0) return base;
+
+    const others = base.filter((c) => !isReconomyCoreName(c.customer_name));
+    const merged: Customer = {
+      id: RECONOMY_MERGED_ID,
+      customer_name: RECONOMY_MERGED_NAME,
+      customer_code: coreReconomy.map((c) => c.customer_code).filter(Boolean).join(" / "),
+      // Treat the merged entity as broker if any underlying entity is a broker.
+      is_broker: coreReconomy.some((c) => !!c.is_broker),
+    };
+    return [merged, ...others];
   }, [groupCustomers, isAdmin, siteAccessByCustomer]);
 
   if (!loading && !user) {
@@ -230,9 +256,17 @@ const ReconomyPortalPage = () => {
 
   // Selection state
   const isAggregate = selectedCustomerId === ALL_CUSTOMERS;
+  // Expand the virtual merged "Reconomy" entry back into the real underlying
+  // customer rows so all downstream data fetching works unchanged.
+  const expandMerged = (cs: Customer[]): Customer[] =>
+    cs.flatMap((c) =>
+      c.id === RECONOMY_MERGED_ID
+        ? groupCustomers.filter((g) => isReconomyCoreName(g.customer_name))
+        : [c],
+    );
   const customersInScope = isAggregate
-    ? visibleCustomers
-    : visibleCustomers.filter((c) => c.id === selectedCustomerId);
+    ? expandMerged(visibleCustomers)
+    : expandMerged(visibleCustomers.filter((c) => c.id === selectedCustomerId));
 
   const storedTab = sessionStorage.getItem("reconomy-portal-active-tab");
   const defaultTab = storedTab || "site-reports";
