@@ -286,7 +286,7 @@ const CustomerPortalPage = () => {
               {!isAdmin && user && (
                 <CustomerPortalProfile
                   userEmail={user.email || ""}
-                  customerName={currentCustomer?.customer_name || ""}
+                  customerName={membership?.customers?.customer_name || ""}
                   managedSites={accessibleSites}
                 />
               )}

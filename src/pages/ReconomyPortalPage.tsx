@@ -83,6 +83,7 @@ const ReconomyPortalPage = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(ALL_CUSTOMERS);
   const [selectedSubclient, setSelectedSubclient] = useState<string>(ALL_SUBCLIENTS);
   const [selectedBrokerSiteId, setSelectedBrokerSiteId] = useState<string>(ALL_SITES);
+  const [ownCustomerName, setOwnCustomerName] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
@@ -129,6 +130,12 @@ const ReconomyPortalPage = () => {
             accessOk = true;
           }
         });
+        // Capture the user's own underlying customer name (e.g. "Reconomy (UK) Limited")
+        const ownMembership = memberships[0];
+        if (ownMembership) {
+          const ownCustomer = group.find((c) => c.id === ownMembership.customer_id);
+          if (ownCustomer) setOwnCustomerName(ownCustomer.customer_name);
+        }
       }
       setHasAccess(accessOk);
 
@@ -374,7 +381,7 @@ const ReconomyPortalPage = () => {
               {!isAdmin && user && (
                 <CustomerPortalProfile
                   userEmail={user.email || ""}
-                  customerName="Reconomy Group"
+                  customerName={ownCustomerName || "Reconomy Group"}
                   managedSites={Object.values(allSitesByCustomer).flat()}
                 />
               )}
