@@ -241,7 +241,7 @@ export function calculateSurcharge(
     }
   }
 
-  const rate = findRate(rates, vehicle, zone, job.job_date);
+  const rate = findRate(rates, vehicle, zone, job.job_date, job.customer);
   if (!rate)
     return {
       ...empty,
@@ -252,11 +252,14 @@ export function calculateSurcharge(
       reason: "No active rate configured",
     };
 
+  // If a customer-specific override was matched, surface that in the zone display
+  const isCustomerOverride = !!rate.customer_match;
+
   return {
     applied: true,
     vehicle_category: vehicle,
-    zone,
-    zone_was_fallback: fallback,
+    zone: isCustomerOverride ? "NA" : zone,
+    zone_was_fallback: isCustomerOverride ? false : fallback,
     postcode,
     surcharge_amount: Number(rate.surcharge_amount),
     rate_id: rate.id,
