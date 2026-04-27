@@ -142,10 +142,27 @@ export function findRate(
   return candidates[0] ?? null;
 }
 
+/**
+ * Build a set of midweigh ticket numbers (job_number) that are already represented
+ * by a Skiptrak job (via raw->>'Weighbridge'). These midweigh records are duplicates
+ * and should be excluded from surcharge calculation/reporting.
+ */
+export function buildLinkedMidweighTickets(jobs: RawJob[]): Set<string> {
+  const linked = new Set<string>();
+  for (const j of jobs) {
+    if (j.source !== "skiptrak") continue;
+    const wb = j.raw?.["Weighbridge"];
+    if (wb === null || wb === undefined || wb === "") continue;
+    linked.add(String(wb).trim());
+  }
+  return linked;
+}
+
 export function calculateSurcharge(
   job: RawJob,
   rates: FuelSurchargeRate[],
-  zones: PostcodeZoneRow[]
+  zones: PostcodeZoneRow[],
+  linkedMidweighTickets?: Set<string>
 ): SurchargeCalc {
   const empty: SurchargeCalc = {
     applied: false,
@@ -158,6 +175,17 @@ export function calculateSurcharge(
   };
 
   if (!job.job_date) return { ...empty, reason: "No job date" };
+
+  // De-dupe: midweigh ticket already represented by a Skiptrak job
+  if (
+    job.source === "midweigh" &&
+    linkedMidweighTickets &&
+    job.job_number &&
+    linkedMidweighTickets.has(String(job.job_number).trim())
+  ) {
+    return { ...empty, reason: "Duplicate of Skiptrak job (weighbridge ticket linked)" };
+  }
+
   // Earliest possible effective date guard — anything before any rate exists won't apply
   const minEffective = rates.reduce<string | null>(
     (acc, r) => (acc === null || r.effective_from_date < acc ? r.effective_from_date : acc),
