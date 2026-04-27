@@ -1507,6 +1507,45 @@ export type Database = {
           },
         ]
       }
+      fuel_surcharge_rates: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          effective_from_date: string
+          id: string
+          notes: string | null
+          surcharge_amount: number
+          updated_at: string
+          vehicle_category: string
+          zone: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from_date: string
+          id?: string
+          notes?: string | null
+          surcharge_amount?: number
+          updated_at?: string
+          vehicle_category: string
+          zone: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from_date?: string
+          id?: string
+          notes?: string | null
+          surcharge_amount?: number
+          updated_at?: string
+          vehicle_category?: string
+          zone?: string
+        }
+        Relationships: []
+      }
       handbook_sections: {
         Row: {
           created_at: string

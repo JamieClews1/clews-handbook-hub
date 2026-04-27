@@ -52,6 +52,7 @@ import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
 import DriverAppPage from "./pages/DriverAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
+import FuelSurchargesPage from "./pages/FuelSurchargesPage";
 import DiaryPage from "./pages/DiaryPage";
 import BookingsPage from "./pages/BookingsPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
@@ -128,6 +129,7 @@ const App = () => (
             <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
             <Route path="/performance-hub/projections" element={<Staff><ProjectionsPage /></Staff>} />
+            <Route path="/performance-hub/fuel-surcharges" element={<Staff><FuelSurchargesPage /></Staff>} />
             <Route path="/diary" element={<Staff><DiaryPage /></Staff>} />
             <Route path="/bookings" element={<Staff><BookingsPage /></Staff>} />
             <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
