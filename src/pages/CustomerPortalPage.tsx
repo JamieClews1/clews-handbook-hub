@@ -504,6 +504,16 @@ const CustomerPortalPage = () => {
               )}
             </TabsContent>
 
+            <TabsContent value="fuel-surcharges">
+              {currentCustomerId && currentCustomer && (
+                <CustomerPortalFuelSurcharges
+                  customerId={currentCustomerId}
+                  customerName={currentCustomer.customer_name}
+                  accessibleSiteIds={effectiveAccessibleSiteIds}
+                />
+              )}
+            </TabsContent>
+
             <TabsContent value="bookings">
               {currentCustomerId && currentCustomer && (
                 <CustomerPortalServices
