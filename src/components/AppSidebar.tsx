@@ -30,6 +30,7 @@ import {
   Gauge,
   Radio,
   TrendingUp,
+  Fuel,
 } from "lucide-react";
 import {
   Sidebar,
@@ -329,6 +330,14 @@ export function AppSidebar() {
                       <Link to="/performance-hub/stock-check">
                         <Box className="h-4 w-4" />
                         {!collapsed && <span>Stock Check</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/fuel-surcharges")}>
+                      <Link to="/performance-hub/fuel-surcharges">
+                        <Fuel className="h-4 w-4" />
+                        {!collapsed && <span>Fuel Surcharges</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
