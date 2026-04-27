@@ -34,6 +34,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
     surcharge_amount: "0.00",
     active: true,
     notes: "",
+    customer_match: "",
   });
 
   async function fetchRates() {
@@ -41,6 +42,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
     const { data, error } = await supabase
       .from("fuel_surcharge_rates")
       .select("*")
+      .order("customer_match", { ascending: true, nullsFirst: true })
       .order("effective_from_date", { ascending: false })
       .order("vehicle_category")
       .order("zone");
@@ -62,6 +64,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
       surcharge_amount: "0.00",
       active: true,
       notes: "",
+      customer_match: "",
     });
     setOpen(true);
   }
@@ -75,18 +78,22 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
       surcharge_amount: r.surcharge_amount.toString(),
       active: r.active,
       notes: r.notes ?? "",
+      customer_match: r.customer_match ?? "",
     });
     setOpen(true);
   }
 
   async function save() {
+    const customerMatch = form.customer_match.trim();
     const payload = {
       effective_from_date: form.effective_from_date,
       vehicle_category: form.vehicle_category,
-      zone: form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone,
+      // Customer-specific rates are flat fees that ignore zone (stored as 'NA')
+      zone: customerMatch || form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone,
       surcharge_amount: Number(form.surcharge_amount),
       active: form.active,
       notes: form.notes || null,
+      customer_match: customerMatch || null,
     };
     if (Number.isNaN(payload.surcharge_amount)) {
       toast({ title: "Invalid amount", variant: "destructive" });
