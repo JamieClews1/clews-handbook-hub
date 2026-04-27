@@ -406,6 +406,41 @@ const ReconomyPortalPage = () => {
             </Select>
           </div>
 
+          {isBrokerView && (
+            <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-xl border border-border bg-muted/30">
+              <div className="flex-1 min-w-0">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Sub-client</label>
+                <Select
+                  value={selectedSubclient}
+                  onValueChange={(v) => {
+                    setSelectedSubclient(v);
+                    setSelectedBrokerSiteId(ALL_SITES);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_SUBCLIENTS}>All sub-clients</SelectItem>
+                    {subclients.map((sc) => (
+                      <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Site</label>
+                <Select value={selectedBrokerSiteId} onValueChange={setSelectedBrokerSiteId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_SITES}>All sites</SelectItem>
+                    {sitesForSubclient.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <Tabs
             defaultValue={defaultTab}
             onValueChange={(v) => sessionStorage.setItem("reconomy-portal-active-tab", v)}
