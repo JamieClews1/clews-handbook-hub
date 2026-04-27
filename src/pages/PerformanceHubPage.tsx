@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle, Box } from "lucide-react";
+import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle, Box, Fuel } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
 
