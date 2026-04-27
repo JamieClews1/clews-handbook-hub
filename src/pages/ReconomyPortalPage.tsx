@@ -83,6 +83,7 @@ const ReconomyPortalPage = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(ALL_CUSTOMERS);
   const [selectedSubclient, setSelectedSubclient] = useState<string>(ALL_SUBCLIENTS);
   const [selectedBrokerSiteId, setSelectedBrokerSiteId] = useState<string>(ALL_SITES);
+  const [ownCustomerName, setOwnCustomerName] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
