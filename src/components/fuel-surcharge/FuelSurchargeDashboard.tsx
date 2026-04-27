@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Fuel, Truck, MapPin, Hash, TrendingUp } from "lucide-react";
 import {
+  buildLinkedMidweighTickets,
   calculateSurcharge,
   formatGBP,
   type FuelSurchargeRate,
@@ -47,9 +48,10 @@ export default function FuelSurchargeDashboard() {
         if (offset > 50000) break;
       }
 
+      const linked = buildLinkedMidweighTickets(all);
       const computed = all
         .map((j) => {
-          const c = calculateSurcharge(j, rates, zones);
+          const c = calculateSurcharge(j, rates, zones, linked);
           return { job: j, amount: c.applied ? c.surcharge_amount : 0, vehicle: c.vehicle_category, customer: j.customer, applied: c.applied };
         })
         .filter((r) => r.applied);

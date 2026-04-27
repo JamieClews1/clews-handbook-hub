@@ -11,6 +11,7 @@ import { Download, FileSpreadsheet, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import {
+  buildLinkedMidweighTickets,
   calculateSurcharge,
   formatGBP,
   type FuelSurchargeRate,
@@ -77,7 +78,8 @@ export default function FuelSurchargeJobsList() {
       offset += PAGE;
       if (offset > 50000) break; // safety
     }
-    const computed = all.map((j) => ({ job: j, calc: calculateSurcharge(j, ratesData, zonesData) }));
+    const linked = buildLinkedMidweighTickets(all);
+    const computed = all.map((j) => ({ job: j, calc: calculateSurcharge(j, ratesData, zonesData, linked) }));
     setRows(computed);
     setLoading(false);
   }
