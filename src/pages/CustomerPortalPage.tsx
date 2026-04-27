@@ -436,6 +436,11 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="fuel-surcharges" className="flex items-center gap-2">
+                <Fuel className="h-4 w-4" />
+                <span className="hidden sm:inline">Fuel Surcharges</span>
+                <span className="sm:hidden">Fuel</span>
+              </TabsTrigger>
               <TabsTrigger value="bookings" className="flex items-center gap-2">
                 <CalendarCheck className="h-4 w-4" />
                 <span className="hidden sm:inline">Bookings</span>
