@@ -190,8 +190,24 @@ const ReconomyPortalPage = () => {
   // Customers that should appear in the dropdown / aggregate views.
   // For non-admins this is restricted to those they actually have access to.
   const visibleCustomers = useMemo(() => {
-    if (isAdmin) return groupCustomers;
-    return groupCustomers.filter((c) => siteAccessByCustomer[c.id] !== undefined);
+    const base = isAdmin
+      ? groupCustomers
+      : groupCustomers.filter((c) => siteAccessByCustomer[c.id] !== undefined);
+
+    // Collapse "Reconomy (UK) Limited" + "Reconomy Solutions" into a single
+    // virtual entry so the user sees one "Reconomy" sub-brand button.
+    const coreReconomy = base.filter((c) => isReconomyCoreName(c.customer_name));
+    if (coreReconomy.length === 0) return base;
+
+    const others = base.filter((c) => !isReconomyCoreName(c.customer_name));
+    const merged: Customer = {
+      id: RECONOMY_MERGED_ID,
+      customer_name: RECONOMY_MERGED_NAME,
+      customer_code: coreReconomy.map((c) => c.customer_code).filter(Boolean).join(" / "),
+      // Treat the merged entity as broker if any underlying entity is a broker.
+      is_broker: coreReconomy.some((c) => !!c.is_broker),
+    };
+    return [merged, ...others];
   }, [groupCustomers, isAdmin, siteAccessByCustomer]);
 
   if (!loading && !user) {
