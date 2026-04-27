@@ -123,23 +123,47 @@ export function zoneForPostcode(
 
 /**
  * Find the active rate for a vehicle/zone effective on a given job date.
+ * Customer-specific rates (customer_match set & matches the job customer) take precedence
+ * over generic rates and ignore zone (treated as flat fees).
  * Picks the most recent effective_from_date <= job_date among active rows.
  */
 export function findRate(
   rates: FuelSurchargeRate[],
   vehicle: VehicleCategory,
   zone: SurchargeZone,
-  jobDate: string
+  jobDate: string,
+  customer?: string | null
 ): FuelSurchargeRate | null {
+  const cust = (customer ?? "").toLowerCase();
+  const sameDateDesc = (a: FuelSurchargeRate, b: FuelSurchargeRate) =>
+    a.effective_from_date < b.effective_from_date ? 1 : -1;
+
+  // 1. Customer-specific override (zone ignored — flat fee)
+  if (cust) {
+    const customerCandidates = rates
+      .filter(
+        (r) =>
+          r.active &&
+          r.vehicle_category === vehicle &&
+          r.effective_from_date <= jobDate &&
+          r.customer_match &&
+          cust.includes(r.customer_match.toLowerCase())
+      )
+      .sort(sameDateDesc);
+    if (customerCandidates.length > 0) return customerCandidates[0];
+  }
+
+  // 2. Generic zone-based rate
   const candidates = rates
     .filter(
       (r) =>
         r.active &&
+        !r.customer_match &&
         r.vehicle_category === vehicle &&
         r.zone === zone &&
         r.effective_from_date <= jobDate
     )
-    .sort((a, b) => (a.effective_from_date < b.effective_from_date ? 1 : -1));
+    .sort(sameDateDesc);
   return candidates[0] ?? null;
 }
 
