@@ -260,16 +260,64 @@ const ReconomyPortalPage = () => {
   const storedTab = sessionStorage.getItem("reconomy-portal-active-tab");
   const defaultTab = storedTab || "site-reports";
 
+  // Aggregate broker view: gather all sites across in-scope customers (only brokers)
+  // since all Reconomy group entities are brokers, this powers the Sub-client/Site filters.
+  const brokerSitesAll: (PortalSite & { customer_id: string })[] = customersInScope.flatMap((c) => {
+    if (!c.is_broker) return [] as (PortalSite & { customer_id: string })[];
+    const sites = allSitesByCustomer[c.id] ?? [];
+    // Restrict by user access (admins are unrestricted -> undefined)
+    const allowed = siteAccessByCustomer[c.id];
+    const filtered = allowed === undefined ? sites : sites.filter((s) => allowed.includes(s.id));
+    return filtered.map((s) => ({ ...s, customer_id: c.id }));
+  });
+
+  const subclients = Array.from(
+    new Set(
+      brokerSitesAll
+        .map((s) => (s.broker_subclient || "").trim())
+        .filter((s) => s.length > 0),
+    ),
+  ).sort();
+
+  const sitesForSubclient =
+    selectedSubclient === ALL_SUBCLIENTS
+      ? brokerSitesAll
+      : brokerSitesAll.filter((s) => (s.broker_subclient || "").trim() === selectedSubclient);
+
+  const isBrokerView = brokerSitesAll.length > 0;
+
+  // Effective per-customer accessible site IDs after broker dropdowns
+  const effectiveAccessByCustomer: Record<string, string[] | undefined> = {};
+  customersInScope.forEach((c) => {
+    if (!isBrokerView || !c.is_broker) {
+      effectiveAccessByCustomer[c.id] = siteAccessByCustomer[c.id];
+      return;
+    }
+    let pool = brokerSitesAll.filter((s) => s.customer_id === c.id);
+    if (selectedSubclient !== ALL_SUBCLIENTS) {
+      pool = pool.filter((s) => (s.broker_subclient || "").trim() === selectedSubclient);
+    }
+    if (selectedBrokerSiteId !== ALL_SITES) {
+      pool = pool.filter((s) => s.id === selectedBrokerSiteId);
+    }
+    effectiveAccessByCustomer[c.id] = pool.map((s) => s.id);
+  });
+
   const renderPerCustomerSection = (
     title: string,
     body: (c: Customer) => React.ReactNode,
   ) => {
-    if (customersInScope.length === 1) {
-      return body(customersInScope[0]);
+    // When a specific broker site is chosen, only render the customer that owns it
+    const scope = isBrokerView && selectedBrokerSiteId !== ALL_SITES
+      ? customersInScope.filter((c) => (effectiveAccessByCustomer[c.id]?.length ?? 0) > 0)
+      : customersInScope;
+
+    if (scope.length === 1) {
+      return body(scope[0]);
     }
     return (
       <div className="space-y-6">
-        {customersInScope.map((c) => (
+        {scope.map((c) => (
           <Card key={c.id}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
