@@ -180,18 +180,29 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
                   <div>
                     <Label>Zone</Label>
                     <Select
-                      value={form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone}
-                      disabled={form.vehicle_category === "Weighbridge Tip"}
+                      value={form.customer_match.trim() || form.vehicle_category === "Weighbridge Tip" ? "NA" : form.zone}
+                      disabled={!!form.customer_match.trim() || form.vehicle_category === "Weighbridge Tip"}
                       onValueChange={(v) => setForm({ ...form, zone: v as SurchargeZone })}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {ZONES.filter((z) => form.vehicle_category === "Weighbridge Tip" ? z === "NA" : z !== "NA").map((z) => (
+                        {ZONES.filter((z) => (form.customer_match.trim() || form.vehicle_category === "Weighbridge Tip") ? z === "NA" : z !== "NA").map((z) => (
                           <SelectItem key={z} value={z}>{z}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div>
+                  <Label>Customer (optional)</Label>
+                  <Input
+                    value={form.customer_match}
+                    onChange={(e) => setForm({ ...form, customer_match: e.target.value })}
+                    placeholder="Leave blank for all customers — e.g. 'Go Green Limited'"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customer-specific rates override the standard zone-based rate (case-insensitive contains match) and apply as a flat fee for any zone.
+                  </p>
                 </div>
                 <div>
                   <Label>Notes</Label>
