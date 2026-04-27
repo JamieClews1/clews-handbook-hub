@@ -43,6 +43,7 @@ import LiveJobsPage from "./pages/LiveJobsPage";
 import RebateValuesPage from "./pages/RebateValuesPage";
 import CustomerReportingPage from "./pages/CustomerReportingPage";
 import CustomerPortalPage from "./pages/CustomerPortalPage";
+import ReconomyPortalPage from "./pages/ReconomyPortalPage";
 import NearMissReportPage from "./pages/NearMissReportPage";
 import NearMissPage from "./pages/NearMissPage";
 import StaciReportsPage from "./pages/StaciReportsPage";
@@ -88,6 +89,8 @@ const App = () => (
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
+            <Route path="/reconomy-portal" element={<ReconomyPortalPage />} />
+            <Route path="/ReconomyPortal" element={<ReconomyPortalPage />} />
 
             {/* Staff-only routes with sidebar layout */}
             <Route path="/portal" element={<Staff><Index /></Staff>} />
