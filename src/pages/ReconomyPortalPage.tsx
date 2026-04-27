@@ -479,7 +479,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalSiteReport
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                   isBroker={!!c.is_broker}
                 />
               ))}
@@ -490,7 +490,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalRebateReport
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                 />
               ))}
             </TabsContent>
@@ -500,7 +500,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalFuelSurcharges
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                 />
               ))}
             </TabsContent>
@@ -510,7 +510,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalServices
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                 />
               ))}
             </TabsContent>
