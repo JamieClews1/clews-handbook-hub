@@ -414,7 +414,7 @@ const CustomerPortalPage = () => {
 
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
-            <TabsList className={`grid w-full max-w-2xl grid-cols-${tabCount}`}>
+            <TabsList className={`grid w-full max-w-2xl ${tabCount === 4 ? "grid-cols-4" : "grid-cols-6"}`}>
               {!isStaciCustomer && (
                 <TabsTrigger value="site-reports" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
