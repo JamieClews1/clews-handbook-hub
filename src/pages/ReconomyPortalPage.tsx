@@ -391,19 +391,44 @@ const ReconomyPortalPage = () => {
               </div>
             </div>
 
-            <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-              <SelectTrigger className="w-[280px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_CUSTOMERS}>All Reconomy customers</SelectItem>
-                {visibleCustomers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.customer_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          </div>
+
+          {/* Sub-brand switcher: prominent buttons for each Reconomy umbrella entity */}
+          <div className="mb-6">
+            <label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wide">
+              Switch sub-brand
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedCustomerId === ALL_CUSTOMERS ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSelectedCustomerId(ALL_CUSTOMERS);
+                  setSelectedSubclient(ALL_SUBCLIENTS);
+                  setSelectedBrokerSiteId(ALL_SITES);
+                }}
+                className="gap-2"
+              >
+                <Layers className="h-4 w-4" />
+                All Reconomy Group
+              </Button>
+              {visibleCustomers.map((c) => (
+                <Button
+                  key={c.id}
+                  variant={selectedCustomerId === c.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCustomerId(c.id);
+                    setSelectedSubclient(ALL_SUBCLIENTS);
+                    setSelectedBrokerSiteId(ALL_SITES);
+                  }}
+                  className="gap-2"
+                >
+                  <Building2 className="h-4 w-4" />
+                  {c.customer_name}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {isBrokerView && (
