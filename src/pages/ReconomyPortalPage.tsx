@@ -256,9 +256,17 @@ const ReconomyPortalPage = () => {
 
   // Selection state
   const isAggregate = selectedCustomerId === ALL_CUSTOMERS;
+  // Expand the virtual merged "Reconomy" entry back into the real underlying
+  // customer rows so all downstream data fetching works unchanged.
+  const expandMerged = (cs: Customer[]): Customer[] =>
+    cs.flatMap((c) =>
+      c.id === RECONOMY_MERGED_ID
+        ? groupCustomers.filter((g) => isReconomyCoreName(g.customer_name))
+        : [c],
+    );
   const customersInScope = isAggregate
-    ? visibleCustomers
-    : visibleCustomers.filter((c) => c.id === selectedCustomerId);
+    ? expandMerged(visibleCustomers)
+    : expandMerged(visibleCustomers.filter((c) => c.id === selectedCustomerId));
 
   const storedTab = sessionStorage.getItem("reconomy-portal-active-tab");
   const defaultTab = storedTab || "site-reports";
