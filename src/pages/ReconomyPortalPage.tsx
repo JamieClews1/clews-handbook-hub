@@ -48,6 +48,8 @@ type MembershipRow = {
 };
 
 const ALL_CUSTOMERS = "__all_reconomy__";
+const ALL_SUBCLIENTS = "__all_subclients__";
+const ALL_SITES = "__all_sites__";
 
 const matchesReconomy = (name: string | null | undefined) => {
   if (!name) return false;
@@ -69,6 +71,8 @@ const ReconomyPortalPage = () => {
     Record<string, PortalSite[]>
   >({});
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(ALL_CUSTOMERS);
+  const [selectedSubclient, setSelectedSubclient] = useState<string>(ALL_SUBCLIENTS);
+  const [selectedBrokerSiteId, setSelectedBrokerSiteId] = useState<string>(ALL_SITES);
 
   useEffect(() => {
     const load = async () => {
@@ -256,16 +260,64 @@ const ReconomyPortalPage = () => {
   const storedTab = sessionStorage.getItem("reconomy-portal-active-tab");
   const defaultTab = storedTab || "site-reports";
 
+  // Aggregate broker view: gather all sites across in-scope customers (only brokers)
+  // since all Reconomy group entities are brokers, this powers the Sub-client/Site filters.
+  const brokerSitesAll: (PortalSite & { customer_id: string })[] = customersInScope.flatMap((c) => {
+    if (!c.is_broker) return [] as (PortalSite & { customer_id: string })[];
+    const sites = allSitesByCustomer[c.id] ?? [];
+    // Restrict by user access (admins are unrestricted -> undefined)
+    const allowed = siteAccessByCustomer[c.id];
+    const filtered = allowed === undefined ? sites : sites.filter((s) => allowed.includes(s.id));
+    return filtered.map((s) => ({ ...s, customer_id: c.id }));
+  });
+
+  const subclients = Array.from(
+    new Set(
+      brokerSitesAll
+        .map((s) => (s.broker_subclient || "").trim())
+        .filter((s) => s.length > 0),
+    ),
+  ).sort();
+
+  const sitesForSubclient =
+    selectedSubclient === ALL_SUBCLIENTS
+      ? brokerSitesAll
+      : brokerSitesAll.filter((s) => (s.broker_subclient || "").trim() === selectedSubclient);
+
+  const isBrokerView = brokerSitesAll.length > 0;
+
+  // Effective per-customer accessible site IDs after broker dropdowns
+  const effectiveAccessByCustomer: Record<string, string[] | undefined> = {};
+  customersInScope.forEach((c) => {
+    if (!isBrokerView || !c.is_broker) {
+      effectiveAccessByCustomer[c.id] = siteAccessByCustomer[c.id];
+      return;
+    }
+    let pool = brokerSitesAll.filter((s) => s.customer_id === c.id);
+    if (selectedSubclient !== ALL_SUBCLIENTS) {
+      pool = pool.filter((s) => (s.broker_subclient || "").trim() === selectedSubclient);
+    }
+    if (selectedBrokerSiteId !== ALL_SITES) {
+      pool = pool.filter((s) => s.id === selectedBrokerSiteId);
+    }
+    effectiveAccessByCustomer[c.id] = pool.map((s) => s.id);
+  });
+
   const renderPerCustomerSection = (
     title: string,
     body: (c: Customer) => React.ReactNode,
   ) => {
-    if (customersInScope.length === 1) {
-      return body(customersInScope[0]);
+    // When a specific broker site is chosen, only render the customer that owns it
+    const scope = isBrokerView && selectedBrokerSiteId !== ALL_SITES
+      ? customersInScope.filter((c) => (effectiveAccessByCustomer[c.id]?.length ?? 0) > 0)
+      : customersInScope;
+
+    if (scope.length === 1) {
+      return body(scope[0]);
     }
     return (
       <div className="space-y-6">
-        {customersInScope.map((c) => (
+        {scope.map((c) => (
           <Card key={c.id}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -354,6 +406,41 @@ const ReconomyPortalPage = () => {
             </Select>
           </div>
 
+          {isBrokerView && (
+            <div className="flex flex-col sm:flex-row gap-3 mb-6 p-4 rounded-xl border border-border bg-muted/30">
+              <div className="flex-1 min-w-0">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Sub-client</label>
+                <Select
+                  value={selectedSubclient}
+                  onValueChange={(v) => {
+                    setSelectedSubclient(v);
+                    setSelectedBrokerSiteId(ALL_SITES);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_SUBCLIENTS}>All sub-clients</SelectItem>
+                    {subclients.map((sc) => (
+                      <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-0">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Site</label>
+                <Select value={selectedBrokerSiteId} onValueChange={setSelectedBrokerSiteId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_SITES}>All sites</SelectItem>
+                    {sitesForSubclient.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.site_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <Tabs
             defaultValue={defaultTab}
             onValueChange={(v) => sessionStorage.setItem("reconomy-portal-active-tab", v)}
@@ -392,7 +479,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalSiteReport
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                   isBroker={!!c.is_broker}
                 />
               ))}
@@ -403,7 +490,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalRebateReport
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                 />
               ))}
             </TabsContent>
@@ -413,7 +500,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalFuelSurcharges
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                 />
               ))}
             </TabsContent>
@@ -423,7 +510,7 @@ const ReconomyPortalPage = () => {
                 <CustomerPortalServices
                   customerId={c.id}
                   customerName={c.customer_name}
-                  accessibleSiteIds={siteAccessByCustomer[c.id]}
+                  accessibleSiteIds={effectiveAccessByCustomer[c.id]}
                 />
               ))}
             </TabsContent>
