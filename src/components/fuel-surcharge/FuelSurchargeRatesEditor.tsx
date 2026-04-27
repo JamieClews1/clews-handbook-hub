@@ -230,6 +230,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Effective From</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Vehicle Category</TableHead>
                   <TableHead>Zone</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
@@ -242,8 +243,11 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
                 {rates.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.effective_from_date}</TableCell>
+                    <TableCell className="font-medium">
+                      {r.customer_match ? r.customer_match : <span className="text-muted-foreground">All customers</span>}
+                    </TableCell>
                     <TableCell>{r.vehicle_category}</TableCell>
-                    <TableCell>{r.zone}</TableCell>
+                    <TableCell>{r.customer_match ? <span className="text-muted-foreground">Any</span> : r.zone}</TableCell>
                     <TableCell className="text-right font-medium">{formatGBP(Number(r.surcharge_amount))}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{r.notes ?? ""}</TableCell>
                     <TableCell>
@@ -263,7 +267,7 @@ export default function FuelSurchargeRatesEditor({ canEdit }: Props) {
                   </TableRow>
                 ))}
                 {rates.length === 0 && (
-                  <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground">No rates configured</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canEdit ? 8 : 7} className="text-center text-muted-foreground">No rates configured</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
