@@ -51,6 +51,16 @@ const ALL_CUSTOMERS = "__all_reconomy__";
 const ALL_SUBCLIENTS = "__all_subclients__";
 const ALL_SITES = "__all_sites__";
 
+// Virtual merged entity: combines "Reconomy (UK) Limited" + "Reconomy Solutions"
+// into a single sub-brand button/scope.
+const RECONOMY_MERGED_ID = "__reconomy_merged__";
+const RECONOMY_MERGED_NAME = "Reconomy";
+const isReconomyCoreName = (name: string | null | undefined) => {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return lower.includes("reconomy (uk)") || lower.includes("reconomy solutions");
+};
+
 const matchesReconomy = (name: string | null | undefined) => {
   if (!name) return false;
   const lower = name.toLowerCase();
