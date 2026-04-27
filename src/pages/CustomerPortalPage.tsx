@@ -390,7 +390,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 3 : 5;
+            const tabCount = isStaciCustomer ? 4 : 6;
 
             // Compute effective site filter for child components.
             // Broker mode: derive from broker dropdowns.
