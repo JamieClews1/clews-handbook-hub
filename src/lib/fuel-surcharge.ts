@@ -20,6 +20,7 @@ export interface FuelSurchargeRate {
   surcharge_amount: number;
   active: boolean;
   notes?: string | null;
+  customer_match?: string | null; // optional case-insensitive substring of customer name
 }
 
 export interface PostcodeZoneRow {
