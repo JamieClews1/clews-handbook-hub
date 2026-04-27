@@ -48,6 +48,8 @@ type MembershipRow = {
 };
 
 const ALL_CUSTOMERS = "__all_reconomy__";
+const ALL_SUBCLIENTS = "__all_subclients__";
+const ALL_SITES = "__all_sites__";
 
 const matchesReconomy = (name: string | null | undefined) => {
   if (!name) return false;
@@ -69,6 +71,8 @@ const ReconomyPortalPage = () => {
     Record<string, PortalSite[]>
   >({});
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(ALL_CUSTOMERS);
+  const [selectedSubclient, setSelectedSubclient] = useState<string>(ALL_SUBCLIENTS);
+  const [selectedBrokerSiteId, setSelectedBrokerSiteId] = useState<string>(ALL_SITES);
 
   useEffect(() => {
     const load = async () => {
