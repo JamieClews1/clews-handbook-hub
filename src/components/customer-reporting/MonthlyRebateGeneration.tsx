@@ -142,10 +142,24 @@ import * as XLSX from "xlsx";
          return;
        }
  
-       // Fetch all sites with their configs
-       const { data: allSites } = await supabase
-         .from("customer_sites")
-         .select("id, site_name, customer_id, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type");
+        // Fetch all sites with their configs (paginated to bypass 1000-row limit)
+        const allSites: any[] = [];
+        {
+          const pageSize = 1000;
+          let offset = 0;
+          while (true) {
+            const { data: page, error } = await supabase
+              .from("customer_sites")
+              .select("id, site_name, customer_id, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type")
+              .order("id")
+              .range(offset, offset + pageSize - 1);
+            if (error) throw error;
+            if (!page || page.length === 0) break;
+            allSites.push(...page);
+            if (page.length < pageSize) break;
+            offset += pageSize;
+          }
+        }
  
        // Fetch all contacts
        const { data: allContacts } = await supabase
