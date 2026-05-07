@@ -262,8 +262,19 @@ const LoadReportsPage = () => {
     if (selectedCustomer && selectedCustomer !== "other") {
       query = query.eq("load_report_type", reportTypeMap[selectedCustomer]);
     } else if (selectedCustomer === "other") {
-      // Standard reports: sites with null/empty load_report_type or explicitly "other"
-      query = query.or("load_report_type.is.null,load_report_type.eq.other");
+      // Standard reports: only show sites that have rebate setup (a price set assigned)
+      // and are not tied to a specific customer-type report (britvic/staci/vantiva/amazon/evri)
+      const { data: priceSetSites } = await supabase
+        .from("customer_site_price_sets")
+        .select("site_id");
+      const priceSetSiteIds = (priceSetSites || []).map((p: any) => p.site_id);
+      if (priceSetSiteIds.length === 0) {
+        setSites([]);
+        return;
+      }
+      query = query
+        .in("id", priceSetSiteIds)
+        .or("load_report_type.is.null,load_report_type.eq.other");
     }
 
     const { data, error } = await query;
