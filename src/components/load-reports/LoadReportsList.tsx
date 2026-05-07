@@ -68,23 +68,29 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const fetchReports = async () => {
     setLoading(true);
     try {
-      // First, get site IDs that match the customer type
+      // Get the set of site IDs matching this customer type.
+      // For "other" we instead build an EXCLUDE set of site IDs (sites with a specific load_report_type),
+      // because the inclusive list can be 1500+ which makes the URL too long → 400 Bad Request.
       let siteIds: string[] = [];
-      
+      let excludeSiteIds: string[] = [];
+
       if (customerType) {
-        let siteQuery = supabase
-          .from("customer_sites")
-          .select("id, load_report_type");
-
         if (customerType !== "other") {
-          siteQuery = siteQuery.eq("load_report_type", customerType);
+          const { data: siteData } = await supabase
+            .from("customer_sites")
+            .select("id")
+            .eq("load_report_type", customerType);
+          siteIds = siteData?.map((s) => s.id) || [];
         } else {
-          // Standard reports: sites with null/empty load_report_type or explicitly "other"
-          siteQuery = siteQuery.or("load_report_type.is.null,load_report_type.eq.other");
+          // Exclude sites belonging to a non-"other" specific type
+          const { data: typedSites } = await supabase
+            .from("customer_sites")
+            .select("id, load_report_type")
+            .not("load_report_type", "is", null)
+            .neq("load_report_type", "")
+            .neq("load_report_type", "other");
+          excludeSiteIds = typedSites?.map((s) => s.id) || [];
         }
-
-        const { data: siteData } = await siteQuery;
-        siteIds = siteData?.map(s => s.id) || [];
       }
 
       // Build the reports query
@@ -96,7 +102,6 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       if (dateFilterEnabled) {
         query = query.gte("report_date", dateFrom).lte("report_date", dateTo);
       } else if (searchTerm.trim()) {
-        // When searching, look across all reports (notes/operator/vehicle/site)
         const term = `%${searchTerm.trim()}%`;
         query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term}`).limit(allReports ? 5000 : 200);
       } else if (allReports) {
@@ -105,28 +110,34 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         query = query.limit(30);
       }
 
-      // Filter by site_ids if we have a customer type selected
-      if (customerType && siteIds.length > 0) {
+      // Filter by site
+      if (customerType && customerType !== "other") {
+        if (siteIds.length === 0) {
+          setReports([]);
+          setLoading(false);
+          return;
+        }
         query = query.in("site_id", siteIds);
-      } else if (customerType && siteIds.length === 0) {
-        // No sites match this customer type, return empty
-        setReports([]);
-        setLoading(false);
-        return;
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
+      // Client-side filter for "other" — exclude reports tied to typed sites
+      let filteredData = data || [];
+      if (customerType === "other" && excludeSiteIds.length > 0) {
+        const excludeSet = new Set(excludeSiteIds);
+        filteredData = filteredData.filter((r: any) => !r.site_id || !excludeSet.has(r.site_id));
+      }
+
       // Fetch weighbridge data for reports with job numbers in notes
-      const jobNumbers = (data || [])
+      const jobNumbers = filteredData
         .map((r) => r.notes?.trim())
         .filter((n): n is string => !!n);
 
       let weighbridgeMap: Record<string, number> = {};
       if (jobNumbers.length > 0) {
-        // Determine the source based on customer type
         const source = getWeighbridgeSource(customerType);
         
         const { data: jobsData } = await supabase
@@ -139,7 +150,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           weighbridgeMap = jobsData.reduce((acc, job) => {
             const weightInTonnes = convertWeightToTonnes(job.weight_t, source);
             if (weightInTonnes != null) {
-              acc[job.job_number] = weightInTonnes * 1000; // Convert tonnes to kg for display
+              acc[job.job_number] = weightInTonnes * 1000;
             }
             return acc;
           }, {} as Record<string, number>);
@@ -147,7 +158,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       }
 
       // Fetch last activity (most recent job ticket) per site
-      const siteNames = [...new Set((data || []).map((r: any) => r.customer_sites?.site_name).filter(Boolean))];
+      const siteNames = [...new Set(filteredData.map((r: any) => r.customer_sites?.site_name).filter(Boolean))];
       let lastActivityMap: Record<string, string> = {};
       if (siteNames.length > 0) {
         const source = getWeighbridgeSource(customerType);
@@ -165,8 +176,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         }
       }
 
-      // Attach weighbridge weights and last activity to reports
-      const reportsWithWeighbridge = (data || []).map((report: any) => {
+      const reportsWithWeighbridge = filteredData.map((report: any) => {
         const wasteTypes = (report.load_line_items || [])
           .filter((li: any) => li.pallet_count > 0)
           .map((li: any) => li.waste_type as string);
