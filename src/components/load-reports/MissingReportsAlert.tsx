@@ -111,7 +111,7 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       for (const cust of uniqueCustomers) {
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("job_number, job_date, customer, site, container_type, source, ewc, weight_t, vehicle_registration")
+          .select("job_number, job_date, customer, site, container_type, category, source, ewc, weight_t, vehicle_registration")
           .eq("source", source)
           .eq("customer", cust)
           .gte("job_date", dateFrom)
@@ -126,13 +126,13 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       const isMidweighSource = source === "midweigh";
       const matchedJobs = allJobs.filter(job => {
         // For midweigh customers (Evri, Vantiva), ALL jobs need load reports
-        // For "other" rebate customers, ALL their jobs need load reports
-        if (!isMidweighSource && customerType !== "other") {
+        if (!isMidweighSource) {
           const container = (job.container_type ?? "").toLowerCase();
+          const category = ((job as any).category ?? "").toLowerCase();
           const ewc = ((job as any).ewc ?? "").trim();
 
-          // Curtain side loads always need load reports
-          const isCurtain = container.includes("curtain");
+          // Curtain side loads always need load reports (by container or category)
+          const isCurtain = container.includes("curtain") || category.includes("artic curtain side");
           // Britvic: EWC 02 07 99 jobs also need load reports
           const isBritvicEwcMatch = customerType === "britvic" && ewc === "02 07 99";
 
