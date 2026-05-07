@@ -126,7 +126,8 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       const isMidweighSource = source === "midweigh";
       const matchedJobs = allJobs.filter(job => {
         // For midweigh customers (Evri, Vantiva), ALL jobs need load reports
-        if (!isMidweighSource) {
+        // For "other" rebate customers, ALL their jobs need load reports
+        if (!isMidweighSource && customerType !== "other") {
           const container = (job.container_type ?? "").toLowerCase();
           const ewc = ((job as any).ewc ?? "").trim();
 
