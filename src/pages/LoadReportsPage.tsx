@@ -263,7 +263,7 @@ const LoadReportsPage = () => {
       query = query.eq("load_report_type", reportTypeMap[selectedCustomer]);
     } else if (selectedCustomer === "other") {
       // Standard reports: sites with null/empty load_report_type or explicitly "other"
-      query = query.or("load_report_type.is.null,load_report_type.eq.,load_report_type.eq.other");
+      query = query.or("load_report_type.is.null,load_report_type.eq.other");
     }
 
     const { data, error } = await query;

@@ -80,7 +80,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           siteQuery = siteQuery.eq("load_report_type", customerType);
         } else {
           // Standard reports: sites with null/empty load_report_type or explicitly "other"
-          siteQuery = siteQuery.or("load_report_type.is.null,load_report_type.eq.,load_report_type.eq.other");
+          siteQuery = siteQuery.or("load_report_type.is.null,load_report_type.eq.other");
         }
 
         const { data: siteData } = await siteQuery;
