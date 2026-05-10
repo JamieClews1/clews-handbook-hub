@@ -104,7 +104,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         query = query.gte("report_date", dateFrom).lte("report_date", dateTo);
       } else if (searchTerm.trim()) {
         const term = `%${searchTerm.trim()}%`;
-        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term}`).limit(allReports ? 5000 : 200);
+        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term},id.ilike.${term}`).limit(allReports ? 5000 : 200);
       } else if (allReports) {
         query = query.limit(5000);
       } else {
