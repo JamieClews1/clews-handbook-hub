@@ -1185,9 +1185,9 @@ const LoadReportsPage = () => {
             const cardboardPallets = lineItems
               .filter((i) => i.waste_type.toLowerCase().includes("card"))
               .reduce((sum, i) => sum + i.pallet_count, 0);
-            const isEvriOverride = selectedCustomer === "evri" && (cardboardPallets > 0 || palletsOut > 0);
+            const isEvriOverride = selectedCustomer === "evri" && cardboardPallets > 0;
             const evriOverrideTarget = isEvriOverride
-              ? cardboardPallets * 90 + palletsOut * 20
+              ? cardboardPallets * 90
               : null;
             return (
               <LoadReviewScreen
