@@ -79,7 +79,11 @@ export const NewLoadForm = ({
   isEditing = false,
   onDelete,
   isDeleting = false,
+  customerType,
 }: NewLoadFormProps) => {
+  const isEvri = customerType === "evri";
+  const jobLabel = isEvri ? "Midweigh Ticket Number" : "Job Number";
+  const jobPlaceholder = isEvri ? "Enter Midweigh ticket number" : "Enter job number";
   const isMobile = useIsMobile();
   const [frequentVehicles, setFrequentVehicles] = useState<string[]>([]);
 
