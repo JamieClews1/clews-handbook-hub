@@ -46,6 +46,8 @@ export const LoadReviewScreen = ({
   rawWeighbridgeWeightKg,
   palletsOutCount = 0,
   palletsOutAdjustmentKg = 0,
+  cardboardPalletsIn = 0,
+  cardboardIncomingKg = 0,
   weighbridgeLoading,
   noPalletsOnLoad = false,
   wetChargePercent = 0,
