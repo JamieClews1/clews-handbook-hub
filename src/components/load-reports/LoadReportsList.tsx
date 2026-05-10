@@ -216,7 +216,8 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     const matchesSearch =
       (report.site_name?.toLowerCase().includes(searchLower) ?? false) ||
       (report.notes?.toLowerCase().includes(searchLower) ?? false) ||
-      (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false);
+      (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false) ||
+      (report.id.toLowerCase().includes(searchLower) ?? false);
     if (!matchesSearch) return false;
     if (unreconciledOnly && !needsReconciliation(report)) return false;
     return true;
