@@ -233,6 +233,8 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden sm:table-cell">Customer</th>
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden md:table-cell">Site</th>
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden md:table-cell">Container</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden lg:table-cell">Vehicle</th>
+                    <th className="text-right py-2 px-3 font-medium text-muted-foreground hidden lg:table-cell">Weight (t)</th>
                     <th className="py-2 px-3 w-10"></th>
                   </tr>
                 </thead>
