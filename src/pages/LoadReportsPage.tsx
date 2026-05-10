@@ -1112,24 +1112,31 @@ const LoadReportsPage = () => {
             />
           )}
 
-          {viewMode === "tally" && selectedCustomer !== "staci" && (
-            <TallyScreen
-              lineItems={lineItems}
-              onLineItemChange={handleLineItemChange}
-              onBack={handleBack}
-              onReview={() => setViewMode("review")}
-              customerType={selectedCustomer}
-              palletsOut={palletsOut}
-              onPalletsOutChange={setPalletsOut}
-              wetChargePercent={wetChargePercent}
-              onWetChargePercentChange={setWetChargePercent}
-              weighbridgeWeightKg={
-                selectedCustomer === "evri" && typeof weighbridgeWeightKg === "number"
-                  ? weighbridgeWeightKg + palletsOut * 20
-                  : weighbridgeWeightKg
-              }
-            />
-          )}
+          {viewMode === "tally" && selectedCustomer !== "staci" && (() => {
+            const cardboardPallets = lineItems
+              .filter((i) => i.waste_type.toLowerCase().includes("card"))
+              .reduce((sum, i) => sum + i.pallet_count, 0);
+            const evriOverrideTarget =
+              selectedCustomer === "evri" && palletsOut > 0
+                ? cardboardPallets * 90 - palletsOut * 20
+                : null;
+            return (
+              <TallyScreen
+                lineItems={lineItems}
+                onLineItemChange={handleLineItemChange}
+                onBack={handleBack}
+                onReview={() => setViewMode("review")}
+                customerType={selectedCustomer}
+                palletsOut={palletsOut}
+                onPalletsOutChange={setPalletsOut}
+                wetChargePercent={wetChargePercent}
+                onWetChargePercentChange={setWetChargePercent}
+                weighbridgeWeightKg={
+                  evriOverrideTarget !== null ? evriOverrideTarget : weighbridgeWeightKg
+                }
+              />
+            );
+          })()}
 
           {viewMode === "review" && selectedCustomer === "staci" && (
             <StaciReviewScreen
