@@ -1123,7 +1123,11 @@ const LoadReportsPage = () => {
               onPalletsOutChange={setPalletsOut}
               wetChargePercent={wetChargePercent}
               onWetChargePercentChange={setWetChargePercent}
-              weighbridgeWeightKg={weighbridgeWeightKg}
+              weighbridgeWeightKg={
+                selectedCustomer === "evri" && typeof weighbridgeWeightKg === "number"
+                  ? weighbridgeWeightKg + palletsOut * 20
+                  : weighbridgeWeightKg
+              }
             />
           )}
 
