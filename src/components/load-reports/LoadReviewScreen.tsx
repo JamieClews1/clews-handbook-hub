@@ -23,6 +23,8 @@ interface LoadReviewScreenProps {
   rawWeighbridgeWeightKg?: number | null;
   palletsOutCount?: number;
   palletsOutAdjustmentKg?: number;
+  cardboardPalletsIn?: number;
+  cardboardIncomingKg?: number;
   weighbridgeLoading?: boolean;
   noPalletsOnLoad?: boolean;
   wetChargePercent?: number;
@@ -44,6 +46,8 @@ export const LoadReviewScreen = ({
   rawWeighbridgeWeightKg,
   palletsOutCount = 0,
   palletsOutAdjustmentKg = 0,
+  cardboardPalletsIn = 0,
+  cardboardIncomingKg = 0,
   weighbridgeLoading,
   noPalletsOnLoad = false,
   wetChargePercent = 0,
@@ -137,15 +141,21 @@ export const LoadReviewScreen = ({
             </div>
           )}
 
-          {palletsOutAdjustmentKg > 0 && typeof rawWeighbridgeWeightKg === "number" && (
+          {palletsOutAdjustmentKg > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 text-xs space-y-1">
+              {typeof rawWeighbridgeWeightKg === "number" && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Midweigh weight (ignored):</span>
+                  <span className="line-through">{Math.round(rawWeighbridgeWeightKg).toLocaleString()} kg</span>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Midweigh weight:</span>
-                <span className="font-medium">{Math.round(rawWeighbridgeWeightKg).toLocaleString()} kg</span>
+                <span className="text-muted-foreground">Cardboard incoming:</span>
+                <span className="font-medium">{cardboardPalletsIn} × 90 kg = {cardboardIncomingKg.toLocaleString()} kg</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Pallets out adjustment:</span>
-                <span className="font-medium">+ {palletsOutCount} × 20 kg = {palletsOutAdjustmentKg.toLocaleString()} kg</span>
+                <span className="text-muted-foreground">Pallets out deduction:</span>
+                <span className="font-medium">− {palletsOutCount} × 20 kg = {palletsOutAdjustmentKg.toLocaleString()} kg</span>
               </div>
               <div className="flex justify-between border-t border-amber-300 dark:border-amber-700 pt-1 font-semibold">
                 <span>Reconciliation target:</span>
