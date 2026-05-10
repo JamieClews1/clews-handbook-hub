@@ -1118,7 +1118,7 @@ const LoadReportsPage = () => {
               .reduce((sum, i) => sum + i.pallet_count, 0);
             const evriOverrideTarget =
               selectedCustomer === "evri" && palletsOut > 0
-                ? cardboardPallets * 90 - palletsOut * 20
+                ? cardboardPallets * 90
                 : null;
             return (
               <TallyScreen
