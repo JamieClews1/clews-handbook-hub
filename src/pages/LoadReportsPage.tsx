@@ -1064,6 +1064,7 @@ const LoadReportsPage = () => {
               isEditing={!!currentReportId}
               onDelete={handleDeleteReport}
               isDeleting={isSaving}
+              customerType={selectedCustomer}
             />
           )}
 
@@ -1122,7 +1123,11 @@ const LoadReportsPage = () => {
               onPalletsOutChange={setPalletsOut}
               wetChargePercent={wetChargePercent}
               onWetChargePercentChange={setWetChargePercent}
-              weighbridgeWeightKg={weighbridgeWeightKg}
+              weighbridgeWeightKg={
+                selectedCustomer === "evri" && typeof weighbridgeWeightKg === "number"
+                  ? weighbridgeWeightKg + palletsOut * 20
+                  : weighbridgeWeightKg
+              }
             />
           )}
 
@@ -1174,7 +1179,14 @@ const LoadReportsPage = () => {
               operatorName={operatorName}
               vehicleReg={vehicleReg}
               jobNumber={jobNumber}
-              weighbridgeWeightKg={weighbridgeWeightKg}
+              weighbridgeWeightKg={
+                selectedCustomer === "evri" && typeof weighbridgeWeightKg === "number"
+                  ? weighbridgeWeightKg + palletsOut * 20
+                  : weighbridgeWeightKg
+              }
+              rawWeighbridgeWeightKg={weighbridgeWeightKg}
+              palletsOutCount={selectedCustomer === "evri" ? palletsOut : 0}
+              palletsOutAdjustmentKg={selectedCustomer === "evri" ? palletsOut * 20 : 0}
               weighbridgeLoading={weighbridgeLoading}
               noPalletsOnLoad={noPalletsOnLoad}
               wetChargePercent={wetChargePercent}

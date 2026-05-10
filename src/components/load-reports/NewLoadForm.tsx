@@ -54,6 +54,7 @@ interface NewLoadFormProps {
   isEditing?: boolean;
   onDelete?: () => void;
   isDeleting?: boolean;
+  customerType?: string | null;
 }
 
 export const NewLoadForm = ({
@@ -78,7 +79,11 @@ export const NewLoadForm = ({
   isEditing = false,
   onDelete,
   isDeleting = false,
+  customerType,
 }: NewLoadFormProps) => {
+  const isEvri = customerType === "evri";
+  const jobLabel = isEvri ? "Midweigh Ticket Number" : "Job Number";
+  const jobPlaceholder = isEvri ? "Enter Midweigh ticket number" : "Enter job number";
   const isMobile = useIsMobile();
   const [frequentVehicles, setFrequentVehicles] = useState<string[]>([]);
 
@@ -191,13 +196,13 @@ export const NewLoadForm = ({
 
           <div className="space-y-2">
             <Label htmlFor="jobNumber" className="text-base font-medium">
-              Job Number
+              {jobLabel}
             </Label>
             <Input
               id="jobNumber"
               value={jobNumber}
               onChange={(e) => onJobNumberChange(e.target.value)}
-              placeholder="Enter job number"
+              placeholder={jobPlaceholder}
               className="h-14 text-lg"
               autoComplete="off"
             />
