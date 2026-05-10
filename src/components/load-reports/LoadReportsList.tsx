@@ -442,7 +442,11 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                 {filteredReports.map((report) => (
                   <TableRow key={report.id}>
                     <TableCell className="font-medium">
-                      {formatLoadReportDate(report.report_date, "dd/MM/yyyy")}
+                      <div>{formatLoadReportDate(report.report_date, "dd/MM/yyyy")}</div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <Clock className="h-3 w-3" />
+                        {new Date(report.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
                     </TableCell>
                     <TableCell>{report.site_name || "-"}</TableCell>
                     <TableCell className="hidden sm:table-cell">
