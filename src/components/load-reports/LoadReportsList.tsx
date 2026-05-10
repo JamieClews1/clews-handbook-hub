@@ -447,6 +447,9 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                         <Clock className="h-3 w-3" />
                         {new Date(report.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                       </div>
+                      <div className="font-mono text-[10px] text-muted-foreground mt-0.5" title={report.id}>
+                        {report.id.slice(0, 8)}
+                      </div>
                     </TableCell>
                     <TableCell>{report.site_name || "-"}</TableCell>
                     <TableCell className="hidden sm:table-cell">
