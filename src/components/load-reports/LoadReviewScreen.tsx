@@ -20,6 +20,9 @@ interface LoadReviewScreenProps {
   vehicleReg: string;
   jobNumber: string;
   weighbridgeWeightKg?: number | null;
+  rawWeighbridgeWeightKg?: number | null;
+  palletsOutCount?: number;
+  palletsOutAdjustmentKg?: number;
   weighbridgeLoading?: boolean;
   noPalletsOnLoad?: boolean;
   wetChargePercent?: number;
@@ -38,6 +41,9 @@ export const LoadReviewScreen = ({
   vehicleReg,
   jobNumber,
   weighbridgeWeightKg,
+  rawWeighbridgeWeightKg,
+  palletsOutCount = 0,
+  palletsOutAdjustmentKg = 0,
   weighbridgeLoading,
   noPalletsOnLoad = false,
   wetChargePercent = 0,
