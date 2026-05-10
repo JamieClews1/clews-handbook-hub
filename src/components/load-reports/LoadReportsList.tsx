@@ -252,7 +252,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const needsReconciliation = (report: LoadReport) => {
     if (report.weighbridge_weight_kg == null) return false;
     if (report.weighbridge_weight_kg <= 0) return false;
-    const difference = Math.abs(getDisplayTotalKg(report) - report.weighbridge_weight_kg);
+    const difference = Math.abs(getDisplayTotalKg(report, isStaci, defaultPalletWeight) - report.weighbridge_weight_kg);
     const percentOut = (difference / report.weighbridge_weight_kg) * 100;
     return percentOut > 0.5; // 0.5% tolerance
   };
@@ -278,7 +278,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       r.vehicle_reg || "",
       (r.waste_types || []).join("; "),
       r.total_pallets.toString(),
-      getDisplayTotalKg(r).toString(),
+      getDisplayTotalKg(r, isStaci, defaultPalletWeight).toString(),
       r.status,
     ]);
 
@@ -307,7 +307,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               <TooltipContent>
                 <p>Weight mismatch - needs reconciliation</p>
                 <p className="text-xs text-muted-foreground">
-                  Report: {(getDisplayTotalKg(report) / 1000).toFixed(2)}t, 
+                  Report: {(getDisplayTotalKg(report, isStaci, defaultPalletWeight) / 1000).toFixed(2)}t, 
                   Weighbridge: {((report.weighbridge_weight_kg ?? 0) / 1000).toFixed(2)}t
                 </p>
               </TooltipContent>
@@ -514,7 +514,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                       {report.total_pallets}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      <div>{getDisplayTotalKg(report).toLocaleString()}</div>
+                      <div>{getDisplayTotalKg(report, isStaci, defaultPalletWeight).toLocaleString()}</div>
                       {report.weighbridge_weight_kg != null && (
                         <div className="text-xs font-normal text-muted-foreground">
                           Net: {report.weighbridge_weight_kg.toLocaleString()} kg
