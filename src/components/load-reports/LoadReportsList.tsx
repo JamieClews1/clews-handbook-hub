@@ -46,17 +46,27 @@ interface LoadReport {
   scrap_metal_loose_weight_kg?: number | null;
 }
 
-// For Staci, total_weight_kg only stores pallet-entry weights.
-// Roll in bales / dolavs / loose scrap so the list shows the true materials total.
-const getDisplayTotalKg = (report: LoadReport) => {
-  return (
+// Returns the gross weight of the report (matches what hits the weighbridge).
+// - Non-Staci: total_weight_kg is already gross (sum of pallet_count × avg_weight_kg, includes pallet tare).
+// - Staci: total_weight_kg is the sum of pallet-entry material weights (net of pallet tare),
+//   plus separate bale / dolav / loose-scrap material weights, plus pallet tare for every pallet on the load.
+const getDisplayTotalKg = (
+  report: LoadReport,
+  isStaci: boolean,
+  palletWeightKg: number,
+) => {
+  const materials =
     (report.total_weight_kg || 0) +
     (report.card_bales_weight_kg || 0) +
     (report.films_bale_weight_kg || 0) +
     (report.papers_dolav_weight_kg || 0) +
     (report.glass_dolav_weight_kg || 0) +
-    (report.scrap_metal_loose_weight_kg || 0)
-  );
+    (report.scrap_metal_loose_weight_kg || 0);
+
+  if (!isStaci) return materials;
+
+  const palletTare = (report.total_pallets || 0) * (palletWeightKg || 0);
+  return materials + palletTare;
 };
 
 interface LoadReportsListProps {
@@ -78,7 +88,22 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
+  const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
+  const isStaci = customerType === "staci";
   const { toast } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("load_report_settings")
+        .select("setting_value")
+        .eq("setting_key", "default_pallet_weight_kg")
+        .maybeSingle();
+      if (data?.setting_value != null) {
+        setDefaultPalletWeight(Number(data.setting_value) || 20);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => fetchReports(), searchTerm ? 250 : 0);
@@ -227,7 +252,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const needsReconciliation = (report: LoadReport) => {
     if (report.weighbridge_weight_kg == null) return false;
     if (report.weighbridge_weight_kg <= 0) return false;
-    const difference = Math.abs(getDisplayTotalKg(report) - report.weighbridge_weight_kg);
+    const difference = Math.abs(getDisplayTotalKg(report, isStaci, defaultPalletWeight) - report.weighbridge_weight_kg);
     const percentOut = (difference / report.weighbridge_weight_kg) * 100;
     return percentOut > 0.5; // 0.5% tolerance
   };
@@ -253,7 +278,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       r.vehicle_reg || "",
       (r.waste_types || []).join("; "),
       r.total_pallets.toString(),
-      getDisplayTotalKg(r).toString(),
+      getDisplayTotalKg(r, isStaci, defaultPalletWeight).toString(),
       r.status,
     ]);
 
@@ -282,7 +307,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               <TooltipContent>
                 <p>Weight mismatch - needs reconciliation</p>
                 <p className="text-xs text-muted-foreground">
-                  Report: {(getDisplayTotalKg(report) / 1000).toFixed(2)}t, 
+                  Report: {(getDisplayTotalKg(report, isStaci, defaultPalletWeight) / 1000).toFixed(2)}t, 
                   Weighbridge: {((report.weighbridge_weight_kg ?? 0) / 1000).toFixed(2)}t
                 </p>
               </TooltipContent>
@@ -489,7 +514,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                       {report.total_pallets}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      <div>{getDisplayTotalKg(report).toLocaleString()}</div>
+                      <div>{getDisplayTotalKg(report, isStaci, defaultPalletWeight).toLocaleString()}</div>
                       {report.weighbridge_weight_kg != null && (
                         <div className="text-xs font-normal text-muted-foreground">
                           Net: {report.weighbridge_weight_kg.toLocaleString()} kg
