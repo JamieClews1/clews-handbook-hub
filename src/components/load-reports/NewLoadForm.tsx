@@ -196,13 +196,13 @@ export const NewLoadForm = ({
 
           <div className="space-y-2">
             <Label htmlFor="jobNumber" className="text-base font-medium">
-              Job Number
+              {jobLabel}
             </Label>
             <Input
               id="jobNumber"
               value={jobNumber}
               onChange={(e) => onJobNumberChange(e.target.value)}
-              placeholder="Enter job number"
+              placeholder={jobPlaceholder}
               className="h-14 text-lg"
               autoComplete="off"
             />
