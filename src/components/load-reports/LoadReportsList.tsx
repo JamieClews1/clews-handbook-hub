@@ -44,12 +44,24 @@ interface LoadReport {
   papers_dolav_weight_kg?: number | null;
   glass_dolav_weight_kg?: number | null;
   scrap_metal_loose_weight_kg?: number | null;
+  card_bales_count?: number | null;
+  films_bale_count?: number | null;
+  papers_dolav_count?: number | null;
+  glass_dolav_count?: number | null;
+  scrap_metal_loose_count?: number | null;
+  card_bales_on_pallets?: boolean | null;
+  films_bale_on_pallets?: boolean | null;
+  papers_dolav_on_pallets?: boolean | null;
+  glass_dolav_on_pallets?: boolean | null;
+  scrap_metal_loose_on_pallets?: boolean | null;
 }
 
 // Returns the gross weight of the report (matches what hits the weighbridge).
-// - Non-Staci: total_weight_kg is already gross (sum of pallet_count × avg_weight_kg, includes pallet tare).
-// - Staci: total_weight_kg is the sum of pallet-entry material weights (net of pallet tare),
-//   plus separate bale / dolav / loose-scrap material weights, plus pallet tare for every pallet on the load.
+// - Non-Staci: total_weight_kg is already gross (sum of pallet_count × avg_weight_kg).
+// - Staci: pallet-entry weights are stored NET of pallet tare, while bale/dolav weights
+//   are stored GROSS (already include the tare for any bales/dolavs on pallets).
+//   So we only add pallet tare for the staci pallet entries — which equals total_pallets
+//   minus the on-pallet bale/dolav counts.
 const getDisplayTotalKg = (
   report: LoadReport,
   isStaci: boolean,
@@ -65,7 +77,15 @@ const getDisplayTotalKg = (
 
   if (!isStaci) return materials;
 
-  const palletTare = (report.total_pallets || 0) * (palletWeightKg || 0);
+  const onPalletBaleDolavCount =
+    (report.card_bales_on_pallets ? report.card_bales_count || 0 : 0) +
+    (report.films_bale_on_pallets ? report.films_bale_count || 0 : 0) +
+    (report.papers_dolav_on_pallets ? report.papers_dolav_count || 0 : 0) +
+    (report.glass_dolav_on_pallets ? report.glass_dolav_count || 0 : 0) +
+    (report.scrap_metal_loose_on_pallets ? report.scrap_metal_loose_count || 0 : 0);
+
+  const palletEntryCount = Math.max(0, (report.total_pallets || 0) - onPalletBaleDolavCount);
+  const palletTare = palletEntryCount * (palletWeightKg || 0);
   return materials + palletTare;
 };
 
