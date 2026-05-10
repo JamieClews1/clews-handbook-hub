@@ -38,7 +38,26 @@ interface LoadReport {
   exclude_from_rebate?: boolean;
   pallets_out?: number | null;
   last_activity_job?: string | null;
+  // Staci-specific extras (rolled into displayed total)
+  card_bales_weight_kg?: number | null;
+  films_bale_weight_kg?: number | null;
+  papers_dolav_weight_kg?: number | null;
+  glass_dolav_weight_kg?: number | null;
+  scrap_metal_loose_weight_kg?: number | null;
 }
+
+// For Staci, total_weight_kg only stores pallet-entry weights.
+// Roll in bales / dolavs / loose scrap so the list shows the true materials total.
+const getDisplayTotalKg = (report: LoadReport) => {
+  return (
+    (report.total_weight_kg || 0) +
+    (report.card_bales_weight_kg || 0) +
+    (report.films_bale_weight_kg || 0) +
+    (report.papers_dolav_weight_kg || 0) +
+    (report.glass_dolav_weight_kg || 0) +
+    (report.scrap_metal_loose_weight_kg || 0)
+  );
+};
 
 interface LoadReportsListProps {
   onNewReport: () => void;
