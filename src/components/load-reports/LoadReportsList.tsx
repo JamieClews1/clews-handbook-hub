@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -36,6 +36,7 @@ interface LoadReport {
   site_name?: string | null;
   waste_types?: string[];
   exclude_from_rebate?: boolean;
+  pallets_out?: number | null;
   last_activity_job?: string | null;
 }
 
@@ -246,7 +247,8 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
   const getStatusBadge = (status: string, report: LoadReport) => {
     const showReconciliation = needsReconciliation(report);
-    
+    const palletsOut = report.pallets_out ?? 0;
+
     return (
       <div className="flex items-center gap-1.5 justify-center">
         {showReconciliation && (
@@ -261,6 +263,18 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                   Report: {(report.total_weight_kg / 1000).toFixed(2)}t, 
                   Weighbridge: {((report.weighbridge_weight_kg ?? 0) / 1000).toFixed(2)}t
                 </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {palletsOut > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Package className="h-4 w-4 text-amber-600" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{palletsOut} pallet{palletsOut === 1 ? "" : "s"} out</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
