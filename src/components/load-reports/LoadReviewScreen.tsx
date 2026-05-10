@@ -153,10 +153,6 @@ export const LoadReviewScreen = ({
                 <span className="text-muted-foreground">Cardboard incoming:</span>
                 <span className="font-medium">{cardboardPalletsIn} × 90 kg = {cardboardIncomingKg.toLocaleString()} kg</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Pallets out deduction:</span>
-                <span className="font-medium">− {palletsOutCount} × 20 kg = {palletsOutAdjustmentKg.toLocaleString()} kg</span>
-              </div>
               <div className="flex justify-between border-t border-amber-300 dark:border-amber-700 pt-1 font-semibold">
                 <span>Reconciliation target:</span>
                 <span>{Math.round((weighbridgeWeightKg ?? 0)).toLocaleString()} kg</span>
