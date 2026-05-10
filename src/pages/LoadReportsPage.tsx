@@ -1181,37 +1181,46 @@ const LoadReportsPage = () => {
             />
           )}
 
-          {viewMode === "review" && selectedCustomer !== "staci" && (
-            <LoadReviewScreen
-              operatorName={operatorName}
-              vehicleReg={vehicleReg}
-              jobNumber={jobNumber}
-              weighbridgeWeightKg={
-                selectedCustomer === "evri" && typeof weighbridgeWeightKg === "number"
-                  ? weighbridgeWeightKg + palletsOut * 20
-                  : weighbridgeWeightKg
-              }
-              rawWeighbridgeWeightKg={weighbridgeWeightKg}
-              palletsOutCount={selectedCustomer === "evri" ? palletsOut : 0}
-              palletsOutAdjustmentKg={selectedCustomer === "evri" ? palletsOut * 20 : 0}
-              weighbridgeLoading={weighbridgeLoading}
-              noPalletsOnLoad={noPalletsOnLoad}
-              wetChargePercent={wetChargePercent}
-              reportDate={reportDate}
-              lineItems={lineItems}
-              onAcceptReconciled={(items) => {
-                setLineItems(items);
-                toast({
-                  title: "Reconciled applied",
-                  description: "Reconciled average weights have been applied to match the weighbridge weight.",
-                });
-              }}
-              onBack={handleBack}
-              onSaveDraft={() => saveReport(false)}
-              onSubmit={() => saveReport(true)}
-              isSaving={isSaving}
-            />
-          )}
+          {viewMode === "review" && selectedCustomer !== "staci" && (() => {
+            const cardboardPallets = lineItems
+              .filter((i) => i.waste_type.toLowerCase().includes("card"))
+              .reduce((sum, i) => sum + i.pallet_count, 0);
+            const isEvriOverride = selectedCustomer === "evri" && palletsOut > 0;
+            const evriOverrideTarget = isEvriOverride
+              ? cardboardPallets * 90 - palletsOut * 20
+              : null;
+            return (
+              <LoadReviewScreen
+                operatorName={operatorName}
+                vehicleReg={vehicleReg}
+                jobNumber={jobNumber}
+                weighbridgeWeightKg={
+                  evriOverrideTarget !== null ? evriOverrideTarget : weighbridgeWeightKg
+                }
+                rawWeighbridgeWeightKg={weighbridgeWeightKg}
+                palletsOutCount={isEvriOverride ? palletsOut : 0}
+                palletsOutAdjustmentKg={isEvriOverride ? palletsOut * 20 : 0}
+                cardboardPalletsIn={isEvriOverride ? cardboardPallets : 0}
+                cardboardIncomingKg={isEvriOverride ? cardboardPallets * 90 : 0}
+                weighbridgeLoading={weighbridgeLoading}
+                noPalletsOnLoad={noPalletsOnLoad}
+                wetChargePercent={wetChargePercent}
+                reportDate={reportDate}
+                lineItems={lineItems}
+                onAcceptReconciled={(items) => {
+                  setLineItems(items);
+                  toast({
+                    title: "Reconciled applied",
+                    description: "Reconciled average weights have been applied to match the weighbridge weight.",
+                  });
+                }}
+                onBack={handleBack}
+                onSaveDraft={() => saveReport(false)}
+                onSubmit={() => saveReport(true)}
+                isSaving={isSaving}
+              />
+            );
+          })()}
         </div>
       </main>
     </div>
