@@ -46,17 +46,27 @@ interface LoadReport {
   scrap_metal_loose_weight_kg?: number | null;
 }
 
-// For Staci, total_weight_kg only stores pallet-entry weights.
-// Roll in bales / dolavs / loose scrap so the list shows the true materials total.
-const getDisplayTotalKg = (report: LoadReport) => {
-  return (
+// Returns the gross weight of the report (matches what hits the weighbridge).
+// - Non-Staci: total_weight_kg is already gross (sum of pallet_count × avg_weight_kg, includes pallet tare).
+// - Staci: total_weight_kg is the sum of pallet-entry material weights (net of pallet tare),
+//   plus separate bale / dolav / loose-scrap material weights, plus pallet tare for every pallet on the load.
+const getDisplayTotalKg = (
+  report: LoadReport,
+  isStaci: boolean,
+  palletWeightKg: number,
+) => {
+  const materials =
     (report.total_weight_kg || 0) +
     (report.card_bales_weight_kg || 0) +
     (report.films_bale_weight_kg || 0) +
     (report.papers_dolav_weight_kg || 0) +
     (report.glass_dolav_weight_kg || 0) +
-    (report.scrap_metal_loose_weight_kg || 0)
-  );
+    (report.scrap_metal_loose_weight_kg || 0);
+
+  if (!isStaci) return materials;
+
+  const palletTare = (report.total_pallets || 0) * (palletWeightKg || 0);
+  return materials + palletTare;
 };
 
 interface LoadReportsListProps {
