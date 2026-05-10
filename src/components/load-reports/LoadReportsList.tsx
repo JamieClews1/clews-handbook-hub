@@ -36,6 +36,7 @@ interface LoadReport {
   site_name?: string | null;
   waste_types?: string[];
   exclude_from_rebate?: boolean;
+  pallets_out?: number | null;
   last_activity_job?: string | null;
 }
 
