@@ -23,6 +23,8 @@ interface LoadReviewScreenProps {
   rawWeighbridgeWeightKg?: number | null;
   palletsOutCount?: number;
   palletsOutAdjustmentKg?: number;
+  cardboardPalletsIn?: number;
+  cardboardIncomingKg?: number;
   weighbridgeLoading?: boolean;
   noPalletsOnLoad?: boolean;
   wetChargePercent?: number;
