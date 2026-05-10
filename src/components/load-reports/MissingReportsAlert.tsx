@@ -233,6 +233,8 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden sm:table-cell">Customer</th>
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden md:table-cell">Site</th>
                     <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden md:table-cell">Container</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground hidden lg:table-cell">Vehicle</th>
+                    <th className="text-right py-2 px-3 font-medium text-muted-foreground hidden lg:table-cell">Weight (t)</th>
                     <th className="py-2 px-3 w-10"></th>
                   </tr>
                 </thead>
@@ -246,6 +248,12 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                       <td className="py-2 px-3 hidden sm:table-cell">{job.customer || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.site || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.container_type || "-"}</td>
+                      <td className="py-2 px-3 hidden lg:table-cell">{job.vehicle_registration || "-"}</td>
+                      <td className="py-2 px-3 hidden lg:table-cell text-right">
+                        {job.weight_t != null
+                          ? (job.source === "midweigh" ? (job.weight_t / 1000) : job.weight_t).toFixed(3)
+                          : "-"}
+                      </td>
                       <td className="py-2 px-1">
                         <Button
                           variant="ghost"
