@@ -280,7 +280,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               <TooltipContent>
                 <p>Weight mismatch - needs reconciliation</p>
                 <p className="text-xs text-muted-foreground">
-                  Report: {(report.total_weight_kg / 1000).toFixed(2)}t, 
+                  Report: {(getDisplayTotalKg(report) / 1000).toFixed(2)}t, 
                   Weighbridge: {((report.weighbridge_weight_kg ?? 0) / 1000).toFixed(2)}t
                 </p>
               </TooltipContent>
