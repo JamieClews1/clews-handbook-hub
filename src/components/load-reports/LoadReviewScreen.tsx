@@ -141,7 +141,7 @@ export const LoadReviewScreen = ({
             </div>
           )}
 
-          {palletsOutAdjustmentKg > 0 && (
+          {(palletsOutAdjustmentKg > 0 || cardboardIncomingKg > 0) && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 text-xs space-y-1">
               {typeof rawWeighbridgeWeightKg === "number" && (
                 <div className="flex justify-between text-muted-foreground">
@@ -149,10 +149,18 @@ export const LoadReviewScreen = ({
                   <span className="line-through">{Math.round(rawWeighbridgeWeightKg).toLocaleString()} kg</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cardboard incoming:</span>
-                <span className="font-medium">{cardboardPalletsIn} × 90 kg = {cardboardIncomingKg.toLocaleString()} kg</span>
-              </div>
+              {cardboardIncomingKg > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pallets In (cardboard):</span>
+                  <span className="font-medium">{cardboardPalletsIn} × 90 kg = {cardboardIncomingKg.toLocaleString()} kg</span>
+                </div>
+              )}
+              {palletsOutAdjustmentKg > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pallets Out (empty):</span>
+                  <span className="font-medium">{palletsOutCount} × 20 kg = {palletsOutAdjustmentKg.toLocaleString()} kg</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-amber-300 dark:border-amber-700 pt-1 font-semibold">
                 <span>Reconciliation target:</span>
                 <span>{Math.round((weighbridgeWeightKg ?? 0)).toLocaleString()} kg</span>
