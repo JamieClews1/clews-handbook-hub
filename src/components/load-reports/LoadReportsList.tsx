@@ -226,7 +226,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
   const needsReconciliation = (report: LoadReport) => {
     if (report.weighbridge_weight_kg == null) return false;
-    const difference = Math.abs(report.total_weight_kg - report.weighbridge_weight_kg);
+    const difference = Math.abs(getDisplayTotalKg(report) - report.weighbridge_weight_kg);
     return difference > 50; // 50kg tolerance
   };
 
