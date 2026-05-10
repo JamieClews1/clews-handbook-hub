@@ -104,7 +104,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         query = query.gte("report_date", dateFrom).lte("report_date", dateTo);
       } else if (searchTerm.trim()) {
         const term = `%${searchTerm.trim()}%`;
-        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term}`).limit(allReports ? 5000 : 200);
+        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term},id.ilike.${term}`).limit(allReports ? 5000 : 200);
       } else if (allReports) {
         query = query.limit(5000);
       } else {
@@ -216,7 +216,8 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     const matchesSearch =
       (report.site_name?.toLowerCase().includes(searchLower) ?? false) ||
       (report.notes?.toLowerCase().includes(searchLower) ?? false) ||
-      (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false);
+      (report.vehicle_reg?.toLowerCase().includes(searchLower) ?? false) ||
+      (report.id.toLowerCase().includes(searchLower) ?? false);
     if (!matchesSearch) return false;
     if (unreconciledOnly && !needsReconciliation(report)) return false;
     return true;
@@ -326,7 +327,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by site, job number or vehicle..."
+              placeholder="Search by site, job number, vehicle or report ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-12"
