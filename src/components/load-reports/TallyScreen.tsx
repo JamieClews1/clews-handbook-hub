@@ -47,58 +47,142 @@ export const TallyScreen = ({
 
   const isEvri = customerType === "evri";
 
+  // For Evri: find the first cardboard line item to drive "Pallets In"
+  const cardboardIndex = isEvri
+    ? lineItems.findIndex((i) => i.waste_type.toLowerCase().includes("card"))
+    : -1;
+  const palletsIn =
+    cardboardIndex >= 0 ? lineItems[cardboardIndex].pallet_count : 0;
+
+  const updatePalletsIn = (count: number) => {
+    if (cardboardIndex < 0) return;
+    const item = lineItems[cardboardIndex];
+    const avg = item.avg_weight_kg || 90;
+    onLineItemChange(cardboardIndex, {
+      pallet_count: count,
+      avg_weight_kg: avg,
+      total_weight_kg: count * avg,
+    });
+  };
+
+  const evriPalletsCard = isEvri && onPalletsOutChange ? (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Card className="border-2 border-primary/40 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+              <Package className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="palletsIn" className="text-base font-semibold text-foreground">
+                Pallets In
+              </Label>
+              <p className="text-sm text-muted-foreground">Cardboard pallets delivered (90 kg each)</p>
+            </div>
+            <Input
+              id="palletsIn"
+              type="number"
+              min={0}
+              value={palletsIn}
+              onChange={(e) => updatePalletsIn(Math.max(0, parseInt(e.target.value) || 0))}
+              className="w-24 h-14 text-center text-2xl font-bold"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-2 border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+              <Package className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="palletsOut" className="text-base font-semibold text-foreground">
+                Pallets Out
+              </Label>
+              <p className="text-sm text-muted-foreground">Empty pallets loaded on truck</p>
+            </div>
+            <Input
+              id="palletsOut"
+              type="number"
+              min={0}
+              value={palletsOut}
+              onChange={(e) => onPalletsOutChange(Math.max(0, parseInt(e.target.value) || 0))}
+              className="w-24 h-14 text-center text-2xl font-bold"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-4 pb-40 sm:pb-32">
-      {/* Tally Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {lineItems.map((item, index) => (
-          <TallyCard
-            key={item.waste_type}
-            wasteType={item.waste_type}
-            palletCount={item.pallet_count}
-            avgWeight={item.avg_weight_kg}
-            onPalletChange={(count) => {
-              onLineItemChange(index, {
-                pallet_count: count,
-                total_weight_kg: count * item.avg_weight_kg,
-              });
-            }}
-            onWeightChange={(weight) => {
-              onLineItemChange(index, {
-                avg_weight_kg: weight,
-                total_weight_kg: item.pallet_count * weight,
-              });
-            }}
-          />
-        ))}
-      </div>
+      {/* Evri simplified: Pallets In + Pallets Out at top */}
+      {evriPalletsCard}
 
-      {/* EVRi-specific: Pallets Out section */}
-      {isEvri && onPalletsOutChange && (
-        <Card className="border-2 border-amber-500/50 bg-amber-50/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                <Package className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="palletsOut" className="text-base font-semibold text-foreground">
-                  Pallets Out
-                </Label>
-                <p className="text-sm text-muted-foreground">Empty pallets loaded on truck</p>
-              </div>
-              <Input
-                id="palletsOut"
-                type="number"
-                min={0}
-                value={palletsOut}
-                onChange={(e) => onPalletsOutChange(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-24 h-14 text-center text-2xl font-bold"
-              />
+      {/* Tally Cards Grid (hidden under "Other" for Evri) */}
+      {isEvri ? (
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-2 border border-dashed border-border rounded-lg">
+            <ChevronDown className="h-4 w-4" />
+            Other materials & contamination
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {lineItems.map((item, index) => (
+                <TallyCard
+                  key={item.waste_type}
+                  wasteType={item.waste_type}
+                  palletCount={item.pallet_count}
+                  avgWeight={item.avg_weight_kg}
+                  onPalletChange={(count) => {
+                    onLineItemChange(index, {
+                      pallet_count: count,
+                      total_weight_kg: count * item.avg_weight_kg,
+                    });
+                  }}
+                  onWeightChange={(weight) => {
+                    onLineItemChange(index, {
+                      avg_weight_kg: weight,
+                      total_weight_kg: item.pallet_count * weight,
+                    });
+                  }}
+                />
+              ))}
             </div>
-          </CardContent>
-        </Card>
+            {/* Wet charge moved into Other for Evri (rendered below as part of shared block) */}
+            {evriWetChargeBlock(lineItems, onLineItemChange, wetChargePercent, onWetChargePercentChange)}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {lineItems.map((item, index) => (
+              <TallyCard
+                key={item.waste_type}
+                wasteType={item.waste_type}
+                palletCount={item.pallet_count}
+                avgWeight={item.avg_weight_kg}
+                onPalletChange={(count) => {
+                  onLineItemChange(index, {
+                    pallet_count: count,
+                    total_weight_kg: count * item.avg_weight_kg,
+                  });
+                }}
+                onWeightChange={(weight) => {
+                  onLineItemChange(index, {
+                    avg_weight_kg: weight,
+                    total_weight_kg: item.pallet_count * weight,
+                  });
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
+
 
       {/* Contamination/Wet Charge Section */}
       {onWetChargePercentChange && (
