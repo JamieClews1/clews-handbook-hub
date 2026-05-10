@@ -248,6 +248,12 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
                       <td className="py-2 px-3 hidden sm:table-cell">{job.customer || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.site || "-"}</td>
                       <td className="py-2 px-3 hidden md:table-cell">{job.container_type || "-"}</td>
+                      <td className="py-2 px-3 hidden lg:table-cell">{job.vehicle_registration || "-"}</td>
+                      <td className="py-2 px-3 hidden lg:table-cell text-right">
+                        {job.weight_t != null
+                          ? (job.source === "midweigh" ? (job.weight_t / 1000) : job.weight_t).toFixed(3)
+                          : "-"}
+                      </td>
                       <td className="py-2 px-1">
                         <Button
                           variant="ghost"
