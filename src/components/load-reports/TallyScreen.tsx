@@ -152,8 +152,7 @@ export const TallyScreen = ({
                 />
               ))}
             </div>
-            {/* Wet charge moved into Other for Evri (rendered below as part of shared block) */}
-            {evriWetChargeBlock(lineItems, onLineItemChange, wetChargePercent, onWetChargePercentChange)}
+            {wetChargeSection}
           </CollapsibleContent>
         </Collapsible>
       ) : (
