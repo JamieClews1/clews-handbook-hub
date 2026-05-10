@@ -1064,6 +1064,7 @@ const LoadReportsPage = () => {
               isEditing={!!currentReportId}
               onDelete={handleDeleteReport}
               isDeleting={isSaving}
+              customerType={selectedCustomer}
             />
           )}
 
