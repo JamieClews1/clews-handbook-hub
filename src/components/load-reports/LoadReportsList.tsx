@@ -251,7 +251,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       r.vehicle_reg || "",
       (r.waste_types || []).join("; "),
       r.total_pallets.toString(),
-      r.total_weight_kg.toString(),
+      getDisplayTotalKg(r).toString(),
       r.status,
     ]);
 
