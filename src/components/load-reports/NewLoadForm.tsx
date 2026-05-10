@@ -54,6 +54,7 @@ interface NewLoadFormProps {
   isEditing?: boolean;
   onDelete?: () => void;
   isDeleting?: boolean;
+  customerType?: string | null;
 }
 
 export const NewLoadForm = ({
