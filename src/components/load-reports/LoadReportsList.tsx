@@ -88,7 +88,22 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
+  const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
+  const isStaci = customerType === "staci";
   const { toast } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("load_report_settings")
+        .select("setting_value")
+        .eq("setting_key", "default_pallet_weight_kg")
+        .maybeSingle();
+      if (data?.setting_value != null) {
+        setDefaultPalletWeight(Number(data.setting_value) || 20);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => fetchReports(), searchTerm ? 250 : 0);
