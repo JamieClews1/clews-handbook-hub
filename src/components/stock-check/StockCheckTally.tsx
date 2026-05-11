@@ -26,9 +26,10 @@ interface TallyItem {
 interface StockCheckTallyProps {
   userId: string;
   onComplete: () => void;
+  editCheckId?: string | null;
 }
 
-export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) => {
+export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckTallyProps) => {
   const { toast } = useToast();
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [tallyItems, setTallyItems] = useState<TallyItem[]>([]);
@@ -36,9 +37,11 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isEditing = !!editCheckId;
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       const [{ data: types }, { data: profile }] = await Promise.all([
         supabase
           .from("stock_check_container_types")
@@ -52,22 +55,65 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
           .single(),
       ]);
 
-      if (types) {
-        setContainerTypes(types);
-        setTallyItems(
-          types.map((t: any) => ({
-            container_type_id: t.id,
-            in_yard: 0,
-            runner: t.default_runner ?? 0,
-            notes: "",
-          }))
-        );
+      if (!types) {
+        setLoading(false);
+        return;
       }
-      if (profile?.full_name) setOperatorName(profile.full_name);
+      setContainerTypes(types);
+
+      // If editing, load existing check + items
+      let existingItems: Record<string, { in_yard: number; runner: number; notes: string | null }> = {};
+      let existingOperator = "";
+      let existingNotes = "";
+      if (editCheckId) {
+        const [{ data: check }, { data: items }] = await Promise.all([
+          supabase
+            .from("stock_checks")
+            .select("operator_name, notes")
+            .eq("id", editCheckId)
+            .single(),
+          supabase
+            .from("stock_check_items")
+            .select("container_type_id, in_yard, runner, notes")
+            .eq("stock_check_id", editCheckId),
+        ]);
+        if (check) {
+          existingOperator = check.operator_name || "";
+          existingNotes = check.notes || "";
+        }
+        if (items) {
+          for (const i of items) {
+            existingItems[i.container_type_id] = {
+              in_yard: i.in_yard,
+              runner: i.runner,
+              notes: i.notes,
+            };
+          }
+        }
+      }
+
+      setTallyItems(
+        types.map((t: any) => {
+          const ex = existingItems[t.id];
+          return {
+            container_type_id: t.id,
+            in_yard: ex?.in_yard ?? 0,
+            runner: ex?.runner ?? (t.default_runner ?? 0),
+            notes: ex?.notes ?? "",
+          };
+        })
+      );
+
+      if (editCheckId) {
+        setOperatorName(existingOperator || profile?.full_name || "");
+        setNotes(existingNotes);
+      } else {
+        if (profile?.full_name) setOperatorName(profile.full_name);
+      }
       setLoading(false);
     };
     load();
-  }, [userId]);
+  }, [userId, editCheckId]);
 
   const updateItem = (typeId: string, field: keyof TallyItem, value: any) => {
     setTallyItems((prev) =>
