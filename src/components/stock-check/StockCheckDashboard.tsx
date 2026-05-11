@@ -127,12 +127,17 @@ export const StockCheckDashboard = () => {
 
     const projMap: Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }> = {};
 
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matchKeyword = (haystack: string, kw: string) => {
+      // Word-boundary match so "6 Yard" doesn't match "16 Yard"
+      const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
+      return re.test(haystack);
+    };
+
     for (const type of containerTypes) {
       const keywords = type.data_hub_keywords || [];
       const matchingJobs = filteredJobs.filter((j) =>
-        keywords.some((kw) =>
-          j.container_type?.toLowerCase().includes(kw.toLowerCase())
-        )
+        keywords.some((kw) => j.container_type && matchKeyword(j.container_type, kw))
       );
 
       const collectJobs = matchingJobs.filter(
