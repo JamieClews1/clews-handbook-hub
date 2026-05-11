@@ -139,12 +139,22 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (job.container_type) {
         siteMap[key].containerTypes.add(job.container_type);
         if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0 };
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null };
         }
         const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
         if (isDelivery(job.movement_type)) ctb.delivered++;
         if (isCollection(job.movement_type)) ctb.collected++;
         if (isExchange(job.movement_type)) ctb.exchanged++;
+        if (job.job_date && (isDelivery(job.movement_type) || isExchange(job.movement_type))) {
+          if (!ctb.lastDeliveryOrExchangeDate || job.job_date > ctb.lastDeliveryOrExchangeDate) {
+            ctb.lastDeliveryOrExchangeDate = job.job_date;
+          }
+        }
+        if (job.job_date && isCollection(job.movement_type)) {
+          if (!ctb.lastCollectionDate || job.job_date > ctb.lastCollectionDate) {
+            ctb.lastCollectionDate = job.job_date;
+          }
+        }
       }
 
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
