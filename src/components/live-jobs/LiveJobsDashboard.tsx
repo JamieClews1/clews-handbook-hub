@@ -229,10 +229,32 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Monthly sorted
     const monthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
 
-    // Over rental sites
-    const overRental = live
-      .filter(s => s.isOverRental)
-      .sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+    // Over rental — one row per (site × container type) that is genuinely over rental
+    const overRental: OverRentalSite[] = [];
+    for (const s of live) {
+      if (s.category === "artic") continue;
+      if (!s.isOverRental) continue;
+      for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
+        const netForType = ctb.delivered - ctb.collected;
+        const clearedForType = ctb.lastCollectionDate && ctb.lastDeliveryOrExchangeDate && ctb.lastCollectionDate >= ctb.lastDeliveryOrExchangeDate;
+        const onSiteForType = clearedForType && netForType <= 0
+          ? 0
+          : Math.max(netForType, netForType >= 0 && ctb.exchanged > 0 ? Math.max(1, netForType) : 0);
+        if (onSiteForType <= 0) continue;
+        const days = ctb.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(ctb.lastDeliveryOrExchangeDate)) : null;
+        if (days === null || days <= settings.rental_free_days) continue;
+        overRental.push({
+          customer: s.customer,
+          site: s.site,
+          category: s.category,
+          containerType,
+          netOnSite: onSiteForType,
+          daysSinceActivity: days,
+          lastActivityDate: ctb.lastDeliveryOrExchangeDate,
+        });
+      }
+    }
+    overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
 
     return {
       liveSites: live,
