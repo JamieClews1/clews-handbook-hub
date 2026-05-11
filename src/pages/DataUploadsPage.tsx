@@ -783,7 +783,7 @@ const DataUploadsPage = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    void handleUpload("skiptrak", file);
+                    setPendingUpload({ source: "skiptrak", file });
                     e.currentTarget.value = "";
                   }}
                 />
