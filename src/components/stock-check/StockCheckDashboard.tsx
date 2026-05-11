@@ -80,7 +80,7 @@ export const StockCheckDashboard = () => {
     // Get latest stock check
     const { data: latestCheck } = await supabase
       .from("stock_checks")
-      .select("id, check_date, data_hub_sync_enabled")
+      .select("id, check_date, data_hub_sync_enabled, updated_at, created_at")
       .eq("status", "submitted")
       .order("check_date", { ascending: false })
       .limit(1)
@@ -88,7 +88,7 @@ export const StockCheckDashboard = () => {
 
     if (latestCheck) {
       setDataHubSync(latestCheck.data_hub_sync_enabled);
-      setLatestCheckDate(latestCheck.check_date);
+      setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
 
       const [{ data: items }, { data: entries }] = await Promise.all([
         supabase
