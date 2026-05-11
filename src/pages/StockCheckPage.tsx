@@ -67,7 +67,13 @@ const StockCheckPage = () => {
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-6">Stock Check</h1>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => {
+              if (v !== "tally") setEditCheckId(null);
+              setActiveTab(v);
+            }}
+          >
             <TabsList className="mb-6">
               <TabsTrigger value="dashboard" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
@@ -75,7 +81,7 @@ const StockCheckPage = () => {
               </TabsTrigger>
               <TabsTrigger value="tally" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
-                New Tally
+                {editCheckId ? "Edit Tally" : "New Tally"}
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
@@ -90,12 +96,22 @@ const StockCheckPage = () => {
             </TabsList>
 
             <TabsContent value="dashboard">
-              <StockCheckDashboard />
+              <StockCheckDashboard
+                onEditLast={(id) => {
+                  setEditCheckId(id);
+                  setActiveTab("tally");
+                }}
+              />
             </TabsContent>
             <TabsContent value="tally">
               <StockCheckTally
+                key={editCheckId ?? "new"}
                 userId={user.id}
-                onComplete={() => setActiveTab("dashboard")}
+                editCheckId={editCheckId}
+                onComplete={() => {
+                  setEditCheckId(null);
+                  setActiveTab("dashboard");
+                }}
               />
             </TabsContent>
             <TabsContent value="history">
