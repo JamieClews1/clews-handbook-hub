@@ -229,6 +229,12 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
 
   return (
     <div className="space-y-6 pb-32">
+      {isEditing && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+          <Pencil className="h-4 w-4" />
+          Editing the most recent tally — saving will overwrite it.
+        </div>
+      )}
       {/* Operator */}
       <Card>
         <CardContent className="p-4">
