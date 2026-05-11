@@ -718,7 +718,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
               <TableHead className="text-center">On-Site</TableHead>
               <TableHead className="text-center">Days Since Activity</TableHead>
               <TableHead>Last Activity</TableHead>
-              <TableHead>Container Types</TableHead>
+              <TableHead>Container Type</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -739,14 +739,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
                   {s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "—"}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {s.containerTypes.slice(0, 3).map(ct => (
-                      <Badge key={ct} variant="outline" className="text-xs">{ct}</Badge>
-                    ))}
-                    {s.containerTypes.length > 3 && (
-                      <Badge variant="outline" className="text-xs">+{s.containerTypes.length - 3}</Badge>
-                    )}
-                  </div>
+                  <Badge variant="outline" className="text-xs">{s.containerType}</Badge>
                 </TableCell>
               </TableRow>
             ))}
