@@ -659,10 +659,10 @@ type OverRentalSite = {
   customer: string;
   site: string;
   category: ContainerCategory;
+  containerType: string;
   netOnSite: number;
   daysSinceActivity: number | null;
   lastActivityDate: string | null;
-  containerTypes: string[];
 };
 
 function downloadOverRentalExcel(sites: OverRentalSite[]) {
@@ -670,10 +670,10 @@ function downloadOverRentalExcel(sites: OverRentalSite[]) {
     Customer: s.customer,
     Site: s.site,
     Type: s.category.charAt(0).toUpperCase() + s.category.slice(1),
+    "Container Type": s.containerType,
     "On-Site": s.netOnSite,
     "Days Since Activity": s.daysSinceActivity ?? "",
     "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
-    "Container Types": s.containerTypes.join(", "),
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
