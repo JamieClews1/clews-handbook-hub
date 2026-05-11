@@ -42,7 +42,8 @@ interface DailyEntry {
   actual_out: number | null;
 }
 
-export const StockCheckDashboard = () => {
+export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: string) => void } = {}) => {
+  const [latestCheckId, setLatestCheckId] = useState<string | null>(null);
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
