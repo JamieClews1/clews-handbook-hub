@@ -201,10 +201,9 @@ export const StockCheckDashboard = () => {
     const item = getItem(typeId);
     const proj = getProjection(typeId);
     if (!item) return 0;
-    // Exchanges consume a runner skip (swap full ↔ empty). Reserve the larger
-    // of declared runners or required exchanges.
-    const reserved = Math.max(item.runner, proj.toExchange);
-    return item.in_yard + proj.toCollect - proj.toDeliver - reserved;
+    // Exchanges are self-fulfilling (runner returns with the swap), so they
+    // don't affect availability. Reserve declared runners only.
+    return item.in_yard + proj.toCollect - proj.toDeliver - item.runner;
   };
 
   return (
