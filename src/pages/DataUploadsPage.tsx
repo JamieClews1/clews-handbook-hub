@@ -199,6 +199,7 @@ const DataUploadsPage = () => {
   const canUpload = isAdmin || isManagement;
 
   const [isUploading, setIsUploading] = useState<DataSource | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<{ source: DataSource; file: File } | null>(null);
   const [lastUploadSummary, setLastUploadSummary] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; stage: string } | null>(null);
 
@@ -782,7 +783,7 @@ const DataUploadsPage = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    void handleUpload("skiptrak", file);
+                    setPendingUpload({ source: "skiptrak", file });
                     e.currentTarget.value = "";
                   }}
                 />
@@ -825,7 +826,7 @@ const DataUploadsPage = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    void handleUpload("midweigh", file);
+                    setPendingUpload({ source: "midweigh", file });
                     e.currentTarget.value = "";
                   }}
                 />
@@ -850,6 +851,52 @@ const DataUploadsPage = () => {
               </CardContent>
             </Card>
           </div>
+
+          <AlertDialog
+            open={pendingUpload !== null}
+            onOpenChange={(open) => {
+              if (!open) setPendingUpload(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Confirm {pendingUpload?.source === "skiptrak" ? "Skiptrak" : "Midweigh"} upload
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {pendingUpload?.source === "skiptrak" ? (
+                    <>
+                      You're about to upload <strong>{pendingUpload?.file.name}</strong> as{" "}
+                      <strong>Skiptrak</strong> data (weights in <strong>tonnes</strong>).
+                      Please double-check this file was exported from <strong>Skiptrak</strong> — uploading
+                      Midweigh data here will store weights with the wrong unit and corrupt reporting.
+                    </>
+                  ) : (
+                    <>
+                      You're about to upload <strong>{pendingUpload?.file.name}</strong> as{" "}
+                      <strong>Midweigh</strong> data (weights in <strong>KG</strong>).
+                      Please double-check this file was exported from <strong>Midweigh</strong> — uploading
+                      Skiptrak data here will store weights with the wrong unit and corrupt reporting.
+                    </>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (pendingUpload) {
+                      const { source, file } = pendingUpload;
+                      setPendingUpload(null);
+                      void handleUpload(source, file);
+                    }
+                  }}
+                >
+                  Yes, upload as {pendingUpload?.source === "skiptrak" ? "Skiptrak" : "Midweigh"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {lastUploadSummary && (
             <Card>
