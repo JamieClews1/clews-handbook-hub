@@ -216,10 +216,23 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
         <div>
           <h2 className="text-xl font-bold text-foreground">Current Stock Overview</h2>
           {latestCheckDate && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              <Calendar className="h-3.5 w-3.5" />
-              Last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
-            </p>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
+              </p>
+              {latestCheckId && onEditLast && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => onEditLast(latestCheckId)}
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit last tally
+                </Button>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
