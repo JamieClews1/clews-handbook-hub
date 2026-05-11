@@ -110,7 +110,7 @@ export const StockCheckDashboard = () => {
 
   const loadProjections = async () => {
     const today = startOfDay(new Date());
-    const endDate = addDays(today, 4);
+    const endDate = addDays(today, outlookDays - 1);
 
     // Query data_hub_jobs for upcoming movements
      const { data: jobs } = await supabase
