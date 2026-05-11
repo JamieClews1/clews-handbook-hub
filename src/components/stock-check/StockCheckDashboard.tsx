@@ -47,7 +47,7 @@ export const StockCheckDashboard = () => {
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [dataHubSync, setDataHubSync] = useState(true);
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
-  const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }>>({});
+  const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
   const [outlookDays, setOutlookDays] = useState<number>(5);
