@@ -199,13 +199,36 @@ export const StockCheckDashboard = () => {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="dataHubSync" className="text-sm">Data Hub Sync</Label>
-          <Switch
-            id="dataHubSync"
-            checked={dataHubSync}
-            onCheckedChange={setDataHubSync}
-          />
+        <div className="flex items-center gap-4 flex-wrap">
+          {dataHubSync && (
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm text-muted-foreground">Outlook:</Label>
+              <div className="inline-flex rounded-md border border-border overflow-hidden">
+                {[2, 3, 4, 5].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setOutlookDays(d)}
+                    className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                      outlookDays === d
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="dataHubSync" className="text-sm">Data Hub Sync</Label>
+            <Switch
+              id="dataHubSync"
+              checked={dataHubSync}
+              onCheckedChange={setDataHubSync}
+            />
+          </div>
         </div>
       </div>
 
