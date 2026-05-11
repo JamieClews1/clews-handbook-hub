@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Truck, Container, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 
 interface ContainerType {
@@ -47,7 +47,7 @@ export const StockCheckDashboard = () => {
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [dataHubSync, setDataHubSync] = useState(true);
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
-  const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }>>({});
+  const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
   const [outlookDays, setOutlookDays] = useState<number>(5);
@@ -126,30 +126,44 @@ export const StockCheckDashboard = () => {
       (j) => !excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))
     );
 
-    const projMap: Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }> = {};
+    const projMap: Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }> = {};
+    for (const t of containerTypes) {
+      projMap[t.id] = { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
+    }
 
     const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const matchKeyword = (haystack: string, kw: string) => {
-      // Word-boundary match so "6 Yard" doesn't match "16 Yard"
       const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
       return re.test(haystack);
     };
 
-    for (const type of containerTypes) {
-      const keywords = type.data_hub_keywords || [];
-      const matchingJobs = filteredJobs.filter((j) =>
-        keywords.some((kw) => j.container_type && matchKeyword(j.container_type, kw))
-      );
-
-      const collectJobs = matchingJobs.filter(
-        (j) => j.movement_type?.toLowerCase().includes("collection") || j.movement_type?.toLowerCase().includes("collect")
-      );
-
-      const deliverJobs = matchingJobs.filter(
-        (j) => j.movement_type?.toLowerCase().includes("deliver") || j.movement_type?.toLowerCase().includes("exchange")
-      );
-
-      projMap[type.id] = { toCollect: collectJobs.length, toDeliver: deliverJobs.length, collectJobs, deliverJobs };
+    // For each job, pick the type whose longest-matching keyword wins
+    // (so "12 Yard Enc" beats "12 Yard" for an Enclosed job).
+    for (const job of filteredJobs) {
+      if (!job.container_type) continue;
+      let bestType: ContainerType | null = null;
+      let bestLen = 0;
+      for (const type of containerTypes) {
+        for (const kw of type.data_hub_keywords || []) {
+          if (kw.length > bestLen && matchKeyword(job.container_type, kw)) {
+            bestLen = kw.length;
+            bestType = type;
+          }
+        }
+      }
+      if (!bestType) continue;
+      const bucket = projMap[bestType.id];
+      const mt = (job.movement_type || "").toLowerCase();
+      if (mt.includes("exchange")) {
+        bucket.toExchange++;
+        bucket.exchangeJobs.push(job);
+      } else if (mt.includes("collect")) {
+        bucket.toCollect++;
+        bucket.collectJobs.push(job);
+      } else if (mt.includes("deliver")) {
+        bucket.toDeliver++;
+        bucket.deliverJobs.push(job);
+      }
     }
 
     setProjections(projMap);
@@ -177,13 +191,16 @@ export const StockCheckDashboard = () => {
   const roros = containerTypes.filter((t) => t.category === "roro");
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
-  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, collectJobs: [], deliverJobs: [] };
+  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
 
   const calcBookingsAllowed = (typeId: string) => {
     const item = getItem(typeId);
     const proj = getProjection(typeId);
     if (!item) return 0;
-    return item.in_yard + proj.toCollect - proj.toDeliver - item.runner;
+    // Exchanges consume a runner skip (swap full ↔ empty). Reserve the larger
+    // of declared runners or required exchanges.
+    const reserved = Math.max(item.runner, proj.toExchange);
+    return item.in_yard + proj.toCollect - proj.toDeliver - reserved;
   };
 
   return (
@@ -272,7 +289,7 @@ export const StockCheckDashboard = () => {
 interface StockTableProps {
   types: ContainerType[];
   getItem: (typeId: string) => StockCheckItem | undefined;
-  getProjection: (typeId: string) => { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] };
+  getProjection: (typeId: string) => { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] };
   calcBookingsAllowed: (typeId: string) => number;
   showProjections: boolean;
 }
@@ -331,6 +348,12 @@ const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showPr
                   To Deliver
                 </span>
               </th>
+              <th className="text-center py-3 px-2 font-semibold text-foreground">
+                <span className="flex items-center justify-center gap-1">
+                  <ArrowLeftRight className="h-3.5 w-3.5 text-amber-500" />
+                  Exchange
+                </span>
+              </th>
             </>
           )}
           <th className="text-center py-3 px-2 font-semibold text-foreground">Runner</th>
@@ -359,6 +382,9 @@ const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showPr
                   </td>
                   <td className="py-3 px-2 text-center font-medium">
                     <JobsPopover jobs={proj.deliverJobs} label="To Deliver" colorClass="text-red-600 font-medium" />
+                  </td>
+                  <td className="py-3 px-2 text-center font-medium">
+                    <JobsPopover jobs={proj.exchangeJobs} label="Exchange" colorClass="text-amber-600 font-medium" />
                   </td>
                 </>
               )}
