@@ -50,6 +50,7 @@ export const StockCheckDashboard = () => {
   const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
+  const [outlookDays, setOutlookDays] = useState<number>(5);
 
   useEffect(() => {
     loadData();
@@ -61,7 +62,7 @@ export const StockCheckDashboard = () => {
     } else {
       setProjections({});
     }
-  }, [dataHubSync, containerTypes, excludedSites]);
+  }, [dataHubSync, containerTypes, excludedSites, outlookDays]);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
@@ -109,7 +110,7 @@ export const StockCheckDashboard = () => {
 
   const loadProjections = async () => {
     const today = startOfDay(new Date());
-    const endDate = addDays(today, 4);
+    const endDate = addDays(today, outlookDays - 1);
 
     // Query data_hub_jobs for upcoming movements
      const { data: jobs } = await supabase
@@ -198,13 +199,36 @@ export const StockCheckDashboard = () => {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="dataHubSync" className="text-sm">Data Hub Sync</Label>
-          <Switch
-            id="dataHubSync"
-            checked={dataHubSync}
-            onCheckedChange={setDataHubSync}
-          />
+        <div className="flex items-center gap-4 flex-wrap">
+          {dataHubSync && (
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm text-muted-foreground">Outlook:</Label>
+              <div className="inline-flex rounded-md border border-border overflow-hidden">
+                {[2, 3, 4, 5].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setOutlookDays(d)}
+                    className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                      outlookDays === d
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="dataHubSync" className="text-sm">Data Hub Sync</Label>
+            <Switch
+              id="dataHubSync"
+              checked={dataHubSync}
+              onCheckedChange={setDataHubSync}
+            />
+          </div>
         </div>
       </div>
 
