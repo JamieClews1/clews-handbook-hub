@@ -348,6 +348,12 @@ const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showPr
                   To Deliver
                 </span>
               </th>
+              <th className="text-center py-3 px-2 font-semibold text-foreground">
+                <span className="flex items-center justify-center gap-1">
+                  <ArrowLeftRight className="h-3.5 w-3.5 text-amber-500" />
+                  Exchange
+                </span>
+              </th>
             </>
           )}
           <th className="text-center py-3 px-2 font-semibold text-foreground">Runner</th>
