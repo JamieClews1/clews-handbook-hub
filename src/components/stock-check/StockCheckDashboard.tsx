@@ -191,13 +191,16 @@ export const StockCheckDashboard = () => {
   const roros = containerTypes.filter((t) => t.category === "roro");
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
-  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, collectJobs: [], deliverJobs: [] };
+  const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
 
   const calcBookingsAllowed = (typeId: string) => {
     const item = getItem(typeId);
     const proj = getProjection(typeId);
     if (!item) return 0;
-    return item.in_yard + proj.toCollect - proj.toDeliver - item.runner;
+    // Exchanges consume a runner skip (swap full ↔ empty). Reserve the larger
+    // of declared runners or required exchanges.
+    const reserved = Math.max(item.runner, proj.toExchange);
+    return item.in_yard + proj.toCollect - proj.toDeliver - reserved;
   };
 
   return (
