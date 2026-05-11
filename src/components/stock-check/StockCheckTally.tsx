@@ -320,8 +320,8 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
               </div>
             </div>
             <Button onClick={handleSave} disabled={saving} className="h-12 px-6 gap-2 text-base">
-              <Save className="h-5 w-5" />
-              {saving ? "Saving..." : "Submit"}
+              {isEditing ? <Pencil className="h-5 w-5" /> : <Save className="h-5 w-5" />}
+              {saving ? "Saving..." : isEditing ? "Update" : "Submit"}
             </Button>
           </div>
         </div>
