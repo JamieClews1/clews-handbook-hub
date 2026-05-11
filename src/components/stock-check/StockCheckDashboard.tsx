@@ -112,19 +112,23 @@ export const StockCheckDashboard = () => {
     const today = startOfDay(new Date());
     const endDate = addDays(today, outlookDays - 1);
 
-    // Query data_hub_jobs for upcoming movements
-     const { data: jobs } = await supabase
-       .from("data_hub_jobs")
-       .select("container_type, movement_type, site, job_date, customer")
-       .gte("job_date", format(today, "yyyy-MM-dd"))
-       .lte("job_date", format(endDate, "yyyy-MM-dd"))
-       .in("source", ["skiptrak"]);
+    // Query data_hub_jobs for upcoming movements (include raw to filter completed jobs)
+    const { data: jobs } = await supabase
+      .from("data_hub_jobs")
+      .select("container_type, movement_type, site, job_date, customer, raw")
+      .gte("job_date", format(today, "yyyy-MM-dd"))
+      .lte("job_date", format(endDate, "yyyy-MM-dd"))
+      .in("source", ["skiptrak"]);
 
     if (!jobs) return;
 
-    const filteredJobs = jobs.filter(
-      (j) => !excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))
-    );
+    const filteredJobs = jobs.filter((j) => {
+      if (excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))) return false;
+      // Exclude completed jobs (Skiptrak Status 'Y' = completed) — keep only outstanding work
+      const status = (j.raw as any)?.Status;
+      if (status === "Y") return false;
+      return true;
+    });
 
     const projMap: Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }> = {};
     for (const t of containerTypes) {
