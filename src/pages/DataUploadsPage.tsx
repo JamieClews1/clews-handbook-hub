@@ -199,6 +199,7 @@ const DataUploadsPage = () => {
   const canUpload = isAdmin || isManagement;
 
   const [isUploading, setIsUploading] = useState<DataSource | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<{ source: DataSource; file: File } | null>(null);
   const [lastUploadSummary, setLastUploadSummary] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; stage: string } | null>(null);
 
