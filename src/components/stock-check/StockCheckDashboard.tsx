@@ -50,6 +50,7 @@ export const StockCheckDashboard = () => {
   const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
+  const [outlookDays, setOutlookDays] = useState<number>(5);
 
   useEffect(() => {
     loadData();
@@ -61,7 +62,7 @@ export const StockCheckDashboard = () => {
     } else {
       setProjections({});
     }
-  }, [dataHubSync, containerTypes, excludedSites]);
+  }, [dataHubSync, containerTypes, excludedSites, outlookDays]);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
