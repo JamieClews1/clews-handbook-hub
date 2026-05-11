@@ -89,6 +89,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
       .single();
 
     if (latestCheck) {
+      setLatestCheckId(latestCheck.id);
       setDataHubSync(latestCheck.data_hub_sync_enabled);
       setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
 
