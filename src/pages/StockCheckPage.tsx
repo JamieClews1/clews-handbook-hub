@@ -16,6 +16,7 @@ const StockCheckPage = () => {
   const { user, isAdmin, loading } = useAuth();
   const [isManagement, setIsManagement] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [editCheckId, setEditCheckId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
