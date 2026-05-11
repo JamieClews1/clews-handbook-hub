@@ -126,30 +126,44 @@ export const StockCheckDashboard = () => {
       (j) => !excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))
     );
 
-    const projMap: Record<string, { toCollect: number; toDeliver: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[] }> = {};
+    const projMap: Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }> = {};
+    for (const t of containerTypes) {
+      projMap[t.id] = { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
+    }
 
     const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const matchKeyword = (haystack: string, kw: string) => {
-      // Word-boundary match so "6 Yard" doesn't match "16 Yard"
       const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
       return re.test(haystack);
     };
 
-    for (const type of containerTypes) {
-      const keywords = type.data_hub_keywords || [];
-      const matchingJobs = filteredJobs.filter((j) =>
-        keywords.some((kw) => j.container_type && matchKeyword(j.container_type, kw))
-      );
-
-      const collectJobs = matchingJobs.filter(
-        (j) => j.movement_type?.toLowerCase().includes("collection") || j.movement_type?.toLowerCase().includes("collect")
-      );
-
-      const deliverJobs = matchingJobs.filter(
-        (j) => j.movement_type?.toLowerCase().includes("deliver") || j.movement_type?.toLowerCase().includes("exchange")
-      );
-
-      projMap[type.id] = { toCollect: collectJobs.length, toDeliver: deliverJobs.length, collectJobs, deliverJobs };
+    // For each job, pick the type whose longest-matching keyword wins
+    // (so "12 Yard Enc" beats "12 Yard" for an Enclosed job).
+    for (const job of filteredJobs) {
+      if (!job.container_type) continue;
+      let bestType: ContainerType | null = null;
+      let bestLen = 0;
+      for (const type of containerTypes) {
+        for (const kw of type.data_hub_keywords || []) {
+          if (kw.length > bestLen && matchKeyword(job.container_type, kw)) {
+            bestLen = kw.length;
+            bestType = type;
+          }
+        }
+      }
+      if (!bestType) continue;
+      const bucket = projMap[bestType.id];
+      const mt = (job.movement_type || "").toLowerCase();
+      if (mt.includes("exchange")) {
+        bucket.toExchange++;
+        bucket.exchangeJobs.push(job);
+      } else if (mt.includes("collect")) {
+        bucket.toCollect++;
+        bucket.collectJobs.push(job);
+      } else if (mt.includes("deliver")) {
+        bucket.toDeliver++;
+        bucket.deliverJobs.push(job);
+      }
     }
 
     setProjections(projMap);
