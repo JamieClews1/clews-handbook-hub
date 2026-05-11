@@ -96,7 +96,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -139,12 +139,22 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (job.container_type) {
         siteMap[key].containerTypes.add(job.container_type);
         if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0 };
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null };
         }
         const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
         if (isDelivery(job.movement_type)) ctb.delivered++;
         if (isCollection(job.movement_type)) ctb.collected++;
         if (isExchange(job.movement_type)) ctb.exchanged++;
+        if (job.job_date && (isDelivery(job.movement_type) || isExchange(job.movement_type))) {
+          if (!ctb.lastDeliveryOrExchangeDate || job.job_date > ctb.lastDeliveryOrExchangeDate) {
+            ctb.lastDeliveryOrExchangeDate = job.job_date;
+          }
+        }
+        if (job.job_date && isCollection(job.movement_type)) {
+          if (!ctb.lastCollectionDate || job.job_date > ctb.lastCollectionDate) {
+            ctb.lastCollectionDate = job.job_date;
+          }
+        }
       }
 
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
@@ -219,10 +229,32 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Monthly sorted
     const monthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
 
-    // Over rental sites
-    const overRental = live
-      .filter(s => s.isOverRental)
-      .sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+    // Over rental — one row per (site × container type) that is genuinely over rental
+    const overRental: OverRentalSite[] = [];
+    for (const s of live) {
+      if (s.category === "artic") continue;
+      if (!s.isOverRental) continue;
+      for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
+        const netForType = ctb.delivered - ctb.collected;
+        const clearedForType = ctb.lastCollectionDate && ctb.lastDeliveryOrExchangeDate && ctb.lastCollectionDate >= ctb.lastDeliveryOrExchangeDate;
+        const onSiteForType = clearedForType && netForType <= 0
+          ? 0
+          : Math.max(netForType, netForType >= 0 && ctb.exchanged > 0 ? Math.max(1, netForType) : 0);
+        if (onSiteForType <= 0) continue;
+        const days = ctb.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(ctb.lastDeliveryOrExchangeDate)) : null;
+        if (days === null || days <= settings.rental_free_days) continue;
+        overRental.push({
+          customer: s.customer,
+          site: s.site,
+          category: s.category,
+          containerType,
+          netOnSite: onSiteForType,
+          daysSinceActivity: days,
+          lastActivityDate: ctb.lastDeliveryOrExchangeDate,
+        });
+      }
+    }
+    overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
 
     return {
       liveSites: live,
@@ -627,10 +659,10 @@ type OverRentalSite = {
   customer: string;
   site: string;
   category: ContainerCategory;
+  containerType: string;
   netOnSite: number;
   daysSinceActivity: number | null;
   lastActivityDate: string | null;
-  containerTypes: string[];
 };
 
 function downloadOverRentalExcel(sites: OverRentalSite[]) {
@@ -638,10 +670,10 @@ function downloadOverRentalExcel(sites: OverRentalSite[]) {
     Customer: s.customer,
     Site: s.site,
     Type: s.category.charAt(0).toUpperCase() + s.category.slice(1),
+    "Container Type": s.containerType,
     "On-Site": s.netOnSite,
     "Days Since Activity": s.daysSinceActivity ?? "",
     "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
-    "Container Types": s.containerTypes.join(", "),
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
@@ -686,7 +718,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
               <TableHead className="text-center">On-Site</TableHead>
               <TableHead className="text-center">Days Since Activity</TableHead>
               <TableHead>Last Activity</TableHead>
-              <TableHead>Container Types</TableHead>
+              <TableHead>Container Type</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -707,14 +739,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
                   {s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "—"}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {s.containerTypes.slice(0, 3).map(ct => (
-                      <Badge key={ct} variant="outline" className="text-xs">{ct}</Badge>
-                    ))}
-                    {s.containerTypes.length > 3 && (
-                      <Badge variant="outline" className="text-xs">+{s.containerTypes.length - 3}</Badge>
-                    )}
-                  </div>
+                  <Badge variant="outline" className="text-xs">{s.containerType}</Badge>
                 </TableCell>
               </TableRow>
             ))}
