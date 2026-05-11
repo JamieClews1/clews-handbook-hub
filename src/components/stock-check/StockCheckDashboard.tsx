@@ -215,7 +215,7 @@ export const StockCheckDashboard = () => {
           {latestCheckDate && (
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
               <Calendar className="h-3.5 w-3.5" />
-              Last check: {format(new Date(latestCheckDate), "dd MMM yyyy")}
+              Last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
             </p>
           )}
         </div>
