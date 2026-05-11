@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Plus, Minus, Truck, Container } from "lucide-react";
+import { Save, Plus, Minus, Truck, Container, Pencil } from "lucide-react";
 
 interface ContainerType {
   id: string;
@@ -26,9 +26,10 @@ interface TallyItem {
 interface StockCheckTallyProps {
   userId: string;
   onComplete: () => void;
+  editCheckId?: string | null;
 }
 
-export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) => {
+export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckTallyProps) => {
   const { toast } = useToast();
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [tallyItems, setTallyItems] = useState<TallyItem[]>([]);
@@ -36,9 +37,11 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isEditing = !!editCheckId;
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       const [{ data: types }, { data: profile }] = await Promise.all([
         supabase
           .from("stock_check_container_types")
@@ -52,22 +55,65 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
           .single(),
       ]);
 
-      if (types) {
-        setContainerTypes(types);
-        setTallyItems(
-          types.map((t: any) => ({
-            container_type_id: t.id,
-            in_yard: 0,
-            runner: t.default_runner ?? 0,
-            notes: "",
-          }))
-        );
+      if (!types) {
+        setLoading(false);
+        return;
       }
-      if (profile?.full_name) setOperatorName(profile.full_name);
+      setContainerTypes(types);
+
+      // If editing, load existing check + items
+      let existingItems: Record<string, { in_yard: number; runner: number; notes: string | null }> = {};
+      let existingOperator = "";
+      let existingNotes = "";
+      if (editCheckId) {
+        const [{ data: check }, { data: items }] = await Promise.all([
+          supabase
+            .from("stock_checks")
+            .select("operator_name, notes")
+            .eq("id", editCheckId)
+            .single(),
+          supabase
+            .from("stock_check_items")
+            .select("container_type_id, in_yard, runner, notes")
+            .eq("stock_check_id", editCheckId),
+        ]);
+        if (check) {
+          existingOperator = check.operator_name || "";
+          existingNotes = check.notes || "";
+        }
+        if (items) {
+          for (const i of items) {
+            existingItems[i.container_type_id] = {
+              in_yard: i.in_yard,
+              runner: i.runner,
+              notes: i.notes,
+            };
+          }
+        }
+      }
+
+      setTallyItems(
+        types.map((t: any) => {
+          const ex = existingItems[t.id];
+          return {
+            container_type_id: t.id,
+            in_yard: ex?.in_yard ?? 0,
+            runner: ex?.runner ?? (t.default_runner ?? 0),
+            notes: ex?.notes ?? "",
+          };
+        })
+      );
+
+      if (editCheckId) {
+        setOperatorName(existingOperator || profile?.full_name || "");
+        setNotes(existingNotes);
+      } else {
+        if (profile?.full_name) setOperatorName(profile.full_name);
+      }
       setLoading(false);
     };
     load();
-  }, [userId]);
+  }, [userId, editCheckId]);
 
   const updateItem = (typeId: string, field: keyof TallyItem, value: any) => {
     setTallyItems((prev) =>
@@ -105,21 +151,42 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
 
     setSaving(true);
     try {
-      const { data: stockCheck, error: checkError } = await supabase
-        .from("stock_checks")
-        .insert({
-          operator_id: userId,
-          operator_name: operatorName,
-          notes,
-          status: "submitted",
-        })
-        .select("id")
-        .single();
+      let checkId: string;
 
-      if (checkError) throw checkError;
+      if (editCheckId) {
+        // Update existing check
+        const { error: updateError } = await supabase
+          .from("stock_checks")
+          .update({ operator_name: operatorName, notes })
+          .eq("id", editCheckId);
+        if (updateError) throw updateError;
+
+        // Replace items
+        const { error: delError } = await supabase
+          .from("stock_check_items")
+          .delete()
+          .eq("stock_check_id", editCheckId);
+        if (delError) throw delError;
+
+        checkId = editCheckId;
+      } else {
+        const { data: stockCheck, error: checkError } = await supabase
+          .from("stock_checks")
+          .insert({
+            operator_id: userId,
+            operator_name: operatorName,
+            notes,
+            status: "submitted",
+          })
+          .select("id")
+          .single();
+
+        if (checkError) throw checkError;
+        checkId = stockCheck.id;
+      }
 
       const items = tallyItems.map((item) => ({
-        stock_check_id: stockCheck.id,
+        stock_check_id: checkId,
         container_type_id: item.container_type_id,
         in_yard: item.in_yard,
         runner: item.runner,
@@ -132,7 +199,12 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
 
       if (itemsError) throw itemsError;
 
-      toast({ title: "Stock check saved", description: "Your tally has been submitted successfully." });
+      toast({
+        title: editCheckId ? "Stock check updated" : "Stock check saved",
+        description: editCheckId
+          ? "Your changes have been saved."
+          : "Your tally has been submitted successfully.",
+      });
       onComplete();
     } catch (err: any) {
       toast({ title: "Error saving", description: err.message, variant: "destructive" });
@@ -157,6 +229,12 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
 
   return (
     <div className="space-y-6 pb-32">
+      {isEditing && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+          <Pencil className="h-4 w-4" />
+          Editing the most recent tally — saving will overwrite it.
+        </div>
+      )}
       {/* Operator */}
       <Card>
         <CardContent className="p-4">
@@ -248,8 +326,8 @@ export const StockCheckTally = ({ userId, onComplete }: StockCheckTallyProps) =>
               </div>
             </div>
             <Button onClick={handleSave} disabled={saving} className="h-12 px-6 gap-2 text-base">
-              <Save className="h-5 w-5" />
-              {saving ? "Saving..." : "Submit"}
+              {isEditing ? <Pencil className="h-5 w-5" /> : <Save className="h-5 w-5" />}
+              {saving ? "Saving..." : isEditing ? "Update" : "Submit"}
             </Button>
           </div>
         </div>

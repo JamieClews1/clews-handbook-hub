@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight, Pencil } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 
 interface ContainerType {
@@ -41,7 +42,8 @@ interface DailyEntry {
   actual_out: number | null;
 }
 
-export const StockCheckDashboard = () => {
+export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: string) => void } = {}) => {
+  const [latestCheckId, setLatestCheckId] = useState<string | null>(null);
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
@@ -87,6 +89,7 @@ export const StockCheckDashboard = () => {
       .single();
 
     if (latestCheck) {
+      setLatestCheckId(latestCheck.id);
       setDataHubSync(latestCheck.data_hub_sync_enabled);
       setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
 
@@ -213,10 +216,23 @@ export const StockCheckDashboard = () => {
         <div>
           <h2 className="text-xl font-bold text-foreground">Current Stock Overview</h2>
           {latestCheckDate && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              <Calendar className="h-3.5 w-3.5" />
-              Last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
-            </p>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
+              </p>
+              {latestCheckId && onEditLast && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => onEditLast(latestCheckId)}
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit last tally
+                </Button>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
