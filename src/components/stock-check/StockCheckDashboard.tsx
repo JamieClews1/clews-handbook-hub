@@ -383,6 +383,9 @@ const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showPr
                   <td className="py-3 px-2 text-center font-medium">
                     <JobsPopover jobs={proj.deliverJobs} label="To Deliver" colorClass="text-red-600 font-medium" />
                   </td>
+                  <td className="py-3 px-2 text-center font-medium">
+                    <JobsPopover jobs={proj.exchangeJobs} label="Exchange" colorClass="text-amber-600 font-medium" />
+                  </td>
                 </>
               )}
               <td className="py-3 px-2 text-center text-muted-foreground">{item?.runner ?? 0}</td>
