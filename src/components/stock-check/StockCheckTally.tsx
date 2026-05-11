@@ -151,21 +151,42 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
 
     setSaving(true);
     try {
-      const { data: stockCheck, error: checkError } = await supabase
-        .from("stock_checks")
-        .insert({
-          operator_id: userId,
-          operator_name: operatorName,
-          notes,
-          status: "submitted",
-        })
-        .select("id")
-        .single();
+      let checkId: string;
 
-      if (checkError) throw checkError;
+      if (editCheckId) {
+        // Update existing check
+        const { error: updateError } = await supabase
+          .from("stock_checks")
+          .update({ operator_name: operatorName, notes })
+          .eq("id", editCheckId);
+        if (updateError) throw updateError;
+
+        // Replace items
+        const { error: delError } = await supabase
+          .from("stock_check_items")
+          .delete()
+          .eq("stock_check_id", editCheckId);
+        if (delError) throw delError;
+
+        checkId = editCheckId;
+      } else {
+        const { data: stockCheck, error: checkError } = await supabase
+          .from("stock_checks")
+          .insert({
+            operator_id: userId,
+            operator_name: operatorName,
+            notes,
+            status: "submitted",
+          })
+          .select("id")
+          .single();
+
+        if (checkError) throw checkError;
+        checkId = stockCheck.id;
+      }
 
       const items = tallyItems.map((item) => ({
-        stock_check_id: stockCheck.id,
+        stock_check_id: checkId,
         container_type_id: item.container_type_id,
         in_yard: item.in_yard,
         runner: item.runner,
@@ -178,7 +199,12 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
 
       if (itemsError) throw itemsError;
 
-      toast({ title: "Stock check saved", description: "Your tally has been submitted successfully." });
+      toast({
+        title: editCheckId ? "Stock check updated" : "Stock check saved",
+        description: editCheckId
+          ? "Your changes have been saved."
+          : "Your tally has been submitted successfully.",
+      });
       onComplete();
     } catch (err: any) {
       toast({ title: "Error saving", description: err.message, variant: "destructive" });
