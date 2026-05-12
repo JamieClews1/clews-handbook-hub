@@ -63,10 +63,12 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
   useEffect(() => {
     if (dataHubSync && containerTypes.length > 0) {
       loadProjections();
+      loadYardAdjustments();
     } else {
       setProjections({});
+      setYardAdjustments({});
     }
-  }, [dataHubSync, containerTypes, excludedSites, outlookDays]);
+  }, [dataHubSync, containerTypes, excludedSites, outlookDays, latestCheckDateOnly]);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
