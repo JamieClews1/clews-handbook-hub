@@ -96,6 +96,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
       setLatestCheckId(latestCheck.id);
       setDataHubSync(latestCheck.data_hub_sync_enabled);
       setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
+      setLatestCheckDateOnly(latestCheck.check_date);
 
       const [{ data: items }, { data: entries }] = await Promise.all([
         supabase
