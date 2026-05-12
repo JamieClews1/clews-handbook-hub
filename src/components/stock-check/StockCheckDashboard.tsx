@@ -270,14 +270,20 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
+  const getAdjustedInYard = (typeId: string) => {
+    const item = getItem(typeId);
+    if (!item) return 0;
+    return item.in_yard + (yardAdjustments[typeId] || 0);
+  };
 
   const calcBookingsAllowed = (typeId: string) => {
     const item = getItem(typeId);
     const proj = getProjection(typeId);
     if (!item) return 0;
-    // Exchanges are self-fulfilling (runner returns with the swap), so they
-    // don't affect availability. Reserve declared runners only.
-    return item.in_yard + proj.toCollect - proj.toDeliver - item.runner;
+    // In Yard projected forward from last tally using completed movements between
+    // the tally date and today. Exchanges are self-fulfilling (runner returns
+    // with the swap), so they don't affect availability. Reserve declared runners only.
+    return getAdjustedInYard(typeId) + proj.toCollect - proj.toDeliver - item.runner;
   };
 
   return (
