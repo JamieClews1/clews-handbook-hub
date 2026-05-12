@@ -332,6 +332,9 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
                   </button>
                 ))}
               </div>
+              <span className="text-xs text-muted-foreground ml-1">
+                ({format(new Date(), "dd MMM")} – {format(addDays(new Date(), outlookDays - 1), "dd MMM")})
+              </span>
             </div>
           )}
           <div className="flex items-center gap-2">
