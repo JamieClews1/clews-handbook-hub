@@ -355,6 +355,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
           <StockTable
             types={skips}
             getItem={getItem}
+            getAdjustedInYard={getAdjustedInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
             showProjections={dataHubSync}
