@@ -469,11 +469,21 @@ const StockTable = ({ types, getItem, getAdjustedInYard, getProjection, calcBook
           const item = getItem(type.id);
           const proj = getProjection(type.id);
           const bookings = calcBookingsAllowed(type.id);
+          const adjustedInYard = getAdjustedInYard(type.id);
+          const baseInYard = item?.in_yard ?? 0;
+          const delta = adjustedInYard - baseInYard;
 
           return (
             <tr key={type.id} className="border-b border-border/50 hover:bg-muted/30">
               <td className="py-3 px-2 font-medium text-foreground">{type.name}</td>
-              <td className="py-3 px-2 text-center font-bold text-foreground">{item?.in_yard ?? 0}</td>
+              <td className="py-3 px-2 text-center font-bold text-foreground">
+                {adjustedInYard}
+                {delta !== 0 && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    ({baseInYard}{delta > 0 ? "+" : ""}{delta})
+                  </span>
+                )}
+              </td>
               {showProjections && (
                 <>
                   <td className="py-3 px-2 text-center font-medium">
