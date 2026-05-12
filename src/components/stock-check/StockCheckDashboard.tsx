@@ -426,7 +426,7 @@ const JobsPopover = ({ jobs, label, colorClass }: { jobs: ProjectionJob[]; label
   );
 };
 
-const StockTable = ({ types, getItem, getProjection, calcBookingsAllowed, showProjections }: StockTableProps) => {
+const StockTable = ({ types, getItem, getAdjustedInYard, getProjection, calcBookingsAllowed, showProjections }: StockTableProps) => {
   return (
     <table className="w-full text-sm">
       <thead>
