@@ -387,6 +387,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
 interface StockTableProps {
   types: ContainerType[];
   getItem: (typeId: string) => StockCheckItem | undefined;
+  getAdjustedInYard: (typeId: string) => number;
   getProjection: (typeId: string) => { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] };
   calcBookingsAllowed: (typeId: string) => number;
   showProjections: boolean;
