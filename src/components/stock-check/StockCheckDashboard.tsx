@@ -52,6 +52,8 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
   const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
+  const [latestCheckDateOnly, setLatestCheckDateOnly] = useState<string | null>(null);
+  const [yardAdjustments, setYardAdjustments] = useState<Record<string, number>>({});
   const [outlookDays, setOutlookDays] = useState<number>(5);
 
   useEffect(() => {
