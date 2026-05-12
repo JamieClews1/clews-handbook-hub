@@ -373,6 +373,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
           <StockTable
             types={roros}
             getItem={getItem}
+            getAdjustedInYard={getAdjustedInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
             showProjections={dataHubSync}
