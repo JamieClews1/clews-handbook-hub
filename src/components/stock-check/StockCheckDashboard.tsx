@@ -181,6 +181,72 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
     setProjections(projMap);
   };
 
+  const loadYardAdjustments = async () => {
+    if (!latestCheckDateOnly) {
+      setYardAdjustments({});
+      return;
+    }
+    const today = startOfDay(new Date());
+    const todayStr = format(today, "yyyy-MM-dd");
+    // Jobs that occurred AFTER the last tally date and BEFORE today.
+    // Today's jobs are part of the forward outlook (To Collect/To Deliver).
+    if (latestCheckDateOnly >= todayStr) {
+      setYardAdjustments({});
+      return;
+    }
+
+    const { data: jobs } = await supabase
+      .from("data_hub_jobs")
+      .select("container_type, movement_type, site, job_date, raw")
+      .gt("job_date", latestCheckDateOnly)
+      .lt("job_date", todayStr)
+      .in("source", ["skiptrak"]);
+
+    if (!jobs) {
+      setYardAdjustments({});
+      return;
+    }
+
+    const filtered = jobs.filter((j) => {
+      if (excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))) return false;
+      return true;
+    });
+
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matchKeyword = (haystack: string, kw: string) => {
+      const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
+      return re.test(haystack);
+    };
+
+    const adj: Record<string, number> = {};
+    for (const t of containerTypes) adj[t.id] = 0;
+
+    for (const job of filtered) {
+      if (!job.container_type) continue;
+      let bestType: ContainerType | null = null;
+      let bestLen = 0;
+      for (const type of containerTypes) {
+        for (const kw of type.data_hub_keywords || []) {
+          if (kw.length > bestLen && matchKeyword(job.container_type, kw)) {
+            bestLen = kw.length;
+            bestType = type;
+          }
+        }
+      }
+      if (!bestType) continue;
+      const mt = (job.movement_type || "").toLowerCase();
+      if (mt.includes("exchange")) {
+        // net zero
+      } else if (mt.includes("collect")) {
+        adj[bestType.id] += 1;
+      } else if (mt.includes("deliver")) {
+        adj[bestType.id] -= 1;
+      }
+    }
+
+    setYardAdjustments(adj);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
