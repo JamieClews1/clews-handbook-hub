@@ -872,6 +872,21 @@ const DataUploadsPage = () => {
             </Card>
           </div>
 
+          <div className="grid lg:grid-cols-2 gap-6">
+            <ArchivedJobsPanel
+              source="skiptrak"
+              canManage={canUpload}
+              refreshKey={archiveRefreshKey}
+              onRestored={() => { loadJobs(); }}
+            />
+            <ArchivedJobsPanel
+              source="midweigh"
+              canManage={canUpload}
+              refreshKey={archiveRefreshKey}
+              onRestored={() => { loadJobs(); }}
+            />
+          </div>
+
           {lastUploadSummary && (
             <Card>
               <CardHeader>
