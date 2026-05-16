@@ -826,8 +826,8 @@ const DataUploadsPage = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    setPendingUpload({ source: "midweigh", file });
                     e.currentTarget.value = "";
+                    void handleUpload("midweigh", file);
                   }}
                 />
                 <Button type="button" variant="secondary" disabled className="w-full">
