@@ -348,7 +348,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
             getAdjustedInYard={getAdjustedInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
-            showProjections={dataHubSync}
+            showProjections={true}
           />
         </div>
       </div>
@@ -366,7 +366,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
             getAdjustedInYard={getAdjustedInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
-            showProjections={dataHubSync}
+            showProjections={true}
           />
         </div>
       </div>
