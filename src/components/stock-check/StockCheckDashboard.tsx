@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -47,7 +46,6 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
-  const [dataHubSync, setDataHubSync] = useState(true);
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
   const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
@@ -61,14 +59,14 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
   }, []);
 
   useEffect(() => {
-    if (dataHubSync && containerTypes.length > 0) {
+    if (containerTypes.length > 0) {
       loadProjections();
       loadYardAdjustments();
     } else {
       setProjections({});
       setYardAdjustments({});
     }
-  }, [dataHubSync, containerTypes, excludedSites, outlookDays, latestCheckDateOnly]);
+  }, [containerTypes, excludedSites, outlookDays, latestCheckDateOnly]);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
@@ -94,7 +92,6 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
 
     if (latestCheck) {
       setLatestCheckId(latestCheck.id);
-      setDataHubSync(latestCheck.data_hub_sync_enabled);
       setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
       setLatestCheckDateOnly(latestCheck.check_date);
 
@@ -313,37 +310,27 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
           )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
-          {dataHubSync && (
-            <div className="flex items-center gap-1.5">
-              <Label className="text-sm text-muted-foreground">Outlook:</Label>
-              <div className="inline-flex rounded-md border border-border overflow-hidden">
-                {[2, 3, 4, 5].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setOutlookDays(d)}
-                    className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                      outlookDays === d
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {d}d
-                  </button>
-                ))}
-              </div>
-              <span className="text-xs text-muted-foreground ml-1">
-                ({format(new Date(), "dd MMM")} – {format(addDays(new Date(), outlookDays - 1), "dd MMM")})
-              </span>
+          <div className="flex items-center gap-1.5">
+            <Label className="text-sm text-muted-foreground">Outlook:</Label>
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              {[2, 3, 4, 5].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setOutlookDays(d)}
+                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                    outlookDays === d
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
             </div>
-          )}
-          <div className="flex items-center gap-2">
-            <Label htmlFor="dataHubSync" className="text-sm">Data Hub Sync</Label>
-            <Switch
-              id="dataHubSync"
-              checked={dataHubSync}
-              onCheckedChange={setDataHubSync}
-            />
+            <span className="text-xs text-muted-foreground ml-1">
+              ({format(new Date(), "dd MMM")} – {format(addDays(new Date(), outlookDays - 1), "dd MMM")})
+            </span>
           </div>
         </div>
       </div>
@@ -361,7 +348,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
             getAdjustedInYard={getAdjustedInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
-            showProjections={dataHubSync}
+            showProjections={true}
           />
         </div>
       </div>
@@ -379,7 +366,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
             getAdjustedInYard={getAdjustedInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
-            showProjections={dataHubSync}
+            showProjections={true}
           />
         </div>
       </div>
