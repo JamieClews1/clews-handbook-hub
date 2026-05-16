@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
+import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -213,10 +214,8 @@ const DataUploadsPage = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Orphaned jobs detection after upload
-  const [orphanedJobs, setOrphanedJobs] = useState<{ id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[]>([]);
-  const [orphanDialogOpen, setOrphanDialogOpen] = useState(false);
-  const [isDeletingOrphans, setIsDeletingOrphans] = useState(false);
+  // Trigger refresh of archive panels after an upload archives orphans
+  const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
 
   const [lastParsedPreview, setLastParsedPreview] = useState<
     | null
@@ -346,27 +345,7 @@ const DataUploadsPage = () => {
     }
   };
 
-  const handleDeleteOrphans = async () => {
-    setIsDeletingOrphans(true);
-    try {
-      const ids = orphanedJobs.map((j) => j.id);
-      for (const idChunk of chunk(ids, 200)) {
-        const { error } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
-        if (error) throw error;
-      }
-      toast({
-        title: "Jobs deleted",
-        description: `${orphanedJobs.length} orphaned job(s) removed.`,
-      });
-      setOrphanedJobs([]);
-      setOrphanDialogOpen(false);
-      loadJobs();
-    } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message, variant: "destructive" });
-    } finally {
-      setIsDeletingOrphans(false);
-    }
-  };
+
 
   useEffect(() => {
     const el = rawPreviewScrollRef.current;
@@ -664,8 +643,7 @@ const DataUploadsPage = () => {
         description: summary,
       });
 
-      // --- Orphaned jobs detection ---
-      // Find the earliest date in the uploaded data
+      // --- Auto-archive jobs missing from this upload ---
       const uploadedDates = jobsToUpsert
         .map((j) => j.job_date)
         .filter((d): d is string => !!d)
@@ -675,14 +653,14 @@ const DataUploadsPage = () => {
       if (minUploadDate) {
         const uploadedJobNumbers = new Set(jobsToUpsert.map((j) => j.job_number));
 
-        // Fetch all existing DB jobs for this source from minUploadDate onward
-        let allExisting: { id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[] = [];
+        // Fetch all existing DB jobs (full rows) for this source from minUploadDate onward
+        const allExisting: any[] = [];
         let fetchFrom = 0;
         const fetchBatch = 1000;
         while (true) {
           const { data: existingBatch, error: fetchErr } = await supabase
             .from("data_hub_jobs")
-            .select("id, job_number, customer, site, job_date")
+            .select("*")
             .eq("source", source)
             .gte("job_date", minUploadDate)
             .range(fetchFrom, fetchFrom + fetchBatch - 1);
@@ -695,8 +673,50 @@ const DataUploadsPage = () => {
 
         const orphans = allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number));
         if (orphans.length > 0) {
-          setOrphanedJobs(orphans);
-          setOrphanDialogOpen(true);
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          const archiveRows = orphans.map((o) => ({
+            original_id: o.id,
+            job_number: o.job_number,
+            source: o.source,
+            job_date: o.job_date,
+            customer: o.customer,
+            site: o.site,
+            ewc: o.ewc,
+            waste_description: o.waste_description,
+            category: o.category,
+            movement_type: o.movement_type,
+            container_type: o.container_type,
+            weight_t: o.weight_t,
+            vehicle_registration: o.vehicle_registration,
+            raw: o.raw ?? {},
+            order_number_override: o.order_number_override,
+            job_type: o.job_type,
+            driver: o.driver,
+            tipping_location: o.tipping_location,
+            manual_edit_note: o.manual_edit_note,
+            original_created_at: o.created_at,
+            original_updated_at: o.updated_at,
+            archived_by: currentUser?.id ?? null,
+            archive_reason: `Missing from ${source} upload on ${new Date().toISOString().slice(0, 10)} (${file.name})`,
+          }));
+
+          for (const part of chunk(archiveRows, 500)) {
+            const { error: insErr } = await supabase.from("data_hub_jobs_archive").insert(part as any);
+            if (insErr) throw insErr;
+          }
+
+          const orphanIds = orphans.map((o) => o.id);
+          for (const idChunk of chunk(orphanIds, 200)) {
+            const { error: delErr } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
+            if (delErr) throw delErr;
+          }
+
+          toast({
+            title: "Archived missing jobs",
+            description: `${orphans.length} job(s) not in upload were moved to the ${source} archive.`,
+          });
+          setArchiveRefreshKey((k) => k + 1);
+          loadJobs();
         }
       }
     } catch (e: any) {
@@ -850,6 +870,21 @@ const DataUploadsPage = () => {
                 )}
               </CardContent>
             </Card>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <ArchivedJobsPanel
+              source="skiptrak"
+              canManage={canUpload}
+              refreshKey={archiveRefreshKey}
+              onRestored={() => { loadJobs(); }}
+            />
+            <ArchivedJobsPanel
+              source="midweigh"
+              canManage={canUpload}
+              refreshKey={archiveRefreshKey}
+              onRestored={() => { loadJobs(); }}
+            />
           </div>
 
           {lastUploadSummary && (
@@ -1149,56 +1184,6 @@ const DataUploadsPage = () => {
         </div>
       </main>
 
-      {/* Orphaned Jobs Dialog */}
-      <AlertDialog open={orphanDialogOpen} onOpenChange={(open) => { if (!open) { setOrphanDialogOpen(false); setOrphanedJobs([]); } }}>
-        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Jobs Missing From Upload</AlertDialogTitle>
-            <AlertDialogDescription>
-              {orphanedJobs.length} job(s) exist in the database but were not found in the file you just uploaded (from the upload's earliest date onward). Would you like to delete them?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="overflow-auto max-h-[40vh] border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Job #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Site</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orphanedJobs.slice(0, 100).map((j) => (
-                  <TableRow key={j.id}>
-                    <TableCell className="font-mono text-sm">{j.job_number}</TableCell>
-                    <TableCell>{j.customer ?? "—"}</TableCell>
-                    <TableCell>{j.site ?? "—"}</TableCell>
-                    <TableCell>{j.job_date ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
-                {orphanedJobs.length > 100 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground text-sm">
-                      … and {orphanedJobs.length - 100} more
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingOrphans}>Keep All</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); void handleDeleteOrphans(); }}
-              disabled={isDeletingOrphans}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeletingOrphans ? "Deleting…" : `Delete ${orphanedJobs.length} Job(s)`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
