@@ -103,7 +103,7 @@ export const ArchivedJobsPanel = ({ source, canManage, refreshKey, onRestored }:
 
       const { error: upsertErr } = await supabase
         .from("data_hub_jobs")
-        .upsert(restoreRow, { onConflict: "job_number,source" });
+        .upsert(restoreRow as any, { onConflict: "job_number,source" });
       if (upsertErr) throw upsertErr;
 
       const { error: delErr } = await supabase
