@@ -643,8 +643,7 @@ const DataUploadsPage = () => {
         description: summary,
       });
 
-      // --- Orphaned jobs detection ---
-      // Find the earliest date in the uploaded data
+      // --- Auto-archive jobs missing from this upload ---
       const uploadedDates = jobsToUpsert
         .map((j) => j.job_date)
         .filter((d): d is string => !!d)
@@ -654,14 +653,14 @@ const DataUploadsPage = () => {
       if (minUploadDate) {
         const uploadedJobNumbers = new Set(jobsToUpsert.map((j) => j.job_number));
 
-        // Fetch all existing DB jobs for this source from minUploadDate onward
-        let allExisting: { id: string; job_number: string; customer: string | null; site: string | null; job_date: string | null }[] = [];
+        // Fetch all existing DB jobs (full rows) for this source from minUploadDate onward
+        const allExisting: any[] = [];
         let fetchFrom = 0;
         const fetchBatch = 1000;
         while (true) {
           const { data: existingBatch, error: fetchErr } = await supabase
             .from("data_hub_jobs")
-            .select("id, job_number, customer, site, job_date")
+            .select("*")
             .eq("source", source)
             .gte("job_date", minUploadDate)
             .range(fetchFrom, fetchFrom + fetchBatch - 1);
@@ -674,8 +673,50 @@ const DataUploadsPage = () => {
 
         const orphans = allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number));
         if (orphans.length > 0) {
-          setOrphanedJobs(orphans);
-          setOrphanDialogOpen(true);
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          const archiveRows = orphans.map((o) => ({
+            original_id: o.id,
+            job_number: o.job_number,
+            source: o.source,
+            job_date: o.job_date,
+            customer: o.customer,
+            site: o.site,
+            ewc: o.ewc,
+            waste_description: o.waste_description,
+            category: o.category,
+            movement_type: o.movement_type,
+            container_type: o.container_type,
+            weight_t: o.weight_t,
+            vehicle_registration: o.vehicle_registration,
+            raw: o.raw ?? {},
+            order_number_override: o.order_number_override,
+            job_type: o.job_type,
+            driver: o.driver,
+            tipping_location: o.tipping_location,
+            manual_edit_note: o.manual_edit_note,
+            original_created_at: o.created_at,
+            original_updated_at: o.updated_at,
+            archived_by: currentUser?.id ?? null,
+            archive_reason: `Missing from ${source} upload on ${new Date().toISOString().slice(0, 10)} (${file.name})`,
+          }));
+
+          for (const part of chunk(archiveRows, 500)) {
+            const { error: insErr } = await supabase.from("data_hub_jobs_archive").insert(part as any);
+            if (insErr) throw insErr;
+          }
+
+          const orphanIds = orphans.map((o) => o.id);
+          for (const idChunk of chunk(orphanIds, 200)) {
+            const { error: delErr } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
+            if (delErr) throw delErr;
+          }
+
+          toast({
+            title: "Archived missing jobs",
+            description: `${orphans.length} job(s) not in upload were moved to the ${source} archive.`,
+          });
+          setArchiveRefreshKey((k) => k + 1);
+          loadJobs();
         }
       }
     } catch (e: any) {
