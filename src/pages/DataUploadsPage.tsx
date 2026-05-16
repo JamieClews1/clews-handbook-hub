@@ -783,8 +783,8 @@ const DataUploadsPage = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    setPendingUpload({ source: "skiptrak", file });
                     e.currentTarget.value = "";
+                    void handleUpload("skiptrak", file);
                   }}
                 />
                 <Button
@@ -826,8 +826,8 @@ const DataUploadsPage = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    setPendingUpload({ source: "midweigh", file });
                     e.currentTarget.value = "";
+                    void handleUpload("midweigh", file);
                   }}
                 />
                 <Button type="button" variant="secondary" disabled className="w-full">
@@ -851,52 +851,6 @@ const DataUploadsPage = () => {
               </CardContent>
             </Card>
           </div>
-
-          <AlertDialog
-            open={pendingUpload !== null}
-            onOpenChange={(open) => {
-              if (!open) setPendingUpload(null);
-            }}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  Confirm {pendingUpload?.source === "skiptrak" ? "Skiptrak" : "Midweigh"} upload
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {pendingUpload?.source === "skiptrak" ? (
-                    <>
-                      You're about to upload <strong>{pendingUpload?.file.name}</strong> as{" "}
-                      <strong>Skiptrak</strong> data (weights in <strong>tonnes</strong>).
-                      Please double-check this file was exported from <strong>Skiptrak</strong> — uploading
-                      Midweigh data here will store weights with the wrong unit and corrupt reporting.
-                    </>
-                  ) : (
-                    <>
-                      You're about to upload <strong>{pendingUpload?.file.name}</strong> as{" "}
-                      <strong>Midweigh</strong> data (weights in <strong>KG</strong>).
-                      Please double-check this file was exported from <strong>Midweigh</strong> — uploading
-                      Skiptrak data here will store weights with the wrong unit and corrupt reporting.
-                    </>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    if (pendingUpload) {
-                      const { source, file } = pendingUpload;
-                      setPendingUpload(null);
-                      void handleUpload(source, file);
-                    }
-                  }}
-                >
-                  Yes, upload as {pendingUpload?.source === "skiptrak" ? "Skiptrak" : "Midweigh"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
 
           {lastUploadSummary && (
             <Card>
