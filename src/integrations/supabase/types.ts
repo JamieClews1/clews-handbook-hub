@@ -1134,6 +1134,90 @@ export type Database = {
         }
         Relationships: []
       }
+      data_hub_jobs_archive: {
+        Row: {
+          archive_reason: string | null
+          archived_at: string
+          archived_by: string | null
+          category: string | null
+          container_type: string | null
+          customer: string | null
+          driver: string | null
+          ewc: string | null
+          id: string
+          job_date: string | null
+          job_number: string
+          job_type: string | null
+          manual_edit_note: string | null
+          movement_type: string | null
+          order_number_override: string | null
+          original_created_at: string | null
+          original_id: string | null
+          original_updated_at: string | null
+          raw: Json
+          site: string | null
+          source: string
+          tipping_location: string | null
+          vehicle_registration: string | null
+          waste_description: string | null
+          weight_t: number | null
+        }
+        Insert: {
+          archive_reason?: string | null
+          archived_at?: string
+          archived_by?: string | null
+          category?: string | null
+          container_type?: string | null
+          customer?: string | null
+          driver?: string | null
+          ewc?: string | null
+          id?: string
+          job_date?: string | null
+          job_number: string
+          job_type?: string | null
+          manual_edit_note?: string | null
+          movement_type?: string | null
+          order_number_override?: string | null
+          original_created_at?: string | null
+          original_id?: string | null
+          original_updated_at?: string | null
+          raw?: Json
+          site?: string | null
+          source: string
+          tipping_location?: string | null
+          vehicle_registration?: string | null
+          waste_description?: string | null
+          weight_t?: number | null
+        }
+        Update: {
+          archive_reason?: string | null
+          archived_at?: string
+          archived_by?: string | null
+          category?: string | null
+          container_type?: string | null
+          customer?: string | null
+          driver?: string | null
+          ewc?: string | null
+          id?: string
+          job_date?: string | null
+          job_number?: string
+          job_type?: string | null
+          manual_edit_note?: string | null
+          movement_type?: string | null
+          order_number_override?: string | null
+          original_created_at?: string | null
+          original_id?: string | null
+          original_updated_at?: string | null
+          raw?: Json
+          site?: string | null
+          source?: string
+          tipping_location?: string | null
+          vehicle_registration?: string | null
+          waste_description?: string | null
+          weight_t?: number | null
+        }
+        Relationships: []
+      }
       data_hub_rebate_mappings: {
         Row: {
           created_at: string
