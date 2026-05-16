@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
+import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 
 type DataSource = "skiptrak" | "midweigh";
 
