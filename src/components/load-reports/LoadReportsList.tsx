@@ -13,7 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -112,7 +111,6 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reconciling, setReconciling] = useState(false);
   const isStaci = customerType === "staci";
   const isEvri = customerType === "evri";
@@ -343,26 +341,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     URL.revokeObjectURL(url);
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    const eligible = filteredReports.filter((r) => needsReconciliation(r)).map((r) => r.id);
-    if (eligible.every((id) => selectedIds.has(id)) && eligible.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(eligible));
-    }
-  };
-
-  const handleBulkAutoReconcile = async () => {
-    const ids = Array.from(selectedIds);
+  const handleBulkAutoReconcile = async (ids: string[]) => {
     if (ids.length === 0) return;
     setReconciling(true);
     let success = 0;
@@ -432,7 +411,6 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         description: `${success} reconciled${failed > 0 ? `, ${failed} failed` : ""}.`,
         variant: failed > 0 ? "destructive" : "default",
       });
-      setSelectedIds(new Set());
       await fetchReports();
     } finally {
       setReconciling(false);
@@ -503,19 +481,6 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <Settings className="h-5 w-5" />
           Settings
         </Button>
-        {isEvri && (
-          <Button
-            variant="secondary"
-            onClick={handleBulkAutoReconcile}
-            disabled={selectedIds.size === 0 || reconciling}
-            className="gap-2 h-12"
-          >
-            <Wand2 className="h-5 w-5" />
-            {reconciling
-              ? "Reconciling..."
-              : `Auto Reconcile${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
-          </Button>
-        )}
       </div>
 
       {/* Missing Reports Alert */}
@@ -642,21 +607,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                   <TableHead className="text-right">Weight (KG)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   {isEvri && (
-                    <TableHead className="text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-xs">Auto Reconcile</span>
-                        <Checkbox
-                          checked={
-                            filteredReports.filter((r) => needsReconciliation(r)).length > 0 &&
-                            filteredReports
-                              .filter((r) => needsReconciliation(r))
-                              .every((r) => selectedIds.has(r.id))
-                          }
-                          onCheckedChange={toggleSelectAll}
-                          aria-label="Select all reconcilable"
-                        />
-                      </div>
-                    </TableHead>
+                    <TableHead className="text-center">Auto Reconcile</TableHead>
                   )}
                   <TableHead className="hidden xl:table-cell">Last Activity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -704,26 +655,16 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     {isEvri && (
                       <TableCell className="text-center">
                         {needsReconciliation(report) ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Checkbox
-                              checked={selectedIds.has(report.id)}
-                              onCheckedChange={() => toggleSelect(report.id)}
-                              aria-label="Select for auto reconcile"
-                            />
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-7 gap-1"
-                              disabled={reconciling}
-                              onClick={async () => {
-                                setSelectedIds(new Set([report.id]));
-                                await handleBulkAutoReconcile();
-                              }}
-                            >
-                              <Wand2 className="h-3.5 w-3.5" />
-                              Reconcile
-                            </Button>
-                          </div>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="h-7 gap-1"
+                            disabled={reconciling}
+                            onClick={() => handleBulkAutoReconcile([report.id])}
+                          >
+                            <Wand2 className="h-3.5 w-3.5" />
+                            Reconcile
+                          </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
