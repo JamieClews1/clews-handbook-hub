@@ -31,9 +31,11 @@ export function LiveUploadsPanel() {
 
   const load = async () => {
     setLoading(true);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
       .from("data_upload_log")
       .select("id, source, file_name, row_count, uploaded_at")
+      .gte("uploaded_at", since)
       .order("uploaded_at", { ascending: false })
       .limit(200);
     if (!error && data) setEntries(data as UploadLogEntry[]);
