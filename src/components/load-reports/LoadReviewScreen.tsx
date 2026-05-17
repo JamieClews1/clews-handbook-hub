@@ -60,6 +60,7 @@ export const LoadReviewScreen = ({
   onSubmit,
   isSaving,
   isReadOnly = false,
+  customerType = null,
 }: LoadReviewScreenProps) => {
   const [reconciledItems, setReconciledItems] = useState<LineItem[] | null>(null);
 
