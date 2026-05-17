@@ -24,6 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
+import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type DataSource = "skiptrak" | "midweigh";
 
@@ -789,6 +791,17 @@ const DataUploadsPage = () => {
             </Card>
           )}
 
+          <Tabs defaultValue="manage" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="manage">Upload & manage</TabsTrigger>
+              <TabsTrigger value="live">Live activity</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="live" className="space-y-6">
+              <LiveUploadsPanel />
+            </TabsContent>
+
+            <TabsContent value="manage" className="space-y-8">
           <div className="grid lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -1181,6 +1194,8 @@ const DataUploadsPage = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
