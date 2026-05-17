@@ -370,7 +370,8 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     try {
       for (const id of ids) {
         const report = reports.find((r) => r.id === id);
-        if (!report || report.weighbridge_weight_kg == null || report.weighbridge_weight_kg <= 0) {
+        const targetKg = report ? getReconcileTargetKg(report) : null;
+        if (!report || targetKg == null || targetKg <= 0) {
           failed += 1;
           continue;
         }
@@ -394,7 +395,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         }));
         const { reconciled, reconciledTotalKg } = reconcileLineItemsToTargetKg(
           lineItems,
-          report.weighbridge_weight_kg,
+          targetKg,
         );
         let rowErr = false;
         for (let idx = 0; idx < reconciled.length; idx++) {
