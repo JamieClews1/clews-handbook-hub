@@ -289,11 +289,22 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     }
   };
 
+  // Evri fallback: when no weighbridge weight, target = pallets × 90KG
+  const getReconcileTargetKg = (report: LoadReport): number | null => {
+    if (report.weighbridge_weight_kg != null && report.weighbridge_weight_kg > 0) {
+      return report.weighbridge_weight_kg;
+    }
+    if (isEvri && (report.total_pallets || 0) > 0) {
+      return (report.total_pallets || 0) * 90;
+    }
+    return null;
+  };
+
   const needsReconciliation = (report: LoadReport) => {
-    if (report.weighbridge_weight_kg == null) return false;
-    if (report.weighbridge_weight_kg <= 0) return false;
-    const difference = Math.abs(getDisplayTotalKg(report, isStaci, defaultPalletWeight) - report.weighbridge_weight_kg);
-    const percentOut = (difference / report.weighbridge_weight_kg) * 100;
+    const target = getReconcileTargetKg(report);
+    if (target == null || target <= 0) return false;
+    const difference = Math.abs(getDisplayTotalKg(report, isStaci, defaultPalletWeight) - target);
+    const percentOut = (difference / target) * 100;
     return percentOut > 0.5; // 0.5% tolerance
   };
 
