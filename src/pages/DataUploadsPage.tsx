@@ -640,6 +640,20 @@ const DataUploadsPage = () => {
 
       const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)`;
       setLastUploadSummary(summary);
+
+      // Record an entry in the upload activity log
+      try {
+        const { data: { user: logUser } } = await supabase.auth.getUser();
+        await supabase.from("data_upload_log").insert({
+          source,
+          file_name: file.name,
+          row_count: totalRows,
+          uploaded_by: logUser?.id ?? null,
+        } as any);
+      } catch (logErr) {
+        console.error("Failed to write upload log:", logErr);
+      }
+
       toast({
         title: "Upload complete",
         description: summary,
