@@ -616,6 +616,23 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                   <TableHead className="text-center">Pallets</TableHead>
                   <TableHead className="text-right">Weight (KG)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
+                  {isEvri && (
+                    <TableHead className="text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xs">Auto Reconcile</span>
+                        <Checkbox
+                          checked={
+                            filteredReports.filter((r) => needsReconciliation(r)).length > 0 &&
+                            filteredReports
+                              .filter((r) => needsReconciliation(r))
+                              .every((r) => selectedIds.has(r.id))
+                          }
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all reconcilable"
+                        />
+                      </div>
+                    </TableHead>
+                  )}
                   <TableHead className="hidden xl:table-cell">Last Activity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
