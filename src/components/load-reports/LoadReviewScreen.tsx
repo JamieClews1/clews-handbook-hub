@@ -36,6 +36,7 @@ interface LoadReviewScreenProps {
   onSubmit: () => void;
   isSaving: boolean;
   isReadOnly?: boolean;
+  customerType?: "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other" | null;
 }
 
 export const LoadReviewScreen = ({
