@@ -491,6 +491,19 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <Settings className="h-5 w-5" />
           Settings
         </Button>
+        {isEvri && (
+          <Button
+            variant="secondary"
+            onClick={handleBulkAutoReconcile}
+            disabled={selectedIds.size === 0 || reconciling}
+            className="gap-2 h-12"
+          >
+            <Wand2 className="h-5 w-5" />
+            {reconciling
+              ? "Reconciling..."
+              : `Auto Reconcile${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+          </Button>
+        )}
       </div>
 
       {/* Missing Reports Alert */}
