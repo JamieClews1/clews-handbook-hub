@@ -676,6 +676,19 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     <TableCell className="text-center">
                       {getStatusBadge(report.status, report)}
                     </TableCell>
+                    {isEvri && (
+                      <TableCell className="text-center">
+                        {needsReconciliation(report) ? (
+                          <Checkbox
+                            checked={selectedIds.has(report.id)}
+                            onCheckedChange={() => toggleSelect(report.id)}
+                            aria-label="Select for auto reconcile"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                       {report.last_activity_job || "-"}
                     </TableCell>
