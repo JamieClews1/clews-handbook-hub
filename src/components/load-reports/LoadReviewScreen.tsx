@@ -36,6 +36,7 @@ interface LoadReviewScreenProps {
   onSubmit: () => void;
   isSaving: boolean;
   isReadOnly?: boolean;
+  customerType?: "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other" | null;
 }
 
 export const LoadReviewScreen = ({
@@ -59,6 +60,7 @@ export const LoadReviewScreen = ({
   onSubmit,
   isSaving,
   isReadOnly = false,
+  customerType = null,
 }: LoadReviewScreenProps) => {
   const [reconciledItems, setReconciledItems] = useState<LineItem[] | null>(null);
 
@@ -281,17 +283,34 @@ export const LoadReviewScreen = ({
       {/* Reconcile */}
       {!isReadOnly && typeof weighbridgeWeightKg === "number" && (
         <div className="space-y-4">
-          <Button
-            type="button"
-            onClick={() => {
-              const result = reconcileLineItemsToTargetKg(lineItems, weighbridgeWeightKg);
-              setReconciledItems(result.reconciled);
-            }}
-            className="h-12 w-full text-base"
-            disabled={isSaving || !!weighbridgeLoading}
-          >
-            Reconcile
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              onClick={() => {
+                const result = reconcileLineItemsToTargetKg(lineItems, weighbridgeWeightKg);
+                setReconciledItems(result.reconciled);
+              }}
+              className="h-12 w-full text-base flex-1"
+              disabled={isSaving || !!weighbridgeLoading}
+            >
+              Reconcile
+            </Button>
+            {customerType === "evri" && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const result = reconcileLineItemsToTargetKg(lineItems, weighbridgeWeightKg);
+                  onAcceptReconciled?.(result.reconciled);
+                  setReconciledItems(null);
+                }}
+                className="h-12 w-full text-base flex-1"
+                disabled={isSaving || !!weighbridgeLoading || !onAcceptReconciled}
+              >
+                Auto Reconcile
+              </Button>
+            )}
+          </div>
 
           {!!reconciledItems && (
             <Card className="border-2 overflow-hidden">
