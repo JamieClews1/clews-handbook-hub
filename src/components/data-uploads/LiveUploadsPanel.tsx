@@ -105,7 +105,7 @@ export function LiveUploadsPanel() {
         <CardHeader>
           <CardTitle>Upload history</CardTitle>
           <CardDescription>
-            Showing the latest {entries.length.toLocaleString()} upload events.
+            Showing upload events from the last 24 hours.
           </CardDescription>
         </CardHeader>
         <CardContent>
