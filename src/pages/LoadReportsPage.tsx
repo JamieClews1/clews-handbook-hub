@@ -1191,6 +1191,7 @@ const LoadReportsPage = () => {
               : null;
             return (
               <LoadReviewScreen
+                customerType={selectedCustomer}
                 operatorName={operatorName}
                 vehicleReg={vehicleReg}
                 jobNumber={jobNumber}
