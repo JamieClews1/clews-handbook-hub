@@ -791,6 +791,17 @@ const DataUploadsPage = () => {
             </Card>
           )}
 
+          <Tabs defaultValue="manage" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="manage">Upload & manage</TabsTrigger>
+              <TabsTrigger value="live">Live activity</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="live" className="space-y-6">
+              <LiveUploadsPanel />
+            </TabsContent>
+
+            <TabsContent value="manage" className="space-y-8">
           <div className="grid lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
