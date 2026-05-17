@@ -1260,6 +1260,33 @@ export type Database = {
           },
         ]
       }
+      data_upload_log: {
+        Row: {
+          file_name: string | null
+          id: string
+          row_count: number
+          source: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          file_name?: string | null
+          id?: string
+          row_count?: number
+          source: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          file_name?: string | null
+          id?: string
+          row_count?: number
+          source?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       default_waste_types: {
         Row: {
           display_order: number
