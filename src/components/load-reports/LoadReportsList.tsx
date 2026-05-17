@@ -112,7 +112,10 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [reconciling, setReconciling] = useState(false);
   const isStaci = customerType === "staci";
+  const isEvri = customerType === "evri";
   const { toast } = useToast();
 
   useEffect(() => {
