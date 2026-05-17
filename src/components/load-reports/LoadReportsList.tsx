@@ -248,9 +248,23 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
 
         const siteName = report.customer_sites?.site_name ?? null;
 
+        // Evri override: when palletsOut > 0 AND there are cardboard pallets, the
+        // load report weight is intentionally higher than the Midweigh weighbridge
+        // value (cardboard pallets × 90kg). Do NOT pull/compare the Midweigh upload
+        // for these — the load report is the source of truth and should not be
+        // re-flagged as needing reconciliation each time new Midweigh data lands.
+        const isEvriOverride =
+          customerType === "evri" &&
+          (report.pallets_out ?? 0) > 0 &&
+          wasteTypes.some((wt: string) => wt.toLowerCase().includes("card"));
+
         return {
           ...report,
-          weighbridge_weight_kg: report.notes?.trim() ? weighbridgeMap[report.notes.trim()] ?? null : null,
+          weighbridge_weight_kg: isEvriOverride
+            ? null
+            : report.notes?.trim()
+              ? weighbridgeMap[report.notes.trim()] ?? null
+              : null,
           site_name: siteName,
           waste_types: wasteTypes,
           last_activity_job: siteName ? lastActivityMap[siteName] ?? null : null,
