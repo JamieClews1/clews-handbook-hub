@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -21,6 +22,8 @@ import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-s
 import { formatLoadReportDate } from "@/lib/load-report-dates";
 import { MissingReportsAlert } from "./MissingReportsAlert";
 import { CertificateOfDestruction } from "./CertificateOfDestruction";
+import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
+import type { LineItem } from "./TallyScreen";
 
 interface LoadReport {
   id: string;
@@ -109,7 +112,10 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [reconciling, setReconciling] = useState(false);
   const isStaci = customerType === "staci";
+  const isEvri = customerType === "evri";
   const { toast } = useToast();
 
   useEffect(() => {
@@ -326,6 +332,101 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     URL.revokeObjectURL(url);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const eligible = filteredReports.filter((r) => needsReconciliation(r)).map((r) => r.id);
+    if (eligible.every((id) => selectedIds.has(id)) && eligible.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(eligible));
+    }
+  };
+
+  const handleBulkAutoReconcile = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setReconciling(true);
+    let success = 0;
+    let failed = 0;
+    try {
+      for (const id of ids) {
+        const report = reports.find((r) => r.id === id);
+        if (!report || report.weighbridge_weight_kg == null || report.weighbridge_weight_kg <= 0) {
+          failed += 1;
+          continue;
+        }
+        const { data: items, error: itemsErr } = await supabase
+          .from("load_line_items")
+          .select("*")
+          .eq("load_report_id", id)
+          .order("display_order");
+        if (itemsErr || !items) {
+          failed += 1;
+          continue;
+        }
+        const lineItems: LineItem[] = items.map((it: any) => ({
+          waste_type: it.waste_type,
+          pallet_count: it.pallet_count,
+          avg_weight_kg: Number(it.avg_weight_kg) || 0,
+          total_weight_kg: Number(it.total_weight_kg) || 0,
+          display_order: it.display_order,
+          pallet_weight_kg: Number(it.pallet_weight_kg) || 0,
+          wet_charge_applied: it.wet_charge_applied,
+        }));
+        const { reconciled, reconciledTotalKg } = reconcileLineItemsToTargetKg(
+          lineItems,
+          report.weighbridge_weight_kg,
+        );
+        let rowErr = false;
+        for (let idx = 0; idx < reconciled.length; idx++) {
+          const r = reconciled[idx];
+          const rowId = items[idx].id;
+          const { error: updErr } = await supabase
+            .from("load_line_items")
+            .update({
+              avg_weight_kg: r.avg_weight_kg,
+              total_weight_kg: r.total_weight_kg,
+            })
+            .eq("id", rowId);
+          if (updErr) {
+            rowErr = true;
+            break;
+          }
+        }
+        if (rowErr) {
+          failed += 1;
+          continue;
+        }
+        const { error: repErr } = await supabase
+          .from("load_reports")
+          .update({ total_weight_kg: reconciledTotalKg })
+          .eq("id", id);
+        if (repErr) {
+          failed += 1;
+          continue;
+        }
+        success += 1;
+      }
+      toast({
+        title: "Auto Reconcile complete",
+        description: `${success} reconciled${failed > 0 ? `, ${failed} failed` : ""}.`,
+        variant: failed > 0 ? "destructive" : "default",
+      });
+      setSelectedIds(new Set());
+      await fetchReports();
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const getStatusBadge = (status: string, report: LoadReport) => {
     const showReconciliation = needsReconciliation(report);
     const palletsOut = report.pallets_out ?? 0;
@@ -390,6 +491,19 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <Settings className="h-5 w-5" />
           Settings
         </Button>
+        {isEvri && (
+          <Button
+            variant="secondary"
+            onClick={handleBulkAutoReconcile}
+            disabled={selectedIds.size === 0 || reconciling}
+            className="gap-2 h-12"
+          >
+            <Wand2 className="h-5 w-5" />
+            {reconciling
+              ? "Reconciling..."
+              : `Auto Reconcile${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+          </Button>
+        )}
       </div>
 
       {/* Missing Reports Alert */}
@@ -515,6 +629,23 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                   <TableHead className="text-center">Pallets</TableHead>
                   <TableHead className="text-right">Weight (KG)</TableHead>
                   <TableHead className="text-center">Status</TableHead>
+                  {isEvri && (
+                    <TableHead className="text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xs">Auto Reconcile</span>
+                        <Checkbox
+                          checked={
+                            filteredReports.filter((r) => needsReconciliation(r)).length > 0 &&
+                            filteredReports
+                              .filter((r) => needsReconciliation(r))
+                              .every((r) => selectedIds.has(r.id))
+                          }
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all reconcilable"
+                        />
+                      </div>
+                    </TableHead>
+                  )}
                   <TableHead className="hidden xl:table-cell">Last Activity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -558,6 +689,19 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     <TableCell className="text-center">
                       {getStatusBadge(report.status, report)}
                     </TableCell>
+                    {isEvri && (
+                      <TableCell className="text-center">
+                        {needsReconciliation(report) ? (
+                          <Checkbox
+                            checked={selectedIds.has(report.id)}
+                            onCheckedChange={() => toggleSelect(report.id)}
+                            aria-label="Select for auto reconcile"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                       {report.last_activity_job || "-"}
                     </TableCell>
