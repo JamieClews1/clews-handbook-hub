@@ -13,7 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -112,7 +111,6 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reconciling, setReconciling] = useState(false);
   const isStaci = customerType === "staci";
   const isEvri = customerType === "evri";
