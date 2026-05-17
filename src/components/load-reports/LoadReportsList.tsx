@@ -332,6 +332,101 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     URL.revokeObjectURL(url);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const eligible = filteredReports.filter((r) => needsReconciliation(r)).map((r) => r.id);
+    if (eligible.every((id) => selectedIds.has(id)) && eligible.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(eligible));
+    }
+  };
+
+  const handleBulkAutoReconcile = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setReconciling(true);
+    let success = 0;
+    let failed = 0;
+    try {
+      for (const id of ids) {
+        const report = reports.find((r) => r.id === id);
+        if (!report || report.weighbridge_weight_kg == null || report.weighbridge_weight_kg <= 0) {
+          failed += 1;
+          continue;
+        }
+        const { data: items, error: itemsErr } = await supabase
+          .from("load_line_items")
+          .select("*")
+          .eq("load_report_id", id)
+          .order("display_order");
+        if (itemsErr || !items) {
+          failed += 1;
+          continue;
+        }
+        const lineItems: LineItem[] = items.map((it: any) => ({
+          waste_type: it.waste_type,
+          pallet_count: it.pallet_count,
+          avg_weight_kg: Number(it.avg_weight_kg) || 0,
+          total_weight_kg: Number(it.total_weight_kg) || 0,
+          display_order: it.display_order,
+          pallet_weight_kg: Number(it.pallet_weight_kg) || 0,
+          wet_charge_applied: it.wet_charge_applied,
+        }));
+        const { reconciled, reconciledTotalKg } = reconcileLineItemsToTargetKg(
+          lineItems,
+          report.weighbridge_weight_kg,
+        );
+        let rowErr = false;
+        for (let idx = 0; idx < reconciled.length; idx++) {
+          const r = reconciled[idx];
+          const rowId = items[idx].id;
+          const { error: updErr } = await supabase
+            .from("load_line_items")
+            .update({
+              avg_weight_kg: r.avg_weight_kg,
+              total_weight_kg: r.total_weight_kg,
+            })
+            .eq("id", rowId);
+          if (updErr) {
+            rowErr = true;
+            break;
+          }
+        }
+        if (rowErr) {
+          failed += 1;
+          continue;
+        }
+        const { error: repErr } = await supabase
+          .from("load_reports")
+          .update({ total_weight_kg: reconciledTotalKg })
+          .eq("id", id);
+        if (repErr) {
+          failed += 1;
+          continue;
+        }
+        success += 1;
+      }
+      toast({
+        title: "Auto Reconcile complete",
+        description: `${success} reconciled${failed > 0 ? `, ${failed} failed` : ""}.`,
+        variant: failed > 0 ? "destructive" : "default",
+      });
+      setSelectedIds(new Set());
+      await fetchReports();
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const getStatusBadge = (status: string, report: LoadReport) => {
     const showReconciliation = needsReconciliation(report);
     const palletsOut = report.pallets_out ?? 0;
