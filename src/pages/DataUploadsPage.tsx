@@ -24,6 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
+import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type DataSource = "skiptrak" | "midweigh";
 
