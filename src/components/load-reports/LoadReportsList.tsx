@@ -704,11 +704,26 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                     {isEvri && (
                       <TableCell className="text-center">
                         {needsReconciliation(report) ? (
-                          <Checkbox
-                            checked={selectedIds.has(report.id)}
-                            onCheckedChange={() => toggleSelect(report.id)}
-                            aria-label="Select for auto reconcile"
-                          />
+                          <div className="flex items-center justify-center gap-2">
+                            <Checkbox
+                              checked={selectedIds.has(report.id)}
+                              onCheckedChange={() => toggleSelect(report.id)}
+                              aria-label="Select for auto reconcile"
+                            />
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-7 gap-1"
+                              disabled={reconciling}
+                              onClick={async () => {
+                                setSelectedIds(new Set([report.id]));
+                                await handleBulkAutoReconcile();
+                              }}
+                            >
+                              <Wand2 className="h-3.5 w-3.5" />
+                              Reconcile
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
