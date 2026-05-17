@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -21,6 +22,8 @@ import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-s
 import { formatLoadReportDate } from "@/lib/load-report-dates";
 import { MissingReportsAlert } from "./MissingReportsAlert";
 import { CertificateOfDestruction } from "./CertificateOfDestruction";
+import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
+import type { LineItem } from "./TallyScreen";
 
 interface LoadReport {
   id: string;
