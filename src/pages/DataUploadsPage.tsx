@@ -1194,6 +1194,8 @@ const DataUploadsPage = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
