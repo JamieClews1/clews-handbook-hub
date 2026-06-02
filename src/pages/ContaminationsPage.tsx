@@ -67,7 +67,6 @@ const ContaminationsPage = () => {
           {isAdmin && (
             <TabsContent value="settings">
               <ContaminationPricingMatrix />
-              <div className="mt-8"><ContaminationChargeMatrix /></div>
             </TabsContent>
           )}
         </Tabs>
