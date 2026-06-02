@@ -482,11 +482,13 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
 const DriverJobDetail = ({
   job: initialJob,
   driverId,
+  driverName,
   onBack,
   onJobUpdated,
 }: {
   job: Job;
   driverId: string;
+  driverName: string;
   onBack: () => void;
   onJobUpdated: () => void;
 }) => {
