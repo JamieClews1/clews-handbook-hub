@@ -54,6 +54,7 @@ const ContaminationsPage = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="queries">All Queries</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
             {isAdmin && <TabsTrigger value="settings">Pricing & Settings</TabsTrigger>}
           </TabsList>
 
@@ -63,6 +64,10 @@ const ContaminationsPage = () => {
 
           <TabsContent value="queries">
             <ContaminationsQueryList onSelectQuery={setSelectedQueryId} />
+          </TabsContent>
+
+          <TabsContent value="leaderboard">
+            <ContaminationLeaderboard />
           </TabsContent>
 
           {isAdmin && (
