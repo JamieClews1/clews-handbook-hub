@@ -29,6 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
@@ -57,14 +58,6 @@ const STATUS_LABELS: Record<string, string> = {
   query: "Query",
 };
 
-const CONTAMINATION_TYPES = [
-  "Mixed Waste",
-  "Hazardous Materials",
-  "Overfilled Container",
-  "Incorrect Waste Type",
-  "Liquid Waste",
-  "Other",
-];
 
 interface Driver {
   id: string;
@@ -364,48 +357,6 @@ const PhotoCapture = ({
   );
 };
 
-/* ─── Contamination Report ────────────────────── */
-const ContaminationReport = ({
-  selectedType,
-  notes,
-  onTypeChange,
-  onNotesChange,
-}: {
-  selectedType: string;
-  notes: string;
-  onTypeChange: (t: string) => void;
-  onNotesChange: (n: string) => void;
-}) => (
-  <div className="space-y-3">
-    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-      <AlertTriangle className="w-4 h-4 text-red-500" />
-      Contamination Report
-    </h3>
-    <div className="grid grid-cols-2 gap-2">
-      {CONTAMINATION_TYPES.map((type) => (
-        <Button
-          key={type}
-          variant={selectedType === type ? "default" : "outline"}
-          onClick={() => onTypeChange(selectedType === type ? "" : type)}
-          className={cn(
-            "h-12 text-sm rounded-xl justify-start",
-            selectedType === type && "bg-red-500 hover:bg-red-600 text-white"
-          )}
-        >
-          {type}
-        </Button>
-      ))}
-    </div>
-    {selectedType && (
-      <Textarea
-        value={notes}
-        onChange={(e) => onNotesChange(e.target.value)}
-        placeholder="Describe the contamination issue..."
-        className="min-h-[80px] rounded-xl text-base"
-      />
-    )}
-  </div>
-);
 
 /* ─── Job Card ────────────────────────────────── */
 const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
@@ -481,19 +432,20 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
 const DriverJobDetail = ({
   job: initialJob,
   driverId,
+  driverName,
   onBack,
   onJobUpdated,
 }: {
   job: Job;
   driverId: string;
+  driverName: string;
   onBack: () => void;
   onJobUpdated: () => void;
 }) => {
   const queryClient = useQueryClient();
   const [job, setJob] = useState(initialJob);
   const [driverNotes, setDriverNotes] = useState(job.driver_notes || "");
-  const [contaminationType, setContaminationType] = useState(job.contamination_type || "");
-  const [contaminationNotes, setContaminationNotes] = useState(job.contamination_notes || "");
+  const [showContamination, setShowContamination] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
@@ -545,19 +497,20 @@ const DriverJobDetail = ({
   };
 
   const handleCompleteJob = () => {
-    const extras: Record<string, any> = {
+    updateJobStatus("completed", {
       completed_at: new Date().toISOString(),
       driver_notes: driverNotes.trim() || null,
-    };
-    if (contaminationType) {
-      extras.contamination_type = contaminationType;
-      extras.contamination_notes = contaminationNotes.trim() || null;
-      extras.status = "query";
-      extras.query_reason = `Contamination: ${contaminationType}`;
-      updateJobStatus("query", extras);
-    } else {
-      updateJobStatus("completed", extras);
-    }
+    });
+  };
+
+  const handleContaminationSubmitted = (wasteTypeName: string) => {
+    setShowContamination(false);
+    updateJobStatus("query", {
+      contamination_type: wasteTypeName,
+      query_reason: `Contamination: ${wasteTypeName}`,
+      driver_notes: driverNotes.trim() || null,
+    });
+    onBack();
   };
 
   const handleWastedJourney = () => {
@@ -566,6 +519,19 @@ const DriverJobDetail = ({
       driver_notes: driverNotes.trim() || null,
     });
   };
+
+  if (showContamination) {
+    return (
+      <DriverContaminationFlow
+        job={job}
+        driverId={driverId}
+        driverName={driverName}
+        onBack={() => setShowContamination(false)}
+        onSubmitted={handleContaminationSubmitted}
+      />
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background pb-6">
@@ -653,16 +619,24 @@ const DriverJobDetail = ({
               </CardContent>
             </Card>
 
-            {/* Contamination */}
+            {/* Contamination report entry point */}
             {!isCompleted && (
-              <Card>
-                <CardContent className="p-4">
-                  <ContaminationReport
-                    selectedType={contaminationType}
-                    notes={contaminationNotes}
-                    onTypeChange={setContaminationType}
-                    onNotesChange={setContaminationNotes}
-                  />
+              <Card className="border-red-300 bg-red-500/5">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
+                    <AlertTriangle className="w-4 h-4" />
+                    Found contamination?
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Log the waste type, photos, severity and capture the customer's on-site sign-off.
+                  </p>
+                  <Button
+                    onClick={() => setShowContamination(true)}
+                    className="w-full h-14 text-base font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl gap-3"
+                  >
+                    <AlertTriangle className="w-5 h-5" />
+                    Report Contamination
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -736,21 +710,14 @@ const DriverJobDetail = ({
               <Button
                 onClick={handleCompleteJob}
                 disabled={updating}
-                className={cn(
-                  "w-full h-16 text-xl font-bold text-white rounded-xl gap-3",
-                  contaminationType
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-emerald-500 hover:bg-emerald-600"
-                )}
+                className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
               >
                 {updating ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
-                ) : contaminationType ? (
-                  <AlertTriangle className="w-6 h-6" />
                 ) : (
                   <Check className="w-6 h-6" />
                 )}
-                {contaminationType ? "Complete & Flag Query" : "Complete Job"}
+                Complete Job
               </Button>
 
               <Button
@@ -962,6 +929,7 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
       <DriverJobDetail
         job={selectedJob}
         driverId={driver.id}
+        driverName={driver.driver_name}
         onBack={() => {
           setSelectedJob(null);
           handleJobUpdated();
