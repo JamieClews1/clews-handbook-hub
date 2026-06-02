@@ -979,6 +979,7 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
       <DriverJobDetail
         job={selectedJob}
         driverId={driver.id}
+        driverName={driver.driver_name}
         onBack={() => {
           setSelectedJob(null);
           handleJobUpdated();
