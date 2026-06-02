@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { SignaturePad } from "@/components/SignaturePad";
-import { findMatchingTier, calculateTierCharge, describeTier, type PricingTier, type WasteType } from "@/lib/contamination-pricing";
 import {
   Truck,
   MapPin,
