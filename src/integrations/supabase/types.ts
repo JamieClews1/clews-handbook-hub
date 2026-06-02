@@ -369,15 +369,126 @@ export type Database = {
         }
         Relationships: []
       }
+      contamination_points: {
+        Row: {
+          awarded_at: string
+          created_at: string
+          driver_id: string | null
+          id: string
+          points: number
+          query_id: string | null
+          reason: string | null
+          reporter_name: string
+        }
+        Insert: {
+          awarded_at?: string
+          created_at?: string
+          driver_id?: string | null
+          id?: string
+          points?: number
+          query_id?: string | null
+          reason?: string | null
+          reporter_name: string
+        }
+        Update: {
+          awarded_at?: string
+          created_at?: string
+          driver_id?: string | null
+          id?: string
+          points?: number
+          query_id?: string | null
+          reason?: string | null
+          reporter_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contamination_points_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contamination_pricing_tiers: {
+        Row: {
+          created_at: string
+          display_order: number
+          flat_fee: number
+          id: string
+          min_charge_tonnes: number | null
+          mins_max: number | null
+          mins_min: number | null
+          notes: string | null
+          pct_max: number | null
+          pct_min: number | null
+          per_tonne_fee: number | null
+          tier_name: string
+          updated_at: string
+          waste_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          flat_fee?: number
+          id?: string
+          min_charge_tonnes?: number | null
+          mins_max?: number | null
+          mins_min?: number | null
+          notes?: string | null
+          pct_max?: number | null
+          pct_min?: number | null
+          per_tonne_fee?: number | null
+          tier_name: string
+          updated_at?: string
+          waste_type_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          flat_fee?: number
+          id?: string
+          min_charge_tonnes?: number | null
+          mins_max?: number | null
+          mins_min?: number | null
+          notes?: string | null
+          pct_max?: number | null
+          pct_min?: number | null
+          per_tonne_fee?: number | null
+          tier_name?: string
+          updated_at?: string
+          waste_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contamination_pricing_tiers_waste_type_id_fkey"
+            columns: ["waste_type_id"]
+            isOneToOne: false
+            referencedRelation: "contamination_waste_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contamination_queries: {
         Row: {
           actioned_at: string | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          approver_name: string | null
+          calculated_charge: number | null
           charge_amount: number | null
+          charge_overridden: boolean
           completed_at: string | null
           container_type: string | null
+          contamination_pct: number | null
           contamination_type: string | null
           created_at: string
           customer: string | null
+          customer_signature: string | null
+          customer_signoff_at: string | null
+          customer_signoff_name: string | null
+          customer_signoff_role: string | null
           data_hub_job_id: string | null
           email_sent_at: string | null
           id: string
@@ -385,29 +496,50 @@ export type Database = {
           job_date: string | null
           job_number: string
           order_number: string | null
+          override_reason: string | null
           owner_id: string | null
           owner_name: string | null
           photos: string[] | null
           po_number: string | null
+          points_awarded: number
           postcode: string | null
+          pricing_tier_id: string | null
           query_reason: string | null
           recipient_email: string | null
+          rejection_reason: string | null
+          reporter_driver_id: string | null
+          reporter_name: string | null
+          reporter_type: string | null
           resolved_at: string | null
           site: string | null
+          sorting_minutes: number | null
+          source_app: string
           status: string
           updated_at: string
           vehicle_reg: string | null
           waste_description: string | null
+          waste_type_id: string | null
           weight_t: number | null
         }
         Insert: {
           actioned_at?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_name?: string | null
+          calculated_charge?: number | null
           charge_amount?: number | null
+          charge_overridden?: boolean
           completed_at?: string | null
           container_type?: string | null
+          contamination_pct?: number | null
           contamination_type?: string | null
           created_at?: string
           customer?: string | null
+          customer_signature?: string | null
+          customer_signoff_at?: string | null
+          customer_signoff_name?: string | null
+          customer_signoff_role?: string | null
           data_hub_job_id?: string | null
           email_sent_at?: string | null
           id?: string
@@ -415,29 +547,50 @@ export type Database = {
           job_date?: string | null
           job_number: string
           order_number?: string | null
+          override_reason?: string | null
           owner_id?: string | null
           owner_name?: string | null
           photos?: string[] | null
           po_number?: string | null
+          points_awarded?: number
           postcode?: string | null
+          pricing_tier_id?: string | null
           query_reason?: string | null
           recipient_email?: string | null
+          rejection_reason?: string | null
+          reporter_driver_id?: string | null
+          reporter_name?: string | null
+          reporter_type?: string | null
           resolved_at?: string | null
           site?: string | null
+          sorting_minutes?: number | null
+          source_app?: string
           status?: string
           updated_at?: string
           vehicle_reg?: string | null
           waste_description?: string | null
+          waste_type_id?: string | null
           weight_t?: number | null
         }
         Update: {
           actioned_at?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_name?: string | null
+          calculated_charge?: number | null
           charge_amount?: number | null
+          charge_overridden?: boolean
           completed_at?: string | null
           container_type?: string | null
+          contamination_pct?: number | null
           contamination_type?: string | null
           created_at?: string
           customer?: string | null
+          customer_signature?: string | null
+          customer_signoff_at?: string | null
+          customer_signoff_name?: string | null
+          customer_signoff_role?: string | null
           data_hub_job_id?: string | null
           email_sent_at?: string | null
           id?: string
@@ -445,20 +598,84 @@ export type Database = {
           job_date?: string | null
           job_number?: string
           order_number?: string | null
+          override_reason?: string | null
           owner_id?: string | null
           owner_name?: string | null
           photos?: string[] | null
           po_number?: string | null
+          points_awarded?: number
           postcode?: string | null
+          pricing_tier_id?: string | null
           query_reason?: string | null
           recipient_email?: string | null
+          rejection_reason?: string | null
+          reporter_driver_id?: string | null
+          reporter_name?: string | null
+          reporter_type?: string | null
           resolved_at?: string | null
           site?: string | null
+          sorting_minutes?: number | null
+          source_app?: string
           status?: string
           updated_at?: string
           vehicle_reg?: string | null
           waste_description?: string | null
+          waste_type_id?: string | null
           weight_t?: number | null
+        }
+        Relationships: []
+      }
+      contamination_settings: {
+        Row: {
+          created_at: string
+          id: string
+          points_per_report: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points_per_report?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points_per_report?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contamination_waste_types: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          typical_contamination: string | null
+          updated_at: string
+          zero_tolerance: boolean
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          typical_contamination?: string | null
+          updated_at?: string
+          zero_tolerance?: boolean
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          typical_contamination?: string | null
+          updated_at?: string
+          zero_tolerance?: boolean
         }
         Relationships: []
       }
