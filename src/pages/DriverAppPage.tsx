@@ -760,21 +760,14 @@ const DriverJobDetail = ({
               <Button
                 onClick={handleCompleteJob}
                 disabled={updating}
-                className={cn(
-                  "w-full h-16 text-xl font-bold text-white rounded-xl gap-3",
-                  contaminationType
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-emerald-500 hover:bg-emerald-600"
-                )}
+                className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
               >
                 {updating ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
-                ) : contaminationType ? (
-                  <AlertTriangle className="w-6 h-6" />
                 ) : (
                   <Check className="w-6 h-6" />
                 )}
-                {contaminationType ? "Complete & Flag Query" : "Complete Job"}
+                Complete Job
               </Button>
 
               <Button
