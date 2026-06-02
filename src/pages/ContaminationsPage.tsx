@@ -53,7 +53,7 @@ const ContaminationsPage = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="queries">All Queries</TabsTrigger>
-            {isAdmin && <TabsTrigger value="settings">Charge Matrix</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="settings">Pricing & Settings</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="dashboard">
