@@ -365,48 +365,6 @@ const PhotoCapture = ({
   );
 };
 
-/* ─── Contamination Report ────────────────────── */
-const ContaminationReport = ({
-  selectedType,
-  notes,
-  onTypeChange,
-  onNotesChange,
-}: {
-  selectedType: string;
-  notes: string;
-  onTypeChange: (t: string) => void;
-  onNotesChange: (n: string) => void;
-}) => (
-  <div className="space-y-3">
-    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-      <AlertTriangle className="w-4 h-4 text-red-500" />
-      Contamination Report
-    </h3>
-    <div className="grid grid-cols-2 gap-2">
-      {CONTAMINATION_TYPES.map((type) => (
-        <Button
-          key={type}
-          variant={selectedType === type ? "default" : "outline"}
-          onClick={() => onTypeChange(selectedType === type ? "" : type)}
-          className={cn(
-            "h-12 text-sm rounded-xl justify-start",
-            selectedType === type && "bg-red-500 hover:bg-red-600 text-white"
-          )}
-        >
-          {type}
-        </Button>
-      ))}
-    </div>
-    {selectedType && (
-      <Textarea
-        value={notes}
-        onChange={(e) => onNotesChange(e.target.value)}
-        placeholder="Describe the contamination issue..."
-        className="min-h-[80px] rounded-xl text-base"
-      />
-    )}
-  </div>
-);
 
 /* ─── Job Card ────────────────────────────────── */
 const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
