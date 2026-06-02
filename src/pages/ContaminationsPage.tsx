@@ -9,6 +9,7 @@ import ContaminationsDashboard from "@/components/contaminations/ContaminationsD
 import ContaminationsQueryList from "@/components/contaminations/ContaminationsQueryList";
 import ContaminationDetail from "@/components/contaminations/ContaminationDetail";
 import ContaminationPricingMatrix from "@/components/contaminations/ContaminationPricingMatrix";
+import ContaminationLeaderboard from "@/components/contaminations/ContaminationLeaderboard";
 
 const ContaminationsPage = () => {
   const { user, isAdmin } = useAuth();
