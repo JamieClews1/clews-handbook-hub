@@ -545,19 +545,20 @@ const DriverJobDetail = ({
   };
 
   const handleCompleteJob = () => {
-    const extras: Record<string, any> = {
+    updateJobStatus("completed", {
       completed_at: new Date().toISOString(),
       driver_notes: driverNotes.trim() || null,
-    };
-    if (contaminationType) {
-      extras.contamination_type = contaminationType;
-      extras.contamination_notes = contaminationNotes.trim() || null;
-      extras.status = "query";
-      extras.query_reason = `Contamination: ${contaminationType}`;
-      updateJobStatus("query", extras);
-    } else {
-      updateJobStatus("completed", extras);
-    }
+    });
+  };
+
+  const handleContaminationSubmitted = (wasteTypeName: string) => {
+    setShowContamination(false);
+    updateJobStatus("query", {
+      contamination_type: wasteTypeName,
+      query_reason: `Contamination: ${wasteTypeName}`,
+      driver_notes: driverNotes.trim() || null,
+    });
+    onBack();
   };
 
   const handleWastedJourney = () => {
@@ -566,6 +567,19 @@ const DriverJobDetail = ({
       driver_notes: driverNotes.trim() || null,
     });
   };
+
+  if (showContamination) {
+    return (
+      <DriverContaminationFlow
+        job={job}
+        driverId={driverId}
+        driverName={driverName}
+        onBack={() => setShowContamination(false)}
+        onSubmitted={handleContaminationSubmitted}
+      />
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background pb-6">
