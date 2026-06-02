@@ -8,7 +8,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 import ContaminationsDashboard from "@/components/contaminations/ContaminationsDashboard";
 import ContaminationsQueryList from "@/components/contaminations/ContaminationsQueryList";
 import ContaminationDetail from "@/components/contaminations/ContaminationDetail";
-import ContaminationChargeMatrix from "@/components/contaminations/ContaminationChargeMatrix";
+import ContaminationPricingMatrix from "@/components/contaminations/ContaminationPricingMatrix";
 
 const ContaminationsPage = () => {
   const { user, isAdmin } = useAuth();
@@ -53,7 +53,7 @@ const ContaminationsPage = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="queries">All Queries</TabsTrigger>
-            {isAdmin && <TabsTrigger value="settings">Charge Matrix</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="settings">Pricing & Settings</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -66,7 +66,7 @@ const ContaminationsPage = () => {
 
           {isAdmin && (
             <TabsContent value="settings">
-              <ContaminationChargeMatrix />
+              <ContaminationPricingMatrix />
             </TabsContent>
           )}
         </Tabs>
