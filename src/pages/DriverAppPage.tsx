@@ -493,8 +493,7 @@ const DriverJobDetail = ({
   const queryClient = useQueryClient();
   const [job, setJob] = useState(initialJob);
   const [driverNotes, setDriverNotes] = useState(job.driver_notes || "");
-  const [contaminationType, setContaminationType] = useState(job.contamination_type || "");
-  const [contaminationNotes, setContaminationNotes] = useState(job.contamination_notes || "");
+  const [showContamination, setShowContamination] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
