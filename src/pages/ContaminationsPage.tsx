@@ -8,7 +8,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 import ContaminationsDashboard from "@/components/contaminations/ContaminationsDashboard";
 import ContaminationsQueryList from "@/components/contaminations/ContaminationsQueryList";
 import ContaminationDetail from "@/components/contaminations/ContaminationDetail";
-import ContaminationChargeMatrix from "@/components/contaminations/ContaminationChargeMatrix";
+import ContaminationPricingMatrix from "@/components/contaminations/ContaminationPricingMatrix";
 
 const ContaminationsPage = () => {
   const { user, isAdmin } = useAuth();
