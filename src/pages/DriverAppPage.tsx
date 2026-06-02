@@ -58,14 +58,6 @@ const STATUS_LABELS: Record<string, string> = {
   query: "Query",
 };
 
-const CONTAMINATION_TYPES = [
-  "Mixed Waste",
-  "Hazardous Materials",
-  "Overfilled Container",
-  "Incorrect Waste Type",
-  "Liquid Waste",
-  "Other",
-];
 
 interface Driver {
   id: string;
