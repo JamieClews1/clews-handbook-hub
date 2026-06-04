@@ -702,6 +702,30 @@ const DriverJobDetail = ({
           </CardContent>
         </Card>
 
+        {/* Contamination report entry point — always available from the ticket */}
+        {!isCompleted && (
+          <Card className="border-red-300 bg-red-500/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                Found contamination?
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Log the waste type, photos, severity and capture the customer's on-site sign-off.
+              </p>
+              <Button
+                onClick={() => setShowContamination(true)}
+                className="w-full h-14 text-base font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl gap-3"
+              >
+                <AlertTriangle className="w-5 h-5" />
+                Report Contamination
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+
+
         {/* ── In Progress / Completion Section ── */}
         {(isInProgress || isCompleted) && (
           <>
@@ -719,28 +743,6 @@ const DriverJobDetail = ({
                 <PhotoCapture jobId={job.id} photoType="contamination" label="Contamination" />
               </CardContent>
             </Card>
-
-            {/* Contamination report entry point */}
-            {!isCompleted && (
-              <Card className="border-red-300 bg-red-500/5">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
-                    <AlertTriangle className="w-4 h-4" />
-                    Found contamination?
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Log the waste type, photos, severity and capture the customer's on-site sign-off.
-                  </p>
-                  <Button
-                    onClick={() => setShowContamination(true)}
-                    className="w-full h-14 text-base font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl gap-3"
-                  >
-                    <AlertTriangle className="w-5 h-5" />
-                    Report Contamination
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Driver Notes */}
             {!isCompleted && (
