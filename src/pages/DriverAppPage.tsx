@@ -68,6 +68,16 @@ interface Driver {
   route_one_vehicles: { registration: string; vehicle_type: string } | null;
 }
 
+type AppRole = "driver" | "yard";
+type AppView = "jobs" | "contaminations";
+
+interface AppUser {
+  id: string;
+  name: string;
+  role: AppRole;
+  driver?: Driver;
+}
+
 interface Job {
   id: string;
   job_number: string;
