@@ -187,6 +187,40 @@ export const UserManagement = () => {
     }
   };
 
+  const handleSetDriver = (user: UserProfile) => {
+    setDriverUser(user);
+    setDriverNumber(user.driver_number?.toString() || "");
+    setDriverPin(user.driver_pin || "");
+  };
+
+  const saveDriver = async () => {
+    if (!driverUser) return;
+    const num = driverNumber.trim() ? parseInt(driverNumber.trim(), 10) : null;
+    const pin = driverPin.trim() || null;
+    if (num !== null && (pin === null || pin.length < 4)) {
+      toast({ title: "Error", description: "PIN must be at least 4 digits", variant: "destructive" });
+      return;
+    }
+    setSavingDriver(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ driver_number: num, driver_pin: pin })
+        .eq("id", driverUser.id);
+      if (error) throw error;
+      toast({ title: "Success", description: `Driver login updated for ${emailToUsername(driverUser.email)}` });
+      setDriverUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      const msg = error.message?.includes("duplicate") || error.code === "23505"
+        ? "That driver number is already in use"
+        : error.message;
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    } finally {
+      setSavingDriver(false);
+    }
+  };
+
   const confirmAction = async () => {
     if (!selectedUser || !actionType) return;
     try {
