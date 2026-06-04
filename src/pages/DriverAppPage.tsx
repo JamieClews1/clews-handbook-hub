@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
+import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
