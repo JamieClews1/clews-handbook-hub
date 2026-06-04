@@ -541,7 +541,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
             <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Camera className="w-4 h-4" /> Photos
             </h2>
-            <ContaminationPhotos jobId={job.id} urls={photos} onChange={setPhotos} />
+            <ContaminationPhotos jobId={photoFolder} urls={photos} onChange={setPhotos} />
           </CardContent>
         </Card>
 
