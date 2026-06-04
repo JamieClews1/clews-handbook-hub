@@ -1038,24 +1038,15 @@ const DriverDashboard = ({
     refetchInterval: 30000,
   });
 
-  // Fetch Skiptrak jobs matched by driver name
+  // Fetch Skiptrak jobs matched by driver name (via edge function — bypasses RLS for anon driver sessions)
   const { data: skiptrakJobs = [] } = useQuery({
     queryKey: ["driver-skiptrak-jobs", driver.driver_name, today],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("data_hub_jobs")
-        .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location")
-        .eq("source", "skiptrak")
-        .eq("job_date", today)
-        .not("driver", "is", null)
-        .order("job_date");
-      if (error) throw error;
-      // Filter by driver name match
-      const normalized = driver.driver_name.toLowerCase().trim().replace(/[.\-_]/g, " ");
-      return (data ?? []).filter((j: any) => {
-        const d = (j.driver || "").toLowerCase().trim().replace(/[.\-_]/g, " ");
-        return d === normalized || d.includes(normalized) || normalized.includes(d);
+      const { data, error } = await supabase.functions.invoke("driver-jobs", {
+        body: { driverName: driver.driver_name, date: today },
       });
+      if (error) throw error;
+      return (data?.jobs ?? []) as any[];
     },
     refetchInterval: 60000,
   });
