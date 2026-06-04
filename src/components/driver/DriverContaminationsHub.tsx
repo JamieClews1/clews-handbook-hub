@@ -278,6 +278,7 @@ const DriverContaminationsHub = ({
           </>
         )}
       </div>
+      {nav}
     </div>
   );
 };
