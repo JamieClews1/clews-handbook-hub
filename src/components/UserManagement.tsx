@@ -366,6 +366,7 @@ export const UserManagement = () => {
                     <TableHead>Username</TableHead>
                     <TableHead>Full Name</TableHead>
                     <TableHead>User Types</TableHead>
+                    <TableHead>Driver #</TableHead>
                     <TableHead>Compliance Status</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Actions</TableHead>
@@ -374,7 +375,7 @@ export const UserManagement = () => {
                 <TableBody>
                   {filteredStaff.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No staff users found.
                       </TableCell>
                     </TableRow>
