@@ -37,10 +37,16 @@ interface DriverJobLike {
   po_number: string | null;
 }
 
+export interface ContaminationReporter {
+  id: string;
+  name: string;
+  type: "driver" | "yard";
+}
+
 interface Props {
-  job: DriverJobLike;
-  driverId: string;
-  driverName: string;
+  /** When reporting against an existing job. Omit for a standalone report. */
+  job?: DriverJobLike | null;
+  reporter: ContaminationReporter;
   onBack: () => void;
   onSubmitted: (wasteTypeName: string) => void;
 }
