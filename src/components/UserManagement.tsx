@@ -205,6 +205,13 @@ export const UserManagement = () => {
     setDriverPin(user.driver_pin || "");
   };
 
+  const applyRouteDriver = (id: string) => {
+    const d = routeDrivers.find(r => r.id === id);
+    if (!d) return;
+    if (d.driver_number != null) setDriverNumber(d.driver_number.toString());
+    if (d.pin) setDriverPin(d.pin);
+  };
+
   const saveDriver = async () => {
     if (!driverUser) return;
     const num = driverNumber.trim() ? parseInt(driverNumber.trim(), 10) : null;
