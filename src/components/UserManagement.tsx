@@ -56,6 +56,7 @@ export const UserManagement = () => {
   const [driverNumber, setDriverNumber] = useState("");
   const [driverPin, setDriverPin] = useState("");
   const [savingDriver, setSavingDriver] = useState(false);
+  const [routeDrivers, setRouteDrivers] = useState<{ id: string; driver_name: string; driver_number: number | null; pin: string | null }[]>([]);
   const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
   const [staffTab, setStaffTab] = useState<StaffTab>("all");
   const [search, setSearch] = useState("");
