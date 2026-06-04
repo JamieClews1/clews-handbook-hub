@@ -229,7 +229,10 @@ const ContaminationPhotos = ({
   );
 };
 
-const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitted }: Props) => {
+const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) => {
+  const driverId = reporter.id;
+  const driverName = reporter.name;
+  const standalone = !job;
   const [wasteTypeId, setWasteTypeId] = useState<string>("");
   const [pct, setPct] = useState<string>("");
   const [minutes, setMinutes] = useState<string>("");
@@ -238,6 +241,11 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
   const [signoffName, setSignoffName] = useState("");
   const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Manual job details for standalone reports (no linked job)
+  const [mJobNumber, setMJobNumber] = useState("");
+  const [mCustomer, setMCustomer] = useState("");
+  const [mSite, setMSite] = useState("");
+  const [mPostcode, setMPostcode] = useState("");
 
   const { data: wasteTypes = [] } = useQuery({
     queryKey: ["driver-contamination-waste-types"],
