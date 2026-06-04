@@ -301,17 +301,29 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
 
   const selectedWasteName = wasteTypes.find((w) => w.id === wasteTypeId)?.name || "";
 
+  // Resolved job/site details (from linked job or manual entry)
+  const jobNumber = job?.job_number || mJobNumber.trim();
+  const customerName = job?.customer_name || mCustomer.trim();
+  const siteName = job?.site_name ?? (mSite.trim() || null);
+  const sitePostcode = job?.site_postcode ?? (mPostcode.trim() || null);
+  const photoFolder = job?.id || `standalone/${driverId}`;
+
   const canSubmit =
     !!wasteTypeId &&
     (!!description.trim() || !!pct || !!minutes) &&
     photos.length > 0 &&
     !!signoffName.trim() &&
     !!signature &&
+    (!standalone || (!!jobNumber && !!customerName)) &&
     !submitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      toast.error("Please complete waste type, a photo, the description, and customer sign-off");
+      toast.error(
+        standalone
+          ? "Please add the job/customer, waste type, a photo, the description, and customer sign-off"
+          : "Please complete waste type, a photo, the description, and customer sign-off",
+      );
       return;
     }
     setSubmitting(true);
@@ -322,17 +334,17 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       const { data: created, error: insertError } = await supabase
         .from("contamination_queries")
         .insert({
-          job_number: job.job_number,
-          customer: job.customer_name,
-          site: job.site_name,
-          postcode: job.site_postcode,
-          container_type: job.container_type,
-          po_number: job.po_number,
+          job_number: jobNumber,
+          customer: customerName,
+          site: siteName,
+          postcode: sitePostcode,
+          container_type: job?.container_type ?? null,
+          po_number: job?.po_number ?? null,
           status: "query",
-          source_app: "driver",
-          reporter_driver_id: driverId,
+          source_app: reporter.type === "yard" ? "yard" : "driver",
+          reporter_driver_id: reporter.type === "driver" ? driverId : null,
           reporter_name: driverName,
-          reporter_type: "driver",
+          reporter_type: reporter.type,
           waste_type_id: wasteTypeId,
           contamination_type: selectedWasteName,
           contamination_pct: pct ? parseFloat(pct) : null,
