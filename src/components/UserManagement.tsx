@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { UserComplianceView } from "./UserComplianceView";
 import { usernameToEmail, emailToUsername } from "@/lib/auth-utils";
@@ -55,6 +56,7 @@ export const UserManagement = () => {
   const [driverNumber, setDriverNumber] = useState("");
   const [driverPin, setDriverPin] = useState("");
   const [savingDriver, setSavingDriver] = useState(false);
+  const [routeDrivers, setRouteDrivers] = useState<{ id: string; driver_name: string; driver_number: number | null; pin: string | null }[]>([]);
   const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
   const [staffTab, setStaffTab] = useState<StaffTab>("all");
   const [search, setSearch] = useState("");
@@ -62,7 +64,17 @@ export const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchRouteDrivers();
   }, []);
+
+  const fetchRouteDrivers = async () => {
+    const { data, error } = await supabase
+      .from("route_one_drivers")
+      .select("id, driver_name, driver_number, pin")
+      .eq("is_active", true)
+      .order("driver_number", { ascending: true });
+    if (!error && data) setRouteDrivers(data as any);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -191,6 +203,13 @@ export const UserManagement = () => {
     setDriverUser(user);
     setDriverNumber(user.driver_number?.toString() || "");
     setDriverPin(user.driver_pin || "");
+  };
+
+  const applyRouteDriver = (id: string) => {
+    const d = routeDrivers.find(r => r.id === id);
+    if (!d) return;
+    if (d.driver_number != null) setDriverNumber(d.driver_number.toString());
+    if (d.pin) setDriverPin(d.pin);
   };
 
   const saveDriver = async () => {
@@ -580,6 +599,22 @@ export const UserManagement = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Assign from RouteOne Setup</Label>
+              <Select onValueChange={applyRouteDriver}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a RouteOne driver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {routeDrivers.map(d => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.driver_number != null ? `#${d.driver_number} — ` : ""}{d.driver_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Picks the driver number (and PIN) from RouteOne. You can still edit below.</p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="driverNumber">Driver Number</Label>
               <Input
