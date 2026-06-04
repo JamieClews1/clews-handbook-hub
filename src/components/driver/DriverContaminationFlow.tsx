@@ -400,19 +400,67 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       <div className="p-4 border-b-4 border-red-500 bg-red-500/10">
         <button onClick={onBack} className="flex items-center gap-2 text-muted-foreground mb-3 active:opacity-70">
           <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">Back to Job</span>
+          <span className="text-sm font-medium">{standalone ? "Back" : "Back to Job"}</span>
         </button>
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-red-500" />
           <h1 className="text-2xl font-bold text-foreground">Report Contamination</h1>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {job.customer_name} · #{job.job_number}
-        </p>
+        {!standalone && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {job!.customer_name} · #{job!.job_number}
+          </p>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Waste type */}
+        {/* Job details (standalone only) */}
+        {standalone && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Job Details</h2>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium">Job Number *</label>
+                <Input
+                  value={mJobNumber}
+                  onChange={(e) => setMJobNumber(e.target.value)}
+                  placeholder="e.g. 12345"
+                  className="h-12 text-base rounded-xl"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium">Customer *</label>
+                <Input
+                  value={mCustomer}
+                  onChange={(e) => setMCustomer(e.target.value)}
+                  placeholder="Customer name"
+                  className="h-12 text-base rounded-xl"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium">Site</label>
+                  <Input
+                    value={mSite}
+                    onChange={(e) => setMSite(e.target.value)}
+                    placeholder="Site name"
+                    className="h-12 text-base rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium">Postcode</label>
+                  <Input
+                    value={mPostcode}
+                    onChange={(e) => setMPostcode(e.target.value)}
+                    placeholder="Postcode"
+                    className="h-12 text-base rounded-xl"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardContent className="p-4 space-y-3">
             <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Waste Type</h2>
