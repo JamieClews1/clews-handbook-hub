@@ -1156,49 +1156,82 @@ const DriverDashboard = ({
           </>
         )}
       </div>
+      {nav}
     </div>
   );
 };
 
+/* ─── App Shell (combines Jobs + Contaminations) ── */
+const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) => {
+  const [view, setView] = useState<AppView>(user.role === "yard" ? "contaminations" : "jobs");
+  const nav = <BottomNav view={view} setView={setView} role={user.role} />;
+
+  if (view === "contaminations") {
+    return (
+      <DriverContaminationsHub
+        reporter={{ id: user.id, name: user.name, type: user.role }}
+        userName={user.name}
+        onLogout={onLogout}
+        nav={nav}
+      />
+    );
+  }
+
+  return <DriverDashboard driver={user.driver!} onLogout={onLogout} nav={nav} />;
+};
+
 /* ─── Main Page ───────────────────────────────── */
 const DriverAppPage = () => {
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("driver_session");
-    if (stored) {
-      try {
-        const { id, ts } = JSON.parse(stored);
-        if (Date.now() - ts < 14 * 60 * 60 * 1000) {
-          supabase
-            .from("route_one_drivers")
-            .select("*, route_one_vehicles(registration, vehicle_type)")
-            .eq("id", id)
-            .eq("is_active", true)
-            .maybeSingle()
-            .then(({ data }) => {
-              if (data) setDriver(data as Driver);
-              else localStorage.removeItem("driver_session");
-            });
-        } else {
-          localStorage.removeItem("driver_session");
-        }
-      } catch {
+    if (!stored) return;
+    try {
+      const { id, ts, role } = JSON.parse(stored);
+      if (Date.now() - ts >= 14 * 60 * 60 * 1000) {
         localStorage.removeItem("driver_session");
+        return;
       }
+      if (role === "yard") {
+        supabase
+          .from("yard_staff")
+          .select("id, staff_name")
+          .eq("id", id)
+          .eq("is_active", true)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setUser({ id: data.id, name: data.staff_name, role: "yard" });
+            else localStorage.removeItem("driver_session");
+          });
+      } else {
+        supabase
+          .from("route_one_drivers")
+          .select("*, route_one_vehicles(registration, vehicle_type)")
+          .eq("id", id)
+          .eq("is_active", true)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data)
+              setUser({ id: data.id, name: data.driver_name, role: "driver", driver: data as Driver });
+            else localStorage.removeItem("driver_session");
+          });
+      }
+    } catch {
+      localStorage.removeItem("driver_session");
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("driver_session");
-    setDriver(null);
+    setUser(null);
   };
 
-  if (!driver) {
-    return <DriverLogin onLogin={setDriver} />;
+  if (!user) {
+    return <DriverLogin onLogin={setUser} />;
   }
 
-  return <DriverDashboard driver={driver} onLogout={handleLogout} />;
+  return <AppShell user={user} onLogout={handleLogout} />;
 };
 
 export default DriverAppPage;
