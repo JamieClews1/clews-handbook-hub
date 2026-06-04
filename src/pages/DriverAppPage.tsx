@@ -900,14 +900,45 @@ const SkiptrakDriverCard = ({ job, onClick }: { job: any; onClick: () => void })
   );
 };
 
-/* ─── Skiptrak Job Detail (read-only) ─────────── */
-const SkiptrakJobDetailView = ({ job, onBack }: { job: any; onBack: () => void }) => {
+/* ─── Skiptrak Job Detail ─────────────────────── */
+const SkiptrakJobDetailView = ({
+  job,
+  driverId,
+  driverName,
+  onBack,
+}: {
+  job: any;
+  driverId: string;
+  driverName: string;
+  onBack: () => void;
+}) => {
+  const [showContamination, setShowContamination] = useState(false);
+
   const handleNavigate = () => {
     const address = job.site || "";
     if (address) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, "_blank");
     }
   };
+
+  if (showContamination) {
+    return (
+      <DriverContaminationFlow
+        job={{
+          id: String(job.id || `skiptrak-${job.job_number}`),
+          job_number: String(job.job_number || ""),
+          customer_name: job.customer || "Unknown",
+          site_name: job.site || null,
+          site_postcode: null,
+          container_type: job.container_type || null,
+          po_number: job.po_number || null,
+        }}
+        reporter={{ id: driverId, name: driverName, type: "driver" }}
+        onBack={() => setShowContamination(false)}
+        onSubmitted={() => onBack()}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-6">
@@ -962,6 +993,25 @@ const SkiptrakJobDetailView = ({ job, onBack }: { job: any; onBack: () => void }
               {job.vehicle_registration && <InfoItem label="Vehicle" value={job.vehicle_registration} />}
               {job.job_date && <InfoItem label="Date" value={job.job_date} />}
             </div>
+          </CardContent>
+        </Card>
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2 text-destructive font-bold text-sm">
+              <AlertTriangle className="w-4 h-4" />
+              Found contamination?
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Log the waste type, photos, severity and capture the customer's on-site sign-off.
+            </p>
+            <Button
+              onClick={() => setShowContamination(true)}
+              variant="destructive"
+              className="w-full h-14 text-base font-bold rounded-xl gap-3"
+            >
+              <AlertTriangle className="w-5 h-5" />
+              Report Contamination
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -1059,6 +1109,8 @@ const DriverDashboard = ({
     return (
       <SkiptrakJobDetailView
         job={selectedSkiptrakJob}
+        driverId={driver.id}
+        driverName={driver.driver_name}
         onBack={() => setSelectedSkiptrakJob(null)}
       />
     );
