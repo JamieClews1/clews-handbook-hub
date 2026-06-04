@@ -400,6 +400,13 @@ export const UserManagement = () => {
                         <UserComplianceView userId={user.id} userTypes={user.user_types} userName={user.full_name || user.email} />
                       </TableCell>
                       <TableCell>
+                        {user.driver_number != null ? (
+                          <Badge variant="outline" className="font-mono">{user.driver_number}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {user.isAdmin ? (
                           <span className="inline-flex items-center gap-1 text-primary">
                             <Shield className="h-4 w-4" /> Admin
