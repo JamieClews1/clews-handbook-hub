@@ -51,6 +51,10 @@ export const UserManagement = () => {
   const [passwordUser, setPasswordUser] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
+  const [driverUser, setDriverUser] = useState<UserProfile | null>(null);
+  const [driverNumber, setDriverNumber] = useState("");
+  const [driverPin, setDriverPin] = useState("");
+  const [savingDriver, setSavingDriver] = useState(false);
   const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
   const [staffTab, setStaffTab] = useState<StaffTab>("all");
   const [search, setSearch] = useState("");
