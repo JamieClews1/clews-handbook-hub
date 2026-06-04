@@ -4830,6 +4830,45 @@ export type Database = {
         }
         Relationships: []
       }
+      yard_staff: {
+        Row: {
+          created_at: string
+          department: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          pin: string | null
+          staff_name: string
+          staff_number: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          pin?: string | null
+          staff_name: string
+          staff_number?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          pin?: string | null
+          staff_name?: string
+          staff_number?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

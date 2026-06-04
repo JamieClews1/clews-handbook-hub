@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
+import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
@@ -68,6 +69,16 @@ interface Driver {
   route_one_vehicles: { registration: string; vehicle_type: string } | null;
 }
 
+type AppRole = "driver" | "yard";
+type AppView = "jobs" | "contaminations";
+
+interface AppUser {
+  id: string;
+  name: string;
+  role: AppRole;
+  driver?: Driver;
+}
+
 interface Job {
   id: string;
   job_number: string;
@@ -99,36 +110,78 @@ interface JobPhoto {
 }
 
 /* ─── PIN Login Screen ────────────────────────── */
-const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
-  const [driverNumber, setDriverNumber] = useState("");
+const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
+  const [mode, setMode] = useState<AppRole>("driver");
+  const [number, setNumber] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const numberLabel = mode === "driver" ? "Driver Number" : "Staff Number";
+
+  const switchMode = (m: AppRole) => {
+    setMode(m);
+    setNumber("");
+    setPin("");
+    setError("");
+  };
+
   const handleLogin = async () => {
-    if (!driverNumber || !pin) {
-      setError("Enter your driver number and PIN");
+    if (!number || !pin) {
+      setError(`Enter your ${numberLabel.toLowerCase()} and PIN`);
       return;
     }
     setLoading(true);
     setError("");
 
-    const { data, error: dbError } = await supabase
-      .from("route_one_drivers")
-      .select("*, route_one_vehicles(registration, vehicle_type)")
-      .eq("driver_number", parseInt(driverNumber))
-      .eq("pin", pin)
-      .eq("is_active", true)
-      .maybeSingle();
+    if (mode === "driver") {
+      const { data, error: dbError } = await supabase
+        .from("route_one_drivers")
+        .select("*, route_one_vehicles(registration, vehicle_type)")
+        .eq("driver_number", parseInt(number))
+        .eq("pin", pin)
+        .eq("is_active", true)
+        .maybeSingle();
 
-    if (dbError || !data) {
-      setError("Invalid driver number or PIN");
-      setLoading(false);
-      return;
+      if (dbError || !data) {
+        setError("Invalid driver number or PIN");
+        setLoading(false);
+        return;
+      }
+
+      const user: AppUser = {
+        id: data.id,
+        name: data.driver_name,
+        role: "driver",
+        driver: data as Driver,
+      };
+      localStorage.setItem(
+        "driver_session",
+        JSON.stringify({ id: data.id, ts: Date.now(), role: "driver" }),
+      );
+      onLogin(user);
+    } else {
+      const { data, error: dbError } = await supabase
+        .from("yard_staff")
+        .select("id, staff_name")
+        .eq("staff_number", parseInt(number))
+        .eq("pin", pin)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (dbError || !data) {
+        setError("Invalid staff number or PIN");
+        setLoading(false);
+        return;
+      }
+
+      const user: AppUser = { id: data.id, name: data.staff_name, role: "yard" };
+      localStorage.setItem(
+        "driver_session",
+        JSON.stringify({ id: data.id, ts: Date.now(), role: "yard" }),
+      );
+      onLogin(user);
     }
-
-    localStorage.setItem("driver_session", JSON.stringify({ id: data.id, ts: Date.now() }));
-    onLogin(data as Driver);
     setLoading(false);
   };
 
@@ -138,23 +191,43 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
 
   return (
     <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-8">
+      <div className="w-full max-w-sm space-y-7">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-emerald-500/20 mb-4">
-            <Truck className="w-10 h-10 text-emerald-400" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-emerald-500/20 mb-2">
+            {mode === "driver" ? (
+              <Truck className="w-10 h-10 text-emerald-400" />
+            ) : (
+              <User className="w-10 h-10 text-emerald-400" />
+            )}
           </div>
           <h1 className="text-3xl font-bold text-white">RouteOne</h1>
-          <p className="text-zinc-400 text-lg">Driver Login</p>
+          <p className="text-zinc-400 text-lg">{mode === "driver" ? "Driver Login" : "Yard Staff Login"}</p>
+        </div>
+
+        {/* Mode toggle */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-800 rounded-xl">
+          {(["driver", "yard"] as AppRole[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => switchMode(m)}
+              className={cn(
+                "h-10 rounded-lg text-sm font-semibold transition-colors",
+                mode === m ? "bg-emerald-500 text-white" : "text-zinc-400",
+              )}
+            >
+              {m === "driver" ? "Driver" : "Yard Staff"}
+            </button>
+          ))}
         </div>
 
         <div className="space-y-3">
-          <label className="text-zinc-300 text-sm font-medium">Driver Number</label>
+          <label className="text-zinc-300 text-sm font-medium">{numberLabel}</label>
           <Input
             type="number"
             inputMode="numeric"
-            value={driverNumber}
-            onChange={(e) => setDriverNumber(e.target.value)}
-            placeholder="Enter driver number"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            placeholder={`Enter ${numberLabel.toLowerCase()}`}
             className="h-14 text-xl text-center bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
           />
         </div>
@@ -211,7 +284,7 @@ const DriverLogin = ({ onLogin }: { onLogin: (driver: Driver) => void }) => {
 
         <Button
           onClick={handleLogin}
-          disabled={loading || !driverNumber || !pin}
+          disabled={loading || !number || !pin}
           className="w-full h-16 text-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl"
         >
           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Sign In"}
@@ -524,8 +597,7 @@ const DriverJobDetail = ({
     return (
       <DriverContaminationFlow
         job={job}
-        driverId={driverId}
-        driverName={driverName}
+        reporter={{ id: driverId, name: driverName, type: "driver" }}
         onBack={() => setShowContamination(false)}
         onSubmitted={handleContaminationSubmitted}
       />
@@ -866,8 +938,54 @@ const SkiptrakJobDetailView = ({ job, onBack }: { job: any; onBack: () => void }
   );
 };
 
+/* ─── Bottom Navigation ───────────────────────── */
+const BottomNav = ({
+  view,
+  setView,
+  role,
+}: {
+  view: AppView;
+  setView: (v: AppView) => void;
+  role: AppRole;
+}) => {
+  const items: { key: AppView; label: string; Icon: typeof Truck }[] =
+    role === "yard"
+      ? [{ key: "contaminations", label: "Contaminations", Icon: AlertTriangle }]
+      : [
+          { key: "jobs", label: "Jobs", Icon: Truck },
+          { key: "contaminations", label: "Contaminations", Icon: AlertTriangle },
+        ];
+  return (
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-zinc-900 border-t border-zinc-800">
+      <div className={cn("grid", items.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+        {items.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-3 text-xs font-semibold active:opacity-70",
+              view === key ? "text-emerald-400" : "text-zinc-400",
+            )}
+          >
+            <Icon className="w-5 h-5" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+};
+
 /* ─── Jobs Dashboard ──────────────────────────── */
-const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () => void }) => {
+const DriverDashboard = ({
+  driver,
+  onLogout,
+  nav,
+}: {
+  driver: Driver;
+  onLogout: () => void;
+  nav?: React.ReactNode;
+}) => {
   const queryClient = useQueryClient();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedSkiptrakJob, setSelectedSkiptrakJob] = useState<any | null>(null);
@@ -944,7 +1062,7 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
   const totalJobs = jobs.length + skiptrakJobs.length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="bg-zinc-900 text-white p-4 pb-5">
         <div className="flex items-center justify-between mb-4">
@@ -1038,49 +1156,82 @@ const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () =>
           </>
         )}
       </div>
+      {nav}
     </div>
   );
 };
 
+/* ─── App Shell (combines Jobs + Contaminations) ── */
+const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) => {
+  const [view, setView] = useState<AppView>(user.role === "yard" ? "contaminations" : "jobs");
+  const nav = <BottomNav view={view} setView={setView} role={user.role} />;
+
+  if (view === "contaminations") {
+    return (
+      <DriverContaminationsHub
+        reporter={{ id: user.id, name: user.name, type: user.role }}
+        userName={user.name}
+        onLogout={onLogout}
+        nav={nav}
+      />
+    );
+  }
+
+  return <DriverDashboard driver={user.driver!} onLogout={onLogout} nav={nav} />;
+};
+
 /* ─── Main Page ───────────────────────────────── */
 const DriverAppPage = () => {
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("driver_session");
-    if (stored) {
-      try {
-        const { id, ts } = JSON.parse(stored);
-        if (Date.now() - ts < 14 * 60 * 60 * 1000) {
-          supabase
-            .from("route_one_drivers")
-            .select("*, route_one_vehicles(registration, vehicle_type)")
-            .eq("id", id)
-            .eq("is_active", true)
-            .maybeSingle()
-            .then(({ data }) => {
-              if (data) setDriver(data as Driver);
-              else localStorage.removeItem("driver_session");
-            });
-        } else {
-          localStorage.removeItem("driver_session");
-        }
-      } catch {
+    if (!stored) return;
+    try {
+      const { id, ts, role } = JSON.parse(stored);
+      if (Date.now() - ts >= 14 * 60 * 60 * 1000) {
         localStorage.removeItem("driver_session");
+        return;
       }
+      if (role === "yard") {
+        supabase
+          .from("yard_staff")
+          .select("id, staff_name")
+          .eq("id", id)
+          .eq("is_active", true)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setUser({ id: data.id, name: data.staff_name, role: "yard" });
+            else localStorage.removeItem("driver_session");
+          });
+      } else {
+        supabase
+          .from("route_one_drivers")
+          .select("*, route_one_vehicles(registration, vehicle_type)")
+          .eq("id", id)
+          .eq("is_active", true)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data)
+              setUser({ id: data.id, name: data.driver_name, role: "driver", driver: data as Driver });
+            else localStorage.removeItem("driver_session");
+          });
+      }
+    } catch {
+      localStorage.removeItem("driver_session");
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("driver_session");
-    setDriver(null);
+    setUser(null);
   };
 
-  if (!driver) {
-    return <DriverLogin onLogin={setDriver} />;
+  if (!user) {
+    return <DriverLogin onLogin={setUser} />;
   }
 
-  return <DriverDashboard driver={driver} onLogout={handleLogout} />;
+  return <AppShell user={user} onLogout={handleLogout} />;
 };
 
 export default DriverAppPage;

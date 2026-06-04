@@ -37,10 +37,16 @@ interface DriverJobLike {
   po_number: string | null;
 }
 
+export interface ContaminationReporter {
+  id: string;
+  name: string;
+  type: "driver" | "yard";
+}
+
 interface Props {
-  job: DriverJobLike;
-  driverId: string;
-  driverName: string;
+  /** When reporting against an existing job. Omit for a standalone report. */
+  job?: DriverJobLike | null;
+  reporter: ContaminationReporter;
   onBack: () => void;
   onSubmitted: (wasteTypeName: string) => void;
 }
@@ -223,7 +229,10 @@ const ContaminationPhotos = ({
   );
 };
 
-const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitted }: Props) => {
+const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) => {
+  const driverId = reporter.id;
+  const driverName = reporter.name;
+  const standalone = !job;
   const [wasteTypeId, setWasteTypeId] = useState<string>("");
   const [pct, setPct] = useState<string>("");
   const [minutes, setMinutes] = useState<string>("");
@@ -232,6 +241,11 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
   const [signoffName, setSignoffName] = useState("");
   const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Manual job details for standalone reports (no linked job)
+  const [mJobNumber, setMJobNumber] = useState("");
+  const [mCustomer, setMCustomer] = useState("");
+  const [mSite, setMSite] = useState("");
+  const [mPostcode, setMPostcode] = useState("");
 
   const { data: wasteTypes = [] } = useQuery({
     queryKey: ["driver-contamination-waste-types"],
@@ -287,17 +301,29 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
 
   const selectedWasteName = wasteTypes.find((w) => w.id === wasteTypeId)?.name || "";
 
+  // Resolved job/site details (from linked job or manual entry)
+  const jobNumber = job?.job_number || mJobNumber.trim();
+  const customerName = job?.customer_name || mCustomer.trim();
+  const siteName = job?.site_name ?? (mSite.trim() || null);
+  const sitePostcode = job?.site_postcode ?? (mPostcode.trim() || null);
+  const photoFolder = job?.id || `standalone/${driverId}`;
+
   const canSubmit =
     !!wasteTypeId &&
     (!!description.trim() || !!pct || !!minutes) &&
     photos.length > 0 &&
     !!signoffName.trim() &&
     !!signature &&
+    (!standalone || (!!jobNumber && !!customerName)) &&
     !submitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      toast.error("Please complete waste type, a photo, the description, and customer sign-off");
+      toast.error(
+        standalone
+          ? "Please add the job/customer, waste type, a photo, the description, and customer sign-off"
+          : "Please complete waste type, a photo, the description, and customer sign-off",
+      );
       return;
     }
     setSubmitting(true);
@@ -308,17 +334,17 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
       const { data: created, error: insertError } = await supabase
         .from("contamination_queries")
         .insert({
-          job_number: job.job_number,
-          customer: job.customer_name,
-          site: job.site_name,
-          postcode: job.site_postcode,
-          container_type: job.container_type,
-          po_number: job.po_number,
+          job_number: jobNumber,
+          customer: customerName,
+          site: siteName,
+          postcode: sitePostcode,
+          container_type: job?.container_type ?? null,
+          po_number: job?.po_number ?? null,
           status: "query",
-          source_app: "driver",
-          reporter_driver_id: driverId,
+          source_app: reporter.type === "yard" ? "yard" : "driver",
+          reporter_driver_id: reporter.type === "driver" ? driverId : null,
           reporter_name: driverName,
-          reporter_type: "driver",
+          reporter_type: reporter.type,
           waste_type_id: wasteTypeId,
           contamination_type: selectedWasteName,
           contamination_pct: pct ? parseFloat(pct) : null,
@@ -342,10 +368,10 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
       // Award points to the reporter
       const { error: pointsError } = await supabase.from("contamination_points").insert({
         query_id: created.id,
-        driver_id: driverId,
+        driver_id: reporter.type === "driver" ? driverId : null,
         reporter_name: driverName,
         points: pointsPerReport,
-        reason: `Contamination report — Job #${job.job_number}`,
+        reason: `Contamination report — Job #${jobNumber}`,
       });
       if (pointsError) console.error("Points award error:", pointsError);
 
@@ -374,19 +400,67 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
       <div className="p-4 border-b-4 border-red-500 bg-red-500/10">
         <button onClick={onBack} className="flex items-center gap-2 text-muted-foreground mb-3 active:opacity-70">
           <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">Back to Job</span>
+          <span className="text-sm font-medium">{standalone ? "Back" : "Back to Job"}</span>
         </button>
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-red-500" />
           <h1 className="text-2xl font-bold text-foreground">Report Contamination</h1>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {job.customer_name} · #{job.job_number}
-        </p>
+        {!standalone && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {job!.customer_name} · #{job!.job_number}
+          </p>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Waste type */}
+        {/* Job details (standalone only) */}
+        {standalone && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Job Details</h2>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium">Job Number *</label>
+                <Input
+                  value={mJobNumber}
+                  onChange={(e) => setMJobNumber(e.target.value)}
+                  placeholder="e.g. 12345"
+                  className="h-12 text-base rounded-xl"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium">Customer *</label>
+                <Input
+                  value={mCustomer}
+                  onChange={(e) => setMCustomer(e.target.value)}
+                  placeholder="Customer name"
+                  className="h-12 text-base rounded-xl"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium">Site</label>
+                  <Input
+                    value={mSite}
+                    onChange={(e) => setMSite(e.target.value)}
+                    placeholder="Site name"
+                    className="h-12 text-base rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium">Postcode</label>
+                  <Input
+                    value={mPostcode}
+                    onChange={(e) => setMPostcode(e.target.value)}
+                    placeholder="Postcode"
+                    className="h-12 text-base rounded-xl"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardContent className="p-4 space-y-3">
             <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Waste Type</h2>
@@ -467,7 +541,7 @@ const DriverContaminationFlow = ({ job, driverId, driverName, onBack, onSubmitte
             <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Camera className="w-4 h-4" /> Photos
             </h2>
-            <ContaminationPhotos jobId={job.id} urls={photos} onChange={setPhotos} />
+            <ContaminationPhotos jobId={photoFolder} urls={photos} onChange={setPhotos} />
           </CardContent>
         </Card>
 
