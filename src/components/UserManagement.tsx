@@ -20,6 +20,8 @@ interface UserProfile {
   full_name: string | null;
   created_at: string;
   user_types: string[];
+  driver_number: number | null;
+  driver_pin: string | null;
   isAdmin: boolean;
   isCustomer: boolean;
   customerNames: string[];
