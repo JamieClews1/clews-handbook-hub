@@ -938,8 +938,54 @@ const SkiptrakJobDetailView = ({ job, onBack }: { job: any; onBack: () => void }
   );
 };
 
+/* ─── Bottom Navigation ───────────────────────── */
+const BottomNav = ({
+  view,
+  setView,
+  role,
+}: {
+  view: AppView;
+  setView: (v: AppView) => void;
+  role: AppRole;
+}) => {
+  const items: { key: AppView; label: string; Icon: typeof Truck }[] =
+    role === "yard"
+      ? [{ key: "contaminations", label: "Contaminations", Icon: AlertTriangle }]
+      : [
+          { key: "jobs", label: "Jobs", Icon: Truck },
+          { key: "contaminations", label: "Contaminations", Icon: AlertTriangle },
+        ];
+  return (
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-zinc-900 border-t border-zinc-800">
+      <div className={cn("grid", items.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+        {items.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-3 text-xs font-semibold active:opacity-70",
+              view === key ? "text-emerald-400" : "text-zinc-400",
+            )}
+          >
+            <Icon className="w-5 h-5" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+};
+
 /* ─── Jobs Dashboard ──────────────────────────── */
-const DriverDashboard = ({ driver, onLogout }: { driver: Driver; onLogout: () => void }) => {
+const DriverDashboard = ({
+  driver,
+  onLogout,
+  nav,
+}: {
+  driver: Driver;
+  onLogout: () => void;
+  nav?: React.ReactNode;
+}) => {
   const queryClient = useQueryClient();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedSkiptrakJob, setSelectedSkiptrakJob] = useState<any | null>(null);
