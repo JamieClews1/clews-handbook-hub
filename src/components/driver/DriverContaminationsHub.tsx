@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DriverContaminationFlow, {
