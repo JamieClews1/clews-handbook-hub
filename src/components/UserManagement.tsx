@@ -569,6 +569,47 @@ export const UserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Set Driver Number Dialog */}
+      <Dialog open={!!driverUser} onOpenChange={() => setDriverUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Driver App Login</DialogTitle>
+            <DialogDescription>
+              Set the driver number and PIN {driverUser ? emailToUsername(driverUser.email) : ""} uses to sign into the RouteOne driver app. Leave blank to remove access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="driverNumber">Driver Number</Label>
+              <Input
+                id="driverNumber"
+                type="number"
+                inputMode="numeric"
+                placeholder="e.g. 14"
+                value={driverNumber}
+                onChange={(e) => setDriverNumber(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="driverPin">PIN (4-6 digits)</Label>
+              <Input
+                id="driverPin"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="e.g. 1234"
+                value={driverPin}
+                onChange={(e) => setDriverPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDriverUser(null)}>Cancel</Button>
+            <Button onClick={saveDriver} disabled={savingDriver}>{savingDriver ? "Saving..." : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
