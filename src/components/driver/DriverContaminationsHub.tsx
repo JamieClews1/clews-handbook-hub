@@ -102,12 +102,29 @@ const DriverContaminationsHub = ({
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="p-4 border-b-4 border-red-500 bg-red-500/10">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
-          <h1 className="text-2xl font-bold text-foreground">Contaminations</h1>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+              <h1 className="text-2xl font-bold text-foreground">Contaminations</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {userName ? `${userName} · ` : ""}Report issues and track your reward points
+            </p>
+          </div>
+          {onLogout && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onLogout}
+              className="text-muted-foreground h-10 w-10 shrink-0"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          )}
         </div>
-        <p className="text-sm text-muted-foreground mt-1">Report issues and track your reward points</p>
       </div>
+
 
       {/* Points summary */}
       <div className="p-4">
