@@ -1217,7 +1217,7 @@ const DriverAppPage = () => {
     const stored = localStorage.getItem("driver_session");
     if (!stored) return;
     try {
-      const { id, ts, role } = JSON.parse(stored);
+      const { id, ts, role, src } = JSON.parse(stored);
       if (Date.now() - ts >= 14 * 60 * 60 * 1000) {
         localStorage.removeItem("driver_session");
         return;
@@ -1232,6 +1232,25 @@ const DriverAppPage = () => {
           .then(({ data }) => {
             if (data) setUser({ id: data.id, name: data.staff_name, role: "yard" });
             else localStorage.removeItem("driver_session");
+          });
+      } else if (src === "profile") {
+        supabase.functions
+          .invoke("driver-auth", { body: { action: "restore", id } })
+          .then(({ data }) => {
+            const u = data?.user;
+            if (u) {
+              const profileDriver: Driver = {
+                id: u.id,
+                driver_name: u.name,
+                driver_number: u.driver_number,
+                pin: null,
+                vehicle_id: null,
+                route_one_vehicles: null,
+              };
+              setUser({ id: u.id, name: u.name, role: "driver", driver: profileDriver });
+            } else {
+              localStorage.removeItem("driver_session");
+            }
           });
       } else {
         supabase
