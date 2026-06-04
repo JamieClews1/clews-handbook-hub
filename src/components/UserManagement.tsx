@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff, UserCog, UserPlus, Key, Search } from "lucide-react";
+import { Shield, ShieldOff, UserCog, UserPlus, Key, Search, Hash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,8 @@ interface UserProfile {
   full_name: string | null;
   created_at: string;
   user_types: string[];
+  driver_number: number | null;
+  driver_pin: string | null;
   isAdmin: boolean;
   isCustomer: boolean;
   customerNames: string[];
@@ -49,6 +51,10 @@ export const UserManagement = () => {
   const [passwordUser, setPasswordUser] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
+  const [driverUser, setDriverUser] = useState<UserProfile | null>(null);
+  const [driverNumber, setDriverNumber] = useState("");
+  const [driverPin, setDriverPin] = useState("");
+  const [savingDriver, setSavingDriver] = useState(false);
   const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
   const [staffTab, setStaffTab] = useState<StaffTab>("all");
   const [search, setSearch] = useState("");
@@ -181,6 +187,40 @@ export const UserManagement = () => {
     }
   };
 
+  const handleSetDriver = (user: UserProfile) => {
+    setDriverUser(user);
+    setDriverNumber(user.driver_number?.toString() || "");
+    setDriverPin(user.driver_pin || "");
+  };
+
+  const saveDriver = async () => {
+    if (!driverUser) return;
+    const num = driverNumber.trim() ? parseInt(driverNumber.trim(), 10) : null;
+    const pin = driverPin.trim() || null;
+    if (num !== null && (pin === null || pin.length < 4)) {
+      toast({ title: "Error", description: "PIN must be at least 4 digits", variant: "destructive" });
+      return;
+    }
+    setSavingDriver(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ driver_number: num, driver_pin: pin })
+        .eq("id", driverUser.id);
+      if (error) throw error;
+      toast({ title: "Success", description: `Driver login updated for ${emailToUsername(driverUser.email)}` });
+      setDriverUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      const msg = error.message?.includes("duplicate") || error.code === "23505"
+        ? "That driver number is already in use"
+        : error.message;
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    } finally {
+      setSavingDriver(false);
+    }
+  };
+
   const confirmAction = async () => {
     if (!selectedUser || !actionType) return;
     try {
@@ -261,6 +301,11 @@ export const UserManagement = () => {
       <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
         <Key className="h-4 w-4" /> Password
       </Button>
+      {user.user_types?.includes("driver") && (
+        <Button variant="outline" size="sm" onClick={() => handleSetDriver(user)} className="gap-1">
+          <Hash className="h-4 w-4" /> Driver No.
+        </Button>
+      )}
       {user.isAdmin ? (
         <Button variant="outline" size="sm" onClick={() => handleRevokeAdmin(user)} className="gap-1">
           <ShieldOff className="h-4 w-4" /> Revoke
@@ -321,6 +366,7 @@ export const UserManagement = () => {
                     <TableHead>Username</TableHead>
                     <TableHead>Full Name</TableHead>
                     <TableHead>User Types</TableHead>
+                    <TableHead>Driver #</TableHead>
                     <TableHead>Compliance Status</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Actions</TableHead>
@@ -329,7 +375,7 @@ export const UserManagement = () => {
                 <TableBody>
                   {filteredStaff.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No staff users found.
                       </TableCell>
                     </TableRow>
@@ -349,6 +395,13 @@ export const UserManagement = () => {
                             <span className="text-muted-foreground text-sm">None</span>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {user.driver_number != null ? (
+                          <Badge variant="outline" className="font-mono">{user.driver_number}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <UserComplianceView userId={user.id} userTypes={user.user_types} userName={user.full_name || user.email} />
@@ -513,6 +566,47 @@ export const UserManagement = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPasswordUser(null)}>Cancel</Button>
             <Button onClick={savePassword} disabled={settingPassword || newPassword.length < 6}>{settingPassword ? "Saving..." : "Set Password"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Driver Number Dialog */}
+      <Dialog open={!!driverUser} onOpenChange={() => setDriverUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Driver App Login</DialogTitle>
+            <DialogDescription>
+              Set the driver number and PIN {driverUser ? emailToUsername(driverUser.email) : ""} uses to sign into the RouteOne driver app. Leave blank to remove access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="driverNumber">Driver Number</Label>
+              <Input
+                id="driverNumber"
+                type="number"
+                inputMode="numeric"
+                placeholder="e.g. 14"
+                value={driverNumber}
+                onChange={(e) => setDriverNumber(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="driverPin">PIN (4-6 digits)</Label>
+              <Input
+                id="driverPin"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="e.g. 1234"
+                value={driverPin}
+                onChange={(e) => setDriverPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDriverUser(null)}>Cancel</Button>
+            <Button onClick={saveDriver} disabled={savingDriver}>{savingDriver ? "Saving..." : "Save"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
