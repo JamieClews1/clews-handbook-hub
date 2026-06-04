@@ -57,8 +57,14 @@ const approvalStyle: Record<string, { label: string; cls: string; Icon: typeof C
 
 const DriverContaminationsHub = ({
   reporter,
+  userName,
+  onLogout,
+  nav,
 }: {
   reporter: ContaminationReporter;
+  userName?: string;
+  onLogout?: () => void;
+  nav?: React.ReactNode;
 }) => {
   const [reporting, setReporting] = useState(false);
   const [tab, setTab] = useState<Tab>("reports");
