@@ -600,6 +600,22 @@ export const UserManagement = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label>Assign from RouteOne Setup</Label>
+              <Select onValueChange={applyRouteDriver}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a RouteOne driver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {routeDrivers.map(d => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.driver_number != null ? `#${d.driver_number} — ` : ""}{d.driver_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Picks the driver number (and PIN) from RouteOne. You can still edit below.</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="driverNumber">Driver Number</Label>
               <Input
                 id="driverNumber"
