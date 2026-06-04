@@ -1062,7 +1062,7 @@ const DriverDashboard = ({
   const totalJobs = jobs.length + skiptrakJobs.length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="bg-zinc-900 text-white p-4 pb-5">
         <div className="flex items-center justify-between mb-4">
