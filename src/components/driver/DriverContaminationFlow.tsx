@@ -368,10 +368,10 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       // Award points to the reporter
       const { error: pointsError } = await supabase.from("contamination_points").insert({
         query_id: created.id,
-        driver_id: driverId,
+        driver_id: reporter.type === "driver" ? driverId : null,
         reporter_name: driverName,
         points: pointsPerReport,
-        reason: `Contamination report — Job #${job.job_number}`,
+        reason: `Contamination report — Job #${jobNumber}`,
       });
       if (pointsError) console.error("Points award error:", pointsError);
 
