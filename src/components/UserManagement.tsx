@@ -301,6 +301,11 @@ export const UserManagement = () => {
       <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
         <Key className="h-4 w-4" /> Password
       </Button>
+      {user.user_types?.includes("driver") && (
+        <Button variant="outline" size="sm" onClick={() => handleSetDriver(user)} className="gap-1">
+          <Hash className="h-4 w-4" /> Driver No.
+        </Button>
+      )}
       {user.isAdmin ? (
         <Button variant="outline" size="sm" onClick={() => handleRevokeAdmin(user)} className="gap-1">
           <ShieldOff className="h-4 w-4" /> Revoke
