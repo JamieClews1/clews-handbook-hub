@@ -64,7 +64,17 @@ export const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchRouteDrivers();
   }, []);
+
+  const fetchRouteDrivers = async () => {
+    const { data, error } = await supabase
+      .from("route_one_drivers")
+      .select("id, driver_name, driver_number, pin")
+      .eq("is_active", true)
+      .order("driver_number", { ascending: true });
+    if (!error && data) setRouteDrivers(data as any);
+  };
 
   const fetchUsers = async () => {
     try {
