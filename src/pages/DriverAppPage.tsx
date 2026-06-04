@@ -524,8 +524,7 @@ const DriverJobDetail = ({
     return (
       <DriverContaminationFlow
         job={job}
-        driverId={driverId}
-        driverName={driverName}
+        reporter={{ id: driverId, name: driverName, type: "driver" }}
         onBack={() => setShowContamination(false)}
         onSubmitted={handleContaminationSubmitted}
       />
