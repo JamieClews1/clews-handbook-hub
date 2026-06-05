@@ -183,6 +183,19 @@ Deno.serve(async (req) => {
           skMap.set(`${reg}|${s.job_date}`, s);
         }
 
+        // Flag jobs that already have a contamination report
+        const jobNumbers = Array.from(
+          new Set(mwJobs.map((j) => j.job_number).filter(Boolean) as string[]),
+        );
+        const reported = new Set<string>();
+        if (jobNumbers.length > 0) {
+          const { data: cq } = await supabase
+            .from("contamination_queries")
+            .select("job_number")
+            .in("job_number", jobNumbers);
+          for (const c of cq ?? []) reported.add(c.job_number);
+        }
+
         const jobs = mwJobs.map((j) => {
           const reg = normReg(j.vehicle_registration);
           const match = reg && j.job_date ? skMap.get(`${reg}|${j.job_date}`) : null;
@@ -190,6 +203,7 @@ Deno.serve(async (req) => {
             ...j,
             midweigh_job_number: j.job_number,
             skiptrak_job_number: match?.job_number ?? null,
+            has_contamination: reported.has(j.job_number),
           };
         });
 
