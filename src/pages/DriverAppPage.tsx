@@ -545,12 +545,8 @@ const DriverJobDetail = ({
   ) => {
     setUpdating(true);
     try {
-      const updates: Record<string, any> = { status, ...extra };
-      const { error } = await supabase
-        .from("route_one_jobs")
-        .update(updates)
-        .eq("id", job.id);
-      if (error) throw error;
+      await driverAction("update_job_status", { job_id: job.id, status, extra });
+
 
       setJob((prev) => ({ ...prev, status, ...extra }));
       onJobUpdated();
