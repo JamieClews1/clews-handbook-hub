@@ -170,12 +170,14 @@ export const AdminContent = () => {
     setIsTranslating(true);
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-handbook`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
           },
         }
       );

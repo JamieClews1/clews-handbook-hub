@@ -147,15 +147,22 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
     }
 
     try {
-      let query = supabase.from('partner_questionnaires').select('*');
-      
-      if (questionnaireId) {
-        query = query.eq('id', questionnaireId);
-      } else if (shareToken) {
-        query = query.eq('share_token', shareToken);
+      // Public token access goes through a service-role edge function so the
+      // table itself stays locked down to authenticated staff.
+      if (!questionnaireId && shareToken) {
+        const { data: result, error } = await supabase.functions.invoke('public-forms', {
+          body: { action: 'get', resource: 'partner_questionnaires', token: shareToken },
+        });
+        if (error) throw error;
+        if (result?.record) setFormData(result.record);
+        return;
       }
 
-      const { data, error } = await query.maybeSingle();
+      const { data, error } = await supabase
+        .from('partner_questionnaires')
+        .select('*')
+        .eq('id', questionnaireId!)
+        .maybeSingle();
 
       if (error) throw error;
       if (data) {
@@ -186,7 +193,22 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
 
     setIsSaving(true);
     try {
-      if (formData.id) {
+      // Public (share-token) submissions go through a service-role edge function.
+      if (isPublic && shareToken && !questionnaireId) {
+        const { id, created_at, updated_at, created_by, share_token, partner_id, template_id,
+          reviewed_by, reviewed_signature, reviewed_position, reviewed_at, partner_ranking,
+          ...rest } = formData as Record<string, any>;
+        const { data: result, error } = await supabase.functions.invoke('public-forms', {
+          body: {
+            action: 'submit',
+            resource: 'partner_questionnaires',
+            token: shareToken,
+            finalize: submit,
+            payload: rest,
+          },
+        });
+        if (error || result?.error) throw new Error(result?.error || error?.message || 'Failed');
+      } else if (formData.id) {
         const { error } = await supabase
           .from('partner_questionnaires')
           .update({

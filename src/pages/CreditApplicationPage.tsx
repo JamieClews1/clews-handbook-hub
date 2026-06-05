@@ -51,11 +51,10 @@ const CreditApplicationPage = () => {
   useEffect(() => {
     const load = async () => {
       if (!shareToken) { setNotFound(true); setLoading(false); return; }
-      const { data, error } = await supabase
-        .from("credit_account_applications")
-        .select("*")
-        .eq("share_token", shareToken)
-        .maybeSingle();
+      const { data: result, error } = await supabase.functions.invoke("public-forms", {
+        body: { action: "get", resource: "credit_account_applications", token: shareToken },
+      });
+      const data = result?.record;
 
       if (error || !data) { setNotFound(true); setLoading(false); return; }
       if (data.status === "submitted" || data.status === "approved") {
@@ -111,20 +110,22 @@ const CreditApplicationPage = () => {
     if (!form.applicant_print_name.trim()) { toast.error("Please print your name"); return; }
 
     setSubmitting(true);
-    const { error } = await supabase
-      .from("credit_account_applications")
-      .update({
-        ...form,
-        credit_requested: form.credit_requested ? parseFloat(form.credit_requested) : null,
-        trade_references: tradeRefs.filter((r) => r.name.trim()),
-        applicant_signed_date: new Date().toISOString().split("T")[0],
-        submitted_at: new Date().toISOString(),
-        status: "submitted",
-      })
-      .eq("id", applicationId);
+    const { data: result, error } = await supabase.functions.invoke("public-forms", {
+      body: {
+        action: "submit",
+        resource: "credit_account_applications",
+        token: shareToken,
+        payload: {
+          ...form,
+          credit_requested: form.credit_requested ? parseFloat(form.credit_requested) : null,
+          trade_references: tradeRefs.filter((r) => r.name.trim()),
+          applicant_signed_date: new Date().toISOString().split("T")[0],
+        },
+      },
+    });
 
     setSubmitting(false);
-    if (error) { toast.error("Failed to submit application"); return; }
+    if (error || result?.error) { toast.error("Failed to submit application"); return; }
     setSubmitted(true);
     toast.success("Application submitted successfully");
   };
