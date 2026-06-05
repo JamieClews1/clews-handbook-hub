@@ -56,12 +56,60 @@ const ContaminationPricingMatrix = () => {
     },
   });
 
+  const { data: chargeItems = [], refetch: refetchItems } = useQuery({
+    queryKey: ["contamination-charge-items-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contamination_charge_items")
+        .select("*")
+        .order("display_order");
+      if (error) throw error;
+      return data as ChargeItem[];
+    },
+  });
+
   const refreshAll = () => {
     refetchTypes();
     refetchTiers();
     queryClient.invalidateQueries({ queryKey: ["contamination-waste-types"] });
     queryClient.invalidateQueries({ queryKey: ["contamination-pricing-tiers"] });
   };
+
+  const refreshItems = () => {
+    refetchItems();
+    queryClient.invalidateQueries({ queryKey: ["contamination-charge-items"] });
+  };
+
+  const handleAddItem = async () => {
+    if (!newItemName.trim() || newItemCharge === "") {
+      return toast({ title: "Enter an item name and charge", variant: "destructive" });
+    }
+    const { error } = await supabase.from("contamination_charge_items").insert({
+      name: newItemName.trim(),
+      ewc_code: newItemEwc.trim() || null,
+      unit_charge: parseFloat(newItemCharge) || 0,
+      display_order: chargeItems.length + 1,
+    });
+    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    setNewItemName("");
+    setNewItemEwc("");
+    setNewItemCharge("");
+    toast({ title: "Item added" });
+    refreshItems();
+  };
+
+  const handleUpdateItem = async (id: string, field: string, value: any) => {
+    await supabase.from("contamination_charge_items").update({ [field]: value }).eq("id", id);
+    refreshItems();
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    await supabase.from("contamination_charge_items").delete().eq("id", id);
+    toast({ title: "Item removed" });
+    refreshItems();
+  };
+
+
 
   const handleAddWasteType = async () => {
     if (!newWasteType.trim()) return;
