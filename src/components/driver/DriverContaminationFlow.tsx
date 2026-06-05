@@ -667,7 +667,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
           className="w-full h-16 text-xl font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl gap-3"
         >
           {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Check className="w-6 h-6" />}
-          Submit Contamination Report
+          {editId ? "Update Contamination Report" : "Submit Contamination Report"}
         </Button>
       </div>
     </div>
