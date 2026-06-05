@@ -474,11 +474,23 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         </button>
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-red-500" />
-          <h1 className="text-2xl font-bold text-foreground">Report Contamination</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {editId ? "Edit Contamination" : "Report Contamination"}
+          </h1>
         </div>
         {!standalone && (
           <p className="text-sm text-muted-foreground mt-1">
             {job!.customer_name} · #{job!.job_number}
+          </p>
+        )}
+        {loadingExisting && (
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" /> Checking for an existing report…
+          </p>
+        )}
+        {editId && !loadingExisting && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Editing your saved report for this job.
           </p>
         )}
       </div>
