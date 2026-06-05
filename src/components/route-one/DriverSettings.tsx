@@ -25,6 +25,7 @@ interface Driver {
   is_active: boolean;
   vehicle_id: string | null;
   pin: string | null;
+  user_id: string | null;
   route_one_vehicles: { id: string; registration: string; vehicle_type: string } | null;
 }
 
