@@ -459,6 +459,23 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
                   </div>
                 )}
 
+                {reportedItems.length > 0 && (
+                  <div className="rounded-lg border border-border p-3 text-sm space-y-1">
+                    <p className="font-medium mb-1">Individual Items Reported</p>
+                    {reportedItems.map((it) => (
+                      <div key={it.item_id} className="flex items-center justify-between text-muted-foreground">
+                        <span>{it.quantity} × {it.name}</span>
+                        <span>£{((it.unit_charge || 0) * (it.quantity || 0)).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between font-semibold pt-1 border-t border-border/60">
+                      <span>Items total</span>
+                      <span>£{itemsCharge.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+
+
                 <div className="flex items-center gap-3">
                   <Switch
                     checked={!!query.charge_overridden}
