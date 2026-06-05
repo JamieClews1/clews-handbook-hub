@@ -123,7 +123,7 @@ export const DriverSettings = () => {
   });
 
   const openAdd = () => {
-    setForm({ driver_name: "", driver_number: "", username: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
+    setForm({ driver_name: "", driver_number: "", username: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "", user_id: "" });
     setAddOpen(true);
   };
 
@@ -137,8 +137,18 @@ export const DriverSettings = () => {
       category: d.category || "Skips",
       vehicle_id: d.vehicle_id || "",
       pin: d.pin || "",
+      user_id: d.user_id || "",
     });
     setEditDriver(d);
+  };
+
+  const handleSelectUser = (profile: AppUserProfile) => {
+    setForm((prev) => ({
+      ...prev,
+      user_id: profile.id,
+      driver_name: profile.full_name || profile.email,
+      username: prev.username.trim() || usernameFromEmail(profile.email),
+    }));
   };
 
   const handleSave = () => {
@@ -151,6 +161,7 @@ export const DriverSettings = () => {
       category: form.category || "Skips",
       vehicle_id: form.vehicle_id || null,
       pin: form.pin.trim() || null,
+      user_id: form.user_id || null,
     };
     if (!editDriver) {
       data.display_order = drivers.length;
