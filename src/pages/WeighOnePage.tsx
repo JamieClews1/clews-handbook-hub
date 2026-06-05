@@ -963,6 +963,24 @@ const WeighOnePage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="banksman" className="mt-4">
+          <Tabs defaultValue="guide" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="guide" className="gap-2"><HardHat className="h-4 w-4" /> Setup Guide</TabsTrigger>
+              <TabsTrigger value="yard-staff" className="gap-2"><Users className="h-4 w-4" /> Yard Staff</TabsTrigger>
+            </TabsList>
+            <TabsContent value="guide">
+              <BanksmanAppGuide />
+            </TabsContent>
+            <TabsContent value="yard-staff">
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <YardStaffSettings />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
       </Tabs>
 
       {/* Ticket Detail Dialog */}
