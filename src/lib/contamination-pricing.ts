@@ -24,6 +24,33 @@ export interface WasteType {
   is_active: boolean;
 }
 
+/** A per-item contamination charge (e.g. fridges, tyres, mattresses). */
+export interface ChargeItem {
+  id: string;
+  name: string;
+  ewc_code: string | null;
+  unit_charge: number;
+  notes: string | null;
+  is_active: boolean;
+  display_order: number;
+}
+
+/** A reported individual item with its quantity, stored on the query. */
+export interface ReportedItem {
+  item_id: string;
+  name: string;
+  unit_charge: number;
+  quantity: number;
+}
+
+/** Total charge for a list of reported individual items. */
+export const calculateItemsCharge = (items: ReportedItem[] | null | undefined): number => {
+  if (!items?.length) return 0;
+  const total = items.reduce((sum, i) => sum + (i.unit_charge || 0) * (i.quantity || 0), 0);
+  return Math.round(total * 100) / 100;
+};
+
+
 const inRange = (
   value: number | null | undefined,
   min: number | null,
