@@ -276,7 +276,7 @@ const banksmanFeatures: Feature[] = [
   { icon: Camera, title: "Photo & Contamination Capture", description: "Take photos and assign contamination type, percentage and sorting minutes." },
   { icon: Weight, title: "Weights in Tonnes", description: "Midweigh weights are normalised to tonnes for consistent reporting." },
   { icon: CheckCircle, title: "Reported Tracking", description: "Already-reported jobs are flagged and remain editable." },
-  { icon: Key, title: "PIN Authentication", description: "Yard staff sign in securely with a staff number and PIN." },
+  { icon: Key, title: "Username Authentication", description: "Yard staff sign in securely with a username and PIN." },
 ];
 
 /* ─── Load Reports App ─── */
