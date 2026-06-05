@@ -135,15 +135,12 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
     setError("");
 
     if (mode === "driver") {
-      const { data, error: dbError } = await supabase
-        .from("route_one_drivers")
-        .select("*, route_one_vehicles(registration, vehicle_type)")
-        .eq("driver_number", parseInt(number))
-        .eq("pin", pin)
-        .eq("is_active", true)
-        .maybeSingle();
+      const { driver: data } = await driverAction("driver_login", {
+        number: parseInt(number),
+        pin,
+      });
 
-      if (!dbError && data) {
+      if (data) {
         const user: AppUser = {
           id: data.id,
           name: data.driver_name,
@@ -190,15 +187,12 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
       );
       onLogin(user);
     } else {
-      const { data, error: dbError } = await supabase
-        .from("yard_staff")
-        .select("id, staff_name")
-        .eq("staff_number", parseInt(number))
-        .eq("pin", pin)
-        .eq("is_active", true)
-        .maybeSingle();
+      const { staff: data } = await driverAction("yard_login", {
+        number: parseInt(number),
+        pin,
+      });
 
-      if (dbError || !data) {
+      if (!data) {
         setError("Invalid staff number or PIN");
         setLoading(false);
         return;
