@@ -79,13 +79,13 @@ Deno.serve(async (req) => {
         return json({ driver: data ?? null });
       }
       case "yard_login": {
-        const number = parseInt(String(body?.number ?? ""), 10);
+        const username = String(body?.username ?? "").trim();
         const pin = String(body?.pin ?? "");
-        if (!Number.isFinite(number) || !pin) return json({ error: "Missing credentials" }, 400);
+        if (!username || !pin) return json({ error: "Missing credentials" }, 400);
         const { data } = await supabase
           .from("yard_staff")
           .select("id, staff_name")
-          .eq("staff_number", number)
+          .ilike("username", username)
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();
