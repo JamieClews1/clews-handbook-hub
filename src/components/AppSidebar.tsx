@@ -10,6 +10,7 @@ import {
   Building2,
   MapPin,
   Truck as TruckIcon,
+  Smartphone,
   CalendarCheck,
   Box,
   Trash2,
