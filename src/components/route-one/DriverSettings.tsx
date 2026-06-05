@@ -120,7 +120,7 @@ export const DriverSettings = () => {
   });
 
   const openAdd = () => {
-    setForm({ driver_name: "", driver_number: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
+    setForm({ driver_name: "", driver_number: "", username: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
     setAddOpen(true);
   };
 
@@ -128,6 +128,7 @@ export const DriverSettings = () => {
     setForm({
       driver_name: d.driver_name,
       driver_number: d.driver_number?.toString() || "",
+      username: d.username || "",
       mobile: d.mobile || "",
       department: d.department?.toString() || "",
       category: d.category || "Skips",
@@ -141,6 +142,7 @@ export const DriverSettings = () => {
     const data: Record<string, any> = {
       driver_name: form.driver_name.trim(),
       driver_number: form.driver_number ? parseInt(form.driver_number) : null,
+      username: form.username.trim() || null,
       mobile: form.mobile.trim() || null,
       department: form.department ? parseInt(form.department) : null,
       category: form.category || "Skips",
@@ -152,6 +154,7 @@ export const DriverSettings = () => {
     }
     saveMutation.mutate({ id: editDriver?.id, data });
   };
+
 
   const activeCount = drivers.filter(d => d.is_active).length;
 
