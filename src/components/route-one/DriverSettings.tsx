@@ -16,6 +16,7 @@ interface Driver {
   id: string;
   driver_name: string;
   driver_number: number | null;
+  username: string | null;
   mobile: string | null;
   department: number | null;
   category: string | null;
