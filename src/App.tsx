@@ -52,6 +52,7 @@ import StockCheckPage from "./pages/StockCheckPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
 import DriverAppPage from "./pages/DriverAppPage";
+import BanksmanAppPage from "./pages/BanksmanAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
 import FuelSurchargesPage from "./pages/FuelSurchargesPage";
 import DiaryPage from "./pages/DiaryPage";
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
             <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
             <Route path="/driver" element={<DriverAppPage />} />
+            <Route path="/banksman" element={<BanksmanAppPage />} />
             <Route path="/book" element={<PublicBookingPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}

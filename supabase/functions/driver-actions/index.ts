@@ -127,6 +127,93 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      /* ─── Banksman: live weighbridge feed ─── */
+      case "list_weighbridge_jobs": {
+        const date = body?.date ? String(body.date) : null;
+        const daysBack = Number.isFinite(Number(body?.days_back)) ? Number(body.days_back) : 3;
+
+        const normReg = (r: unknown) =>
+          String(r ?? "").toUpperCase().replace(/\s+/g, "");
+
+        // Fetch recent Midweigh (weighbridge) jobs
+        let mq = supabase
+          .from("data_hub_jobs")
+          .select(
+            "id, job_number, source, customer, site, driver, vehicle_registration, container_type, waste_description, weight_t, job_date, ewc, movement_type, order_number_override, created_at",
+          )
+          .ilike("source", "%midweigh%")
+          .order("created_at", { ascending: false })
+          .limit(150);
+
+        if (date) {
+          mq = mq.eq("job_date", date);
+        } else {
+          const since = new Date();
+          since.setDate(since.getDate() - daysBack);
+          mq = mq.gte("job_date", since.toISOString().slice(0, 10));
+        }
+
+        const { data: midweigh, error: mErr } = await mq;
+        if (mErr) throw mErr;
+
+        const mwJobs = midweigh ?? [];
+
+        // Collect the date window so we can match Skiptrak tickets
+        const dates = Array.from(
+          new Set(mwJobs.map((j) => j.job_date).filter(Boolean) as string[]),
+        );
+
+        let skiptrak: any[] = [];
+        if (dates.length > 0) {
+          const { data: sk, error: sErr } = await supabase
+            .from("data_hub_jobs")
+            .select("job_number, vehicle_registration, job_date, customer, site")
+            .ilike("source", "%skiptrak%")
+            .in("job_date", dates)
+            .limit(1000);
+          if (sErr) throw sErr;
+          skiptrak = sk ?? [];
+        }
+
+        // Match by normalized vehicle reg + job date
+        const skMap = new Map<string, any>();
+        for (const s of skiptrak) {
+          const reg = normReg(s.vehicle_registration);
+          if (!reg || !s.job_date) continue;
+          skMap.set(`${reg}|${s.job_date}`, s);
+        }
+
+        // Flag jobs that already have a contamination report
+        const jobNumbers = Array.from(
+          new Set(mwJobs.map((j) => j.job_number).filter(Boolean) as string[]),
+        );
+        const reported = new Set<string>();
+        if (jobNumbers.length > 0) {
+          const { data: cq } = await supabase
+            .from("contamination_queries")
+            .select("job_number")
+            .in("job_number", jobNumbers);
+          for (const c of cq ?? []) reported.add(c.job_number);
+        }
+
+        const jobs = mwJobs.map((j) => {
+          const reg = normReg(j.vehicle_registration);
+          const match = reg && j.job_date ? skMap.get(`${reg}|${j.job_date}`) : null;
+          // Midweigh weight is stored in KG; normalise to tonnes for display/reporting.
+          const weightTonnes =
+            j.weight_t != null ? Math.round((j.weight_t / 1000) * 1000) / 1000 : null;
+          return {
+            ...j,
+            weight_t: weightTonnes,
+            midweigh_job_number: j.job_number,
+            skiptrak_job_number: match?.job_number ?? null,
+            has_contamination: reported.has(j.job_number),
+          };
+        });
+
+        return json({ jobs });
+      }
+
       /* ─── Job photos ─── */
       case "list_job_photos": {
         const jobId = String(body?.job_id ?? "");
