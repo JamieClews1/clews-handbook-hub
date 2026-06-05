@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
         const { data } = await supabase
           .from("route_one_drivers")
           .select("*, route_one_vehicles(registration, vehicle_type)")
-          .ilike("username", username)
+          .ilike("username", escapeLike(username))
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
         const { data } = await supabase
           .from("yard_staff")
           .select("id, staff_name")
-          .ilike("username", username)
+          .ilike("username", escapeLike(username))
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();
