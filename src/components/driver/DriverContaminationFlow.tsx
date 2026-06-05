@@ -369,37 +369,62 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       const calculated = calculateTierCharge(suggestedTier, null);
       const now = new Date().toISOString();
 
+      const payload = {
+        job_number: jobNumber,
+        customer: customerName,
+        site: siteName,
+        postcode: sitePostcode,
+        container_type: job?.container_type ?? null,
+        po_number: job?.po_number ?? null,
+        order_number: job?.order_number ?? null,
+        job_date: job?.job_date ?? null,
+        waste_description: job?.waste_description ?? null,
+        weight_t: job?.weight_t ?? null,
+        vehicle_reg: job?.vehicle_reg ?? null,
+        source_app: reporter.type === "yard" ? "yard" : "driver",
+        reporter_driver_id: reporter.type === "driver" ? driverId : null,
+        reporter_name: driverName,
+        reporter_type: reporter.type,
+        waste_type_id: wasteTypeId,
+        contamination_type: selectedWasteName,
+        contamination_pct: pct ? parseFloat(pct) : null,
+        sorting_minutes: minutes ? parseFloat(minutes) : null,
+        pricing_tier_id: suggestedTier?.id ?? null,
+        calculated_charge: calculated,
+        charge_amount: calculated,
+        query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
+        photos,
+        customer_signature: signature,
+        customer_signoff_name: signoffName.trim(),
+        customer_signoff_at: now,
+      };
+
+      if (editId) {
+        // Update the existing report for this job (keeps it editable on re-open)
+        const { error: updateError } = await supabase
+          .from("contamination_queries")
+          .update(payload)
+          .eq("id", editId);
+        if (updateError) throw updateError;
+
+        await supabase.from("contamination_activity_log").insert({
+          query_id: editId,
+          user_name: driverName,
+          action_type: "updated",
+          new_value: selectedWasteName,
+          notes: "Updated via Driver App",
+        });
+
+        toast.success("Contamination report updated");
+        onSubmitted(selectedWasteName);
+        return;
+      }
+
       const { data: created, error: insertError } = await supabase
         .from("contamination_queries")
         .insert({
-          job_number: jobNumber,
-          customer: customerName,
-          site: siteName,
-          postcode: sitePostcode,
-          container_type: job?.container_type ?? null,
-          po_number: job?.po_number ?? null,
-          order_number: job?.order_number ?? null,
-          job_date: job?.job_date ?? null,
-          waste_description: job?.waste_description ?? null,
-          weight_t: job?.weight_t ?? null,
-          vehicle_reg: job?.vehicle_reg ?? null,
+          ...payload,
           status: "query",
-          source_app: reporter.type === "yard" ? "yard" : "driver",
-          reporter_driver_id: reporter.type === "driver" ? driverId : null,
-          reporter_name: driverName,
-          reporter_type: reporter.type,
-          waste_type_id: wasteTypeId,
-          contamination_type: selectedWasteName,
-          contamination_pct: pct ? parseFloat(pct) : null,
-          sorting_minutes: minutes ? parseFloat(minutes) : null,
-          pricing_tier_id: suggestedTier?.id ?? null,
-          calculated_charge: calculated,
-          charge_amount: calculated,
-          query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
-          photos,
-          customer_signature: signature,
-          customer_signoff_name: signoffName.trim(),
-          customer_signoff_at: now,
           approval_status: "pending",
           points_awarded: pointsPerReport,
         })
@@ -407,6 +432,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         .single();
 
       if (insertError) throw insertError;
+      setEditId(created.id);
 
       // Award points to the reporter
       const { error: pointsError } = await supabase.from("contamination_points").insert({
@@ -436,6 +462,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       setSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background pb-28">
