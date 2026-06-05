@@ -392,9 +392,9 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         charge_amount: calculated,
         query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
         photos,
-        customer_signature: signature,
-        customer_signoff_name: signoffName.trim(),
-        customer_signoff_at: now,
+        customer_signature: signature || null,
+        customer_signoff_name: signoffName.trim() || null,
+        customer_signoff_at: signoffName.trim() || signature ? now : null,
       };
 
       if (editId) {
