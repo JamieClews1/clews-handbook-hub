@@ -193,7 +193,22 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
 
     setIsSaving(true);
     try {
-      if (formData.id) {
+      // Public (share-token) submissions go through a service-role edge function.
+      if (isPublic && shareToken && !questionnaireId) {
+        const { id, created_at, updated_at, created_by, share_token, partner_id, template_id,
+          reviewed_by, reviewed_signature, reviewed_position, reviewed_at, partner_ranking,
+          ...rest } = formData as Record<string, any>;
+        const { data: result, error } = await supabase.functions.invoke('public-forms', {
+          body: {
+            action: 'submit',
+            resource: 'partner_questionnaires',
+            token: shareToken,
+            finalize: submit,
+            payload: rest,
+          },
+        });
+        if (error || result?.error) throw new Error(result?.error || error?.message || 'Failed');
+      } else if (formData.id) {
         const { error } = await supabase
           .from('partner_questionnaires')
           .update({
