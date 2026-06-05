@@ -52,25 +52,25 @@ const SESSION_KEY = "banksman_session";
 
 /* ─── PIN Login ─── */
 const BanksmanLogin = ({ onLogin }: { onLogin: (u: BanksmanUser) => void }) => {
-  const [number, setNumber] = useState("");
+  const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!number || !pin) {
-      setError("Enter your staff number and PIN");
+    if (!username.trim() || !pin) {
+      setError("Enter your username and PIN");
       return;
     }
     setLoading(true);
     setError("");
     try {
       const { staff } = await driverAction("yard_login", {
-        number: parseInt(number),
+        username: username.trim(),
         pin,
       });
       if (!staff) {
-        setError("Invalid staff number or PIN");
+        setError("Invalid username or PIN");
         setLoading(false);
         return;
       }
@@ -95,16 +95,18 @@ const BanksmanLogin = ({ onLogin }: { onLogin: (u: BanksmanUser) => void }) => {
         </div>
 
         <div className="space-y-3">
-          <label className="text-zinc-300 text-sm font-medium">Staff Number</label>
+          <label className="text-zinc-300 text-sm font-medium">Username</label>
           <Input
-            type="number"
-            inputMode="numeric"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            placeholder="Enter staff number"
+            type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter username"
             className="h-14 text-xl text-center bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
           />
         </div>
+
 
         <div className="space-y-3">
           <label className="text-zinc-300 text-sm font-medium">PIN</label>
@@ -158,7 +160,7 @@ const BanksmanLogin = ({ onLogin }: { onLogin: (u: BanksmanUser) => void }) => {
 
         <Button
           onClick={handleLogin}
-          disabled={loading || !number || !pin}
+          disabled={loading || !username.trim() || !pin}
           className="w-full h-16 text-xl font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
         >
           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Sign In"}

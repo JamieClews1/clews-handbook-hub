@@ -21,16 +21,17 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     if (action === "login") {
-      const number = parseInt(String(body?.number ?? ""), 10);
+      const username = String(body?.username ?? "").trim().toLowerCase();
       const pin = String(body?.pin ?? "");
-      if (!Number.isFinite(number) || !pin) {
-        return json({ error: "Driver number and PIN are required" }, 400);
+      if (!username || !pin) {
+        return json({ error: "Username and PIN are required" }, 400);
       }
 
+      const email = `${username}@clewsrecycling.co.uk`;
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, driver_number, user_types")
-        .eq("driver_number", number)
+        .eq("email", email)
         .eq("driver_pin", pin)
         .maybeSingle();
 
@@ -41,6 +42,7 @@ Deno.serve(async (req) => {
 
       return json({ user: toUser(data) });
     }
+
 
     if (action === "restore") {
       const id = String(body?.id ?? "");

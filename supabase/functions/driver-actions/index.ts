@@ -42,6 +42,9 @@ function decodeBase64(b64: string): Uint8Array {
   return bytes;
 }
 
+// Escape LIKE/ILIKE wildcards so a username can only match itself
+const escapeLike = (s: string) => s.replace(/([%_\\])/g, "\\$1");
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -55,13 +58,13 @@ Deno.serve(async (req) => {
     switch (action) {
       /* ─── Auth (PIN login / session restore) ─── */
       case "driver_login": {
-        const number = parseInt(String(body?.number ?? ""), 10);
+        const username = String(body?.username ?? "").trim();
         const pin = String(body?.pin ?? "");
-        if (!Number.isFinite(number) || !pin) return json({ error: "Missing credentials" }, 400);
+        if (!username || !pin) return json({ error: "Missing credentials" }, 400);
         const { data } = await supabase
           .from("route_one_drivers")
           .select("*, route_one_vehicles(registration, vehicle_type)")
-          .eq("driver_number", number)
+          .ilike("username", escapeLike(username))
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();
@@ -79,13 +82,13 @@ Deno.serve(async (req) => {
         return json({ driver: data ?? null });
       }
       case "yard_login": {
-        const number = parseInt(String(body?.number ?? ""), 10);
+        const username = String(body?.username ?? "").trim();
         const pin = String(body?.pin ?? "");
-        if (!Number.isFinite(number) || !pin) return json({ error: "Missing credentials" }, 400);
+        if (!username || !pin) return json({ error: "Missing credentials" }, 400);
         const { data } = await supabase
           .from("yard_staff")
           .select("id, staff_name")
-          .eq("staff_number", number)
+          .ilike("username", escapeLike(username))
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();

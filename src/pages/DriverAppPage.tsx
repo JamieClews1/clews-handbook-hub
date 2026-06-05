@@ -113,23 +113,21 @@ interface JobPhoto {
 /* ─── PIN Login Screen ────────────────────────── */
 const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
   const [mode, setMode] = useState<AppRole>("driver");
-  const [number, setNumber] = useState("");
+  const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const numberLabel = mode === "driver" ? "Driver Number" : "Staff Number";
-
   const switchMode = (m: AppRole) => {
     setMode(m);
-    setNumber("");
+    setUsername("");
     setPin("");
     setError("");
   };
 
   const handleLogin = async () => {
-    if (!number || !pin) {
-      setError(`Enter your ${numberLabel.toLowerCase()} and PIN`);
+    if (!username.trim() || !pin) {
+      setError("Enter your username and PIN");
       return;
     }
     setLoading(true);
@@ -137,7 +135,7 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
 
     if (mode === "driver") {
       const { driver: data } = await driverAction("driver_login", {
-        number: parseInt(number),
+        username: username.trim(),
         pin,
       });
 
@@ -157,13 +155,13 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
         return;
       }
 
-      // Fallback: staff users assigned a driver number in the Users portal
+      // Fallback: staff users assigned a driver login in the Users portal
       const { data: authData } = await supabase.functions.invoke("driver-auth", {
-        body: { action: "login", number: parseInt(number), pin },
+        body: { action: "login", username: username.trim(), pin },
       });
 
       if (!authData?.user) {
-        setError("Invalid driver number or PIN");
+        setError("Invalid username or PIN");
         setLoading(false);
         return;
       }
@@ -189,12 +187,12 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
       onLogin(user);
     } else {
       const { staff: data } = await driverAction("yard_login", {
-        number: parseInt(number),
+        username: username.trim(),
         pin,
       });
 
       if (!data) {
-        setError("Invalid staff number or PIN");
+        setError("Invalid username or PIN");
         setLoading(false);
         return;
       }
@@ -245,16 +243,18 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
         </div>
 
         <div className="space-y-3">
-          <label className="text-zinc-300 text-sm font-medium">{numberLabel}</label>
+          <label className="text-zinc-300 text-sm font-medium">Username</label>
           <Input
-            type="number"
-            inputMode="numeric"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            placeholder={`Enter ${numberLabel.toLowerCase()}`}
+            type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter username"
             className="h-14 text-xl text-center bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
           />
         </div>
+
 
         <div className="space-y-3">
           <label className="text-zinc-300 text-sm font-medium">PIN</label>
@@ -308,7 +308,7 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
 
         <Button
           onClick={handleLogin}
-          disabled={loading || !number || !pin}
+          disabled={loading || !username.trim() || !pin}
           className="w-full h-16 text-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl"
         >
           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Sign In"}

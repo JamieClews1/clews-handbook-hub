@@ -16,6 +16,7 @@ interface Driver {
   id: string;
   driver_name: string;
   driver_number: number | null;
+  username: string | null;
   mobile: string | null;
   department: number | null;
   category: string | null;
@@ -42,6 +43,7 @@ export const DriverSettings = () => {
   const [form, setForm] = useState({
     driver_name: "",
     driver_number: "",
+    username: "",
     mobile: "",
     department: "",
     category: "Skips",
@@ -118,7 +120,7 @@ export const DriverSettings = () => {
   });
 
   const openAdd = () => {
-    setForm({ driver_name: "", driver_number: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
+    setForm({ driver_name: "", driver_number: "", username: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
     setAddOpen(true);
   };
 
@@ -126,6 +128,7 @@ export const DriverSettings = () => {
     setForm({
       driver_name: d.driver_name,
       driver_number: d.driver_number?.toString() || "",
+      username: d.username || "",
       mobile: d.mobile || "",
       department: d.department?.toString() || "",
       category: d.category || "Skips",
@@ -139,6 +142,7 @@ export const DriverSettings = () => {
     const data: Record<string, any> = {
       driver_name: form.driver_name.trim(),
       driver_number: form.driver_number ? parseInt(form.driver_number) : null,
+      username: form.username.trim() || null,
       mobile: form.mobile.trim() || null,
       department: form.department ? parseInt(form.department) : null,
       category: form.category || "Skips",
@@ -150,6 +154,7 @@ export const DriverSettings = () => {
     }
     saveMutation.mutate({ id: editDriver?.id, data });
   };
+
 
   const activeCount = drivers.filter(d => d.is_active).length;
 
@@ -198,10 +203,17 @@ export const DriverSettings = () => {
           </Select>
         </div>
       </div>
-      <div>
-        <Label className="text-xs">Driver PIN (for mobile app)</Label>
-        <Input type="text" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="e.g. 1234" />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Username (for mobile app login)</Label>
+          <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.replace(/\s/g, "") })} placeholder="e.g. john.smith" autoCapitalize="none" autoCorrect="off" />
+        </div>
+        <div>
+          <Label className="text-xs">Driver PIN (for mobile app)</Label>
+          <Input type="text" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="e.g. 1234" />
+        </div>
       </div>
+
       <Button onClick={handleSave} disabled={!form.driver_name.trim() || saveMutation.isPending} className="w-full">
         {saveMutation.isPending ? "Saving..." : editDriver ? "Update Driver" : "Add Driver"}
       </Button>

@@ -3678,6 +3678,7 @@ export type Database = {
           pin: string | null
           updated_at: string
           user_id: string | null
+          username: string | null
           vehicle_id: string | null
         }
         Insert: {
@@ -3693,6 +3694,7 @@ export type Database = {
           pin?: string | null
           updated_at?: string
           user_id?: string | null
+          username?: string | null
           vehicle_id?: string | null
         }
         Update: {
@@ -3708,6 +3710,7 @@ export type Database = {
           pin?: string | null
           updated_at?: string
           user_id?: string | null
+          username?: string | null
           vehicle_id?: string | null
         }
         Relationships: [
@@ -4848,6 +4851,7 @@ export type Database = {
           staff_number: number | null
           updated_at: string
           user_id: string | null
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -4860,6 +4864,7 @@ export type Database = {
           staff_number?: number | null
           updated_at?: string
           user_id?: string | null
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -4872,6 +4877,7 @@ export type Database = {
           staff_number?: number | null
           updated_at?: string
           user_id?: string | null
+          username?: string | null
         }
         Relationships: []
       }

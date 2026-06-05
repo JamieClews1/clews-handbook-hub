@@ -155,17 +155,17 @@ const driverSteps: Step[] = [
   },
   {
     number: 3,
-    title: "Set Up Driver PINs",
+    title: "Set Up Driver Logins",
     icon: Key,
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Each driver needs a <strong>Driver Number</strong> and <strong>4–6 digit PIN</strong> to log in.
+          Each driver needs a <strong>Username</strong> and <strong>4–6 digit PIN</strong> to log in.
         </p>
         <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
           <li>Navigate to <strong>WasteOne → RouteOne → Setup → Drivers</strong></li>
           <li>Click on a driver to edit their details</li>
-          <li>Set their <strong>Driver Number</strong> and <strong>PIN</strong></li>
+          <li>Set their <strong>Username</strong> and <strong>PIN</strong></li>
           <li>Ensure the driver is marked as <strong>Active</strong></li>
         </ol>
       </div>
@@ -220,16 +220,17 @@ const banksmanSteps: Step[] = [
   },
   {
     number: 2,
-    title: "Set Up Yard Staff PINs",
+    title: "Set Up Yard Staff Logins",
     icon: Key,
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          The banksman logs in with a <strong>Staff Number</strong> and <strong>PIN</strong> from the
+          The banksman logs in with a <strong>Username</strong> and <strong>PIN</strong> from the
           Yard Staff list.
         </p>
         <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-          <li>Add the banksman to <strong>Yard Staff</strong> with a unique staff number</li>
+          <li>Go to <strong>WasteOne → RouteOne → Setup → Yard Staff</strong></li>
+          <li>Add the banksman with a unique <strong>Username</strong></li>
           <li>Set a <strong>4–6 digit PIN</strong></li>
           <li>Ensure the staff member is marked as <strong>Active</strong></li>
         </ol>
@@ -275,7 +276,7 @@ const banksmanFeatures: Feature[] = [
   { icon: Camera, title: "Photo & Contamination Capture", description: "Take photos and assign contamination type, percentage and sorting minutes." },
   { icon: Weight, title: "Weights in Tonnes", description: "Midweigh weights are normalised to tonnes for consistent reporting." },
   { icon: CheckCircle, title: "Reported Tracking", description: "Already-reported jobs are flagged and remain editable." },
-  { icon: Key, title: "PIN Authentication", description: "Yard staff sign in securely with a staff number and PIN." },
+  { icon: Key, title: "Username Authentication", description: "Yard staff sign in securely with a username and PIN." },
 ];
 
 /* ─── Load Reports App ─── */
