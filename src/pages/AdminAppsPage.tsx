@@ -220,16 +220,17 @@ const banksmanSteps: Step[] = [
   },
   {
     number: 2,
-    title: "Set Up Yard Staff PINs",
+    title: "Set Up Yard Staff Logins",
     icon: Key,
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          The banksman logs in with a <strong>Staff Number</strong> and <strong>PIN</strong> from the
+          The banksman logs in with a <strong>Username</strong> and <strong>PIN</strong> from the
           Yard Staff list.
         </p>
         <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-          <li>Add the banksman to <strong>Yard Staff</strong> with a unique staff number</li>
+          <li>Go to <strong>WasteOne → RouteOne → Setup → Yard Staff</strong></li>
+          <li>Add the banksman with a unique <strong>Username</strong></li>
           <li>Set a <strong>4–6 digit PIN</strong></li>
           <li>Ensure the staff member is marked as <strong>Active</strong></li>
         </ol>
