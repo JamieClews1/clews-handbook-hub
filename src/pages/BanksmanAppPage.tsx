@@ -52,25 +52,25 @@ const SESSION_KEY = "banksman_session";
 
 /* ─── PIN Login ─── */
 const BanksmanLogin = ({ onLogin }: { onLogin: (u: BanksmanUser) => void }) => {
-  const [number, setNumber] = useState("");
+  const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!number || !pin) {
-      setError("Enter your staff number and PIN");
+    if (!username.trim() || !pin) {
+      setError("Enter your username and PIN");
       return;
     }
     setLoading(true);
     setError("");
     try {
       const { staff } = await driverAction("yard_login", {
-        number: parseInt(number),
+        username: username.trim(),
         pin,
       });
       if (!staff) {
-        setError("Invalid staff number or PIN");
+        setError("Invalid username or PIN");
         setLoading(false);
         return;
       }
