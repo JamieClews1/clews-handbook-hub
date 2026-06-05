@@ -17,15 +17,23 @@ import {
   PenLine,
   Award,
   Eraser,
+  Plus,
+  Minus,
+  Package,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import {
   PricingTier,
   WasteType,
+  ChargeItem,
+  ReportedItem,
   findMatchingTier,
   calculateTierCharge,
+  calculateItemsCharge,
   describeTier,
 } from "@/lib/contamination-pricing";
+
 
 interface DriverJobLike {
   id: string;
@@ -243,6 +251,9 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
   const [minutes, setMinutes] = useState<string>("");
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
+  // Individual items reported: { [item_id]: quantity }
+  const [itemQtys, setItemQtys] = useState<Record<string, number>>({});
+
   const [signoffName, setSignoffName] = useState("");
   const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -274,6 +285,19 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       return (data || []) as PricingTier[];
     },
   });
+
+  const { data: chargeItems = [] } = useQuery({
+    queryKey: ["driver-contamination-charge-items"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contamination_charge_items")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
+      return (data || []) as ChargeItem[];
+    },
+  });
+
 
   const { data: settings } = useQuery({
     queryKey: ["driver-contamination-settings"],
@@ -318,8 +342,38 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     setPhotos(Array.isArray(existingReport.photos) ? (existingReport.photos as string[]) : []);
     setSignoffName(existingReport.customer_signoff_name ?? "");
     setSignature(existingReport.customer_signature ?? null);
+    const savedItems = Array.isArray(existingReport.reported_items)
+      ? (existingReport.reported_items as unknown as ReportedItem[])
+      : [];
+    if (savedItems.length) {
+      setItemQtys(
+        savedItems.reduce<Record<string, number>>((acc, i) => {
+          if (i?.item_id) acc[i.item_id] = i.quantity;
+          return acc;
+        }, {}),
+      );
+    }
     setPrefilled(true);
   }, [existingReport, prefilled]);
+
+  const reportedItems = useMemo<ReportedItem[]>(
+    () =>
+      chargeItems
+        .filter((ci) => (itemQtys[ci.id] ?? 0) > 0)
+        .map((ci) => ({
+          item_id: ci.id,
+          name: ci.name,
+          unit_charge: Number(ci.unit_charge) || 0,
+          quantity: itemQtys[ci.id],
+        })),
+    [chargeItems, itemQtys],
+  );
+
+  const itemsCharge = useMemo(() => calculateItemsCharge(reportedItems), [reportedItems]);
+
+  const setItemQty = (id: string, qty: number) =>
+    setItemQtys((prev) => ({ ...prev, [id]: Math.max(0, qty) }));
+
 
 
   const wasteTypeTiers = useMemo(
@@ -348,7 +402,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
 
   const canSubmit =
     !!wasteTypeId &&
-    (!!description.trim() || !!pct || !!minutes) &&
+    (!!description.trim() || !!pct || !!minutes || reportedItems.length > 0) &&
     photos.length > 0 &&
     (!standalone || (!!jobNumber && !!customerName)) &&
     !submitting;
@@ -364,7 +418,8 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     }
     setSubmitting(true);
     try {
-      const calculated = calculateTierCharge(suggestedTier, null);
+      const tierCharge = calculateTierCharge(suggestedTier, null);
+      const calculated = Math.round((tierCharge + itemsCharge) * 100) / 100;
       const now = new Date().toISOString();
 
       const payload = {
@@ -388,6 +443,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         contamination_pct: pct ? parseFloat(pct) : null,
         sorting_minutes: minutes ? parseFloat(minutes) : null,
         pricing_tier_id: suggestedTier?.id ?? null,
+        reported_items: reportedItems as unknown as any,
         calculated_charge: calculated,
         charge_amount: calculated,
         query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
@@ -396,6 +452,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         customer_signoff_name: signoffName.trim() || null,
         customer_signoff_at: signoffName.trim() || signature ? now : null,
       };
+
 
       if (editId) {
         // Update the existing report for this job (keeps it editable on re-open)
@@ -616,6 +673,69 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
             )}
           </CardContent>
         </Card>
+
+        {/* Individual items */}
+        {chargeItems.length > 0 && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Package className="w-4 h-4" /> Individual Items
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Count any chargeable items found in the load (fridges, tyres, mattresses, etc.).
+              </p>
+              <div className="space-y-2">
+                {chargeItems.map((ci) => {
+                  const qty = itemQtys[ci.id] ?? 0;
+                  return (
+                    <div
+                      key={ci.id}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-xl border p-3",
+                        qty > 0 && "border-red-500/50 bg-red-500/5",
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{ci.name}</p>
+                        <p className="text-xs text-muted-foreground">£{Number(ci.unit_charge).toFixed(2)} / item</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-full"
+                          onClick={() => setItemQty(ci.id, qty - 1)}
+                          disabled={qty <= 0}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="w-8 text-center text-base font-bold">{qty}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-full"
+                          onClick={() => setItemQty(ci.id, qty + 1)}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {itemsCharge > 0 && (
+                <div className="rounded-lg bg-muted/60 p-3 text-sm flex items-center justify-between">
+                  <span className="text-muted-foreground">Items charge</span>
+                  <span className="font-semibold">£{itemsCharge.toFixed(2)}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+
 
         {/* Description */}
         <Card>

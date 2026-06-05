@@ -19,10 +19,13 @@ import clewsLogo from "@/assets/clews-logo.png";
 import {
   PricingTier,
   WasteType,
+  ReportedItem,
   findMatchingTier,
   calculateTierCharge,
+  calculateItemsCharge,
   describeTier,
 } from "@/lib/contamination-pricing";
+
 
 interface Props {
   queryId: string;
@@ -105,6 +108,13 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
     [wasteTypeTiers, query?.contamination_pct, query?.sorting_minutes],
   );
 
+  const reportedItems = useMemo<ReportedItem[]>(
+    () => (Array.isArray(query?.reported_items) ? (query!.reported_items as unknown as ReportedItem[]) : []),
+    [query?.reported_items],
+  );
+  const itemsCharge = useMemo(() => calculateItemsCharge(reportedItems), [reportedItems]);
+
+
   if (!query) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -168,13 +178,14 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
       overrides.pricing_tier_id !== undefined
         ? relevantTiers.find((t) => t.id === overrides.pricing_tier_id) || null
         : findMatchingTier(relevantTiers, pct, minutes);
-    const calculated = calculateTierCharge(tier, query.weight_t);
+    const calculated = Math.round((calculateTierCharge(tier, query.weight_t) + itemsCharge) * 100) / 100;
 
     const updates: Record<string, any> = {
       ...overrides,
       pricing_tier_id: tier?.id ?? null,
       calculated_charge: calculated,
     };
+
     if (!query.charge_overridden) {
       updates.charge_amount = calculated;
     }
@@ -447,6 +458,23 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
                     </p>
                   </div>
                 )}
+
+                {reportedItems.length > 0 && (
+                  <div className="rounded-lg border border-border p-3 text-sm space-y-1">
+                    <p className="font-medium mb-1">Individual Items Reported</p>
+                    {reportedItems.map((it) => (
+                      <div key={it.item_id} className="flex items-center justify-between text-muted-foreground">
+                        <span>{it.quantity} × {it.name}</span>
+                        <span>£{((it.unit_charge || 0) * (it.quantity || 0)).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between font-semibold pt-1 border-t border-border/60">
+                      <span>Items total</span>
+                      <span>£{itemsCharge.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+
 
                 <div className="flex items-center gap-3">
                   <Switch

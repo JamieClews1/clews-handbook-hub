@@ -12,12 +12,17 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { PricingTier, WasteType } from "@/lib/contamination-pricing";
+import type { PricingTier, WasteType, ChargeItem } from "@/lib/contamination-pricing";
 
 const ContaminationPricingMatrix = () => {
   const queryClient = useQueryClient();
   const [newWasteType, setNewWasteType] = useState("");
   const [pointsValue, setPointsValue] = useState<string>("");
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemEwc, setNewItemEwc] = useState("");
+  const [newItemCharge, setNewItemCharge] = useState("");
+
+
 
   const { data: wasteTypes = [], refetch: refetchTypes } = useQuery({
     queryKey: ["contamination-waste-types-admin"],
@@ -51,12 +56,60 @@ const ContaminationPricingMatrix = () => {
     },
   });
 
+  const { data: chargeItems = [], refetch: refetchItems } = useQuery({
+    queryKey: ["contamination-charge-items-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contamination_charge_items")
+        .select("*")
+        .order("display_order");
+      if (error) throw error;
+      return data as ChargeItem[];
+    },
+  });
+
   const refreshAll = () => {
     refetchTypes();
     refetchTiers();
     queryClient.invalidateQueries({ queryKey: ["contamination-waste-types"] });
     queryClient.invalidateQueries({ queryKey: ["contamination-pricing-tiers"] });
   };
+
+  const refreshItems = () => {
+    refetchItems();
+    queryClient.invalidateQueries({ queryKey: ["contamination-charge-items"] });
+  };
+
+  const handleAddItem = async () => {
+    if (!newItemName.trim() || newItemCharge === "") {
+      return toast({ title: "Enter an item name and charge", variant: "destructive" });
+    }
+    const { error } = await supabase.from("contamination_charge_items").insert({
+      name: newItemName.trim(),
+      ewc_code: newItemEwc.trim() || null,
+      unit_charge: parseFloat(newItemCharge) || 0,
+      display_order: chargeItems.length + 1,
+    });
+    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    setNewItemName("");
+    setNewItemEwc("");
+    setNewItemCharge("");
+    toast({ title: "Item added" });
+    refreshItems();
+  };
+
+  const handleUpdateItem = async (id: string, field: string, value: any) => {
+    await supabase.from("contamination_charge_items").update({ [field]: value }).eq("id", id);
+    refreshItems();
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    await supabase.from("contamination_charge_items").delete().eq("id", id);
+    toast({ title: "Item removed" });
+    refreshItems();
+  };
+
+
 
   const handleAddWasteType = async () => {
     if (!newWasteType.trim()) return;
@@ -264,8 +317,94 @@ const ContaminationPricingMatrix = () => {
           <Button onClick={handleAddWasteType} className="gap-2"><Plus className="h-4 w-4" /> Add</Button>
         </CardContent>
       </Card>
+
+      {/* Additional per-item charges */}
+      <div className="flex items-center gap-2 pt-2">
+        <Settings className="h-5 w-5" />
+        <h2 className="text-lg font-semibold">Additional Items (Per-Item Charges)</h2>
+      </div>
+      <p className="text-sm text-muted-foreground -mt-3">
+        Individual items charged per unit (fridges, tyres, mattresses, POPS items, etc.). Reporters can record how many
+        of each item they find in a load, and the charge is added on top of the contamination tier.
+      </p>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted-foreground">
+                  <th className="py-1 pr-2 font-medium">Item</th>
+                  <th className="py-1 px-1 font-medium">EWC Code</th>
+                  <th className="py-1 px-1 font-medium">Charge £/item</th>
+                  <th className="py-1 px-1 font-medium">Active</th>
+                  <th className="py-1"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {chargeItems.map((it) => (
+                  <tr key={it.id} className="border-t border-border">
+                    <td className="py-1 pr-2">
+                      <Input className="h-8 min-w-[220px]" defaultValue={it.name} onBlur={(e) => e.target.value !== it.name && handleUpdateItem(it.id, "name", e.target.value)} />
+                    </td>
+                    <td className="px-1">
+                      <Input className="h-8 w-28" defaultValue={it.ewc_code ?? ""} placeholder="—" onBlur={(e) => handleUpdateItem(it.id, "ewc_code", e.target.value || null)} />
+                    </td>
+                    <td className="px-1">
+                      <Input className="h-8 w-24" type="number" step="0.01" defaultValue={it.unit_charge ?? 0} onBlur={(e) => handleUpdateItem(it.id, "unit_charge", parseFloat(e.target.value) || 0)} />
+                    </td>
+                    <td className="px-1">
+                      <Switch checked={it.is_active} onCheckedChange={(c) => handleUpdateItem(it.id, "is_active", c)} />
+                    </td>
+                    <td className="py-1">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete "{it.name}"?</AlertDialogTitle>
+                            <AlertDialogDescription>This removes the per-item charge.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteItem(it.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </td>
+                  </tr>
+                ))}
+                {chargeItems.length === 0 && (
+                  <tr><td colSpan={5} className="text-center text-muted-foreground py-6">No items configured yet</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Add Item</CardTitle></CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[220px]">
+            <Label>Item name</Label>
+            <Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="e.g. Domestic Fridges" />
+          </div>
+          <div className="w-32">
+            <Label>EWC Code</Label>
+            <Input value={newItemEwc} onChange={(e) => setNewItemEwc(e.target.value)} placeholder="16 02 13" />
+          </div>
+          <div className="w-32">
+            <Label>Charge £/item</Label>
+            <Input type="number" step="0.01" value={newItemCharge} onChange={(e) => setNewItemCharge(e.target.value)} placeholder="0.00" />
+          </div>
+          <Button onClick={handleAddItem} className="gap-2"><Plus className="h-4 w-4" /> Add</Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
+
 
 export default ContaminationPricingMatrix;
