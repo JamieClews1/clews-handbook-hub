@@ -595,7 +595,7 @@ export const UserManagement = () => {
           <DialogHeader>
             <DialogTitle>Driver App Login</DialogTitle>
             <DialogDescription>
-              Set the driver number and PIN {driverUser ? emailToUsername(driverUser.email) : ""} uses to sign into the RouteOne driver app. Leave blank to remove access.
+              Set the PIN {driverUser ? emailToUsername(driverUser.email) : ""} uses to sign into the RouteOne driver app. They log in with their <strong>username</strong> ({driverUser ? emailToUsername(driverUser.email) : ""}) and this PIN. Leave the PIN blank to remove access.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
