@@ -95,16 +95,18 @@ const BanksmanLogin = ({ onLogin }: { onLogin: (u: BanksmanUser) => void }) => {
         </div>
 
         <div className="space-y-3">
-          <label className="text-zinc-300 text-sm font-medium">Staff Number</label>
+          <label className="text-zinc-300 text-sm font-medium">Username</label>
           <Input
-            type="number"
-            inputMode="numeric"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            placeholder="Enter staff number"
+            type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter username"
             className="h-14 text-xl text-center bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
           />
         </div>
+
 
         <div className="space-y-3">
           <label className="text-zinc-300 text-sm font-medium">PIN</label>
