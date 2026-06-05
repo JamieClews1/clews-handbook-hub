@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { PricingTier, WasteType } from "@/lib/contamination-pricing";
+import type { PricingTier, WasteType, ChargeItem } from "@/lib/contamination-pricing";
 
 const ContaminationPricingMatrix = () => {
   const queryClient = useQueryClient();
