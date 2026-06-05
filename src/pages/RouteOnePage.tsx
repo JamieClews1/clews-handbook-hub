@@ -35,6 +35,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
+import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import {
   DropdownMenu,
   DropdownMenuContent,
