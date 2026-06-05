@@ -19,10 +19,13 @@ import clewsLogo from "@/assets/clews-logo.png";
 import {
   PricingTier,
   WasteType,
+  ReportedItem,
   findMatchingTier,
   calculateTierCharge,
+  calculateItemsCharge,
   describeTier,
 } from "@/lib/contamination-pricing";
+
 
 interface Props {
   queryId: string;
