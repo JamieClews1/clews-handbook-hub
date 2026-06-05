@@ -406,22 +406,7 @@ const AdminAppsPage = () => {
 
         {/* Banksman App */}
         <TabsContent value="banksman">
-          <AppGuide
-            overview="The Banksman App is a mobile-first web app for the weighbridge. Yard staff sign in with a PIN to see a live feed of jobs crossing the weighbridge, then take photos and record contamination details against each job."
-            badges={[
-              { icon: Shield, label: "PIN Authentication" },
-              { icon: Scale, label: "Weighbridge Feed" },
-              { icon: Truck, label: "Midweigh + Skiptrak" },
-              { icon: Camera, label: "Contamination Capture" },
-            ]}
-            steps={banksmanSteps}
-            features={banksmanFeatures}
-            extra={
-              <div className="flex flex-wrap gap-2">
-                <LaunchButton url="https://clewshandbook.lovable.app/banksman" label="Open Banksman App" />
-              </div>
-            }
-          />
+          <BanksmanAppGuide />
         </TabsContent>
       </Tabs>
     </AdminPageLayout>
