@@ -286,6 +286,19 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     },
   });
 
+  const { data: chargeItems = [] } = useQuery({
+    queryKey: ["driver-contamination-charge-items"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contamination_charge_items")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
+      return (data || []) as ChargeItem[];
+    },
+  });
+
+
   const { data: settings } = useQuery({
     queryKey: ["driver-contamination-settings"],
     queryFn: async () => {
