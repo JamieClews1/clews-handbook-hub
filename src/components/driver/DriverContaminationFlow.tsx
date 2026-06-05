@@ -674,6 +674,69 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
           </CardContent>
         </Card>
 
+        {/* Individual items */}
+        {chargeItems.length > 0 && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Package className="w-4 h-4" /> Individual Items
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Count any chargeable items found in the load (fridges, tyres, mattresses, etc.).
+              </p>
+              <div className="space-y-2">
+                {chargeItems.map((ci) => {
+                  const qty = itemQtys[ci.id] ?? 0;
+                  return (
+                    <div
+                      key={ci.id}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-xl border p-3",
+                        qty > 0 && "border-red-500/50 bg-red-500/5",
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{ci.name}</p>
+                        <p className="text-xs text-muted-foreground">£{Number(ci.unit_charge).toFixed(2)} / item</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-full"
+                          onClick={() => setItemQty(ci.id, qty - 1)}
+                          disabled={qty <= 0}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="w-8 text-center text-base font-bold">{qty}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-full"
+                          onClick={() => setItemQty(ci.id, qty + 1)}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {itemsCharge > 0 && (
+                <div className="rounded-lg bg-muted/60 p-3 text-sm flex items-center justify-between">
+                  <span className="text-muted-foreground">Items charge</span>
+                  <span className="font-semibold">£{itemsCharge.toFixed(2)}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+
+
         {/* Description */}
         <Card>
           <CardContent className="p-4 space-y-3">
