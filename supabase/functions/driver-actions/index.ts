@@ -199,8 +199,12 @@ Deno.serve(async (req) => {
         const jobs = mwJobs.map((j) => {
           const reg = normReg(j.vehicle_registration);
           const match = reg && j.job_date ? skMap.get(`${reg}|${j.job_date}`) : null;
+          // Midweigh weight is stored in KG; normalise to tonnes for display/reporting.
+          const weightTonnes =
+            j.weight_t != null ? Math.round((j.weight_t / 1000) * 1000) / 1000 : null;
           return {
             ...j,
+            weight_t: weightTonnes,
             midweigh_job_number: j.job_number,
             skiptrak_job_number: match?.job_number ?? null,
             has_contamination: reported.has(j.job_number),
