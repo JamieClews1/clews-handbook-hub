@@ -357,8 +357,8 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     if (!canSubmit) {
       toast.error(
         standalone
-          ? "Please add the job/customer, waste type, a photo, the description, and customer sign-off"
-          : "Please complete waste type, a photo, the description, and customer sign-off",
+          ? "Please add the job/customer, waste type, a photo, and the description"
+          : "Please complete waste type, a photo, and the description",
       );
       return;
     }
