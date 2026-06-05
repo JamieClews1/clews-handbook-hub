@@ -147,15 +147,22 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
     }
 
     try {
-      let query = supabase.from('partner_questionnaires').select('*');
-      
-      if (questionnaireId) {
-        query = query.eq('id', questionnaireId);
-      } else if (shareToken) {
-        query = query.eq('share_token', shareToken);
+      // Public token access goes through a service-role edge function so the
+      // table itself stays locked down to authenticated staff.
+      if (!questionnaireId && shareToken) {
+        const { data: result, error } = await supabase.functions.invoke('public-forms', {
+          body: { action: 'get', resource: 'partner_questionnaires', token: shareToken },
+        });
+        if (error) throw error;
+        if (result?.record) setFormData(result.record);
+        return;
       }
 
-      const { data, error } = await query.maybeSingle();
+      const { data, error } = await supabase
+        .from('partner_questionnaires')
+        .select('*')
+        .eq('id', questionnaireId!)
+        .maybeSingle();
 
       if (error) throw error;
       if (data) {
