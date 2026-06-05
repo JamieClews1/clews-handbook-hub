@@ -199,87 +199,8 @@ const driverFeatures: Feature[] = [
   { icon: Wifi, title: "Offline Capability", description: "PWA architecture allows the app to load even with poor signal in remote areas." },
 ];
 
-/* ─── Banksman App ─── */
-const banksmanSteps: Step[] = [
-  {
-    number: 1,
-    title: "Access the Banksman App",
-    icon: Globe,
-    content: (
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          The Banksman App is a mobile-first web app for the weighbridge, accessible at:
-        </p>
-        <UrlBox url="https://clewshandbook.lovable.app/banksman" />
-        <p className="text-sm text-muted-foreground">
-          Open in <strong>Google Chrome</strong> on the weighbridge tablet or phone, then add it to
-          the home screen for quick access.
-        </p>
-      </div>
-    ),
-  },
-  {
-    number: 2,
-    title: "Set Up Yard Staff Logins",
-    icon: Key,
-    content: (
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          The banksman logs in with a <strong>Username</strong> and <strong>PIN</strong> from the
-          Yard Staff list.
-        </p>
-        <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-          <li>Go to <strong>WasteOne → RouteOne → Setup → Yard Staff</strong></li>
-          <li>Add the banksman with a unique <strong>Username</strong></li>
-          <li>Set a <strong>4–6 digit PIN</strong></li>
-          <li>Ensure the staff member is marked as <strong>Active</strong></li>
-        </ol>
-      </div>
-    ),
-  },
-  {
-    number: 3,
-    title: "Confirm the Weighbridge Feed",
-    icon: Scale,
-    content: (
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          The live feed shows jobs coming through the weighbridge (Midweigh). Where a Skiptrak ticket
-          matches the same vehicle and date, both the <strong>Midweigh</strong> and{" "}
-          <strong>Skiptrak</strong> job numbers are shown on the card.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Make sure Midweigh and Skiptrak data is syncing in the Data Hub so jobs appear in the feed.
-        </p>
-      </div>
-    ),
-  },
-  {
-    number: 4,
-    title: "Capture Contaminations",
-    icon: Camera,
-    content: (
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Tapping a job opens the contamination flow — the banksman takes photos and assigns the waste
-          type, contamination percentage and sorting time. Reported jobs show a "Reported" badge and
-          can be re-opened to edit.
-        </p>
-      </div>
-    ),
-  },
-];
+/* ─── Banksman App ─── (guide moved to shared BanksmanAppGuide component) */
 
-const banksmanFeatures: Feature[] = [
-  { icon: RefreshCw, title: "Live Weighbridge Feed", description: "Auto-refreshing list of Midweigh jobs coming across the weighbridge." },
-  { icon: Truck, title: "Dual Job Numbers", description: "Shows both the Midweigh and matched Skiptrak job number for each ticket." },
-  { icon: Camera, title: "Photo & Contamination Capture", description: "Take photos and assign contamination type, percentage and sorting minutes." },
-  { icon: Weight, title: "Weights in Tonnes", description: "Midweigh weights are normalised to tonnes for consistent reporting." },
-  { icon: CheckCircle, title: "Reported Tracking", description: "Already-reported jobs are flagged and remain editable." },
-  { icon: Key, title: "Username Authentication", description: "Yard staff sign in securely with a username and PIN." },
-];
-
-/* ─── Load Reports App ─── */
 const loadReportSteps: Step[] = [
   {
     number: 1,
