@@ -63,9 +63,33 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
       throw new Error('Supabase credentials not configured');
+    }
+
+    // Require an authenticated admin caller
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+      });
+    }
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+      });
+    }
+    const { data: isAdmin } = await authClient.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ success: false, error: 'Forbidden' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403,
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
