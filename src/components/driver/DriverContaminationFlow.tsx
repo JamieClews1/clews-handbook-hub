@@ -289,6 +289,39 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
 
   const pointsPerReport = settings?.points_per_report ?? 10;
 
+  // Load any existing contamination report for this job so it stays + is editable on re-open
+  const [editId, setEditId] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
+  const { data: existingReport, isLoading: loadingExisting } = useQuery({
+    enabled: !standalone && !!job?.job_number,
+    queryKey: ["driver-existing-contamination", job?.job_number, driverId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contamination_queries")
+        .select("*")
+        .eq("job_number", job!.job_number)
+        .eq("reporter_driver_id", driverId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (prefilled || !existingReport) return;
+    setEditId(existingReport.id);
+    setWasteTypeId(existingReport.waste_type_id ?? "");
+    setPct(existingReport.contamination_pct != null ? String(existingReport.contamination_pct) : "");
+    setMinutes(existingReport.sorting_minutes != null ? String(existingReport.sorting_minutes) : "");
+    setDescription(existingReport.query_reason ?? "");
+    setPhotos(Array.isArray(existingReport.photos) ? (existingReport.photos as string[]) : []);
+    setSignoffName(existingReport.customer_signoff_name ?? "");
+    setSignature(existingReport.customer_signature ?? null);
+    setPrefilled(true);
+  }, [existingReport, prefilled]);
+
+
   const wasteTypeTiers = useMemo(
     () => (wasteTypeId ? tiers.filter((t) => t.waste_type_id === wasteTypeId) : []),
     [tiers, wasteTypeId],
