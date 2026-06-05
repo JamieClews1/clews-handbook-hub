@@ -1,0 +1,30 @@
+{
+  "id": "/driver",
+  "name": "WasteOne Driver",
+  "short_name": "Driver",
+  "description": "WasteOne driver app for jobs, collections and contamination reporting.",
+  "theme_color": "#4ECB71",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/driver",
+  "start_url": "/driver",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
