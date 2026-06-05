@@ -155,17 +155,17 @@ const driverSteps: Step[] = [
   },
   {
     number: 3,
-    title: "Set Up Driver PINs",
+    title: "Set Up Driver Logins",
     icon: Key,
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Each driver needs a <strong>Driver Number</strong> and <strong>4–6 digit PIN</strong> to log in.
+          Each driver needs a <strong>Username</strong> and <strong>4–6 digit PIN</strong> to log in.
         </p>
         <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
           <li>Navigate to <strong>WasteOne → RouteOne → Setup → Drivers</strong></li>
           <li>Click on a driver to edit their details</li>
-          <li>Set their <strong>Driver Number</strong> and <strong>PIN</strong></li>
+          <li>Set their <strong>Username</strong> and <strong>PIN</strong></li>
           <li>Ensure the driver is marked as <strong>Active</strong></li>
         </ol>
       </div>
