@@ -35,6 +35,11 @@ interface DriverJobLike {
   site_postcode: string | null;
   container_type: string | null;
   po_number: string | null;
+  order_number?: string | null;
+  job_date?: string | null;
+  waste_description?: string | null;
+  weight_t?: number | null;
+  vehicle_reg?: string | null;
 }
 
 export interface ContaminationReporter {
@@ -340,6 +345,11 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
           postcode: sitePostcode,
           container_type: job?.container_type ?? null,
           po_number: job?.po_number ?? null,
+          order_number: job?.order_number ?? null,
+          job_date: job?.job_date ?? null,
+          waste_description: job?.waste_description ?? null,
+          weight_t: job?.weight_t ?? null,
+          vehicle_reg: job?.vehicle_reg ?? null,
           status: "query",
           source_app: reporter.type === "yard" ? "yard" : "driver",
           reporter_driver_id: reporter.type === "driver" ? driverId : null,

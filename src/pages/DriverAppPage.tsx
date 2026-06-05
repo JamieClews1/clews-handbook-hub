@@ -625,7 +625,16 @@ const DriverJobDetail = ({
   if (showContamination) {
     return (
       <DriverContaminationFlow
-        job={job}
+        job={{
+          id: job.id,
+          job_number: job.job_number,
+          customer_name: job.customer_name,
+          site_name: job.site_name,
+          site_postcode: job.site_postcode,
+          container_type: job.container_type,
+          po_number: job.po_number,
+          waste_description: job.waste_type,
+        }}
         reporter={{ id: driverId, name: driverName, type: "driver" }}
         onBack={() => setShowContamination(false)}
         onSubmitted={handleContaminationSubmitted}
@@ -932,6 +941,11 @@ const SkiptrakJobDetailView = ({
           site_postcode: null,
           container_type: job.container_type || null,
           po_number: job.po_number || null,
+          order_number: job.order_number || null,
+          job_date: job.job_date || null,
+          waste_description: job.waste_description || null,
+          weight_t: job.weight_t ?? null,
+          vehicle_reg: job.vehicle_registration || null,
         }}
         reporter={{ id: driverId, name: driverName, type: "driver" }}
         onBack={() => setShowContamination(false)}
