@@ -827,6 +827,7 @@ const WeighOnePage = () => {
         <TabsList>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4" /> Transaction Log</TabsTrigger>
           <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4" /> Midweigh Data</TabsTrigger>
+          <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4" /> Banksman App</TabsTrigger>
         </TabsList>
         <TabsContent value="log" className="mt-4">
           <Card className="border-border/50">
