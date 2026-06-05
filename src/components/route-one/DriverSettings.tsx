@@ -43,6 +43,7 @@ export const DriverSettings = () => {
   const [form, setForm] = useState({
     driver_name: "",
     driver_number: "",
+    username: "",
     mobile: "",
     department: "",
     category: "Skips",
