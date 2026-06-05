@@ -108,6 +108,13 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
     [wasteTypeTiers, query?.contamination_pct, query?.sorting_minutes],
   );
 
+  const reportedItems = useMemo<ReportedItem[]>(
+    () => (Array.isArray(query?.reported_items) ? (query!.reported_items as unknown as ReportedItem[]) : []),
+    [query?.reported_items],
+  );
+  const itemsCharge = useMemo(() => calculateItemsCharge(reportedItems), [reportedItems]);
+
+
   if (!query) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
