@@ -1273,16 +1273,12 @@ const DriverAppPage = () => {
         return;
       }
       if (role === "yard") {
-        supabase
-          .from("yard_staff")
-          .select("id, staff_name")
-          .eq("id", id)
-          .eq("is_active", true)
-          .maybeSingle()
-          .then(({ data }) => {
+        driverAction("yard_restore", { id })
+          .then(({ staff: data }) => {
             if (data) setUser({ id: data.id, name: data.staff_name, role: "yard" });
             else localStorage.removeItem("driver_session");
-          });
+          })
+          .catch(() => localStorage.removeItem("driver_session"));
       } else if (src === "profile") {
         supabase.functions
           .invoke("driver-auth", { body: { action: "restore", id } })
