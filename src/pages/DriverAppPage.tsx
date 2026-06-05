@@ -932,6 +932,11 @@ const SkiptrakJobDetailView = ({
           site_postcode: null,
           container_type: job.container_type || null,
           po_number: job.po_number || null,
+          order_number: job.order_number || null,
+          job_date: job.job_date || null,
+          waste_description: job.waste_description || null,
+          weight_t: job.weight_t ?? null,
+          vehicle_reg: job.vehicle_registration || null,
         }}
         reporter={{ id: driverId, name: driverName, type: "driver" }}
         onBack={() => setShowContamination(false)}
