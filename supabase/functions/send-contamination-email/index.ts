@@ -59,7 +59,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Clews Recycling <onboarding@resend.dev>",
+        from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
         to: [to],
         subject,
         html: htmlBody,
