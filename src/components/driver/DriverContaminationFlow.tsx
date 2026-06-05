@@ -350,8 +350,6 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     !!wasteTypeId &&
     (!!description.trim() || !!pct || !!minutes) &&
     photos.length > 0 &&
-    !!signoffName.trim() &&
-    !!signature &&
     (!standalone || (!!jobNumber && !!customerName)) &&
     !submitting;
 
@@ -359,8 +357,8 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     if (!canSubmit) {
       toast.error(
         standalone
-          ? "Please add the job/customer, waste type, a photo, the description, and customer sign-off"
-          : "Please complete waste type, a photo, the description, and customer sign-off",
+          ? "Please add the job/customer, waste type, a photo, and the description"
+          : "Please complete waste type, a photo, and the description",
       );
       return;
     }
@@ -394,9 +392,9 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         charge_amount: calculated,
         query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
         photos,
-        customer_signature: signature,
-        customer_signoff_name: signoffName.trim(),
-        customer_signoff_at: now,
+        customer_signature: signature || null,
+        customer_signoff_name: signoffName.trim() || null,
+        customer_signoff_at: signoffName.trim() || signature ? now : null,
       };
 
       if (editId) {
