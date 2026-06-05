@@ -51,6 +51,7 @@ export const DriverSettings = () => {
     category: "Skips",
     vehicle_id: "",
     pin: "",
+    user_id: "",
   });
 
   const { data: drivers = [], isLoading } = useQuery({
