@@ -12,9 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database } from "lucide-react";
+import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
+import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
+import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
