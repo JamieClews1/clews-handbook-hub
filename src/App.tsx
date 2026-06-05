@@ -24,6 +24,7 @@ import AdminCustomersPage from "./pages/AdminCustomersPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminQuestionnairesPage from "./pages/AdminQuestionnairesPage";
 import AdminDriverAppPage from "./pages/AdminDriverAppPage";
+import AdminAppsPage from "./pages/AdminAppsPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MassSignOffPage from "./pages/MassSignOffPage";
 import DutyOfCarePage from "./pages/DutyOfCarePage";
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="/admin/settings" element={<Staff><AdminSettingsPage /></Staff>} />
             <Route path="/admin/questionnaires" element={<Staff><AdminQuestionnairesPage /></Staff>} />
             <Route path="/admin/driver-app" element={<Staff><AdminDriverAppPage /></Staff>} />
+            <Route path="/admin/apps" element={<Staff><AdminAppsPage /></Staff>} />
             <Route path="/my-profile" element={<Staff><MyProfilePage /></Staff>} />
             <Route path="/mass-sign-off" element={<Staff><MassSignOffPage /></Staff>} />
             <Route path="/duty-of-care" element={<Staff><DutyOfCarePage /></Staff>} />
