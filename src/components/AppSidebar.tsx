@@ -437,10 +437,10 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive("/admin/driver-app")}>
-                        <Link to="/admin/driver-app">
-                          <TruckIcon className="h-4 w-4" />
-                          {!collapsed && <span>Driver App</span>}
+                      <SidebarMenuButton asChild isActive={isInSection(["/admin/apps", "/admin/driver-app"])}>
+                        <Link to="/admin/apps">
+                          <Smartphone className="h-4 w-4" />
+                          {!collapsed && <span>Apps</span>}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
