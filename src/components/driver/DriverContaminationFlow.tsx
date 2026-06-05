@@ -350,8 +350,6 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     !!wasteTypeId &&
     (!!description.trim() || !!pct || !!minutes) &&
     photos.length > 0 &&
-    !!signoffName.trim() &&
-    !!signature &&
     (!standalone || (!!jobNumber && !!customerName)) &&
     !submitting;
 
