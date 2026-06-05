@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -289,6 +289,39 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
 
   const pointsPerReport = settings?.points_per_report ?? 10;
 
+  // Load any existing contamination report for this job so it stays + is editable on re-open
+  const [editId, setEditId] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
+  const { data: existingReport, isLoading: loadingExisting } = useQuery({
+    enabled: !standalone && !!job?.job_number,
+    queryKey: ["driver-existing-contamination", job?.job_number, driverId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contamination_queries")
+        .select("*")
+        .eq("job_number", job!.job_number)
+        .eq("reporter_driver_id", driverId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (prefilled || !existingReport) return;
+    setEditId(existingReport.id);
+    setWasteTypeId(existingReport.waste_type_id ?? "");
+    setPct(existingReport.contamination_pct != null ? String(existingReport.contamination_pct) : "");
+    setMinutes(existingReport.sorting_minutes != null ? String(existingReport.sorting_minutes) : "");
+    setDescription(existingReport.query_reason ?? "");
+    setPhotos(Array.isArray(existingReport.photos) ? (existingReport.photos as string[]) : []);
+    setSignoffName(existingReport.customer_signoff_name ?? "");
+    setSignature(existingReport.customer_signature ?? null);
+    setPrefilled(true);
+  }, [existingReport, prefilled]);
+
+
   const wasteTypeTiers = useMemo(
     () => (wasteTypeId ? tiers.filter((t) => t.waste_type_id === wasteTypeId) : []),
     [tiers, wasteTypeId],
@@ -336,37 +369,62 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       const calculated = calculateTierCharge(suggestedTier, null);
       const now = new Date().toISOString();
 
+      const payload = {
+        job_number: jobNumber,
+        customer: customerName,
+        site: siteName,
+        postcode: sitePostcode,
+        container_type: job?.container_type ?? null,
+        po_number: job?.po_number ?? null,
+        order_number: job?.order_number ?? null,
+        job_date: job?.job_date ?? null,
+        waste_description: job?.waste_description ?? null,
+        weight_t: job?.weight_t ?? null,
+        vehicle_reg: job?.vehicle_reg ?? null,
+        source_app: reporter.type === "yard" ? "yard" : "driver",
+        reporter_driver_id: reporter.type === "driver" ? driverId : null,
+        reporter_name: driverName,
+        reporter_type: reporter.type,
+        waste_type_id: wasteTypeId,
+        contamination_type: selectedWasteName,
+        contamination_pct: pct ? parseFloat(pct) : null,
+        sorting_minutes: minutes ? parseFloat(minutes) : null,
+        pricing_tier_id: suggestedTier?.id ?? null,
+        calculated_charge: calculated,
+        charge_amount: calculated,
+        query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
+        photos,
+        customer_signature: signature,
+        customer_signoff_name: signoffName.trim(),
+        customer_signoff_at: now,
+      };
+
+      if (editId) {
+        // Update the existing report for this job (keeps it editable on re-open)
+        const { error: updateError } = await supabase
+          .from("contamination_queries")
+          .update(payload)
+          .eq("id", editId);
+        if (updateError) throw updateError;
+
+        await supabase.from("contamination_activity_log").insert({
+          query_id: editId,
+          user_name: driverName,
+          action_type: "updated",
+          new_value: selectedWasteName,
+          notes: "Updated via Driver App",
+        });
+
+        toast.success("Contamination report updated");
+        onSubmitted(selectedWasteName);
+        return;
+      }
+
       const { data: created, error: insertError } = await supabase
         .from("contamination_queries")
         .insert({
-          job_number: jobNumber,
-          customer: customerName,
-          site: siteName,
-          postcode: sitePostcode,
-          container_type: job?.container_type ?? null,
-          po_number: job?.po_number ?? null,
-          order_number: job?.order_number ?? null,
-          job_date: job?.job_date ?? null,
-          waste_description: job?.waste_description ?? null,
-          weight_t: job?.weight_t ?? null,
-          vehicle_reg: job?.vehicle_reg ?? null,
+          ...payload,
           status: "query",
-          source_app: reporter.type === "yard" ? "yard" : "driver",
-          reporter_driver_id: reporter.type === "driver" ? driverId : null,
-          reporter_name: driverName,
-          reporter_type: reporter.type,
-          waste_type_id: wasteTypeId,
-          contamination_type: selectedWasteName,
-          contamination_pct: pct ? parseFloat(pct) : null,
-          sorting_minutes: minutes ? parseFloat(minutes) : null,
-          pricing_tier_id: suggestedTier?.id ?? null,
-          calculated_charge: calculated,
-          charge_amount: calculated,
-          query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
-          photos,
-          customer_signature: signature,
-          customer_signoff_name: signoffName.trim(),
-          customer_signoff_at: now,
           approval_status: "pending",
           points_awarded: pointsPerReport,
         })
@@ -374,6 +432,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         .single();
 
       if (insertError) throw insertError;
+      setEditId(created.id);
 
       // Award points to the reporter
       const { error: pointsError } = await supabase.from("contamination_points").insert({
@@ -404,6 +463,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     }
   };
 
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
@@ -414,11 +474,23 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         </button>
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-red-500" />
-          <h1 className="text-2xl font-bold text-foreground">Report Contamination</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {editId ? "Edit Contamination" : "Report Contamination"}
+          </h1>
         </div>
         {!standalone && (
           <p className="text-sm text-muted-foreground mt-1">
             {job!.customer_name} · #{job!.job_number}
+          </p>
+        )}
+        {loadingExisting && (
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" /> Checking for an existing report…
+          </p>
+        )}
+        {editId && !loadingExisting && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Editing your saved report for this job.
           </p>
         )}
       </div>
@@ -595,7 +667,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
           className="w-full h-16 text-xl font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl gap-3"
         >
           {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Check className="w-6 h-6" />}
-          Submit Contamination Report
+          {editId ? "Update Contamination Report" : "Submit Contamination Report"}
         </Button>
       </div>
     </div>
