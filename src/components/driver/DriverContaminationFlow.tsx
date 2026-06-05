@@ -251,6 +251,9 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
   const [minutes, setMinutes] = useState<string>("");
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
+  // Individual items reported: { [item_id]: quantity }
+  const [itemQtys, setItemQtys] = useState<Record<string, number>>({});
+
   const [signoffName, setSignoffName] = useState("");
   const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
