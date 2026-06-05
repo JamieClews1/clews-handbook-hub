@@ -77,12 +77,15 @@ Deno.serve(async (req) => {
       }
 
       const incoming = (body?.payload && typeof body.payload === "object") ? body.payload : {};
+      const finalize = body?.finalize !== false; // default true
       const sanitized: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(incoming)) {
         if (!PROTECTED_FIELDS[resource].includes(k)) sanitized[k] = v;
       }
-      sanitized.status = "submitted";
-      sanitized.submitted_at = new Date().toISOString();
+      if (finalize) {
+        sanitized.status = "submitted";
+        sanitized.submitted_at = new Date().toISOString();
+      }
 
       const { data, error } = await supabase
         .from(resource)
