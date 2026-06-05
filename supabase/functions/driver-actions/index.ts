@@ -42,6 +42,9 @@ function decodeBase64(b64: string): Uint8Array {
   return bytes;
 }
 
+// Escape LIKE/ILIKE wildcards so a username can only match itself
+const escapeLike = (s: string) => s.replace(/([%_\\])/g, "\\$1");
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
