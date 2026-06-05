@@ -496,6 +496,21 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Booked waste type from the ticket */}
+        {!standalone && job?.waste_description && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-4">
+              <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">
+                Booked Waste Type
+              </h2>
+              <p className="text-xs text-muted-foreground mb-2">
+                What this load is supposed to be from the ticket.
+              </p>
+              <p className="text-lg font-bold text-foreground">{job.waste_description}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Job details (standalone only) */}
         {standalone && (
           <Card>
@@ -545,7 +560,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
 
         <Card>
           <CardContent className="p-4 space-y-3">
-            <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Waste Type</h2>
+            <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Contaminated With</h2>
             <div className="grid grid-cols-2 gap-2">
               {wasteTypes.map((wt) => (
                 <Button
