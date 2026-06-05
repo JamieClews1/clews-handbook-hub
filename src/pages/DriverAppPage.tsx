@@ -335,14 +335,8 @@ const PhotoCapture = ({
   const { data: photos = [] } = useQuery({
     queryKey: ["job-photos", jobId, photoType],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("route_one_job_photos")
-        .select("*")
-        .eq("job_id", jobId)
-        .eq("photo_type", photoType)
-        .order("created_at");
-      if (error) throw error;
-      return (data || []) as JobPhoto[];
+      const { photos } = await driverAction("list_job_photos", { job_id: jobId, photo_type: photoType });
+      return (photos || []) as JobPhoto[];
     },
   });
 
@@ -353,25 +347,14 @@ const PhotoCapture = ({
 
     try {
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop() || "jpg";
-        const fileName = `${jobId}/${photoType}_${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("route-one-photos")
-          .upload(fileName, file, { cacheControl: "3600" });
-
-        if (uploadError) throw uploadError;
-
-        const { error: dbError } = await supabase
-          .from("route_one_job_photos")
-          .insert({
-            job_id: jobId,
-            photo_type: photoType,
-            file_path: fileName,
-            file_name: file.name,
-          });
-
-        if (dbError) throw dbError;
+        const file_base64 = await fileToBase64(file);
+        await driverAction("add_job_photo", {
+          job_id: jobId,
+          photo_type: photoType,
+          file_name: file.name,
+          content_type: file.type || "image/jpeg",
+          file_base64,
+        });
       }
 
       queryClient.invalidateQueries({ queryKey: ["job-photos", jobId, photoType] });
@@ -386,8 +369,7 @@ const PhotoCapture = ({
   };
 
   const handleDelete = async (photo: JobPhoto) => {
-    await supabase.storage.from("route-one-photos").remove([photo.file_path]);
-    await supabase.from("route_one_job_photos").delete().eq("id", photo.id);
+    await driverAction("delete_job_photo", { id: photo.id, file_path: photo.file_path });
     queryClient.invalidateQueries({ queryKey: ["job-photos", jobId, photoType] });
     toast.success("Photo removed");
   };
