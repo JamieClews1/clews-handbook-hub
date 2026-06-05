@@ -178,13 +178,14 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
       overrides.pricing_tier_id !== undefined
         ? relevantTiers.find((t) => t.id === overrides.pricing_tier_id) || null
         : findMatchingTier(relevantTiers, pct, minutes);
-    const calculated = calculateTierCharge(tier, query.weight_t);
+    const calculated = Math.round((calculateTierCharge(tier, query.weight_t) + itemsCharge) * 100) / 100;
 
     const updates: Record<string, any> = {
       ...overrides,
       pricing_tier_id: tier?.id ?? null,
       calculated_charge: calculated,
     };
+
     if (!query.charge_overridden) {
       updates.charge_amount = calculated;
     }
