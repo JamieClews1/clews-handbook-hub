@@ -200,7 +200,6 @@ export const DriverSettings = () => {
           <Label className="text-xs">Department</Label>
           <Input type="number" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="e.g. 30" />
         </div>
-      <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Category</Label>
           <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
