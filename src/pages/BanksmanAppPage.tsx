@@ -160,7 +160,7 @@ const BanksmanLogin = ({ onLogin }: { onLogin: (u: BanksmanUser) => void }) => {
 
         <Button
           onClick={handleLogin}
-          disabled={loading || !number || !pin}
+          disabled={loading || !username.trim() || !pin}
           className="w-full h-16 text-xl font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
         >
           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Sign In"}
