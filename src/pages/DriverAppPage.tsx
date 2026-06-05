@@ -1062,15 +1062,8 @@ const DriverDashboard = ({
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["driver-jobs", driver.id, today],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("route_one_jobs")
-        .select("*")
-        .eq("assigned_driver_id", driver.id)
-        .eq("scheduled_date", today)
-        .order("scheduled_time", { ascending: true, nullsFirst: false })
-        .order("display_order");
-      if (error) throw error;
-      return (data || []) as Job[];
+      const { jobs } = await driverAction("list_jobs", { driver_id: driver.id, date: today });
+      return (jobs || []) as Job[];
     },
     refetchInterval: 30000,
   });
