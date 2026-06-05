@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, EyeOff, HardHat } from "lucide-react";
+import { AppUserPicker, usernameFromEmail, type AppUserProfile } from "@/components/apps/AppUserPicker";
 
 interface YardStaff {
   id: string;
