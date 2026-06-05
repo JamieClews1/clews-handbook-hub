@@ -17,7 +17,11 @@ import {
   PenLine,
   Award,
   Eraser,
+  Plus,
+  Minus,
+  Package,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import {
   PricingTier,
