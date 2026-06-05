@@ -402,7 +402,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
 
   const canSubmit =
     !!wasteTypeId &&
-    (!!description.trim() || !!pct || !!minutes) &&
+    (!!description.trim() || !!pct || !!minutes || reportedItems.length > 0) &&
     photos.length > 0 &&
     (!standalone || (!!jobNumber && !!customerName)) &&
     !submitting;
@@ -418,7 +418,8 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     }
     setSubmitting(true);
     try {
-      const calculated = calculateTierCharge(suggestedTier, null);
+      const tierCharge = calculateTierCharge(suggestedTier, null);
+      const calculated = Math.round((tierCharge + itemsCharge) * 100) / 100;
       const now = new Date().toISOString();
 
       const payload = {
@@ -442,6 +443,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         contamination_pct: pct ? parseFloat(pct) : null,
         sorting_minutes: minutes ? parseFloat(minutes) : null,
         pricing_tier_id: suggestedTier?.id ?? null,
+        reported_items: reportedItems as unknown as any,
         calculated_charge: calculated,
         charge_amount: calculated,
         query_reason: description.trim() || `Contamination: ${selectedWasteName}`,
@@ -450,6 +452,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         customer_signoff_name: signoffName.trim() || null,
         customer_signoff_at: signoffName.trim() || signature ? now : null,
       };
+
 
       if (editId) {
         // Update the existing report for this job (keeps it editable on re-open)
