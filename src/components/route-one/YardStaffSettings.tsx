@@ -27,7 +27,7 @@ export const YardStaffSettings = () => {
   const queryClient = useQueryClient();
   const [editStaff, setEditStaff] = useState<YardStaff | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ staff_name: "", username: "", department: "", pin: "" });
+  const [form, setForm] = useState({ staff_name: "", username: "", department: "", pin: "", user_id: "" });
 
   const { data: staff = [], isLoading } = useQuery({
     queryKey: ["yard-staff-settings"],
