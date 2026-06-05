@@ -110,20 +110,22 @@ const CreditApplicationPage = () => {
     if (!form.applicant_print_name.trim()) { toast.error("Please print your name"); return; }
 
     setSubmitting(true);
-    const { error } = await supabase
-      .from("credit_account_applications")
-      .update({
-        ...form,
-        credit_requested: form.credit_requested ? parseFloat(form.credit_requested) : null,
-        trade_references: tradeRefs.filter((r) => r.name.trim()),
-        applicant_signed_date: new Date().toISOString().split("T")[0],
-        submitted_at: new Date().toISOString(),
-        status: "submitted",
-      })
-      .eq("id", applicationId);
+    const { data: result, error } = await supabase.functions.invoke("public-forms", {
+      body: {
+        action: "submit",
+        resource: "credit_account_applications",
+        token: shareToken,
+        payload: {
+          ...form,
+          credit_requested: form.credit_requested ? parseFloat(form.credit_requested) : null,
+          trade_references: tradeRefs.filter((r) => r.name.trim()),
+          applicant_signed_date: new Date().toISOString().split("T")[0],
+        },
+      },
+    });
 
     setSubmitting(false);
-    if (error) { toast.error("Failed to submit application"); return; }
+    if (error || result?.error) { toast.error("Failed to submit application"); return; }
     setSubmitted(true);
     toast.success("Application submitted successfully");
   };
