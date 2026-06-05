@@ -35,6 +35,11 @@ interface DriverJobLike {
   site_postcode: string | null;
   container_type: string | null;
   po_number: string | null;
+  order_number?: string | null;
+  job_date?: string | null;
+  waste_description?: string | null;
+  weight_t?: number | null;
+  vehicle_reg?: string | null;
 }
 
 export interface ContaminationReporter {
