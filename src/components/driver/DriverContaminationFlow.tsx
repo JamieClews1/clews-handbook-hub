@@ -22,10 +22,14 @@ import { cn } from "@/lib/utils";
 import {
   PricingTier,
   WasteType,
+  ChargeItem,
+  ReportedItem,
   findMatchingTier,
   calculateTierCharge,
+  calculateItemsCharge,
   describeTier,
 } from "@/lib/contamination-pricing";
+
 
 interface DriverJobLike {
   id: string;
