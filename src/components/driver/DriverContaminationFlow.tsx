@@ -342,8 +342,38 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     setPhotos(Array.isArray(existingReport.photos) ? (existingReport.photos as string[]) : []);
     setSignoffName(existingReport.customer_signoff_name ?? "");
     setSignature(existingReport.customer_signature ?? null);
+    const savedItems = Array.isArray(existingReport.reported_items)
+      ? (existingReport.reported_items as unknown as ReportedItem[])
+      : [];
+    if (savedItems.length) {
+      setItemQtys(
+        savedItems.reduce<Record<string, number>>((acc, i) => {
+          if (i?.item_id) acc[i.item_id] = i.quantity;
+          return acc;
+        }, {}),
+      );
+    }
     setPrefilled(true);
   }, [existingReport, prefilled]);
+
+  const reportedItems = useMemo<ReportedItem[]>(
+    () =>
+      chargeItems
+        .filter((ci) => (itemQtys[ci.id] ?? 0) > 0)
+        .map((ci) => ({
+          item_id: ci.id,
+          name: ci.name,
+          unit_charge: Number(ci.unit_charge) || 0,
+          quantity: itemQtys[ci.id],
+        })),
+    [chargeItems, itemQtys],
+  );
+
+  const itemsCharge = useMemo(() => calculateItemsCharge(reportedItems), [reportedItems]);
+
+  const setItemQty = (id: string, qty: number) =>
+    setItemQtys((prev) => ({ ...prev, [id]: Math.max(0, qty) }));
+
 
 
   const wasteTypeTiers = useMemo(
