@@ -51,11 +51,10 @@ const CreditApplicationPage = () => {
   useEffect(() => {
     const load = async () => {
       if (!shareToken) { setNotFound(true); setLoading(false); return; }
-      const { data, error } = await supabase
-        .from("credit_account_applications")
-        .select("*")
-        .eq("share_token", shareToken)
-        .maybeSingle();
+      const { data: result, error } = await supabase.functions.invoke("public-forms", {
+        body: { action: "get", resource: "credit_account_applications", token: shareToken },
+      });
+      const data = result?.record;
 
       if (error || !data) { setNotFound(true); setLoading(false); return; }
       if (data.status === "submitted" || data.status === "approved") {
