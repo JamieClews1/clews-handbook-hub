@@ -18,6 +18,11 @@ const ContaminationPricingMatrix = () => {
   const queryClient = useQueryClient();
   const [newWasteType, setNewWasteType] = useState("");
   const [pointsValue, setPointsValue] = useState<string>("");
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemEwc, setNewItemEwc] = useState("");
+  const [newItemCharge, setNewItemCharge] = useState("");
+
+
 
   const { data: wasteTypes = [], refetch: refetchTypes } = useQuery({
     queryKey: ["contamination-waste-types-admin"],
