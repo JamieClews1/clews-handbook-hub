@@ -55,13 +55,13 @@ Deno.serve(async (req) => {
     switch (action) {
       /* ─── Auth (PIN login / session restore) ─── */
       case "driver_login": {
-        const number = parseInt(String(body?.number ?? ""), 10);
+        const username = String(body?.username ?? "").trim();
         const pin = String(body?.pin ?? "");
-        if (!Number.isFinite(number) || !pin) return json({ error: "Missing credentials" }, 400);
+        if (!username || !pin) return json({ error: "Missing credentials" }, 400);
         const { data } = await supabase
           .from("route_one_drivers")
           .select("*, route_one_vehicles(registration, vehicle_type)")
-          .eq("driver_number", number)
+          .ilike("username", username)
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();
