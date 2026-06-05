@@ -203,10 +203,17 @@ export const DriverSettings = () => {
           </Select>
         </div>
       </div>
-      <div>
-        <Label className="text-xs">Driver PIN (for mobile app)</Label>
-        <Input type="text" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="e.g. 1234" />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Username (for mobile app login)</Label>
+          <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.replace(/\s/g, "") })} placeholder="e.g. john.smith" autoCapitalize="none" autoCorrect="off" />
+        </div>
+        <div>
+          <Label className="text-xs">Driver PIN (for mobile app)</Label>
+          <Input type="text" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })} placeholder="e.g. 1234" />
+        </div>
       </div>
+
       <Button onClick={handleSave} disabled={!form.driver_name.trim() || saveMutation.isPending} className="w-full">
         {saveMutation.isPending ? "Saving..." : editDriver ? "Update Driver" : "Add Driver"}
       </Button>
