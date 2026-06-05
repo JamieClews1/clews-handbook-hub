@@ -1258,6 +1258,31 @@ const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) =
 const DriverAppPage = () => {
   const [user, setUser] = useState<AppUser | null>(null);
 
+  // Make this page install as the dedicated "WasteOne Driver" PWA
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const prevHref = link?.getAttribute("href") ?? null;
+    const prevTitle = document.title;
+    const prevAppleTitle = document
+      .querySelector('meta[name="apple-mobile-web-app-title"]')
+      ?.getAttribute("content") ?? null;
+
+    if (link) link.setAttribute("href", "/manifest-driver.webmanifest");
+    document.title = "WasteOne Driver";
+    document
+      .querySelector('meta[name="apple-mobile-web-app-title"]')
+      ?.setAttribute("content", "WasteOne Driver");
+
+    return () => {
+      if (link && prevHref) link.setAttribute("href", prevHref);
+      document.title = prevTitle;
+      if (prevAppleTitle)
+        document
+          .querySelector('meta[name="apple-mobile-web-app-title"]')
+          ?.setAttribute("content", prevAppleTitle);
+    };
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem("driver_session");
     if (!stored) return;
