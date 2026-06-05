@@ -336,6 +336,42 @@ export type Database = {
           },
         ]
       }
+      contamination_charge_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          ewc_code: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          unit_charge: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          ewc_code?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          unit_charge?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          ewc_code?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          unit_charge?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contamination_charge_matrix: {
         Row: {
           charge_value: number
@@ -507,6 +543,7 @@ export type Database = {
           query_reason: string | null
           recipient_email: string | null
           rejection_reason: string | null
+          reported_items: Json | null
           reporter_driver_id: string | null
           reporter_name: string | null
           reporter_type: string | null
@@ -558,6 +595,7 @@ export type Database = {
           query_reason?: string | null
           recipient_email?: string | null
           rejection_reason?: string | null
+          reported_items?: Json | null
           reporter_driver_id?: string | null
           reporter_name?: string | null
           reporter_type?: string | null
@@ -609,6 +647,7 @@ export type Database = {
           query_reason?: string | null
           recipient_email?: string | null
           rejection_reason?: string | null
+          reported_items?: Json | null
           reporter_driver_id?: string | null
           reporter_name?: string | null
           reporter_type?: string | null
