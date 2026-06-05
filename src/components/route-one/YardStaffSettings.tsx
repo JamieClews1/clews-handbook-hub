@@ -20,6 +20,7 @@ interface YardStaff {
   display_order: number;
   is_active: boolean;
   pin: string | null;
+  user_id: string | null;
 }
 
 export const YardStaffSettings = () => {
