@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, EyeOff, HardHat } from "lucide-react";
+import { AppUserPicker, usernameFromEmail, type AppUserProfile } from "@/components/apps/AppUserPicker";
 
 interface YardStaff {
   id: string;
@@ -19,13 +20,14 @@ interface YardStaff {
   display_order: number;
   is_active: boolean;
   pin: string | null;
+  user_id: string | null;
 }
 
 export const YardStaffSettings = () => {
   const queryClient = useQueryClient();
   const [editStaff, setEditStaff] = useState<YardStaff | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ staff_name: "", username: "", department: "", pin: "" });
+  const [form, setForm] = useState({ staff_name: "", username: "", department: "", pin: "", user_id: "" });
 
   const { data: staff = [], isLoading } = useQuery({
     queryKey: ["yard-staff-settings"],
@@ -80,7 +82,7 @@ export const YardStaffSettings = () => {
   });
 
   const openAdd = () => {
-    setForm({ staff_name: "", username: "", department: "", pin: "" });
+    setForm({ staff_name: "", username: "", department: "", pin: "", user_id: "" });
     setAddOpen(true);
   };
 
@@ -90,8 +92,18 @@ export const YardStaffSettings = () => {
       username: s.username || "",
       department: s.department || "",
       pin: s.pin || "",
+      user_id: s.user_id || "",
     });
     setEditStaff(s);
+  };
+
+  const handleSelectUser = (profile: AppUserProfile) => {
+    setForm((prev) => ({
+      ...prev,
+      user_id: profile.id,
+      staff_name: profile.full_name || profile.email,
+      username: prev.username.trim() || usernameFromEmail(profile.email),
+    }));
   };
 
   const handleSave = () => {
@@ -100,6 +112,7 @@ export const YardStaffSettings = () => {
       username: form.username.trim() || null,
       department: form.department.trim() || null,
       pin: form.pin.trim() || null,
+      user_id: form.user_id || null,
     };
     if (!editStaff) {
       data.display_order = staff.length;
@@ -112,8 +125,15 @@ export const YardStaffSettings = () => {
   const StaffForm = () => (
     <div className="grid gap-3">
       <div>
-        <Label className="text-xs">Staff Name *</Label>
-        <Input value={form.staff_name} onChange={(e) => setForm({ ...form, staff_name: e.target.value })} placeholder="e.g. Jane Doe" />
+        <Label className="text-xs">User *</Label>
+        <AppUserPicker
+          value={form.user_id || null}
+          fallbackLabel={form.staff_name}
+          userType="yard"
+          onSelect={handleSelectUser}
+          placeholder="Select an existing user…"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">Yard staff are drawn from existing platform users.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

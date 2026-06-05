@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Truck, User, Phone, Hash } from "lucide-react";
+import { AppUserPicker, usernameFromEmail, type AppUserProfile } from "@/components/apps/AppUserPicker";
 
 interface Driver {
   id: string;
@@ -24,6 +25,7 @@ interface Driver {
   is_active: boolean;
   vehicle_id: string | null;
   pin: string | null;
+  user_id: string | null;
   route_one_vehicles: { id: string; registration: string; vehicle_type: string } | null;
 }
 
@@ -49,6 +51,7 @@ export const DriverSettings = () => {
     category: "Skips",
     vehicle_id: "",
     pin: "",
+    user_id: "",
   });
 
   const { data: drivers = [], isLoading } = useQuery({
@@ -120,7 +123,7 @@ export const DriverSettings = () => {
   });
 
   const openAdd = () => {
-    setForm({ driver_name: "", driver_number: "", username: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "" });
+    setForm({ driver_name: "", driver_number: "", username: "", mobile: "", department: "", category: "Skips", vehicle_id: "", pin: "", user_id: "" });
     setAddOpen(true);
   };
 
@@ -134,8 +137,18 @@ export const DriverSettings = () => {
       category: d.category || "Skips",
       vehicle_id: d.vehicle_id || "",
       pin: d.pin || "",
+      user_id: d.user_id || "",
     });
     setEditDriver(d);
+  };
+
+  const handleSelectUser = (profile: AppUserProfile) => {
+    setForm((prev) => ({
+      ...prev,
+      user_id: profile.id,
+      driver_name: profile.full_name || profile.email,
+      username: prev.username.trim() || usernameFromEmail(profile.email),
+    }));
   };
 
   const handleSave = () => {
@@ -148,6 +161,7 @@ export const DriverSettings = () => {
       category: form.category || "Skips",
       vehicle_id: form.vehicle_id || null,
       pin: form.pin.trim() || null,
+      user_id: form.user_id || null,
     };
     if (!editDriver) {
       data.display_order = drivers.length;
@@ -160,27 +174,32 @@ export const DriverSettings = () => {
 
   const DriverForm = () => (
     <div className="grid gap-3">
+      <div>
+        <Label className="text-xs">Driver (User) *</Label>
+        <AppUserPicker
+          value={form.user_id || null}
+          fallbackLabel={form.driver_name}
+          userType="driver"
+          onSelect={handleSelectUser}
+          placeholder="Select an existing user…"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">Drivers are drawn from existing platform users.</p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Driver Name *</Label>
-          <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} placeholder="e.g. John Smith" />
-        </div>
         <div>
           <Label className="text-xs">Driver Number</Label>
           <Input type="number" value={form.driver_number} onChange={(e) => setForm({ ...form, driver_number: e.target.value })} placeholder="e.g. 14" />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Mobile</Label>
           <Input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="e.g. 07975995455" />
         </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Department</Label>
           <Input type="number" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="e.g. 30" />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Category</Label>
           <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
