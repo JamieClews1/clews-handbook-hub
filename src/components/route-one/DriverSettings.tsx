@@ -174,20 +174,32 @@ export const DriverSettings = () => {
 
   const DriverForm = () => (
     <div className="grid gap-3">
+      <div>
+        <Label className="text-xs">Driver (User) *</Label>
+        <AppUserPicker
+          value={form.user_id || null}
+          fallbackLabel={form.driver_name}
+          userType="driver"
+          onSelect={handleSelectUser}
+          placeholder="Select an existing user…"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">Drivers are drawn from existing platform users.</p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Driver Name *</Label>
-          <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} placeholder="e.g. John Smith" />
-        </div>
         <div>
           <Label className="text-xs">Driver Number</Label>
           <Input type="number" value={form.driver_number} onChange={(e) => setForm({ ...form, driver_number: e.target.value })} placeholder="e.g. 14" />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Mobile</Label>
           <Input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="e.g. 07975995455" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Department</Label>
+          <Input type="number" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="e.g. 30" />
+        </div>
         </div>
         <div>
           <Label className="text-xs">Department</Label>
