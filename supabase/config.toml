@@ -64,3 +64,6 @@ verify_jwt = false
 
 [functions.public-forms]
 verify_jwt = false
+
+[functions.driver-actions]
+verify_jwt = false

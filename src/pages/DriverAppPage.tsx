@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { driverAction, fileToBase64 } from "@/lib/driver-api";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -135,15 +136,12 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
     setError("");
 
     if (mode === "driver") {
-      const { data, error: dbError } = await supabase
-        .from("route_one_drivers")
-        .select("*, route_one_vehicles(registration, vehicle_type)")
-        .eq("driver_number", parseInt(number))
-        .eq("pin", pin)
-        .eq("is_active", true)
-        .maybeSingle();
+      const { driver: data } = await driverAction("driver_login", {
+        number: parseInt(number),
+        pin,
+      });
 
-      if (!dbError && data) {
+      if (data) {
         const user: AppUser = {
           id: data.id,
           name: data.driver_name,
@@ -190,15 +188,12 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
       );
       onLogin(user);
     } else {
-      const { data, error: dbError } = await supabase
-        .from("yard_staff")
-        .select("id, staff_name")
-        .eq("staff_number", parseInt(number))
-        .eq("pin", pin)
-        .eq("is_active", true)
-        .maybeSingle();
+      const { staff: data } = await driverAction("yard_login", {
+        number: parseInt(number),
+        pin,
+      });
 
-      if (dbError || !data) {
+      if (!data) {
         setError("Invalid staff number or PIN");
         setLoading(false);
         return;
@@ -340,14 +335,8 @@ const PhotoCapture = ({
   const { data: photos = [] } = useQuery({
     queryKey: ["job-photos", jobId, photoType],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("route_one_job_photos")
-        .select("*")
-        .eq("job_id", jobId)
-        .eq("photo_type", photoType)
-        .order("created_at");
-      if (error) throw error;
-      return (data || []) as JobPhoto[];
+      const { photos } = await driverAction("list_job_photos", { job_id: jobId, photo_type: photoType });
+      return (photos || []) as JobPhoto[];
     },
   });
 
@@ -358,25 +347,14 @@ const PhotoCapture = ({
 
     try {
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop() || "jpg";
-        const fileName = `${jobId}/${photoType}_${Date.now()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("route-one-photos")
-          .upload(fileName, file, { cacheControl: "3600" });
-
-        if (uploadError) throw uploadError;
-
-        const { error: dbError } = await supabase
-          .from("route_one_job_photos")
-          .insert({
-            job_id: jobId,
-            photo_type: photoType,
-            file_path: fileName,
-            file_name: file.name,
-          });
-
-        if (dbError) throw dbError;
+        const file_base64 = await fileToBase64(file);
+        await driverAction("add_job_photo", {
+          job_id: jobId,
+          photo_type: photoType,
+          file_name: file.name,
+          content_type: file.type || "image/jpeg",
+          file_base64,
+        });
       }
 
       queryClient.invalidateQueries({ queryKey: ["job-photos", jobId, photoType] });
@@ -391,8 +369,7 @@ const PhotoCapture = ({
   };
 
   const handleDelete = async (photo: JobPhoto) => {
-    await supabase.storage.from("route-one-photos").remove([photo.file_path]);
-    await supabase.from("route_one_job_photos").delete().eq("id", photo.id);
+    await driverAction("delete_job_photo", { id: photo.id, file_path: photo.file_path });
     queryClient.invalidateQueries({ queryKey: ["job-photos", jobId, photoType] });
     toast.success("Photo removed");
   };
@@ -568,12 +545,8 @@ const DriverJobDetail = ({
   ) => {
     setUpdating(true);
     try {
-      const updates: Record<string, any> = { status, ...extra };
-      const { error } = await supabase
-        .from("route_one_jobs")
-        .update(updates)
-        .eq("id", job.id);
-      if (error) throw error;
+      await driverAction("update_job_status", { job_id: job.id, status, extra });
+
 
       setJob((prev) => ({ ...prev, status, ...extra }));
       onJobUpdated();
@@ -1089,15 +1062,8 @@ const DriverDashboard = ({
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["driver-jobs", driver.id, today],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("route_one_jobs")
-        .select("*")
-        .eq("assigned_driver_id", driver.id)
-        .eq("scheduled_date", today)
-        .order("scheduled_time", { ascending: true, nullsFirst: false })
-        .order("display_order");
-      if (error) throw error;
-      return (data || []) as Job[];
+      const { jobs } = await driverAction("list_jobs", { driver_id: driver.id, date: today });
+      return (jobs || []) as Job[];
     },
     refetchInterval: 30000,
   });
@@ -1307,16 +1273,12 @@ const DriverAppPage = () => {
         return;
       }
       if (role === "yard") {
-        supabase
-          .from("yard_staff")
-          .select("id, staff_name")
-          .eq("id", id)
-          .eq("is_active", true)
-          .maybeSingle()
-          .then(({ data }) => {
+        driverAction("yard_restore", { id })
+          .then(({ staff: data }) => {
             if (data) setUser({ id: data.id, name: data.staff_name, role: "yard" });
             else localStorage.removeItem("driver_session");
-          });
+          })
+          .catch(() => localStorage.removeItem("driver_session"));
       } else if (src === "profile") {
         supabase.functions
           .invoke("driver-auth", { body: { action: "restore", id } })
