@@ -12,9 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database } from "lucide-react";
+import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
+import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
+import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -827,6 +829,7 @@ const WeighOnePage = () => {
         <TabsList>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4" /> Transaction Log</TabsTrigger>
           <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4" /> Midweigh Data</TabsTrigger>
+          <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4" /> Banksman App</TabsTrigger>
         </TabsList>
         <TabsContent value="log" className="mt-4">
           <Card className="border-border/50">
@@ -961,6 +964,24 @@ const WeighOnePage = () => {
               <MidweighHistory />
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="banksman" className="mt-4">
+          <Tabs defaultValue="guide" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="guide" className="gap-2"><HardHat className="h-4 w-4" /> Setup Guide</TabsTrigger>
+              <TabsTrigger value="yard-staff" className="gap-2"><Users className="h-4 w-4" /> Yard Staff</TabsTrigger>
+            </TabsList>
+            <TabsContent value="guide">
+              <BanksmanAppGuide />
+            </TabsContent>
+            <TabsContent value="yard-staff">
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <YardStaffSettings />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
 
