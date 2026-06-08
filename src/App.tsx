@@ -59,6 +59,7 @@ import FuelSurchargesPage from "./pages/FuelSurchargesPage";
 import DiaryPage from "./pages/DiaryPage";
 import BookingsPage from "./pages/BookingsPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
+import WeightChecksPage from "./pages/WeightChecksPage";
 import PricingCMSPage from "./pages/PricingCMSPage";
 import NotFound from "./pages/NotFound";
 
