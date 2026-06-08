@@ -72,12 +72,21 @@ export default function WeightChecksPage() {
       });
       return;
     }
+    if (!postcode.trim()) {
+      toast({
+        title: "Postcode required",
+        description: "Enter the site postcode to verify your jobs.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     setResults(null);
     try {
       const { data, error } = await supabase.rpc("lookup_job_weights", {
         order_numbers: orders,
+        p_postcode: postcode.trim(),
       });
       if (error) throw error;
 
