@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,7 @@ interface JobWeight {
   waste_description: string | null;
   container_type: string | null;
   weight_t: number | null;
+  postcode: string | null;
 }
 
 interface ResultRow {
@@ -48,6 +50,7 @@ function parseOrders(raw: string): string[] {
 export default function WeightChecksPage() {
   const { toast } = useToast();
   const [input, setInput] = useState("");
+  const [postcode, setPostcode] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
 
@@ -69,12 +72,21 @@ export default function WeightChecksPage() {
       });
       return;
     }
+    if (!postcode.trim()) {
+      toast({
+        title: "Postcode required",
+        description: "Enter the site postcode to verify your jobs.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     setResults(null);
     try {
       const { data, error } = await supabase.rpc("lookup_job_weights", {
         order_numbers: orders,
+        p_postcode: postcode.trim(),
       });
       if (error) throw error;
 
@@ -121,6 +133,7 @@ export default function WeightChecksPage() {
       "Date",
       "Customer",
       "Site",
+      "Postcode",
       "Waste Type",
       "Container",
       "Weight (t)",
@@ -128,7 +141,7 @@ export default function WeightChecksPage() {
     const lines = [header];
     for (const r of results) {
       if (r.matches.length === 0) {
-        lines.push([r.requested, "Not found", "", "", "", "", "", "", ""]);
+        lines.push([r.requested, "Not found", "", "", "", "", "", "", "", ""]);
       } else {
         for (const m of r.matches) {
           lines.push([
@@ -138,6 +151,7 @@ export default function WeightChecksPage() {
             formatDate(m.job_date),
             m.customer ?? "",
             m.site ?? "",
+            m.postcode ?? "",
             m.waste_description ?? "",
             m.container_type ?? "",
             m.weight_t === null ? "" : Number(m.weight_t).toFixed(2),
@@ -179,9 +193,9 @@ export default function WeightChecksPage() {
           <CardHeader>
             <CardTitle>Check load weights by order number</CardTitle>
             <CardDescription>
-              Paste your order / PO numbers below (one per line) to instantly see
-              the recorded weight for each job. You can check up to {MAX_ORDERS} at
-              a time.
+              Paste your order / PO numbers below (one per line) and enter your
+              site postcode to instantly see the recorded weight for each job. You
+              can check up to {MAX_ORDERS} at a time.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -197,6 +211,19 @@ export default function WeightChecksPage() {
               />
               <p className="text-xs text-muted-foreground">
                 {parseOrders(input).length} order number(s) entered
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="postcode">Site postcode</Label>
+              <Input
+                id="postcode"
+                placeholder="e.g. CV23 8UN"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                className="max-w-xs font-mono text-sm uppercase"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the delivery / collection postcode to verify your jobs.
               </p>
             </div>
             <Button onClick={handleLookup} disabled={loading} className="gap-2">
@@ -234,6 +261,7 @@ export default function WeightChecksPage() {
                       <th className="py-2 pr-4 font-medium">Job</th>
                       <th className="py-2 pr-4 font-medium">Date</th>
                       <th className="py-2 pr-4 font-medium">Site</th>
+                      <th className="py-2 pr-4 font-medium">Postcode</th>
                       <th className="py-2 pr-4 font-medium">Waste type</th>
                       <th className="py-2 pr-4 font-medium text-right">Weight</th>
                     </tr>
@@ -243,7 +271,7 @@ export default function WeightChecksPage() {
                       r.matches.length === 0 ? (
                         <tr key={r.requested} className="border-b">
                           <td className="py-2 pr-4 font-mono">{r.requested}</td>
-                          <td className="py-2 pr-4" colSpan={4}>
+                          <td className="py-2 pr-4" colSpan={5}>
                             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                               <AlertCircle className="h-4 w-4" />
                               No matching job found
@@ -258,6 +286,7 @@ export default function WeightChecksPage() {
                             <td className="py-2 pr-4">{m.job_number}</td>
                             <td className="py-2 pr-4 whitespace-nowrap">{formatDate(m.job_date)}</td>
                             <td className="py-2 pr-4">{m.site ?? "—"}</td>
+                            <td className="py-2 pr-4 font-mono whitespace-nowrap">{m.postcode ?? "—"}</td>
                             <td className="py-2 pr-4">{m.waste_description ?? "—"}</td>
                             <td className="py-2 pr-4 text-right whitespace-nowrap">
                               {m.weight_t === null ? (

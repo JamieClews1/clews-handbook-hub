@@ -4938,20 +4938,36 @@ export type Database = {
         Returns: boolean
       }
       is_management: { Args: { _user_id: string }; Returns: boolean }
-      lookup_job_weights: {
-        Args: { order_numbers: string[] }
-        Returns: {
-          container_type: string
-          customer: string
-          job_date: string
-          job_number: string
-          order_number: string
-          site: string
-          source: string
-          waste_description: string
-          weight_t: number
-        }[]
-      }
+      lookup_job_weights:
+        | {
+            Args: { order_numbers: string[] }
+            Returns: {
+              container_type: string
+              customer: string
+              job_date: string
+              job_number: string
+              order_number: string
+              site: string
+              source: string
+              waste_description: string
+              weight_t: number
+            }[]
+          }
+        | {
+            Args: { order_numbers: string[]; p_postcode?: string }
+            Returns: {
+              container_type: string
+              customer: string
+              job_date: string
+              job_number: string
+              order_number: string
+              postcode: string
+              site: string
+              source: string
+              waste_description: string
+              weight_t: number
+            }[]
+          }
       user_has_reconomy_membership: {
         Args: { _user_id: string }
         Returns: boolean
