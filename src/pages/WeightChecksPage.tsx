@@ -261,6 +261,7 @@ export default function WeightChecksPage() {
                       <th className="py-2 pr-4 font-medium">Job</th>
                       <th className="py-2 pr-4 font-medium">Date</th>
                       <th className="py-2 pr-4 font-medium">Site</th>
+                      <th className="py-2 pr-4 font-medium">Postcode</th>
                       <th className="py-2 pr-4 font-medium">Waste type</th>
                       <th className="py-2 pr-4 font-medium text-right">Weight</th>
                     </tr>
