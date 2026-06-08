@@ -195,37 +195,25 @@ export default function WeightChecksPage() {
           <CardHeader>
             <CardTitle>Check load weights by order number</CardTitle>
             <CardDescription>
-              Paste your order / PO numbers below (one per line) and enter your
-              site postcode to instantly see the recorded weight for each job. You
-              can check up to {MAX_ORDERS} at a time.
+              Paste one line per job as <span className="font-medium">PO number,
+              postcode</span> to instantly see the recorded weight for each job.
+              You can check up to {MAX_ORDERS} at a time.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="orders">Order / PO numbers</Label>
+              <Label htmlFor="orders">Order / PO number, postcode</Label>
               <Textarea
                 id="orders"
-                placeholder={"26137594730\n26137622838\n26137647330"}
+                placeholder={"26137594730, CV23 8UN\n26137622838, LE17 4XR\n26137647330, CV21 1HA"}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 rows={8}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                {parseOrders(input).length} order number(s) entered
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="postcode">Site postcode</Label>
-              <Input
-                id="postcode"
-                placeholder="e.g. CV23 8UN"
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                className="max-w-xs font-mono text-sm uppercase"
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter the delivery / collection postcode to verify your jobs.
+                {parseOrders(input).length} order number(s) entered · one per line,
+                e.g. <span className="font-mono">PO12345, CV23 8UN</span>
               </p>
             </div>
             <Button onClick={handleLookup} disabled={loading} className="gap-2">
