@@ -213,6 +213,19 @@ export default function WeightChecksPage() {
                 {parseOrders(input).length} order number(s) entered
               </p>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="postcode">Site postcode</Label>
+              <Input
+                id="postcode"
+                placeholder="e.g. CV23 8UN"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                className="max-w-xs font-mono text-sm uppercase"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the delivery / collection postcode to verify your jobs.
+              </p>
+            </div>
             <Button onClick={handleLookup} disabled={loading} className="gap-2">
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
