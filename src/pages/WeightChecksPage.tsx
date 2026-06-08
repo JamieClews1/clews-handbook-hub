@@ -205,7 +205,7 @@ export default function WeightChecksPage() {
               <Label htmlFor="orders">Order / PO number, postcode</Label>
               <Textarea
                 id="orders"
-                placeholder={"26137594730, CV23 8UN\n26137622838, LE17 4XR\n26137647330, CV21 1HA"}
+                placeholder={"PO12345, CV23 8UN\nPO67890, LE17 4XR\nPO54321, CV21 1HA"}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 rows={8}
