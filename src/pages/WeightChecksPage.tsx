@@ -271,7 +271,7 @@ export default function WeightChecksPage() {
                       r.matches.length === 0 ? (
                         <tr key={r.requested} className="border-b">
                           <td className="py-2 pr-4 font-mono">{r.requested}</td>
-                          <td className="py-2 pr-4" colSpan={4}>
+                          <td className="py-2 pr-4" colSpan={5}>
                             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                               <AlertCircle className="h-4 w-4" />
                               No matching job found
