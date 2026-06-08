@@ -286,6 +286,7 @@ export default function WeightChecksPage() {
                             <td className="py-2 pr-4">{m.job_number}</td>
                             <td className="py-2 pr-4 whitespace-nowrap">{formatDate(m.job_date)}</td>
                             <td className="py-2 pr-4">{m.site ?? "—"}</td>
+                            <td className="py-2 pr-4 font-mono whitespace-nowrap">{m.postcode ?? "—"}</td>
                             <td className="py-2 pr-4">{m.waste_description ?? "—"}</td>
                             <td className="py-2 pr-4 text-right whitespace-nowrap">
                               {m.weight_t === null ? (
