@@ -23,25 +23,37 @@ interface JobWeight {
   postcode: string | null;
 }
 
+interface OrderInput {
+  po: string;
+  postcode: string;
+}
+
 interface ResultRow {
   requested: string;
+  postcode: string;
   matches: JobWeight[];
 }
 
 const MAX_ORDERS = 500;
 
-function parseOrders(raw: string): string[] {
+// Each line is "PO number, postcode" (also accepts space/tab/semicolon between).
+// The first token is the PO number; everything after it is treated as the postcode.
+function parseOrders(raw: string): OrderInput[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const out: OrderInput[] = [];
   raw
-    .split(/[\n,;\t]+/)
+    .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean)
-    .forEach((s) => {
-      const key = s.toUpperCase();
+    .forEach((line) => {
+      const parts = line.split(/[,;\t]+|\s{2,}|\s+/).filter(Boolean);
+      const po = parts[0];
+      if (!po) return;
+      const postcode = parts.slice(1).join(" ").trim();
+      const key = `${po.toUpperCase()}|${postcode.replace(/\s+/g, "").toUpperCase()}`;
       if (!seen.has(key)) {
         seen.add(key);
-        out.push(s);
+        out.push({ po, postcode });
       }
     });
   return out;
@@ -50,7 +62,6 @@ function parseOrders(raw: string): string[] {
 export default function WeightChecksPage() {
   const { toast } = useToast();
   const [input, setInput] = useState("");
-  const [postcode, setPostcode] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
 
@@ -59,7 +70,7 @@ export default function WeightChecksPage() {
     if (orders.length === 0) {
       toast({
         title: "No order numbers",
-        description: "Paste one or more order / PO numbers to check.",
+        description: "Paste one or more order / PO numbers (with postcode) to check.",
         variant: "destructive",
       });
       return;
@@ -72,36 +83,27 @@ export default function WeightChecksPage() {
       });
       return;
     }
-    if (!postcode.trim()) {
-      toast({
-        title: "Postcode required",
-        description: "Enter the site postcode to verify your jobs.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setLoading(true);
     setResults(null);
     try {
       const { data, error } = await supabase.rpc("lookup_job_weights", {
-        order_numbers: orders,
-        p_postcode: postcode.trim(),
+        pairs: orders.map((o) => ({ po: o.po, postcode: o.postcode })),
       });
       if (error) throw error;
 
       const rows = (data ?? []) as JobWeight[];
-      const byOrder = new Map<string, JobWeight[]>();
-      for (const row of rows) {
-        const key = row.order_number.toUpperCase();
-        if (!byOrder.has(key)) byOrder.set(key, []);
-        byOrder.get(key)!.push(row);
-      }
 
-      const mapped: ResultRow[] = orders.map((o) => ({
-        requested: o,
-        matches: byOrder.get(o.toUpperCase()) ?? [],
-      }));
+      const mapped: ResultRow[] = orders.map((o) => {
+        const pcKey = o.postcode.replace(/\s+/g, "").toUpperCase();
+        const matches = rows.filter(
+          (row) =>
+            row.order_number.toUpperCase() === o.po.toUpperCase() &&
+            (pcKey === "" ||
+              (row.postcode ?? "").replace(/\s+/g, "").toUpperCase() === pcKey)
+        );
+        return { requested: o.po, postcode: o.postcode, matches };
+      });
       setResults(mapped);
     } catch (err) {
       console.error("Weight check failed", err);
