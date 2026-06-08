@@ -193,9 +193,9 @@ export default function WeightChecksPage() {
           <CardHeader>
             <CardTitle>Check load weights by order number</CardTitle>
             <CardDescription>
-              Paste your order / PO numbers below (one per line) to instantly see
-              the recorded weight for each job. You can check up to {MAX_ORDERS} at
-              a time.
+              Paste your order / PO numbers below (one per line) and enter your
+              site postcode to instantly see the recorded weight for each job. You
+              can check up to {MAX_ORDERS} at a time.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
