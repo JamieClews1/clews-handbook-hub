@@ -133,6 +133,7 @@ export default function WeightChecksPage() {
       "Date",
       "Customer",
       "Site",
+      "Postcode",
       "Waste Type",
       "Container",
       "Weight (t)",
@@ -140,7 +141,7 @@ export default function WeightChecksPage() {
     const lines = [header];
     for (const r of results) {
       if (r.matches.length === 0) {
-        lines.push([r.requested, "Not found", "", "", "", "", "", "", ""]);
+        lines.push([r.requested, "Not found", "", "", "", "", "", "", "", ""]);
       } else {
         for (const m of r.matches) {
           lines.push([
@@ -150,6 +151,7 @@ export default function WeightChecksPage() {
             formatDate(m.job_date),
             m.customer ?? "",
             m.site ?? "",
+            m.postcode ?? "",
             m.waste_description ?? "",
             m.container_type ?? "",
             m.weight_t === null ? "" : Number(m.weight_t).toFixed(2),
