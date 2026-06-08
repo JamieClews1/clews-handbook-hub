@@ -20,6 +20,7 @@ interface JobWeight {
   waste_description: string | null;
   container_type: string | null;
   weight_t: number | null;
+  postcode: string | null;
 }
 
 interface ResultRow {
