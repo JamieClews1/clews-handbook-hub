@@ -50,6 +50,7 @@ function parseOrders(raw: string): string[] {
 export default function WeightChecksPage() {
   const { toast } = useToast();
   const [input, setInput] = useState("");
+  const [postcode, setPostcode] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
 
