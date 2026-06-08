@@ -59,6 +59,7 @@ import FuelSurchargesPage from "./pages/FuelSurchargesPage";
 import DiaryPage from "./pages/DiaryPage";
 import BookingsPage from "./pages/BookingsPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
+import WeightChecksPage from "./pages/WeightChecksPage";
 import PricingCMSPage from "./pages/PricingCMSPage";
 import NotFound from "./pages/NotFound";
 
@@ -89,6 +90,8 @@ const App = () => (
             <Route path="/driver" element={<DriverAppPage />} />
             <Route path="/banksman" element={<BanksmanAppPage />} />
             <Route path="/book" element={<PublicBookingPage />} />
+            <Route path="/weightchecks" element={<WeightChecksPage />} />
+            <Route path="/Weightchecks" element={<WeightChecksPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
