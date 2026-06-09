@@ -22,7 +22,12 @@ import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
 // Staci-specific components
 import { StaciTallyScreen, StaciReviewScreen, StaciPalletEntry } from "@/components/load-reports/staci";
 
-type ViewMode = "customer" | "list" | "new" | "tally" | "review";
+type ViewMode = "customer" | "list" | "all" | "new" | "tally" | "review";
+
+const mapReportTypeToCustomer = (t?: string | null): CustomerType => {
+  if (t === "britvic" || t === "staci" || t === "vantiva" || t === "amazon" || t === "evri") return t;
+  return "other";
+};
 
 interface WasteType {
   id: string;
