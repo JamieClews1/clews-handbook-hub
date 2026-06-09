@@ -168,6 +168,13 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
       // 7. Find jobs with no matching report
       const missing = matchedJobs.filter(j => !reportedJobNumbers.has(j.job_number));
 
+      // Sort by date (most recent first); jobs without a date go last
+      missing.sort((a, b) => {
+        if (!a.job_date) return 1;
+        if (!b.job_date) return -1;
+        return b.job_date.localeCompare(a.job_date);
+      });
+
       setMissingJobs(missing);
     } catch (error) {
       console.error("Error fetching missing jobs:", error);
