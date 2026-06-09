@@ -1029,7 +1029,7 @@ const LoadReportsPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-5xl mx-auto">
           {viewMode === "customer" && (
-            <CustomerTypeSelector onSelect={handleCustomerSelect} />
+            <CustomerTypeSelector onSelect={handleCustomerSelect} onViewAll={handleViewAll} />
           )}
 
           {viewMode === "list" && (
@@ -1056,6 +1056,32 @@ const LoadReportsPage = () => {
               />
             </>
           )}
+
+          {viewMode === "all" && (
+            <>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+                  <Truck className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Logged Load Reports
+                  </h1>
+                  <p className="text-muted-foreground text-sm">
+                    All load reports across every report type — open and edit any record
+                  </p>
+                </div>
+              </div>
+              <LoadReportsList
+                key={`all-${listRefreshKey}`}
+                onNewReport={handleNewReport}
+                onViewReport={handleViewReport}
+                onEditReport={handleEditReport}
+                customerType={null}
+              />
+            </>
+          )}
+
 
           {viewMode === "new" && (
             <NewLoadForm
