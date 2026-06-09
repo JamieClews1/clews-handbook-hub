@@ -56,6 +56,17 @@ export const CustomerTypeSelector = ({ onSelect, onViewAll }: CustomerTypeSelect
           </button>
         ))}
       </div>
+
+      {onViewAll && (
+        <button
+          onClick={onViewAll}
+          className="w-full mt-2 flex items-center justify-center gap-3 min-h-[72px] p-5 rounded-xl font-bold text-lg tracking-wide transition-all duration-200 bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98] cursor-pointer shadow-lg hover:shadow-xl"
+        >
+          <ClipboardList className="h-7 w-7" />
+          Logged Load Reports
+          <span className="text-xs font-normal opacity-75">(all report types)</span>
+        </button>
+      )}
     </div>
   );
 };
