@@ -901,14 +901,15 @@ const LoadReportsPage = () => {
   const handleBack = () => {
     switch (viewMode) {
       case "list":
+      case "all":
         setViewMode("customer");
         setSelectedCustomer(null);
         break;
       case "new":
-        setViewMode("list");
+        setViewMode(originView);
         break;
       case "tally":
-        setViewMode("new");
+        setViewMode(originView === "all" ? "all" : "new");
         break;
       case "review":
         setViewMode("tally");
@@ -920,7 +921,14 @@ const LoadReportsPage = () => {
 
   const handleCustomerSelect = (customer: CustomerType) => {
     setSelectedCustomer(customer);
+    setOriginView("list");
     setViewMode("list");
+  };
+
+  const handleViewAll = () => {
+    setSelectedCustomer(null);
+    setOriginView("all");
+    setViewMode("all");
   };
 
   if (loading) {
