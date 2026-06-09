@@ -532,16 +532,19 @@ const LoadReportsPage = () => {
         );
       }
 
-      // Detect if this is a staci report
-      let isStaciReport = staciEntries.length > 0;
-      if (!isStaciReport && report.site_id) {
+      // Detect report type from the site so it works from the combined "all" list
+      let detectedType: CustomerType = "other";
+      if (report.site_id) {
         const { data: siteData } = await supabase
           .from("customer_sites")
           .select("load_report_type")
           .eq("id", report.site_id)
           .single();
-        isStaciReport = siteData?.load_report_type === "staci";
+        detectedType = mapReportTypeToCustomer(siteData?.load_report_type);
       }
+      let isStaciReport = staciEntries.length > 0 || detectedType === "staci";
+      if (isStaciReport) detectedType = "staci";
+      setSelectedCustomer(detectedType);
       
       if (items && items.length > 0) {
         setLineItems(
@@ -559,12 +562,7 @@ const LoadReportsPage = () => {
         initializeLineItems();
       }
 
-      if (isStaciReport) {
-        setSelectedCustomer("staci");
-        setViewMode(report.status === "submitted" ? "review" : "tally");
-      } else {
-        setViewMode(report.status === "submitted" ? "review" : "tally");
-      }
+      setViewMode(report.status === "submitted" ? "review" : "tally");
     } catch (error: any) {
       toast({
         title: "Error loading report",
