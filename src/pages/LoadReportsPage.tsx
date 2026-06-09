@@ -669,7 +669,6 @@ const LoadReportsPage = () => {
       }
 
       if (isStaciReport) {
-        setSelectedCustomer("staci");
         setViewMode(report.status === "submitted" ? "review" : "tally");
       } else {
         setViewMode("new");
