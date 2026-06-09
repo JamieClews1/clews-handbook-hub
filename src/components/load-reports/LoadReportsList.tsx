@@ -185,7 +185,6 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           `notes.ilike.${term}`,
           `operator_name.ilike.${term}`,
           `vehicle_reg.ilike.${term}`,
-          `id.ilike.${term}`,
         ];
         if (matchSiteIds.length > 0) {
           orClauses.push(`site_id.in.(${matchSiteIds.join(",")})`);
