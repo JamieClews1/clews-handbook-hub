@@ -45,6 +45,7 @@ const LoadReportsPage = () => {
 
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
+  const [originView, setOriginView] = useState<"list" | "all">("list");
   const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
