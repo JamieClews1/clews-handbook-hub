@@ -622,16 +622,19 @@ const LoadReportsPage = () => {
       setStaciGlassDolavOnPallets((report as any).glass_dolav_on_pallets || false);
       setStaciScrapMetalLooseOnPallets((report as any).scrap_metal_loose_on_pallets || false);
 
-      // Detect if this is a staci report by checking the site's load_report_type
-      let isStaciReport = staciEntries.length > 0;
-      if (!isStaciReport && report.site_id) {
+      // Detect report type from the site so editing works from the combined "all" list
+      let detectedType: CustomerType = "other";
+      if (report.site_id) {
         const { data: siteData } = await supabase
           .from("customer_sites")
           .select("load_report_type")
           .eq("id", report.site_id)
           .single();
-        isStaciReport = siteData?.load_report_type === "staci";
+        detectedType = mapReportTypeToCustomer(siteData?.load_report_type);
       }
+      let isStaciReport = staciEntries.length > 0 || detectedType === "staci";
+      if (isStaciReport) detectedType = "staci";
+      setSelectedCustomer(detectedType);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
