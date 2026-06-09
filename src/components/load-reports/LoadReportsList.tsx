@@ -172,7 +172,25 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
         query = query.gte("report_date", dateFrom).lte("report_date", dateTo);
       } else if (searchTerm.trim()) {
         const term = `%${searchTerm.trim()}%`;
-        query = query.or(`notes.ilike.${term},operator_name.ilike.${term},vehicle_reg.ilike.${term},id.ilike.${term}`).limit(allReports ? 5000 : 200);
+
+        // Also search by customer/site name (lives on the related customer_sites table).
+        // Look up matching site IDs first, then include them in the OR clause.
+        const { data: matchingSites } = await supabase
+          .from("customer_sites")
+          .select("id")
+          .ilike("site_name", term);
+        const matchSiteIds = matchingSites?.map((s) => s.id) || [];
+
+        const orClauses = [
+          `notes.ilike.${term}`,
+          `operator_name.ilike.${term}`,
+          `vehicle_reg.ilike.${term}`,
+          `id.ilike.${term}`,
+        ];
+        if (matchSiteIds.length > 0) {
+          orClauses.push(`site_id.in.(${matchSiteIds.join(",")})`);
+        }
+        query = query.or(orClauses.join(",")).limit(allReports ? 5000 : 200);
       } else if (allReports) {
         query = query.limit(5000);
       } else {
