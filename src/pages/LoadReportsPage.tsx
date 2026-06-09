@@ -22,7 +22,12 @@ import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
 // Staci-specific components
 import { StaciTallyScreen, StaciReviewScreen, StaciPalletEntry } from "@/components/load-reports/staci";
 
-type ViewMode = "customer" | "list" | "new" | "tally" | "review";
+type ViewMode = "customer" | "list" | "all" | "new" | "tally" | "review";
+
+const mapReportTypeToCustomer = (t?: string | null): CustomerType => {
+  if (t === "britvic" || t === "staci" || t === "vantiva" || t === "amazon" || t === "evri") return t;
+  return "other";
+};
 
 interface WasteType {
   id: string;
@@ -40,6 +45,7 @@ const LoadReportsPage = () => {
 
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
+  const [originView, setOriginView] = useState<"list" | "all">("list");
   const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
@@ -527,16 +533,19 @@ const LoadReportsPage = () => {
         );
       }
 
-      // Detect if this is a staci report
-      let isStaciReport = staciEntries.length > 0;
-      if (!isStaciReport && report.site_id) {
+      // Detect report type from the site so it works from the combined "all" list
+      let detectedType: CustomerType = "other";
+      if (report.site_id) {
         const { data: siteData } = await supabase
           .from("customer_sites")
           .select("load_report_type")
           .eq("id", report.site_id)
           .single();
-        isStaciReport = siteData?.load_report_type === "staci";
+        detectedType = mapReportTypeToCustomer(siteData?.load_report_type);
       }
+      let isStaciReport = staciEntries.length > 0 || detectedType === "staci";
+      if (isStaciReport) detectedType = "staci";
+      setSelectedCustomer(detectedType);
       
       if (items && items.length > 0) {
         setLineItems(
@@ -554,12 +563,7 @@ const LoadReportsPage = () => {
         initializeLineItems();
       }
 
-      if (isStaciReport) {
-        setSelectedCustomer("staci");
-        setViewMode(report.status === "submitted" ? "review" : "tally");
-      } else {
-        setViewMode(report.status === "submitted" ? "review" : "tally");
-      }
+      setViewMode(report.status === "submitted" ? "review" : "tally");
     } catch (error: any) {
       toast({
         title: "Error loading report",
@@ -619,16 +623,19 @@ const LoadReportsPage = () => {
       setStaciGlassDolavOnPallets((report as any).glass_dolav_on_pallets || false);
       setStaciScrapMetalLooseOnPallets((report as any).scrap_metal_loose_on_pallets || false);
 
-      // Detect if this is a staci report by checking the site's load_report_type
-      let isStaciReport = staciEntries.length > 0;
-      if (!isStaciReport && report.site_id) {
+      // Detect report type from the site so editing works from the combined "all" list
+      let detectedType: CustomerType = "other";
+      if (report.site_id) {
         const { data: siteData } = await supabase
           .from("customer_sites")
           .select("load_report_type")
           .eq("id", report.site_id)
           .single();
-        isStaciReport = siteData?.load_report_type === "staci";
+        detectedType = mapReportTypeToCustomer(siteData?.load_report_type);
       }
+      let isStaciReport = staciEntries.length > 0 || detectedType === "staci";
+      if (isStaciReport) detectedType = "staci";
+      setSelectedCustomer(detectedType);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
@@ -663,7 +670,6 @@ const LoadReportsPage = () => {
       }
 
       if (isStaciReport) {
-        setSelectedCustomer("staci");
         setViewMode(report.status === "submitted" ? "review" : "tally");
       } else {
         setViewMode("new");
@@ -895,14 +901,15 @@ const LoadReportsPage = () => {
   const handleBack = () => {
     switch (viewMode) {
       case "list":
+      case "all":
         setViewMode("customer");
         setSelectedCustomer(null);
         break;
       case "new":
-        setViewMode("list");
+        setViewMode(originView);
         break;
       case "tally":
-        setViewMode("new");
+        setViewMode(originView === "all" ? "all" : "new");
         break;
       case "review":
         setViewMode("tally");
@@ -914,7 +921,14 @@ const LoadReportsPage = () => {
 
   const handleCustomerSelect = (customer: CustomerType) => {
     setSelectedCustomer(customer);
+    setOriginView("list");
     setViewMode("list");
+  };
+
+  const handleViewAll = () => {
+    setSelectedCustomer(null);
+    setOriginView("all");
+    setViewMode("all");
   };
 
   if (loading) {
@@ -938,6 +952,8 @@ const LoadReportsPage = () => {
         return "Load Reports";
       case "list":
         return selectedCustomer ? `${selectedCustomer.toUpperCase()} Reports` : "Load Reports";
+      case "all":
+        return "Logged Load Reports";
       case "new":
         return "New Load";
       case "tally":
@@ -1013,7 +1029,7 @@ const LoadReportsPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-5xl mx-auto">
           {viewMode === "customer" && (
-            <CustomerTypeSelector onSelect={handleCustomerSelect} />
+            <CustomerTypeSelector onSelect={handleCustomerSelect} onViewAll={handleViewAll} />
           )}
 
           {viewMode === "list" && (
@@ -1040,6 +1056,32 @@ const LoadReportsPage = () => {
               />
             </>
           )}
+
+          {viewMode === "all" && (
+            <>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+                  <Truck className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    Logged Load Reports
+                  </h1>
+                  <p className="text-muted-foreground text-sm">
+                    All load reports across every report type — open and edit any record
+                  </p>
+                </div>
+              </div>
+              <LoadReportsList
+                key={`all-${listRefreshKey}`}
+                onNewReport={handleNewReport}
+                onViewReport={handleViewReport}
+                onEditReport={handleEditReport}
+                customerType={null}
+              />
+            </>
+          )}
+
 
           {viewMode === "new" && (
             <NewLoadForm

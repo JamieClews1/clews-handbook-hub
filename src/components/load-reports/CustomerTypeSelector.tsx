@@ -1,9 +1,10 @@
-import { Truck } from "lucide-react";
+import { Truck, ClipboardList } from "lucide-react";
 
 export type CustomerType = "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other";
 
 interface CustomerTypeSelectorProps {
   onSelect: (customer: CustomerType) => void;
+  onViewAll?: () => void;
 }
 
 const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; available: boolean }[] = [
@@ -15,7 +16,7 @@ const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; av
   { id: "other", name: "Standard", icon: <Truck className="h-8 w-8" />, available: true },
 ];
 
-export const CustomerTypeSelector = ({ onSelect }: CustomerTypeSelectorProps) => {
+export const CustomerTypeSelector = ({ onSelect, onViewAll }: CustomerTypeSelectorProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -55,6 +56,17 @@ export const CustomerTypeSelector = ({ onSelect }: CustomerTypeSelectorProps) =>
           </button>
         ))}
       </div>
+
+      {onViewAll && (
+        <button
+          onClick={onViewAll}
+          className="w-full mt-2 flex items-center justify-center gap-3 min-h-[72px] p-5 rounded-xl font-bold text-lg tracking-wide transition-all duration-200 bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98] cursor-pointer shadow-lg hover:shadow-xl"
+        >
+          <ClipboardList className="h-7 w-7" />
+          Logged Load Reports
+          <span className="text-xs font-normal opacity-75">(all report types)</span>
+        </button>
+      )}
     </div>
   );
 };
