@@ -338,6 +338,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
             for (const [ctName, ctCounts] of breakdownEntries) {
               const ctNet = ctCounts.delivered - ctCounts.collected;
               if (ctNet <= 0 && breakdownEntries.length > 1) continue; // skip cleared container types
+              // Use this container type's own last activity, not the site-level date
+              const ctLast = ctCounts.lastDeliveryOrExchangeDate;
+              const ctDays = ctLast ? differenceInDays(new Date(), new Date(ctLast)) : null;
+              const ctCleared = ctCounts.lastCollectionDate && ctLast && ctCounts.lastCollectionDate >= ctLast;
+              const ctOverRental = s.category !== "artic" && ctDays !== null && ctDays > settings.rental_free_days && Math.max(0, ctNet) > 0 && !ctCleared;
               rows.push({
                 Customer: s.customer,
                 Site: s.site,
@@ -346,9 +351,9 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 Delivered: ctCounts.delivered,
                 Exchanged: ctCounts.exchanged,
                 Collected: ctCounts.collected,
-                "Days Since Activity": s.daysSinceActivity ?? "",
-                "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
-                "Over Rental": s.isOverRental ? "Yes" : "No",
+                "Days Since Activity": ctDays ?? "",
+                "Last Activity": ctLast ? format(new Date(ctLast), "dd MMM yyyy") : "",
+                "Over Rental": ctOverRental ? "Yes" : "No",
               });
             }
           }
