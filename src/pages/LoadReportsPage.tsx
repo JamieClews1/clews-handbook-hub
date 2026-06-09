@@ -952,6 +952,8 @@ const LoadReportsPage = () => {
         return "Load Reports";
       case "list":
         return selectedCustomer ? `${selectedCustomer.toUpperCase()} Reports` : "Load Reports";
+      case "all":
+        return "Logged Load Reports";
       case "new":
         return "New Load";
       case "tally":
