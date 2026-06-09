@@ -645,6 +645,7 @@ export function SiteRebateReportGenerator() {
         }
       }
 
+      setReportData(reportRows);
       setIndividualReports(loadReportsWithItems);
       setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);
