@@ -356,6 +356,14 @@ export const DataHubCustomerReport = () => {
           </Popover>
         </div>
 
+        <ReportingPeriodQuickSelect
+          customerName={selectedCustomer}
+          onSelect={(from, to) => {
+            setStartDate(from);
+            setEndDate(to);
+          }}
+        />
+
         {/* Data Source Selection */}
         <div className="space-y-2">
           <Label>Data Source</Label>
