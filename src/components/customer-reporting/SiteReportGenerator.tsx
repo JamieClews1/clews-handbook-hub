@@ -490,6 +490,11 @@ export function SiteReportGenerator() {
             </PopoverContent>
           </Popover>
         </div>
+
+        <ReportingPeriodQuickSelect
+          customerId={selectedCustomerId}
+          onSelect={(from, to) => setDateRange({ from, to })}
+        />
       </div>
 
       <div className="flex gap-2 flex-wrap">
