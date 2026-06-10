@@ -357,6 +357,13 @@ export function RebateCheckReport() {
             </Popover>
           </div>
 
+          <ReportingPeriodQuickSelect
+            allCustomers
+            onSelect={(from, to) => setDateRange({ from, to })}
+          />
+
+
+
           <Button onClick={generateReport} disabled={loading}>
             {loading ? (
               <>
