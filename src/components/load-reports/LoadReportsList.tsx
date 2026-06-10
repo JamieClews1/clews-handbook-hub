@@ -39,6 +39,7 @@ interface LoadReport {
   waste_types?: string[];
   exclude_from_rebate?: boolean;
   pallets_out?: number | null;
+  pallets_scrap_count?: number | null;
   last_activity_job?: string | null;
   // Staci-specific extras (rolled into displayed total)
   card_bales_weight_kg?: number | null;
@@ -60,35 +61,24 @@ interface LoadReport {
 
 // Returns the gross weight of the report (matches what hits the weighbridge).
 // - Non-Staci: total_weight_kg is already gross (sum of pallet_count × avg_weight_kg).
-// - Staci: pallet-entry weights are stored NET of pallet tare, while bale/dolav weights
-//   are stored GROSS (already include the tare for any bales/dolavs on pallets).
-//   So we only add pallet tare for the staci pallet entries — which equals total_pallets
-//   minus the on-pallet bale/dolav counts.
+// - Staci: pallet-entry weights are gross totals, while bale/dolav/loose weights are
+//   stored as per-unit gross weights. Good/scrap pallets contribute pallet tare only.
 const getDisplayTotalKg = (
   report: LoadReport,
   isStaci: boolean,
   palletWeightKg: number,
 ) => {
-  const materials =
+  if (!isStaci) return report.total_weight_kg || 0;
+
+  return (
     (report.total_weight_kg || 0) +
-    (report.card_bales_weight_kg || 0) +
-    (report.films_bale_weight_kg || 0) +
-    (report.papers_dolav_weight_kg || 0) +
-    (report.glass_dolav_weight_kg || 0) +
-    (report.scrap_metal_loose_weight_kg || 0);
-
-  if (!isStaci) return materials;
-
-  const onPalletBaleDolavCount =
-    (report.card_bales_on_pallets ? report.card_bales_count || 0 : 0) +
-    (report.films_bale_on_pallets ? report.films_bale_count || 0 : 0) +
-    (report.papers_dolav_on_pallets ? report.papers_dolav_count || 0 : 0) +
-    (report.glass_dolav_on_pallets ? report.glass_dolav_count || 0 : 0) +
-    (report.scrap_metal_loose_on_pallets ? report.scrap_metal_loose_count || 0 : 0);
-
-  const palletEntryCount = Math.max(0, (report.total_pallets || 0) - onPalletBaleDolavCount);
-  const palletTare = palletEntryCount * (palletWeightKg || 0);
-  return materials + palletTare;
+    (report.card_bales_count || 0) * (report.card_bales_weight_kg || 0) +
+    (report.films_bale_count || 0) * (report.films_bale_weight_kg || 0) +
+    (report.papers_dolav_count || 0) * (report.papers_dolav_weight_kg || 0) +
+    (report.glass_dolav_count || 0) * (report.glass_dolav_weight_kg || 0) +
+    (report.scrap_metal_loose_count || 0) * (report.scrap_metal_loose_weight_kg || 0) +
+    ((report.pallets_out || 0) + (report.pallets_scrap_count || 0)) * (palletWeightKg || 0)
+  );
 };
 
 interface LoadReportsListProps {
