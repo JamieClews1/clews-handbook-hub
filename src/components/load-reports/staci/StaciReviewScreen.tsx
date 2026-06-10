@@ -237,7 +237,7 @@ export const StaciReviewScreen = ({
     if (typeof weighbridgeWeightKg !== "number") return;
 
     if (hasPalletEntries) {
-      // Subtract bale/dolav weight, good pallet weight, and scrap pallet weight
+      // Subtract bale/dolav/loose gross weights plus good/scrap pallet tare
       // so only the palletised material portion is reconciled
       const goodPalletWeightKg = goodPalletCount * palletWeightKg;
       const scrapPalletWeightKg = palletsScrapCount * palletWeightKg;
@@ -458,10 +458,10 @@ export const StaciReviewScreen = ({
                     <CardTitle className="text-base">Reconciled Preview</CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Target: {Math.round(weighbridgeWeightKg!).toLocaleString()} kg · 
-                      Reconciled: {(reconciledSummaryData.totalWeightKg + baleDolavTotalKg).toLocaleString()} kg
-                      {(reconciledSummaryData.totalWeightKg + baleDolavTotalKg) !== (totalWeightKg + baleDolavTotalKg) && (
+                      Reconciled: {(reconciledSummaryData.totalWeightKg + baleDolavTotalKg + goodPalletCount * palletWeightKg + palletsScrapCount * palletWeightKg).toLocaleString()} kg
+                      {(reconciledSummaryData.totalWeightKg + baleDolavTotalKg + goodPalletCount * palletWeightKg + palletsScrapCount * palletWeightKg) !== (totalWeightKg + baleDolavTotalKg + goodPalletCount * palletWeightKg + palletsScrapCount * palletWeightKg) && (
                         <span className="ml-1">
-                          (was {(totalWeightKg + baleDolavTotalKg).toLocaleString()} kg)
+                          (was {(totalWeightKg + baleDolavTotalKg + goodPalletCount * palletWeightKg + palletsScrapCount * palletWeightKg).toLocaleString()} kg)
                         </span>
                       )}
                     </p>
