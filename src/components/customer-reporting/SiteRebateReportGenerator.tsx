@@ -1076,6 +1076,14 @@ export function SiteRebateReportGenerator() {
             </Popover>
           )}
         </div>
+
+        <ReportingPeriodQuickSelect
+          customerId={selectedCustomerId}
+          onSelect={(from, to) => {
+            setDateMode("custom");
+            setDateRange({ from, to });
+          }}
+        />
       </div>
 
       <Button
