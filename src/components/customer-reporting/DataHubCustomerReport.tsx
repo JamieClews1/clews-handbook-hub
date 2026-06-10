@@ -14,6 +14,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from "date-f
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 
 // Available fields from data_hub_jobs for grouping
 const AVAILABLE_FIELDS = [
