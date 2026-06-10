@@ -118,7 +118,7 @@ export function ReportingPeriodQuickSelect({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <Label>{label}</Label>
+      {label ? <Label>{label}</Label> : null}
       <Select
         value={value}
         onValueChange={(v) => {
