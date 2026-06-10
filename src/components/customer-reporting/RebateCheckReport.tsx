@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { DateRange } from "react-day-picker";
 import * as XLSX from "xlsx";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 
 type WasteTypeSummary = {
   waste_description: string;
