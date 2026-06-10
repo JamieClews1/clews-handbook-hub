@@ -386,6 +386,17 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                 </Popover>
               </>
             )}
+
+            <ReportingPeriodQuickSelect
+              allCustomers
+              label=""
+              className="space-y-0"
+              onSelect={(from, to) => {
+                setDateMode("range");
+                setCustomFrom(from);
+                setCustomTo(to);
+              }}
+            />
           </CardContent>
         </Card>
       )}
