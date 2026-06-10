@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 import {
   STACI_PALLET_RATES,
   STACI_PALLET_GOOD_REBATE,
@@ -385,6 +386,17 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                 </Popover>
               </>
             )}
+
+            <ReportingPeriodQuickSelect
+              allCustomers
+              label=""
+              className="space-y-0"
+              onSelect={(from, to) => {
+                setDateMode("range");
+                setCustomFrom(from);
+                setCustomTo(to);
+              }}
+            />
           </CardContent>
         </Card>
       )}

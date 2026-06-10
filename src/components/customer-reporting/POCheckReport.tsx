@@ -9,6 +9,7 @@ import { Loader2, Search, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 
 interface POChangeRecord {
   job_number: string;
@@ -134,6 +135,14 @@ export const POCheckReport = () => {
               className="w-40"
             />
           </div>
+          <ReportingPeriodQuickSelect
+            allCustomers
+            label="Reporting Period"
+            onSelect={(from, to) => {
+              setStartDate(format(from, "yyyy-MM-dd"));
+              setEndDate(format(to, "yyyy-MM-dd"));
+            }}
+          />
           <Button onClick={fetchPOChanges} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
             Check PO Changes

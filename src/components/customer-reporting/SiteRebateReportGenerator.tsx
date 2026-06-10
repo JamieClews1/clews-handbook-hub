@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, DollarSign, Loader2, Download } from "lucide-react";
 import * as XLSX from "xlsx";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -1076,6 +1077,14 @@ export function SiteRebateReportGenerator() {
             </Popover>
           )}
         </div>
+
+        <ReportingPeriodQuickSelect
+          customerId={selectedCustomerId}
+          onSelect={(from, to) => {
+            setDateMode("custom");
+            setDateRange({ from, to });
+          }}
+        />
       </div>
 
       <Button

@@ -14,6 +14,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from "date-f
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 
 // Available fields from data_hub_jobs for grouping
 const AVAILABLE_FIELDS = [
@@ -354,6 +355,14 @@ export const DataHubCustomerReport = () => {
             </PopoverContent>
           </Popover>
         </div>
+
+        <ReportingPeriodQuickSelect
+          customerName={selectedCustomer}
+          onSelect={(from, to) => {
+            setStartDate(from);
+            setEndDate(to);
+          }}
+        />
 
         {/* Data Source Selection */}
         <div className="space-y-2">

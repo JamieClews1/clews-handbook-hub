@@ -14,6 +14,7 @@
 import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Check, Clock, Building2, Download, Lock } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import * as XLSX from "xlsx";
+import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
  import { cn } from "@/lib/utils";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
@@ -770,7 +771,14 @@ import * as XLSX from "xlsx";
                />
              </PopoverContent>
            </Popover>
-         </div>
+          </div>
+
+          <ReportingPeriodQuickSelect
+            allCustomers
+            onSelect={(from, to) => setDateRange({ from, to })}
+          />
+
+
  
          <Button onClick={generateSummaries} disabled={loading}>
            {loading ? (
