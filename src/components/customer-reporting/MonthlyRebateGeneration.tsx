@@ -771,7 +771,14 @@ import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
                />
              </PopoverContent>
            </Popover>
-         </div>
+          </div>
+
+          <ReportingPeriodQuickSelect
+            allCustomers
+            onSelect={(from, to) => setDateRange({ from, to })}
+          />
+
+
  
          <Button onClick={generateSummaries} disabled={loading}>
            {loading ? (
