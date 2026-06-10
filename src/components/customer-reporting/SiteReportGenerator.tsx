@@ -50,7 +50,7 @@ type JobRecord = {
 type DataSourceFilter = "all" | "skiptrak" | "midweigh";
 
 type ColumnKey = 
-  | "date" | "jobNo" | "orderNo" | "haulier" | "jobType" | "inOut" | "domComm" 
+  | "date" | "jobNo" | "orderNo" | "site" | "haulier" | "jobType" | "inOut" | "domComm" 
   | "movement" | "container" | "ewc" | "wasteType" | "vehicle" | "weighbridge" 
   | "weight" | "cost" | "totalPrice";
 
@@ -58,6 +58,7 @@ const ALL_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "date", label: "Date" },
   { key: "jobNo", label: "Job No." },
   { key: "orderNo", label: "Order No." },
+  { key: "site", label: "Site" },
   { key: "haulier", label: "Haulier" },
   { key: "jobType", label: "Job Type" },
   { key: "inOut", label: "In/Out" },
@@ -356,6 +357,7 @@ export function SiteReportGenerator() {
       { key: "date", header: "Date", getValue: (job) => job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "" },
       { key: "jobNo", header: "Job No.", getValue: (job) => job.job_number || "" },
       { key: "orderNo", header: "Order No.", getValue: (job) => getOrderNumber(job) || "" },
+      { key: "site", header: "Site", getValue: (job) => job.site || "" },
       { key: "haulier", header: "Haulier", getValue: (job) => getHaulier(job) || "" },
       { key: "jobType", header: "Job Type", getValue: (job) => getJobType(job) || "" },
       { key: "inOut", header: "In/Out", getValue: (job) => getInOut(job) || "" },
@@ -383,7 +385,7 @@ export function SiteReportGenerator() {
 
     // Set column widths dynamically based on visible columns
     const columnWidths: Record<ColumnKey, number> = {
-      date: 12, jobNo: 15, orderNo: 15, haulier: 15, jobType: 12, inOut: 10, domComm: 12,
+      date: 12, jobNo: 15, orderNo: 15, site: 25, haulier: 15, jobType: 12, inOut: 10, domComm: 12,
       movement: 12, container: 25, ewc: 12, wasteType: 30, vehicle: 12, weighbridge: 15,
       weight: 12, cost: 12, totalPrice: 12,
     };
@@ -693,6 +695,7 @@ export function SiteReportGenerator() {
                       {isColumnVisible("date") && <TableHead>Date</TableHead>}
                       {isColumnVisible("jobNo") && <TableHead>Job No.</TableHead>}
                       {isColumnVisible("orderNo") && <TableHead>Order No.</TableHead>}
+                      {isColumnVisible("site") && <TableHead>Site</TableHead>}
                       {isColumnVisible("haulier") && <TableHead>Haulier</TableHead>}
                       {isColumnVisible("jobType") && <TableHead>Job Type</TableHead>}
                       {isColumnVisible("inOut") && <TableHead>In/Out</TableHead>}
@@ -734,6 +737,7 @@ export function SiteReportGenerator() {
                               {orderNo || "-"}
                             </TableCell>
                           )}
+                          {isColumnVisible("site") && <TableCell>{job.site || "-"}</TableCell>}
                           {isColumnVisible("haulier") && <TableCell>{haulier || "-"}</TableCell>}
                           {isColumnVisible("jobType") && <TableCell>{jobType || "-"}</TableCell>}
                           {isColumnVisible("inOut") && <TableCell>{inOut || "-"}</TableCell>}
