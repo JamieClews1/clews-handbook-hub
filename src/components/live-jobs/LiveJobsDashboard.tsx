@@ -248,7 +248,6 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Sites with net containers on-site
     const live = Object.values(siteMap)
       .map(s => {
-        const netFromDeliveries = s.delivered - s.collected;
         const totalMovements = s.delivered + s.collected + s.exchanged;
         const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
         // Artics (waste trucks) don't stay on-site, so count sites visited instead
