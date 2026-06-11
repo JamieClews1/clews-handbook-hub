@@ -676,6 +676,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
               <SortHeader field="exchanged" className="text-center">Exchanged</SortHeader>
               <SortHeader field="collected" className="text-center">Collected</SortHeader>
               <SortHeader field="containerType">Container Types</SortHeader>
+              <TableHead>Waste Type</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
