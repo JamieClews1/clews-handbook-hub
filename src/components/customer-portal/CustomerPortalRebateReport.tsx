@@ -440,10 +440,40 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
               pallet_count: li.pallet_count,
               total_weight_kg: Number(li.total_weight_kg),
               wet_charge_applied: (li as any).wet_charge_applied ?? false,
+              rebate_threshold_applied: (li as any).rebate_threshold_applied ?? false,
             })),
+            rebate_threshold_tonnes: (report as any).rebate_threshold_tonnes ?? 0,
             calculated_rebate: 0,
             weighbridge_weight_kg: weighbridgeWeightKg,
           });
+        }
+
+        // Compute per-load weight rebate threshold reductions (deduct first N tonnes of selected materials)
+        for (const report of loadReports ?? []) {
+          const threshold = Number((report as any).rebate_threshold_tonnes) || 0;
+          if (threshold <= 0) continue;
+          const reportItems = (lineItems ?? []).filter((li) => li.load_report_id === report.id);
+          const noPallets = noPalletsByReportId[report.id] ?? false;
+          const lines = reportItems
+            .filter((li) => !li.waste_type.toLowerCase().includes("pallet weight"))
+            .map((li, idx) => {
+              const grossKg = Number(li.total_weight_kg) || 0;
+              const palletKg = noPallets ? 0 : (Number(li.pallet_count) || 0) * palletWeightKg;
+              return {
+                id: String(idx),
+                wasteType: li.waste_type,
+                netTonnes: Math.max(0, grossKg - palletKg) / 1000,
+                thresholdApplied: (li as any).rebate_threshold_applied ?? false,
+              };
+            });
+          const reductions = computeThresholdReductions(lines, threshold);
+          for (const line of lines) {
+            const r = reductions[line.id] ?? 0;
+            if (r > 0) {
+              thresholdReductionsByMaterial[line.wasteType] =
+                (thresholdReductionsByMaterial[line.wasteType] ?? 0) + r;
+            }
+          }
         }
 
         for (const item of lineItems ?? []) {
