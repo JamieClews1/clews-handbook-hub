@@ -286,11 +286,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (s.category === "artic") continue;
       if (!s.isOverRental) continue;
       for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-        const netForType = ctb.delivered - ctb.collected;
-        const clearedForType = ctb.lastCollectionDate && ctb.lastDeliveryOrExchangeDate && ctb.lastCollectionDate >= ctb.lastDeliveryOrExchangeDate;
-        const onSiteForType = clearedForType && netForType <= 0
-          ? 0
-          : Math.max(netForType, netForType >= 0 && ctb.exchanged > 0 ? Math.max(1, netForType) : 0);
+        const onSiteForType = typeOnSite(ctb.positions);
         if (onSiteForType <= 0) continue;
         const days = ctb.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(ctb.lastDeliveryOrExchangeDate)) : null;
         if (days === null || days <= settings.rental_free_days) continue;
