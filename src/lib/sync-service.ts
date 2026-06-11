@@ -70,6 +70,7 @@ async function syncSingleReport(report: OfflineLoadReport): Promise<void> {
     no_pallets_on_load: report.noPalletsOnLoad || false,
     exclude_from_rebate: report.excludeFromRebate || false,
     wet_charge_percent: report.wetChargePercent || 0,
+    rebate_threshold_tonnes: report.rebateThresholdTonnes || 0,
     status: report.status,
     submitted_at: report.status === 'submitted' ? new Date().toISOString() : null,
   };
@@ -105,6 +106,7 @@ async function syncSingleReport(report: OfflineLoadReport): Promise<void> {
     total_weight_kg: item.totalWeightKg,
     display_order: item.displayOrder,
     wet_charge_applied: item.wetChargeApplied || false,
+    rebate_threshold_applied: item.rebateThresholdApplied || false,
   }));
 
   const { error: itemsError } = await supabase
