@@ -586,6 +586,8 @@ export function SiteRebateReportGenerator() {
       
       // Get wet charge discounts (if any)
       const wetChargeDiscounts = (lineItemWeights as any).__WET_CHARGE_DISCOUNTS__ as Record<string, { affectedWeight: number; discountPercent: number }[]> | undefined;
+      // Get weight rebate threshold reductions (if any)
+      const thresholdReductions = (lineItemWeights as any).__THRESHOLD_REDUCTIONS__ as Record<string, number> | undefined;
 
       for (const config of rebateConfigs) {
         // Determine the base rate
