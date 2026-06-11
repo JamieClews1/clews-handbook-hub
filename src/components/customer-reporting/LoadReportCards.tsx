@@ -164,26 +164,40 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
     return palletWeightTonnes * effectivePalletChargeRate;
   };
 
+  // Per-line weight (tonnes) removed from rebate by the load's weight rebate threshold
+  const getThresholdReductionsTonnes = (report: LoadReportCardData) => {
+    const items = filterLineItems(report.line_items);
+    const lines = items.map((item, idx) => ({
+      id: String(idx),
+      netTonnes: calcLineActualWeightKg(report, item) / 1000,
+      thresholdApplied: !!item.rebate_threshold_applied,
+    }));
+    return computeThresholdReductions(lines, Number(report.rebate_threshold_tonnes) || 0);
+  };
+
   // Calculate rebate for a single report (rebate on actual recyclable/waste weight + pallet charge)
-  // Applies wet charge discount to affected line items
+  // Applies wet charge discount and weight rebate threshold to affected line items
   const calculateReportRebate = (report: LoadReportCardData) => {
     if (isBelowThreshold(report)) return 0;
 
     const wetChargePercent = report.wet_charge_percent ?? 0;
-    
+    const reductions = getThresholdReductionsTonnes(report);
+
     let rebate = 0;
-    for (const item of filterLineItems(report.line_items)) {
+    filterLineItems(report.line_items).forEach((item, idx) => {
       const rate = rateMap[item.waste_type] ?? 0;
       const actualKg = calcLineActualWeightKg(report, item);
-      let lineRebate = (actualKg / 1000) * rate;
-      
+      const reductionT = reductions[String(idx)] ?? 0;
+      const rebatableTonnes = Math.max(0, actualKg / 1000 - reductionT);
+      let lineRebate = rebatableTonnes * rate;
+
       // Apply wet charge discount if this line item is affected
       if (item.wet_charge_applied && wetChargePercent > 0) {
         lineRebate = lineRebate * (1 - wetChargePercent / 100);
       }
-      
+
       rebate += lineRebate;
-    }
+    });
 
     // Add pallet charge (usually negative)
     rebate += calculatePalletChargeValue(report);
@@ -192,11 +206,12 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
   };
 
   // Calculate totals for a report (gross/pallet/actual + value including pallet charge)
-  // Applies wet charge discount to affected line items
+  // Applies wet charge discount and weight rebate threshold to affected line items
   const calculateTotals = (report: LoadReportCardData) => {
     const filteredItems = filterLineItems(report.line_items);
     const belowThreshold = isBelowThreshold(report);
     const wetChargePercent = report.wet_charge_percent ?? 0;
+    const reductions = getThresholdReductionsTonnes(report);
 
     let totalPallets = 0;
     let totalGrossKg = 0;
@@ -204,7 +219,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
     let totalActualKg = 0;
     let totalValue = 0;
 
-    for (const item of filteredItems) {
+    filteredItems.forEach((item, idx) => {
       const rate = rateMap[item.waste_type] ?? 0;
       const grossKg = Number(item.total_weight_kg) || 0;
       const palletKg = calcLinePalletWeightKg(report, item);
@@ -216,14 +231,16 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
       totalActualKg += actualKg;
 
       if (!belowThreshold) {
-        let lineValue = (actualKg / 1000) * rate;
+        const reductionT = reductions[String(idx)] ?? 0;
+        const rebatableTonnes = Math.max(0, actualKg / 1000 - reductionT);
+        let lineValue = rebatableTonnes * rate;
         // Apply wet charge discount if this line item is affected
         if (item.wet_charge_applied && wetChargePercent > 0) {
           lineValue = lineValue * (1 - wetChargePercent / 100);
         }
         totalValue += lineValue;
       }
-    }
+    });
 
     // Add pallet charge to total value
     if (!belowThreshold) {
