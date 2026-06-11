@@ -618,13 +618,13 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
       .map(s => {
         const matchingTypes = s.containerTypes.filter(ct => selectedTypes.has(ct));
         if (matchingTypes.length === 0) return null;
-        // Recalculate net on-site from matching container type breakdowns only
-        let delivered = 0, collected = 0, exchanged = 0;
+        // Recalculate on-site from matching container type breakdowns only,
+        // counting each distinct position (EWC/waste stream).
+        let delivered = 0, collected = 0, exchanged = 0, netOnSite = 0;
         for (const ct of matchingTypes) {
           const b = s.containerTypeBreakdown[ct];
-          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; }
+          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions); }
         }
-        const netOnSite = Math.max(0, delivered - collected);
         return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
