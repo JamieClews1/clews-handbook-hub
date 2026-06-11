@@ -584,7 +584,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }>; label: string }) {
+function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
