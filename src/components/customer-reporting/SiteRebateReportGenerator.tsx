@@ -622,14 +622,16 @@ export function SiteRebateReportGenerator() {
         // Get weight: for pallet charge use the aggregated total, otherwise use material weight
         const weight_tonnes = isPalletCharge ? totalPalletWeight : (lineItemWeights[config.material_name] ?? 0);
 
-        // Calculate rebate value with wet charge discount applied
+        // Calculate rebate value with wet charge discount and weight threshold applied
         // For cost items (rebate_category === "cost"), negate the value
         const isCostItem = config.rebate_category === "cost";
-        let rebate_value = weight_tonnes * rate;
+        const thresholdReductionT = isPalletCharge ? 0 : (thresholdReductions?.[config.material_name] ?? 0);
+        const rebatableWeight = Math.max(0, weight_tonnes - thresholdReductionT);
+        let rebate_value = rebatableWeight * rate;
         if (isCostItem) rebate_value = -Math.abs(rebate_value);
         let hasWetCharge = false;
         let wetChargeSummary = "";
-        
+
         // Apply wet charge discounts for this material
         const materialDiscounts = wetChargeDiscounts?.[config.material_name];
         if (materialDiscounts && materialDiscounts.length > 0 && !isPalletCharge) {
@@ -637,20 +639,29 @@ export function SiteRebateReportGenerator() {
           // Calculate the discounted rebate:
           // Full weight at full rate, minus the discount amount for affected portions
           const totalWeight = lineItemWeights[config.material_name] ?? 0;
-          const unaffectedWeight = totalWeight - materialDiscounts.reduce((sum, d) => sum + d.affectedWeight, 0);
           const totalAffectedWeight = materialDiscounts.reduce((sum, d) => sum + d.affectedWeight, 0);
-          
+          let unaffectedWeight = totalWeight - totalAffectedWeight;
+
+          // Remove the threshold from unaffected weight first, then from affected
+          let remainingThreshold = thresholdReductionT;
+          const unaffApplied = Math.min(unaffectedWeight, remainingThreshold);
+          unaffectedWeight -= unaffApplied;
+          remainingThreshold -= unaffApplied;
+          const affectedForRebate = Math.max(0, totalAffectedWeight - remainingThreshold);
+          const affScale = totalAffectedWeight > 0 ? affectedForRebate / totalAffectedWeight : 0;
+
           // Get unique discount percentages for summary
           const uniqueDiscounts = [...new Set(materialDiscounts.map(d => d.discountPercent))];
           wetChargeSummary = `${totalAffectedWeight.toFixed(2)}t @ ${uniqueDiscounts.map(d => `-${d}%`).join(", ")}`;
-          
-           // Rebate = (unaffected weight * rate) + sum of (affected weight * rate * (1 - discount%))
+
+           // Rebate = (unaffected weight * rate) + sum of (scaled affected weight * rate * (1 - discount%))
            rebate_value = unaffectedWeight * rate;
            for (const discount of materialDiscounts) {
-             rebate_value += discount.affectedWeight * rate * (1 - discount.discountPercent / 100);
+             rebate_value += discount.affectedWeight * affScale * rate * (1 - discount.discountPercent / 100);
            }
            if (isCostItem) rebate_value = -Math.abs(rebate_value);
          }
+
 
         reportRows.push({
           material_name: config.material_name,
