@@ -57,6 +57,36 @@ function categoriseContainer(
 function isDelivery(m: string | null) { return m === "Deliver"; }
 function isCollection(m: string | null) { return m === "Collect"; }
 function isExchange(m: string | null) { return m === "Exchange"; }
+function isTipReturn(m: string | null) { return m === "Tip/Return"; }
+// Movements that mean a container is left on-site (rental clock keeps running)
+function staysOnSite(m: string | null) { return isDelivery(m) || isExchange(m) || isTipReturn(m); }
+
+// A "position" is a distinct physical container slot, identified by its EWC/waste
+// stream within a site+container-type. Skiptrak tracks each as a separate active job,
+// so we count each on-site position individually instead of collapsing a whole
+// container type down to a single count.
+type PosCounts = {
+  delivered: number;
+  collected: number;
+  exchanged: number;
+  tipReturn: number;
+  lastKeepDate: string | null;      // last deliver/exchange/tip-return (rental clock)
+  lastCollectionDate: string | null;
+};
+
+function positionOnSite(p: PosCounts): number {
+  const net = p.delivered - p.collected;
+  const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
+  if (cleared && net <= 0) return 0;
+  // An exchange or tip/return means a container is present and stays on-site.
+  const present = p.exchanged > 0 || p.tipReturn > 0;
+  return Math.max(net, net >= 0 && present ? Math.max(1, net) : 0);
+}
+
+function typeOnSite(positions: Record<string, PosCounts> | undefined): number {
+  if (!positions) return 0;
+  return Object.values(positions).reduce((sum, p) => sum + positionOnSite(p), 0);
+}
 
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
