@@ -171,7 +171,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (job.container_type) {
         siteMap[key].containerTypes.add(job.container_type);
         if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null, wasteTypes: new Set() };
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null, wasteTypes: new Set(), positions: {} };
         }
         const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
         if (isDelivery(job.movement_type)) ctb.delivered++;
@@ -187,6 +187,24 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           if (!ctb.lastCollectionDate || job.job_date > ctb.lastCollectionDate) {
             ctb.lastCollectionDate = job.job_date;
           }
+        }
+
+        // Track each physical position (EWC / waste stream) separately so multiple
+        // simultaneous containers of the same type aren't collapsed into one count.
+        const posKey = (job.ewc && job.ewc.trim()) || "__none__";
+        if (!ctb.positions[posKey]) {
+          ctb.positions[posKey] = { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null };
+        }
+        const pos = ctb.positions[posKey];
+        if (isDelivery(job.movement_type)) pos.delivered++;
+        if (isCollection(job.movement_type)) pos.collected++;
+        if (isExchange(job.movement_type)) pos.exchanged++;
+        if (isTipReturn(job.movement_type)) pos.tipReturn++;
+        if (job.job_date && staysOnSite(job.movement_type)) {
+          if (!pos.lastKeepDate || job.job_date > pos.lastKeepDate) pos.lastKeepDate = job.job_date;
+        }
+        if (job.job_date && isCollection(job.movement_type)) {
+          if (!pos.lastCollectionDate || job.job_date > pos.lastCollectionDate) pos.lastCollectionDate = job.job_date;
         }
       }
 
