@@ -474,6 +474,11 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                                     -{wetChargePercent}%
                                   </Badge>
                                 )}
+                                {hasThreshold && !belowThreshold && (
+                                  <Badge variant="outline" className="ml-2 text-[10px] px-1 py-0 border-emerald-400 text-emerald-600">
+                                    -{reductionT.toFixed(2)}t
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{item.pallet_count}</TableCell>
                               <TableCell className="text-xs py-1.5 text-right">{Math.round(grossKg).toLocaleString()}</TableCell>
