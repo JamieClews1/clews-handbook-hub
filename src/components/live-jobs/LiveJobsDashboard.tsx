@@ -105,10 +105,10 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration")
+          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
           .eq("source", "skiptrak")
           .gte("job_date", since)
-          .in("movement_type", ["Deliver", "Exchange", "Collect"])
+          .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .range(from, from + pageSize - 1);
 
