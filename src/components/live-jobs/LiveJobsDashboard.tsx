@@ -335,25 +335,47 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
               "Over Rental": s.isOverRental ? "Yes" : "No",
             });
           } else {
+            const rowsBefore = rows.length;
             for (const [ctName, ctCounts] of breakdownEntries) {
-              const ctNet = ctCounts.delivered - ctCounts.collected;
-              if (ctNet <= 0 && breakdownEntries.length > 1) continue; // skip cleared container types
-              // Use this container type's own last activity, not the site-level date
               const ctLast = ctCounts.lastDeliveryOrExchangeDate;
-              const ctDays = ctLast ? differenceInDays(new Date(), new Date(ctLast)) : null;
               const ctCleared = ctCounts.lastCollectionDate && ctLast && ctCounts.lastCollectionDate >= ctLast;
-              const ctOverRental = s.category !== "artic" && ctDays !== null && ctDays > settings.rental_free_days && Math.max(0, ctNet) > 0 && !ctCleared;
+              const netForType = ctCounts.delivered - ctCounts.collected;
+              // Mirror the dashboard's on-site logic: a type with exchanges and net >= 0
+              // keeps at least 1 container on-site, and a type cleared by a later
+              // collection is treated as empty.
+              const onSiteForType = ctCleared && netForType <= 0
+                ? 0
+                : Math.max(netForType, netForType >= 0 && ctCounts.exchanged > 0 ? Math.max(1, netForType) : 0);
+              if (onSiteForType <= 0 && breakdownEntries.length > 1) continue; // skip cleared container types
+              const ctDays = ctLast ? differenceInDays(new Date(), new Date(ctLast)) : null;
+              const ctOverRental = s.category !== "artic" && ctDays !== null && ctDays > settings.rental_free_days && onSiteForType > 0 && !ctCleared;
               rows.push({
                 Customer: s.customer,
                 Site: s.site,
                 "Container Type": ctName,
-                "Net On-Site": Math.max(0, ctNet),
+                "Net On-Site": onSiteForType,
                 Delivered: ctCounts.delivered,
                 Exchanged: ctCounts.exchanged,
                 Collected: ctCounts.collected,
                 "Days Since Activity": ctDays ?? "",
                 "Last Activity": ctLast ? format(new Date(ctLast), "dd MMM yyyy") : "",
                 "Over Rental": ctOverRental ? "Yes" : "No",
+              });
+            }
+            // Guarantee every live site appears, even if no single container type
+            // resolved to a positive on-site count (matches the dashboard cards).
+            if (rows.length === rowsBefore) {
+              rows.push({
+                Customer: s.customer,
+                Site: s.site,
+                "Container Type": s.containerTypes.join(", ") || "Unknown",
+                "Net On-Site": s.netOnSite,
+                Delivered: s.delivered,
+                Exchanged: s.exchanged,
+                Collected: s.collected,
+                "Days Since Activity": s.daysSinceActivity ?? "",
+                "Last Activity": s.lastActivityDate ? format(new Date(s.lastActivityDate), "dd MMM yyyy") : "",
+                "Over Rental": s.isOverRental ? "Yes" : "No",
               });
             }
           }
