@@ -194,6 +194,80 @@ export const TallyScreen = ({
             )}
           </div>
         )}
+
+        {onRebateThresholdTonnesChange && (
+          <div className="space-y-4 border-t border-border pt-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shrink-0">
+                <Scale className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Weight Rebate Threshold</p>
+                <p className="text-xs text-muted-foreground">
+                  Rebate is only paid on weight above this threshold (per load)
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Label htmlFor="rebateThresholdTonnes" className="text-sm font-medium whitespace-nowrap">
+                Threshold
+              </Label>
+              <Input
+                id="rebateThresholdTonnes"
+                type="number"
+                min={0}
+                step={0.1}
+                value={rebateThresholdTonnes}
+                onChange={(e) =>
+                  onRebateThresholdTonnesChange(Math.max(0, parseFloat(e.target.value) || 0))
+                }
+                className="w-24 h-12 text-center text-xl font-bold"
+              />
+              <span className="text-muted-foreground">tonnes</span>
+            </div>
+            {rebateThresholdTonnes > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Apply to materials:</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {lineItems
+                    .filter((item) => item.pallet_count > 0)
+                    .map((item) => {
+                      const originalIndex = lineItems.findIndex(
+                        (li) => li.waste_type === item.waste_type
+                      );
+                      return (
+                        <div
+                          key={item.waste_type}
+                          className="flex items-center space-x-2 rounded-lg border border-border bg-background p-3"
+                        >
+                          <Checkbox
+                            id={`rebate-threshold-${item.waste_type}`}
+                            checked={item.rebate_threshold_applied || false}
+                            onCheckedChange={(checked) =>
+                              onLineItemChange(originalIndex, {
+                                rebate_threshold_applied: checked === true,
+                              })
+                            }
+                          />
+                          <Label
+                            htmlFor={`rebate-threshold-${item.waste_type}`}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {item.waste_type}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                </div>
+                {lineItems.filter((item) => item.pallet_count > 0).length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">
+                    Add pallets to materials above to apply the threshold
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   ) : null;
