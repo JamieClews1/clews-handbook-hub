@@ -570,6 +570,8 @@ export function SiteRebateReportGenerator() {
             lineItemWeights["__PALLET_WEIGHT__"] = (lineItemWeights["__PALLET_WEIGHT__"] ?? 0) + totalPalletWeightTonnes;
             // Store wet charge discounts for rebate calculation
             (lineItemWeights as any).__WET_CHARGE_DISCOUNTS__ = wetChargeDiscounts;
+            // Store weight rebate threshold reductions for rebate calculation
+            (lineItemWeights as any).__THRESHOLD_REDUCTIONS__ = thresholdReductionsByMaterial;
           }
         }
       } else {
