@@ -72,6 +72,7 @@ const LoadReportsPage = () => {
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
   const [excludeFromRebate, setExcludeFromRebate] = useState(false);
   const [wetChargePercent, setWetChargePercent] = useState(0);
+  const [rebateThresholdTonnes, setRebateThresholdTonnes] = useState(0);
 
   // Staci-specific state
   const [staciPalletEntries, setStaciPalletEntries] = useState<StaciPalletEntry[]>([]);
