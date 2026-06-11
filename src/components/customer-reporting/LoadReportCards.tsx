@@ -268,6 +268,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
         const isOpen = openCards[report.id] ?? false;
         const reportRebate = calculateReportRebate(report);
         const belowThreshold = isBelowThreshold(report);
+        const rowReductions = getThresholdReductionsTonnes(report);
         const grossWeight = calculateGrossWeight(report);
         const palletWeight = calculatePalletWeight(report);
         const lineItemPallets = calculateLineItemPallets(report);
