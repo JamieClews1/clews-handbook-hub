@@ -23,6 +23,7 @@ type Job = {
   movement_type: string | null;
   waste_description: string | null;
   vehicle_registration: string | null;
+  ewc: string | null;
 };
 
 type ContainerCategory = "skip" | "roro" | "artic";
@@ -56,6 +57,36 @@ function categoriseContainer(
 function isDelivery(m: string | null) { return m === "Deliver"; }
 function isCollection(m: string | null) { return m === "Collect"; }
 function isExchange(m: string | null) { return m === "Exchange"; }
+function isTipReturn(m: string | null) { return m === "Tip/Return"; }
+// Movements that mean a container is left on-site (rental clock keeps running)
+function staysOnSite(m: string | null) { return isDelivery(m) || isExchange(m) || isTipReturn(m); }
+
+// A "position" is a distinct physical container slot, identified by its EWC/waste
+// stream within a site+container-type. Skiptrak tracks each as a separate active job,
+// so we count each on-site position individually instead of collapsing a whole
+// container type down to a single count.
+type PosCounts = {
+  delivered: number;
+  collected: number;
+  exchanged: number;
+  tipReturn: number;
+  lastKeepDate: string | null;      // last deliver/exchange/tip-return (rental clock)
+  lastCollectionDate: string | null;
+};
+
+function positionOnSite(p: PosCounts): number {
+  const net = p.delivered - p.collected;
+  const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
+  if (cleared && net <= 0) return 0;
+  // An exchange or tip/return means a container is present and stays on-site.
+  const present = p.exchanged > 0 || p.tipReturn > 0;
+  return Math.max(net, net >= 0 && present ? Math.max(1, net) : 0);
+}
+
+function typeOnSite(positions: Record<string, PosCounts> | undefined): number {
+  if (!positions) return 0;
+  return Object.values(positions).reduce((sum, p) => sum + positionOnSite(p), 0);
+}
 
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -74,10 +105,10 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration")
+          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
           .eq("source", "skiptrak")
           .gte("job_date", since)
-          .in("movement_type", ["Deliver", "Exchange", "Collect"])
+          .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .range(from, from + pageSize - 1);
 
@@ -96,7 +127,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string> }> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -140,7 +171,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (job.container_type) {
         siteMap[key].containerTypes.add(job.container_type);
         if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null, wasteTypes: new Set() };
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null, wasteTypes: new Set(), positions: {} };
         }
         const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
         if (isDelivery(job.movement_type)) ctb.delivered++;
@@ -156,6 +187,24 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           if (!ctb.lastCollectionDate || job.job_date > ctb.lastCollectionDate) {
             ctb.lastCollectionDate = job.job_date;
           }
+        }
+
+        // Track each physical position (EWC / waste stream) separately so multiple
+        // simultaneous containers of the same type aren't collapsed into one count.
+        const posKey = (job.ewc && job.ewc.trim()) || "__none__";
+        if (!ctb.positions[posKey]) {
+          ctb.positions[posKey] = { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null };
+        }
+        const pos = ctb.positions[posKey];
+        if (isDelivery(job.movement_type)) pos.delivered++;
+        if (isCollection(job.movement_type)) pos.collected++;
+        if (isExchange(job.movement_type)) pos.exchanged++;
+        if (isTipReturn(job.movement_type)) pos.tipReturn++;
+        if (job.job_date && staysOnSite(job.movement_type)) {
+          if (!pos.lastKeepDate || job.job_date > pos.lastKeepDate) pos.lastKeepDate = job.job_date;
+        }
+        if (job.job_date && isCollection(job.movement_type)) {
+          if (!pos.lastCollectionDate || job.job_date > pos.lastCollectionDate) pos.lastCollectionDate = job.job_date;
         }
       }
 
@@ -199,19 +248,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Sites with net containers on-site
     const live = Object.values(siteMap)
       .map(s => {
-        const netFromDeliveries = s.delivered - s.collected;
         const totalMovements = s.delivered + s.collected + s.exchanged;
         const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
         // Artics (waste trucks) don't stay on-site, so count sites visited instead
         let netOnSite: number;
         if (s.category === "artic") {
           netOnSite = totalMovements; // For artics, this represents visit count
-        } else if (collectionClearedIt && netFromDeliveries <= 0) {
-          // Last action was a collection and all deliveries are accounted for — site is clear
-          netOnSite = 0;
         } else {
-          // If there are exchanges and net >= 0, at least 1 container is on-site
-          netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
+          // Count each distinct on-site position (EWC/waste stream) across all
+          // container types so simultaneous containers aren't collapsed into one.
+          netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
@@ -240,11 +286,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (s.category === "artic") continue;
       if (!s.isOverRental) continue;
       for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-        const netForType = ctb.delivered - ctb.collected;
-        const clearedForType = ctb.lastCollectionDate && ctb.lastDeliveryOrExchangeDate && ctb.lastCollectionDate >= ctb.lastDeliveryOrExchangeDate;
-        const onSiteForType = clearedForType && netForType <= 0
-          ? 0
-          : Math.max(netForType, netForType >= 0 && ctb.exchanged > 0 ? Math.max(1, netForType) : 0);
+        const onSiteForType = typeOnSite(ctb.positions);
         if (onSiteForType <= 0) continue;
         const days = ctb.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(ctb.lastDeliveryOrExchangeDate)) : null;
         if (days === null || days <= settings.rental_free_days) continue;
@@ -348,13 +390,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
             for (const [ctName, ctCounts] of breakdownEntries) {
               const ctLast = ctCounts.lastDeliveryOrExchangeDate;
               const ctCleared = ctCounts.lastCollectionDate && ctLast && ctCounts.lastCollectionDate >= ctLast;
-              const netForType = ctCounts.delivered - ctCounts.collected;
-              // Mirror the dashboard's on-site logic: a type with exchanges and net >= 0
-              // keeps at least 1 container on-site, and a type cleared by a later
-              // collection is treated as empty.
-              const onSiteForType = ctCleared && netForType <= 0
-                ? 0
-                : Math.max(netForType, netForType >= 0 && ctCounts.exchanged > 0 ? Math.max(1, netForType) : 0);
+              // Count each distinct on-site position (EWC/waste stream) for this type.
+              const onSiteForType = typeOnSite(ctCounts.positions);
               if (onSiteForType <= 0 && breakdownEntries.length > 1) continue; // skip cleared container types
               const ctDays = ctLast ? differenceInDays(new Date(), new Date(ctLast)) : null;
               const ctOverRental = s.category !== "artic" && ctDays !== null && ctDays > settings.rental_free_days && onSiteForType > 0 && !ctCleared;
@@ -547,7 +584,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }>; label: string }) {
+function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -581,13 +618,13 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
       .map(s => {
         const matchingTypes = s.containerTypes.filter(ct => selectedTypes.has(ct));
         if (matchingTypes.length === 0) return null;
-        // Recalculate net on-site from matching container type breakdowns only
-        let delivered = 0, collected = 0, exchanged = 0;
+        // Recalculate on-site from matching container type breakdowns only,
+        // counting each distinct position (EWC/waste stream).
+        let delivered = 0, collected = 0, exchanged = 0, netOnSite = 0;
         for (const ct of matchingTypes) {
           const b = s.containerTypeBreakdown[ct];
-          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; }
+          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions); }
         }
-        const netOnSite = Math.max(0, delivered - collected);
         return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
