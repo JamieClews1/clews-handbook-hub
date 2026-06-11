@@ -18,6 +18,7 @@ import { LoadReportCards, LoadReportCardData } from "@/components/customer-repor
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
+import { computeThresholdReductions } from "@/lib/rebate-threshold";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
 import { RebateReportLockControls } from "@/components/customer-reporting/RebateReportLockControls";
@@ -320,7 +321,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       
       const { data: loadReports } = await supabase
         .from("load_reports")
-        .select("id, report_date, status, total_pallets, no_pallets_on_load, wet_charge_percent, operator_name, vehicle_reg, total_weight_kg, notes")
+        .select("id, report_date, status, total_pallets, no_pallets_on_load, wet_charge_percent, rebate_threshold_tonnes, operator_name, vehicle_reg, total_weight_kg, notes")
         .eq("site_id", selectedSiteId)
         .gte("report_date", rangeStart)
         .lte("report_date", rangeEnd)
@@ -393,7 +394,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
           .from("load_line_items")
-          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied")
+          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied")
           .in("load_report_id", loadReportIds);
         
         // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
