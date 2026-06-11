@@ -413,6 +413,7 @@ const LoadReportsPage = () => {
       display_order: wt.display_order,
       pallet_weight_kg: defaultPalletWeight,
       wet_charge_applied: false,
+      rebate_threshold_applied: false,
     }));
     setLineItems(items);
   };
@@ -427,6 +428,7 @@ const LoadReportsPage = () => {
     setNoPalletsOnLoad(false);
     setExcludeFromRebate(false);
     setWetChargePercent(0);
+    setRebateThresholdTonnes(0);
     setReportDate(getTodayLoadReportDate());
     
     // Reset Staci state
@@ -460,6 +462,7 @@ const LoadReportsPage = () => {
         display_order: wt.display_order,
         pallet_weight_kg: defaultPalletWeight,
         wet_charge_applied: false,
+        rebate_threshold_applied: false,
       }));
       setLineItems(items);
     } else {
@@ -497,6 +500,7 @@ const LoadReportsPage = () => {
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
+      setRebateThresholdTonnes(Number((report as any).rebate_threshold_tonnes) || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       // Load Staci extra fields
@@ -558,6 +562,7 @@ const LoadReportsPage = () => {
             display_order: item.display_order,
             pallet_weight_kg: defaultPalletWeight,
             wet_charge_applied: (item as any).wet_charge_applied || false,
+            rebate_threshold_applied: (item as any).rebate_threshold_applied || false,
           }))
         );
       } else if (staciEntries.length === 0) {
@@ -603,6 +608,7 @@ const LoadReportsPage = () => {
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
+      setRebateThresholdTonnes(Number((report as any).rebate_threshold_tonnes) || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       // Load Staci extra fields
@@ -664,6 +670,7 @@ const LoadReportsPage = () => {
             display_order: item.display_order,
             pallet_weight_kg: defaultPalletWeight,
             wet_charge_applied: (item as any).wet_charge_applied || false,
+            rebate_threshold_applied: (item as any).rebate_threshold_applied || false,
           }))
         );
       } else if (staciEntries.length === 0) {
