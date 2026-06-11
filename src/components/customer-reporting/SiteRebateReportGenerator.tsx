@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LoadReportCards, LoadReportCardData } from "./LoadReportCards";
 import { SkipRoroRebateTab } from "./SkipRoroRebateTab";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
+import { computeThresholdReductions } from "@/lib/rebate-threshold";
 import { DateRange } from "react-day-picker";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
