@@ -72,6 +72,8 @@ type PosCounts = {
   tipReturn: number;
   lastKeepDate: string | null;      // last deliver/exchange/tip-return (rental clock)
   lastCollectionDate: string | null;
+  ewc: string | null;               // EWC code identifying this physical position
+  wasteTypes: Set<string>;          // waste stream(s) for this position
 };
 
 function positionOnSite(p: PosCounts): number {
