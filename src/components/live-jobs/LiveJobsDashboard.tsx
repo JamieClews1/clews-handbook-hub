@@ -391,26 +391,31 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           } else {
             const rowsBefore = rows.length;
             for (const [ctName, ctCounts] of breakdownEntries) {
-              const ctLast = ctCounts.lastDeliveryOrExchangeDate;
-              const ctCleared = ctCounts.lastCollectionDate && ctLast && ctCounts.lastCollectionDate >= ctLast;
-              // Count each distinct on-site position (EWC/waste stream) for this type.
-              const onSiteForType = typeOnSite(ctCounts.positions);
-              if (onSiteForType <= 0 && breakdownEntries.length > 1) continue; // skip cleared container types
-              const ctDays = ctLast ? differenceInDays(new Date(), new Date(ctLast)) : null;
-              const ctOverRental = s.category !== "artic" && ctDays !== null && ctDays > settings.rental_free_days && onSiteForType > 0 && !ctCleared;
-              rows.push({
-                Customer: s.customer,
-                Site: s.site,
-                "Container Type": ctName,
-                "Waste Type": Array.from(ctCounts.wasteTypes).join(", "),
-                "Net On-Site": onSiteForType,
-                Delivered: ctCounts.delivered,
-                Exchanged: ctCounts.exchanged,
-                Collected: ctCounts.collected,
-                "Days Since Activity": ctDays ?? "",
-                "Last Activity": ctLast ? format(new Date(ctLast), "dd MMM yyyy") : "",
-                "Over Rental": ctOverRental ? "Yes" : "No",
-              });
+              // Emit one row per distinct physical position (EWC / waste stream)
+              // so multiple simultaneous bins of the same container type are not
+              // merged into a single line.
+              for (const pos of Object.values(ctCounts.positions)) {
+                const posNet = positionOnSite(pos);
+                if (posNet <= 0) continue;
+                const posLast = pos.lastKeepDate;
+                const posCleared = pos.lastCollectionDate && posLast && pos.lastCollectionDate >= posLast;
+                const posDays = posLast ? differenceInDays(new Date(), new Date(posLast)) : null;
+                const posOverRental = posDays !== null && posDays > settings.rental_free_days && posNet > 0 && !posCleared;
+                rows.push({
+                  Customer: s.customer,
+                  Site: s.site,
+                  "Container Type": ctName,
+                  "EWC": pos.ewc ?? "",
+                  "Waste Type": Array.from(pos.wasteTypes).join(", "),
+                  "Net On-Site": posNet,
+                  Delivered: pos.delivered,
+                  Exchanged: pos.exchanged,
+                  Collected: pos.collected,
+                  "Days Since Activity": posDays ?? "",
+                  "Last Activity": posLast ? format(new Date(posLast), "dd MMM yyyy") : "",
+                  "Over Rental": posOverRental ? "Yes" : "No",
+                });
+              }
             }
             // Guarantee every live site appears, even if no single container type
             // resolved to a positive on-site count (matches the dashboard cards).
@@ -419,6 +424,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 Customer: s.customer,
                 Site: s.site,
                 "Container Type": s.containerTypes.join(", ") || "Unknown",
+                "EWC": "",
                 "Waste Type": s.wasteTypes.join(", "),
                 "Net On-Site": s.netOnSite,
                 Delivered: s.delivered,
