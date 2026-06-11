@@ -195,9 +195,10 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         // simultaneous containers of the same type aren't collapsed into one count.
         const posKey = (job.ewc && job.ewc.trim()) || "__none__";
         if (!ctb.positions[posKey]) {
-          ctb.positions[posKey] = { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null };
+          ctb.positions[posKey] = { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null, ewc: (job.ewc && job.ewc.trim()) || null, wasteTypes: new Set() };
         }
         const pos = ctb.positions[posKey];
+        if (job.waste_description) pos.wasteTypes.add(job.waste_description);
         if (isDelivery(job.movement_type)) pos.delivered++;
         if (isCollection(job.movement_type)) pos.collected++;
         if (isExchange(job.movement_type)) pos.exchanged++;
