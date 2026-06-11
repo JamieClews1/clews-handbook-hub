@@ -700,6 +700,9 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                     )}
                   </div>
                 </TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                  {s.wasteTypes && s.wasteTypes.length > 0 ? s.wasteTypes.join(", ") : "—"}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
