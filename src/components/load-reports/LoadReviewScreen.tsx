@@ -28,6 +28,7 @@ interface LoadReviewScreenProps {
   weighbridgeLoading?: boolean;
   noPalletsOnLoad?: boolean;
   wetChargePercent?: number;
+  rebateThresholdTonnes?: number;
   reportDate: string;
   lineItems: LineItem[];
   onAcceptReconciled?: (items: LineItem[]) => void;
@@ -52,6 +53,7 @@ export const LoadReviewScreen = ({
   weighbridgeLoading,
   noPalletsOnLoad = false,
   wetChargePercent = 0,
+  rebateThresholdTonnes = 0,
   reportDate,
   lineItems,
   onAcceptReconciled,
