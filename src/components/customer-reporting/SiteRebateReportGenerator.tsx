@@ -349,7 +349,7 @@ export function SiteRebateReportGenerator() {
           // Fetch load reports for this site in the selected date range
           const { data: loadReports } = await supabase
             .from("load_reports")
-            .select("id, report_date, status, total_pallets, no_pallets_on_load, wet_charge_percent, operator_name, vehicle_reg, total_weight_kg, notes")
+            .select("id, report_date, status, total_pallets, no_pallets_on_load, wet_charge_percent, rebate_threshold_tonnes, operator_name, vehicle_reg, total_weight_kg, notes")
             .eq("site_id", selectedSiteId)
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
