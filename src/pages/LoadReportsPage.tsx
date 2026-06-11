@@ -747,6 +747,7 @@ const LoadReportsPage = () => {
           totalWeightKg: item.pallet_count * item.avg_weight_kg,
           displayOrder: item.display_order,
           wetChargeApplied: item.wet_charge_applied || false,
+          rebateThresholdApplied: item.rebate_threshold_applied || false,
         }));
 
         await saveOfflineReport({
@@ -764,6 +765,7 @@ const LoadReportsPage = () => {
           noPalletsOnLoad: noPalletsOnLoad,
           excludeFromRebate: excludeFromRebate,
           wetChargePercent: wetChargePercent,
+          rebateThresholdTonnes: rebateThresholdTonnes,
           lineItems: offlineLineItems,
         });
       } else {
