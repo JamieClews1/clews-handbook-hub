@@ -72,6 +72,7 @@ const LoadReportsPage = () => {
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
   const [excludeFromRebate, setExcludeFromRebate] = useState(false);
   const [wetChargePercent, setWetChargePercent] = useState(0);
+  const [rebateThresholdTonnes, setRebateThresholdTonnes] = useState(0);
 
   // Staci-specific state
   const [staciPalletEntries, setStaciPalletEntries] = useState<StaciPalletEntry[]>([]);
@@ -412,6 +413,7 @@ const LoadReportsPage = () => {
       display_order: wt.display_order,
       pallet_weight_kg: defaultPalletWeight,
       wet_charge_applied: false,
+      rebate_threshold_applied: false,
     }));
     setLineItems(items);
   };
@@ -426,6 +428,7 @@ const LoadReportsPage = () => {
     setNoPalletsOnLoad(false);
     setExcludeFromRebate(false);
     setWetChargePercent(0);
+    setRebateThresholdTonnes(0);
     setReportDate(getTodayLoadReportDate());
     
     // Reset Staci state
@@ -459,6 +462,7 @@ const LoadReportsPage = () => {
         display_order: wt.display_order,
         pallet_weight_kg: defaultPalletWeight,
         wet_charge_applied: false,
+        rebate_threshold_applied: false,
       }));
       setLineItems(items);
     } else {
@@ -496,6 +500,7 @@ const LoadReportsPage = () => {
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
+      setRebateThresholdTonnes(Number((report as any).rebate_threshold_tonnes) || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       // Load Staci extra fields
@@ -557,6 +562,7 @@ const LoadReportsPage = () => {
             display_order: item.display_order,
             pallet_weight_kg: defaultPalletWeight,
             wet_charge_applied: (item as any).wet_charge_applied || false,
+            rebate_threshold_applied: (item as any).rebate_threshold_applied || false,
           }))
         );
       } else if (staciEntries.length === 0) {
@@ -602,6 +608,7 @@ const LoadReportsPage = () => {
       setNoPalletsOnLoad((report as any).no_pallets_on_load || false);
       setExcludeFromRebate(report.exclude_from_rebate || false);
       setWetChargePercent((report as any).wet_charge_percent || 0);
+      setRebateThresholdTonnes(Number((report as any).rebate_threshold_tonnes) || 0);
       fetchWeighbridgeWeightKg(report.notes || "");
 
       // Load Staci extra fields
@@ -663,6 +670,7 @@ const LoadReportsPage = () => {
             display_order: item.display_order,
             pallet_weight_kg: defaultPalletWeight,
             wet_charge_applied: (item as any).wet_charge_applied || false,
+            rebate_threshold_applied: (item as any).rebate_threshold_applied || false,
           }))
         );
       } else if (staciEntries.length === 0) {
@@ -739,6 +747,7 @@ const LoadReportsPage = () => {
           totalWeightKg: item.pallet_count * item.avg_weight_kg,
           displayOrder: item.display_order,
           wetChargeApplied: item.wet_charge_applied || false,
+          rebateThresholdApplied: item.rebate_threshold_applied || false,
         }));
 
         await saveOfflineReport({
@@ -756,6 +765,7 @@ const LoadReportsPage = () => {
           noPalletsOnLoad: noPalletsOnLoad,
           excludeFromRebate: excludeFromRebate,
           wetChargePercent: wetChargePercent,
+          rebateThresholdTonnes: rebateThresholdTonnes,
           lineItems: offlineLineItems,
         });
       } else {
@@ -1173,6 +1183,8 @@ const LoadReportsPage = () => {
                 onPalletsOutChange={setPalletsOut}
                 wetChargePercent={wetChargePercent}
                 onWetChargePercentChange={setWetChargePercent}
+                rebateThresholdTonnes={rebateThresholdTonnes}
+                onRebateThresholdTonnesChange={setRebateThresholdTonnes}
                 weighbridgeWeightKg={
                   evriOverrideTarget !== null ? evriOverrideTarget : weighbridgeWeightKg
                 }
@@ -1248,6 +1260,7 @@ const LoadReportsPage = () => {
                 weighbridgeLoading={weighbridgeLoading}
                 noPalletsOnLoad={noPalletsOnLoad}
                 wetChargePercent={wetChargePercent}
+                rebateThresholdTonnes={rebateThresholdTonnes}
                 reportDate={reportDate}
                 lineItems={lineItems}
                 onAcceptReconciled={(items) => {

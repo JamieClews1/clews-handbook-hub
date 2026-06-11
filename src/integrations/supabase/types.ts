@@ -2106,6 +2106,7 @@ export type Database = {
           id: string
           load_report_id: string
           pallet_count: number
+          rebate_threshold_applied: boolean
           total_weight_kg: number
           updated_at: string
           waste_type: string
@@ -2118,6 +2119,7 @@ export type Database = {
           id?: string
           load_report_id: string
           pallet_count?: number
+          rebate_threshold_applied?: boolean
           total_weight_kg?: number
           updated_at?: string
           waste_type: string
@@ -2130,6 +2132,7 @@ export type Database = {
           id?: string
           load_report_id?: string
           pallet_count?: number
+          rebate_threshold_applied?: boolean
           total_weight_kg?: number
           updated_at?: string
           waste_type?: string
@@ -2192,6 +2195,7 @@ export type Database = {
           papers_dolav_count: number | null
           papers_dolav_on_pallets: boolean
           papers_dolav_weight_kg: number | null
+          rebate_threshold_tonnes: number
           report_date: string
           scrap_metal_loose_count: number | null
           scrap_metal_loose_on_pallets: boolean
@@ -2227,6 +2231,7 @@ export type Database = {
           papers_dolav_count?: number | null
           papers_dolav_on_pallets?: boolean
           papers_dolav_weight_kg?: number | null
+          rebate_threshold_tonnes?: number
           report_date?: string
           scrap_metal_loose_count?: number | null
           scrap_metal_loose_on_pallets?: boolean
@@ -2262,6 +2267,7 @@ export type Database = {
           papers_dolav_count?: number | null
           papers_dolav_on_pallets?: boolean
           papers_dolav_weight_kg?: number | null
+          rebate_threshold_tonnes?: number
           report_date?: string
           scrap_metal_loose_count?: number | null
           scrap_metal_loose_on_pallets?: boolean

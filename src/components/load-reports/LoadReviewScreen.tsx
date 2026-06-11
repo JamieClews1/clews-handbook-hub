@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Save, Send, Truck } from "lucide-react";
+import { ArrowLeft, Save, Send, Truck, Scale } from "lucide-react";
 import { LineItem } from "./TallyScreen";
 import { Droplets } from "lucide-react";
 import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
@@ -28,6 +28,7 @@ interface LoadReviewScreenProps {
   weighbridgeLoading?: boolean;
   noPalletsOnLoad?: boolean;
   wetChargePercent?: number;
+  rebateThresholdTonnes?: number;
   reportDate: string;
   lineItems: LineItem[];
   onAcceptReconciled?: (items: LineItem[]) => void;
@@ -52,6 +53,7 @@ export const LoadReviewScreen = ({
   weighbridgeLoading,
   noPalletsOnLoad = false,
   wetChargePercent = 0,
+  rebateThresholdTonnes = 0,
   reportDate,
   lineItems,
   onAcceptReconciled,
@@ -274,6 +276,35 @@ export const LoadReviewScreen = ({
                   -{wetChargePercent}%
                 </div>
                 <div className="text-xs text-muted-foreground">Rebate Discount</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Weight Rebate Threshold Summary */}
+      {rebateThresholdTonnes > 0 && (
+        <Card className="border-2 border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                <Scale className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-foreground">Weight Rebate Threshold</h4>
+                <p className="text-sm text-muted-foreground">
+                  Rebate paid after {rebateThresholdTonnes}t on: {' '}
+                  {lineItems
+                    .filter((item) => item.rebate_threshold_applied && item.pallet_count > 0)
+                    .map((item) => item.waste_type)
+                    .join(', ') || 'None selected'}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                  -{rebateThresholdTonnes}t
+                </div>
+                <div className="text-xs text-muted-foreground">No rebate</div>
               </div>
             </div>
           </CardContent>

@@ -9,6 +9,7 @@ import { ChevronDown, ChevronRight, Calendar, Truck, Package, AlertTriangle, Ext
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { computeThresholdReductions } from "@/lib/rebate-threshold";
 
 export type LoadReportCardData = {
   id: string;
@@ -20,11 +21,13 @@ export type LoadReportCardData = {
   notes: string | null;
   no_pallets_on_load?: boolean | null;
   wet_charge_percent?: number | null;
+  rebate_threshold_tonnes?: number | null;
   line_items: {
     waste_type: string;
     pallet_count: number;
     total_weight_kg: number;
     wet_charge_applied?: boolean;
+    rebate_threshold_applied?: boolean;
   }[];
   calculated_rebate: number;
   weighbridge_weight_kg?: number | null;
@@ -161,26 +164,40 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
     return palletWeightTonnes * effectivePalletChargeRate;
   };
 
+  // Per-line weight (tonnes) removed from rebate by the load's weight rebate threshold
+  const getThresholdReductionsTonnes = (report: LoadReportCardData) => {
+    const items = filterLineItems(report.line_items);
+    const lines = items.map((item, idx) => ({
+      id: String(idx),
+      netTonnes: calcLineActualWeightKg(report, item) / 1000,
+      thresholdApplied: !!item.rebate_threshold_applied,
+    }));
+    return computeThresholdReductions(lines, Number(report.rebate_threshold_tonnes) || 0);
+  };
+
   // Calculate rebate for a single report (rebate on actual recyclable/waste weight + pallet charge)
-  // Applies wet charge discount to affected line items
+  // Applies wet charge discount and weight rebate threshold to affected line items
   const calculateReportRebate = (report: LoadReportCardData) => {
     if (isBelowThreshold(report)) return 0;
 
     const wetChargePercent = report.wet_charge_percent ?? 0;
-    
+    const reductions = getThresholdReductionsTonnes(report);
+
     let rebate = 0;
-    for (const item of filterLineItems(report.line_items)) {
+    filterLineItems(report.line_items).forEach((item, idx) => {
       const rate = rateMap[item.waste_type] ?? 0;
       const actualKg = calcLineActualWeightKg(report, item);
-      let lineRebate = (actualKg / 1000) * rate;
-      
+      const reductionT = reductions[String(idx)] ?? 0;
+      const rebatableTonnes = Math.max(0, actualKg / 1000 - reductionT);
+      let lineRebate = rebatableTonnes * rate;
+
       // Apply wet charge discount if this line item is affected
       if (item.wet_charge_applied && wetChargePercent > 0) {
         lineRebate = lineRebate * (1 - wetChargePercent / 100);
       }
-      
+
       rebate += lineRebate;
-    }
+    });
 
     // Add pallet charge (usually negative)
     rebate += calculatePalletChargeValue(report);
@@ -189,11 +206,12 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
   };
 
   // Calculate totals for a report (gross/pallet/actual + value including pallet charge)
-  // Applies wet charge discount to affected line items
+  // Applies wet charge discount and weight rebate threshold to affected line items
   const calculateTotals = (report: LoadReportCardData) => {
     const filteredItems = filterLineItems(report.line_items);
     const belowThreshold = isBelowThreshold(report);
     const wetChargePercent = report.wet_charge_percent ?? 0;
+    const reductions = getThresholdReductionsTonnes(report);
 
     let totalPallets = 0;
     let totalGrossKg = 0;
@@ -201,7 +219,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
     let totalActualKg = 0;
     let totalValue = 0;
 
-    for (const item of filteredItems) {
+    filteredItems.forEach((item, idx) => {
       const rate = rateMap[item.waste_type] ?? 0;
       const grossKg = Number(item.total_weight_kg) || 0;
       const palletKg = calcLinePalletWeightKg(report, item);
@@ -213,14 +231,16 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
       totalActualKg += actualKg;
 
       if (!belowThreshold) {
-        let lineValue = (actualKg / 1000) * rate;
+        const reductionT = reductions[String(idx)] ?? 0;
+        const rebatableTonnes = Math.max(0, actualKg / 1000 - reductionT);
+        let lineValue = rebatableTonnes * rate;
         // Apply wet charge discount if this line item is affected
         if (item.wet_charge_applied && wetChargePercent > 0) {
           lineValue = lineValue * (1 - wetChargePercent / 100);
         }
         totalValue += lineValue;
       }
-    }
+    });
 
     // Add pallet charge to total value
     if (!belowThreshold) {
@@ -248,6 +268,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
         const isOpen = openCards[report.id] ?? false;
         const reportRebate = calculateReportRebate(report);
         const belowThreshold = isBelowThreshold(report);
+        const rowReductions = getThresholdReductionsTonnes(report);
         const grossWeight = calculateGrossWeight(report);
         const palletWeight = calculatePalletWeight(report);
         const lineItemPallets = calculateLineItemPallets(report);
@@ -436,7 +457,10 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                           const actualKg = Math.max(0, grossKg - palletKg);
                           const wetChargePercent = report.wet_charge_percent ?? 0;
                           const hasWetCharge = item.wet_charge_applied && wetChargePercent > 0;
-                          let value = belowThreshold ? 0 : (actualKg / 1000) * rate;
+                          const reductionT = rowReductions[String(idx)] ?? 0;
+                          const hasThreshold = reductionT > 0;
+                          const rebatableKg = Math.max(0, actualKg - reductionT * 1000);
+                          let value = belowThreshold ? 0 : (rebatableKg / 1000) * rate;
                           if (!belowThreshold && hasWetCharge) {
                             value = value * (1 - wetChargePercent / 100);
                           }
@@ -448,6 +472,11 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                                 {hasWetCharge && (
                                   <Badge variant="outline" className="ml-2 text-[10px] px-1 py-0 border-blue-400 text-blue-600">
                                     -{wetChargePercent}%
+                                  </Badge>
+                                )}
+                                {hasThreshold && !belowThreshold && (
+                                  <Badge variant="outline" className="ml-2 text-[10px] px-1 py-0 border-emerald-400 text-emerald-600">
+                                    -{reductionT.toFixed(2)}t
                                   </Badge>
                                 )}
                               </TableCell>
