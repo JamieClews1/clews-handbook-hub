@@ -18,6 +18,7 @@ export interface OfflineLoadReport {
   noPalletsOnLoad?: boolean;
   excludeFromRebate?: boolean;
   wetChargePercent?: number;
+  rebateThresholdTonnes?: number;
   lineItems: OfflineLineItem[];
   createdAt: string;
   updatedAt: string;
@@ -30,6 +31,7 @@ export interface OfflineLineItem {
   totalWeightKg: number;
   displayOrder: number;
   wetChargeApplied?: boolean;
+  rebateThresholdApplied?: boolean;
 }
 
 interface LoadReportsDB extends DBSchema {
