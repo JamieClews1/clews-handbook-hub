@@ -255,12 +255,10 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         let netOnSite: number;
         if (s.category === "artic") {
           netOnSite = totalMovements; // For artics, this represents visit count
-        } else if (collectionClearedIt && netFromDeliveries <= 0) {
-          // Last action was a collection and all deliveries are accounted for — site is clear
-          netOnSite = 0;
         } else {
-          // If there are exchanges and net >= 0, at least 1 container is on-site
-          netOnSite = Math.max(netFromDeliveries, netFromDeliveries >= 0 && s.exchanged > 0 ? Math.max(1, netFromDeliveries) : 0);
+          // Count each distinct on-site position (EWC/waste stream) across all
+          // container types so simultaneous containers aren't collapsed into one.
+          netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
