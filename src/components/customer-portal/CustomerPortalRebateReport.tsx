@@ -386,6 +386,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       let totalPalletWeightTonnes = 0;
       const loadReportsWithItems: LoadReportCardData[] = [];
       const wetChargeDiscounts: Record<string, { affectedWeight: number; discountPercent: number }[]> = {};
+      const thresholdReductionsByMaterial: Record<string, number> = {};
       const wetChargePercentByReportId: Record<string, number> = {};
       for (const r of loadReports ?? []) {
         wetChargePercentByReportId[r.id] = (r as any).wet_charge_percent ?? 0;
