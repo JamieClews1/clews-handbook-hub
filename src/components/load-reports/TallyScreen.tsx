@@ -15,6 +15,7 @@ export interface LineItem {
   display_order: number;
   pallet_weight_kg: number;
   wet_charge_applied?: boolean;
+  rebate_threshold_applied?: boolean;
 }
 
 interface TallyScreenProps {
@@ -27,6 +28,8 @@ interface TallyScreenProps {
   onPalletsOutChange?: (count: number) => void;
   wetChargePercent?: number;
   onWetChargePercentChange?: (percent: number) => void;
+  rebateThresholdTonnes?: number;
+  onRebateThresholdTonnesChange?: (tonnes: number) => void;
   weighbridgeWeightKg?: number | null;
 }
 
@@ -40,6 +43,8 @@ export const TallyScreen = ({
   onPalletsOutChange,
   wetChargePercent = 0,
   onWetChargePercentChange,
+  rebateThresholdTonnes = 0,
+  onRebateThresholdTonnesChange,
   weighbridgeWeightKg,
 }: TallyScreenProps) => {
   const totalPallets = lineItems.reduce((sum, item) => sum + item.pallet_count, 0);
