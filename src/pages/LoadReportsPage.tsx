@@ -1183,6 +1183,8 @@ const LoadReportsPage = () => {
                 onPalletsOutChange={setPalletsOut}
                 wetChargePercent={wetChargePercent}
                 onWetChargePercentChange={setWetChargePercent}
+                rebateThresholdTonnes={rebateThresholdTonnes}
+                onRebateThresholdTonnesChange={setRebateThresholdTonnes}
                 weighbridgeWeightKg={
                   evriOverrideTarget !== null ? evriOverrideTarget : weighbridgeWeightKg
                 }
@@ -1258,6 +1260,7 @@ const LoadReportsPage = () => {
                 weighbridgeLoading={weighbridgeLoading}
                 noPalletsOnLoad={noPalletsOnLoad}
                 wetChargePercent={wetChargePercent}
+                rebateThresholdTonnes={rebateThresholdTonnes}
                 reportDate={reportDate}
                 lineItems={lineItems}
                 onAcceptReconciled={(items) => {
