@@ -9,6 +9,7 @@ import { ChevronDown, ChevronRight, Calendar, Truck, Package, AlertTriangle, Ext
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { computeThresholdReductions } from "@/lib/rebate-threshold";
 
 export type LoadReportCardData = {
   id: string;
@@ -20,11 +21,13 @@ export type LoadReportCardData = {
   notes: string | null;
   no_pallets_on_load?: boolean | null;
   wet_charge_percent?: number | null;
+  rebate_threshold_tonnes?: number | null;
   line_items: {
     waste_type: string;
     pallet_count: number;
     total_weight_kg: number;
     wet_charge_applied?: boolean;
+    rebate_threshold_applied?: boolean;
   }[];
   calculated_rebate: number;
   weighbridge_weight_kg?: number | null;
