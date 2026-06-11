@@ -457,7 +457,10 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                           const actualKg = Math.max(0, grossKg - palletKg);
                           const wetChargePercent = report.wet_charge_percent ?? 0;
                           const hasWetCharge = item.wet_charge_applied && wetChargePercent > 0;
-                          let value = belowThreshold ? 0 : (actualKg / 1000) * rate;
+                          const reductionT = rowReductions[String(idx)] ?? 0;
+                          const hasThreshold = reductionT > 0;
+                          const rebatableKg = Math.max(0, actualKg - reductionT * 1000);
+                          let value = belowThreshold ? 0 : (rebatableKg / 1000) * rate;
                           if (!belowThreshold && hasWetCharge) {
                             value = value * (1 - wetChargePercent / 100);
                           }
