@@ -23,6 +23,7 @@ type Job = {
   movement_type: string | null;
   waste_description: string | null;
   vehicle_registration: string | null;
+  ewc: string | null;
 };
 
 type ContainerCategory = "skip" | "roro" | "artic";
