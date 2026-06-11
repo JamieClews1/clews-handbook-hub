@@ -96,7 +96,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null }> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string> }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -125,6 +125,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           lastDeliveryOrExchangeDate: null,
           lastCollectionDate: null,
           containerTypes: new Set(),
+          wasteTypes: new Set(),
           containerTypeBreakdown: {},
         };
       }
@@ -139,12 +140,13 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (job.container_type) {
         siteMap[key].containerTypes.add(job.container_type);
         if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null };
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null, wasteTypes: new Set() };
         }
         const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
         if (isDelivery(job.movement_type)) ctb.delivered++;
         if (isCollection(job.movement_type)) ctb.collected++;
         if (isExchange(job.movement_type)) ctb.exchanged++;
+        if (job.waste_description) ctb.wasteTypes.add(job.waste_description);
         if (job.job_date && (isDelivery(job.movement_type) || isExchange(job.movement_type))) {
           if (!ctb.lastDeliveryOrExchangeDate || job.job_date > ctb.lastDeliveryOrExchangeDate) {
             ctb.lastDeliveryOrExchangeDate = job.job_date;
@@ -156,6 +158,9 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           }
         }
       }
+
+      if (job.waste_description) siteMap[key].wasteTypes.add(job.waste_description);
+
 
       if (isDelivery(job.movement_type)) siteMap[key].delivered++;
       if (isCollection(job.movement_type)) siteMap[key].collected++;
@@ -210,7 +215,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         }
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
         const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
-        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes) };
+        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
@@ -313,6 +318,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
             Customer: s.customer,
             Site: s.site,
             "Container Type": s.containerTypes.join(", "),
+            "Waste Type": s.wasteTypes.join(", "),
             Visits: s.netOnSite,
             Delivered: s.delivered,
             Exchanged: s.exchanged,
@@ -328,6 +334,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
               Customer: s.customer,
               Site: s.site,
               "Container Type": "Unknown",
+              "Waste Type": s.wasteTypes.join(", "),
               "Net On-Site": s.netOnSite,
               Delivered: s.delivered,
               Exchanged: s.exchanged,
@@ -355,6 +362,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 Customer: s.customer,
                 Site: s.site,
                 "Container Type": ctName,
+                "Waste Type": Array.from(ctCounts.wasteTypes).join(", "),
                 "Net On-Site": onSiteForType,
                 Delivered: ctCounts.delivered,
                 Exchanged: ctCounts.exchanged,
@@ -371,6 +379,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 Customer: s.customer,
                 Site: s.site,
                 "Container Type": s.containerTypes.join(", ") || "Unknown",
+                "Waste Type": s.wasteTypes.join(", "),
                 "Net On-Site": s.netOnSite,
                 Delivered: s.delivered,
                 Exchanged: s.exchanged,
@@ -538,7 +547,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }>; label: string }) {
+function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number }> }>; label: string }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -667,6 +676,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
               <SortHeader field="exchanged" className="text-center">Exchanged</SortHeader>
               <SortHeader field="collected" className="text-center">Collected</SortHeader>
               <SortHeader field="containerType">Container Types</SortHeader>
+              <TableHead>Waste Type</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -689,6 +699,9 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                       <Badge variant="outline" className="text-xs">+{s.containerTypes.length - 3}</Badge>
                     )}
                   </div>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                  {s.wasteTypes && s.wasteTypes.length > 0 ? s.wasteTypes.join(", ") : "—"}
                 </TableCell>
               </TableRow>
             ))}
