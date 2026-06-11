@@ -302,6 +302,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       { key: "artic", label: "Waste Trucks" },
     ];
 
+    const allRows: Record<string, string | number>[] = [];
+
     for (const { key, label } of categories) {
       const filtered = liveSites.filter(s => s.category === key);
       const rows: Record<string, string | number>[] = [];
@@ -381,9 +383,24 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           }
         }
       }
+      // Add to the combined sheet with a Category column (Visits maps to Net On-Site)
+      for (const r of rows) {
+        const { Visits, ...rest } = r as Record<string, string | number>;
+        allRows.push({
+          Category: label,
+          ...rest,
+          ...(Visits !== undefined ? { "Net On-Site": Visits } : {}),
+        });
+      }
       const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{}]);
       XLSX.utils.book_append_sheet(wb, ws, label);
     }
+
+    // Combined "All Live Containers" sheet as the first tab so nothing looks missing
+    const allWs = XLSX.utils.json_to_sheet(allRows.length > 0 ? allRows : [{}]);
+    XLSX.utils.book_append_sheet(wb, allWs, "All Live Containers");
+    // Move the combined sheet to the front
+    wb.SheetNames = ["All Live Containers", ...wb.SheetNames.filter(n => n !== "All Live Containers")];
 
     XLSX.writeFile(wb, `Live_Jobs_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   }
