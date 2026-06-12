@@ -419,15 +419,21 @@ export function CustomerSetupAdmin() {
     if (s.length > 0) {
       const { data: sitePriceSetRows, error: sitePriceSetError } = await supabase
         .from("customer_site_price_sets")
-        .select("id,site_id,price_set_id,created_at,updated_at")
+        .select("id,site_id,price_set_id,effective_from,effective_to,created_at,updated_at")
         .in(
           "site_id",
           s.map((x) => x.id)
         );
       if (sitePriceSetError) throw sitePriceSetError;
+      const today = new Date().toISOString().slice(0, 10);
+      const grouped: Record<string, any[]> = {};
+      for (const row of (sitePriceSetRows ?? []) as any[]) {
+        (grouped[row.site_id] ??= []).push(row);
+      }
       const map: Record<string, SitePriceSet | undefined> = {};
-      for (const row of (sitePriceSetRows ?? []) as SitePriceSet[]) {
-        map[row.site_id] = row;
+      for (const [sid, list] of Object.entries(grouped)) {
+        // Use the assignment active today as the site's "current" price set.
+        map[sid] = (selectActivePriceSetLink(list, today) as SitePriceSet) ?? undefined;
       }
       setSitePriceSets(map);
     } else {
