@@ -19,6 +19,7 @@ import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
  import { useAuth } from "@/hooks/useAuth";
+ import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
  
  type Customer = {
    id: string;
