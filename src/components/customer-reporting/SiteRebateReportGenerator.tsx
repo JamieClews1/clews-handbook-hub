@@ -1059,106 +1059,13 @@ export function SiteRebateReportGenerator() {
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>Date Range</Label>
-          <div className="flex items-center gap-2 mb-2">
-            <Button
-              variant={dateMode === "month" ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setDateMode("month");
-                setDateRange({ from: startOfMonth(selectedMonth), to: endOfMonth(selectedMonth) });
-              }}
-            >
-              Month
-            </Button>
-            <Button
-              variant={dateMode === "custom" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setDateMode("custom")}
-            >
-              Custom Range
-            </Button>
-          </div>
-
-          {dateMode === "month" ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  const prev = subMonths(selectedMonth, 1);
-                  setSelectedMonth(prev);
-                  setDateRange({ from: startOfMonth(prev), to: endOfMonth(prev) });
-                }}
-              >
-                ‹
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedMonth, "MMMM yyyy")}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  const next = addMonths(selectedMonth, 1);
-                  setSelectedMonth(next);
-                  setDateRange({ from: startOfMonth(next), to: endOfMonth(next) });
-                }}
-              >
-                ›
-              </Button>
-            </div>
-          ) : (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange?.from && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "d MMM yyyy")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-[100] pointer-events-auto" align="start">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
-
-        <ReportingPeriodQuickSelect
+        <ReportDateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
           customerId={selectedCustomerId}
-          onSelect={(from, to) => {
-            setDateMode("custom");
-            setDateRange({ from, to });
-          }}
         />
       </div>
+
 
       <Button
         onClick={generateReport}
