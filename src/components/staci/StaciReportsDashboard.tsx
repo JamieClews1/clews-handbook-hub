@@ -389,13 +389,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
         : rate * count;
 
-      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
-      colourMap[r.colour].count += count;
-      colourMap[r.colour].weightKg += netWeight; // store NET weight for colour entries
-      colourMap[r.colour].cost += lineCost;
+      // Green pallets priced per tonne are tracked under a separate row so they
+      // don't merge with standard per-pallet green pallets in the breakdown.
+      const mapKey = isGreenPerTonne ? "green_per_tonne" : r.colour;
+      if (!colourMap[mapKey]) colourMap[mapKey] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
+      colourMap[mapKey].count += count;
+      colourMap[mapKey].weightKg += netWeight; // store NET weight for colour entries
+      colourMap[mapKey].cost += lineCost;
       if (isGreenPerTonne) {
-        colourMap[r.colour].perTonneRates.add(r.green_rate_per_tonne as number);
-        colourMap[r.colour].perTonneCount += count;
+        colourMap[mapKey].perTonneRates.add(r.green_rate_per_tonne as number);
+        colourMap[mapKey].perTonneCount += count;
       }
 
       totalPallets += count;
@@ -537,13 +540,21 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
     const colourData = [
       ["Colour", "Pallets", "Weight (kg)", "Rate", "Cost (£)"],
-      ...Object.entries(stats.colourMap).map(([colour, d]) => [
-        STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
-        d.count,
-        Math.round(d.weightKg),
-        `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
-        d.cost.toFixed(2),
-      ]),
+      ...Object.entries(stats.colourMap).map(([colour, d]) => {
+        const baseColour = colour === "green_per_tonne" ? "green" : colour;
+        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+        const label = colour === "green_per_tonne" ? "Green (per tonne)" : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
+        const rateText = d.perTonneCount > 0
+          ? (singleRate != null ? `${singleRate < 0 ? "-" : ""}£${Math.abs(singleRate).toFixed(2)}/t` : "mixed /t")
+          : `£${(dbPalletRates[baseColour] ?? STACI_PALLET_RATES[baseColour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`;
+        return [
+          label,
+          d.count,
+          Math.round(d.weightKg),
+          rateText,
+          d.cost.toFixed(2),
+        ];
+      }),
     ];
     const ws2 = XLSX.utils.aoa_to_sheet(colourData);
     XLSX.utils.book_append_sheet(wb, ws2, "Pallet Breakdown");
@@ -601,12 +612,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   }, [stats]);
 
   const colourBarData = useMemo(() => {
-    return Object.entries(stats.colourMap).map(([colour, d]) => ({
-      name: STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
-      pallets: d.count,
-      cost: +d.cost.toFixed(2),
-      fill: colour === "red" ? "hsl(0, 72%, 51%)" : colour === "yellow" ? "hsl(48, 96%, 53%)" : colour === "blue" ? "hsl(217, 91%, 60%)" : colour === "green" ? "hsl(142, 71%, 45%)" : "hsl(30, 60%, 45%)",
-    }));
+    return Object.entries(stats.colourMap).map(([colour, d]) => {
+      const baseColour = colour === "green_per_tonne" ? "green" : colour;
+      const name = colour === "green_per_tonne" ? "Green (per tonne)" : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
+      return {
+        name,
+        pallets: d.count,
+        cost: +d.cost.toFixed(2),
+        fill: baseColour === "red" ? "hsl(0, 72%, 51%)" : baseColour === "yellow" ? "hsl(48, 96%, 53%)" : baseColour === "blue" ? "hsl(217, 91%, 60%)" : baseColour === "green" ? "hsl(142, 71%, 45%)" : "hsl(30, 60%, 45%)",
+      };
+    });
   }, [stats]);
 
   // Compute KPI financial totals for use in both KPI cards and Monthly Report
@@ -803,12 +818,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       {Object.entries(stats.colourMap).map(([colour, d]) => {
                         const hasPerTonne = d.perTonneCount > 0;
                         const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
-                        const standardRate = dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour];
+                        const baseColour = colour === "green_per_tonne" ? "green" : colour;
+                        const standardRate = dbPalletRates[baseColour] ?? STACI_PALLET_RATES[baseColour as StaciPalletColour];
+                        const label = colour === "green_per_tonne"
+                          ? "Green (per tonne)"
+                          : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
                         return (
                           <tr key={colour} className="border-b border-border/50">
                             <td className="py-1.5 px-3 flex items-center gap-2">
-                              <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.bgColor)} />
-                              <span>{STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}</span>
+                              <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[baseColour as StaciPalletColour]?.bgColor)} />
+                              <span>{label}</span>
                               {hasPerTonne && (
                                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                                   per tonne
