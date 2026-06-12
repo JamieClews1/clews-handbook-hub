@@ -383,12 +383,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const netWeight = totalGrossWeight - (count * TARE_KG);
       const rate = dbPalletRates[r.colour] ?? STACI_PALLET_RATES[r.colour] ?? 0;
       const isWasteWood = r.colour === "waste_wood";
-      // Green pallets support a per-tonne cost override (applied on net weight) when configured
-      const isGreenPerTonne = r.colour === "green" && dbGreenRatePerTonne !== 0;
+      // Green pallets support a per-load per-tonne cost override (applied on net weight) when set on the load
+      const isGreenPerTonne = r.colour === "green" && r.green_rate_per_tonne != null && r.green_rate_per_tonne !== 0;
       const lineCost = isWasteWood
         ? (totalGrossWeight / 1000) * rate
         : isGreenPerTonne
-        ? (netWeight / 1000) * dbGreenRatePerTonne
+        ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
         : rate * count;
 
       if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
