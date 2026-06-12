@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
 
 // Available fields from data_hub_jobs for grouping
 const AVAILABLE_FIELDS = [
