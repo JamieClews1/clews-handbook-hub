@@ -53,6 +53,7 @@ interface PalletRow {
   report_date: string;
   site_name: string | null;
   customer_name: string | null;
+  green_rate_per_tonne: number | null;
 }
 
 interface StaciReportsDashboardProps {
