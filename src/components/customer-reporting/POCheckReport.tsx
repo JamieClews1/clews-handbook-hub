@@ -117,32 +117,18 @@ export const POCheckReport = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1">
-            <Label>Start Date</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-40"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>End Date</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-40"
-            />
-          </div>
-          <ReportingPeriodQuickSelect
-            allCustomers
-            label="Reporting Period"
-            onSelect={(from, to) => {
-              setStartDate(format(from, "yyyy-MM-dd"));
-              setEndDate(format(to, "yyyy-MM-dd"));
+          <ReportDateRangePicker
+            value={{
+              from: startDate ? new Date(startDate + "T00:00:00") : undefined,
+              to: endDate ? new Date(endDate + "T00:00:00") : undefined,
             }}
+            onChange={(range) => {
+              if (range?.from) setStartDate(format(range.from, "yyyy-MM-dd"));
+              if (range?.to) setEndDate(format(range.to, "yyyy-MM-dd"));
+            }}
+            allCustomers
           />
+
           <Button onClick={fetchPOChanges} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
             Check PO Changes
