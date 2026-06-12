@@ -224,8 +224,8 @@ export const StaciReviewScreen = ({
   // Reconciled preview summaries
   const reconciledSummaryData = useMemo(() => {
     if (!reconciledPreview) return null;
-    return buildSummaries(reconciledPreview, goodPalletCount);
-  }, [reconciledPreview, goodPalletCount]);
+    return buildSummaries(reconciledPreview, goodPalletCount, greenRatePerTonne, palletWeightKg);
+  }, [reconciledPreview, goodPalletCount, greenRatePerTonne, palletWeightKg]);
 
   // Total weight from bales/dolavs that must be subtracted from weighbridge target
   const baleDolavTotalKg =
