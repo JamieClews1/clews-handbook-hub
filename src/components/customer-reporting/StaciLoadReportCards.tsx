@@ -265,7 +265,12 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
 
     for (const [colour, data] of colourMap) {
       const rate = STACI_PALLET_RATES[colour];
-      const value = colour === "waste_wood" ? (data.weight / 1000) * rate : data.count * rate;
+      const isGreenOverride = colour === "green" && report.green_rate_per_tonne !== 0;
+      const value = colour === "waste_wood"
+        ? (data.weight / 1000) * rate
+        : isGreenOverride
+        ? ((data.weight - data.count * palletWeightKg) / 1000) * report.green_rate_per_tonne
+        : data.count * rate;
 
       summaries.push({
         colour,
