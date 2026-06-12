@@ -245,7 +245,7 @@ const LoadReportsPage = () => {
       }
     };
     fetchSiteRates();
-  }, [selectedCustomer, selectedSiteId]);
+  }, [selectedCustomer, selectedSiteId, reportDate]);
 
   const fetchSites = async () => {
     // Map customer type to load_report_type value
