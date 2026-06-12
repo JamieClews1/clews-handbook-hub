@@ -1,0 +1,1 @@
+ALTER TABLE public.load_reports ADD COLUMN IF NOT EXISTS staci_green_rate_per_tonne numeric;

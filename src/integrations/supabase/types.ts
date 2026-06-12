@@ -2201,6 +2201,7 @@ export type Database = {
           scrap_metal_loose_on_pallets: boolean
           scrap_metal_loose_weight_kg: number | null
           site_id: string | null
+          staci_green_rate_per_tonne: number | null
           status: string
           submitted_at: string | null
           total_pallets: number
@@ -2237,6 +2238,7 @@ export type Database = {
           scrap_metal_loose_on_pallets?: boolean
           scrap_metal_loose_weight_kg?: number | null
           site_id?: string | null
+          staci_green_rate_per_tonne?: number | null
           status?: string
           submitted_at?: string | null
           total_pallets?: number
@@ -2273,6 +2275,7 @@ export type Database = {
           scrap_metal_loose_on_pallets?: boolean
           scrap_metal_loose_weight_kg?: number | null
           site_id?: string | null
+          staci_green_rate_per_tonne?: number | null
           status?: string
           submitted_at?: string | null
           total_pallets?: number
