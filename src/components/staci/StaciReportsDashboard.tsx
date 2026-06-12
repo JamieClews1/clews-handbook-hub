@@ -89,6 +89,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
   const [dbGoodPalletRebate, setDbGoodPalletRebate] = useState<number>(STACI_PALLET_GOOD_REBATE);
   const [dbPalletWeightCharge, setDbPalletWeightCharge] = useState<number>(-47);
+  const [dbGreenRatePerTonne, setDbGreenRatePerTonne] = useState<number>(0);
   const [baleRates, setBaleRates] = useState<{ cardBalesRate: number; filmsRate: number; scrapMetalRate: number }>({ cardBalesRate: 0, filmsRate: 0, scrapMetalRate: 0 });
 
   useEffect(() => {
@@ -271,6 +272,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         }
         setDbGoodPalletRebate(chargeMap["good_pallet_rebate"] ?? STACI_PALLET_GOOD_REBATE);
         setDbPalletWeightCharge(chargeMap["pallet_weight_charge"] ?? -47);
+        setDbGreenRatePerTonne(chargeMap["green_rate_per_tonne"] ?? 0);
       }
 
       // Bale rates - use customer's site or fall back to searching by name
@@ -379,8 +381,12 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const netWeight = totalGrossWeight - (count * TARE_KG);
       const rate = dbPalletRates[r.colour] ?? STACI_PALLET_RATES[r.colour] ?? 0;
       const isWasteWood = r.colour === "waste_wood";
+      // Green pallets support a per-tonne cost override (applied on net weight) when configured
+      const isGreenPerTonne = r.colour === "green" && dbGreenRatePerTonne !== 0;
       const lineCost = isWasteWood
         ? (totalGrossWeight / 1000) * rate
+        : isGreenPerTonne
+        ? (netWeight / 1000) * dbGreenRatePerTonne
         : rate * count;
 
       if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
@@ -493,7 +499,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, scrapPallets,
       palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, wasteForEnergyKg, landfillKg, woodKg,
     };
-  }, [rows, dbPalletRates, dbGoodPalletRebate, balesDolavData]);
+  }, [rows, dbPalletRates, dbGoodPalletRebate, dbGreenRatePerTonne, balesDolavData]);
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
@@ -531,7 +537,9 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
         d.count,
         Math.round(d.weightKg),
-        `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
+        colour === "green" && dbGreenRatePerTonne !== 0
+          ? `£${dbGreenRatePerTonne.toFixed(2)}/t`
+          : `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
         d.cost.toFixed(2),
       ]),
     ];
@@ -798,7 +806,11 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </td>
                           <td className="py-1.5 px-3 text-right">{d.count}</td>
                           <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">£{(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">
+                            {colour === "green" && dbGreenRatePerTonne !== 0
+                              ? `£${dbGreenRatePerTonne.toFixed(2)}/t`
+                              : `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}`}
+                          </td>
                           <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
                         </tr>
                       ))}

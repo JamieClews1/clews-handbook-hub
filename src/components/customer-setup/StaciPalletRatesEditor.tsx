@@ -34,6 +34,7 @@ interface ChargeRow {
 const CHARGE_LABELS: Record<string, string> = {
   good_pallet_rebate: "Good Pallet Rebate (£/pallet)",
   pallet_weight_charge: "Pallet Weight Charge (£/tonne)",
+  green_rate_per_tonne: "Green Pallet Cost (£/tonne — override, 0 = use per-pallet rate)",
 };
 
 export function StaciPalletRatesEditor() {
