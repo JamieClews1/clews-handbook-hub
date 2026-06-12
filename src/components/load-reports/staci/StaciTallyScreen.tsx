@@ -60,6 +60,8 @@ interface StaciTallyScreenProps {
   scrapMetalLooseOnPallets: boolean;
   onScrapMetalLooseOnPalletsChange: (on: boolean) => void;
   palletWeightKg?: number;
+  greenRatePerTonne?: number;
+  onGreenRatePerTonneChange?: (rate: number) => void;
 }
 
 type MobileStep = "pallet-entry" | "bales-pallets";
