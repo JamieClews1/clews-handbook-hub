@@ -817,7 +817,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                     <tbody>
                       {Object.entries(stats.colourMap).map(([colour, d]) => {
                         const hasPerTonne = d.perTonneCount > 0;
-                        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+                        const singleRate = d.perTonneRates.size === 1 ? -Math.abs(Array.from(d.perTonneRates)[0]) : null;
                         const baseColour = colour === "green_per_tonne" ? "green" : colour;
                         const standardRate = dbPalletRates[baseColour] ?? STACI_PALLET_RATES[baseColour as StaciPalletColour];
                         const label = colour === "green_per_tonne"
