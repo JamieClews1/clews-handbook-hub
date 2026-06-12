@@ -46,10 +46,12 @@ async function fetchLogoBuffer(): Promise<ArrayBuffer | null> {
 }
 
 /**
- * Generates a polished, customer-facing rebate statement in Excel format,
- * branded with the Clews Recycling logo, and triggers a download.
+ * Builds the polished, customer-facing rebate statement workbook (ExcelJS),
+ * branded with the Clews Recycling logo. Returns the workbook + suggested filename.
  */
-export async function exportCustomerRebateReport(input: CustomerRebateExportInput) {
+export async function buildCustomerRebateWorkbook(
+  input: CustomerRebateExportInput
+): Promise<{ workbook: ExcelJS.Workbook; fileName: string }> {
   const {
     customerName,
     siteName,
@@ -269,7 +271,17 @@ export async function exportCustomerRebateReport(input: CustomerRebateExportInpu
   const safeSite = siteName.replace(/[^a-zA-Z0-9]/g, "_");
   const fileName = `Rebate_Statement_${safeCustomer}_${safeSite}_${format(new Date(), "yyyyMMdd")}.xlsx`;
 
-  const buffer = await wb.xlsx.writeBuffer();
+  return { workbook: wb, fileName };
+}
+
+/**
+ * Generates a polished, customer-facing rebate statement in Excel format,
+ * branded with the Clews Recycling logo, and triggers a download.
+ */
+export async function exportCustomerRebateReport(input: CustomerRebateExportInput) {
+  const { workbook, fileName } = await buildCustomerRebateWorkbook(input);
+
+  const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
@@ -281,4 +293,26 @@ export async function exportCustomerRebateReport(input: CustomerRebateExportInpu
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Generates the same customer-facing rebate statement and returns it as
+ * base64 (for use as an email attachment) along with the filename.
+ */
+export async function getCustomerRebateExportBase64(
+  input: CustomerRebateExportInput
+): Promise<{ base64: string; filename: string }> {
+  const { workbook, fileName } = await buildCustomerRebateWorkbook(input);
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  // Convert ArrayBuffer to base64 in browser
+  const bytes = new Uint8Array(buffer as ArrayBuffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+  }
+  const base64 = btoa(binary);
+
+  return { base64, filename: fileName };
 }
