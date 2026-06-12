@@ -443,6 +443,17 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  // Reload only the list of rebate sets (used after periods create dedicated sets).
+  const reloadPriceSets = async () => {
+    const { data, error } = await supabase
+      .from("rebate_price_sets")
+      .select("id,name,created_at,updated_at")
+      .order("name", { ascending: true });
+    if (!error) setPriceSets((data ?? []) as PriceSet[]);
+  };
+
+
+
   const loadMembershipDetails = async (membershipRows: Membership[], siteRows: CustomerSite[]) => {
     // profiles
     const userIds = Array.from(new Set(membershipRows.map((m) => m.user_id)));
