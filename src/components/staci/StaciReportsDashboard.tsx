@@ -806,12 +806,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       {Object.entries(stats.colourMap).map(([colour, d]) => {
                         const hasPerTonne = d.perTonneCount > 0;
                         const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
-                        const standardRate = dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour];
+                        const baseColour = colour === "green_per_tonne" ? "green" : colour;
+                        const standardRate = dbPalletRates[baseColour] ?? STACI_PALLET_RATES[baseColour as StaciPalletColour];
+                        const label = colour === "green_per_tonne"
+                          ? "Green (per tonne)"
+                          : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
                         return (
                           <tr key={colour} className="border-b border-border/50">
                             <td className="py-1.5 px-3 flex items-center gap-2">
-                              <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.bgColor)} />
-                              <span>{STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}</span>
+                              <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[baseColour as StaciPalletColour]?.bgColor)} />
+                              <span>{label}</span>
                               {hasPerTonne && (
                                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                                   per tonne
