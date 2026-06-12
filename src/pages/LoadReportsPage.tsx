@@ -1165,6 +1165,8 @@ const LoadReportsPage = () => {
               scrapMetalLooseOnPallets={staciScrapMetalLooseOnPallets}
               onScrapMetalLooseOnPalletsChange={setStaciScrapMetalLooseOnPallets}
               palletWeightKg={defaultPalletWeight}
+              greenRatePerTonne={staciGreenRatePerTonne}
+              onGreenRatePerTonneChange={setStaciGreenRatePerTonne}
             />
           )}
 
