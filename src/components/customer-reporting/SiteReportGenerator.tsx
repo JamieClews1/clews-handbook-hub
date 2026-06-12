@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 import * as XLSX from "xlsx";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
 
 type Customer = {
   id: string;
