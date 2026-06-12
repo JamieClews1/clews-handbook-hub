@@ -23,6 +23,7 @@ import { DateRange } from "react-day-picker";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
 import { RebateReportLockControls } from "./RebateReportLockControls";
+import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 
 type Customer = {
   id: string;
