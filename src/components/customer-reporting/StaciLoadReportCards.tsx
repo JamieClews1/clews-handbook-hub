@@ -331,76 +331,18 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
       {!hasExternalDates && (
         <Card>
           <CardContent className="py-4 flex flex-wrap items-center gap-4">
-            <Select value={dateMode} onValueChange={(v) => {
-              const mode = v as "month" | "range";
-              setDateMode(mode);
-              if (mode === "month") {
-                setCurrentMonth(customFrom);
-              } else {
-                setCustomFrom(startOfMonth(currentMonth));
-                setCustomTo(endOfMonth(currentMonth));
-              }
-            }}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="range">Date Range</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {dateMode === "month" ? (
-              <>
-                <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="font-medium min-w-[120px] text-center">
-                  {format(currentMonth, "MMMM yyyy")}
-                </span>
-                <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <span className="text-sm font-medium text-muted-foreground">Period:</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(customFrom, "dd MMM yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customFrom} onSelect={(d) => d && setCustomFrom(d)} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-muted-foreground">to</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(customTo, "dd MMM yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customTo} onSelect={(d) => d && setCustomTo(d)} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </>
-            )}
-
-            <ReportingPeriodQuickSelect
+            <ReportDateRangePicker
+              value={{ from: customFrom, to: customTo }}
+              onChange={(range) => {
+                setDateMode("range");
+                if (range?.from) setCustomFrom(range.from);
+                if (range?.to) setCustomTo(range.to);
+              }}
               allCustomers
               label=""
-              className="space-y-0"
-              onSelect={(from, to) => {
-                setDateMode("range");
-                setCustomFrom(from);
-                setCustomTo(to);
-              }}
+              className="w-[280px]"
             />
+
           </CardContent>
         </Card>
       )}
