@@ -1506,13 +1506,16 @@ export function CustomerSetupAdmin() {
           </CardContent>
         </Card>
 
-        {/* Credit Applications - standalone section */}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="new-customers" className="mt-4">
         <Card>
           <CardContent className="pt-6">
             <CreditApplicationsManager />
           </CardContent>
         </Card>
-      </div>
+      </TabsContent>
 
       {/* Create customer dialog */}
       <Dialog open={createCustomerOpen} onOpenChange={setCreateCustomerOpen}>
