@@ -12,7 +12,7 @@ import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteR
 import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
 import { DataHubCustomerReport } from "@/components/customer-reporting/DataHubCustomerReport";
-import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
+
 import { POCheckReport } from "@/components/customer-reporting/POCheckReport";
 
 const CustomerReportingPage = () => {
