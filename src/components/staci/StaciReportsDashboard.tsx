@@ -366,7 +366,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   }, [dateFrom, dateTo, customerId]);
 
   const stats = useMemo(() => {
-    const colourMap: Record<string, { count: number; weightKg: number; cost: number }> = {};
+    const colourMap: Record<string, { count: number; weightKg: number; cost: number; perTonneRates: Set<number>; perTonneCount: number }> = {};
     let totalPallets = 0;
     let totalWeightKg = 0;
     let totalCost = 0;
@@ -389,10 +389,14 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
         : rate * count;
 
-      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
+      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
       colourMap[r.colour].count += count;
       colourMap[r.colour].weightKg += netWeight; // store NET weight for colour entries
       colourMap[r.colour].cost += lineCost;
+      if (isGreenPerTonne) {
+        colourMap[r.colour].perTonneRates.add(r.green_rate_per_tonne as number);
+        colourMap[r.colour].perTonneCount += count;
+      }
 
       totalPallets += count;
       totalWeightKg += netWeight;
