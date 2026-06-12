@@ -1776,6 +1776,14 @@ export function CustomerSetupAdmin() {
               </div>
             </div>
 
+            {/* Effective-dated rebate charging periods (only when editing an existing site) */}
+            {editingSite && (
+              <>
+                <Separator />
+                <SitePriceSetScheduleEditor siteId={editingSite.id} priceSets={priceSets} />
+              </>
+            )}
+
             {/* Rebate Items Configuration - only show if a rebate set and load report type are selected */}
             {siteForm.price_set_id && siteForm.load_report_type && (
               <>
