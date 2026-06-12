@@ -12,6 +12,7 @@ import { CalendarIcon, DollarSign, Loader2, Download, FileSpreadsheet } from "lu
 import * as XLSX from "xlsx";
 import { exportCustomerRebateReport } from "@/lib/customer-rebate-export";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
