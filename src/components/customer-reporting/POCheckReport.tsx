@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { format, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
 
 interface POChangeRecord {
   job_number: string;
