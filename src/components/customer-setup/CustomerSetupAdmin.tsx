@@ -1507,6 +1507,7 @@ export function CustomerSetupAdmin() {
         </Card>
 
         </div>
+        </div>
       </TabsContent>
 
       <TabsContent value="new-customers" className="mt-4">
