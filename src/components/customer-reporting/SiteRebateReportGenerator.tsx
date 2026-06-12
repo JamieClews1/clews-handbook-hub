@@ -1211,6 +1211,10 @@ export function SiteRebateReportGenerator() {
                 <Download className="h-4 w-4 mr-2" />
                 Export Excel
               </Button>
+              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleCustomerExport}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Customer Export
+              </Button>
             </div>
           </div>
 
