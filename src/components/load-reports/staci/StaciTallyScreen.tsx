@@ -220,9 +220,13 @@ export const StaciTallyScreen = ({
 
     for (const [colour, data] of colourMap) {
       const rate = STACI_PALLET_RATES[colour];
+      const isGreenOverride = colour === "green" && greenRatePerTonne !== 0;
       let value: number;
       if (colour === "waste_wood") {
         value = (data.weight / 1000) * rate;
+      } else if (isGreenOverride) {
+        const netWeight = data.weight - data.count * palletWeightKg;
+        value = (netWeight / 1000) * greenRatePerTonne;
       } else {
         value = data.count * rate;
       }
@@ -244,7 +248,7 @@ export const StaciTallyScreen = ({
     summaries.sort((a, b) => colourOrder.indexOf(a.colour) - colourOrder.indexOf(b.colour));
 
     return { summaries, totalPallets, totalWeightKg, totalValue, validEntryCount: validCount, totalPalletTypes };
-  }, [palletEntries]);
+  }, [palletEntries, greenRatePerTonne, palletWeightKg]);
 
   const onPalletsBaleDolavCount = 
     (cardBalesOnPallets ? cardBalesCount : 0) +
