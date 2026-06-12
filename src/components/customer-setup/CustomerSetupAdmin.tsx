@@ -2065,6 +2065,6 @@ export function CustomerSetupAdmin() {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </Tabs>
   );
 }
