@@ -168,6 +168,7 @@ export const StaciReviewScreen = ({
   scrapMetalLooseWeightKg,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
+  greenRatePerTonne = 0,
   weighbridgeWeightKg,
   weighbridgeLoading,
   onPalletEntriesChange,
