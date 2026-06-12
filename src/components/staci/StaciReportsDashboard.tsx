@@ -540,13 +540,21 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
     const colourData = [
       ["Colour", "Pallets", "Weight (kg)", "Rate", "Cost (£)"],
-      ...Object.entries(stats.colourMap).map(([colour, d]) => [
-        STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
-        d.count,
-        Math.round(d.weightKg),
-        `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
-        d.cost.toFixed(2),
-      ]),
+      ...Object.entries(stats.colourMap).map(([colour, d]) => {
+        const baseColour = colour === "green_per_tonne" ? "green" : colour;
+        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+        const label = colour === "green_per_tonne" ? "Green (per tonne)" : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
+        const rateText = d.perTonneCount > 0
+          ? (singleRate != null ? `${singleRate < 0 ? "-" : ""}£${Math.abs(singleRate).toFixed(2)}/t` : "mixed /t")
+          : `£${(dbPalletRates[baseColour] ?? STACI_PALLET_RATES[baseColour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`;
+        return [
+          label,
+          d.count,
+          Math.round(d.weightKg),
+          rateText,
+          d.cost.toFixed(2),
+        ];
+      }),
     ];
     const ws2 = XLSX.utils.aoa_to_sheet(colourData);
     XLSX.utils.book_append_sheet(wb, ws2, "Pallet Breakdown");
