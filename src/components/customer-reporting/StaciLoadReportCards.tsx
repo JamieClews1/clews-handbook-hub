@@ -179,11 +179,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
       const staciSiteId = staciSites?.[0]?.id;
       if (!staciSiteId) return;
 
-      const { data: priceSetLink } = await supabase
-        .from("customer_site_price_sets")
-        .select("price_set_id")
-        .eq("site_id", staciSiteId)
-        .single();
+      const priceSetLink = await fetchActivePriceSetLink(staciSiteId, dateTo);
       if (!priceSetLink?.price_set_id) return;
 
       const { data: psItems } = await supabase
