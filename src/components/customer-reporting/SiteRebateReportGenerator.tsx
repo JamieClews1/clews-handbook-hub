@@ -1001,6 +1001,14 @@ export function SiteRebateReportGenerator() {
         consolidatedData,
         totalWeight: combinedTotalWeight,
         totalRebate: combinedTotalRebate,
+        siteBreakdowns: [
+          {
+            siteName,
+            totalWeight: combinedTotalWeight,
+            totalRebate: combinedTotalRebate,
+            materials: consolidatedData.flatMap((cat) => cat.sources),
+          },
+        ],
       });
     } catch (err) {
       console.error("Customer export failed", err);
