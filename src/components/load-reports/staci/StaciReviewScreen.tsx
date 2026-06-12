@@ -200,8 +200,8 @@ export const StaciReviewScreen = ({
   const [isReconciled, setIsReconciled] = useState(false);
 
   const { summaries, totalPallets, totalWeightKg, totalValue, palletRebate } = useMemo(
-    () => buildSummaries(palletEntries, goodPalletCount),
-    [palletEntries, goodPalletCount]
+    () => buildSummaries(palletEntries, goodPalletCount, greenRatePerTonne, palletWeightKg),
+    [palletEntries, goodPalletCount, greenRatePerTonne, palletWeightKg]
   );
 
   // Compute pallet charge value, bale values, and effective net total
