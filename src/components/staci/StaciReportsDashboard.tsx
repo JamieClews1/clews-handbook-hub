@@ -537,9 +537,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
         d.count,
         Math.round(d.weightKg),
-        colour === "green" && dbGreenRatePerTonne !== 0
-          ? `£${dbGreenRatePerTonne.toFixed(2)}/t`
-          : `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
+        `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2) ?? "0.00"}`,
         d.cost.toFixed(2),
       ]),
     ];
