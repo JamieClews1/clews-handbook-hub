@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, eachMonthOfInterval, addDays } from "
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { exportCustomerRebateReport } from "@/lib/customer-rebate-export";
 import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
