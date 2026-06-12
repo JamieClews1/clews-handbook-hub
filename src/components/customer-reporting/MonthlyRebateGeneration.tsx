@@ -642,6 +642,66 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
       return { base64: wbout, filename };
     };
 
+    // Build the customer-facing (branded, category-consolidated) rebate statement
+    // matching what customers see in their portal.
+    const buildConsolidatedData = (summary: CustomerRebateSummary): CustomerExportCategory[] => {
+      const categories: Record<string, CustomerExportCategory> = {
+        Cardboard: { category: "Cardboard", weight: 0, rebate: 0, sources: [] },
+        Paper: { category: "Paper", weight: 0, rebate: 0, sources: [] },
+        Films: { category: "Films", weight: 0, rebate: 0, sources: [] },
+        "Scrap Metal": { category: "Scrap Metal", weight: 0, rebate: 0, sources: [] },
+        Other: { category: "Other", weight: 0, rebate: 0, sources: [] },
+      };
+
+      for (const sb of summary.siteBreakdowns) {
+        for (const mat of sb.materials) {
+          const name = mat.name.toLowerCase();
+          const isPalletWeightCharge = name.includes("pallet weight charge");
+          let category = "Other";
+          if (name.includes("card") || name.includes("cardboard")) category = "Cardboard";
+          else if (name.includes("paper")) category = "Paper";
+          else if (name.includes("film")) category = "Films";
+          else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) category = "Scrap Metal";
+
+          // Pallet Weight Charge: include rebate value but NOT weight in totals
+          if (!isPalletWeightCharge) categories[category].weight += mat.weight;
+          categories[category].rebate += mat.rebate;
+          categories[category].sources.push({
+            name: mat.name,
+            weight: mat.weight,
+            rate: mat.rate,
+            rebate: mat.rebate,
+            source: mat.source,
+          });
+        }
+      }
+
+      return Object.values(categories)
+        .filter((c) => c.weight > 0 || c.rebate !== 0)
+        .sort((a, b) => b.rebate - a.rebate);
+    };
+
+    const getCustomerExcelBase64 = async (
+      summary: CustomerRebateSummary
+    ): Promise<{ base64: string; filename: string }> => {
+      const periodLabel = dateRange?.from
+        ? `${format(dateRange.from, "MMMM yyyy")}${dateRange.to && dateRange.to.getMonth() !== dateRange.from.getMonth() ? ` - ${format(dateRange.to, "MMMM yyyy")}` : ""}`
+        : "Rebate Period";
+      const siteName =
+        summary.siteBreakdowns.length === 1
+          ? summary.siteBreakdowns[0].site.site_name
+          : `${summary.siteBreakdowns.length} sites`;
+      return getCustomerRebateExportBase64({
+        customerName: summary.customer.customer_name,
+        siteName,
+        periodLabel,
+        consolidatedData: buildConsolidatedData(summary),
+        totalWeight: summary.totalWeight,
+        totalRebate: summary.totalRebate,
+      });
+    };
+
+
     const openEmailDialog = (summary: CustomerRebateSummary) => {
      setSelectedCustomer(summary);
      
