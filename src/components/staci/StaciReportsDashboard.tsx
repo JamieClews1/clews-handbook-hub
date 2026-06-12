@@ -144,6 +144,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         report_date: r.load_reports?.report_date ?? "",
         site_name: r.load_reports?.customer_sites?.site_name ?? null,
         customer_name: r.load_reports?.customer_sites?.customers?.customer_name ?? null,
+        green_rate_per_tonne: r.load_reports?.staci_green_rate_per_tonne != null ? Number(r.load_reports.staci_green_rate_per_tonne) : null,
       }));
 
       setRows(mapped);
