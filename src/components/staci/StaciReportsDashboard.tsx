@@ -114,7 +114,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       // Pallet entries query - filter by customer sites when in portal view
       let palletQuery = supabase
         .from("staci_pallet_entries")
-        .select("id, colour, weight_kg, pallet_type, pallet_count, description, waste_breakdown, load_report_id, load_reports!inner(report_date, status, site_id, customer_sites(site_name, customers(customer_name)))")
+        .select("id, colour, weight_kg, pallet_type, pallet_count, description, waste_breakdown, load_report_id, load_reports!inner(report_date, status, site_id, staci_green_rate_per_tonne, customer_sites(site_name, customers(customer_name)))")
         .gte("load_reports.report_date", from)
         .lte("load_reports.report_date", to)
         .eq("load_reports.status", "submitted");
