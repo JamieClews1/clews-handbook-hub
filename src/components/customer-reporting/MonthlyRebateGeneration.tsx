@@ -698,6 +698,18 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
         consolidatedData: buildConsolidatedData(summary),
         totalWeight: summary.totalWeight,
         totalRebate: summary.totalRebate,
+        siteBreakdowns: summary.siteBreakdowns.map((sb) => ({
+          siteName: sb.site.site_name,
+          totalWeight: sb.totalWeight,
+          totalRebate: sb.totalRebate,
+          materials: sb.materials.map((m) => ({
+            name: m.name,
+            weight: m.weight,
+            rate: m.rate,
+            rebate: m.rebate,
+            source: m.source,
+          })),
+        })),
       });
     };
 
