@@ -290,11 +290,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         }
 
         if (staciSiteId) {
-          const { data: priceSetLink } = await supabase
-            .from("customer_site_price_sets")
-            .select("price_set_id")
-            .eq("site_id", staciSiteId)
-            .single();
+          const priceSetLink = await fetchActivePriceSetLink(staciSiteId, to);
 
           if (priceSetLink?.price_set_id) {
             const { data: psItems } = await supabase
