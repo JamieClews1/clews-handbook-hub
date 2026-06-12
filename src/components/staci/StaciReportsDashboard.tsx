@@ -612,12 +612,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   }, [stats]);
 
   const colourBarData = useMemo(() => {
-    return Object.entries(stats.colourMap).map(([colour, d]) => ({
-      name: STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
-      pallets: d.count,
-      cost: +d.cost.toFixed(2),
-      fill: colour === "red" ? "hsl(0, 72%, 51%)" : colour === "yellow" ? "hsl(48, 96%, 53%)" : colour === "blue" ? "hsl(217, 91%, 60%)" : colour === "green" ? "hsl(142, 71%, 45%)" : "hsl(30, 60%, 45%)",
-    }));
+    return Object.entries(stats.colourMap).map(([colour, d]) => {
+      const baseColour = colour === "green_per_tonne" ? "green" : colour;
+      const name = colour === "green_per_tonne" ? "Green (per tonne)" : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
+      return {
+        name,
+        pallets: d.count,
+        cost: +d.cost.toFixed(2),
+        fill: baseColour === "red" ? "hsl(0, 72%, 51%)" : baseColour === "yellow" ? "hsl(48, 96%, 53%)" : baseColour === "blue" ? "hsl(217, 91%, 60%)" : baseColour === "green" ? "hsl(142, 71%, 45%)" : "hsl(30, 60%, 45%)",
+      };
+    });
   }, [stats]);
 
   // Compute KPI financial totals for use in both KPI cards and Monthly Report
