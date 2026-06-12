@@ -386,7 +386,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const lineCost = isWasteWood
         ? (totalGrossWeight / 1000) * rate
         : isGreenPerTonne
-        ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
+        ? (netWeight / 1000) * -Math.abs(r.green_rate_per_tonne as number)
         : rate * count;
 
       // Green pallets priced per tonne are tracked under a separate row so they
@@ -542,7 +542,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       ["Colour", "Pallets", "Weight (kg)", "Rate", "Cost (£)"],
       ...Object.entries(stats.colourMap).map(([colour, d]) => {
         const baseColour = colour === "green_per_tonne" ? "green" : colour;
-        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+        const singleRate = d.perTonneRates.size === 1 ? -Math.abs(Array.from(d.perTonneRates)[0]) : null;
         const label = colour === "green_per_tonne" ? "Green (per tonne)" : (STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour);
         const rateText = d.perTonneCount > 0
           ? (singleRate != null ? `${singleRate < 0 ? "-" : ""}£${Math.abs(singleRate).toFixed(2)}/t` : "mixed /t")
@@ -817,7 +817,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                     <tbody>
                       {Object.entries(stats.colourMap).map(([colour, d]) => {
                         const hasPerTonne = d.perTonneCount > 0;
-                        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+                        const singleRate = d.perTonneRates.size === 1 ? -Math.abs(Array.from(d.perTonneRates)[0]) : null;
                         const baseColour = colour === "green_per_tonne" ? "green" : colour;
                         const standardRate = dbPalletRates[baseColour] ?? STACI_PALLET_RATES[baseColour as StaciPalletColour];
                         const label = colour === "green_per_tonne"

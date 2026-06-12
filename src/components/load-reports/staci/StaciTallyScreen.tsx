@@ -226,7 +226,7 @@ export const StaciTallyScreen = ({
         value = (data.weight / 1000) * rate;
       } else if (isGreenOverride) {
         const netWeight = data.weight - data.count * palletWeightKg;
-        value = (netWeight / 1000) * greenRatePerTonne;
+        value = (netWeight / 1000) * -Math.abs(greenRatePerTonne);
       } else {
         value = data.count * rate;
       }
@@ -928,7 +928,7 @@ export const StaciTallyScreen = ({
                 className="w-32 text-right"
                 value={greenRatePerTonne || ""}
                 placeholder="0.00"
-                onChange={(e) => onGreenRatePerTonneChange?.(parseFloat(e.target.value) || 0)}
+                onChange={(e) => { const v = parseFloat(e.target.value); onGreenRatePerTonneChange?.(v ? -Math.abs(v) : 0); }}
               />
               <span className="text-xs text-muted-foreground">/t</span>
             </div>

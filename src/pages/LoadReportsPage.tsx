@@ -800,7 +800,7 @@ const LoadReportsPage = () => {
            papers_dolav_on_pallets: staciPapersDolavOnPallets,
            glass_dolav_on_pallets: staciGlassDolavOnPallets,
            scrap_metal_loose_on_pallets: staciScrapMetalLooseOnPallets,
-           staci_green_rate_per_tonne: staciGreenRatePerTonne || null,
+           staci_green_rate_per_tonne: staciGreenRatePerTonne ? -Math.abs(staciGreenRatePerTonne) : null,
            exclude_from_rebate: excludeFromRebate,
            submitted_at: submit ? new Date().toISOString() : null,
         };
