@@ -186,12 +186,9 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       const site = sites.find((s) => s.id === selectedSiteId);
       if (!site) return;
 
-      // Get the site's price set
-      const { data: priceSetLink } = await supabase
-        .from("customer_site_price_sets")
-        .select("price_set_id, rebate_price_sets(name)")
-        .eq("site_id", selectedSiteId)
-        .single();
+      // Get the site's price set active for the reporting period (effective-dated)
+      const periodRef = format(dateRange?.to ?? dateRange?.from ?? new Date(), "yyyy-MM-dd");
+      const priceSetLink = await fetchActivePriceSetLink(selectedSiteId, periodRef, true);
 
       if (!priceSetLink) {
         toast({
