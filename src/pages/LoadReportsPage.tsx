@@ -1219,6 +1219,7 @@ const LoadReportsPage = () => {
               scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
               palletWeightKg={defaultPalletWeight}
               palletChargeRatePerTonne={staciPalletChargeRate}
+              greenRatePerTonne={staciGreenRatePerTonne}
               cardBalesRatePerTonne={staciCardBalesRate}
               filmsRatePerTonne={staciFilmsRate}
               weighbridgeWeightKg={weighbridgeWeightKg}
