@@ -103,6 +103,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
   const rebateValuesSnapshotRef = useRef<Record<string, { lower: number; higher: number; name: string }>>({});
+  const [autoLoaded, setAutoLoaded] = useState(false);
 
   // Get site data hub mappings for Skip/RoRo calculation
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
@@ -150,6 +151,32 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   useEffect(() => {
     loadSites();
   }, [customerId, accessibleSiteIds]);
+
+  useEffect(() => {
+    setReportGenerated(false);
+    setReportData([]);
+    setIndividualReports([]);
+  }, [selectedSiteId, dateRange]);
+
+  useEffect(() => {
+    if (autoLoaded || sites.length === 0) return;
+
+    const savedSiteId = sessionStorage.getItem("portal-rebate-report-siteId");
+    if (savedSiteId && sites.some((site) => site.id === savedSiteId)) {
+      setSelectedSiteId(savedSiteId);
+      setAutoLoaded(true);
+      return;
+    }
+
+    setSelectedSiteId(sites[0].id);
+    setAutoLoaded(true);
+  }, [sites, autoLoaded]);
+
+  useEffect(() => {
+    if (autoLoaded && selectedSiteId && dateRange?.from && dateRange?.to && !reportGenerated && !loading) {
+      generateReport();
+    }
+  }, [autoLoaded, selectedSiteId, dateRange?.from, dateRange?.to]);
 
   const loadSites = async () => {
     let query = supabase
