@@ -75,7 +75,7 @@ const CustomerReportingPage = () => {
         </div>
 
         <Tabs defaultValue="site-reports" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Site Reports</span>
