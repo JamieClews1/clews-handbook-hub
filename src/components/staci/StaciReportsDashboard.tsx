@@ -800,18 +800,34 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(stats.colourMap).map(([colour, d]) => (
-                        <tr key={colour} className="border-b border-border/50">
-                          <td className="py-1.5 px-3 flex items-center gap-2">
-                            <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.bgColor)} />
-                            {STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}
-                          </td>
-                          <td className="py-1.5 px-3 text-right">{d.count}</td>
-                          <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">£{(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(stats.colourMap).map(([colour, d]) => {
+                        const hasPerTonne = d.perTonneCount > 0;
+                        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+                        const standardRate = dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour];
+                        return (
+                          <tr key={colour} className="border-b border-border/50">
+                            <td className="py-1.5 px-3 flex items-center gap-2">
+                              <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.bgColor)} />
+                              <span>{STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}</span>
+                              {hasPerTonne && (
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                  per tonne
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-1.5 px-3 text-right">{d.count}</td>
+                            <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right">
+                              {hasPerTonne
+                                ? singleRate != null
+                                  ? `${singleRate < 0 ? "-" : ""}£${Math.abs(singleRate).toFixed(2)}/t`
+                                  : "mixed /t"
+                                : `£${standardRate?.toFixed(2)}`}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
