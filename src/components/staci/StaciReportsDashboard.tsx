@@ -499,7 +499,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       colourMap, totalPallets, totalWeightKg, totalCost, goodPallets, scrapPallets,
       palletRebate, netCost, wasteRows, totalBreakdownWeight, recyclableKg, nonRecoverableKg, wasteForEnergyKg, landfillKg, woodKg,
     };
-  }, [rows, dbPalletRates, dbGoodPalletRebate, balesDolavData]);
+  }, [rows, dbPalletRates, dbGoodPalletRebate, dbGreenRatePerTonne, balesDolavData]);
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
