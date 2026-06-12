@@ -907,6 +907,35 @@ export const StaciTallyScreen = ({
         </CardContent>
       </Card>
 
+      {/* Green pallet per-tonne override (specific to this load) */}
+      <Card className="border-green-500/40">
+        <CardContent className="py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="greenRatePerTonne" className="text-base font-semibold text-foreground">
+                Green Pallet Cost (£/tonne) — this load
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Optional override. When set, Green pallets are costed per tonne (net weight) for this load instead of the per-pallet rate. Leave 0 to use the standard rate. Use a negative value for a rebate.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-sm text-muted-foreground">£</span>
+              <Input
+                id="greenRatePerTonne"
+                type="number"
+                step="0.01"
+                className="w-32 text-right"
+                value={greenRatePerTonne || ""}
+                placeholder="0.00"
+                onChange={(e) => onGreenRatePerTonneChange?.(parseFloat(e.target.value) || 0)}
+              />
+              <span className="text-xs text-muted-foreground">/t</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary table */}
       {summaries.length > 0 && (
         <div className="space-y-3">
