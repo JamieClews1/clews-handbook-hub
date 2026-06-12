@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, CalendarClock } from "lucide-react";
+import { Trash2, Plus, CalendarClock, Pencil, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 type PriceSet = { id: string; name: string };
 
@@ -19,16 +20,33 @@ type ScheduleRow = {
 interface SitePriceSetScheduleEditorProps {
   siteId: string;
   priceSets: PriceSet[];
+  /** The price set whose rebate values are currently being configured below. */
+  selectedPriceSetId?: string;
+  /** Select a period to edit its rebate values in the configuration section below. */
+  onSelectPeriod?: (priceSetId: string) => void;
   /** Called after changes so parent can refresh its "current" price-set state. */
   onChanged?: () => void;
 }
+
+const formatDate = (iso: string | null) => {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+};
 
 /**
  * Manages the effective-dated rebate charging models for a site.
  * Each row assigns a price set for a date window so old and new models apply
  * automatically based on the reporting period — no manual report locking needed.
  */
-export const SitePriceSetScheduleEditor = ({ siteId, priceSets, onChanged }: SitePriceSetScheduleEditorProps) => {
+export const SitePriceSetScheduleEditor = ({
+  siteId,
+  priceSets,
+  selectedPriceSetId,
+  onSelectPeriod,
+  onChanged,
+}: SitePriceSetScheduleEditorProps) => {
   const { toast } = useToast();
   const [rows, setRows] = useState<ScheduleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +75,7 @@ export const SitePriceSetScheduleEditor = ({ siteId, priceSets, onChanged }: Sit
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
+    if (patch.price_set_id) onSelectPeriod?.(patch.price_set_id);
     await load();
     onChanged?.();
   };
@@ -97,6 +116,9 @@ export const SitePriceSetScheduleEditor = ({ siteId, priceSets, onChanged }: Sit
     onChanged?.();
   };
 
+  // How many periods use each price set — used to warn about shared configuration.
+  const usageCount = (priceSetId: string) => rows.filter((r) => r.price_set_id === priceSetId).length;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -105,7 +127,9 @@ export const SitePriceSetScheduleEditor = ({ siteId, priceSets, onChanged }: Sit
       </div>
       <p className="text-xs text-muted-foreground">
         Assign different rebate sets over time. The report period decides which model applies, so historical
-        reports keep the old model automatically. Leave “To” blank for the current, ongoing model.
+        reports keep the old model automatically. Leave “To” blank for the current, ongoing model.{" "}
+        <span className="font-medium text-foreground">Click “Edit values” on a period</span> to configure its
+        rebate amounts below.
       </p>
 
       {loading ? (
@@ -116,48 +140,104 @@ export const SitePriceSetScheduleEditor = ({ siteId, priceSets, onChanged }: Sit
         </p>
       ) : (
         <div className="space-y-2">
-          {rows.map((row) => (
-            <div key={row.id} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end rounded-md border p-3">
-              <div className="grid gap-1">
-                <Label className="text-xs">Rebate Set</Label>
-                <Select value={row.price_set_id} onValueChange={(v) => updateRow(row.id, { price_set_id: v })}>
-                  <SelectTrigger><SelectValue>{nameFor(row.price_set_id)}</SelectValue></SelectTrigger>
-                  <SelectContent>
-                    {priceSets.map((ps) => (
-                      <SelectItem key={ps.id} value={ps.id}>{ps.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1">
-                <Label className="text-xs">From</Label>
-                <Input
-                  type="date"
-                  value={row.effective_from}
-                  onChange={(e) => updateRow(row.id, { effective_from: e.target.value })}
-                  className="w-[150px]"
-                />
-              </div>
-              <div className="grid gap-1">
-                <Label className="text-xs">To (optional)</Label>
-                <Input
-                  type="date"
-                  value={row.effective_to ?? ""}
-                  onChange={(e) => updateRow(row.id, { effective_to: e.target.value || null })}
-                  className="w-[150px]"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => deleteRow(row.id)}
+          {rows.map((row, idx) => {
+            const isSelected = selectedPriceSetId === row.price_set_id;
+            const shared = usageCount(row.price_set_id) > 1;
+            const fromLabel = formatDate(row.effective_from) ?? "—";
+            const toLabel = formatDate(row.effective_to) ?? "ongoing";
+            return (
+              <div
+                key={row.id}
+                className={cn(
+                  "rounded-md border p-3 transition-colors",
+                  isSelected ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border"
+                )}
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+                {/* Period header: which window this row covers + selected state */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-muted text-xs text-muted-foreground">
+                      {idx + 1}
+                    </span>
+                    <span>
+                      {fromLabel} → {toLabel}
+                    </span>
+                    {isSelected && (
+                      <span className="inline-flex items-center gap-1 text-xs text-primary">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Editing values below
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => deleteRow(row.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Rebate Set</Label>
+                    <Select value={row.price_set_id} onValueChange={(v) => updateRow(row.id, { price_set_id: v })}>
+                      <SelectTrigger>
+                        <SelectValue>{nameFor(row.price_set_id)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {priceSets.map((ps) => (
+                          <SelectItem key={ps.id} value={ps.id}>
+                            {ps.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">From</Label>
+                    <Input
+                      type="date"
+                      value={row.effective_from}
+                      onChange={(e) => updateRow(row.id, { effective_from: e.target.value })}
+                      className="w-[150px]"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">To (optional)</Label>
+                    <Input
+                      type="date"
+                      value={row.effective_to ?? ""}
+                      onChange={(e) => updateRow(row.id, { effective_to: e.target.value || null })}
+                      className="w-[150px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  {shared ? (
+                    <p className="text-[11px] text-amber-600">
+                      Shares the same rebate set as another period — editing values affects both. Use a different
+                      rebate set to give this period its own values.
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+                  <Button
+                    type="button"
+                    variant={isSelected ? "secondary" : "outline"}
+                    size="sm"
+                    className="gap-2 shrink-0"
+                    onClick={() => onSelectPeriod?.(row.price_set_id)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    {isSelected ? "Editing values" : "Edit values"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
