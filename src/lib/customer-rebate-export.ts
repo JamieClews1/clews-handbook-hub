@@ -197,18 +197,46 @@ export async function exportCustomerRebateReport(input: CustomerRebateExportInpu
     r++;
   };
 
+  // Subtotal row writer (e.g. Rebates Total, Charges Total)
+  const writeSubtotal = (label: string, weight: number, value: number, isCharge: boolean) => {
+    const color = isCharge ? CHARGE_RED : BRAND_GREEN;
+    const fill = isCharge ? "FFFBEAEA" : BRAND_GREEN_LIGHT;
+    const row = ws.getRow(r);
+    row.getCell(2).value = label;
+    row.getCell(3).value = round2(weight);
+    row.getCell(3).numFmt = "#,##0.00";
+    row.getCell(5).value = round2(value);
+    row.getCell(5).numFmt = '£#,##0.00;[Red]-£#,##0.00';
+    [2, 3, 4, 5].forEach((c) => {
+      const cell = row.getCell(c);
+      cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: color } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+      cell.alignment = { horizontal: c >= 3 ? "right" : "left", vertical: "middle" };
+      cell.border = { top: { style: "thin", color: { argb: color } } };
+    });
+    row.height = 18;
+    r++;
+  };
+
+  const rebatesValue = rebateCats.reduce((sum, c) => sum + c.rebate, 0);
+  const rebatesWeight = rebateCats.reduce((sum, c) => sum + c.weight, 0);
+  const chargesValue = chargeCats.reduce((sum, c) => sum + c.rebate, 0);
+  const chargesWeight = chargeCats.reduce((sum, c) => sum + c.weight, 0);
+
   if (rebateCats.length > 0) {
     writeSectionLabel("Rebates");
     rebateCats.forEach((c, i) => writeCategory(c, i % 2 === 1));
+    writeSubtotal("Full Rebatable Value", rebatesWeight, rebatesValue, false);
   }
   if (chargeCats.length > 0) {
     writeSectionLabel("Charges");
     chargeCats.forEach((c, i) => writeCategory(c, i % 2 === 1));
+    writeSubtotal("Charges Total", chargesWeight, chargesValue, true);
   }
 
-  // ---- Total row ----
+  // ---- Net Total row ----
   const totalRow = ws.getRow(r);
-  totalRow.getCell(2).value = "TOTAL";
+  totalRow.getCell(2).value = "NET TOTAL";
   totalRow.getCell(3).value = round2(totalWeight);
   totalRow.getCell(3).numFmt = "#,##0.00";
   totalRow.getCell(5).value = round2(totalRebate);
@@ -219,7 +247,7 @@ export async function exportCustomerRebateReport(input: CustomerRebateExportInpu
       name: "Calibri",
       size: 11,
       bold: true,
-      color: { argb: c === 5 ? "FFFFFFFF" : "FFFFFFFF" },
+      color: { argb: "FFFFFFFF" },
     };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_GREY } };
     cell.alignment = { horizontal: c >= 3 ? "right" : "left", vertical: "middle" };
