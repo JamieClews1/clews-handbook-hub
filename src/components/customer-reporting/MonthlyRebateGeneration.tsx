@@ -20,7 +20,8 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
  import { useAuth } from "@/hooks/useAuth";
- import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
+  import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
+  import { getCustomerRebateExportBase64, type CustomerExportCategory } from "@/lib/customer-rebate-export";
  
  type Customer = {
    id: string;
