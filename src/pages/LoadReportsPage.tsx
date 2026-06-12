@@ -522,6 +522,7 @@ const LoadReportsPage = () => {
       setStaciPapersDolavOnPallets((report as any).papers_dolav_on_pallets || false);
       setStaciGlassDolavOnPallets((report as any).glass_dolav_on_pallets || false);
       setStaciScrapMetalLooseOnPallets((report as any).scrap_metal_loose_on_pallets || false);
+      setStaciGreenRatePerTonne(Number((report as any).staci_green_rate_per_tonne) || 0);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
