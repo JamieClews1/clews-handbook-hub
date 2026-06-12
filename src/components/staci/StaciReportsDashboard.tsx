@@ -366,7 +366,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   }, [dateFrom, dateTo, customerId]);
 
   const stats = useMemo(() => {
-    const colourMap: Record<string, { count: number; weightKg: number; cost: number }> = {};
+    const colourMap: Record<string, { count: number; weightKg: number; cost: number; perTonneRates: Set<number>; perTonneCount: number }> = {};
     let totalPallets = 0;
     let totalWeightKg = 0;
     let totalCost = 0;
@@ -389,10 +389,14 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
         : rate * count;
 
-      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0 };
+      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
       colourMap[r.colour].count += count;
       colourMap[r.colour].weightKg += netWeight; // store NET weight for colour entries
       colourMap[r.colour].cost += lineCost;
+      if (isGreenPerTonne) {
+        colourMap[r.colour].perTonneRates.add(r.green_rate_per_tonne as number);
+        colourMap[r.colour].perTonneCount += count;
+      }
 
       totalPallets += count;
       totalWeightKg += netWeight;
@@ -411,7 +415,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const tareWeightKg = palletChargesCount * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
       const tareCharge = (tareWeightKg / 1000) * wasteWoodRate;
-      if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0 };
+      if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
       colourMap["waste_wood"].count += palletChargesCount;
       colourMap["waste_wood"].weightKg += tareWeightKg;
       colourMap["waste_wood"].cost += tareCharge;
@@ -796,18 +800,34 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(stats.colourMap).map(([colour, d]) => (
-                        <tr key={colour} className="border-b border-border/50">
-                          <td className="py-1.5 px-3 flex items-center gap-2">
-                            <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.bgColor)} />
-                            {STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}
-                          </td>
-                          <td className="py-1.5 px-3 text-right">{d.count}</td>
-                          <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">£{(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(stats.colourMap).map(([colour, d]) => {
+                        const hasPerTonne = d.perTonneCount > 0;
+                        const singleRate = d.perTonneRates.size === 1 ? Array.from(d.perTonneRates)[0] : null;
+                        const standardRate = dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour];
+                        return (
+                          <tr key={colour} className="border-b border-border/50">
+                            <td className="py-1.5 px-3 flex items-center gap-2">
+                              <span className={cn("w-3 h-3 rounded-full", STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.bgColor)} />
+                              <span>{STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour}</span>
+                              {hasPerTonne && (
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                  per tonne
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-1.5 px-3 text-right">{d.count}</td>
+                            <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
+                            <td className="py-1.5 px-3 text-right">
+                              {hasPerTonne
+                                ? singleRate != null
+                                  ? `${singleRate < 0 ? "-" : ""}£${Math.abs(singleRate).toFixed(2)}/t`
+                                  : "mixed /t"
+                                : `£${standardRate?.toFixed(2)}`}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
