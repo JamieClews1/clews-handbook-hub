@@ -91,7 +91,7 @@ function reconcileStaciEntries(
   });
 }
 
-function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: number) {
+function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: number, greenRatePerTonne = 0, palletWeightKg = 20) {
   const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
 
   for (const entry of palletEntries) {
@@ -115,9 +115,13 @@ function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: numb
 
   for (const [colour, data] of colourMap) {
     const rate = STACI_PALLET_RATES[colour];
+    const isGreenOverride = colour === "green" && greenRatePerTonne !== 0;
     let value: number;
     if (colour === "waste_wood") {
       value = (data.weight / 1000) * rate;
+    } else if (isGreenOverride) {
+      const netWeight = data.weight - data.count * palletWeightKg;
+      value = (netWeight / 1000) * greenRatePerTonne;
     } else {
       value = data.count * rate;
     }
