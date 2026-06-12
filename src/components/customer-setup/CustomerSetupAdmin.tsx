@@ -1797,7 +1797,11 @@ export function CustomerSetupAdmin() {
                   siteId={editingSite.id}
                   priceSets={priceSets}
                   selectedPriceSetId={siteForm.price_set_id}
-                  onSelectPeriod={(id) => setSiteForm((p) => ({ ...p, price_set_id: id }))}
+                  onSelectPeriod={(id, label) => {
+                    setSiteForm((p) => ({ ...p, price_set_id: id }));
+                    setSelectedPeriodLabel(label ?? null);
+                  }}
+                  onPriceSetsChanged={reloadPriceSets}
                 />
               </>
             )}
@@ -1807,14 +1811,20 @@ export function CustomerSetupAdmin() {
               <>
                 <Separator />
                 {editingSite && (
-                  <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-md p-2">
-                    You are editing the rebate values for{" "}
-                    <span className="font-medium text-foreground">
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                    <p className="text-xs uppercase tracking-wide text-primary font-semibold">
+                      Editing rebate values for
+                    </p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {selectedPeriodLabel ? `Period ${selectedPeriodLabel} · ` : ""}
                       {priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "this rebate set"}
-                    </span>
-                    . Pick a different period above to edit another model.
-                  </p>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Changes here only affect this period. Pick a different period above to edit another model.
+                    </p>
+                  </div>
                 )}
+
                 <SiteRebateItemsEditor
                   priceSetId={siteForm.price_set_id}
                   priceSetName={priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "Rebate Set"}
