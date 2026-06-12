@@ -386,7 +386,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const lineCost = isWasteWood
         ? (totalGrossWeight / 1000) * rate
         : isGreenPerTonne
-        ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
+        ? (netWeight / 1000) * -Math.abs(r.green_rate_per_tonne as number)
         : rate * count;
 
       // Green pallets priced per tonne are tracked under a separate row so they

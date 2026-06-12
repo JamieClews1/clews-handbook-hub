@@ -121,7 +121,7 @@ function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: numb
       value = (data.weight / 1000) * rate;
     } else if (isGreenOverride) {
       const netWeight = data.weight - data.count * palletWeightKg;
-      value = (netWeight / 1000) * greenRatePerTonne;
+      value = (netWeight / 1000) * -Math.abs(greenRatePerTonne);
     } else {
       value = data.count * rate;
     }
