@@ -453,48 +453,12 @@ export function SiteReportGenerator() {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Date Range</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dateRange && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "dd MMM yyyy")} - {format(dateRange.to, "dd MMM yyyy")}
-                    </>
-                  ) : (
-                    format(dateRange.from, "dd MMM yyyy")
-                  )
-                ) : (
-                  <span>Pick a date range</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <ReportingPeriodQuickSelect
+        <ReportDateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
           customerId={selectedCustomerId}
-          onSelect={(from, to) => setDateRange({ from, to })}
         />
+
       </div>
 
       <div className="flex gap-2 flex-wrap">
