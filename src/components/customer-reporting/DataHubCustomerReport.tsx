@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
 
 // Available fields from data_hub_jobs for grouping
 const AVAILABLE_FIELDS = [
@@ -314,55 +315,16 @@ export const DataHubCustomerReport = () => {
         </div>
 
         {/* Date Range Selection */}
-        <div className="space-y-2">
-          <Label>Start Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start text-left font-normal h-10">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(startDate, "dd/MM/yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(d) => d && setStartDate(d)}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <Label>End Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start text-left font-normal h-10">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(endDate, "dd/MM/yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={(d) => d && setEndDate(d)}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <ReportingPeriodQuickSelect
-          customerName={selectedCustomer}
-          onSelect={(from, to) => {
-            setStartDate(from);
-            setEndDate(to);
+        <ReportDateRangePicker
+          value={{ from: startDate, to: endDate }}
+          onChange={(range) => {
+            if (range?.from) setStartDate(range.from);
+            if (range?.to) setEndDate(range.to);
           }}
+          customerName={selectedCustomer}
+          label="Date Range"
         />
+
 
         {/* Data Source Selection */}
         <div className="space-y-2">

@@ -15,6 +15,7 @@ import { CalendarIcon, ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Chec
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import * as XLSX from "xlsx";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
  import { cn } from "@/lib/utils";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
@@ -733,47 +734,13 @@ import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
    return (
      <div className="space-y-6">
        <div className="flex flex-wrap gap-4 items-end">
-         <div className="space-y-2">
-           <Label>Period</Label>
-           <Popover>
-             <PopoverTrigger asChild>
-               <Button
-                 variant="outline"
-                 className={cn(
-                   "w-[280px] justify-start text-left font-normal",
-                   !dateRange?.from && "text-muted-foreground"
-                 )}
-               >
-                 <CalendarIcon className="mr-2 h-4 w-4" />
-                 {dateRange?.from ? (
-                   dateRange.to ? (
-                     <>
-                       {format(dateRange.from, "d MMM yyyy")} – {format(dateRange.to, "d MMM yyyy")}
-                     </>
-                   ) : (
-                     format(dateRange.from, "d MMM yyyy")
-                   )
-                 ) : (
-                   <span>Pick a date range</span>
-                 )}
-               </Button>
-             </PopoverTrigger>
-             <PopoverContent className="w-auto p-0 z-[100]" align="start">
-               <Calendar
-                 mode="range"
-                 selected={dateRange}
-                 onSelect={setDateRange}
-                 numberOfMonths={2}
-                 initialFocus
-               />
-             </PopoverContent>
-           </Popover>
-          </div>
+         <ReportDateRangePicker
+           value={dateRange}
+           onChange={setDateRange}
+           allCustomers
+           label="Period"
+         />
 
-          <ReportingPeriodQuickSelect
-            allCustomers
-            onSelect={(from, to) => setDateRange({ from, to })}
-          />
 
 
  
