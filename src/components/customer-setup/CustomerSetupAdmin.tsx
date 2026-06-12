@@ -1468,7 +1468,7 @@ export function CustomerSetupAdmin() {
                                 <CardTitle className="text-base">{profile?.email ?? m.user_id}</CardTitle>
                                 <CardDescription>Select site access for this user.</CardDescription>
                               </CardHeader>
-                              <CardContent>
+                              <CardContent className="space-y-3">
                                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                   {sites.map((s) => (
                                     <label key={`${m.id}-${s.id}`} className="flex items-center gap-2 rounded-md border border-border p-3">
@@ -1479,6 +1479,11 @@ export function CustomerSetupAdmin() {
                                       <span className="text-sm">{s.site_name}</span>
                                     </label>
                                   ))}
+                                </div>
+                                <div className="flex justify-end">
+                                  <Button size="sm" onClick={() => saveSiteAccess(m.id)}>
+                                    Save access
+                                  </Button>
                                 </div>
                               </CardContent>
                             </Card>
