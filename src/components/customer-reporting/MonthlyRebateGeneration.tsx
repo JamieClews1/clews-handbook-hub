@@ -741,8 +741,8 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
      setSendingEmail(true);
      
       try {
-        // Generate Excel attachment
-        const { base64, filename } = getExcelBase64(selectedCustomer);
+        // Generate the customer-facing Excel attachment (same as the portal version)
+        const { base64, filename } = await getCustomerExcelBase64(selectedCustomer);
 
         // Call edge function to send email with attachment
         const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
