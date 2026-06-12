@@ -148,19 +148,6 @@ const CustomerReportingPage = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="staci-reports">
-            <Card>
-              <CardHeader>
-                <CardTitle>Staci Load Reports</CardTitle>
-                <CardDescription>
-                  View all submitted Staci pallet load reports with colour breakdown and costs
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <StaciLoadReportCards />
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="monthly-generation">
             <Card>
