@@ -396,6 +396,7 @@ export const StaciReviewScreen = ({
               papersDolavOnPallets={papersDolavOnPallets}
               glassDolavOnPallets={glassDolavOnPallets}
               scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
+              greenRatePerTonne={greenRatePerTonne}
               weighbridgeWeightKg={weighbridgeWeightKg}
             />
           ) : (
