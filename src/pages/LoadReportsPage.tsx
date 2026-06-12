@@ -440,6 +440,7 @@ const LoadReportsPage = () => {
     setStaciCardBalesWeightKg(0);
     setStaciFilmsBaleCount(0);
     setStaciFilmsBaleWeightKg(0);
+    setStaciGreenRatePerTonne(0);
     
     // Fetch latest waste types to ensure we have current default weights
     const { data, error } = await supabase
