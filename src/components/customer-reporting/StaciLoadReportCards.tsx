@@ -44,6 +44,7 @@ interface StaciReport {
   glass_dolav_weight_kg: number;
   scrap_metal_loose_count: number;
   scrap_metal_loose_weight_kg: number;
+  green_rate_per_tonne: number;
   status: string;
   pallet_entries: {
     colour: StaciPalletColour;
