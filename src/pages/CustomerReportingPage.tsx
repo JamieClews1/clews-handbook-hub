@@ -88,10 +88,6 @@ const CustomerReportingPage = () => {
               <Database className="h-4 w-4" />
               <span className="hidden sm:inline">Data Hub</span>
             </TabsTrigger>
-            <TabsTrigger value="staci-reports" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Staci</span>
-            </TabsTrigger>
             <TabsTrigger value="monthly-generation" className="flex items-center gap-2">
               <Send className="h-4 w-4" />
               <span className="hidden sm:inline">Monthly</span>
