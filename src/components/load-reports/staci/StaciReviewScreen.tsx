@@ -35,6 +35,7 @@ interface StaciReviewScreenProps {
   scrapMetalLooseWeightKg: number;
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
+  greenRatePerTonne?: number;
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onPalletEntriesChange?: (entries: StaciPalletEntry[]) => void;
