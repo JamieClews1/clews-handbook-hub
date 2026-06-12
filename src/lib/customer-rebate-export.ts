@@ -46,10 +46,12 @@ async function fetchLogoBuffer(): Promise<ArrayBuffer | null> {
 }
 
 /**
- * Generates a polished, customer-facing rebate statement in Excel format,
- * branded with the Clews Recycling logo, and triggers a download.
+ * Builds the polished, customer-facing rebate statement workbook (ExcelJS),
+ * branded with the Clews Recycling logo. Returns the workbook + suggested filename.
  */
-export async function exportCustomerRebateReport(input: CustomerRebateExportInput) {
+export async function buildCustomerRebateWorkbook(
+  input: CustomerRebateExportInput
+): Promise<{ workbook: ExcelJS.Workbook; fileName: string }> {
   const {
     customerName,
     siteName,
