@@ -489,6 +489,17 @@ export function CustomerSetupAdmin() {
       accessMap[r.membership_id]!.add(r.site_id);
     }
 
+    // Include implicit owner-based access so existing access shows as ticked.
+    // Portal visibility = explicit site access UNION sites the user's contact owns.
+    for (const m of membershipRows) {
+      if (!m.contact_id) continue;
+      for (const s of siteRows) {
+        if (s.owner_contact_id && s.owner_contact_id === m.contact_id) {
+          accessMap[m.id]!.add(s.id);
+        }
+      }
+    }
+
     // Ensure sites exist (defensive)
     const siteIds = new Set(siteRows.map((x) => x.id));
     for (const mId of Object.keys(accessMap)) {
