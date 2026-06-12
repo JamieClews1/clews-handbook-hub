@@ -272,6 +272,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         }
         setDbGoodPalletRebate(chargeMap["good_pallet_rebate"] ?? STACI_PALLET_GOOD_REBATE);
         setDbPalletWeightCharge(chargeMap["pallet_weight_charge"] ?? -47);
+        setDbGreenRatePerTonne(chargeMap["green_rate_per_tonne"] ?? 0);
       }
 
       // Bale rates - use customer's site or fall back to searching by name
