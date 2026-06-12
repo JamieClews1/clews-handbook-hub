@@ -163,12 +163,9 @@ const LoadReportsPage = () => {
     }
     const fetchSiteRates = async () => {
       try {
-        // 1. Get the price set for this site
-        const { data: priceSetLink } = await supabase
-          .from("customer_site_price_sets")
-          .select("price_set_id")
-          .eq("site_id", selectedSiteId)
-          .maybeSingle();
+        // 1. Get the price set active for the load's report date (effective-dated)
+        const refDate = normalizeLoadReportDate(reportDate) || getTodayLoadReportDate();
+        const priceSetLink = await fetchActivePriceSetLink(selectedSiteId, refDate);
 
         if (!priceSetLink) {
           setStaciPalletChargeRate(0);
