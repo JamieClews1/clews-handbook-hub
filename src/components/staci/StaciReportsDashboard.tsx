@@ -415,7 +415,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       const tareWeightKg = palletChargesCount * TARE_KG;
       const wasteWoodRate = dbPalletRates["waste_wood"] ?? STACI_PALLET_RATES["waste_wood"] ?? 45;
       const tareCharge = (tareWeightKg / 1000) * wasteWoodRate;
-      if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0 };
+      if (!colourMap["waste_wood"]) colourMap["waste_wood"] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
       colourMap["waste_wood"].count += palletChargesCount;
       colourMap["waste_wood"].weightKg += tareWeightKg;
       colourMap["waste_wood"].cost += tareCharge;
