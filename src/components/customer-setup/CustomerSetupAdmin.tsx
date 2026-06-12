@@ -1780,7 +1780,12 @@ export function CustomerSetupAdmin() {
             {editingSite && (
               <>
                 <Separator />
-                <SitePriceSetScheduleEditor siteId={editingSite.id} priceSets={priceSets} />
+                <SitePriceSetScheduleEditor
+                  siteId={editingSite.id}
+                  priceSets={priceSets}
+                  selectedPriceSetId={siteForm.price_set_id}
+                  onSelectPeriod={(id) => setSiteForm((p) => ({ ...p, price_set_id: id }))}
+                />
               </>
             )}
 
@@ -1788,6 +1793,15 @@ export function CustomerSetupAdmin() {
             {siteForm.price_set_id && siteForm.load_report_type && (
               <>
                 <Separator />
+                {editingSite && (
+                  <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-md p-2">
+                    You are editing the rebate values for{" "}
+                    <span className="font-medium text-foreground">
+                      {priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "this rebate set"}
+                    </span>
+                    . Pick a different period above to edit another model.
+                  </p>
+                )}
                 <SiteRebateItemsEditor
                   priceSetId={siteForm.price_set_id}
                   priceSetName={priceSets.find((ps) => ps.id === siteForm.price_set_id)?.name ?? "Rebate Set"}
