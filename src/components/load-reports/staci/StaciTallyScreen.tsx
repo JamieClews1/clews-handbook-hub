@@ -970,6 +970,7 @@ export const StaciTallyScreen = ({
             papersDolavOnPallets={papersDolavOnPallets}
             glassDolavOnPallets={glassDolavOnPallets}
             scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
+            greenRatePerTonne={greenRatePerTonne}
           />
         </div>
       )}
