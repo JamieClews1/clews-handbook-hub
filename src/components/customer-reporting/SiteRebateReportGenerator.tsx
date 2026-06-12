@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, DollarSign, Loader2, Download } from "lucide-react";
+import { CalendarIcon, DollarSign, Loader2, Download, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
+import { exportCustomerRebateReport } from "@/lib/customer-rebate-export";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -984,6 +985,30 @@ export function SiteRebateReportGenerator() {
     XLSX.writeFile(wb, fileName);
   };
 
+  const handleCustomerExport = async () => {
+    const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
+    if (!exportCustomer || !dateRange?.from) return;
+    const siteName = isCustomerMidweighMode
+      ? "Customer Midweigh Report"
+      : (selectedSite?.site_name ?? "Customer-Level Report");
+    const periodLabel = `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`;
+    try {
+      await exportCustomerRebateReport({
+        customerName: exportCustomer.customer_name,
+        siteName,
+        periodLabel,
+        rebateSetName: priceSetName || "Customer-Level Midweigh Rebates",
+        consolidatedData,
+        totalWeight: combinedTotalWeight,
+        totalRebate: combinedTotalRebate,
+      });
+    } catch (err) {
+      console.error("Customer export failed", err);
+      toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
@@ -1185,6 +1210,10 @@ export function SiteRebateReportGenerator() {
               <Button variant="outline" size="sm" onClick={exportToExcel}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Excel
+              </Button>
+              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleCustomerExport}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Customer Export
               </Button>
             </div>
           </div>

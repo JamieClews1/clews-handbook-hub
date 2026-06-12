@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, eachMonthOfInterval, addDays } from "
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { exportCustomerRebateReport } from "@/lib/customer-rebate-export";
 import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
@@ -869,6 +870,26 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     XLSX.writeFile(wb, fileName);
   };
 
+  const handleCustomerExport = async () => {
+    if (!selectedSite || !dateRange?.from) return;
+    const periodLabel = `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`;
+    try {
+      await exportCustomerRebateReport({
+        customerName,
+        siteName: selectedSite.site_name,
+        periodLabel,
+        rebateSetName: priceSetName || undefined,
+        consolidatedData,
+        totalWeight: combinedTotalWeight,
+        totalRebate: combinedTotalRebate,
+      });
+    } catch (err) {
+      console.error("Customer export failed", err);
+      toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-4">
@@ -920,6 +941,13 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           <Button variant="outline" onClick={exportToExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Export to Excel
+          </Button>
+        )}
+
+        {reportGenerated && reportData.length > 0 && (
+          <Button className="bg-green-600 hover:bg-green-700" onClick={handleCustomerExport}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Customer Export
           </Button>
         )}
       </div>
