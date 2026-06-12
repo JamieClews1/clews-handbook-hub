@@ -106,6 +106,8 @@ export const StaciTallyScreen = ({
   scrapMetalLooseOnPallets,
   onScrapMetalLooseOnPalletsChange,
   palletWeightKg = 20,
+  greenRatePerTonne = 0,
+  onGreenRatePerTonneChange,
 }: StaciTallyScreenProps) => {
   const isMobile = useIsMobile();
   const [mobileStep, setMobileStep] = useState<MobileStep>("pallet-entry");
