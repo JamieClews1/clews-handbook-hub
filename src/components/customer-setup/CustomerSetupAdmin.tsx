@@ -154,6 +154,8 @@ export function CustomerSetupAdmin() {
     load_report_type: "",
   });
   const [savingSite, setSavingSite] = useState(false);
+  // Human-readable window (e.g. "01/05/2026 → ongoing") of the period whose rebate values are shown below.
+  const [selectedPeriodLabel, setSelectedPeriodLabel] = useState<string | null>(null);
   const [newRebateSetInline, setNewRebateSetInline] = useState("");
   const [skiptrakCustomers, setSkiptrakCustomers] = useState<string[]>([]);
   const [skiptrakSitesByCustomer, setSkiptrakSitesByCustomer] = useState<Record<string, string[]>>({});
