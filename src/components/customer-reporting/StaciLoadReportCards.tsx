@@ -44,6 +44,7 @@ interface StaciReport {
   glass_dolav_weight_kg: number;
   scrap_metal_loose_count: number;
   scrap_metal_loose_weight_kg: number;
+  green_rate_per_tonne: number;
   status: string;
   pallet_entries: {
     colour: StaciPalletColour;
@@ -149,6 +150,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
         glass_dolav_weight_kg: Number((r as any).glass_dolav_weight_kg) || 0,
         scrap_metal_loose_count: (r as any).scrap_metal_loose_count || 0,
         scrap_metal_loose_weight_kg: Number((r as any).scrap_metal_loose_weight_kg) || 0,
+        green_rate_per_tonne: Number((r as any).staci_green_rate_per_tonne) || 0,
         status: r.status,
         pallet_entries: (palletsByReport[r.id] || []).map((e: any) => ({
           colour: e.colour,
@@ -263,7 +265,12 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
 
     for (const [colour, data] of colourMap) {
       const rate = STACI_PALLET_RATES[colour];
-      const value = colour === "waste_wood" ? (data.weight / 1000) * rate : data.count * rate;
+      const isGreenOverride = colour === "green" && report.green_rate_per_tonne !== 0;
+      const value = colour === "waste_wood"
+        ? (data.weight / 1000) * rate
+        : isGreenOverride
+        ? ((data.weight - data.count * palletWeightKg) / 1000) * report.green_rate_per_tonne
+        : data.count * rate;
 
       summaries.push({
         colour,

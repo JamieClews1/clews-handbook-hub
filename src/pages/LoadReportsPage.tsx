@@ -96,6 +96,7 @@ const LoadReportsPage = () => {
   const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
   const [staciCardBalesRate, setStaciCardBalesRate] = useState(0);
   const [staciFilmsRate, setStaciFilmsRate] = useState(0);
+  const [staciGreenRatePerTonne, setStaciGreenRatePerTonne] = useState(0);
 
   // Offline support
   const {
@@ -439,6 +440,7 @@ const LoadReportsPage = () => {
     setStaciCardBalesWeightKg(0);
     setStaciFilmsBaleCount(0);
     setStaciFilmsBaleWeightKg(0);
+    setStaciGreenRatePerTonne(0);
     
     // Fetch latest waste types to ensure we have current default weights
     const { data, error } = await supabase
@@ -521,6 +523,7 @@ const LoadReportsPage = () => {
       setStaciPapersDolavOnPallets((report as any).papers_dolav_on_pallets || false);
       setStaciGlassDolavOnPallets((report as any).glass_dolav_on_pallets || false);
       setStaciScrapMetalLooseOnPallets((report as any).scrap_metal_loose_on_pallets || false);
+      setStaciGreenRatePerTonne(Number((report as any).staci_green_rate_per_tonne) || 0);
 
       // Load Staci pallet entries if present
       if (staciEntries.length > 0) {
@@ -797,6 +800,7 @@ const LoadReportsPage = () => {
            papers_dolav_on_pallets: staciPapersDolavOnPallets,
            glass_dolav_on_pallets: staciGlassDolavOnPallets,
            scrap_metal_loose_on_pallets: staciScrapMetalLooseOnPallets,
+           staci_green_rate_per_tonne: staciGreenRatePerTonne || null,
            exclude_from_rebate: excludeFromRebate,
            submitted_at: submit ? new Date().toISOString() : null,
         };
@@ -1161,6 +1165,8 @@ const LoadReportsPage = () => {
               scrapMetalLooseOnPallets={staciScrapMetalLooseOnPallets}
               onScrapMetalLooseOnPalletsChange={setStaciScrapMetalLooseOnPallets}
               palletWeightKg={defaultPalletWeight}
+              greenRatePerTonne={staciGreenRatePerTonne}
+              onGreenRatePerTonneChange={setStaciGreenRatePerTonne}
             />
           )}
 
@@ -1213,6 +1219,7 @@ const LoadReportsPage = () => {
               scrapMetalLooseWeightKg={staciScrapMetalLooseWeightKg}
               palletWeightKg={defaultPalletWeight}
               palletChargeRatePerTonne={staciPalletChargeRate}
+              greenRatePerTonne={staciGreenRatePerTonne}
               cardBalesRatePerTonne={staciCardBalesRate}
               filmsRatePerTonne={staciFilmsRate}
               weighbridgeWeightKg={weighbridgeWeightKg}

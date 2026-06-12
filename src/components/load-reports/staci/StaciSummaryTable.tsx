@@ -36,6 +36,7 @@ interface StaciSummaryTableProps {
   glassDolavOnPallets?: boolean;
   scrapMetalLooseOnPallets?: boolean;
   weighbridgeWeightKg?: number | null;
+  greenRatePerTonne?: number;
 }
 
 export const StaciSummaryTable = ({
@@ -65,6 +66,7 @@ export const StaciSummaryTable = ({
   glassDolavOnPallets = false,
   scrapMetalLooseOnPallets = false,
   weighbridgeWeightKg,
+  greenRatePerTonne = 0,
 }: StaciSummaryTableProps) => {
   const palletRebate = goodPalletCount * STACI_PALLET_GOOD_REBATE;
   
@@ -156,7 +158,11 @@ export const StaciSummaryTable = ({
                   {netWeight.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  {isRebate ? (
+                  {summary.colour === "green" && greenRatePerTonne !== 0 ? (
+                    <span className={greenRatePerTonne < 0 ? "text-green-600" : ""}>
+                      {greenRatePerTonne < 0 ? "-" : ""}£{Math.abs(greenRatePerTonne).toFixed(2)}/t
+                    </span>
+                  ) : isRebate ? (
                     <span className="text-green-600">-£{Math.abs(summary.ratePerPallet).toFixed(2)}</span>
                   ) : (
                     `£${summary.ratePerPallet.toFixed(2)}`

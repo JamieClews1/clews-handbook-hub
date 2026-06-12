@@ -35,6 +35,7 @@ interface StaciReviewScreenProps {
   scrapMetalLooseWeightKg: number;
   palletWeightKg?: number;
   palletChargeRatePerTonne?: number;
+  greenRatePerTonne?: number;
   weighbridgeWeightKg?: number | null;
   weighbridgeLoading?: boolean;
   onPalletEntriesChange?: (entries: StaciPalletEntry[]) => void;
@@ -90,7 +91,7 @@ function reconcileStaciEntries(
   });
 }
 
-function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: number) {
+function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: number, greenRatePerTonne = 0, palletWeightKg = 20) {
   const colourMap = new Map<StaciPalletColour, { count: number; weight: number }>();
 
   for (const entry of palletEntries) {
@@ -114,9 +115,13 @@ function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: numb
 
   for (const [colour, data] of colourMap) {
     const rate = STACI_PALLET_RATES[colour];
+    const isGreenOverride = colour === "green" && greenRatePerTonne !== 0;
     let value: number;
     if (colour === "waste_wood") {
       value = (data.weight / 1000) * rate;
+    } else if (isGreenOverride) {
+      const netWeight = data.weight - data.count * palletWeightKg;
+      value = (netWeight / 1000) * greenRatePerTonne;
     } else {
       value = data.count * rate;
     }
@@ -163,6 +168,7 @@ export const StaciReviewScreen = ({
   scrapMetalLooseWeightKg,
   palletWeightKg = 20,
   palletChargeRatePerTonne = 0,
+  greenRatePerTonne = 0,
   weighbridgeWeightKg,
   weighbridgeLoading,
   onPalletEntriesChange,
@@ -194,8 +200,8 @@ export const StaciReviewScreen = ({
   const [isReconciled, setIsReconciled] = useState(false);
 
   const { summaries, totalPallets, totalWeightKg, totalValue, palletRebate } = useMemo(
-    () => buildSummaries(palletEntries, goodPalletCount),
-    [palletEntries, goodPalletCount]
+    () => buildSummaries(palletEntries, goodPalletCount, greenRatePerTonne, palletWeightKg),
+    [palletEntries, goodPalletCount, greenRatePerTonne, palletWeightKg]
   );
 
   // Compute pallet charge value, bale values, and effective net total
@@ -218,8 +224,8 @@ export const StaciReviewScreen = ({
   // Reconciled preview summaries
   const reconciledSummaryData = useMemo(() => {
     if (!reconciledPreview) return null;
-    return buildSummaries(reconciledPreview, goodPalletCount);
-  }, [reconciledPreview, goodPalletCount]);
+    return buildSummaries(reconciledPreview, goodPalletCount, greenRatePerTonne, palletWeightKg);
+  }, [reconciledPreview, goodPalletCount, greenRatePerTonne, palletWeightKg]);
 
   // Total weight from bales/dolavs that must be subtracted from weighbridge target
   const baleDolavTotalKg =
@@ -390,6 +396,7 @@ export const StaciReviewScreen = ({
               papersDolavOnPallets={papersDolavOnPallets}
               glassDolavOnPallets={glassDolavOnPallets}
               scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
+              greenRatePerTonne={greenRatePerTonne}
               weighbridgeWeightKg={weighbridgeWeightKg}
             />
           ) : (
@@ -493,6 +500,7 @@ export const StaciReviewScreen = ({
                       papersDolavOnPallets={papersDolavOnPallets}
                       glassDolavOnPallets={glassDolavOnPallets}
                       scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
+                      greenRatePerTonne={greenRatePerTonne}
                       weighbridgeWeightKg={weighbridgeWeightKg}
                     />
                     <Button
@@ -544,6 +552,7 @@ export const StaciReviewScreen = ({
                       papersDolavOnPallets={papersDolavOnPallets}
                       glassDolavOnPallets={glassDolavOnPallets}
                       scrapMetalLooseOnPallets={scrapMetalLooseOnPallets}
+                      greenRatePerTonne={greenRatePerTonne}
                       weighbridgeWeightKg={weighbridgeWeightKg}
                     />
                     <Button
