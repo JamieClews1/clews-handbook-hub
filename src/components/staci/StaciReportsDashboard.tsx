@@ -804,11 +804,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           </td>
                           <td className="py-1.5 px-3 text-right">{d.count}</td>
                           <td className="py-1.5 px-3 text-right">{(d.weightKg / 1000).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">
-                            {colour === "green" && dbGreenRatePerTonne !== 0
-                              ? `£${dbGreenRatePerTonne.toFixed(2)}/t`
-                              : `£${(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}`}
-                          </td>
+                          <td className="py-1.5 px-3 text-right">£{(dbPalletRates[colour] ?? STACI_PALLET_RATES[colour as StaciPalletColour])?.toFixed(2)}</td>
                           <td className="py-1.5 px-3 text-right font-medium">{d.cost >= 0 ? `£${d.cost.toFixed(2)}` : `-£${Math.abs(d.cost).toFixed(2)}`}</td>
                         </tr>
                       ))}
