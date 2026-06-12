@@ -38,6 +38,7 @@ import {
 } from "recharts";
 import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
 import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
+import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 
 const TARE_KG = 20;
 
@@ -290,11 +291,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         }
 
         if (staciSiteId) {
-          const { data: priceSetLink } = await supabase
-            .from("customer_site_price_sets")
-            .select("price_set_id")
-            .eq("site_id", staciSiteId)
-            .single();
+          const priceSetLink = await fetchActivePriceSetLink(staciSiteId, to);
 
           if (priceSetLink?.price_set_id) {
             const { data: psItems } = await supabase

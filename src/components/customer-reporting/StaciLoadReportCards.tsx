@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
+import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 import {
   STACI_PALLET_RATES,
   STACI_PALLET_GOOD_REBATE,
@@ -178,11 +179,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
       const staciSiteId = staciSites?.[0]?.id;
       if (!staciSiteId) return;
 
-      const { data: priceSetLink } = await supabase
-        .from("customer_site_price_sets")
-        .select("price_set_id")
-        .eq("site_id", staciSiteId)
-        .single();
+      const priceSetLink = await fetchActivePriceSetLink(staciSiteId, dateTo);
       if (!priceSetLink?.price_set_id) return;
 
       const { data: psItems } = await supabase

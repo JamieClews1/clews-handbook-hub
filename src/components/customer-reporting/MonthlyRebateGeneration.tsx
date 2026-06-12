@@ -19,6 +19,7 @@ import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
  import { useToast } from "@/hooks/use-toast";
  import { DateRange } from "react-day-picker";
  import { useAuth } from "@/hooks/useAuth";
+ import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
  
  type Customer = {
    id: string;
@@ -229,12 +230,8 @@ import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
          const siteBreakdowns: CustomerRebateSummary["siteBreakdowns"] = [];
  
          for (const site of customerSites) {
-           // Get site price set
-           const { data: priceSetLink } = await supabase
-             .from("customer_site_price_sets")
-             .select("price_set_id")
-             .eq("site_id", site.id)
-             .single();
+           // Get site price set active for the reporting period (effective-dated)
+           const priceSetLink = await fetchActivePriceSetLink(site.id, periodEnd);
  
            if (!priceSetLink) continue;
  

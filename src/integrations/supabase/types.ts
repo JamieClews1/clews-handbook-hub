@@ -1003,6 +1003,8 @@ export type Database = {
       customer_site_price_sets: {
         Row: {
           created_at: string
+          effective_from: string
+          effective_to: string | null
           id: string
           price_set_id: string
           site_id: string
@@ -1010,6 +1012,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          effective_from?: string
+          effective_to?: string | null
           id?: string
           price_set_id: string
           site_id: string
@@ -1017,6 +1021,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          effective_from?: string
+          effective_to?: string | null
           id?: string
           price_set_id?: string
           site_id?: string
@@ -1033,7 +1039,7 @@ export type Database = {
           {
             foreignKeyName: "customer_site_price_sets_site_id_fkey"
             columns: ["site_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "customer_sites"
             referencedColumns: ["id"]
           },

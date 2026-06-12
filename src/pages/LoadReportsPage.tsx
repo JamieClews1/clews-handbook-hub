@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
+import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 
 import { CustomerTypeSelector, CustomerType } from "@/components/load-reports/CustomerTypeSelector";
 import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
@@ -162,12 +163,9 @@ const LoadReportsPage = () => {
     }
     const fetchSiteRates = async () => {
       try {
-        // 1. Get the price set for this site
-        const { data: priceSetLink } = await supabase
-          .from("customer_site_price_sets")
-          .select("price_set_id")
-          .eq("site_id", selectedSiteId)
-          .maybeSingle();
+        // 1. Get the price set active for the load's report date (effective-dated)
+        const refDate = normalizeLoadReportDate(reportDate) || getTodayLoadReportDate();
+        const priceSetLink = await fetchActivePriceSetLink(selectedSiteId, refDate);
 
         if (!priceSetLink) {
           setStaciPalletChargeRate(0);
@@ -247,7 +245,7 @@ const LoadReportsPage = () => {
       }
     };
     fetchSiteRates();
-  }, [selectedCustomer, selectedSiteId]);
+  }, [selectedCustomer, selectedSiteId, reportDate]);
 
   const fetchSites = async () => {
     // Map customer type to load_report_type value
