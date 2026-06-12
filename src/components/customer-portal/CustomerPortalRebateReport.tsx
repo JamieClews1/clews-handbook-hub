@@ -23,6 +23,7 @@ import { computeThresholdReductions } from "@/lib/rebate-threshold";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
 import { RebateReportLockControls } from "@/components/customer-reporting/RebateReportLockControls";
+import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 
 type Site = {
   id: string;
