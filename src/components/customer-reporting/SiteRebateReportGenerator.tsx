@@ -185,15 +185,13 @@ export function SiteRebateReportGenerator() {
     try {
       const site = isCustomerMidweighMode ? null : (selectedSiteId ? sites.find((s) => s.id === selectedSiteId) : null);
 
-      // Get the site's price set (optional - may not exist for Midweigh-only sites)
+      // Get the site's price set active for the reporting period (optional - may
+      // not exist for Midweigh-only sites). Effective-dated: a report uses the
+      // charging model in force at the end of its period.
       let priceSetLink = null;
       if (selectedSiteId) {
-        const { data } = await supabase
-          .from("customer_site_price_sets")
-          .select("price_set_id, rebate_price_sets(name)")
-          .eq("site_id", selectedSiteId)
-          .single();
-        priceSetLink = data;
+        const periodRef = format(dateRange?.to ?? dateRange?.from ?? new Date(), "yyyy-MM-dd");
+        priceSetLink = await fetchActivePriceSetLink(selectedSiteId, periodRef, true);
       }
 
       // Check if there are customer-level skip rebates configured
