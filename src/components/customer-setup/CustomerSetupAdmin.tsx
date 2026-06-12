@@ -591,6 +591,7 @@ export function CustomerSetupAdmin() {
       load_report_type: (site as any).load_report_type ?? "",
     });
     setNewRebateSetInline("");
+    setSelectedPeriodLabel(null);
     setEditSiteOpen(true);
     loadSkiptrakOptions();
   };
