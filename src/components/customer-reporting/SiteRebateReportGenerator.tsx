@@ -985,6 +985,30 @@ export function SiteRebateReportGenerator() {
     XLSX.writeFile(wb, fileName);
   };
 
+  const handleCustomerExport = async () => {
+    const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
+    if (!exportCustomer || !dateRange?.from) return;
+    const siteName = isCustomerMidweighMode
+      ? "Customer Midweigh Report"
+      : (selectedSite?.site_name ?? "Customer-Level Report");
+    const periodLabel = `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`;
+    try {
+      await exportCustomerRebateReport({
+        customerName: exportCustomer.customer_name,
+        siteName,
+        periodLabel,
+        rebateSetName: priceSetName || "Customer-Level Midweigh Rebates",
+        consolidatedData,
+        totalWeight: combinedTotalWeight,
+        totalRebate: combinedTotalRebate,
+      });
+    } catch (err) {
+      console.error("Customer export failed", err);
+      toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
