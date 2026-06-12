@@ -1049,7 +1049,14 @@ export function CustomerSetupAdmin() {
   };
 
   return (
-    <div className="grid lg:grid-cols-[360px_1fr] gap-6">
+    <Tabs defaultValue="customers" className="w-full">
+      <TabsList>
+        <TabsTrigger value="customers">Customers</TabsTrigger>
+        <TabsTrigger value="new-customers">New customers</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="customers" className="mt-4">
+        <div className="grid lg:grid-cols-[360px_1fr] gap-6">
       <Card className="h-fit">
         <CardHeader>
           <CardTitle>Customers</CardTitle>
