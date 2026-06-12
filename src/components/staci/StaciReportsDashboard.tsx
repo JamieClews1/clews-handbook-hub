@@ -389,13 +389,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         ? (netWeight / 1000) * (r.green_rate_per_tonne as number)
         : rate * count;
 
-      if (!colourMap[r.colour]) colourMap[r.colour] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
-      colourMap[r.colour].count += count;
-      colourMap[r.colour].weightKg += netWeight; // store NET weight for colour entries
-      colourMap[r.colour].cost += lineCost;
+      // Green pallets priced per tonne are tracked under a separate row so they
+      // don't merge with standard per-pallet green pallets in the breakdown.
+      const mapKey = isGreenPerTonne ? "green_per_tonne" : r.colour;
+      if (!colourMap[mapKey]) colourMap[mapKey] = { count: 0, weightKg: 0, cost: 0, perTonneRates: new Set<number>(), perTonneCount: 0 };
+      colourMap[mapKey].count += count;
+      colourMap[mapKey].weightKg += netWeight; // store NET weight for colour entries
+      colourMap[mapKey].cost += lineCost;
       if (isGreenPerTonne) {
-        colourMap[r.colour].perTonneRates.add(r.green_rate_per_tonne as number);
-        colourMap[r.colour].perTonneCount += count;
+        colourMap[mapKey].perTonneRates.add(r.green_rate_per_tonne as number);
+        colourMap[mapKey].perTonneCount += count;
       }
 
       totalPallets += count;
