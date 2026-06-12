@@ -870,6 +870,26 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     XLSX.writeFile(wb, fileName);
   };
 
+  const handleCustomerExport = async () => {
+    if (!selectedSite || !dateRange?.from) return;
+    const periodLabel = `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`;
+    try {
+      await exportCustomerRebateReport({
+        customerName,
+        siteName: selectedSite.site_name,
+        periodLabel,
+        rebateSetName: priceSetName || undefined,
+        consolidatedData,
+        totalWeight: combinedTotalWeight,
+        totalRebate: combinedTotalRebate,
+      });
+    } catch (err) {
+      console.error("Customer export failed", err);
+      toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-4">
