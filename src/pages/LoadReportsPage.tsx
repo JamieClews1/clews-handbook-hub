@@ -96,6 +96,7 @@ const LoadReportsPage = () => {
   const [staciPalletChargeRate, setStaciPalletChargeRate] = useState(0);
   const [staciCardBalesRate, setStaciCardBalesRate] = useState(0);
   const [staciFilmsRate, setStaciFilmsRate] = useState(0);
+  const [staciGreenRatePerTonne, setStaciGreenRatePerTonne] = useState(0);
 
   // Offline support
   const {
