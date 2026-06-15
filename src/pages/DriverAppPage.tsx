@@ -1220,6 +1220,10 @@ const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) =
   const [view, setView] = useState<AppView>(user.role === "yard" ? "contaminations" : "jobs");
   const nav = <BottomNav view={view} setView={setView} role={user.role} />;
 
+  // Continuously share the driver's location with dispatch while logged in.
+  useDriverLocationTracking(user.driver?.id, user.driver?.driver_name, user.role === "driver");
+
+
   if (view === "contaminations") {
     return (
       <DriverContaminationsHub
