@@ -57,3 +57,45 @@ future updates.
   Lovable. Installed apps pick it up automatically — no new APK needed.
 - **Wrapper changes** (app name, icon, splash, Android permissions): edit, then
   re-run `npx cap sync android` and rebuild the APK.
+
+## Background location tracking (live driver map)
+
+The Driver App reports each driver's GPS position to dispatch (RouteOne → Live
+Map). On the web/PWA this only works while the app is open. For **all-day
+background tracking** (phone locked, app backgrounded) the native APK must be
+rebuilt with the background-geolocation plugin and the Android permissions
+below — this is a one-time wrapper change.
+
+1. Pull the latest project and install deps (the plugin is already in
+   `package.json`):
+   ```bash
+   npm install
+   npx cap sync android   # links @capacitor-community/background-geolocation
+   ```
+2. Add these permissions to `android/app/src/main/AndroidManifest.xml` inside
+   the `<manifest>` element (the plugin also documents this in its README):
+   ```xml
+   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+   ```
+   And register the plugin's foreground service inside `<application>`:
+   ```xml
+   <service
+     android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"
+     android:foregroundServiceType="location"
+     android:enabled="true"
+     android:exported="false" />
+   ```
+3. Rebuild and sign the APK (see Build steps above), then redistribute it.
+4. On the phone, the driver must grant location permission and choose
+   **"Allow all the time"** when prompted, otherwise Android stops updates once
+   the screen locks. A persistent notification ("RouteOne tracking active") is
+   shown while tracking — this is required by Android for background location.
+
+> **Privacy / UK GDPR:** Tracking staff location is personal data. Make sure
+> drivers are informed (employment policy / privacy notice) and that there is a
+> lawful basis before enabling this in production.
+
