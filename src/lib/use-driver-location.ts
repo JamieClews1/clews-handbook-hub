@@ -86,8 +86,6 @@ export function useDriverLocationTracking(
 
     const startNative = async () => {
       try {
-        const mod = await import("@capacitor-community/background-geolocation");
-        const BackgroundGeolocation = mod.default;
         const watcherId = await BackgroundGeolocation.addWatcher(
           {
             backgroundMessage: "Location is shared with dispatch while you are on shift.",
