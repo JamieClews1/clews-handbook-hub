@@ -145,9 +145,10 @@ const DriverTrackingMap = () => {
     }
 
     // Fit bounds on first load only
-    if (bounds.length && !map.__fitted) {
+    const fittedMap = map as L.Map & { __fitted?: boolean };
+    if (bounds.length && !fittedMap.__fitted) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50], maxZoom: 13 });
-      (map as L.Map & { __fitted?: boolean }).__fitted = true;
+      fittedMap.__fitted = true;
     }
   }, [locations]);
 
