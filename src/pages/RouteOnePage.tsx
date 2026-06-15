@@ -84,7 +84,7 @@ const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week" | "list">("day");
+  const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
   const [newDriverOpen, setNewDriverOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
