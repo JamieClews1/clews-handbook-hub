@@ -1,6 +1,13 @@
 import { useEffect, useRef } from "react";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import type { BackgroundGeolocationPlugin } from "@capacitor-community/background-geolocation";
 import { driverAction } from "@/lib/driver-api";
+
+// v1 of this plugin ships only TypeScript definitions; the runtime wrapper is
+// registered through Capacitor. On the web this returns a no-op proxy, so it is
+// safe to register unconditionally.
+const BackgroundGeolocation =
+  registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
 
 /**
  * Continuously reports a driver's GPS position to the backend while they are
