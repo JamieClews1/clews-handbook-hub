@@ -106,6 +106,39 @@ Deno.serve(async (req) => {
         return json({ staff: data ?? null });
       }
 
+      /* ─── Live location tracking ─── */
+      case "update_location": {
+        const driverId = String(body?.driver_id ?? "");
+        const lat = Number(body?.latitude);
+        const lng = Number(body?.longitude);
+        if (!driverId) return json({ error: "driver_id required" }, 400);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          return json({ error: "valid latitude and longitude required" }, 400);
+        }
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          return json({ error: "coordinates out of range" }, 400);
+        }
+        const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : null);
+        const { error } = await supabase
+          .from("driver_locations")
+          .upsert(
+            {
+              driver_id: driverId,
+              driver_name: body?.driver_name ? String(body.driver_name) : null,
+              latitude: lat,
+              longitude: lng,
+              accuracy: num(body?.accuracy),
+              speed: num(body?.speed),
+              heading: num(body?.heading),
+              battery_level: num(body?.battery_level),
+              recorded_at: new Date().toISOString(),
+            },
+            { onConflict: "driver_id" },
+          );
+        if (error) throw error;
+        return json({ ok: true });
+      }
+
       /* ─── Jobs ─── */
       case "list_jobs": {
         const driverId = String(body?.driver_id ?? "");
