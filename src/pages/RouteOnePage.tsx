@@ -632,8 +632,12 @@ const RouteOnePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* List View */}
-      {viewMode === "list" ? (
+      {/* Live Map View */}
+      {viewMode === "map" ? (
+        <div className="flex-1 overflow-auto p-4">
+          <DriverTrackingMap />
+        </div>
+      ) : viewMode === "list" ? (
         <div className="flex-1 overflow-auto p-4">
           <div className="rounded-lg border border-border">
             <Table>
