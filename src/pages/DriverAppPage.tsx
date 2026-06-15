@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
 import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub";
+import { useDriverLocationTracking } from "@/lib/use-driver-location";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
@@ -1219,6 +1220,10 @@ const DriverDashboard = ({
 const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) => {
   const [view, setView] = useState<AppView>(user.role === "yard" ? "contaminations" : "jobs");
   const nav = <BottomNav view={view} setView={setView} role={user.role} />;
+
+  // Continuously share the driver's location with dispatch while logged in.
+  useDriverLocationTracking(user.driver?.id, user.driver?.driver_name, user.role === "driver");
+
 
   if (view === "contaminations") {
     return (
