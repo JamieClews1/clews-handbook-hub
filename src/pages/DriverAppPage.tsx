@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
 import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub";
+import { useDriverLocationTracking } from "@/lib/use-driver-location";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
