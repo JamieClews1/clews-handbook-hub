@@ -225,6 +225,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           siteMap[key].lastDeliveryOrExchangeDate = job.job_date;
         }
       }
+      // Track last tip/return (servicing) date — a regularly tipped-and-returned
+      // skip is an ongoing managed service, not an idle hire, so this resets the
+      // over-rental clock.
+      if (job.job_date && isTipReturn(job.movement_type)) {
+        if (!siteMap[key].lastTipReturnDate || job.job_date > siteMap[key].lastTipReturnDate!) {
+          siteMap[key].lastTipReturnDate = job.job_date;
+        }
+      }
       // Track last collection date
       if (job.job_date && isCollection(job.movement_type)) {
         if (!siteMap[key].lastCollectionDate || job.job_date > siteMap[key].lastCollectionDate!) {
