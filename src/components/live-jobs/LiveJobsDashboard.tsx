@@ -272,7 +272,12 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
-        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
+        // A site whose most recent "keep" movement is a Tip/Return is on an active
+        // tip-and-return service contract (skip emptied and returned regularly), so
+        // it should never flag as over-rental.
+        const onActiveTipReturnService = !!s.lastTipReturnDate &&
+          (!s.lastDeliveryOrExchangeDate || s.lastTipReturnDate >= s.lastDeliveryOrExchangeDate);
+        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt && !onActiveTipReturnService;
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
