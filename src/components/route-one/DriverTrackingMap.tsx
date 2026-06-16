@@ -36,30 +36,35 @@ const initials = (name: string | null) =>
     .join("")
     .toUpperCase();
 
-const pinIcon = (loc: DriverLocation) => {
+const markerIcon = (loc: DriverLocation): google.maps.Icon => {
   const online = isOnline(loc);
   const colour = online ? "#10b981" : "#9ca3af";
-  return L.divIcon({
-    className: "",
-    html: `
-      <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
-        <div style="background:${colour};color:#fff;font-weight:700;font-size:11px;
-          width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-          display:flex;align-items:center;justify-content:center;
-          box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff;">
-          <span style="transform:rotate(45deg);">${initials(loc.driver_name)}</span>
-        </div>
-      </div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 34],
-    popupAnchor: [0, -34],
-  });
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
+      <path d="M20 1C10.6 1 3 8.6 3 18c0 12 17 28 17 28s17-16 17-28C37 8.6 29.4 1 20 1z"
+        fill="${colour}" stroke="#fff" stroke-width="2"/>
+      <text x="20" y="23" text-anchor="middle" font-family="Arial, sans-serif"
+        font-size="13" font-weight="700" fill="#fff">${initials(loc.driver_name)}</text>
+    </svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new google.maps.Size(40, 48),
+    anchor: new google.maps.Point(20, 46),
+  };
 };
 
+const popupHtml = (loc: DriverLocation) =>
+  `<div style="font-size:12px;line-height:1.4;"><strong>${loc.driver_name ?? "Driver"}</strong><br/>${
+    isOnline(loc) ? "Live" : "Last seen"
+  } ${formatDistanceToNow(new Date(loc.recorded_at), { addSuffix: true })}</div>`;
+
 const DriverTrackingMap = () => {
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const markersRef = useRef<Record<string, L.Marker>>({});
+  const markersRef = useRef<Record<string, google.maps.Marker>>({});
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const fittedRef = useRef(false);
+  const [mapReady, setMapReady] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: locations = [], refetch, isFetching } = useQuery({
@@ -92,45 +97,56 @@ const DriverTrackingMap = () => {
 
   // Init map once
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const map = L.map(containerRef.current, { zoomControl: true }).setView([52.6, -2.0], 9);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
-    }).addTo(map);
-    mapRef.current = map;
+    let cancelled = false;
+    loadGoogleMaps()
+      .then((maps) => {
+        if (cancelled || !containerRef.current || mapRef.current) return;
+        const map = new maps.Map(containerRef.current, {
+          center: { lat: 52.6, lng: -2.0 },
+          zoom: 9,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true,
+        });
+        mapRef.current = map;
+        infoWindowRef.current = new maps.InfoWindow();
+        setMapReady(true);
+      })
+      .catch((err) => console.error("Google Maps failed to load", err));
     return () => {
-      map.remove();
-      mapRef.current = null;
-      markersRef.current = {};
+      cancelled = true;
     };
   }, []);
 
   // Sync markers with data
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapReady) return;
 
     const seen = new Set<string>();
-    const bounds: L.LatLngExpression[] = [];
+    const bounds = new google.maps.LatLngBounds();
 
     for (const loc of locations) {
       seen.add(loc.driver_id);
-      bounds.push([loc.latitude, loc.longitude]);
-      const popupHtml = `<strong>${loc.driver_name ?? "Driver"}</strong><br/>${
-        isOnline(loc) ? "Live" : "Last seen"
-      } ${formatDistanceToNow(new Date(loc.recorded_at), { addSuffix: true })}`;
+      const position = { lat: loc.latitude, lng: loc.longitude };
+      bounds.extend(position);
 
       const existing = markersRef.current[loc.driver_id];
       if (existing) {
-        existing.setLatLng([loc.latitude, loc.longitude]);
-        existing.setIcon(pinIcon(loc));
-        existing.getPopup()?.setContent(popupHtml);
+        existing.setPosition(position);
+        existing.setIcon(markerIcon(loc));
       } else {
-        const marker = L.marker([loc.latitude, loc.longitude], { icon: pinIcon(loc) })
-          .addTo(map)
-          .bindPopup(popupHtml);
-        marker.on("click", () => setSelectedId(loc.driver_id));
+        const marker = new google.maps.Marker({
+          position,
+          map,
+          icon: markerIcon(loc),
+          title: loc.driver_name ?? "Driver",
+        });
+        marker.addListener("click", () => {
+          setSelectedId(loc.driver_id);
+          infoWindowRef.current?.setContent(popupHtml(loc));
+          infoWindowRef.current?.open({ map, anchor: marker });
+        });
         markersRef.current[loc.driver_id] = marker;
       }
     }
@@ -138,26 +154,32 @@ const DriverTrackingMap = () => {
     // Remove markers for drivers no longer present
     for (const [driverId, marker] of Object.entries(markersRef.current)) {
       if (!seen.has(driverId)) {
-        marker.remove();
+        marker.setMap(null);
         delete markersRef.current[driverId];
       }
     }
 
     // Fit bounds on first load only
-    const fittedMap = map as L.Map & { __fitted?: boolean };
-    if (bounds.length && !fittedMap.__fitted) {
-      map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50], maxZoom: 13 });
-      fittedMap.__fitted = true;
+    if (locations.length && !fittedRef.current) {
+      map.fitBounds(bounds, 50);
+      fittedRef.current = true;
     }
-  }, [locations]);
+  }, [locations, mapReady]);
 
   const focusDriver = (loc: DriverLocation) => {
     setSelectedId(loc.driver_id);
     const map = mapRef.current;
     if (!map) return;
-    map.setView([loc.latitude, loc.longitude], 15, { animate: true });
-    markersRef.current[loc.driver_id]?.openPopup();
+    map.panTo({ lat: loc.latitude, lng: loc.longitude });
+    map.setZoom(15);
+    const marker = markersRef.current[loc.driver_id];
+    if (marker) {
+      infoWindowRef.current?.setContent(popupHtml(loc));
+      infoWindowRef.current?.open({ map, anchor: marker });
+    }
   };
+
+
 
   const onlineCount = useMemo(() => locations.filter(isOnline).length, [locations]);
 
