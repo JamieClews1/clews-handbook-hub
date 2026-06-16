@@ -129,7 +129,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -174,7 +174,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (job.container_type) {
         siteMap[key].containerTypes.add(job.container_type);
         if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastCollectionDate: null, wasteTypes: new Set(), positions: {} };
+          siteMap[key].containerTypeBreakdown[job.container_type] = { delivered: 0, collected: 0, exchanged: 0, lastDeliveryOrExchangeDate: null, lastTipReturnDate: null, lastCollectionDate: null, wasteTypes: new Set(), positions: {} };
         }
         const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
         if (isDelivery(job.movement_type)) ctb.delivered++;
@@ -184,6 +184,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         if (job.job_date && (isDelivery(job.movement_type) || isExchange(job.movement_type))) {
           if (!ctb.lastDeliveryOrExchangeDate || job.job_date > ctb.lastDeliveryOrExchangeDate) {
             ctb.lastDeliveryOrExchangeDate = job.job_date;
+          }
+        }
+        if (job.job_date && isTipReturn(job.movement_type)) {
+          if (!ctb.lastTipReturnDate || job.job_date > ctb.lastTipReturnDate) {
+            ctb.lastTipReturnDate = job.job_date;
           }
         }
         if (job.job_date && isCollection(job.movement_type)) {
@@ -261,7 +266,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     const live = Object.values(siteMap)
       .map(s => {
         const totalMovements = s.delivered + s.collected + s.exchanged;
-        const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
+        // A Tip/Return is a servicing visit (skip emptied and returned), so it
+        // resets the over-rental clock just like a delivery/exchange. The rental
+        // clock therefore runs from the most recent "keep on site" movement —
+        // whichever of delivery, exchange, or tip/return happened last.
+        const lastKeepDate = [s.lastDeliveryOrExchangeDate, s.lastTipReturnDate]
+          .filter((d): d is string => !!d)
+          .sort()
+          .pop() ?? null;
+        const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
         // Artics (waste trucks) don't stay on-site, so count sites visited instead
         let netOnSite: number;
         if (s.category === "artic") {
@@ -271,14 +284,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           // container types so simultaneous containers aren't collapsed into one.
           netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
-        const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
-        // A site whose most recent "keep" movement is a Tip/Return is on an active
-        // tip-and-return service contract (skip emptied and returned regularly), so
-        // it should never flag as over-rental.
-        const onActiveTipReturnService = !!s.lastTipReturnDate &&
-          (!s.lastDeliveryOrExchangeDate || s.lastTipReturnDate >= s.lastDeliveryOrExchangeDate);
-        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt && !onActiveTipReturnService;
-        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
+        const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
+        // Over rental when the skip has sat on-site beyond the free period since
+        // its last servicing/keep movement. Regularly tipped-and-returned skips
+        // (frequent service) stay under the threshold and never flag; a skip that
+        // was tipped once long ago and left on-site correctly flags, tracked from
+        // that last tip/return date.
+        const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
+        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
@@ -305,7 +318,12 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
         const onSiteForType = typeOnSite(ctb.positions);
         if (onSiteForType <= 0) continue;
-        const days = ctb.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(ctb.lastDeliveryOrExchangeDate)) : null;
+        // Track from the most recent keep movement (delivery/exchange/tip-return).
+        const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
+          .filter((d): d is string => !!d)
+          .sort()
+          .pop() ?? null;
+        const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
         if (days === null || days <= settings.rental_free_days) continue;
         overRental.push({
           customer: s.customer,
@@ -314,7 +332,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           containerType,
           netOnSite: onSiteForType,
           daysSinceActivity: days,
-          lastActivityDate: ctb.lastDeliveryOrExchangeDate,
+          lastActivityDate: ctbLastKeep,
         });
       }
     }
