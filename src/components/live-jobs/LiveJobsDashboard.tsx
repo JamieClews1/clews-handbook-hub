@@ -266,7 +266,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     const live = Object.values(siteMap)
       .map(s => {
         const totalMovements = s.delivered + s.collected + s.exchanged;
-        const collectionClearedIt = s.lastCollectionDate && s.lastDeliveryOrExchangeDate && s.lastCollectionDate >= s.lastDeliveryOrExchangeDate;
+        // A Tip/Return is a servicing visit (skip emptied and returned), so it
+        // resets the over-rental clock just like a delivery/exchange. The rental
+        // clock therefore runs from the most recent "keep on site" movement —
+        // whichever of delivery, exchange, or tip/return happened last.
+        const lastKeepDate = [s.lastDeliveryOrExchangeDate, s.lastTipReturnDate]
+          .filter((d): d is string => !!d)
+          .sort()
+          .pop() ?? null;
+        const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
         // Artics (waste trucks) don't stay on-site, so count sites visited instead
         let netOnSite: number;
         if (s.category === "artic") {
@@ -276,14 +284,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           // container types so simultaneous containers aren't collapsed into one.
           netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
-        const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
-        // A site whose most recent "keep" movement is a Tip/Return is on an active
-        // tip-and-return service contract (skip emptied and returned regularly), so
-        // it should never flag as over-rental.
-        const onActiveTipReturnService = !!s.lastTipReturnDate &&
-          (!s.lastDeliveryOrExchangeDate || s.lastTipReturnDate >= s.lastDeliveryOrExchangeDate);
-        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt && !onActiveTipReturnService;
-        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
+        const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
+        // Over rental when the skip has sat on-site beyond the free period since
+        // its last servicing/keep movement. Regularly tipped-and-returned skips
+        // (frequent service) stay under the threshold and never flag; a skip that
+        // was tipped once long ago and left on-site correctly flags, tracked from
+        // that last tip/return date.
+        const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
+        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
