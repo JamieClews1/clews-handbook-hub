@@ -156,6 +156,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           collected: 0,
           exchanged: 0,
           lastDeliveryOrExchangeDate: null,
+          lastTipReturnDate: null,
           lastCollectionDate: null,
           containerTypes: new Set(),
           wasteTypes: new Set(),
