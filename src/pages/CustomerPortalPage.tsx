@@ -211,7 +211,13 @@ const CustomerPortalPage = () => {
                   Back
                 </Button>
               </Link>
-              <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </Button>
+                <img src={w1Logo} alt="WasteOne" className="h-10 w-auto" />
+              </div>
             </div>
           </div>
         </header>
@@ -223,11 +229,18 @@ const CustomerPortalPage = () => {
                 Your account is not linked to any customer portal. Please contact your account manager for access.
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button className="w-full gap-2" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </Button>
+            </CardContent>
           </Card>
         </main>
       </div>
     );
   }
+
 
   // Admin without any customers in system
   if (isAdmin && customers.length === 0) {
