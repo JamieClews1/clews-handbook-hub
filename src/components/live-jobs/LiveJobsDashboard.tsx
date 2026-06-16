@@ -129,7 +129,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
@@ -156,6 +156,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           collected: 0,
           exchanged: 0,
           lastDeliveryOrExchangeDate: null,
+          lastTipReturnDate: null,
           lastCollectionDate: null,
           containerTypes: new Set(),
           wasteTypes: new Set(),
@@ -224,6 +225,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           siteMap[key].lastDeliveryOrExchangeDate = job.job_date;
         }
       }
+      // Track last tip/return (servicing) date — a regularly tipped-and-returned
+      // skip is an ongoing managed service, not an idle hire, so this resets the
+      // over-rental clock.
+      if (job.job_date && isTipReturn(job.movement_type)) {
+        if (!siteMap[key].lastTipReturnDate || job.job_date > siteMap[key].lastTipReturnDate!) {
+          siteMap[key].lastTipReturnDate = job.job_date;
+        }
+      }
       // Track last collection date
       if (job.job_date && isCollection(job.movement_type)) {
         if (!siteMap[key].lastCollectionDate || job.job_date > siteMap[key].lastCollectionDate!) {
@@ -263,7 +272,12 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
         const daysSinceDeliveryOrExchange = s.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(s.lastDeliveryOrExchangeDate)) : null;
-        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
+        // A site whose most recent "keep" movement is a Tip/Return is on an active
+        // tip-and-return service contract (skip emptied and returned regularly), so
+        // it should never flag as over-rental.
+        const onActiveTipReturnService = !!s.lastTipReturnDate &&
+          (!s.lastDeliveryOrExchangeDate || s.lastTipReturnDate >= s.lastDeliveryOrExchangeDate);
+        const isOverRental = s.category !== "artic" && daysSinceDeliveryOrExchange !== null && daysSinceDeliveryOrExchange > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt && !onActiveTipReturnService;
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceDeliveryOrExchange, lastActivityDate: s.lastDeliveryOrExchangeDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
