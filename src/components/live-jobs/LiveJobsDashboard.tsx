@@ -318,7 +318,12 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
         const onSiteForType = typeOnSite(ctb.positions);
         if (onSiteForType <= 0) continue;
-        const days = ctb.lastDeliveryOrExchangeDate ? differenceInDays(new Date(), new Date(ctb.lastDeliveryOrExchangeDate)) : null;
+        // Track from the most recent keep movement (delivery/exchange/tip-return).
+        const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
+          .filter((d): d is string => !!d)
+          .sort()
+          .pop() ?? null;
+        const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
         if (days === null || days <= settings.rental_free_days) continue;
         overRental.push({
           customer: s.customer,
@@ -327,7 +332,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           containerType,
           netOnSite: onSiteForType,
           daysSinceActivity: days,
-          lastActivityDate: ctb.lastDeliveryOrExchangeDate,
+          lastActivityDate: ctbLastKeep,
         });
       }
     }
