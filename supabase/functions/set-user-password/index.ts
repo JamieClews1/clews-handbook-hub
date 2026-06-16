@@ -31,19 +31,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace('Bearer ', '').trim();
 
-    // Create a client with the user's token to verify they're authenticated
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
+    // Create a client to verify the requesting user's token
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Verify the requesting user is authenticated
-    const { data: { user: requestingUser }, error: authError } = await supabaseUser.auth.getUser();
+    // Verify the requesting user is authenticated by validating the token directly
+    const { data: { user: requestingUser }, error: authError } = await supabaseUser.auth.getUser(token);
 
     if (authError || !requestingUser) {
       console.error('Auth error:', authError);
