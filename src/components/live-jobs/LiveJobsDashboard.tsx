@@ -186,6 +186,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
             ctb.lastDeliveryOrExchangeDate = job.job_date;
           }
         }
+        if (job.job_date && isTipReturn(job.movement_type)) {
+          if (!ctb.lastTipReturnDate || job.job_date > ctb.lastTipReturnDate) {
+            ctb.lastTipReturnDate = job.job_date;
+          }
+        }
         if (job.job_date && isCollection(job.movement_type)) {
           if (!ctb.lastCollectionDate || job.job_date > ctb.lastCollectionDate) {
             ctb.lastCollectionDate = job.job_date;
