@@ -6,12 +6,19 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./index.css";
 
-// Unregister all stale service workers to ensure latest version loads
+// Unregister all stale service workers and clear cached app shells so returning
+// visitors always load the latest version instead of an old cached build.
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     registrations.forEach((registration) => {
       registration.unregister();
     });
+  });
+}
+
+if ("caches" in window) {
+  caches.keys().then((keys) => {
+    keys.forEach((key) => caches.delete(key));
   });
 }
 
