@@ -454,7 +454,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 const posLast = pos.lastKeepDate;
                 const posCleared = pos.lastCollectionDate && posLast && pos.lastCollectionDate >= posLast;
                 const posDays = posLast ? differenceInDays(new Date(), new Date(posLast)) : null;
-                const posOverRental = posDays !== null && posDays > settings.rental_free_days && posNet > 0 && !posCleared;
+                const posOverRental = posDays !== null && posDays > settings.rental_free_days && positionNetOnSite(pos) > 0 && !posCleared;
                 rows.push({
                   Customer: s.customer,
                   Site: s.site,
