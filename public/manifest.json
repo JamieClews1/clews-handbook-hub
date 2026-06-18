@@ -1,13 +1,13 @@
 {
-  "name": "Clews Load Reports",
-  "short_name": "Load Reports",
-  "description": "Offline-capable load reporting for yard operatives",
-  "theme_color": "#f59e0b",
+  "name": "WasteOne",
+  "short_name": "WasteOne",
+  "description": "WasteOne unified waste management platform.",
+  "theme_color": "#4ECB71",
   "background_color": "#0f172a",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
-  "start_url": "/load-reports",
+  "start_url": "/",
   "icons": [
     {
       "src": "/pwa-192x192.png",
