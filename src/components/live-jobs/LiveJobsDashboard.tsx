@@ -338,7 +338,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (s.category === "artic") continue;
       if (!s.isOverRental) continue;
       for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-        const onSiteForType = typeOnSite(ctb.positions);
+        const onSiteForType = typeNetOnSite(ctb.positions);
         if (onSiteForType <= 0) continue;
         // Track from the most recent keep movement (delivery/exchange/tip-return).
         const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
