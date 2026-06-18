@@ -997,15 +997,18 @@ export function SiteRebateReportGenerator() {
     XLSX.writeFile(wb, fileName);
   };
 
-  const handleCustomerExport = async () => {
+  const buildCustomerExportInput = () => {
     const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
-    if (!exportCustomer || !dateRange?.from) return;
+    if (!exportCustomer || !dateRange?.from) return null;
     const siteName = isCustomerMidweighMode
       ? "Customer Midweigh Report"
       : (selectedSite?.site_name ?? "Customer-Level Report");
     const periodLabel = `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`;
-    try {
-      await exportCustomerRebateReport({
+    return {
+      exportCustomer,
+      siteName,
+      periodLabel,
+      input: {
         customerName: exportCustomer.customer_name,
         siteName,
         periodLabel,
@@ -1021,10 +1024,98 @@ export function SiteRebateReportGenerator() {
             materials: consolidatedData.flatMap((cat) => cat.sources),
           },
         ],
-      });
+      },
+    };
+  };
+
+  const handleCustomerExport = async () => {
+    const built = buildCustomerExportInput();
+    if (!built) return;
+    try {
+      await exportCustomerRebateReport(built.input);
     } catch (err) {
       console.error("Customer export failed", err);
       toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });
+    }
+  };
+
+  const openSendDialog = async () => {
+    const built = buildCustomerExportInput();
+    if (!built) return;
+
+    // Try to prefill the recipient from the customer's contacts
+    let prefillEmail = "";
+    let contactName = "";
+    const { data: contacts } = await supabase
+      .from("customer_contacts")
+      .select("full_name, email")
+      .eq("customer_id", selectedCustomerId)
+      .not("email", "is", null)
+      .order("created_at", { ascending: true });
+    const contactWithEmail = contacts?.find((c) => c.email);
+    if (contactWithEmail) {
+      prefillEmail = contactWithEmail.email ?? "";
+      contactName = contactWithEmail.full_name ?? "";
+    }
+
+    setEmailRecipient(prefillEmail);
+    setEmailSubject(`Rebate Report - ${built.input.customerName} - ${built.periodLabel}`);
+    setEmailBody(
+`Dear ${contactName || "Customer"},
+
+Please find attached your rebate report for ${built.periodLabel}.
+
+Total Rebate Due: £${combinedTotalRebate.toFixed(2)}
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+Clews Recycling Limited`
+    );
+    setEmailDialogOpen(true);
+  };
+
+  const sendRebateReportEmail = async () => {
+    const built = buildCustomerExportInput();
+    if (!built || !emailRecipient || !dateRange?.from) return;
+
+    setSendingEmail(true);
+    try {
+      const { base64, filename } = await getCustomerRebateExportBase64(built.input);
+
+      const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+        body: {
+          to: emailRecipient,
+          subject: emailSubject,
+          body: emailBody,
+          customerName: built.input.customerName,
+          attachment: { base64, filename },
+        },
+      });
+      if (emailError) throw emailError;
+
+      const { error: logError } = await supabase.from("rebate_email_logs").insert({
+        customer_id: built.exportCustomer.id,
+        site_id: isCustomerMidweighMode ? null : (selectedSiteId || null),
+        period_start: format(dateRange.from, "yyyy-MM-dd"),
+        period_end: format(dateRange.to ?? dateRange.from, "yyyy-MM-dd"),
+        rebate_amount: combinedTotalRebate,
+        recipient_email: emailRecipient,
+        sent_by: user?.id,
+      });
+      if (logError) console.error("Failed to log rebate email", logError);
+
+      toast({ title: "Email Sent", description: `Rebate report sent to ${emailRecipient}` });
+      setEmailDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error sending rebate report email:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to send email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
