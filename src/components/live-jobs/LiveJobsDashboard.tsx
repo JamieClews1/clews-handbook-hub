@@ -90,6 +90,23 @@ function typeOnSite(positions: Record<string, PosCounts> | undefined): number {
   return Object.values(positions).reduce((sum, p) => sum + positionOnSite(p), 0);
 }
 
+// Genuine uncollected delivery balance for a position. Unlike positionOnSite this
+// does NOT synthesise a phantom container from a lone exchange/tip-return — a real
+// over-rental container always has an uncollected delivery behind it. Used to gate
+// over-rental flagging so isolated single tip/return or exchange jobs (with no
+// delivery on record) are not incorrectly reported as sitting on-site over rental.
+function positionNetOnSite(p: PosCounts): number {
+  const net = p.delivered - p.collected;
+  const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
+  if (cleared && net <= 0) return 0;
+  return Math.max(net, 0);
+}
+
+function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number {
+  if (!positions) return 0;
+  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p), 0);
+}
+
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,12 +302,17 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
         }
         const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
+        // Genuine uncollected delivery balance — ignores phantom containers
+        // synthesised from a lone exchange/tip-return with no delivery on record.
+        const netDeliveredOnSite = s.category === "artic"
+          ? 0
+          : Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeNetOnSite(ctb.positions), 0);
         // Over rental when the skip has sat on-site beyond the free period since
         // its last servicing/keep movement. Regularly tipped-and-returned skips
-        // (frequent service) stay under the threshold and never flag; a skip that
-        // was tipped once long ago and left on-site correctly flags, tracked from
-        // that last tip/return date.
-        const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netOnSite > 0 && !collectionClearedIt;
+        // (frequent service) stay under the threshold and never flag. An isolated
+        // single tip/return or exchange with no delivery on record is NOT counted
+        // as an on-site container, so it no longer falsely flags as over rental.
+        const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netDeliveredOnSite > 0 && !collectionClearedIt;
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       })
       .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
@@ -316,7 +338,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       if (s.category === "artic") continue;
       if (!s.isOverRental) continue;
       for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-        const onSiteForType = typeOnSite(ctb.positions);
+        const onSiteForType = typeNetOnSite(ctb.positions);
         if (onSiteForType <= 0) continue;
         // Track from the most recent keep movement (delivery/exchange/tip-return).
         const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
@@ -432,7 +454,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 const posLast = pos.lastKeepDate;
                 const posCleared = pos.lastCollectionDate && posLast && pos.lastCollectionDate >= posLast;
                 const posDays = posLast ? differenceInDays(new Date(), new Date(posLast)) : null;
-                const posOverRental = posDays !== null && posDays > settings.rental_free_days && posNet > 0 && !posCleared;
+                const posOverRental = posDays !== null && posDays > settings.rental_free_days && positionNetOnSite(pos) > 0 && !posCleared;
                 rows.push({
                   Customer: s.customer,
                   Site: s.site,
