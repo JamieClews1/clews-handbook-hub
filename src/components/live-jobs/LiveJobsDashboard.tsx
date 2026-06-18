@@ -90,6 +90,23 @@ function typeOnSite(positions: Record<string, PosCounts> | undefined): number {
   return Object.values(positions).reduce((sum, p) => sum + positionOnSite(p), 0);
 }
 
+// Genuine uncollected delivery balance for a position. Unlike positionOnSite this
+// does NOT synthesise a phantom container from a lone exchange/tip-return — a real
+// over-rental container always has an uncollected delivery behind it. Used to gate
+// over-rental flagging so isolated single tip/return or exchange jobs (with no
+// delivery on record) are not incorrectly reported as sitting on-site over rental.
+function positionNetOnSite(p: PosCounts): number {
+  const net = p.delivered - p.collected;
+  const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
+  if (cleared && net <= 0) return 0;
+  return Math.max(net, 0);
+}
+
+function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number {
+  if (!positions) return 0;
+  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p), 0);
+}
+
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
