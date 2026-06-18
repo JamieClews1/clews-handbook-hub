@@ -1,27 +1,26 @@
 // Kill-switch service worker.
-// A previous PWA build registered a caching service worker that keeps serving
-// a stale version of the app to returning visitors. This replacement worker
-// unregisters itself, deletes every cache, and forces all open tabs to reload
-// so users always get the latest version.
-self.addEventListener("install", () => {
-  self.skipWaiting();
-});
+// Replaces the previous app-shell cache worker, clears its cached build files,
+// refreshes open tabs, then unregisters itself so future visits always use the
+// latest network version.
+function isAppCache(name) {
+  return /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-|workbox|supabase-cache/i.test(name);
+}
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("install", () => self.skipWaiting());
+
+self.addEventListener("activate", (event) =>
   event.waitUntil(
     (async () => {
       try {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      } catch (e) {
-        // ignore
+        const cacheNames = await caches.keys();
+        const appCacheNames = cacheNames.filter(isAppCache);
+        await Promise.allSettled(appCacheNames.map((name) => caches.delete(name)));
+        await self.clients.claim();
+        const clients = await self.clients.matchAll({ type: "window" });
+        await Promise.allSettled(clients.map((client) => client.navigate(client.url)));
+      } finally {
+        await self.registration.unregister();
       }
-      await self.registration.unregister();
-      const clients = await self.clients.matchAll({ type: "window" });
-      clients.forEach((client) => client.navigate(client.url));
-    })()
-  );
-});
-
-// Never serve from cache — always go to the network.
-self.addEventListener("fetch", () => {});
+    })(),
+  ),
+);
