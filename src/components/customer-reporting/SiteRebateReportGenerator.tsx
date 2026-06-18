@@ -91,6 +91,13 @@ export function SiteRebateReportGenerator() {
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
   const rebateValuesSnapshotRef = useRef<Record<string, { lower: number; higher: number; name: string }>>({});
 
+  // Send rebate report to customer
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   // Check if "Customer Midweigh" virtual option is selected
   const isCustomerMidweighMode = selectedSiteId === "__CUSTOMER_MIDWEIGH__";
   
