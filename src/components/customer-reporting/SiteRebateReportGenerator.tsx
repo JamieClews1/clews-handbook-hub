@@ -8,9 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, DollarSign, Loader2, Download, FileSpreadsheet } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarIcon, DollarSign, Loader2, Download, FileSpreadsheet, Send } from "lucide-react";
 import * as XLSX from "xlsx";
-import { exportCustomerRebateReport } from "@/lib/customer-rebate-export";
+import { exportCustomerRebateReport, getCustomerRebateExportBase64 } from "@/lib/customer-rebate-export";
+import { useAuth } from "@/hooks/useAuth";
 import { ReportingPeriodQuickSelect } from "./ReportingPeriodQuickSelect";
 import { ReportDateRangePicker } from "./ReportDateRangePicker";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from "date-fns";
@@ -68,6 +72,7 @@ type RebateReportRow = {
 
 export function SiteRebateReportGenerator() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -85,6 +90,13 @@ export function SiteRebateReportGenerator() {
   const [individualReports, setIndividualReports] = useState<LoadReportCardData[]>([]);
   const [palletWeightKgState, setPalletWeightKgState] = useState(20);
   const rebateValuesSnapshotRef = useRef<Record<string, { lower: number; higher: number; name: string }>>({});
+
+  // Send rebate report to customer
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Check if "Customer Midweigh" virtual option is selected
   const isCustomerMidweighMode = selectedSiteId === "__CUSTOMER_MIDWEIGH__";
@@ -985,15 +997,18 @@ export function SiteRebateReportGenerator() {
     XLSX.writeFile(wb, fileName);
   };
 
-  const handleCustomerExport = async () => {
+  const buildCustomerExportInput = () => {
     const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
-    if (!exportCustomer || !dateRange?.from) return;
+    if (!exportCustomer || !dateRange?.from) return null;
     const siteName = isCustomerMidweighMode
       ? "Customer Midweigh Report"
       : (selectedSite?.site_name ?? "Customer-Level Report");
     const periodLabel = `${format(dateRange.from, "d MMM yyyy")}${dateRange.to && dateRange.to !== dateRange.from ? ` to ${format(dateRange.to, "d MMM yyyy")}` : ""}`;
-    try {
-      await exportCustomerRebateReport({
+    return {
+      exportCustomer,
+      siteName,
+      periodLabel,
+      input: {
         customerName: exportCustomer.customer_name,
         siteName,
         periodLabel,
@@ -1009,10 +1024,98 @@ export function SiteRebateReportGenerator() {
             materials: consolidatedData.flatMap((cat) => cat.sources),
           },
         ],
-      });
+      },
+    };
+  };
+
+  const handleCustomerExport = async () => {
+    const built = buildCustomerExportInput();
+    if (!built) return;
+    try {
+      await exportCustomerRebateReport(built.input);
     } catch (err) {
       console.error("Customer export failed", err);
       toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });
+    }
+  };
+
+  const openSendDialog = async () => {
+    const built = buildCustomerExportInput();
+    if (!built) return;
+
+    // Try to prefill the recipient from the customer's contacts
+    let prefillEmail = "";
+    let contactName = "";
+    const { data: contacts } = await supabase
+      .from("customer_contacts")
+      .select("full_name, email")
+      .eq("customer_id", selectedCustomerId)
+      .not("email", "is", null)
+      .order("created_at", { ascending: true });
+    const contactWithEmail = contacts?.find((c) => c.email);
+    if (contactWithEmail) {
+      prefillEmail = contactWithEmail.email ?? "";
+      contactName = contactWithEmail.full_name ?? "";
+    }
+
+    setEmailRecipient(prefillEmail);
+    setEmailSubject(`Rebate Report - ${built.input.customerName} - ${built.periodLabel}`);
+    setEmailBody(
+`Dear ${contactName || "Customer"},
+
+Please find attached your rebate report for ${built.periodLabel}.
+
+Total Rebate Due: £${combinedTotalRebate.toFixed(2)}
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+Clews Recycling Limited`
+    );
+    setEmailDialogOpen(true);
+  };
+
+  const sendRebateReportEmail = async () => {
+    const built = buildCustomerExportInput();
+    if (!built || !emailRecipient || !dateRange?.from) return;
+
+    setSendingEmail(true);
+    try {
+      const { base64, filename } = await getCustomerRebateExportBase64(built.input);
+
+      const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+        body: {
+          to: emailRecipient,
+          subject: emailSubject,
+          body: emailBody,
+          customerName: built.input.customerName,
+          attachment: { base64, filename },
+        },
+      });
+      if (emailError) throw emailError;
+
+      const { error: logError } = await supabase.from("rebate_email_logs").insert({
+        customer_id: built.exportCustomer.id,
+        site_id: isCustomerMidweighMode ? null : (selectedSiteId || null),
+        period_start: format(dateRange.from, "yyyy-MM-dd"),
+        period_end: format(dateRange.to ?? dateRange.from, "yyyy-MM-dd"),
+        rebate_amount: combinedTotalRebate,
+        recipient_email: emailRecipient,
+        sent_by: user?.id,
+      });
+      if (logError) console.error("Failed to log rebate email", logError);
+
+      toast({ title: "Email Sent", description: `Rebate report sent to ${emailRecipient}` });
+      setEmailDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error sending rebate report email:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to send email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -1129,6 +1232,10 @@ export function SiteRebateReportGenerator() {
               <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleCustomerExport}>
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Customer Export
+              </Button>
+              <Button variant="default" size="sm" onClick={openSendDialog}>
+                <Send className="h-4 w-4 mr-2" />
+                Send to Customer
               </Button>
             </div>
           </div>
@@ -1359,6 +1466,64 @@ export function SiteRebateReportGenerator() {
           </Tabs>
         </div>
       )}
+
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Rebate Report to Customer</DialogTitle>
+            <DialogDescription>
+              The branded rebate report Excel will be attached automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="rebate-email-to">Recipient Email</Label>
+              <Input
+                id="rebate-email-to"
+                type="email"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                placeholder="customer@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rebate-email-subject">Subject</Label>
+              <Input
+                id="rebate-email-subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rebate-email-body">Message</Label>
+              <Textarea
+                id="rebate-email-body"
+                rows={10}
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={sendingEmail}>
+              Cancel
+            </Button>
+            <Button onClick={sendRebateReportEmail} disabled={sendingEmail || !emailRecipient}>
+              {sendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
