@@ -72,6 +72,7 @@ type RebateReportRow = {
 
 export function SiteRebateReportGenerator() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
