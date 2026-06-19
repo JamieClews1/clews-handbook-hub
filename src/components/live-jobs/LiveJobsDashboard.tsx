@@ -111,6 +111,9 @@ function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  // Bins staff have manually confirmed as collected in the Rentals section. These are
+  // hidden from the over-rental list here too, so Live Jobs and Rentals match exactly.
+  const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -142,7 +145,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       setLoading(false);
     };
     fetchJobs();
+
+    supabase
+      .from("rental_chases")
+      .select("bin_key")
+      .eq("collected", true)
+      .then(({ data }) => setCollectedBinKeys(new Set((data ?? []).map((r: { bin_key: string }) => r.bin_key))));
   }, []);
+
 
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
