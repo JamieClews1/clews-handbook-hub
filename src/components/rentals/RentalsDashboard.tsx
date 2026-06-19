@@ -196,6 +196,7 @@ export default function RentalsDashboard() {
         "On-Site": b.netOnSite,
         "Days Over": b.daysSinceActivity ?? "",
         "Last Activity": b.lastActivityDate ? format(new Date(b.lastActivityDate), "dd MMM yyyy") : "",
+        "Last Ticket": b.lastJobNumber ?? "",
         "Chase Status": c ? STATUS_LABELS[c.chase_status] ?? c.chase_status : "Not Chased",
         "Agreed To Pay": c?.agreed_to_pay ? "Yes" : "No",
         "Agreed Amount": c?.agreed_amount ?? "",
@@ -287,6 +288,7 @@ export default function RentalsDashboard() {
                   <TableHead>Container</TableHead>
                   <TableHead className="text-center">On-Site</TableHead>
                   <TableHead className="text-center">Days Over</TableHead>
+                  <TableHead>Last Ticket</TableHead>
                   <TableHead>Chase Status</TableHead>
                   <TableHead>Pay</TableHead>
                   <TableHead>Assigned</TableHead>
@@ -304,6 +306,7 @@ export default function RentalsDashboard() {
                       <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
                       <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
                       <TableCell className="text-center"><Badge variant="destructive">{b.daysSinceActivity}d</Badge></TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]}>
                           {STATUS_LABELS[c?.chase_status ?? "not_chased"]}

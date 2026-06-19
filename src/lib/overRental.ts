@@ -30,6 +30,7 @@ export type OverRentalBin = {
   netOnSite: number;
   daysSinceActivity: number | null;
   lastActivityDate: string | null;
+  lastJobNumber: string | null;
 };
 
 export function categoriseContainer(
@@ -285,6 +286,7 @@ export function computeOverRentalBins(
         netOnSite: onSiteForType,
         daysSinceActivity: days,
         lastActivityDate: ctbLastKeep,
+        lastJobNumber: null,
       });
     }
   }
@@ -315,6 +317,7 @@ export type RentalPositionRow = {
   tipreturn: number;
   last_keep_date: string | null;
   last_collection_date: string | null;
+  last_job_number: string | null;
 };
 
 function positionNetFromRow(r: RentalPositionRow): number {
@@ -346,7 +349,7 @@ export function computeOverRentalBinsFromPositions(
     siteLastKeep: string | null;
     siteLastCollection: string | null;
     netOnSite: number;
-    byContainer: Record<string, { net: number; lastKeep: string | null }>;
+    byContainer: Record<string, { net: number; lastKeep: string | null; lastJobNumber: string | null }>;
   };
   const siteMap: Record<string, Agg> = {};
 
@@ -384,13 +387,15 @@ export function computeOverRentalBinsFromPositions(
     agg.netOnSite += posNet;
 
     if (!agg.byContainer[r.container_type]) {
-      agg.byContainer[r.container_type] = { net: 0, lastKeep: null };
+      agg.byContainer[r.container_type] = { net: 0, lastKeep: null, lastJobNumber: null };
     }
     agg.byContainer[r.container_type].net += posNet;
-    agg.byContainer[r.container_type].lastKeep = maxDate(
-      agg.byContainer[r.container_type].lastKeep,
-      r.last_keep_date
-    );
+    const prevKeep = agg.byContainer[r.container_type].lastKeep;
+    const newKeep = r.last_keep_date;
+    agg.byContainer[r.container_type].lastKeep = maxDate(prevKeep, newKeep);
+    if (newKeep && (!prevKeep || newKeep > prevKeep)) {
+      agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
+    }
   }
 
   const overRental: OverRentalBin[] = [];
@@ -429,6 +434,7 @@ export function computeOverRentalBinsFromPositions(
         netOnSite: ctb.net,
         daysSinceActivity: days,
         lastActivityDate: ctbLastKeep,
+        lastJobNumber: ctb.lastJobNumber,
       });
     }
   }
