@@ -175,6 +175,8 @@ export function computeOverRentalBins(
           lastDeliveryOrExchangeDate: null,
           lastTipReturnDate: null,
           lastCollectionDate: null,
+          lastKeepDate: null,
+          lastKeepJobNumber: null,
           wasteTypes: new Set(),
           positions: {},
         };
@@ -192,6 +194,14 @@ export function computeOverRentalBins(
       if (job.job_date && isTipReturn(job.movement_type)) {
         if (!ctb.lastTipReturnDate || job.job_date > ctb.lastTipReturnDate) {
           ctb.lastTipReturnDate = job.job_date;
+        }
+      }
+      // Track the job number of the most recent keep movement (deliver/exchange/tip-return)
+      // so the over-rental row can display the establishing/last ticket number.
+      if (job.job_date && staysOnSite(job.movement_type)) {
+        if (!ctb.lastKeepDate || job.job_date > ctb.lastKeepDate) {
+          ctb.lastKeepDate = job.job_date;
+          ctb.lastKeepJobNumber = job.job_number;
         }
       }
       if (job.job_date && isCollection(job.movement_type)) {
