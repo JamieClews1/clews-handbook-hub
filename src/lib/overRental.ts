@@ -349,7 +349,7 @@ export function computeOverRentalBinsFromPositions(
     siteLastKeep: string | null;
     siteLastCollection: string | null;
     netOnSite: number;
-    byContainer: Record<string, { net: number; lastKeep: string | null }>;
+    byContainer: Record<string, { net: number; lastKeep: string | null; lastJobNumber: string | null }>;
   };
   const siteMap: Record<string, Agg> = {};
 
