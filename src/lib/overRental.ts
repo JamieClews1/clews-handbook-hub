@@ -320,10 +320,20 @@ export type RentalPositionRow = {
   last_job_number: string | null;
 };
 
-function positionNetFromRow(r: RentalPositionRow): number {
+function positionNetFromRow(r: RentalPositionRow, windowStart: string): number {
   const net = r.delivered - r.collected;
   const cleared = !!(r.last_collection_date && r.last_keep_date && r.last_collection_date >= r.last_keep_date);
   if (cleared && net <= 0) return 0;
+  // Ancient ghost guard: a position with a positive net but whose own most recent keep
+  // movement predates the activity window (and has had no activity since) is stale data,
+  // not a real over-rental. Without this per-position gate, a newer position at the same
+  // site+container (e.g. a delivery that WAS later collected) would keep the container
+  // "alive" past the window and wrongly resurrect the old ghost. Apply the gate to the
+  // position's own activity (latest of keep/collection) so genuinely open positions stay.
+  const activity = r.last_collection_date && r.last_keep_date
+    ? (r.last_collection_date >= r.last_keep_date ? r.last_collection_date : r.last_keep_date)
+    : (r.last_keep_date ?? r.last_collection_date);
+  if (activity && activity < windowStart) return 0;
   return Math.max(net, 0);
 }
 
