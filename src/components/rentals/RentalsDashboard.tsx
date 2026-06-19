@@ -172,7 +172,7 @@ export default function RentalsDashboard() {
   const loading = jobsLoading || settingsLoading;
 
   function downloadExcel() {
-    const rows = bins.map((b) => {
+    const rows = filteredBins.map((b) => {
       const c = chases[b.binKey];
       return {
         Customer: b.customer,
