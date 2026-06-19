@@ -32,6 +32,7 @@ import {
   Radio,
   TrendingUp,
   Fuel,
+  PoundSterling,
 } from "lucide-react";
 import {
   Sidebar,
