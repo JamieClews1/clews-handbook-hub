@@ -311,6 +311,14 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/rentals")}>
+                      <Link to="/performance-hub/rentals">
+                        <PoundSterling className="h-4 w-4" />
+                        {!collapsed && <span>Rentals</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/data")}>
                       <Link to="/performance-hub/data">
                         <Upload className="h-4 w-4" />
