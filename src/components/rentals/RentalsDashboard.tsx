@@ -288,6 +288,7 @@ export default function RentalsDashboard() {
                   <TableHead>Container</TableHead>
                   <TableHead className="text-center">On-Site</TableHead>
                   <TableHead className="text-center">Days Over</TableHead>
+                  <TableHead>Last Ticket</TableHead>
                   <TableHead>Chase Status</TableHead>
                   <TableHead>Pay</TableHead>
                   <TableHead>Assigned</TableHead>
