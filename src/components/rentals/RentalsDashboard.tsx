@@ -21,7 +21,7 @@ import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
+import { computeOverRentalBinsFromPositions, type OverRentalBin, type RentalPositionRow } from "@/lib/overRental";
 
 type Chase = {
   id: string;
