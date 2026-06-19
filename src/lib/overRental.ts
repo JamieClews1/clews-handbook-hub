@@ -256,7 +256,10 @@ export function computeOverRentalBins(
       daysSinceLastKeep !== null &&
       daysSinceLastKeep > settings.rental_free_days &&
       netDeliveredOnSite > 0 &&
-      !collectionClearedIt;
+      !collectionClearedIt &&
+      // Exclude ancient ghost deliveries with no recent activity
+      lastKeepDate !== null &&
+      lastKeepDate >= windowStart;
 
     if (!isOverRental) continue;
 
@@ -269,6 +272,8 @@ export function computeOverRentalBins(
         .pop() ?? null;
       const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
       if (days === null || days <= settings.rental_free_days) continue;
+      // This container type must itself have had recent activity (not an old ghost)
+      if (ctbLastKeep < windowStart) continue;
 
       const binKey = `${s.site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`;
       overRental.push({
