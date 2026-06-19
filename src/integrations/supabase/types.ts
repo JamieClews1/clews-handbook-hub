@@ -5179,6 +5179,7 @@ export type Database = {
           ewc: string
           exchanged: number
           last_collection_date: string
+          last_job_number: string
           last_keep_date: string
           site: string
           tipreturn: number
