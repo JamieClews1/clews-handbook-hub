@@ -73,7 +73,10 @@ export default function RentalsDashboard() {
   useEffect(() => {
     const fetchJobs = async () => {
       setJobsLoading(true);
-      const since = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
+      // Fetch the FULL movement history (no date floor) so net on-site is accurate even
+      // when the establishing delivery is years old — e.g. a long-standing RoRo that has
+      // only been serviced by exchanges within the last year. The recent-activity gate in
+      // computeOverRentalBins then excludes ancient ghost deliveries.
       let all: OverRentalJob[] = [];
       let from = 0;
       const pageSize = 1000;
@@ -83,7 +86,6 @@ export default function RentalsDashboard() {
           .from("data_hub_jobs")
           .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
           .eq("source", "skiptrak")
-          .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .range(from, from + pageSize - 1);
@@ -97,6 +99,7 @@ export default function RentalsDashboard() {
     };
     fetchJobs();
   }, []);
+
 
   const fetchChases = async () => {
     const { data } = await supabase.from("rental_chases").select("*");
