@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
+import { computeOverRentalBins } from "@/lib/overRental";
 
 type Job = {
   id: string;
@@ -110,6 +111,9 @@ function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  // Bins staff have manually confirmed as collected in the Rentals section. These are
+  // hidden from the over-rental list here too, so Live Jobs and Rentals match exactly.
+  const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -141,7 +145,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       setLoading(false);
     };
     fetchJobs();
+
+    supabase
+      .from("rental_chases")
+      .select("bin_key")
+      .eq("collected", true)
+      .then(({ data }) => setCollectedBinKeys(new Set((data ?? []).map((r: { bin_key: string }) => r.bin_key))));
   }, []);
+
 
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
@@ -332,33 +343,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Monthly sorted
     const monthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
 
-    // Over rental — one row per (site × container type) that is genuinely over rental
-    const overRental: OverRentalSite[] = [];
-    for (const s of live) {
-      if (s.category === "artic") continue;
-      if (!s.isOverRental) continue;
-      for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-        const onSiteForType = typeNetOnSite(ctb.positions);
-        if (onSiteForType <= 0) continue;
-        // Track from the most recent keep movement (delivery/exchange/tip-return).
-        const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
-          .filter((d): d is string => !!d)
-          .sort()
-          .pop() ?? null;
-        const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
-        if (days === null || days <= settings.rental_free_days) continue;
-        overRental.push({
-          customer: s.customer,
-          site: s.site,
-          category: s.category,
-          containerType,
-          netOnSite: onSiteForType,
-          daysSinceActivity: days,
-          lastActivityDate: ctbLastKeep,
-        });
-      }
-    }
-    overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+    // Over rental — one row per (site × container type) that is genuinely over rental.
+    // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
+    // results (same data window, same logic). Do not reimplement inline.
+    // Also hide bins staff manually confirmed as collected in Rentals, so both views match.
+    const overRental = computeOverRentalBins(jobs, settings).filter(b => !collectedBinKeys.has(b.binKey));
 
     return {
       liveSites: live,
@@ -367,7 +356,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs, settings]);
+  }, [jobs, settings, collectedBinKeys]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);

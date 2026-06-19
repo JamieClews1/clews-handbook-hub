@@ -18,10 +18,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { computeOverRentalBinsFromPositions, type OverRentalBin, type RentalPositionRow } from "@/lib/overRental";
+import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
 
 type Chase = {
   id: string;
@@ -63,7 +63,7 @@ export default function RentalsDashboard() {
   const { toast } = useToast();
   const { settings, loading: settingsLoading } = useLiveJobsSettings();
 
-  const [positions, setPositions] = useState<RentalPositionRow[]>([]);
+  const [jobs, setJobs] = useState<OverRentalJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -75,35 +75,34 @@ export default function RentalsDashboard() {
   const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
-    const fetchPositions = async () => {
+    const fetchJobs = async () => {
       setJobsLoading(true);
-      // The DB function aggregates the FULL movement history into one row per
-      // site+container_type+EWC, so net on-site is accurate even when the establishing
-      // delivery is years old (e.g. a long-standing RoRo serviced only by exchanges).
-      // The recent-activity gate in computeOverRentalBinsFromPositions then excludes
-      // ancient ghost deliveries that have had no activity within the window.
-      // Paginate: PostgREST caps each response at 1000 rows and there are ~6k positions.
-      const all: RentalPositionRow[] = [];
+      // Use the EXACT same data source and window as the Live Jobs / Over Rental
+      // dashboard so the two stay perfectly in sync: last 12 months of skiptrak
+      // movements, then computeOverRentalBins (the shared logic Live Jobs also uses).
+      const since = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
+      const all: OverRentalJob[] = [];
       const pageSize = 1000;
       let from = 0;
       let hasMore = true;
       while (hasMore) {
         const { data, error } = await supabase
-          .rpc("get_skiptrak_rental_positions")
-          .order("site", { ascending: true })
-          .order("container_type", { ascending: true })
-          .order("ewc", { ascending: true })
+          .from("data_hub_jobs")
+          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
+          .eq("source", "skiptrak")
+          .gte("job_date", since)
+          .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
+          .order("job_date", { ascending: false })
           .range(from, from + pageSize - 1);
         if (error) { console.error(error); break; }
-        all.push(...((data ?? []) as RentalPositionRow[]));
+        all.push(...((data ?? []) as OverRentalJob[]));
         hasMore = (data?.length ?? 0) === pageSize;
         from += pageSize;
       }
-      setPositions(all);
+      setJobs(all);
       setJobsLoading(false);
     };
-    fetchPositions();
-
+    fetchJobs();
   }, []);
 
 
@@ -146,9 +145,9 @@ export default function RentalsDashboard() {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
     // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
-    return computeOverRentalBinsFromPositions(positions, settings)
+    return computeOverRentalBins(jobs, settings)
       .filter((b) => !chases[b.binKey]?.collected);
-  }, [positions, settings, settingsLoading, chases]);
+  }, [jobs, settings, settingsLoading, chases]);
 
   // ── Filters: category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
