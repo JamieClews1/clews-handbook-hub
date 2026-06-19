@@ -1,4 +1,4 @@
-import { differenceInDays } from "date-fns";
+import { differenceInDays, format, startOfMonth, subMonths } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 // Faithful copy of the over-rental detection used by the Live Jobs dashboard, so
@@ -112,8 +112,17 @@ type SiteAgg = {
 
 export function computeOverRentalBins(
   jobs: OverRentalJob[],
-  settings: LiveJobsSettings
+  settings: LiveJobsSettings,
+  // Only flag containers whose most recent keep movement (deliver/exchange/tip-return)
+  // falls on/after this date. The `jobs` array should contain the FULL movement history
+  // so net on-site is accurate even when the establishing delivery is years old (e.g. a
+  // long-standing RoRo serviced only by exchanges). This gate then excludes ancient
+  // "ghost" deliveries that were never collected and have had no activity since.
+  // Format: yyyy-MM-dd. Defaults to 11 calendar months ago.
+  activityWindowStart?: string
 ): OverRentalBin[] {
+  const windowStart =
+    activityWindowStart ?? format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
   const siteMap: Record<string, SiteAgg> = {};
 
   for (const job of jobs) {
