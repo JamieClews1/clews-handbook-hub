@@ -22,6 +22,7 @@ import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
+import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
 
 type Chase = {
   id: string;
