@@ -258,7 +258,7 @@ export function computeOverRentalBins(
     const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
     const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
     const netDeliveredOnSite = Object.values(s.containerTypeBreakdown).reduce(
-      (sum, ctb) => sum + typeNetOnSite(ctb.positions),
+      (sum, ctb) => sum + typeNetOnSite(ctb.positions, windowStart),
       0
     );
     const isOverRental =
