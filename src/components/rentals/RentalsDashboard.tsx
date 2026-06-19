@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download } from "lucide-react";
+import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -136,21 +136,43 @@ export default function RentalsDashboard() {
     return computeOverRentalBins(jobs, settings);
   }, [jobs, settings, settingsLoading]);
 
+  // ── Filters: category (Skip/RoRo) then size (container type) ──
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
+  const [sizeFilter, setSizeFilter] = useState<string>("all");
+
+  // Container types ("sizes") available for the chosen category
+  const sizeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of bins) {
+      if (categoryFilter !== "all" && b.category !== categoryFilter) continue;
+      if (b.containerType) set.add(b.containerType);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [bins, categoryFilter]);
+
+  const filteredBins = useMemo(() => {
+    return bins.filter((b) => {
+      if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
+      if (sizeFilter !== "all" && b.containerType !== sizeFilter) return false;
+      return true;
+    });
+  }, [bins, categoryFilter, sizeFilter]);
+
   const stats = useMemo(() => {
     let chased = 0, agreed = 0, unchased = 0;
-    for (const b of bins) {
+    for (const b of filteredBins) {
       const c = chases[b.binKey];
       if (!c || c.chase_status === "not_chased") unchased++;
       else if (c.agreed_to_pay) agreed++;
       else chased++;
     }
-    return { total: bins.length, chased, agreed, unchased };
-  }, [bins, chases]);
+    return { total: filteredBins.length, chased, agreed, unchased };
+  }, [filteredBins, chases]);
 
   const loading = jobsLoading || settingsLoading;
 
   function downloadExcel() {
-    const rows = bins.map((b) => {
+    const rows = filteredBins.map((b) => {
       const c = chases[b.binKey];
       return {
         Customer: b.customer,
@@ -197,19 +219,51 @@ export default function RentalsDashboard() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-lg flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Bins Over Free Rental ({bins.length})
+              Bins Over Free Rental ({filteredBins.length})
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={downloadExcel} disabled={bins.length === 0}>
+            <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
               <Download className="h-4 w-4 mr-1" /> Download Excel
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             Every skip/RoRo on-site beyond the {settings.rental_free_days}-day free rental period. Chase customers and track who has agreed to pay.
           </p>
+          <div className="flex flex-wrap items-center gap-2 pt-3">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={categoryFilter}
+              onValueChange={(v) => { setCategoryFilter(v as "all" | "skip" | "roro"); setSizeFilter("all"); }}
+            >
+              <SelectTrigger className="w-[150px] h-9">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="skip">Skip</SelectItem>
+                <SelectItem value="roro">RoRo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sizeFilter} onValueChange={setSizeFilter}>
+              <SelectTrigger className="w-[200px] h-9">
+                <SelectValue placeholder="Size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sizes</SelectItem>
+                {sizeOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {(categoryFilter !== "all" || sizeFilter !== "all") && (
+              <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSizeFilter("all"); }}>
+                Clear
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          {bins.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">No bins are currently over the rental free period. 🎉</div>
+          {filteredBins.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">
+              {bins.length === 0 ? "No bins are currently over the rental free period. 🎉" : "No bins match the selected filters."}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -226,7 +280,7 @@ export default function RentalsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bins.map((b) => {
+                {filteredBins.map((b) => {
                   const c = chases[b.binKey];
                   const assignee = c?.assigned_to ? profiles.find((p) => p.id === c.assigned_to) : null;
                   return (
