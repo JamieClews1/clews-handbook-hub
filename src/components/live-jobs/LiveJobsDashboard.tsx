@@ -346,7 +346,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Over rental — one row per (site × container type) that is genuinely over rental.
     // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
     // results (same data window, same logic). Do not reimplement inline.
-    const overRental = computeOverRentalBins(jobs, settings);
+    // Also hide bins staff manually confirmed as collected in Rentals, so both views match.
+    const overRental = computeOverRentalBins(jobs, settings).filter(b => !collectedBinKeys.has(b.binKey));
 
     return {
       liveSites: live,
@@ -355,7 +356,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs, settings]);
+  }, [jobs, settings, collectedBinKeys]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
