@@ -73,16 +73,24 @@ type PosCounts = {
   wasteTypes: Set<string>;
 };
 
-function positionNetOnSite(p: PosCounts): number {
+function positionNetOnSite(p: PosCounts, windowStart?: string): number {
   const net = p.delivered - p.collected;
   const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
   if (cleared && net <= 0) return 0;
+  // Ancient ghost guard (see positionNetFromRow): ignore positive nets whose own latest
+  // activity predates the window, so a newer collected position can't resurrect them.
+  if (windowStart) {
+    const activity = p.lastCollectionDate && p.lastKeepDate
+      ? (p.lastCollectionDate >= p.lastKeepDate ? p.lastCollectionDate : p.lastKeepDate)
+      : (p.lastKeepDate ?? p.lastCollectionDate);
+    if (activity && activity < windowStart) return 0;
+  }
   return Math.max(net, 0);
 }
 
-function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number {
+function typeNetOnSite(positions: Record<string, PosCounts> | undefined, windowStart?: string): number {
   if (!positions) return 0;
-  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p), 0);
+  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p, windowStart), 0);
 }
 
 type CtbBreakdown = {
@@ -250,7 +258,7 @@ export function computeOverRentalBins(
     const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
     const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
     const netDeliveredOnSite = Object.values(s.containerTypeBreakdown).reduce(
-      (sum, ctb) => sum + typeNetOnSite(ctb.positions),
+      (sum, ctb) => sum + typeNetOnSite(ctb.positions, windowStart),
       0
     );
     const isOverRental =
@@ -265,7 +273,7 @@ export function computeOverRentalBins(
     if (!isOverRental) continue;
 
     for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-      const onSiteForType = typeNetOnSite(ctb.positions);
+      const onSiteForType = typeNetOnSite(ctb.positions, windowStart);
       if (onSiteForType <= 0) continue;
       const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
         .filter((d): d is string => !!d)
@@ -320,10 +328,20 @@ export type RentalPositionRow = {
   last_job_number: string | null;
 };
 
-function positionNetFromRow(r: RentalPositionRow): number {
+function positionNetFromRow(r: RentalPositionRow, windowStart: string): number {
   const net = r.delivered - r.collected;
   const cleared = !!(r.last_collection_date && r.last_keep_date && r.last_collection_date >= r.last_keep_date);
   if (cleared && net <= 0) return 0;
+  // Ancient ghost guard: a position with a positive net but whose own most recent keep
+  // movement predates the activity window (and has had no activity since) is stale data,
+  // not a real over-rental. Without this per-position gate, a newer position at the same
+  // site+container (e.g. a delivery that WAS later collected) would keep the container
+  // "alive" past the window and wrongly resurrect the old ghost. Apply the gate to the
+  // position's own activity (latest of keep/collection) so genuinely open positions stay.
+  const activity = r.last_collection_date && r.last_keep_date
+    ? (r.last_collection_date >= r.last_keep_date ? r.last_collection_date : r.last_keep_date)
+    : (r.last_keep_date ?? r.last_collection_date);
+  if (activity && activity < windowStart) return 0;
   return Math.max(net, 0);
 }
 
@@ -358,7 +376,7 @@ export function computeOverRentalBinsFromPositions(
     if (!cat || cat === "artic") continue;
 
     const key = `${(r.site || "Unknown").toLowerCase().trim()}|||${cat}`;
-    const posNet = positionNetFromRow(r);
+    const posNet = positionNetFromRow(r, windowStart);
     const customerName = r.customer || "Unknown";
     // Treat the more recent of keep/collection as this position's activity date.
     const activityDate = maxDate(r.last_keep_date, r.last_collection_date);
@@ -390,11 +408,16 @@ export function computeOverRentalBinsFromPositions(
       agg.byContainer[r.container_type] = { net: 0, lastKeep: null, lastJobNumber: null };
     }
     agg.byContainer[r.container_type].net += posNet;
-    const prevKeep = agg.byContainer[r.container_type].lastKeep;
-    const newKeep = r.last_keep_date;
-    agg.byContainer[r.container_type].lastKeep = maxDate(prevKeep, newKeep);
-    if (newKeep && (!prevKeep || newKeep > prevKeep)) {
-      agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
+    // Only let positions that actually contribute open stock drive the displayed
+    // last keep date / ticket number, so the row reflects the genuinely-open position
+    // rather than a more recent one that was already collected.
+    if (posNet > 0) {
+      const prevKeep = agg.byContainer[r.container_type].lastKeep;
+      const newKeep = r.last_keep_date;
+      agg.byContainer[r.container_type].lastKeep = maxDate(prevKeep, newKeep);
+      if (newKeep && (!prevKeep || newKeep > prevKeep)) {
+        agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
+      }
     }
   }
 
