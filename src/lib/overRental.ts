@@ -387,13 +387,15 @@ export function computeOverRentalBinsFromPositions(
     agg.netOnSite += posNet;
 
     if (!agg.byContainer[r.container_type]) {
-      agg.byContainer[r.container_type] = { net: 0, lastKeep: null };
+      agg.byContainer[r.container_type] = { net: 0, lastKeep: null, lastJobNumber: null };
     }
     agg.byContainer[r.container_type].net += posNet;
-    agg.byContainer[r.container_type].lastKeep = maxDate(
-      agg.byContainer[r.container_type].lastKeep,
-      r.last_keep_date
-    );
+    const prevKeep = agg.byContainer[r.container_type].lastKeep;
+    const newKeep = r.last_keep_date;
+    agg.byContainer[r.container_type].lastKeep = maxDate(prevKeep, newKeep);
+    if (newKeep && (!prevKeep || newKeep > prevKeep)) {
+      agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
+    }
   }
 
   const overRental: OverRentalBin[] = [];
