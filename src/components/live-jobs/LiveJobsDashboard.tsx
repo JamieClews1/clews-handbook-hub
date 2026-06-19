@@ -333,33 +333,10 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Monthly sorted
     const monthly = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
 
-    // Over rental — one row per (site × container type) that is genuinely over rental
-    const overRental: OverRentalSite[] = [];
-    for (const s of live) {
-      if (s.category === "artic") continue;
-      if (!s.isOverRental) continue;
-      for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-        const onSiteForType = typeNetOnSite(ctb.positions);
-        if (onSiteForType <= 0) continue;
-        // Track from the most recent keep movement (delivery/exchange/tip-return).
-        const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
-          .filter((d): d is string => !!d)
-          .sort()
-          .pop() ?? null;
-        const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
-        if (days === null || days <= settings.rental_free_days) continue;
-        overRental.push({
-          customer: s.customer,
-          site: s.site,
-          category: s.category,
-          containerType,
-          netOnSite: onSiteForType,
-          daysSinceActivity: days,
-          lastActivityDate: ctbLastKeep,
-        });
-      }
-    }
-    overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+    // Over rental — one row per (site × container type) that is genuinely over rental.
+    // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
+    // results (same data window, same logic). Do not reimplement inline.
+    const overRental = computeOverRentalBins(jobs, settings);
 
     return {
       liveSites: live,
