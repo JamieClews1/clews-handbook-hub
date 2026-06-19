@@ -196,6 +196,7 @@ export default function RentalsDashboard() {
         "On-Site": b.netOnSite,
         "Days Over": b.daysSinceActivity ?? "",
         "Last Activity": b.lastActivityDate ? format(new Date(b.lastActivityDate), "dd MMM yyyy") : "",
+        "Last Ticket": b.lastJobNumber ?? "",
         "Chase Status": c ? STATUS_LABELS[c.chase_status] ?? c.chase_status : "Not Chased",
         "Agreed To Pay": c?.agreed_to_pay ? "Yes" : "No",
         "Agreed Amount": c?.agreed_amount ?? "",
