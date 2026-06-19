@@ -30,6 +30,7 @@ export type OverRentalBin = {
   netOnSite: number;
   daysSinceActivity: number | null;
   lastActivityDate: string | null;
+  lastJobNumber: string | null;
 };
 
 export function categoriseContainer(
