@@ -409,6 +409,67 @@ async function ensureChase(bin: OverRentalBin, userId: string | null): Promise<s
   return data.id;
 }
 
+function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
+  bin: OverRentalBin; chase?: Chase; userId: string | null;
+  onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [ticket, setTicket] = useState(chase?.collection_ticket ?? "");
+  const [date, setDate] = useState(chase?.collected_date ?? format(new Date(), "yyyy-MM-dd"));
+  const [notes, setNotes] = useState(chase?.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const id = await ensureChase(bin, userId);
+    if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
+    const { error } = await supabase.from("rental_chases").update({
+      collected: true,
+      collection_ticket: ticket.trim() || null,
+      collected_date: date || null,
+      chase_status: "resolved",
+      notes: notes.trim() || null,
+    }).eq("id", id);
+    setSaving(false);
+    if (error) { toast({ title: "Failed to save", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Marked as collected", description: "Removed from the over-rental list." });
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Mark as Collected</DialogTitle>
+          <DialogDescription>{bin.customer} — {bin.site} ({bin.containerType})</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Confirm this container has been collected. It will be removed from the over-rental list. Record the collection ticket so it stays auditable.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Collection Ticket / Job No.</Label>
+            <Input value={ticket} onChange={(e) => setTicket(e.target.value)} placeholder="e.g. 44222" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Collection Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes (optional)</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            <PackageCheck className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Confirm Collected"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }: {
   bin: OverRentalBin; chase?: Chase; profiles: Profile[]; userId: string | null;
   onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
