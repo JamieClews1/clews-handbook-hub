@@ -400,11 +400,16 @@ export function computeOverRentalBinsFromPositions(
       agg.byContainer[r.container_type] = { net: 0, lastKeep: null, lastJobNumber: null };
     }
     agg.byContainer[r.container_type].net += posNet;
-    const prevKeep = agg.byContainer[r.container_type].lastKeep;
-    const newKeep = r.last_keep_date;
-    agg.byContainer[r.container_type].lastKeep = maxDate(prevKeep, newKeep);
-    if (newKeep && (!prevKeep || newKeep > prevKeep)) {
-      agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
+    // Only let positions that actually contribute open stock drive the displayed
+    // last keep date / ticket number, so the row reflects the genuinely-open position
+    // rather than a more recent one that was already collected.
+    if (posNet > 0) {
+      const prevKeep = agg.byContainer[r.container_type].lastKeep;
+      const newKeep = r.last_keep_date;
+      agg.byContainer[r.container_type].lastKeep = maxDate(prevKeep, newKeep);
+      if (newKeep && (!prevKeep || newKeep > prevKeep)) {
+        agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
+      }
     }
   }
 
