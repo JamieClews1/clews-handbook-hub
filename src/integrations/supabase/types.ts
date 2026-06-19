@@ -3844,6 +3844,9 @@ export type Database = {
           bin_key: string
           category: string | null
           chase_status: string
+          collected: boolean
+          collected_date: string | null
+          collection_ticket: string | null
           container_type: string | null
           created_at: string
           created_by: string | null
@@ -3861,6 +3864,9 @@ export type Database = {
           bin_key: string
           category?: string | null
           chase_status?: string
+          collected?: boolean
+          collected_date?: string | null
+          collection_ticket?: string | null
           container_type?: string | null
           created_at?: string
           created_by?: string | null
@@ -3878,6 +3884,9 @@ export type Database = {
           bin_key?: string
           category?: string | null
           chase_status?: string
+          collected?: boolean
+          collected_date?: string | null
+          collection_ticket?: string | null
           container_type?: string | null
           created_at?: string
           created_by?: string | null
