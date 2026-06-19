@@ -78,12 +78,28 @@ export default function RentalsDashboard() {
       // delivery is years old (e.g. a long-standing RoRo serviced only by exchanges).
       // The recent-activity gate in computeOverRentalBinsFromPositions then excludes
       // ancient ghost deliveries that have had no activity within the window.
-      const { data, error } = await supabase.rpc("get_skiptrak_rental_positions");
-      if (error) { console.error(error); setJobsLoading(false); return; }
-      setPositions((data ?? []) as RentalPositionRow[]);
+      // Paginate: PostgREST caps each response at 1000 rows and there are ~6k positions.
+      const all: RentalPositionRow[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .rpc("get_skiptrak_rental_positions")
+          .order("site", { ascending: true })
+          .order("container_type", { ascending: true })
+          .order("ewc", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) { console.error(error); break; }
+        all.push(...((data ?? []) as RentalPositionRow[]));
+        hasMore = (data?.length ?? 0) === pageSize;
+        from += pageSize;
+      }
+      setPositions(all);
       setJobsLoading(false);
     };
     fetchPositions();
+
   }, []);
 
 
