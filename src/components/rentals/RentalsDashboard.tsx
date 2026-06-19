@@ -235,9 +235,12 @@ export default function RentalsDashboard() {
               <AlertTriangle className="h-5 w-5" />
               Bins Over Free Rental ({filteredBins.length})
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
-              <Download className="h-4 w-4 mr-1" /> Download Excel
-            </Button>
+            <div className="flex items-center gap-2">
+              <RentalsInfoDialog settings={settings} binCount={bins.length} updateSetting={updateSetting} />
+              <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
+                <Download className="h-4 w-4 mr-1" /> Download Excel
+              </Button>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             Every skip/RoRo on-site beyond the {settings.rental_free_days}-day free rental period. Chase customers and track who has agreed to pay.
