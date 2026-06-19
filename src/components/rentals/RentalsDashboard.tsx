@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter } from "lucide-react";
+import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -32,6 +32,9 @@ type Chase = {
   agreed_date: string | null;
   assigned_to: string | null;
   notes: string | null;
+  collected: boolean;
+  collection_ticket: string | null;
+  collected_date: string | null;
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -69,6 +72,7 @@ export default function RentalsDashboard() {
   // dialogs
   const [manageBin, setManageBin] = useState<OverRentalBin | null>(null);
   const [emailBin, setEmailBin] = useState<OverRentalBin | null>(null);
+  const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
     const fetchPositions = async () => {
@@ -140,8 +144,11 @@ export default function RentalsDashboard() {
 
   const bins = useMemo(() => {
     if (settingsLoading) return [];
-    return computeOverRentalBinsFromPositions(positions, settings);
-  }, [positions, settings, settingsLoading]);
+    // Exclude bins that staff have confirmed as collected (a real collection ticket
+    // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
+    return computeOverRentalBinsFromPositions(positions, settings)
+      .filter((b) => !chases[b.binKey]?.collected);
+  }, [positions, settings, settingsLoading, chases]);
 
   // ── Filters: category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
@@ -315,6 +322,9 @@ export default function RentalsDashboard() {
                           <Button variant="outline" size="sm" onClick={() => setEmailBin(b)}>
                             <Mail className="h-4 w-4 mr-1" /> Chase
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setCollectBin(b)} title="Mark as collected">
+                            <PackageCheck className="h-4 w-4 mr-1" /> Collected
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setManageBin(b)}>
                             <Settings2 className="h-4 w-4" />
                           </Button>
@@ -353,6 +363,17 @@ export default function RentalsDashboard() {
           toast={toast}
         />
       )}
+
+      {collectBin && (
+        <CollectDialog
+          bin={collectBin}
+          chase={chases[collectBin.binKey]}
+          userId={user?.id ?? null}
+          onClose={() => setCollectBin(null)}
+          onSaved={() => { setCollectBin(null); fetchChases(); }}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
@@ -386,6 +407,67 @@ async function ensureChase(bin: OverRentalBin, userId: string | null): Promise<s
   }).select("id").single();
   if (error) { console.error(error); return null; }
   return data.id;
+}
+
+function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
+  bin: OverRentalBin; chase?: Chase; userId: string | null;
+  onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [ticket, setTicket] = useState(chase?.collection_ticket ?? "");
+  const [date, setDate] = useState(chase?.collected_date ?? format(new Date(), "yyyy-MM-dd"));
+  const [notes, setNotes] = useState(chase?.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const id = await ensureChase(bin, userId);
+    if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
+    const { error } = await supabase.from("rental_chases").update({
+      collected: true,
+      collection_ticket: ticket.trim() || null,
+      collected_date: date || null,
+      chase_status: "resolved",
+      notes: notes.trim() || null,
+    }).eq("id", id);
+    setSaving(false);
+    if (error) { toast({ title: "Failed to save", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Marked as collected", description: "Removed from the over-rental list." });
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Mark as Collected</DialogTitle>
+          <DialogDescription>{bin.customer} — {bin.site} ({bin.containerType})</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Confirm this container has been collected. It will be removed from the over-rental list. Record the collection ticket so it stays auditable.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Collection Ticket / Job No.</Label>
+            <Input value={ticket} onChange={(e) => setTicket(e.target.value)} placeholder="e.g. 44222" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Collection Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes (optional)</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            <PackageCheck className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Confirm Collected"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }: {
