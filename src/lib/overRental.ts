@@ -306,7 +306,7 @@ export function computeOverRentalBins(
         netOnSite: onSiteForType,
         daysSinceActivity: days,
         lastActivityDate: ctbLastKeep,
-        lastJobNumber: null,
+        lastJobNumber: ctb.lastKeepJobNumber,
       });
     }
   }
