@@ -409,14 +409,55 @@ async function ensureChase(bin: OverRentalBin, userId: string | null): Promise<s
   return data.id;
 }
 
+type CollectCandidate = { job_number: string; job_date: string | null; site: string | null; container_type: string | null };
+
 function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
   bin: OverRentalBin; chase?: Chase; userId: string | null;
   onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [ticket, setTicket] = useState(chase?.collection_ticket ?? "");
-  const [date, setDate] = useState(chase?.collected_date ?? format(new Date(), "yyyy-MM-dd"));
+  const [date, setDate] = useState(chase?.collected_date ?? "");
   const [notes, setNotes] = useState(chase?.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [candidates, setCandidates] = useState<CollectCandidate[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(true);
+
+  // Find Skiptrak collection tickets that plausibly match this bin. Collections are
+  // often logged with a blank or differently-spelled site, so we match on customer OR
+  // site and (loosely) container type, newest first. Picking a ticket auto-fills the date.
+  useEffect(() => {
+    (async () => {
+      setLoadingTickets(true);
+      const { data } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number,job_date,site,container_type,customer")
+        .eq("source", "skiptrak")
+        .eq("movement_type", "Collect")
+        .or(`customer.ilike.${bin.customer},site.ilike.${bin.site}`)
+        .order("job_date", { ascending: false })
+        .limit(50);
+      const rows = (data ?? []) as (CollectCandidate & { customer: string | null })[];
+      // Prefer same container type, but keep all as fallback.
+      const sameType = rows.filter((r) => (r.container_type ?? "").toLowerCase().trim() === bin.containerType.toLowerCase().trim());
+      const list = (sameType.length ? sameType : rows).map(({ job_number, job_date, site, container_type }) => ({ job_number, job_date, site, container_type }));
+      setCandidates(list);
+      // Auto-select the most recent matching collection if nothing recorded yet.
+      if (!chase?.collection_ticket && list.length) {
+        setTicket(list[0].job_number);
+        setDate(list[0].job_date ?? "");
+      } else if (!chase?.collected_date && chase?.collection_ticket) {
+        const found = list.find((l) => l.job_number === chase.collection_ticket);
+        if (found?.job_date) setDate(found.job_date);
+      }
+      setLoadingTickets(false);
+    })();
+  }, [bin.customer, bin.site, bin.containerType, chase?.collection_ticket, chase?.collected_date]);
+
+  const onPickTicket = (jobNumber: string) => {
+    setTicket(jobNumber);
+    const found = candidates.find((c) => c.job_number === jobNumber);
+    if (found?.job_date) setDate(found.job_date);
+  };
 
   const save = async () => {
     setSaving(true);
@@ -444,15 +485,37 @@ function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
         </DialogHeader>
         <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">
-            Confirm this container has been collected. It will be removed from the over-rental list. Record the collection ticket so it stays auditable.
+            Pick the Skiptrak collection ticket — the collection date is filled in automatically from that ticket. The bin will drop off the over-rental list.
           </p>
           <div className="space-y-1.5">
-            <Label>Collection Ticket / Job No.</Label>
-            <Input value={ticket} onChange={(e) => setTicket(e.target.value)} placeholder="e.g. 44222" />
+            <Label>Skiptrak Collection Ticket</Label>
+            {loadingTickets ? (
+              <Skeleton className="h-10 w-full" />
+            ) : candidates.length > 0 ? (
+              <Select value={ticket} onValueChange={onPickTicket}>
+                <SelectTrigger><SelectValue placeholder="Select a collection ticket" /></SelectTrigger>
+                <SelectContent>
+                  {candidates.map((c) => (
+                    <SelectItem key={c.job_number} value={c.job_number}>
+                      #{c.job_number} · {c.job_date ? format(new Date(c.job_date), "dd MMM yyyy") : "no date"}
+                      {c.container_type ? ` · ${c.container_type}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-xs text-muted-foreground">No matching Skiptrak collection ticket found — enter one manually below.</p>
+            )}
           </div>
-          <div className="space-y-1.5">
-            <Label>Collection Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Ticket / Job No.</Label>
+              <Input value={ticket} onChange={(e) => setTicket(e.target.value)} placeholder="e.g. 44222" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Collection Date</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Notes (optional)</Label>
