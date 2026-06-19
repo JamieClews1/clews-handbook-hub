@@ -136,16 +136,38 @@ export default function RentalsDashboard() {
     return computeOverRentalBins(jobs, settings);
   }, [jobs, settings, settingsLoading]);
 
+  // ── Filters: category (Skip/RoRo) then size (container type) ──
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
+  const [sizeFilter, setSizeFilter] = useState<string>("all");
+
+  // Container types ("sizes") available for the chosen category
+  const sizeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of bins) {
+      if (categoryFilter !== "all" && b.category !== categoryFilter) continue;
+      if (b.containerType) set.add(b.containerType);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [bins, categoryFilter]);
+
+  const filteredBins = useMemo(() => {
+    return bins.filter((b) => {
+      if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
+      if (sizeFilter !== "all" && b.containerType !== sizeFilter) return false;
+      return true;
+    });
+  }, [bins, categoryFilter, sizeFilter]);
+
   const stats = useMemo(() => {
     let chased = 0, agreed = 0, unchased = 0;
-    for (const b of bins) {
+    for (const b of filteredBins) {
       const c = chases[b.binKey];
       if (!c || c.chase_status === "not_chased") unchased++;
       else if (c.agreed_to_pay) agreed++;
       else chased++;
     }
-    return { total: bins.length, chased, agreed, unchased };
-  }, [bins, chases]);
+    return { total: filteredBins.length, chased, agreed, unchased };
+  }, [filteredBins, chases]);
 
   const loading = jobsLoading || settingsLoading;
 
