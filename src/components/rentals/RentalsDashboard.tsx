@@ -124,8 +124,8 @@ export default function RentalsDashboard() {
 
   const bins = useMemo(() => {
     if (settingsLoading) return [];
-    return computeOverRentalBins(jobs, settings);
-  }, [jobs, settings, settingsLoading]);
+    return computeOverRentalBinsFromPositions(positions, settings);
+  }, [positions, settings, settingsLoading]);
 
   // ── Filters: category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
