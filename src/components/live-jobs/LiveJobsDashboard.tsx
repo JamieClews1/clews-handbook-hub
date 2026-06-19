@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
+import { computeOverRentalBins } from "@/lib/overRental";
 
 type Job = {
   id: string;
