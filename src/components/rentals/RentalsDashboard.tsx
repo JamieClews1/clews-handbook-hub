@@ -306,6 +306,7 @@ export default function RentalsDashboard() {
                       <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
                       <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
                       <TableCell className="text-center"><Badge variant="destructive">{b.daysSinceActivity}d</Badge></TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]}>
                           {STATUS_LABELS[c?.chase_status ?? "not_chased"]}
