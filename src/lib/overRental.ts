@@ -1,4 +1,4 @@
-import { differenceInDays } from "date-fns";
+import { differenceInDays, format, startOfMonth, subMonths } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 // Faithful copy of the over-rental detection used by the Live Jobs dashboard, so
@@ -112,8 +112,17 @@ type SiteAgg = {
 
 export function computeOverRentalBins(
   jobs: OverRentalJob[],
-  settings: LiveJobsSettings
+  settings: LiveJobsSettings,
+  // Only flag containers whose most recent keep movement (deliver/exchange/tip-return)
+  // falls on/after this date. The `jobs` array should contain the FULL movement history
+  // so net on-site is accurate even when the establishing delivery is years old (e.g. a
+  // long-standing RoRo serviced only by exchanges). This gate then excludes ancient
+  // "ghost" deliveries that were never collected and have had no activity since.
+  // Format: yyyy-MM-dd. Defaults to 11 calendar months ago.
+  activityWindowStart?: string
 ): OverRentalBin[] {
+  const windowStart =
+    activityWindowStart ?? format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
   const siteMap: Record<string, SiteAgg> = {};
 
   for (const job of jobs) {
@@ -247,7 +256,10 @@ export function computeOverRentalBins(
       daysSinceLastKeep !== null &&
       daysSinceLastKeep > settings.rental_free_days &&
       netDeliveredOnSite > 0 &&
-      !collectionClearedIt;
+      !collectionClearedIt &&
+      // Exclude ancient ghost deliveries with no recent activity
+      lastKeepDate !== null &&
+      lastKeepDate >= windowStart;
 
     if (!isOverRental) continue;
 
@@ -260,6 +272,8 @@ export function computeOverRentalBins(
         .pop() ?? null;
       const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
       if (days === null || days <= settings.rental_free_days) continue;
+      // This container type must itself have had recent activity (not an old ghost)
+      if (ctbLastKeep < windowStart) continue;
 
       const binKey = `${s.site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`;
       overRental.push({
@@ -278,3 +292,148 @@ export function computeOverRentalBins(
   overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
   return overRental;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aggregate-based path (Rentals dashboard)
+//
+// Computing over-rental from raw rows requires the FULL movement history so that a
+// container delivered years ago (and only serviced by exchanges since) still shows a
+// positive net on-site. Fetching ~40k raw rows to the client is too slow, so the DB
+// function `get_skiptrak_rental_positions()` pre-aggregates one row per
+// site+container_type+EWC. This function reproduces the exact over-rental math from
+// `computeOverRentalBins` on top of those aggregates.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type RentalPositionRow = {
+  site: string;
+  container_type: string;
+  ewc: string;
+  customer: string | null;
+  delivered: number;
+  collected: number;
+  exchanged: number;
+  tipreturn: number;
+  last_keep_date: string | null;
+  last_collection_date: string | null;
+};
+
+function positionNetFromRow(r: RentalPositionRow): number {
+  const net = r.delivered - r.collected;
+  const cleared = !!(r.last_collection_date && r.last_keep_date && r.last_collection_date >= r.last_keep_date);
+  if (cleared && net <= 0) return 0;
+  return Math.max(net, 0);
+}
+
+const maxDate = (a: string | null, b: string | null): string | null => {
+  if (!a) return b;
+  if (!b) return a;
+  return a >= b ? a : b;
+};
+
+export function computeOverRentalBinsFromPositions(
+  rows: RentalPositionRow[],
+  settings: LiveJobsSettings,
+  activityWindowStart?: string
+): OverRentalBin[] {
+  const windowStart =
+    activityWindowStart ?? format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
+
+  type Agg = {
+    site: string;
+    category: ContainerCategory;
+    latestCustomer: string;
+    latestCustomerDate: string | null;
+    siteLastKeep: string | null;
+    siteLastCollection: string | null;
+    netOnSite: number;
+    byContainer: Record<string, { net: number; lastKeep: string | null }>;
+  };
+  const siteMap: Record<string, Agg> = {};
+
+  for (const r of rows) {
+    const cat = categoriseContainer(r.container_type, null, settings);
+    if (!cat || cat === "artic") continue;
+
+    const key = `${(r.site || "Unknown").toLowerCase().trim()}|||${cat}`;
+    const posNet = positionNetFromRow(r);
+    const customerName = r.customer || "Unknown";
+    // Treat the more recent of keep/collection as this position's activity date.
+    const activityDate = maxDate(r.last_keep_date, r.last_collection_date);
+
+    if (!siteMap[key]) {
+      siteMap[key] = {
+        site: r.site || "Unknown",
+        category: cat,
+        latestCustomer: customerName,
+        latestCustomerDate: activityDate,
+        siteLastKeep: null,
+        siteLastCollection: null,
+        netOnSite: 0,
+        byContainer: {},
+      };
+    }
+    const agg = siteMap[key];
+
+    if (activityDate && (!agg.latestCustomerDate || activityDate > agg.latestCustomerDate)) {
+      agg.latestCustomer = customerName;
+      agg.latestCustomerDate = activityDate;
+    }
+
+    agg.siteLastKeep = maxDate(agg.siteLastKeep, r.last_keep_date);
+    agg.siteLastCollection = maxDate(agg.siteLastCollection, r.last_collection_date);
+    agg.netOnSite += posNet;
+
+    if (!agg.byContainer[r.container_type]) {
+      agg.byContainer[r.container_type] = { net: 0, lastKeep: null };
+    }
+    agg.byContainer[r.container_type].net += posNet;
+    agg.byContainer[r.container_type].lastKeep = maxDate(
+      agg.byContainer[r.container_type].lastKeep,
+      r.last_keep_date
+    );
+  }
+
+  const overRental: OverRentalBin[] = [];
+
+  for (const s of Object.values(siteMap)) {
+    const collectionClearedIt =
+      !!(s.siteLastCollection && s.siteLastKeep && s.siteLastCollection >= s.siteLastKeep);
+    const daysSinceLastKeep = s.siteLastKeep
+      ? differenceInDays(new Date(), new Date(s.siteLastKeep))
+      : null;
+
+    const isOverRental =
+      daysSinceLastKeep !== null &&
+      daysSinceLastKeep > settings.rental_free_days &&
+      s.netOnSite > 0 &&
+      !collectionClearedIt &&
+      s.siteLastKeep !== null &&
+      s.siteLastKeep >= windowStart;
+
+    if (!isOverRental) continue;
+
+    for (const [containerType, ctb] of Object.entries(s.byContainer)) {
+      if (ctb.net <= 0) continue;
+      const ctbLastKeep = ctb.lastKeep;
+      const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
+      if (days === null || days <= settings.rental_free_days) continue;
+      if (ctbLastKeep < windowStart) continue;
+
+      const binKey = `${s.site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`;
+      overRental.push({
+        binKey,
+        customer: s.latestCustomer,
+        site: s.site,
+        category: s.category,
+        containerType,
+        netOnSite: ctb.net,
+        daysSinceActivity: days,
+        lastActivityDate: ctbLastKeep,
+      });
+    }
+  }
+
+  overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+  return overRental;
+}
+

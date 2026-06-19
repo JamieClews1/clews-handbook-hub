@@ -5160,6 +5160,21 @@ export type Database = {
         Returns: boolean
       }
       generate_ticket_number: { Args: never; Returns: string }
+      get_skiptrak_rental_positions: {
+        Args: never
+        Returns: {
+          collected: number
+          container_type: string
+          customer: string
+          delivered: number
+          ewc: string
+          exchanged: number
+          last_collection_date: string
+          last_keep_date: string
+          site: string
+          tipreturn: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
