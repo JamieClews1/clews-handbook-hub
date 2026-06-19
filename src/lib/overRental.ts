@@ -100,6 +100,8 @@ type CtbBreakdown = {
   lastDeliveryOrExchangeDate: string | null;
   lastTipReturnDate: string | null;
   lastCollectionDate: string | null;
+  lastKeepDate: string | null;
+  lastKeepJobNumber: string | null;
   wasteTypes: Set<string>;
   positions: Record<string, PosCounts>;
 };
