@@ -145,9 +145,9 @@ export default function RentalsDashboard() {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
     // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
-    return computeOverRentalBinsFromPositions(positions, settings)
+    return computeOverRentalBins(jobs, settings)
       .filter((b) => !chases[b.binKey]?.collected);
-  }, [positions, settings, settingsLoading, chases]);
+  }, [jobs, settings, settingsLoading, chases]);
 
   // ── Filters: category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
