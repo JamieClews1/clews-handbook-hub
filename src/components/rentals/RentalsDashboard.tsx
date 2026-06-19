@@ -280,7 +280,7 @@ export default function RentalsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bins.map((b) => {
+                {filteredBins.map((b) => {
                   const c = chases[b.binKey];
                   const assignee = c?.assigned_to ? profiles.find((p) => p.id === c.assigned_to) : null;
                   return (
