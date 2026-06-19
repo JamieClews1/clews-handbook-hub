@@ -273,7 +273,7 @@ export function computeOverRentalBins(
     if (!isOverRental) continue;
 
     for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-      const onSiteForType = typeNetOnSite(ctb.positions);
+      const onSiteForType = typeNetOnSite(ctb.positions, windowStart);
       if (onSiteForType <= 0) continue;
       const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
         .filter((d): d is string => !!d)
