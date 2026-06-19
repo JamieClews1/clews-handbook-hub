@@ -60,7 +60,7 @@ export default function RentalsDashboard() {
   const { toast } = useToast();
   const { settings, loading: settingsLoading } = useLiveJobsSettings();
 
-  const [jobs, setJobs] = useState<OverRentalJob[]>([]);
+  const [positions, setPositions] = useState<RentalPositionRow[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
