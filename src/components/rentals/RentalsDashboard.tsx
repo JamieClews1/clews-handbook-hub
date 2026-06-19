@@ -72,6 +72,7 @@ export default function RentalsDashboard() {
   // dialogs
   const [manageBin, setManageBin] = useState<OverRentalBin | null>(null);
   const [emailBin, setEmailBin] = useState<OverRentalBin | null>(null);
+  const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
     const fetchPositions = async () => {
