@@ -219,19 +219,51 @@ export default function RentalsDashboard() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-lg flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Bins Over Free Rental ({bins.length})
+              Bins Over Free Rental ({filteredBins.length})
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={downloadExcel} disabled={bins.length === 0}>
+            <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
               <Download className="h-4 w-4 mr-1" /> Download Excel
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             Every skip/RoRo on-site beyond the {settings.rental_free_days}-day free rental period. Chase customers and track who has agreed to pay.
           </p>
+          <div className="flex flex-wrap items-center gap-2 pt-3">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={categoryFilter}
+              onValueChange={(v) => { setCategoryFilter(v as "all" | "skip" | "roro"); setSizeFilter("all"); }}
+            >
+              <SelectTrigger className="w-[150px] h-9">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="skip">Skip</SelectItem>
+                <SelectItem value="roro">RoRo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sizeFilter} onValueChange={setSizeFilter}>
+              <SelectTrigger className="w-[200px] h-9">
+                <SelectValue placeholder="Size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sizes</SelectItem>
+                {sizeOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {(categoryFilter !== "all" || sizeFilter !== "all") && (
+              <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSizeFilter("all"); }}>
+                Clear
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          {bins.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">No bins are currently over the rental free period. 🎉</div>
+          {filteredBins.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">
+              {bins.length === 0 ? "No bins are currently over the rental free period. 🎉" : "No bins match the selected filters."}
+            </div>
           ) : (
             <Table>
               <TableHeader>
