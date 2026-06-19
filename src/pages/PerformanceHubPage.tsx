@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle, Box, Fuel } from "lucide-react";
+import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle, Box, Fuel, PoundSterling } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
 
@@ -102,6 +102,23 @@ const PerformanceHubPage = () => {
                 </div>
               </div>
             </Link>
+
+            {/* Rentals */}
+            <Link to="/performance-hub/rentals" className="group">
+              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <PoundSterling className="h-12 w-12 text-primary-foreground" />
+                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
+                    Rentals
+                  </h2>
+                  <p className="text-primary-foreground/80 text-sm">
+                    Track bins over rental, chase customers for payment, and manage rental agreements
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+
 
             {/* Data Uploads */}
             <Link to="/performance-hub/data" className="group">

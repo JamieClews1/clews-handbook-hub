@@ -41,6 +41,7 @@ import PerformanceHubPage from "./pages/PerformanceHubPage";
 import PerformanceHubReportsPage from "./pages/PerformanceHubReportsPage";
 import WasteKPIsPage from "./pages/WasteKPIsPage";
 import LiveJobsPage from "./pages/LiveJobsPage";
+import RentalsPage from "./pages/RentalsPage";
 import RebateValuesPage from "./pages/RebateValuesPage";
 import CustomerReportingPage from "./pages/CustomerReportingPage";
 import CustomerPortalPage from "./pages/CustomerPortalPage";
@@ -130,6 +131,7 @@ const App = () => (
             <Route path="/performance-hub/waste-kpis" element={<Staff><WasteKPIsPage /></Staff>} />
             <Route path="/performance-hub/data" element={<Staff><DataUploadsPage /></Staff>} />
             <Route path="/performance-hub/live-jobs" element={<Staff><LiveJobsPage /></Staff>} />
+            <Route path="/performance-hub/rentals" element={<Staff><RentalsPage /></Staff>} />
             <Route path="/data-hub/uploads" element={<Staff><DataUploadsPage /></Staff>} />
             <Route path="/rebate-values" element={<Staff><RebateValuesPage /></Staff>} />
             <Route path="/customer-reporting" element={<Staff><CustomerReportingPage /></Staff>} />

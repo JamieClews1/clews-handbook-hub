@@ -32,6 +32,7 @@ import {
   Radio,
   TrendingUp,
   Fuel,
+  PoundSterling,
 } from "lucide-react";
 import {
   Sidebar,
@@ -307,6 +308,14 @@ export function AppSidebar() {
                       <Link to="/performance-hub/live-jobs">
                         <Radio className="h-4 w-4" />
                         {!collapsed && <span>Live Jobs</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/rentals")}>
+                      <Link to="/performance-hub/rentals">
+                        <PoundSterling className="h-4 w-4" />
+                        {!collapsed && <span>Rentals</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

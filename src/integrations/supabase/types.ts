@@ -3735,6 +3735,168 @@ export type Database = {
         }
         Relationships: []
       }
+      rental_agreements: {
+        Row: {
+          agreed_rate: number | null
+          chase_id: string | null
+          container_type: string | null
+          created_at: string
+          created_by: string | null
+          customer: string | null
+          end_date: string | null
+          id: string
+          notes: string | null
+          rate_period: string
+          site: string | null
+          source: string
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agreed_rate?: number | null
+          chase_id?: string | null
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          rate_period?: string
+          site?: string | null
+          source?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agreed_rate?: number | null
+          chase_id?: string | null
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          rate_period?: string
+          site?: string | null
+          source?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_agreements_chase_id_fkey"
+            columns: ["chase_id"]
+            isOneToOne: false
+            referencedRelation: "rental_chases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_chase_emails: {
+        Row: {
+          body: string | null
+          chase_id: string
+          created_at: string
+          id: string
+          sent_by: string | null
+          subject: string | null
+          to_email: string
+        }
+        Insert: {
+          body?: string | null
+          chase_id: string
+          created_at?: string
+          id?: string
+          sent_by?: string | null
+          subject?: string | null
+          to_email: string
+        }
+        Update: {
+          body?: string | null
+          chase_id?: string
+          created_at?: string
+          id?: string
+          sent_by?: string | null
+          subject?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_chase_emails_chase_id_fkey"
+            columns: ["chase_id"]
+            isOneToOne: false
+            referencedRelation: "rental_chases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_chases: {
+        Row: {
+          agreed_amount: number | null
+          agreed_date: string | null
+          agreed_to_pay: boolean
+          assigned_to: string | null
+          bin_key: string
+          category: string | null
+          chase_status: string
+          container_type: string | null
+          created_at: string
+          created_by: string | null
+          customer: string | null
+          id: string
+          notes: string | null
+          site: string | null
+          updated_at: string
+        }
+        Insert: {
+          agreed_amount?: number | null
+          agreed_date?: string | null
+          agreed_to_pay?: boolean
+          assigned_to?: string | null
+          bin_key: string
+          category?: string | null
+          chase_status?: string
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer?: string | null
+          id?: string
+          notes?: string | null
+          site?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agreed_amount?: number | null
+          agreed_date?: string | null
+          agreed_to_pay?: boolean
+          assigned_to?: string | null
+          bin_key?: string
+          category?: string | null
+          chase_status?: string
+          container_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer?: string | null
+          id?: string
+          notes?: string | null
+          site?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_chases_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       riddor_incidents: {
         Row: {
           created_at: string
