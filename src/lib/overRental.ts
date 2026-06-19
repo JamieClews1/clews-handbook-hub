@@ -315,6 +315,7 @@ export type RentalPositionRow = {
   tipreturn: number;
   last_keep_date: string | null;
   last_collection_date: string | null;
+  last_job_number: string | null;
 };
 
 function positionNetFromRow(r: RentalPositionRow): number {
