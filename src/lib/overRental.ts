@@ -368,7 +368,7 @@ export function computeOverRentalBinsFromPositions(
     if (!cat || cat === "artic") continue;
 
     const key = `${(r.site || "Unknown").toLowerCase().trim()}|||${cat}`;
-    const posNet = positionNetFromRow(r);
+    const posNet = positionNetFromRow(r, windowStart);
     const customerName = r.customer || "Unknown";
     // Treat the more recent of keep/collection as this position's activity date.
     const activityDate = maxDate(r.last_keep_date, r.last_collection_date);
