@@ -62,7 +62,7 @@ const STATUS_VARIANT: Record<string, "secondary" | "default" | "destructive" | "
 export default function RentalsDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { settings, loading: settingsLoading } = useLiveJobsSettings();
+  const { settings, loading: settingsLoading, updateSetting } = useLiveJobsSettings();
 
   const [jobs, setJobs] = useState<OverRentalJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
