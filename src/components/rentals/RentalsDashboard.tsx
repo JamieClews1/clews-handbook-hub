@@ -77,28 +77,43 @@ export default function RentalsDashboard() {
       // when the establishing delivery is years old — e.g. a long-standing RoRo that has
       // only been serviced by exchanges within the last year. The recent-activity gate in
       // computeOverRentalBins then excludes ancient ghost deliveries.
-      let all: OverRentalJob[] = [];
-      let from = 0;
+      const cols = "id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc";
+      const movements = ["Deliver", "Exchange", "Collect", "Tip/Return"];
       const pageSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
-          .eq("source", "skiptrak")
-          .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
-          .order("job_date", { ascending: false })
-          .range(from, from + pageSize - 1);
-        if (error) { console.error(error); break; }
-        all = all.concat((data ?? []) as OverRentalJob[]);
-        hasMore = (data?.length ?? 0) === pageSize;
-        from += pageSize;
+
+      // Determine total rows up front so we can fetch every page in parallel rather than
+      // walking them sequentially (40k+ rows would otherwise take ~80s).
+      const { count, error: countError } = await supabase
+        .from("data_hub_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("source", "skiptrak")
+        .in("movement_type", movements);
+      if (countError) { console.error(countError); setJobsLoading(false); return; }
+
+      const total = count ?? 0;
+      const pages = Math.max(1, Math.ceil(total / pageSize));
+      const results = await Promise.all(
+        Array.from({ length: pages }, (_, i) =>
+          supabase
+            .from("data_hub_jobs")
+            .select(cols)
+            .eq("source", "skiptrak")
+            .in("movement_type", movements)
+            .order("id", { ascending: true })
+            .range(i * pageSize, i * pageSize + pageSize - 1)
+        )
+      );
+      const all: OverRentalJob[] = [];
+      for (const { data, error } of results) {
+        if (error) { console.error(error); continue; }
+        all.push(...((data ?? []) as OverRentalJob[]));
       }
       setJobs(all);
       setJobsLoading(false);
     };
     fetchJobs();
   }, []);
+
 
 
   const fetchChases = async () => {
