@@ -363,6 +363,17 @@ export default function RentalsDashboard() {
           toast={toast}
         />
       )}
+
+      {collectBin && (
+        <CollectDialog
+          bin={collectBin}
+          chase={chases[collectBin.binKey]}
+          userId={user?.id ?? null}
+          onClose={() => setCollectBin(null)}
+          onSaved={() => { setCollectBin(null); fetchChases(); }}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
