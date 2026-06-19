@@ -73,16 +73,24 @@ type PosCounts = {
   wasteTypes: Set<string>;
 };
 
-function positionNetOnSite(p: PosCounts): number {
+function positionNetOnSite(p: PosCounts, windowStart?: string): number {
   const net = p.delivered - p.collected;
   const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
   if (cleared && net <= 0) return 0;
+  // Ancient ghost guard (see positionNetFromRow): ignore positive nets whose own latest
+  // activity predates the window, so a newer collected position can't resurrect them.
+  if (windowStart) {
+    const activity = p.lastCollectionDate && p.lastKeepDate
+      ? (p.lastCollectionDate >= p.lastKeepDate ? p.lastCollectionDate : p.lastKeepDate)
+      : (p.lastKeepDate ?? p.lastCollectionDate);
+    if (activity && activity < windowStart) return 0;
+  }
   return Math.max(net, 0);
 }
 
-function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number {
+function typeNetOnSite(positions: Record<string, PosCounts> | undefined, windowStart?: string): number {
   if (!positions) return 0;
-  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p), 0);
+  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p, windowStart), 0);
 }
 
 type CtbBreakdown = {
