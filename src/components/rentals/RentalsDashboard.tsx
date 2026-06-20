@@ -17,12 +17,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck } from "lucide-react";
+import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
+import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 
 type Chase = {
   id: string;
@@ -246,6 +247,7 @@ export default function RentalsDashboard() {
           <p className="text-sm text-muted-foreground">
             Every skip/RoRo on-site beyond the {settings.rental_free_days}-day free rental period. Chase customers and track who has agreed to pay.
           </p>
+          <LatestDataDate />
           <div className="flex flex-wrap items-center gap-2 pt-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select
@@ -380,6 +382,17 @@ export default function RentalsDashboard() {
           toast={toast}
         />
       )}
+    </div>
+  );
+}
+
+function LatestDataDate() {
+  const latestDate = useLatestDataDate();
+  if (!latestDate) return null;
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Database className="h-3.5 w-3.5" />
+      Data current to <span className="font-medium text-foreground">{latestDate}</span>
     </div>
   );
 }
