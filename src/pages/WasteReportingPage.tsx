@@ -82,7 +82,7 @@ const WasteReportingPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-screen-2xl mx-auto">
           {viewMode === 'list' && (
             <>
               <div className="flex items-center gap-4 mb-8">
