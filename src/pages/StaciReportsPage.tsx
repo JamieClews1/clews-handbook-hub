@@ -40,7 +40,7 @@ const StaciReportsPage = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
+      <main className="container mx-auto px-4 py-8 max-w-screen-2xl space-y-8">
         {/* Title row */}
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg">

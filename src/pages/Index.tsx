@@ -96,7 +96,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 max-w-screen-2xl mx-auto space-y-8">
       {/* Welcome */}
       <div className="flex items-start justify-between">
         <div>

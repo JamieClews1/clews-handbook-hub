@@ -29,7 +29,7 @@ export default function FuelSurchargesPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-        <div className="container max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="container max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/performance-hub">
             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Performance Hub</Button>
           </Link>
@@ -41,7 +41,7 @@ export default function FuelSurchargesPage() {
         </div>
       </header>
 
-      <main className="container max-w-7xl mx-auto px-4 py-6">
+      <main className="container max-w-screen-2xl mx-auto px-4 py-6">
         <Tabs defaultValue="dashboard" className="space-y-4">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>

@@ -1039,7 +1039,7 @@ const LoadReportsPage = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <div className={`${viewMode === "all" ? "max-w-7xl" : "max-w-5xl"} mx-auto`}>
+        <div className={`${viewMode === "all" ? "max-w-screen-2xl" : "max-w-5xl"} mx-auto`}>
           {viewMode === "customer" && (
             <CustomerTypeSelector onSelect={handleCustomerSelect} onViewAll={handleViewAll} />
           )}
