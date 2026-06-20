@@ -47,7 +47,7 @@ const RentalsPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-screen-2xl mx-auto space-y-8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-600 to-green-500 flex items-center justify-center shadow-lg">
               <PoundSterling className="h-7 w-7 text-white" />

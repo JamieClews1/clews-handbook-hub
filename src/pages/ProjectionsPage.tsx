@@ -2,7 +2,7 @@ import { ProjectionsDashboard } from "@/components/projections/ProjectionsDashbo
 
 const ProjectionsPage = () => {
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
+    <div className="container mx-auto py-6 px-4 max-w-screen-2xl">
       <ProjectionsDashboard />
     </div>
   );
