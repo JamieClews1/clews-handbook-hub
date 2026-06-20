@@ -263,7 +263,7 @@ const RebateValuesPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-screen-2xl mx-auto space-y-6">
           <Tabs defaultValue="monthly-values" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="monthly-values" className="flex items-center gap-2">

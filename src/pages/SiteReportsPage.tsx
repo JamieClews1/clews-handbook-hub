@@ -88,7 +88,7 @@ const SiteReportsPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
               <ClipboardList className="h-6 w-6 text-white" />

@@ -64,7 +64,7 @@ const StockCheckPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-screen-2xl mx-auto">
           <h1 className="text-3xl font-bold text-foreground mb-6">Stock Check</h1>
 
           <Tabs
