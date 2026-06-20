@@ -17,12 +17,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck } from "lucide-react";
+import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
+import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 
 type Chase = {
   id: string;
