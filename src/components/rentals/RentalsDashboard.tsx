@@ -386,6 +386,17 @@ export default function RentalsDashboard() {
   );
 }
 
+function LatestDataDate() {
+  const latestDate = useLatestDataDate();
+  if (!latestDate) return null;
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Database className="h-3.5 w-3.5" />
+      Data current to <span className="font-medium text-foreground">{latestDate}</span>
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, tone }: { icon: any; label: string; value: number; tone: "destructive" | "muted" | "primary" | "success" }) {
   const color = tone === "destructive" ? "text-destructive" : tone === "success" ? "text-green-600" : tone === "primary" ? "text-primary" : "text-muted-foreground";
   return (
