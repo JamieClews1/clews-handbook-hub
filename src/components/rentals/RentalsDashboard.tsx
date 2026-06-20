@@ -247,6 +247,7 @@ export default function RentalsDashboard() {
           <p className="text-sm text-muted-foreground">
             Every skip/RoRo on-site beyond the {settings.rental_free_days}-day free rental period. Chase customers and track who has agreed to pay.
           </p>
+          <LatestDataDate />
           <div className="flex flex-wrap items-center gap-2 pt-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select
