@@ -3384,6 +3384,189 @@ export type Database = {
           },
         ]
       }
+      pricing_rate_card_rows: {
+        Row: {
+          card_id: string
+          created_at: string
+          display_order: number
+          id: string
+          label: string
+          note: string | null
+          section: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label: string
+          note?: string | null
+          section?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label?: string
+          note?: string | null
+          section?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rate_card_rows_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_rate_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_rate_card_values: {
+        Row: {
+          created_at: string
+          id: string
+          price: number | null
+          row_id: string
+          status: string
+          text_value: string | null
+          updated_at: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          price?: number | null
+          row_id: string
+          status?: string
+          text_value?: string | null
+          updated_at?: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          price?: number | null
+          row_id?: string
+          status?: string
+          text_value?: string | null
+          updated_at?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rate_card_values_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_rate_card_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_rate_card_values_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_rate_card_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_rate_card_zones: {
+        Row: {
+          card_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          updated_at: string
+          zone_code: string
+          zone_name: string | null
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          updated_at?: string
+          zone_code: string
+          zone_name?: string | null
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          updated_at?: string
+          zone_code?: string
+          zone_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rate_card_zones_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_rate_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_rate_cards: {
+        Row: {
+          agreed_by: string | null
+          created_at: string
+          customer_id: string | null
+          customer_type: string
+          effective_date: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+          vat_inclusive: boolean
+        }
+        Insert: {
+          agreed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_type: string
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+          vat_inclusive?: boolean
+        }
+        Update: {
+          agreed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_type?: string
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          vat_inclusive?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rate_cards_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_skip_sizes: {
         Row: {
           created_at: string
@@ -3438,6 +3621,39 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
           waste_type_name?: string
+        }
+        Relationships: []
+      }
+      pricing_zone_postcodes: {
+        Row: {
+          area: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          postcode_prefix: string
+          services: string | null
+          updated_at: string
+          zone_code: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          postcode_prefix: string
+          services?: string | null
+          updated_at?: string
+          zone_code: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          postcode_prefix?: string
+          services?: string | null
+          updated_at?: string
+          zone_code?: string
         }
         Relationships: []
       }
