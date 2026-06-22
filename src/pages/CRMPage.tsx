@@ -83,6 +83,7 @@ function formatDate(iso: string) {
 
 export default function CRMPage() {
   const { toast } = useToast();
+  const { templates, reload: reloadTemplates } = useCRMTemplates();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -95,11 +96,9 @@ export default function CRMPage() {
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
 
-  const { toast } = useToast();
-  const { templates, reload: reloadTemplates } = useCRMTemplates();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-
+  const loadTickets = async () => {
     const { data } = await supabase
+
       .from("crm_tickets")
       .select("*")
       .order("last_message_at", { ascending: false });
