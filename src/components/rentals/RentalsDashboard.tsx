@@ -83,12 +83,12 @@ function renderChaseTemplate(
   rateLabel: string,
 ): string {
   return (template || DEFAULT_CHASE_EMAIL_TEMPLATE)
-    .replaceAll("{customer}", bin.customer)
-    .replaceAll("{site}", bin.site)
-    .replaceAll("{containerType}", bin.containerType)
-    .replaceAll("{days}", String(bin.daysSinceActivity ?? ""))
-    .replaceAll("{freeDays}", String(freeDays))
-    .replaceAll("{rate}", rateLabel);
+    .split("{customer}").join(bin.customer)
+    .split("{site}").join(bin.site)
+    .split("{containerType}").join(bin.containerType)
+    .split("{days}").join(String(bin.daysSinceActivity ?? ""))
+    .split("{freeDays}").join(String(freeDays))
+    .split("{rate}").join(rateLabel);
 }
 
 const STATUS_LABELS: Record<string, string> = {
