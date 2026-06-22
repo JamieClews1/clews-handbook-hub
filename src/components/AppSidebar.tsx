@@ -33,6 +33,7 @@ import {
   TrendingUp,
   Fuel,
   PoundSterling,
+  Inbox,
 } from "lucide-react";
 import {
   Sidebar,
@@ -254,6 +255,15 @@ export function AppSidebar() {
                       <Link to="/bookings">
                         <CalendarCheck className="h-4 w-4" />
                         {!collapsed && <span>Bookings</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/crm")}>
+                      <Link to="/crm">
+                        <Inbox className="h-4 w-4" />
+                        {!collapsed && <span>CRM Inbox</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
