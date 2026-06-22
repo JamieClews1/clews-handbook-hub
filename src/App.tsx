@@ -62,6 +62,7 @@ import BookingsPage from "./pages/BookingsPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
 import WeightChecksPage from "./pages/WeightChecksPage";
 import PricingCMSPage from "./pages/PricingCMSPage";
+import CRMPage from "./pages/CRMPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -144,6 +145,7 @@ const App = () => (
             <Route path="/performance-hub/fuel-surcharges" element={<Staff><FuelSurchargesPage /></Staff>} />
             <Route path="/diary" element={<Staff><DiaryPage /></Staff>} />
             <Route path="/bookings" element={<Staff><BookingsPage /></Staff>} />
+            <Route path="/crm" element={<Staff><CRMPage /></Staff>} />
             <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
 
             {/* Catch-all */}
