@@ -355,7 +355,7 @@ export default function RentalsDashboard() {
               <RentalSettingsDialog settings={settings} updateSetting={updateSetting} />
               <RentalsInfoDialog settings={settings} binCount={bins.length} updateSetting={updateSetting} />
               <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
-                <Download className="h-4 w-4 mr-1" /> Download Excel
+                <Download className="h-4 w-4 mr-1" /> Download Report
               </Button>
             </div>
           </div>
