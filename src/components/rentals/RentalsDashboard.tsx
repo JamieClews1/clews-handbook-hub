@@ -23,6 +23,8 @@ import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
+import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
+import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 
 type Chase = {
@@ -65,6 +67,28 @@ function agreementCoversBin(a: Agreement, bin: OverRentalBin): boolean {
   if (a.site && norm(a.site) !== norm(bin.site)) return false;
   if (a.container_type && norm(a.container_type) !== norm(bin.containerType)) return false;
   return true;
+}
+
+// Weekly rental cost label for a bin, based on its category and the configured rates.
+function rentalRateLabel(bin: OverRentalBin, skipRate: number, roroRate: number): string {
+  const rate = bin.category === "roro" ? roroRate : skipRate;
+  return `£${rate.toFixed(2)} + VAT per week`;
+}
+
+// Fill the chase email template placeholders with this bin's details.
+function renderChaseTemplate(
+  template: string,
+  bin: OverRentalBin,
+  freeDays: number,
+  rateLabel: string,
+): string {
+  return (template || DEFAULT_CHASE_EMAIL_TEMPLATE)
+    .split("{customer}").join(bin.customer)
+    .split("{site}").join(bin.site)
+    .split("{containerType}").join(bin.containerType)
+    .split("{days}").join(String(bin.daysSinceActivity ?? ""))
+    .split("{freeDays}").join(String(freeDays))
+    .split("{rate}").join(rateLabel);
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -287,6 +311,7 @@ export default function RentalsDashboard() {
               Bins Over Free Rental ({filteredBins.length})
             </CardTitle>
             <div className="flex items-center gap-2">
+              <RentalSettingsDialog settings={settings} updateSetting={updateSetting} />
               <RentalsInfoDialog settings={settings} binCount={bins.length} updateSetting={updateSetting} />
               <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
                 <Download className="h-4 w-4 mr-1" /> Download Excel
@@ -457,6 +482,12 @@ export default function RentalsDashboard() {
           chase={chases[emailBin.binKey]}
           defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? ""}
           freeDays={settings.rental_free_days}
+          draftBody={renderChaseTemplate(
+            settings.rental_chase_email_template,
+            emailBin,
+            settings.rental_free_days,
+            rentalRateLabel(emailBin, settings.rental_skip_rate, settings.rental_roro_rate),
+          )}
           userId={user?.id ?? null}
           onClose={() => setEmailBin(null)}
           onSent={() => { setEmailBin(null); fetchChases(); }}
@@ -878,19 +909,13 @@ function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }:
   );
 }
 
-function EmailDialog({ bin, chase, defaultEmail, freeDays, userId, onClose, onSent, toast }: {
-  bin: OverRentalBin; chase?: Chase; defaultEmail: string; freeDays: number; userId: string | null;
+function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, onClose, onSent, toast }: {
+  bin: OverRentalBin; chase?: Chase; defaultEmail: string; freeDays: number; draftBody: string; userId: string | null;
   onClose: () => void; onSent: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [to, setTo] = useState(defaultEmail);
   const [subject, setSubject] = useState(`Container rental notice — ${bin.site}`);
-  const [body, setBody] = useState(
-    `Dear ${bin.customer},\n\n` +
-    `Our records show a ${bin.containerType} container has been on site at ${bin.site} for ${bin.daysSinceActivity} days, which is beyond the ${freeDays}-day free rental period.\n\n` +
-    `Rental charges now apply for this container. Please arrange a collection or exchange, or contact us to confirm how you would like to proceed.\n\n` +
-    `If you would like the container to remain on site, please reply to confirm acceptance of the rental charges.\n\n` +
-    `Kind regards,\nClews Recycling`
-  );
+  const [body, setBody] = useState(draftBody);
   const [sending, setSending] = useState(false);
 
   const send = async () => {
