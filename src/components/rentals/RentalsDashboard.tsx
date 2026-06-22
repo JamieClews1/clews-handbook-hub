@@ -95,6 +95,7 @@ export default function RentalsDashboard() {
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
+  const [agreements, setAgreements] = useState<Agreement[]>([]);
 
   // dialogs
   const [manageBin, setManageBin] = useState<OverRentalBin | null>(null);
