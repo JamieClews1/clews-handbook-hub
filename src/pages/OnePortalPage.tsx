@@ -80,6 +80,12 @@ const sections = [
     icon: Recycle,
     href: "/waste-reporting",
   },
+  {
+    title: "Pricing",
+    description: "Rate cards by customer type with postcode zone checker",
+    icon: PoundSterling,
+    href: "/pricing",
+  },
 ];
 
 const OnePortalPage = () => {
