@@ -144,6 +144,14 @@ export default function RentalsDashboard() {
     setChases(map);
   };
 
+  const fetchAgreements = async () => {
+    const { data } = await supabase
+      .from("rental_agreements")
+      .select("id,customer,site,container_type,start_date,end_date,status")
+      .eq("status", "active");
+    setAgreements((data ?? []) as Agreement[]);
+  };
+
   useEffect(() => {
     fetchChases();
     supabase.from("profiles").select("id,full_name,email").then(({ data }) => setProfiles((data ?? []) as Profile[]));
