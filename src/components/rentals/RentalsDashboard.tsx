@@ -909,19 +909,13 @@ function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }:
   );
 }
 
-function EmailDialog({ bin, chase, defaultEmail, freeDays, userId, onClose, onSent, toast }: {
-  bin: OverRentalBin; chase?: Chase; defaultEmail: string; freeDays: number; userId: string | null;
+function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, onClose, onSent, toast }: {
+  bin: OverRentalBin; chase?: Chase; defaultEmail: string; freeDays: number; draftBody: string; userId: string | null;
   onClose: () => void; onSent: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [to, setTo] = useState(defaultEmail);
   const [subject, setSubject] = useState(`Container rental notice — ${bin.site}`);
-  const [body, setBody] = useState(
-    `Dear ${bin.customer},\n\n` +
-    `Our records show a ${bin.containerType} container has been on site at ${bin.site} for ${bin.daysSinceActivity} days, which is beyond the ${freeDays}-day free rental period.\n\n` +
-    `Rental charges now apply for this container. Please arrange a collection or exchange, or contact us to confirm how you would like to proceed.\n\n` +
-    `If you would like the container to remain on site, please reply to confirm acceptance of the rental charges.\n\n` +
-    `Kind regards,\nClews Recycling`
-  );
+  const [body, setBody] = useState(draftBody);
   const [sending, setSending] = useState(false);
 
   const send = async () => {
