@@ -12,10 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
-import { RefreshCw, Mail, Send, Inbox, AlertCircle } from "lucide-react";
+import { RefreshCw, Mail, Send, Inbox, AlertCircle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
 
 type Status = "new" | "open" | "pending" | "resolved";
 
