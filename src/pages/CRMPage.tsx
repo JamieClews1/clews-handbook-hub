@@ -434,7 +434,30 @@ export default function CRMPage() {
                   onChange={(e) => setReply(e.target.value)}
                   className="min-h-[90px]"
                 />
-                <div className="flex justify-end">
+                <div className="flex justify-between gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" disabled={templates.length === 0}>
+                        <FileText className="h-4 w-4" /> Insert template
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto w-64">
+                      <DropdownMenuLabel>Canned responses</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {templates.map((t) => (
+                        <DropdownMenuItem
+                          key={t.id}
+                          onSelect={() => insertTemplate(t.body ?? "")}
+                          className="flex flex-col items-start gap-0.5"
+                        >
+                          <span className="text-sm font-medium">{t.name}</span>
+                          {t.category && (
+                            <span className="text-[10px] text-muted-foreground">{t.category}</span>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button onClick={handleSend} disabled={sending || !reply.trim()}>
                     <Send className="h-4 w-4" />
                     {sending ? "Sending…" : "Send reply"}
@@ -445,6 +468,12 @@ export default function CRMPage() {
           )}
         </Card>
       </div>
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <CRMTemplates onChange={reloadTemplates} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
