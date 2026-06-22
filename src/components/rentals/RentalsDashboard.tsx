@@ -179,13 +179,26 @@ export default function RentalsDashboard() {
     })();
   }, []);
 
-  const bins = useMemo(() => {
+  const allBins = useMemo(() => {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
     // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
     return computeOverRentalBins(jobs, settings)
       .filter((b) => !chases[b.binKey]?.collected);
   }, [jobs, settings, settingsLoading, chases]);
+
+  // Bins covered by an active rental agreement (e.g. open-ended ones) are pulled out
+  // of the main Over Rental list — they are no longer being chased — but we still track
+  // how long they've been over so they remain visible.
+  const coveredBins = useMemo(
+    () => allBins.filter((b) => agreements.some((a) => agreementCoversBin(a, b))),
+    [allBins, agreements],
+  );
+
+  const bins = useMemo(
+    () => allBins.filter((b) => !agreements.some((a) => agreementCoversBin(a, b))),
+    [allBins, agreements],
+  );
 
   // ── Filters: category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
