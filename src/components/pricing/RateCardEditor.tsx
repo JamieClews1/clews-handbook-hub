@@ -237,7 +237,7 @@ function PriceCell({
   onSave: (status: string, price: number | null, text: string | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [status, setStatus] = useState(value?.status || "na");
+  const [status, setStatus] = useState<string>(value?.status || "na");
   const [price, setPrice] = useState(value?.price?.toString() || "");
   const [text, setText] = useState(value?.text_value || "");
 
