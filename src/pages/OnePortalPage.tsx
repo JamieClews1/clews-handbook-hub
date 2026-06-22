@@ -13,6 +13,7 @@ import {
   Users,
   HardHat,
   CalendarDays,
+  PoundSterling,
 } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
@@ -79,6 +80,12 @@ const sections = [
     description: "Facility recycling forms and waste documentation",
     icon: Recycle,
     href: "/waste-reporting",
+  },
+  {
+    title: "Pricing",
+    description: "Rate cards by customer type with postcode zone checker",
+    icon: PoundSterling,
+    href: "/pricing",
   },
 ];
 

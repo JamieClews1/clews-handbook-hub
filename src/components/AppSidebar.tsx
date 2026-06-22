@@ -267,6 +267,15 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/pricing")}>
+                      <Link to="/pricing">
+                        <PoundSterling className="h-4 w-4" />
+                        {!collapsed && <span>Pricing</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
