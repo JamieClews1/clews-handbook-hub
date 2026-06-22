@@ -481,7 +481,7 @@ export default function RentalsDashboard() {
           chase={chases[agreementBin.binKey]}
           userId={user?.id ?? null}
           onClose={() => setAgreementBin(null)}
-          onSaved={() => setAgreementBin(null)}
+          onSaved={() => { setAgreementBin(null); fetchAgreements(); }}
           toast={toast}
         />
       )}
