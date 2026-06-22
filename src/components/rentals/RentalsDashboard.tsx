@@ -75,6 +75,7 @@ export default function RentalsDashboard() {
   const [manageBin, setManageBin] = useState<OverRentalBin | null>(null);
   const [emailBin, setEmailBin] = useState<OverRentalBin | null>(null);
   const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
+  const [agreementBin, setAgreementBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -330,6 +331,9 @@ export default function RentalsDashboard() {
                           <Button variant="outline" size="sm" onClick={() => setEmailBin(b)}>
                             <Mail className="h-4 w-4 mr-1" /> Chase
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setAgreementBin(b)} title="Create rental agreement">
+                            <FileCheck className="h-4 w-4 mr-1" /> Agreement
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => setCollectBin(b)} title="Mark as collected">
                             <PackageCheck className="h-4 w-4 mr-1" /> Collected
                           </Button>
@@ -382,6 +386,17 @@ export default function RentalsDashboard() {
           toast={toast}
         />
       )}
+
+      {agreementBin && (
+        <AgreementDialog
+          bin={agreementBin}
+          chase={chases[agreementBin.binKey]}
+          userId={user?.id ?? null}
+          onClose={() => setAgreementBin(null)}
+          onSaved={() => setAgreementBin(null)}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
@@ -426,6 +441,91 @@ async function ensureChase(bin: OverRentalBin, userId: string | null): Promise<s
   }).select("id").single();
   if (error) { console.error(error); return null; }
   return data.id;
+}
+
+function AgreementDialog({ bin, chase, userId, onClose, onSaved, toast }: {
+  bin: OverRentalBin; chase?: Chase; userId: string | null;
+  onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [agreedRate, setAgreedRate] = useState(chase?.agreed_amount != null ? String(chase.agreed_amount) : "");
+  const [ratePeriod, setRatePeriod] = useState("week");
+  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [endDate, setEndDate] = useState("");
+  const [notes, setNotes] = useState(chase?.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("rental_agreements").insert({
+      customer: bin.customer,
+      site: bin.site || null,
+      container_type: bin.containerType || null,
+      agreed_rate: agreedRate ? Number(agreedRate) : null,
+      rate_period: ratePeriod,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      status: "active",
+      notes: notes.trim() || null,
+      source: "over_rental",
+      chase_id: chase?.id ?? null,
+      created_by: userId,
+    });
+    setSaving(false);
+    if (error) {
+      toast({ title: "Failed to create agreement", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Rental agreement created", description: `${bin.customer} — ${bin.containerType}` });
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileCheck className="h-5 w-5 text-primary" /> Create Rental Agreement
+          </DialogTitle>
+          <DialogDescription>
+            {bin.customer} — {bin.site || "No site"} — {bin.containerType}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Agreed Rate (£)</Label>
+            <Input type="number" step="0.01" value={agreedRate} onChange={(e) => setAgreedRate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Per</Label>
+            <Select value={ratePeriod} onValueChange={setRatePeriod}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Day</SelectItem>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Start Date</Label>
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>End Date</Label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Create Agreement"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 type CollectCandidate = { job_number: string; job_date: string | null; site: string | null; container_type: string | null };
