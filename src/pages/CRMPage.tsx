@@ -241,6 +241,11 @@ export default function CRMPage() {
     }
   };
 
+  const insertTemplate = (body: string) => {
+    setReply((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${body}` : body));
+  };
+
+
   return (
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
