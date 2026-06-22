@@ -331,6 +331,9 @@ export default function RentalsDashboard() {
                           <Button variant="outline" size="sm" onClick={() => setEmailBin(b)}>
                             <Mail className="h-4 w-4 mr-1" /> Chase
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setAgreementBin(b)} title="Create rental agreement">
+                            <FileCheck className="h-4 w-4 mr-1" /> Agreement
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => setCollectBin(b)} title="Mark as collected">
                             <PackageCheck className="h-4 w-4 mr-1" /> Collected
                           </Button>
