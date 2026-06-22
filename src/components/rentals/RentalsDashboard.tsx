@@ -260,27 +260,68 @@ export default function RentalsDashboard() {
   const loading = jobsLoading || settingsLoading;
 
   function downloadExcel() {
+    const freeDays = settings.rental_free_days;
+    const VAT = 0.2;
+
+    const header = [
+      "Customer", "Site", "Type", "Container Type", "On-Site Qty",
+      "Days On-Site", "Days Over Free", "Weeks Over (billable)",
+      "Weekly Rate (£ ex VAT)", "Est. Charge (£ ex VAT)", "VAT (£)", "Est. Charge (£ inc VAT)",
+      "Last Activity", "Last Ticket", "Chase Status", "Agreed To Pay", "Agreed Amount (£)", "Notes",
+    ];
+
+    let totalEx = 0, totalVat = 0, totalInc = 0, totalQty = 0;
     const rows = filteredBins.map((b) => {
       const c = chases[b.binKey];
-      return {
-        Customer: b.customer,
-        Site: b.site,
-        Type: b.category,
-        "Container Type": b.containerType,
-        "On-Site": b.netOnSite,
-        "Days Over": b.daysSinceActivity ?? "",
-        "Last Activity": b.lastActivityDate ? format(new Date(b.lastActivityDate), "dd MMM yyyy") : "",
-        "Last Ticket": b.lastJobNumber ?? "",
-        "Chase Status": c ? STATUS_LABELS[c.chase_status] ?? c.chase_status : "Not Chased",
-        "Agreed To Pay": c?.agreed_to_pay ? "Yes" : "No",
-        "Agreed Amount": c?.agreed_amount ?? "",
-        Notes: c?.notes ?? "",
-      };
+      const rate = b.category === "roro" ? settings.rental_roro_rate : settings.rental_skip_rate;
+      const qty = b.netOnSite || 0;
+      const daysOver = Math.max(0, (b.daysSinceActivity ?? 0) - freeDays);
+      const weeksOver = Math.ceil(daysOver / 7);
+      const exVat = weeksOver * rate * (qty || 1);
+      const vat = exVat * VAT;
+      const inc = exVat + vat;
+      totalEx += exVat; totalVat += vat; totalInc += inc; totalQty += qty;
+      return [
+        b.customer, b.site, b.category === "roro" ? "RoRo" : "Skip", b.containerType, qty,
+        b.daysSinceActivity ?? "", daysOver, weeksOver,
+        Number(rate.toFixed(2)), Number(exVat.toFixed(2)), Number(vat.toFixed(2)), Number(inc.toFixed(2)),
+        b.lastActivityDate ? format(new Date(b.lastActivityDate), "dd MMM yyyy") : "",
+        b.lastJobNumber ?? "",
+        c ? STATUS_LABELS[c.chase_status] ?? c.chase_status : "Not Chased",
+        c?.agreed_to_pay ? "Yes" : "No",
+        c?.agreed_amount ?? "",
+        c?.notes ?? "",
+      ];
     });
-    const ws = XLSX.utils.json_to_sheet(rows);
+
+    const totalsRow = [
+      "TOTAL", "", "", "", totalQty, "", "", "", "",
+      Number(totalEx.toFixed(2)), Number(totalVat.toFixed(2)), Number(totalInc.toFixed(2)),
+      "", "", "", "", "", "",
+    ];
+
+    const catLabel = categoryFilter === "all" ? "All types" : categoryFilter === "roro" ? "RoRo" : "Skip";
+    const sizeLabel = sizeFilter === "all" ? "All sizes" : sizeFilter;
+    const aoa = [
+      [`Over Rental Report — generated ${format(new Date(), "dd MMM yyyy HH:mm")}`],
+      [`Filters: ${catLabel} · ${sizeLabel}   |   Free rental period: ${freeDays} days   |   Rates/week: Skip £${settings.rental_skip_rate.toFixed(2)} + VAT, RoRo £${settings.rental_roro_rate.toFixed(2)} + VAT`],
+      [`Bins: ${filteredBins.length}   |   Est. total: £${totalEx.toFixed(2)} ex VAT  /  £${totalInc.toFixed(2)} inc VAT`],
+      [],
+      header,
+      ...rows,
+      [],
+      totalsRow,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      { wch: 26 }, { wch: 22 }, { wch: 7 }, { wch: 18 }, { wch: 11 },
+      { wch: 12 }, { wch: 13 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 11 }, { wch: 20 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 13 }, { wch: 15 }, { wch: 32 },
+    ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Over Rental");
-    XLSX.writeFile(wb, `Rentals_Over_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    XLSX.writeFile(wb, `Over_Rental_Report_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   }
 
   if (loading) {
