@@ -840,6 +840,307 @@ export type Database = {
           },
         ]
       }
+      crm_assignment_log: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assigned_to: string | null
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_to?: string | null
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_to?: string | null
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_assignment_log_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "crm_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_assignment_log_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_email_templates: {
+        Row: {
+          body: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_pricing: {
+        Row: {
+          created_at: string
+          current_price: number
+          grade: string | null
+          id: string
+          is_active: boolean
+          last_updated: string
+          material_type: string
+          notes: string | null
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_price?: number
+          grade?: string | null
+          id?: string
+          is_active?: boolean
+          last_updated?: string
+          material_type: string
+          notes?: string | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_price?: number
+          grade?: string | null
+          id?: string
+          is_active?: boolean
+          last_updated?: string
+          material_type?: string
+          notes?: string | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      crm_pricing_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_price: number | null
+          old_price: number | null
+          pricing_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_price?: number | null
+          old_price?: number | null
+          pricing_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_price?: number | null
+          old_price?: number | null
+          pricing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_pricing_history_pricing_id_fkey"
+            columns: ["pricing_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pricing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_team_members: {
+        Row: {
+          created_at: string
+          id: string
+          initials: string | null
+          is_active: boolean
+          name: string
+          personal_email: string
+          role: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initials?: string | null
+          is_active?: boolean
+          name: string
+          personal_email: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initials?: string | null
+          is_active?: boolean
+          name?: string
+          personal_email?: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      crm_ticket_messages: {
+        Row: {
+          body: string | null
+          body_preview: string | null
+          created_at: string
+          direction: string
+          from_email: string | null
+          from_name: string | null
+          graph_message_id: string | null
+          id: string
+          is_internal_note: boolean
+          sent_at: string
+          sent_by: string | null
+          ticket_id: string
+        }
+        Insert: {
+          body?: string | null
+          body_preview?: string | null
+          created_at?: string
+          direction: string
+          from_email?: string | null
+          from_name?: string | null
+          graph_message_id?: string | null
+          id?: string
+          is_internal_note?: boolean
+          sent_at?: string
+          sent_by?: string | null
+          ticket_id: string
+        }
+        Update: {
+          body?: string | null
+          body_preview?: string | null
+          created_at?: string
+          direction?: string
+          from_email?: string | null
+          from_name?: string | null
+          graph_message_id?: string | null
+          id?: string
+          is_internal_note?: boolean
+          sent_at?: string
+          sent_by?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_ticket_messages_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "crm_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tickets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          graph_conversation_id: string | null
+          graph_message_id: string | null
+          id: string
+          is_read: boolean
+          last_message_at: string
+          sender_email: string | null
+          sender_name: string | null
+          snippet: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          graph_conversation_id?: string | null
+          graph_message_id?: string | null
+          id?: string
+          is_read?: boolean
+          last_message_at?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          snippet?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          graph_conversation_id?: string | null
+          graph_message_id?: string | null
+          id?: string
+          is_read?: boolean
+          last_message_at?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          snippet?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "crm_team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_contacts: {
         Row: {
           created_at: string
