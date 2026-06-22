@@ -399,6 +399,46 @@ export default function RentalsDashboard() {
         </CardContent>
       </Card>
 
+      {coveredBins.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-primary">
+              <FileCheck className="h-5 w-5" />
+              Under Rental Agreement ({coveredBins.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              These bins are over the {settings.rental_free_days}-day free period but covered by an active rental agreement, so they are excluded from chasing. Days over is still tracked below.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Container</TableHead>
+                  <TableHead className="text-center">On-Site</TableHead>
+                  <TableHead className="text-center">Days Over</TableHead>
+                  <TableHead>Last Ticket</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {coveredBins.map((b) => (
+                  <TableRow key={b.binKey} className="bg-primary/5">
+                    <TableCell className="font-medium">{b.customer}</TableCell>
+                    <TableCell>{b.site}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
+                    <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
+                    <TableCell className="text-center"><Badge variant="secondary">{b.daysSinceActivity}d</Badge></TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {manageBin && (
         <ManageDialog
           bin={manageBin}
