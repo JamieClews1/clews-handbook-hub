@@ -257,24 +257,38 @@ export default function CRMPage() {
             Emails to orders@clewsrecycling.co.uk as tickets.
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-          {syncing ? "Syncing…" : "Sync inbox"}
-        </Button>
       </div>
 
-      {connected === false && (
-        <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium">Outlook mailbox not connected yet</p>
-            <p className="text-muted-foreground">
-              The CRM is ready. Once the orders@clewsrecycling.co.uk mailbox is linked,
-              click “Sync inbox” to start importing emails and sending replies.
-            </p>
+      <Tabs defaultValue="inbox" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="inbox" className="gap-1.5">
+            <Inbox className="h-4 w-4" /> Inbox
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-1.5">
+            <FileText className="h-4 w-4" /> Templates
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inbox" className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={handleSync} disabled={syncing}>
+              <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+              {syncing ? "Syncing…" : "Sync inbox"}
+            </Button>
           </div>
-        </Card>
-      )}
+
+          {connected === false && (
+            <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium">Outlook mailbox not connected yet</p>
+                <p className="text-muted-foreground">
+                  The CRM is ready. Once the orders@clewsrecycling.co.uk mailbox is linked,
+                  click “Sync inbox” to start importing emails and sending replies.
+                </p>
+              </div>
+            </Card>
+          )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
         {/* Ticket list */}
