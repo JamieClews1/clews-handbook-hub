@@ -41,6 +41,31 @@ type Chase = {
 
 type Profile = { id: string; full_name: string | null; email: string | null };
 type ChaseEmail = { id: string; to_email: string; subject: string | null; created_at: string };
+type Agreement = {
+  id: string;
+  customer: string | null;
+  site: string | null;
+  container_type: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+};
+
+const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().trim();
+
+// An active agreement covers a bin when the customer matches and the
+// site / container_type either match or are left blank (blank = applies to all).
+// "Without any time frame" = no end_date (open-ended), so it stays covered indefinitely.
+function agreementCoversBin(a: Agreement, bin: OverRentalBin): boolean {
+  if (a.status !== "active") return false;
+  const today = format(new Date(), "yyyy-MM-dd");
+  if (a.start_date && a.start_date > today) return false;
+  if (a.end_date && a.end_date < today) return false;
+  if (norm(a.customer) !== norm(bin.customer)) return false;
+  if (a.site && norm(a.site) !== norm(bin.site)) return false;
+  if (a.container_type && norm(a.container_type) !== norm(bin.containerType)) return false;
+  return true;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   not_chased: "Not Chased",
@@ -70,6 +95,7 @@ export default function RentalsDashboard() {
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
+  const [agreements, setAgreements] = useState<Agreement[]>([]);
 
   // dialogs
   const [manageBin, setManageBin] = useState<OverRentalBin | null>(null);
@@ -118,8 +144,17 @@ export default function RentalsDashboard() {
     setChases(map);
   };
 
+  const fetchAgreements = async () => {
+    const { data } = await supabase
+      .from("rental_agreements")
+      .select("id,customer,site,container_type,start_date,end_date,status")
+      .eq("status", "active");
+    setAgreements((data ?? []) as Agreement[]);
+  };
+
   useEffect(() => {
     fetchChases();
+    fetchAgreements();
     supabase.from("profiles").select("id,full_name,email").then(({ data }) => setProfiles((data ?? []) as Profile[]));
     // Build customer name -> email lookup
     (async () => {
@@ -144,13 +179,26 @@ export default function RentalsDashboard() {
     })();
   }, []);
 
-  const bins = useMemo(() => {
+  const allBins = useMemo(() => {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
     // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
     return computeOverRentalBins(jobs, settings)
       .filter((b) => !chases[b.binKey]?.collected);
   }, [jobs, settings, settingsLoading, chases]);
+
+  // Bins covered by an active rental agreement (e.g. open-ended ones) are pulled out
+  // of the main Over Rental list — they are no longer being chased — but we still track
+  // how long they've been over so they remain visible.
+  const coveredBins = useMemo(
+    () => allBins.filter((b) => agreements.some((a) => agreementCoversBin(a, b))),
+    [allBins, agreements],
+  );
+
+  const bins = useMemo(
+    () => allBins.filter((b) => !agreements.some((a) => agreementCoversBin(a, b))),
+    [allBins, agreements],
+  );
 
   // ── Filters: category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
@@ -351,6 +399,46 @@ export default function RentalsDashboard() {
         </CardContent>
       </Card>
 
+      {coveredBins.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-primary">
+              <FileCheck className="h-5 w-5" />
+              Under Rental Agreement ({coveredBins.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              These bins are over the {settings.rental_free_days}-day free period but covered by an active rental agreement, so they are excluded from chasing. Days over is still tracked below.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Container</TableHead>
+                  <TableHead className="text-center">On-Site</TableHead>
+                  <TableHead className="text-center">Days Over</TableHead>
+                  <TableHead>Last Ticket</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {coveredBins.map((b) => (
+                  <TableRow key={b.binKey} className="bg-primary/5">
+                    <TableCell className="font-medium">{b.customer}</TableCell>
+                    <TableCell>{b.site}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
+                    <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
+                    <TableCell className="text-center"><Badge variant="secondary">{b.daysSinceActivity}d</Badge></TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {manageBin && (
         <ManageDialog
           bin={manageBin}
@@ -393,7 +481,7 @@ export default function RentalsDashboard() {
           chase={chases[agreementBin.binKey]}
           userId={user?.id ?? null}
           onClose={() => setAgreementBin(null)}
-          onSaved={() => setAgreementBin(null)}
+          onSaved={() => { setAgreementBin(null); fetchAgreements(); }}
           toast={toast}
         />
       )}
