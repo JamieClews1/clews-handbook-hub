@@ -69,6 +69,28 @@ function agreementCoversBin(a: Agreement, bin: OverRentalBin): boolean {
   return true;
 }
 
+// Weekly rental cost label for a bin, based on its category and the configured rates.
+function rentalRateLabel(bin: OverRentalBin, skipRate: number, roroRate: number): string {
+  const rate = bin.category === "roro" ? roroRate : skipRate;
+  return `£${rate.toFixed(2)} + VAT per week`;
+}
+
+// Fill the chase email template placeholders with this bin's details.
+function renderChaseTemplate(
+  template: string,
+  bin: OverRentalBin,
+  freeDays: number,
+  rateLabel: string,
+): string {
+  return (template || DEFAULT_CHASE_EMAIL_TEMPLATE)
+    .replaceAll("{customer}", bin.customer)
+    .replaceAll("{site}", bin.site)
+    .replaceAll("{containerType}", bin.containerType)
+    .replaceAll("{days}", String(bin.daysSinceActivity ?? ""))
+    .replaceAll("{freeDays}", String(freeDays))
+    .replaceAll("{rate}", rateLabel);
+}
+
 const STATUS_LABELS: Record<string, string> = {
   not_chased: "Not Chased",
   chased: "Chased",
