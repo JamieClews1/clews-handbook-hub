@@ -482,6 +482,12 @@ export default function RentalsDashboard() {
           chase={chases[emailBin.binKey]}
           defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? ""}
           freeDays={settings.rental_free_days}
+          draftBody={renderChaseTemplate(
+            settings.rental_chase_email_template,
+            emailBin,
+            settings.rental_free_days,
+            rentalRateLabel(emailBin, settings.rental_skip_rate, settings.rental_roro_rate),
+          )}
           userId={user?.id ?? null}
           onClose={() => setEmailBin(null)}
           onSent={() => { setEmailBin(null); fetchChases(); }}
