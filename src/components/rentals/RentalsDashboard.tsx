@@ -154,6 +154,7 @@ export default function RentalsDashboard() {
 
   useEffect(() => {
     fetchChases();
+    fetchAgreements();
     supabase.from("profiles").select("id,full_name,email").then(({ data }) => setProfiles((data ?? []) as Profile[]));
     // Build customer name -> email lookup
     (async () => {
