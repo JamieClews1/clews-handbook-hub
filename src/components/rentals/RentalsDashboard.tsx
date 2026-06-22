@@ -386,6 +386,17 @@ export default function RentalsDashboard() {
           toast={toast}
         />
       )}
+
+      {agreementBin && (
+        <AgreementDialog
+          bin={agreementBin}
+          chase={chases[agreementBin.binKey]}
+          userId={user?.id ?? null}
+          onClose={() => setAgreementBin(null)}
+          onSaved={() => setAgreementBin(null)}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
