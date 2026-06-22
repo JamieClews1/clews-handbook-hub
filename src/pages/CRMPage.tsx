@@ -12,10 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
-import { RefreshCw, Mail, Send, Inbox, AlertCircle } from "lucide-react";
+import { RefreshCw, Mail, Send, Inbox, AlertCircle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
 
 type Status = "new" | "open" | "pending" | "resolved";
 
@@ -73,6 +83,7 @@ function formatDate(iso: string) {
 
 export default function CRMPage() {
   const { toast } = useToast();
+  const { templates, reload: reloadTemplates } = useCRMTemplates();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -87,6 +98,7 @@ export default function CRMPage() {
 
   const loadTickets = async () => {
     const { data } = await supabase
+
       .from("crm_tickets")
       .select("*")
       .order("last_message_at", { ascending: false });
@@ -229,6 +241,11 @@ export default function CRMPage() {
     }
   };
 
+  const insertTemplate = (body: string) => {
+    setReply((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${body}` : body));
+  };
+
+
   return (
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -240,24 +257,38 @@ export default function CRMPage() {
             Emails to orders@clewsrecycling.co.uk as tickets.
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-          {syncing ? "Syncing…" : "Sync inbox"}
-        </Button>
       </div>
 
-      {connected === false && (
-        <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium">Outlook mailbox not connected yet</p>
-            <p className="text-muted-foreground">
-              The CRM is ready. Once the orders@clewsrecycling.co.uk mailbox is linked,
-              click “Sync inbox” to start importing emails and sending replies.
-            </p>
+      <Tabs defaultValue="inbox" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="inbox" className="gap-1.5">
+            <Inbox className="h-4 w-4" /> Inbox
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-1.5">
+            <FileText className="h-4 w-4" /> Templates
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inbox" className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={handleSync} disabled={syncing}>
+              <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+              {syncing ? "Syncing…" : "Sync inbox"}
+            </Button>
           </div>
-        </Card>
-      )}
+
+          {connected === false && (
+            <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium">Outlook mailbox not connected yet</p>
+                <p className="text-muted-foreground">
+                  The CRM is ready. Once the orders@clewsrecycling.co.uk mailbox is linked,
+                  click “Sync inbox” to start importing emails and sending replies.
+                </p>
+              </div>
+            </Card>
+          )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
         {/* Ticket list */}
@@ -403,7 +434,30 @@ export default function CRMPage() {
                   onChange={(e) => setReply(e.target.value)}
                   className="min-h-[90px]"
                 />
-                <div className="flex justify-end">
+                <div className="flex justify-between gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" disabled={templates.length === 0}>
+                        <FileText className="h-4 w-4" /> Insert template
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto w-64">
+                      <DropdownMenuLabel>Canned responses</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {templates.map((t) => (
+                        <DropdownMenuItem
+                          key={t.id}
+                          onSelect={() => insertTemplate(t.body ?? "")}
+                          className="flex flex-col items-start gap-0.5"
+                        >
+                          <span className="text-sm font-medium">{t.name}</span>
+                          {t.category && (
+                            <span className="text-[10px] text-muted-foreground">{t.category}</span>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button onClick={handleSend} disabled={sending || !reply.trim()}>
                     <Send className="h-4 w-4" />
                     {sending ? "Sending…" : "Send reply"}
@@ -414,6 +468,12 @@ export default function CRMPage() {
           )}
         </Card>
       </div>
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <CRMTemplates onChange={reloadTemplates} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
