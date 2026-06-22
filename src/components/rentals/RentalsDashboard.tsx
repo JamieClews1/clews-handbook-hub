@@ -23,6 +23,8 @@ import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
+import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
+import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 
 type Chase = {
