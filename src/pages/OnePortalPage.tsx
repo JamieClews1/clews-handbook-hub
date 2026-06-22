@@ -13,6 +13,7 @@ import {
   Users,
   HardHat,
   CalendarDays,
+  PoundSterling,
 } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { useEffect } from "react";
