@@ -311,6 +311,7 @@ export default function RentalsDashboard() {
               Bins Over Free Rental ({filteredBins.length})
             </CardTitle>
             <div className="flex items-center gap-2">
+              <RentalSettingsDialog settings={settings} updateSetting={updateSetting} />
               <RentalsInfoDialog settings={settings} binCount={bins.length} updateSetting={updateSetting} />
               <Button variant="outline" size="sm" onClick={downloadExcel} disabled={filteredBins.length === 0}>
                 <Download className="h-4 w-4 mr-1" /> Download Excel
