@@ -41,6 +41,31 @@ type Chase = {
 
 type Profile = { id: string; full_name: string | null; email: string | null };
 type ChaseEmail = { id: string; to_email: string; subject: string | null; created_at: string };
+type Agreement = {
+  id: string;
+  customer: string | null;
+  site: string | null;
+  container_type: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+};
+
+const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().trim();
+
+// An active agreement covers a bin when the customer matches and the
+// site / container_type either match or are left blank (blank = applies to all).
+// "Without any time frame" = no end_date (open-ended), so it stays covered indefinitely.
+function agreementCoversBin(a: Agreement, bin: OverRentalBin): boolean {
+  if (a.status !== "active") return false;
+  const today = format(new Date(), "yyyy-MM-dd");
+  if (a.start_date && a.start_date > today) return false;
+  if (a.end_date && a.end_date < today) return false;
+  if (norm(a.customer) !== norm(bin.customer)) return false;
+  if (a.site && norm(a.site) !== norm(bin.site)) return false;
+  if (a.container_type && norm(a.container_type) !== norm(bin.containerType)) return false;
+  return true;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   not_chased: "Not Chased",
