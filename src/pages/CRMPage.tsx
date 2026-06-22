@@ -95,7 +95,10 @@ export default function CRMPage() {
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
 
-  const loadTickets = async () => {
+  const { toast } = useToast();
+  const { templates, reload: reloadTemplates } = useCRMTemplates();
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+
     const { data } = await supabase
       .from("crm_tickets")
       .select("*")
