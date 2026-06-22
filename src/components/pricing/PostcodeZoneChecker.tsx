@@ -31,7 +31,7 @@ export function PostcodeZoneChecker({
   const [searching, setSearching] = useState(false);
 
   const search = async () => {
-    const q = query.trim().toUpperCase().replace(/\s+/g, " ");
+    const q = query.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ");
     if (!q) return;
     setSearching(true);
     // try exact "AB12 3" prefix then broader outward code
