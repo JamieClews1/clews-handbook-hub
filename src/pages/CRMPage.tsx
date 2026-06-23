@@ -187,6 +187,8 @@ export default function CRMPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return tickets.filter((t) => {
+      // Scope to the user's own mailbox, plus legacy shared (untagged) tickets.
+      if (t.mailbox_user_id && t.mailbox_user_id !== user?.id) return false;
       if (filter !== "all" && t.status !== filter) return false;
       if (!q) return true;
       return (
@@ -195,7 +197,7 @@ export default function CRMPage() {
         (t.sender_email ?? "").toLowerCase().includes(q)
       );
     });
-  }, [tickets, filter, search]);
+  }, [tickets, filter, search, user?.id]);
 
   const handleSync = async () => {
     setSyncing(true);
