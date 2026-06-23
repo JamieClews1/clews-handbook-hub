@@ -9,6 +9,9 @@ export type PricingSettings = {
   rental_cost_roro: number;
   bespoke_rules: string;
   terms_url: string;
+  quote_attachment_enabled: boolean;
+  quote_attachment_path: string;
+  quote_attachment_name: string;
 };
 
 const DEFAULTS: PricingSettings = {
@@ -19,9 +22,12 @@ const DEFAULTS: PricingSettings = {
   rental_cost_roro: 42,
   bespoke_rules: "Mixed waste loads cannot accept any soil, hardcore or plasterboard.",
   terms_url: "https://www.clewsrecycling.co.uk/terms-and-conditions",
+  quote_attachment_enabled: true,
+  quote_attachment_path: "skip-permitted-waste.pdf",
+  quote_attachment_name: "Skip Permitted Waste.pdf",
 };
 
-const BOOLEAN_KEYS: (keyof PricingSettings)[] = ["auto_add_fuel_surcharge"];
+const BOOLEAN_KEYS: (keyof PricingSettings)[] = ["auto_add_fuel_surcharge", "quote_attachment_enabled"];
 const NUMBER_KEYS: (keyof PricingSettings)[] = [
   "free_rental_weeks_residential",
   "free_rental_weeks_trade",

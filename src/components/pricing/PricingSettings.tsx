@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Fuel, ExternalLink, FileText, Save } from "lucide-react";
+import { Fuel, ExternalLink, FileText, Save, Paperclip, Upload, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePricingSettings, type PricingSettings as PricingSettingsType } from "@/hooks/usePricingSettings";
+
+const ATTACHMENT_BUCKET = "pricing-attachments";
 
 export function PricingSettings() {
   const { toast } = useToast();
@@ -68,8 +71,119 @@ export function PricingSettings() {
         </CardContent>
       </Card>
 
+      <QuoteAttachmentCard settings={settings} loading={loading} updateSetting={updateSetting} toast={toast} />
+
       <QuoteTermsCard settings={settings} loading={loading} updateSetting={updateSetting} toast={toast} />
     </div>
+  );
+}
+
+function QuoteAttachmentCard({
+  settings,
+  loading,
+  updateSetting,
+  toast,
+}: {
+  settings: PricingSettingsType;
+  loading: boolean;
+  updateSetting: (key: keyof PricingSettingsType, value: any) => Promise<void>;
+  toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const toggle = async (value: boolean) => {
+    try {
+      await updateSetting("quote_attachment_enabled", value);
+      toast({ title: value ? "Attachment enabled" : "Attachment disabled" });
+    } catch {
+      toast({ title: "Could not save", description: "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const onPick = () => fileRef.current?.click();
+
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "PDF only", description: "Please upload a PDF file.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const path = `attachments/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
+      const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, {
+        upsert: true,
+        contentType: "application/pdf",
+      });
+      if (error) throw error;
+      await updateSetting("quote_attachment_path", path);
+      await updateSetting("quote_attachment_name", file.name);
+      toast({ title: "Attachment updated", description: file.name });
+    } catch (err) {
+      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const preview = async () => {
+    if (!settings.quote_attachment_path) return;
+    const { data, error } = await supabase.storage
+      .from(ATTACHMENT_BUCKET)
+      .createSignedUrl(settings.quote_attachment_path, 300);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Could not open file", variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Paperclip className="h-4 w-4 text-primary" /> Quote email attachment
+        </CardTitle>
+        <CardDescription>
+          This PDF is attached to every rate proposal emailed from the Price Builder. Replace it here
+          whenever the permitted-waste list changes.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5 pr-4">
+            <Label className="text-sm font-medium">Attach PDF to quote emails</Label>
+            <p className="text-sm text-muted-foreground">
+              When on, customers receive the document below with their quote.
+            </p>
+          </div>
+          <Switch checked={settings.quote_attachment_enabled} onCheckedChange={toggle} disabled={loading} />
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg border p-3">
+          <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {settings.quote_attachment_name || "No file selected"}
+            </p>
+            <p className="text-xs text-muted-foreground">Current attachment</p>
+          </div>
+          {settings.quote_attachment_path && (
+            <Button variant="ghost" size="sm" onClick={preview} disabled={loading}>
+              <Eye className="h-4 w-4 mr-1" /> View
+            </Button>
+          )}
+        </div>
+
+        <input ref={fileRef} type="file" accept="application/pdf" className="hidden" onChange={onFile} />
+        <Button variant="outline" size="sm" onClick={onPick} disabled={uploading || loading}>
+          <Upload className="h-4 w-4 mr-1" /> {uploading ? "Uploading…" : "Replace PDF"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -537,6 +537,8 @@ export function QuoteBuilder() {
                   rentalRoRo={settings.rental_cost_roro}
                   bespokeRules={settings.bespoke_rules}
                   termsUrl={settings.terms_url}
+                  attachmentPath={settings.quote_attachment_enabled ? settings.quote_attachment_path : ""}
+                  attachmentName={settings.quote_attachment_name}
                   defaultSenderName={senderName}
                   toast={toast}
                 />
@@ -565,6 +567,8 @@ function EmailQuoteDialog({
   rentalRoRo,
   bespokeRules,
   termsUrl,
+  attachmentPath,
+  attachmentName,
   defaultSenderName,
   toast,
 }: {
@@ -583,6 +587,8 @@ function EmailQuoteDialog({
   rentalRoRo: number;
   bespokeRules: string;
   termsUrl: string;
+  attachmentPath: string;
+  attachmentName: string;
   defaultSenderName: string;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -685,6 +691,8 @@ function EmailQuoteDialog({
           subject: subject.trim() || undefined,
           body,
           reference: reference || undefined,
+          attachmentPath: attachmentPath || undefined,
+          attachmentName: attachmentName || undefined,
         },
       });
       if (error) throw error;
