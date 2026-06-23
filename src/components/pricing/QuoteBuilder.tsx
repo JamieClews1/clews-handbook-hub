@@ -229,7 +229,7 @@ export function QuoteBuilder() {
     for (const l of lines) {
       const vehicle = classifyFuelVehicle(l.label);
       const zone = mapFuelZone(l.zoneLabel);
-      if (!vehicle || !zone) continue;
+      if (!vehicle) continue;
       const rate = fuelSurchargeFor(fuelRates, vehicle, zone, customerName);
       if (rate == null) continue;
       const amount = rate * l.qty;
