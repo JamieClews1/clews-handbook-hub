@@ -355,9 +355,20 @@ export function QuoteBuilder() {
             />
 
             {selectedCard && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline">{vatInclusive ? "Prices inc. VAT" : "Prices net of VAT"}</Badge>
-                {selectedCard.effective_date && <span>Effective {selectedCard.effective_date}</span>}
+                {(() => {
+                  const w = windows.get(selectedCard.id);
+                  if (!w?.start) return null;
+                  return (
+                    <span>
+                      {w.state === "future" ? "Effective from " : "Prices effective "}
+                      <span className="font-medium text-foreground">
+                        {formatUkDate(w.start)} – {formatUkDate(w.end)}
+                      </span>
+                    </span>
+                  );
+                })()}
               </div>
             )}
           </CardContent>
