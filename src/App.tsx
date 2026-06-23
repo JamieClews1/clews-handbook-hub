@@ -64,7 +64,7 @@ import WeightChecksPage from "./pages/WeightChecksPage";
 import PricingCMSPage from "./pages/PricingCMSPage";
 import CRMPage from "./pages/CRMPage";
 import PricingPage from "./pages/PricingPage";
-import PriceBuilderPage from "./pages/PriceBuilderPage";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
