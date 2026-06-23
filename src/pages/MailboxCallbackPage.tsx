@@ -14,6 +14,46 @@ export default function MailboxCallbackPage() {
     if (ran.current) return;
     ran.current = true;
 
+    const isPopup = !!window.opener && window.opener !== window;
+
+    const finish = (
+      result:
+        | { status: "connected"; email?: string }
+        | { status: "error"; reason: string },
+    ) => {
+      if (isPopup) {
+        try {
+          window.opener.postMessage(
+            { type: "crm-mailbox-oauth", ...result },
+            window.location.origin,
+          );
+        } catch {
+          /* ignore */
+        }
+        setStatus(result.status === "connected" ? "done" : "error");
+        setMessage(
+          result.status === "connected"
+            ? "Mailbox linked! You can close this window."
+            : "Sign-in failed. You can close this window.",
+        );
+        setTimeout(() => {
+          try { window.close(); } catch { /* ignore */ }
+        }, 800);
+        return;
+      }
+      // Not a popup — navigate back to the CRM page.
+      if (result.status === "connected") {
+        navigate(
+          `/crm?mailbox=connected${result.email ? `&email=${encodeURIComponent(result.email)}` : ""}`,
+          { replace: true },
+        );
+      } else {
+        navigate(`/crm?mailbox=error&reason=${encodeURIComponent(result.reason)}`, {
+          replace: true,
+        });
+      }
+    };
+
     (async () => {
       const params = new URLSearchParams(window.location.search);
       const oauthError = params.get("error_description") || params.get("error");
@@ -22,12 +62,12 @@ export default function MailboxCallbackPage() {
 
       if (oauthError) {
         setStatus("error");
-        navigate(`/crm?mailbox=error&reason=${encodeURIComponent(oauthError)}`, { replace: true });
+        finish({ status: "error", reason: oauthError });
         return;
       }
       if (!code || !state) {
         setStatus("error");
-        navigate("/crm?mailbox=error&reason=Missing+authorization+code", { replace: true });
+        finish({ status: "error", reason: "Missing authorization code" });
         return;
       }
 
@@ -40,17 +80,11 @@ export default function MailboxCallbackPage() {
         if (data?.error) throw new Error(data.error);
 
         setStatus("done");
-        setMessage("Mailbox linked! Redirecting…");
-        navigate(
-          `/crm?mailbox=connected${data?.email ? `&email=${encodeURIComponent(data.email)}` : ""}`,
-          { replace: true },
-        );
+        setMessage("Mailbox linked!");
+        finish({ status: "connected", email: data?.email });
       } catch (e: any) {
         setStatus("error");
-        navigate(
-          `/crm?mailbox=error&reason=${encodeURIComponent(e?.message ?? String(e))}`,
-          { replace: true },
-        );
+        finish({ status: "error", reason: e?.message ?? String(e) });
       }
     })();
   }, [navigate]);
