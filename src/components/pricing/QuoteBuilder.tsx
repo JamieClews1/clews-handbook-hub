@@ -438,6 +438,12 @@ export function QuoteBuilder() {
               <Separator />
 
               <div className="space-y-1 text-sm">
+                {fuelEnabled && fuelNet > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fuel surcharge (net)</span>
+                    <span>{fmt(fuelNet)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal (net)</span>
                   <span>{fmt(subtotal)}</span>
