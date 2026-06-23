@@ -128,6 +128,10 @@ const PricingPage = () => {
         <TabsContent value="builder">
           <QuoteBuilder />
         </TabsContent>
+
+        <TabsContent value="settings">
+          <PricingSettings />
+        </TabsContent>
       </Tabs>
     </AdminPageLayout>
   );
