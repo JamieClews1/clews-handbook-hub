@@ -912,6 +912,63 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_mailbox_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          last_synced_at: string | null
+          ms_display_name: string | null
+          ms_email: string
+          refresh_token: string
+          scope: string | null
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          last_synced_at?: string | null
+          ms_display_name?: string | null
+          ms_email: string
+          refresh_token: string
+          scope?: string | null
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          last_synced_at?: string | null
+          ms_display_name?: string | null
+          ms_email?: string
+          refresh_token?: string
+          scope?: string | null
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_mailbox_oauth_states: {
+        Row: {
+          created_at: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       crm_pricing: {
         Row: {
           created_at: string
@@ -1036,6 +1093,7 @@ export type Database = {
           graph_message_id: string | null
           id: string
           is_internal_note: boolean
+          mailbox_user_id: string | null
           sent_at: string
           sent_by: string | null
           ticket_id: string
@@ -1050,6 +1108,7 @@ export type Database = {
           graph_message_id?: string | null
           id?: string
           is_internal_note?: boolean
+          mailbox_user_id?: string | null
           sent_at?: string
           sent_by?: string | null
           ticket_id: string
@@ -1064,6 +1123,7 @@ export type Database = {
           graph_message_id?: string | null
           id?: string
           is_internal_note?: boolean
+          mailbox_user_id?: string | null
           sent_at?: string
           sent_by?: string | null
           ticket_id?: string
@@ -1094,6 +1154,7 @@ export type Database = {
           id: string
           is_read: boolean
           last_message_at: string
+          mailbox_user_id: string | null
           sender_email: string | null
           sender_name: string | null
           snippet: string | null
@@ -1109,6 +1170,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           last_message_at?: string
+          mailbox_user_id?: string | null
           sender_email?: string | null
           sender_name?: string | null
           snippet?: string | null
@@ -1124,6 +1186,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           last_message_at?: string
+          mailbox_user_id?: string | null
           sender_email?: string | null
           sender_name?: string | null
           snippet?: string | null

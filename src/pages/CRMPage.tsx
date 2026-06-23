@@ -26,6 +26,8 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 import { RefreshCw, Mail, Send, Inbox, AlertCircle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
+import { CRMMailboxConnect, useMailboxConnection } from "@/components/crm/CRMMailboxConnect";
+import { useAuth } from "@/hooks/useAuth";
 
 type Status = "new" | "open" | "pending" | "resolved";
 
@@ -39,6 +41,7 @@ interface Ticket {
   is_read: boolean;
   last_message_at: string;
   assigned_to: string | null;
+  mailbox_user_id: string | null;
 }
 
 interface Message {
@@ -83,7 +86,13 @@ function formatDate(iso: string) {
 
 export default function CRMPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { templates, reload: reloadTemplates } = useCRMTemplates();
+  const {
+    connection: mailbox,
+    loading: mailboxLoading,
+    reload: reloadMailbox,
+  } = useMailboxConnection(user?.id);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -120,6 +129,34 @@ export default function CRMPage() {
     loadTeam();
   }, []);
 
+  // Handle the return redirect from the Microsoft sign-in flow.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mb = params.get("mailbox");
+    if (!mb) return;
+    if (mb === "connected") {
+      toast({
+        title: "Mailbox connected",
+        description: params.get("email")
+          ? `Linked ${params.get("email")}.`
+          : "Your Outlook mailbox is now linked.",
+      });
+      reloadMailbox();
+    } else if (mb === "error") {
+      toast({
+        title: "Mailbox connection failed",
+        description: params.get("reason") ?? "Please try again.",
+        variant: "destructive",
+      });
+    }
+    params.delete("mailbox");
+    params.delete("email");
+    params.delete("reason");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
@@ -150,6 +187,8 @@ export default function CRMPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return tickets.filter((t) => {
+      // Scope to the user's own mailbox, plus legacy shared (untagged) tickets.
+      if (t.mailbox_user_id && t.mailbox_user_id !== user?.id) return false;
       if (filter !== "all" && t.status !== filter) return false;
       if (!q) return true;
       return (
@@ -158,18 +197,30 @@ export default function CRMPage() {
         (t.sender_email ?? "").toLowerCase().includes(q)
       );
     });
-  }, [tickets, filter, search]);
+  }, [tickets, filter, search, user?.id]);
 
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-outlook-sync");
+      // Use the user's own mailbox when connected, else the shared orders@ inbox.
+      const fn = mailbox ? "crm-mailbox-sync" : "crm-outlook-sync";
+      const { data, error } = await supabase.functions.invoke(fn);
       if (error) throw error;
+      if (data?.reauth) {
+        toast({
+          title: "Reconnect needed",
+          description: "Your mailbox sign-in expired. Please reconnect your Outlook mailbox.",
+          variant: "destructive",
+        });
+        return;
+      }
       setConnected(Boolean(data?.connected));
       if (data?.connected === false) {
         toast({
           title: "Mailbox not connected",
-          description: data?.message ?? "Connect the orders@ mailbox to sync emails.",
+          description: mailbox
+            ? "Reconnect your mailbox to sync."
+            : data?.message ?? "Connect a mailbox to sync emails.",
         });
       } else {
         toast({
@@ -177,6 +228,7 @@ export default function CRMPage() {
           description: `${data?.synced ?? 0} new message(s) imported.`,
         });
         await loadTickets();
+        if (mailbox) reloadMailbox();
       }
     } catch (e: any) {
       toast({ title: "Sync failed", description: e.message ?? String(e), variant: "destructive" });
@@ -270,12 +322,19 @@ export default function CRMPage() {
         </TabsList>
 
         <TabsContent value="inbox" className="space-y-4">
+          <CRMMailboxConnect
+            connection={mailbox}
+            loading={mailboxLoading}
+            onChange={reloadMailbox}
+          />
+
           <div className="flex justify-end">
             <Button onClick={handleSync} disabled={syncing}>
               <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
               {syncing ? "Syncing…" : "Sync inbox"}
             </Button>
           </div>
+
 
           {connected === false && (
             <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
