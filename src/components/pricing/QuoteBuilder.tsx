@@ -512,9 +512,30 @@ export function QuoteBuilder() {
                 </div>
               </div>
 
-              <Button className="w-full" onClick={copyQuote}>
-                <Copy className="h-4 w-4 mr-1" /> Copy quote
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={copyQuote}>
+                  <Copy className="h-4 w-4 mr-1" /> Copy
+                </Button>
+                <EmailQuoteDialog
+                  customerName={customerName}
+                  reference={reference}
+                  rateCardName={selectedCard?.name || ""}
+                  vatInclusive={vatInclusive}
+                  lines={lines}
+                  lineTotal={lineTotal}
+                  fuelNet={fuelEnabled ? fuelNet : 0}
+                  subtotal={subtotal}
+                  vat={vat}
+                  total={total}
+                  freeRentalWeeks={freeRentalWeeks}
+                  rentalSkip={settings.rental_cost_skip}
+                  rentalRoRo={settings.rental_cost_roro}
+                  bespokeRules={settings.bespoke_rules}
+                  termsUrl={settings.terms_url}
+                  defaultSenderName={senderName}
+                  toast={toast}
+                />
+              </div>
             </div>
           )}
         </CardContent>
