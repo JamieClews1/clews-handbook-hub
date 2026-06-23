@@ -129,6 +129,34 @@ export default function CRMPage() {
     loadTeam();
   }, []);
 
+  // Handle the return redirect from the Microsoft sign-in flow.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mb = params.get("mailbox");
+    if (!mb) return;
+    if (mb === "connected") {
+      toast({
+        title: "Mailbox connected",
+        description: params.get("email")
+          ? `Linked ${params.get("email")}.`
+          : "Your Outlook mailbox is now linked.",
+      });
+      reloadMailbox();
+    } else if (mb === "error") {
+      toast({
+        title: "Mailbox connection failed",
+        description: params.get("reason") ?? "Please try again.",
+        variant: "destructive",
+      });
+    }
+    params.delete("mailbox");
+    params.delete("email");
+    params.delete("reason");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
