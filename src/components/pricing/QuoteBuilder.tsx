@@ -39,6 +39,7 @@ type QuoteLine = {
 export function QuoteBuilder() {
   const { toast } = useToast();
   const { cards, loading } = useRateCards();
+  const { settings } = usePricingSettings();
 
   const [customerName, setCustomerName] = useState("");
   const [reference, setReference] = useState("");
@@ -46,6 +47,16 @@ export function QuoteBuilder() {
   const [cardId, setCardId] = useState("");
   const [zoneId, setZoneId] = useState("");
   const [lines, setLines] = useState<QuoteLine[]>([]);
+  const [fuelRates, setFuelRates] = useState<FuelRate[]>([]);
+
+  // Load active fuel surcharge rates (used when auto-add is enabled in Pricing settings)
+  useEffect(() => {
+    supabase
+      .from("fuel_surcharge_rates")
+      .select("vehicle_category, zone, surcharge_amount, active, customer_match, effective_from_date")
+      .eq("active", true)
+      .then(({ data }) => setFuelRates((data as FuelRate[]) || []));
+  }, []);
 
   const cardsForType = useMemo(
     () => cards.filter((c) => c.customer_type === activeType),
