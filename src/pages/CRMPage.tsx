@@ -202,13 +202,25 @@ export default function CRMPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-outlook-sync");
+      // Use the user's own mailbox when connected, else the shared orders@ inbox.
+      const fn = mailbox ? "crm-mailbox-sync" : "crm-outlook-sync";
+      const { data, error } = await supabase.functions.invoke(fn);
       if (error) throw error;
+      if (data?.reauth) {
+        toast({
+          title: "Reconnect needed",
+          description: "Your mailbox sign-in expired. Please reconnect your Outlook mailbox.",
+          variant: "destructive",
+        });
+        return;
+      }
       setConnected(Boolean(data?.connected));
       if (data?.connected === false) {
         toast({
           title: "Mailbox not connected",
-          description: data?.message ?? "Connect the orders@ mailbox to sync emails.",
+          description: mailbox
+            ? "Reconnect your mailbox to sync."
+            : data?.message ?? "Connect a mailbox to sync emails.",
         });
       } else {
         toast({
@@ -216,6 +228,7 @@ export default function CRMPage() {
           description: `${data?.synced ?? 0} new message(s) imported.`,
         });
         await loadTickets();
+        if (mailbox) reloadMailbox();
       }
     } catch (e: any) {
       toast({ title: "Sync failed", description: e.message ?? String(e), variant: "destructive" });
