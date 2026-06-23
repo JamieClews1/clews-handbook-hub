@@ -183,12 +183,35 @@ export function QuoteBuilder() {
   const lineTotal = (l: QuoteLine) => l.unitPrice * l.qty;
   const grandLineSum = lines.reduce((s, l) => s + lineTotal(l), 0);
 
-  // If card is VAT inclusive, prices already include VAT; otherwise add VAT.
-  const subtotal = vatInclusive ? grandLineSum / (1 + VAT_RATE) : grandLineSum;
-  const vat = vatInclusive ? grandLineSum - subtotal : grandLineSum * VAT_RATE;
-  const total = vatInclusive ? grandLineSum : grandLineSum + vat;
+  const fuelEnabled = settings.auto_add_fuel_surcharge;
+
+  // Per-line fuel surcharge (net of VAT) based on inferred vehicle category + zone.
+  const fuelDetails = useMemo(() => {
+    if (!fuelEnabled) return { total: 0, lines: [] as { key: string; amount: number }[] };
+    const detail: { key: string; amount: number }[] = [];
+    let total = 0;
+    for (const l of lines) {
+      const vehicle = classifyFuelVehicle(l.label);
+      const zone = mapFuelZone(l.zoneLabel);
+      if (!vehicle || !zone) continue;
+      const rate = fuelSurchargeFor(fuelRates, vehicle, zone, customerName);
+      if (rate == null) continue;
+      const amount = rate * l.qty;
+      detail.push({ key: l.key, amount });
+      total += amount;
+    }
+    return { total, lines: detail };
+  }, [fuelEnabled, lines, fuelRates, customerName]);
+
+  // Work in net terms, then apply VAT once at the end so the fuel surcharge (net) blends in.
+  const linesNet = vatInclusive ? grandLineSum / (1 + VAT_RATE) : grandLineSum;
+  const fuelNet = fuelDetails.total;
+  const subtotal = linesNet + fuelNet;
+  const vat = subtotal * VAT_RATE;
+  const total = subtotal + vat;
 
   const fmt = (n: number) => `£${n.toFixed(2)}`;
+
 
   // priceable rows for the selected zone, grouped by section
   const matrixSections = useMemo(() => {
