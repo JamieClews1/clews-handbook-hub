@@ -128,12 +128,16 @@ const PricingPage = () => {
                 <TypePanel
                   type={t}
                   cards={cardsByType[t]}
+                  windows={windows}
                   templates={cards.filter((c) => c.customer_type === "trade" || c.customer_type === "broker")}
                   customers={customers}
                   selectedCardId={selectedCardId[t]}
                   onSelectCard={(id) => setSelectedCardId((p) => ({ ...p, [t]: id }))}
                   highlightZone={highlightZone}
                   onChanged={refresh}
+                  toast={toast}
+                />
+                onChanged={refresh}
                   toast={toast}
                 />
               </TabsContent>
