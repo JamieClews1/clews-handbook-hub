@@ -34,7 +34,42 @@ type Payload = {
   rentalRoRo?: number;
   bespokeRules?: string;
   termsUrl?: string;
+  attachmentPath?: string;
+  attachmentName?: string;
 };
+
+// Download an attachment from the private storage bucket and base64-encode it for Resend.
+async function buildAttachments(
+  path?: string,
+  name?: string,
+): Promise<{ filename: string; content: string }[]> {
+  if (!path) return [];
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SERVICE_KEY) return [];
+  try {
+    const fileRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/pricing-attachments/${path}`,
+      { headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY } },
+    );
+    if (!fileRes.ok) {
+      console.error("Attachment download failed:", fileRes.status, await fileRes.text());
+      return [];
+    }
+    const bytes = new Uint8Array(await fileRes.arrayBuffer());
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    const base64 = btoa(binary);
+    const filename = (name && name.trim()) ? name.trim() : (path.split("/").pop() || "attachment.pdf");
+    return [{ filename, content: base64 }];
+  } catch (e) {
+    console.error("Attachment error:", (e as Error).message);
+    return [];
+  }
+}
 
 const money = (n: number) =>
   `£${Number(n || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
