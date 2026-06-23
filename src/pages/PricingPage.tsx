@@ -137,9 +137,6 @@ const PricingPage = () => {
                   onChanged={refresh}
                   toast={toast}
                 />
-                onChanged={refresh}
-                  toast={toast}
-                />
               </TabsContent>
             ))}
           </Tabs>
