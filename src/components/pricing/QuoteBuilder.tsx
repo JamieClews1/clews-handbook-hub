@@ -320,11 +320,15 @@ export function QuoteBuilder() {
                     <SelectValue placeholder={cardsForType.length ? "Select card" : "No cards"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {cardsForType.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    {cardsForType.map((c) => {
+                      const w = windows.get(c.id);
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                          {w?.state === "future" ? " · upcoming" : w?.state === "past" ? " · expired" : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
