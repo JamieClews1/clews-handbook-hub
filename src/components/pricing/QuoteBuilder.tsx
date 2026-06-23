@@ -243,6 +243,14 @@ export function QuoteBuilder() {
 
   const fmt = (n: number) => `£${n.toFixed(2)}`;
 
+  // Free rental period depends on customer type (residential vs everyone else)
+  const freeRentalWeeks =
+    activeType === "residential"
+      ? settings.free_rental_weeks_residential
+      : settings.free_rental_weeks_trade;
+
+
+
 
   // priceable rows for the selected zone, grouped by section
   const matrixSections = useMemo(() => {
