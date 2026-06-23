@@ -55,19 +55,64 @@ export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
 
   const handleConnect = async () => {
     setConnecting(true);
+
+    // Open the popup synchronously (inside the click handler) so browsers
+    // don't block it. Microsoft refuses to load inside the preview iframe,
+    // so the sign-in must happen in a separate top-level window.
+    const popup = window.open("about:blank", "ms-mailbox-oauth", "width=520,height=680");
+
     try {
       const redirectUri = `${window.location.origin}/crm/mailbox-callback`;
       const { data, error } = await supabase.functions.invoke("crm-mailbox-start", {
         body: { redirectUri },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url as string;
-      } else {
+      if (!data?.url) {
         throw new Error(data?.error ?? "Could not start sign-in.");
       }
 
+      if (popup && !popup.closed) {
+        popup.location.href = data.url as string;
+      } else {
+        // Popup was blocked — fall back to navigating the current window.
+        window.location.href = data.url as string;
+        return;
+      }
+
+      // Wait for the callback popup to report back.
+      const onMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        const payload = event.data;
+        if (!payload || payload.type !== "crm-mailbox-oauth") return;
+        window.removeEventListener("message", onMessage);
+        setConnecting(false);
+        try { popup?.close(); } catch { /* ignore */ }
+        if (payload.status === "connected") {
+          toast({
+            title: "Mailbox connected",
+            description: payload.email ? `Linked ${payload.email}.` : undefined,
+          });
+          onChange();
+        } else {
+          toast({
+            title: "Mailbox sign-in failed",
+            description: payload.reason ?? "Please try again.",
+            variant: "destructive",
+          });
+        }
+      };
+      window.addEventListener("message", onMessage);
+
+      // If the user closes the popup manually, stop the spinner.
+      const poll = window.setInterval(() => {
+        if (popup?.closed) {
+          window.clearInterval(poll);
+          window.removeEventListener("message", onMessage);
+          setConnecting(false);
+        }
+      }, 800);
     } catch (e: any) {
+      try { popup?.close(); } catch { /* ignore */ }
       toast({
         title: "Couldn't start mailbox sign-in",
         description: e.message ?? String(e),
