@@ -16,17 +16,19 @@ type QuoteLine = {
 
 type Payload = {
   to: string;
+  subject?: string;
+  body?: string;
   customerName?: string;
   reference?: string;
   senderName?: string;
   intro?: string;
   rateCardName?: string;
   vatInclusive?: boolean;
-  lines: QuoteLine[];
+  lines?: QuoteLine[];
   fuelNet?: number;
-  subtotal: number;
-  vat: number;
-  total: number;
+  subtotal?: number;
+  vat?: number;
+  total?: number;
   freeRentalWeeks?: number;
   rentalSkip?: number;
   rentalRoRo?: number;
@@ -51,8 +53,10 @@ serve(async (req) => {
   try {
     const p = (await req.json()) as Payload;
 
-    if (!p.to || !Array.isArray(p.lines) || p.lines.length === 0) {
-      return new Response(JSON.stringify({ error: "Missing recipient or quote lines" }), {
+    const hasBody = typeof p.body === "string" && p.body.trim().length > 0;
+
+    if (!p.to || (!hasBody && (!Array.isArray(p.lines) || p.lines.length === 0))) {
+      return new Response(JSON.stringify({ error: "Missing recipient or quote content" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -60,6 +64,53 @@ serve(async (req) => {
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+
+    // When the client supplies an edited plain-text body, send that wrapped in the branded shell.
+    if (hasBody) {
+      const safe = esc(p.body as string)
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#14532d;font-weight:600;">$1</a>')
+        .replace(/\n/g, "<br/>");
+
+      const htmlText = `
+        <div style="font-family: Arial, Helvetica, sans-serif; max-width: 680px; margin: 0 auto; background:#f5f5f5; padding:0;">
+          <div style="background:#14532d; padding:22px 24px; text-align:center;">
+            <h2 style="color:#ffffff; margin:0; font-size:20px;">Clews Recycling — Rate Proposal</h2>
+          </div>
+          <div style="padding:24px; background:#ffffff; border:1px solid #e0e0e0; border-top:none; color:#333; line-height:1.6; font-size:14px;">
+            ${safe}
+          </div>
+          <div style="padding:16px; text-align:center; font-size:12px; color:#999;">Clews Recycling Limited</div>
+        </div>
+      `;
+
+      const subjectText = (p.subject && p.subject.trim())
+        ? p.subject.trim()
+        : `Clews Recycling — Rate Proposal${p.reference ? ` (${p.reference})` : ""}`;
+
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
+          to: [p.to],
+          subject: subjectText,
+          html: htmlText,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Resend error: ${errorText}`);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     const greetingName = p.customerName ? esc(p.customerName) : "there";
     const introText = (p.intro && p.intro.trim())

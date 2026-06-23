@@ -588,13 +588,87 @@ function EmailQuoteDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState("");
-  const [senderName, setSenderName] = useState(defaultSenderName);
-  const [intro, setIntro] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
 
+  const money = (n: number) =>
+    `£${Number(n || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  // Build a fully-written, editable plain-text proposal from the current quote.
+  const buildDefaults = () => {
+    const sender = (defaultSenderName || "").trim();
+    const vatNote = vatInclusive ? "Prices shown are inclusive of VAT." : "Prices shown are net of VAT.";
+
+    const lineLines = lines.map((l) => {
+      const detail = [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · ");
+      return `• ${l.label}${detail ? ` (${detail})` : ""} — ${l.qty} × ${money(l.unitPrice)} = ${money(lineTotal(l))}`;
+    });
+
+    const totalsLines: string[] = [];
+    if (fuelNet > 0) totalsLines.push(`Fuel surcharge (net): ${money(fuelNet)}`);
+    totalsLines.push(`Subtotal (net): ${money(subtotal)}`);
+    totalsLines.push(`VAT (20%): ${money(vat)}`);
+    totalsLines.push(`Total: ${money(total)}`);
+
+    const rentalParts: string[] = [];
+    if (rentalSkip != null) rentalParts.push(`${money(rentalSkip)} + VAT per week for skips`);
+    if (rentalRoRo != null) rentalParts.push(`${money(rentalRoRo)} + VAT per week for RoRo containers`);
+    const rentalLine = `A free rental period of ${freeRentalWeeks} week${freeRentalWeeks === 1 ? "" : "s"} is included.${
+      rentalParts.length ? ` After this period, rental is charged at ${rentalParts.join(" and ")}.` : ""
+    }`;
+
+    const parts: string[] = [
+      `Dear ${customerName ? customerName : "Customer"},`,
+      "",
+      "Thank you for your enquiry. We're pleased to propose the following rates for your waste management requirements.",
+      "",
+    ];
+    if (reference) parts.push(`Quote reference: ${reference}`);
+    if (rateCardName) parts.push(`Rate schedule: ${rateCardName}`);
+    if (reference || rateCardName) parts.push("");
+
+    parts.push("RATES");
+    parts.push(...lineLines);
+    parts.push("");
+    parts.push(...totalsLines);
+    parts.push(vatNote);
+    parts.push("");
+    parts.push("Container rental");
+    parts.push(rentalLine);
+
+    if (bespokeRules && bespokeRules.trim()) {
+      parts.push("");
+      parts.push("Important — waste acceptance");
+      parts.push(bespokeRules.trim());
+    }
+    if (termsUrl) {
+      parts.push("");
+      parts.push(`This proposal is subject to our standard terms and conditions: ${termsUrl}`);
+    }
+
+    parts.push("");
+    parts.push("We look forward to working with you. Please don't hesitate to get in touch if you have any questions.");
+    parts.push("");
+    parts.push("Kind regards,");
+    if (sender) parts.push(sender);
+    parts.push("Clews Recycling");
+
+    return {
+      subject: `Clews Recycling — Rate Proposal${reference ? ` (${reference})` : ""}`,
+      body: parts.join("\n"),
+    };
+  };
+
+  // Regenerate the written email each time the dialog is opened.
   useEffect(() => {
-    if (open) setSenderName((prev) => prev || defaultSenderName);
-  }, [open, defaultSenderName]);
+    if (open) {
+      const d = buildDefaults();
+      setSubject(d.subject);
+      setBody(d.body);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim());
 
@@ -608,35 +682,15 @@ function EmailQuoteDialog({
       const { error } = await supabase.functions.invoke("send-quote-email", {
         body: {
           to: to.trim(),
-          customerName: customerName || undefined,
+          subject: subject.trim() || undefined,
+          body,
           reference: reference || undefined,
-          senderName: senderName || undefined,
-          intro: intro || undefined,
-          rateCardName: rateCardName || undefined,
-          vatInclusive,
-          lines: lines.map((l) => ({
-            label: l.label,
-            detail: [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · "),
-            unitPrice: l.unitPrice,
-            qty: l.qty,
-            total: lineTotal(l),
-          })),
-          fuelNet: fuelNet > 0 ? fuelNet : undefined,
-          subtotal,
-          vat,
-          total,
-          freeRentalWeeks,
-          rentalSkip,
-          rentalRoRo,
-          bespokeRules: bespokeRules || undefined,
-          termsUrl: termsUrl || undefined,
         },
       });
       if (error) throw error;
       toast({ title: "Quote sent", description: `Proposal emailed to ${to.trim()}.` });
       setOpen(false);
       setTo("");
-      setIntro("");
     } catch (e) {
       toast({
         title: "Could not send",
@@ -655,13 +709,11 @@ function EmailQuoteDialog({
           <Mail className="h-4 w-4 mr-1" /> Email quote
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Email rate proposal</DialogTitle>
           <DialogDescription>
-            Send {customerName ? <span className="font-medium text-foreground">{customerName}</span> : "the customer"} a
-            nicely worded email proposing these rates. Rental terms, waste rules and the terms &amp; conditions link are
-            added automatically (edit them under Settings).
+            The email below is fully written from this quote — review and edit anything before sending.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -675,21 +727,17 @@ function EmailQuoteDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Your name (sign-off)</Label>
-            <Input value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="e.g. Jamie Clews" />
+            <Label>Subject</Label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Personal note (optional)</Label>
+            <Label>Body</Label>
             <Textarea
-              value={intro}
-              onChange={(e) => setIntro(e.target.value)}
-              rows={3}
-              placeholder="Replaces the default opening line, e.g. 'Great to speak earlier — here are the rates we discussed.'"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={18}
+              className="font-mono text-sm"
             />
-          </div>
-          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
-            <p>{lines.length} item{lines.length === 1 ? "" : "s"} · Total {`£${total.toFixed(2)}`} (inc. VAT)</p>
-            <p>Free rental: {freeRentalWeeks} week{freeRentalWeeks === 1 ? "" : "s"}, then £{rentalSkip}+VAT/wk skip · £{rentalRoRo}+VAT/wk RoRo</p>
           </div>
         </div>
         <DialogFooter>
