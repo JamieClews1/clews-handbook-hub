@@ -86,7 +86,13 @@ function formatDate(iso: string) {
 
 export default function CRMPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { templates, reload: reloadTemplates } = useCRMTemplates();
+  const {
+    connection: mailbox,
+    loading: mailboxLoading,
+    reload: reloadMailbox,
+  } = useMailboxConnection(user?.id);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
