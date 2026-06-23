@@ -20,10 +20,22 @@ import {
   type RateValue,
   type RateZone,
 } from "./useRateCard";
+import { usePricingSettings } from "@/hooks/usePricingSettings";
 
 type CustomerType = RateCard["customer_type"];
 const TYPE_ORDER: CustomerType[] = ["residential", "trade", "broker", "bespoke"];
 const VAT_RATE = 0.2;
+
+type FuelVehicle = "Skips" | "RoRo" | "Artic";
+
+type FuelRate = {
+  vehicle_category: string;
+  zone: string;
+  surcharge_amount: number;
+  active: boolean;
+  customer_match: string | null;
+  effective_from_date: string;
+};
 
 type QuoteLine = {
   key: string;
@@ -35,6 +47,57 @@ type QuoteLine = {
   unitPrice: number;
   qty: number;
 };
+
+/** Classify a rate-card line into a fuel-surcharge vehicle category from its label. */
+function classifyFuelVehicle(label: string): FuelVehicle | null {
+  const s = label.toLowerCase();
+  if (/artic|curtain|walking floor|bulk ejector/.test(s)) return "Artic";
+  if (/ro ?-?ro|roll on roll off/.test(s)) return "RoRo";
+  if (/skip|yard|yd|chain lift/.test(s)) return "Skips";
+  return null;
+}
+
+/** Map a quote zone label to a fuel-surcharge zone (Zone 1/2/3, 3+ collapse to Zone 3). */
+function mapFuelZone(zoneLabel: string): string | null {
+  const s = zoneLabel.toLowerCase();
+  if (/zone\s*1/.test(s)) return "Zone 1";
+  if (/zone\s*2/.test(s)) return "Zone 2";
+  if (/zone\s*[34]/.test(s)) return "Zone 3";
+  return null;
+}
+
+/** Find the applicable surcharge amount for a vehicle/zone, honouring customer overrides. */
+function fuelSurchargeFor(
+  rates: FuelRate[],
+  vehicle: FuelVehicle,
+  zone: string,
+  customer: string,
+): number | null {
+  const cust = customer.toLowerCase();
+  const byNewest = (a: FuelRate, b: FuelRate) =>
+    a.effective_from_date < b.effective_from_date ? 1 : -1;
+
+  if (cust) {
+    const override = rates
+      .filter(
+        (r) =>
+          r.active &&
+          r.vehicle_category === vehicle &&
+          r.customer_match &&
+          cust.includes(r.customer_match.toLowerCase()),
+      )
+      .sort(byNewest)[0];
+    if (override) return Number(override.surcharge_amount);
+  }
+
+  const generic = rates
+    .filter(
+      (r) =>
+        r.active && !r.customer_match && r.vehicle_category === vehicle && r.zone === zone,
+    )
+    .sort(byNewest)[0];
+  return generic ? Number(generic.surcharge_amount) : null;
+}
 
 export function QuoteBuilder() {
   const { toast } = useToast();
