@@ -149,7 +149,7 @@ const App = () => (
             <Route path="/bookings" element={<Staff><BookingsPage /></Staff>} />
             <Route path="/crm" element={<Staff><CRMPage /></Staff>} />
             <Route path="/pricing" element={<Staff><PricingPage /></Staff>} />
-            <Route path="/pricing/builder" element={<Staff><PriceBuilderPage /></Staff>} />
+            <Route path="/pricing/builder" element={<Navigate to="/pricing" replace />} />
             <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
 
             {/* Catch-all */}
