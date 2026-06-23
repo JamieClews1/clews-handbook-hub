@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Fuel, ExternalLink, FileText, Save } from "lucide-react";
+import { Fuel, ExternalLink, FileText, Save, Paperclip, Upload, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePricingSettings, type PricingSettings as PricingSettingsType } from "@/hooks/usePricingSettings";
+
+const ATTACHMENT_BUCKET = "pricing-attachments";
 
 export function PricingSettings() {
   const { toast } = useToast();
