@@ -15,7 +15,16 @@ import { RateCardEditor } from "@/components/pricing/RateCardEditor";
 import { PostcodeZoneChecker } from "@/components/pricing/PostcodeZoneChecker";
 import { QuoteBuilder } from "@/components/pricing/QuoteBuilder";
 import { PricingSettings } from "@/components/pricing/PricingSettings";
-import { CUSTOMER_TYPE_LABELS, useRateCards, type RateCard } from "@/components/pricing/useRateCard";
+import {
+  CUSTOMER_TYPE_LABELS,
+  useRateCards,
+  computeCardWindows,
+  duplicateRateCard,
+  formatUkDate,
+  nextAprilYear,
+  type RateCard,
+  type CardWindow,
+} from "@/components/pricing/useRateCard";
 
 type CustomerType = RateCard["customer_type"];
 const TYPE_ORDER: CustomerType[] = ["residential", "trade", "broker", "bespoke"];
@@ -54,17 +63,24 @@ const PricingPage = () => {
     return m;
   }, [cards]);
 
+  const windows = useMemo(() => computeCardWindows(cards), [cards]);
+
+  // pick a sensible default per type — prefer the currently-effective card
+  const pickDefault = (list: RateCard[]) =>
+    list.find((c) => windows.get(c.id)?.state === "current")?.id || list[0]?.id || "";
+
   // ensure a default selected card per type
   useEffect(() => {
     setSelectedCardId((prev) => {
       const next = { ...prev };
       for (const t of TYPE_ORDER) {
-        if (!next[t] && cardsByType[t][0]) next[t] = cardsByType[t][0].id;
-        if (next[t] && !cardsByType[t].some((c) => c.id === next[t])) next[t] = cardsByType[t][0]?.id || "";
+        if (!next[t] && cardsByType[t][0]) next[t] = pickDefault(cardsByType[t]);
+        if (next[t] && !cardsByType[t].some((c) => c.id === next[t])) next[t] = pickDefault(cardsByType[t]);
       }
       return next;
     });
-  }, [cardsByType]);
+  }, [cardsByType, windows]);
+
 
   if (loading) {
     return (
@@ -112,6 +128,7 @@ const PricingPage = () => {
                 <TypePanel
                   type={t}
                   cards={cardsByType[t]}
+                  windows={windows}
                   templates={cards.filter((c) => c.customer_type === "trade" || c.customer_type === "broker")}
                   customers={customers}
                   selectedCardId={selectedCardId[t]}
@@ -140,6 +157,7 @@ const PricingPage = () => {
 function TypePanel({
   type,
   cards,
+  windows,
   templates,
   customers,
   selectedCardId,
@@ -150,6 +168,7 @@ function TypePanel({
 }: {
   type: CustomerType;
   cards: RateCard[];
+  windows: Map<string, CardWindow>;
   templates: RateCard[];
   customers: CustomerOption[];
   selectedCardId: string;
@@ -159,6 +178,19 @@ function TypePanel({
   toast: ReturnType<typeof useToast>["toast"];
 }) {
   const selected = cards.find((c) => c.id === selectedCardId);
+  const selectedWindow = selected ? windows.get(selected.id) : undefined;
+
+  const windowLabel = (w?: CardWindow) => {
+    if (!w || !w.start) return "";
+    return `${formatUkDate(w.start)} – ${formatUkDate(w.end)}`;
+  };
+  const stateBadge = (w?: CardWindow) => {
+    if (!w) return null;
+    if (w.state === "current")
+      return <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white">Current</Badge>;
+    if (w.state === "future") return <Badge variant="secondary">Upcoming</Badge>;
+    return <Badge variant="outline">Expired</Badge>;
+  };
 
   if (!cards.length && type !== "bespoke") {
     return <div className="p-8 text-center text-muted-foreground">No {CUSTOMER_TYPE_LABELS[type]} card yet.</div>;
@@ -173,11 +205,15 @@ function TypePanel({
               <SelectValue placeholder="Select a rate card" />
             </SelectTrigger>
             <SelectContent>
-              {cards.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
+              {cards.map((c) => {
+                const w = windows.get(c.id);
+                return (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                    {w?.state === "future" ? " · upcoming" : w?.state === "past" ? " · expired" : ""}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         )}
@@ -185,16 +221,27 @@ function TypePanel({
           <NewBespokeDialog templates={templates} customers={customers} onCreated={onChanged} toast={toast} />
         )}
         {selected && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {selected.vat_inclusive ? (
-              <Badge variant="outline">Inc. VAT</Badge>
-            ) : (
-              <Badge variant="outline">Net of VAT</Badge>
-            )}
-            {selected.effective_date && <span>Effective {selected.effective_date}</span>}
-          </div>
+          <NextYearCardDialog source={selected} cards={cards} windows={windows} onCreated={onChanged} toast={toast} />
         )}
       </div>
+
+      {selected && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {stateBadge(selectedWindow)}
+          {selected.vat_inclusive ? (
+            <Badge variant="outline">Inc. VAT</Badge>
+          ) : (
+            <Badge variant="outline">Net of VAT</Badge>
+          )}
+          {selectedWindow?.start && (
+            <span className="text-muted-foreground">
+              {selectedWindow.state === "future" ? "Effective from " : "Prices effective "}
+              <span className="font-medium text-foreground">{windowLabel(selectedWindow)}</span>
+              {selectedWindow.state === "future" && " (takes over automatically)"}
+            </span>
+          )}
+        </div>
+      )}
 
       {selected?.notes && (
         <Card>
@@ -212,6 +259,95 @@ function TypePanel({
     </>
   );
 }
+
+function NextYearCardDialog({
+  source,
+  cards,
+  windows,
+  onCreated,
+  toast,
+}: {
+  source: RateCard;
+  cards: RateCard[];
+  windows: Map<string, CardWindow>;
+  onCreated: () => void;
+  toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const year = nextAprilYear(source.effective_date);
+  const effective = `${year}-04-01`;
+  const defaultName = /\b(20\d{2})\b/.test(source.name)
+    ? source.name.replace(/\b20\d{2}\b/, String(year))
+    : `${source.name} ${year}`;
+
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(defaultName);
+  const [saving, setSaving] = useState(false);
+
+  // does a card already cover the target effective date for this group?
+  const exists = cards.some((c) => c.id !== source.id && c.effective_date === effective);
+
+  const create = async () => {
+    setSaving(true);
+    const result = await duplicateRateCard(source.id, {
+      customer_type: source.customer_type,
+      name: name.trim() || defaultName,
+      customer_id: source.customer_id,
+      vat_inclusive: source.vat_inclusive,
+      effective_date: effective,
+      notes: source.notes,
+    });
+    setSaving(false);
+    if ("error" in result) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: `${year} rate card created`,
+      description: `A copy effective 1 April ${year} was created. Edit it now — it will take over automatically on that date.`,
+    });
+    setOpen(false);
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <Copy className="h-4 w-4 mr-1" /> Create {year} card
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create {year} rate card</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            This copies <span className="font-medium text-foreground">{source.name}</span> into a new card
+            effective <span className="font-medium text-foreground">1 April {year}</span>. The new prices
+            take over automatically on that date, and the current card will then read as valid to{" "}
+            <span className="font-medium text-foreground">31 March {year}</span>. Edit the copy without
+            affecting the prices in use today.
+          </p>
+          {exists && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+              A card effective 1 April {year} already exists. Creating another will result in duplicates.
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label>New card name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={create} disabled={saving}>
+            {saving ? "Creating…" : `Create ${year} card`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function NewBespokeDialog({
   templates,

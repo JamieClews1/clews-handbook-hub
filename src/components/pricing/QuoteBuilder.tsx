@@ -15,6 +15,8 @@ import {
   FLAT_ZONE,
   useRateCardData,
   useRateCards,
+  computeCardWindows,
+  formatUkDate,
   type RateCard,
   type RateRow,
   type RateValue,
@@ -126,12 +128,16 @@ export function QuoteBuilder() {
     [cards, activeType],
   );
 
-  // default card when type changes
+  const windows = useMemo(() => computeCardWindows(cards), [cards]);
+
+  // default to the currently-effective card when type changes
   useEffect(() => {
-    setCardId(cardsForType[0]?.id || "");
+    const current = cardsForType.find((c) => windows.get(c.id)?.state === "current");
+    setCardId(current?.id || cardsForType[0]?.id || "");
     setZoneId("");
     setLines([]);
-  }, [activeType, cardsForType]);
+  }, [activeType, cardsForType, windows]);
+
 
   const selectedCard = cards.find((c) => c.id === cardId) || null;
   const { zones, rows, values, loading: cardLoading } = useRateCardData(cardId || null);
@@ -314,11 +320,15 @@ export function QuoteBuilder() {
                     <SelectValue placeholder={cardsForType.length ? "Select card" : "No cards"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {cardsForType.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    {cardsForType.map((c) => {
+                      const w = windows.get(c.id);
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                          {w?.state === "future" ? " · upcoming" : w?.state === "past" ? " · expired" : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -345,9 +355,20 @@ export function QuoteBuilder() {
             />
 
             {selectedCard && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline">{vatInclusive ? "Prices inc. VAT" : "Prices net of VAT"}</Badge>
-                {selectedCard.effective_date && <span>Effective {selectedCard.effective_date}</span>}
+                {(() => {
+                  const w = windows.get(selectedCard.id);
+                  if (!w?.start) return null;
+                  return (
+                    <span>
+                      {w.state === "future" ? "Effective from " : "Prices effective "}
+                      <span className="font-medium text-foreground">
+                        {formatUkDate(w.start)} – {formatUkDate(w.end)}
+                      </span>
+                    </span>
+                  );
+                })()}
               </div>
             )}
           </CardContent>
