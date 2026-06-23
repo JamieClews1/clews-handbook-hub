@@ -9,7 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Copy, MapPin, Search, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Plus, Trash2, Copy, MapPin, Search, FileText, Mail, Send } from "lucide-react";
 import {
   CUSTOMER_TYPE_LABELS,
   FLAT_ZONE,
@@ -113,6 +123,7 @@ export function QuoteBuilder() {
   const [zoneId, setZoneId] = useState("");
   const [lines, setLines] = useState<QuoteLine[]>([]);
   const [fuelRates, setFuelRates] = useState<FuelRate[]>([]);
+  const [senderName, setSenderName] = useState("");
 
   // Load active fuel surcharge rates (used when auto-add is enabled in Pricing settings)
   useEffect(() => {
@@ -121,6 +132,20 @@ export function QuoteBuilder() {
       .select("vehicle_category, zone, surcharge_amount, active, customer_match, effective_from_date")
       .eq("active", true)
       .then(({ data }) => setFuelRates((data as FuelRate[]) || []));
+  }, []);
+
+  // Default the sender name to the signed-in team member's profile name
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      setSenderName(profile?.full_name || "");
+    })();
   }, []);
 
   const cardsForType = useMemo(
@@ -217,6 +242,14 @@ export function QuoteBuilder() {
   const total = subtotal + vat;
 
   const fmt = (n: number) => `£${n.toFixed(2)}`;
+
+  // Free rental period depends on customer type (residential vs everyone else)
+  const freeRentalWeeks =
+    activeType === "residential"
+      ? settings.free_rental_weeks_residential
+      : settings.free_rental_weeks_trade;
+
+
 
 
   // priceable rows for the selected zone, grouped by section
@@ -479,9 +512,30 @@ export function QuoteBuilder() {
                 </div>
               </div>
 
-              <Button className="w-full" onClick={copyQuote}>
-                <Copy className="h-4 w-4 mr-1" /> Copy quote
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={copyQuote}>
+                  <Copy className="h-4 w-4 mr-1" /> Copy
+                </Button>
+                <EmailQuoteDialog
+                  customerName={customerName}
+                  reference={reference}
+                  rateCardName={selectedCard?.name || ""}
+                  vatInclusive={vatInclusive}
+                  lines={lines}
+                  lineTotal={lineTotal}
+                  fuelNet={fuelEnabled ? fuelNet : 0}
+                  subtotal={subtotal}
+                  vat={vat}
+                  total={total}
+                  freeRentalWeeks={freeRentalWeeks}
+                  rentalSkip={settings.rental_cost_skip}
+                  rentalRoRo={settings.rental_cost_roro}
+                  bespokeRules={settings.bespoke_rules}
+                  termsUrl={settings.terms_url}
+                  defaultSenderName={senderName}
+                  toast={toast}
+                />
+              </div>
             </div>
           )}
         </CardContent>
@@ -489,6 +543,161 @@ export function QuoteBuilder() {
     </div>
   );
 }
+
+function EmailQuoteDialog({
+  customerName,
+  reference,
+  rateCardName,
+  vatInclusive,
+  lines,
+  lineTotal,
+  fuelNet,
+  subtotal,
+  vat,
+  total,
+  freeRentalWeeks,
+  rentalSkip,
+  rentalRoRo,
+  bespokeRules,
+  termsUrl,
+  defaultSenderName,
+  toast,
+}: {
+  customerName: string;
+  reference: string;
+  rateCardName: string;
+  vatInclusive: boolean;
+  lines: QuoteLine[];
+  lineTotal: (l: QuoteLine) => number;
+  fuelNet: number;
+  subtotal: number;
+  vat: number;
+  total: number;
+  freeRentalWeeks: number;
+  rentalSkip: number;
+  rentalRoRo: number;
+  bespokeRules: string;
+  termsUrl: string;
+  defaultSenderName: string;
+  toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [senderName, setSenderName] = useState(defaultSenderName);
+  const [intro, setIntro] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) setSenderName((prev) => prev || defaultSenderName);
+  }, [open, defaultSenderName]);
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim());
+
+  const send = async () => {
+    if (!emailValid) {
+      toast({ title: "Enter a valid email", description: "Please add the customer's email address.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-quote-email", {
+        body: {
+          to: to.trim(),
+          customerName: customerName || undefined,
+          reference: reference || undefined,
+          senderName: senderName || undefined,
+          intro: intro || undefined,
+          rateCardName: rateCardName || undefined,
+          vatInclusive,
+          lines: lines.map((l) => ({
+            label: l.label,
+            detail: [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · "),
+            unitPrice: l.unitPrice,
+            qty: l.qty,
+            total: lineTotal(l),
+          })),
+          fuelNet: fuelNet > 0 ? fuelNet : undefined,
+          subtotal,
+          vat,
+          total,
+          freeRentalWeeks,
+          rentalSkip,
+          rentalRoRo,
+          bespokeRules: bespokeRules || undefined,
+          termsUrl: termsUrl || undefined,
+        },
+      });
+      if (error) throw error;
+      toast({ title: "Quote sent", description: `Proposal emailed to ${to.trim()}.` });
+      setOpen(false);
+      setTo("");
+      setIntro("");
+    } catch (e) {
+      toast({
+        title: "Could not send",
+        description: (e as Error).message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button disabled={lines.length === 0}>
+          <Mail className="h-4 w-4 mr-1" /> Email quote
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Email rate proposal</DialogTitle>
+          <DialogDescription>
+            Send {customerName ? <span className="font-medium text-foreground">{customerName}</span> : "the customer"} a
+            nicely worded email proposing these rates. Rental terms, waste rules and the terms &amp; conditions link are
+            added automatically (edit them under Settings).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Customer email</Label>
+            <Input
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="name@company.co.uk"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Your name (sign-off)</Label>
+            <Input value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="e.g. Jamie Clews" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Personal note (optional)</Label>
+            <Textarea
+              value={intro}
+              onChange={(e) => setIntro(e.target.value)}
+              rows={3}
+              placeholder="Replaces the default opening line, e.g. 'Great to speak earlier — here are the rates we discussed.'"
+            />
+          </div>
+          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+            <p>{lines.length} item{lines.length === 1 ? "" : "s"} · Total {`£${total.toFixed(2)}`} (inc. VAT)</p>
+            <p>Free rental: {freeRentalWeeks} week{freeRentalWeeks === 1 ? "" : "s"}, then £{rentalSkip}+VAT/wk skip · £{rentalRoRo}+VAT/wk RoRo</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={send} disabled={sending || !emailValid}>
+            <Send className="h-4 w-4 mr-1" /> {sending ? "Sending…" : "Send proposal"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 
 function ItemTable({
   items,
