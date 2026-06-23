@@ -63,17 +63,24 @@ const PricingPage = () => {
     return m;
   }, [cards]);
 
+  const windows = useMemo(() => computeCardWindows(cards), [cards]);
+
+  // pick a sensible default per type — prefer the currently-effective card
+  const pickDefault = (list: RateCard[]) =>
+    list.find((c) => windows.get(c.id)?.state === "current")?.id || list[0]?.id || "";
+
   // ensure a default selected card per type
   useEffect(() => {
     setSelectedCardId((prev) => {
       const next = { ...prev };
       for (const t of TYPE_ORDER) {
-        if (!next[t] && cardsByType[t][0]) next[t] = cardsByType[t][0].id;
-        if (next[t] && !cardsByType[t].some((c) => c.id === next[t])) next[t] = cardsByType[t][0]?.id || "";
+        if (!next[t] && cardsByType[t][0]) next[t] = pickDefault(cardsByType[t]);
+        if (next[t] && !cardsByType[t].some((c) => c.id === next[t])) next[t] = pickDefault(cardsByType[t]);
       }
       return next;
     });
-  }, [cardsByType]);
+  }, [cardsByType, windows]);
+
 
   if (loading) {
     return (
