@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const SCOPES = [
   'openid',
@@ -10,57 +11,43 @@ const SCOPES = [
   'https://graph.microsoft.com/User.Read',
 ].join(' ');
 
-function b64urlDecode(s: string) {
-  s = s.replace(/-/g, '+').replace(/_/g, '/');
-  while (s.length % 4) s += '=';
-  return decodeURIComponent(escape(atob(s)));
-}
-
-function redirect(to: string, params: Record<string, string>) {
-  let target = to;
-  try {
-    const url = new URL(to);
-    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-    target = url.toString();
-  } catch {
-    target = to;
-  }
-  return new Response(null, { status: 302, headers: { Location: target } });
-}
-
 Deno.serve(async (req) => {
-  const reqUrl = new URL(req.url);
-  const code = reqUrl.searchParams.get('code');
-  const state = reqUrl.searchParams.get('state') || '';
-  const oauthError = reqUrl.searchParams.get('error');
-  const oauthErrorDesc = reqUrl.searchParams.get('error_description');
-
-  // Decode return destination from state (nonce.<b64url(returnTo)>).
-  const [nonce, returnB64] = state.split('.');
-  let returnTo = '';
-  try {
-    returnTo = returnB64 ? b64urlDecode(returnB64) : '';
-  } catch {
-    returnTo = '';
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
-  const fallback = returnTo || 'https://portal.clewsrecycling.co.uk/crm';
+
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status,
+    });
 
   try {
-    if (oauthError) {
-      return redirect(fallback, {
-        mailbox: 'error',
-        reason: oauthErrorDesc || oauthError,
-      });
-    }
-    if (!code || !nonce) {
-      return redirect(fallback, { mailbox: 'error', reason: 'Missing authorization code.' });
-    }
-
     const clientId = Deno.env.get('MS_CLIENT_ID');
     const clientSecret = Deno.env.get('MS_CLIENT_SECRET');
     const tenant = Deno.env.get('MS_TENANT_ID') || 'organizations';
     if (!clientId || !clientSecret) {
-      return redirect(fallback, { mailbox: 'error', reason: 'Microsoft app not configured.' });
+      return json({ error: 'Microsoft app is not configured yet.' }, 400);
+    }
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
+
+    const authedClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await authedClient.auth.getUser();
+    if (userErr || !userData.user) return json({ error: 'Unauthorized' }, 401);
+    const userId = userData.user.id;
+
+    const body = await req.json().catch(() => ({}));
+    const code: string | undefined = body?.code;
+    const state: string | undefined = body?.state;
+    const redirectUri: string | undefined = body?.redirectUri;
+    if (!code || !state || !redirectUri) {
+      return json({ error: 'code, state and redirectUri are required' }, 400);
     }
 
     const admin = createClient(
@@ -68,18 +55,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Look up and consume the handshake state.
+    // Validate the handshake state and that it belongs to this user.
     const { data: stateRow } = await admin
       .from('crm_mailbox_oauth_states')
       .select('user_id')
-      .eq('state', nonce)
+      .eq('state', state)
       .maybeSingle();
-    if (!stateRow) {
-      return redirect(fallback, { mailbox: 'error', reason: 'Sign-in link expired, please retry.' });
+    if (!stateRow || stateRow.user_id !== userId) {
+      return json({ error: 'Sign-in session expired, please try again.' }, 400);
     }
-    await admin.from('crm_mailbox_oauth_states').delete().eq('state', nonce);
-
-    const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/crm-mailbox-callback`;
+    await admin.from('crm_mailbox_oauth_states').delete().eq('state', state);
 
     // Exchange the authorization code for tokens.
     const tokenRes = await fetch(
@@ -99,11 +84,7 @@ Deno.serve(async (req) => {
     );
 
     if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      return redirect(fallback, {
-        mailbox: 'error',
-        reason: `Token exchange failed (${tokenRes.status}).`,
-      });
+      return json({ error: `Token exchange failed (${tokenRes.status}).` }, 400);
     }
 
     const tokens = await tokenRes.json();
@@ -116,13 +97,12 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const me = meRes.ok ? await meRes.json() : {};
-    const msEmail: string =
-      me.mail || me.userPrincipalName || 'unknown';
+    const msEmail: string = me.mail || me.userPrincipalName || 'unknown';
     const msDisplayName: string = me.displayName || msEmail;
 
     await admin.from('crm_mailbox_connections').upsert(
       {
-        user_id: stateRow.user_id,
+        user_id: userId,
         ms_email: msEmail,
         ms_display_name: msDisplayName,
         access_token: accessToken,
@@ -134,8 +114,8 @@ Deno.serve(async (req) => {
       { onConflict: 'user_id' },
     );
 
-    return redirect(fallback, { mailbox: 'connected', email: msEmail });
+    return json({ connected: true, email: msEmail });
   } catch (e) {
-    return redirect(fallback, { mailbox: 'error', reason: String(e) });
+    return json({ error: String(e) }, 500);
   }
 });
