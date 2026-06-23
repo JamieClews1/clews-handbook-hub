@@ -26,6 +26,8 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 import { RefreshCw, Mail, Send, Inbox, AlertCircle, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
+import { CRMMailboxConnect, useMailboxConnection } from "@/components/crm/CRMMailboxConnect";
+import { useAuth } from "@/hooks/useAuth";
 
 type Status = "new" | "open" | "pending" | "resolved";
 
@@ -39,6 +41,7 @@ interface Ticket {
   is_read: boolean;
   last_message_at: string;
   assigned_to: string | null;
+  mailbox_user_id: string | null;
 }
 
 interface Message {
