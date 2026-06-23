@@ -56,8 +56,9 @@ export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
   const handleConnect = async () => {
     setConnecting(true);
     try {
+      const redirectUri = `${window.location.origin}/crm/mailbox-callback`;
       const { data, error } = await supabase.functions.invoke("crm-mailbox-start", {
-        body: { returnTo: window.location.href },
+        body: { redirectUri },
       });
       if (error) throw error;
       if (data?.url) {
@@ -65,6 +66,7 @@ export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
       } else {
         throw new Error(data?.error ?? "Could not start sign-in.");
       }
+
     } catch (e: any) {
       toast({
         title: "Couldn't start mailbox sign-in",
