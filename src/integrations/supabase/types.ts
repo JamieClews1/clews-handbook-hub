@@ -3630,6 +3630,24 @@ export type Database = {
           },
         ]
       }
+      pricing_settings: {
+        Row: {
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_skip_sizes: {
         Row: {
           created_at: string

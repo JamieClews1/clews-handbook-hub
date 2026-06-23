@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Copy, LayoutGrid, Calculator } from "lucide-react";
+import { Plus, Copy, LayoutGrid, Calculator, Settings2 } from "lucide-react";
 import { RateCardEditor } from "@/components/pricing/RateCardEditor";
 import { PostcodeZoneChecker } from "@/components/pricing/PostcodeZoneChecker";
 import { QuoteBuilder } from "@/components/pricing/QuoteBuilder";
+import { PricingSettings } from "@/components/pricing/PricingSettings";
 import { CUSTOMER_TYPE_LABELS, useRateCards, type RateCard } from "@/components/pricing/useRateCard";
 
 type CustomerType = RateCard["customer_type"];
@@ -86,6 +87,9 @@ const PricingPage = () => {
           <TabsTrigger value="builder">
             <Calculator className="h-4 w-4 mr-2" /> Price Builder
           </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings2 className="h-4 w-4 mr-2" /> Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="rate-cards" className="space-y-6">
@@ -123,6 +127,10 @@ const PricingPage = () => {
 
         <TabsContent value="builder">
           <QuoteBuilder />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <PricingSettings />
         </TabsContent>
       </Tabs>
     </AdminPageLayout>

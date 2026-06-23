@@ -20,10 +20,22 @@ import {
   type RateValue,
   type RateZone,
 } from "./useRateCard";
+import { usePricingSettings } from "@/hooks/usePricingSettings";
 
 type CustomerType = RateCard["customer_type"];
 const TYPE_ORDER: CustomerType[] = ["residential", "trade", "broker", "bespoke"];
 const VAT_RATE = 0.2;
+
+type FuelVehicle = "Skips" | "RoRo" | "Artic";
+
+type FuelRate = {
+  vehicle_category: string;
+  zone: string;
+  surcharge_amount: number;
+  active: boolean;
+  customer_match: string | null;
+  effective_from_date: string;
+};
 
 type QuoteLine = {
   key: string;
@@ -36,9 +48,61 @@ type QuoteLine = {
   qty: number;
 };
 
+/** Classify a rate-card line into a fuel-surcharge vehicle category from its label. */
+function classifyFuelVehicle(label: string): FuelVehicle | null {
+  const s = label.toLowerCase();
+  if (/artic|curtain|walking floor|bulk ejector/.test(s)) return "Artic";
+  if (/ro ?-?ro|roll on roll off/.test(s)) return "RoRo";
+  if (/skip|yard|yd|chain lift/.test(s)) return "Skips";
+  return null;
+}
+
+/** Map a quote zone label to a fuel-surcharge zone (Zone 1/2/3, 3+ collapse to Zone 3). */
+function mapFuelZone(zoneLabel: string): string | null {
+  const s = zoneLabel.toLowerCase();
+  if (/zone\s*1/.test(s)) return "Zone 1";
+  if (/zone\s*2/.test(s)) return "Zone 2";
+  if (/zone\s*[34]/.test(s)) return "Zone 3";
+  return null;
+}
+
+/** Find the applicable surcharge amount for a vehicle/zone, honouring customer overrides. */
+function fuelSurchargeFor(
+  rates: FuelRate[],
+  vehicle: FuelVehicle,
+  zone: string,
+  customer: string,
+): number | null {
+  const cust = customer.toLowerCase();
+  const byNewest = (a: FuelRate, b: FuelRate) =>
+    a.effective_from_date < b.effective_from_date ? 1 : -1;
+
+  if (cust) {
+    const override = rates
+      .filter(
+        (r) =>
+          r.active &&
+          r.vehicle_category === vehicle &&
+          r.customer_match &&
+          cust.includes(r.customer_match.toLowerCase()),
+      )
+      .sort(byNewest)[0];
+    if (override) return Number(override.surcharge_amount);
+  }
+
+  const generic = rates
+    .filter(
+      (r) =>
+        r.active && !r.customer_match && r.vehicle_category === vehicle && r.zone === zone,
+    )
+    .sort(byNewest)[0];
+  return generic ? Number(generic.surcharge_amount) : null;
+}
+
 export function QuoteBuilder() {
   const { toast } = useToast();
   const { cards, loading } = useRateCards();
+  const { settings } = usePricingSettings();
 
   const [customerName, setCustomerName] = useState("");
   const [reference, setReference] = useState("");
@@ -46,6 +110,16 @@ export function QuoteBuilder() {
   const [cardId, setCardId] = useState("");
   const [zoneId, setZoneId] = useState("");
   const [lines, setLines] = useState<QuoteLine[]>([]);
+  const [fuelRates, setFuelRates] = useState<FuelRate[]>([]);
+
+  // Load active fuel surcharge rates (used when auto-add is enabled in Pricing settings)
+  useEffect(() => {
+    supabase
+      .from("fuel_surcharge_rates")
+      .select("vehicle_category, zone, surcharge_amount, active, customer_match, effective_from_date")
+      .eq("active", true)
+      .then(({ data }) => setFuelRates((data as FuelRate[]) || []));
+  }, []);
 
   const cardsForType = useMemo(
     () => cards.filter((c) => c.customer_type === activeType),
@@ -109,12 +183,35 @@ export function QuoteBuilder() {
   const lineTotal = (l: QuoteLine) => l.unitPrice * l.qty;
   const grandLineSum = lines.reduce((s, l) => s + lineTotal(l), 0);
 
-  // If card is VAT inclusive, prices already include VAT; otherwise add VAT.
-  const subtotal = vatInclusive ? grandLineSum / (1 + VAT_RATE) : grandLineSum;
-  const vat = vatInclusive ? grandLineSum - subtotal : grandLineSum * VAT_RATE;
-  const total = vatInclusive ? grandLineSum : grandLineSum + vat;
+  const fuelEnabled = settings.auto_add_fuel_surcharge;
+
+  // Per-line fuel surcharge (net of VAT) based on inferred vehicle category + zone.
+  const fuelDetails = useMemo(() => {
+    if (!fuelEnabled) return { total: 0, lines: [] as { key: string; amount: number }[] };
+    const detail: { key: string; amount: number }[] = [];
+    let total = 0;
+    for (const l of lines) {
+      const vehicle = classifyFuelVehicle(l.label);
+      const zone = mapFuelZone(l.zoneLabel);
+      if (!vehicle || !zone) continue;
+      const rate = fuelSurchargeFor(fuelRates, vehicle, zone, customerName);
+      if (rate == null) continue;
+      const amount = rate * l.qty;
+      detail.push({ key: l.key, amount });
+      total += amount;
+    }
+    return { total, lines: detail };
+  }, [fuelEnabled, lines, fuelRates, customerName]);
+
+  // Work in net terms, then apply VAT once at the end so the fuel surcharge (net) blends in.
+  const linesNet = vatInclusive ? grandLineSum / (1 + VAT_RATE) : grandLineSum;
+  const fuelNet = fuelDetails.total;
+  const subtotal = linesNet + fuelNet;
+  const vat = subtotal * VAT_RATE;
+  const total = subtotal + vat;
 
   const fmt = (n: number) => `£${n.toFixed(2)}`;
+
 
   // priceable rows for the selected zone, grouped by section
   const matrixSections = useMemo(() => {
@@ -154,6 +251,7 @@ export function QuoteBuilder() {
       "",
       lineText,
       "",
+      fuelEnabled && fuelNet > 0 ? `Fuel surcharge (net): ${fmt(fuelNet)}` : "",
       `Subtotal (net): ${fmt(subtotal)}`,
       `VAT (20%): ${fmt(vat)}`,
       `Total: ${fmt(total)}`,
@@ -340,6 +438,12 @@ export function QuoteBuilder() {
               <Separator />
 
               <div className="space-y-1 text-sm">
+                {fuelEnabled && fuelNet > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fuel surcharge (net)</span>
+                    <span>{fmt(fuelNet)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal (net)</span>
                   <span>{fmt(subtotal)}</span>
