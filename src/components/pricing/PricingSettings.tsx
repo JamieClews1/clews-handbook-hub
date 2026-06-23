@@ -103,7 +103,7 @@ function QuoteAttachmentCard({
 
   const onPick = () => fileRef.current?.click();
 
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
