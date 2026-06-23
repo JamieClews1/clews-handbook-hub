@@ -537,6 +537,8 @@ export function QuoteBuilder() {
                   rentalRoRo={settings.rental_cost_roro}
                   bespokeRules={settings.bespoke_rules}
                   termsUrl={settings.terms_url}
+                  attachmentPath={settings.quote_attachment_enabled ? settings.quote_attachment_path : ""}
+                  attachmentName={settings.quote_attachment_name}
                   defaultSenderName={senderName}
                   toast={toast}
                 />
