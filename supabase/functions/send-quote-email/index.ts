@@ -268,6 +268,8 @@ serve(async (req) => {
 
     const subject = `Clews Recycling — Rate Proposal${p.reference ? ` (${p.reference})` : ""}`;
 
+    const legacyAttachments = await buildAttachments(p.attachmentPath, p.attachmentName);
+
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -279,6 +281,7 @@ serve(async (req) => {
         to: [p.to],
         subject,
         html: htmlBody,
+        ...(legacyAttachments.length ? { attachments: legacyAttachments } : {}),
       }),
     });
 
