@@ -567,6 +567,8 @@ function EmailQuoteDialog({
   rentalRoRo,
   bespokeRules,
   termsUrl,
+  attachmentPath,
+  attachmentName,
   defaultSenderName,
   toast,
 }: {
@@ -585,6 +587,8 @@ function EmailQuoteDialog({
   rentalRoRo: number;
   bespokeRules: string;
   termsUrl: string;
+  attachmentPath: string;
+  attachmentName: string;
   defaultSenderName: string;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
