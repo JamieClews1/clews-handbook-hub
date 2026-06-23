@@ -16,17 +16,19 @@ type QuoteLine = {
 
 type Payload = {
   to: string;
+  subject?: string;
+  body?: string;
   customerName?: string;
   reference?: string;
   senderName?: string;
   intro?: string;
   rateCardName?: string;
   vatInclusive?: boolean;
-  lines: QuoteLine[];
+  lines?: QuoteLine[];
   fuelNet?: number;
-  subtotal: number;
-  vat: number;
-  total: number;
+  subtotal?: number;
+  vat?: number;
+  total?: number;
   freeRentalWeeks?: number;
   rentalSkip?: number;
   rentalRoRo?: number;
