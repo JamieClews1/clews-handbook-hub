@@ -69,13 +69,18 @@ function classifyFuelVehicle(label: string): FuelVehicle | null {
   return null;
 }
 
-/** Map a quote zone label to a fuel-surcharge zone (Zone 1/2/3, 3+ collapse to Zone 3). */
-function mapFuelZone(zoneLabel: string): string | null {
-  const s = zoneLabel.toLowerCase();
+/**
+ * Map a quote zone label to a fuel-surcharge zone (Zone 1/2/3, 3+ collapse to Zone 3).
+ * Rate-card zones are usually geographic names (e.g. "Rugby / Crick"), so anything we
+ * can't resolve to an explicit zone falls back to Zone 3 (max), matching the rest of
+ * the fuel-surcharge system.
+ */
+function mapFuelZone(zoneLabel: string): string {
+  const s = (zoneLabel || "").toLowerCase();
   if (/zone\s*1/.test(s)) return "Zone 1";
   if (/zone\s*2/.test(s)) return "Zone 2";
   if (/zone\s*[34]/.test(s)) return "Zone 3";
-  return null;
+  return "Zone 3";
 }
 
 /** Find the applicable surcharge amount for a vehicle/zone, honouring customer overrides. */
