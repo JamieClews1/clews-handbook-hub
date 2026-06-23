@@ -122,6 +122,8 @@ serve(async (req) => {
         ? p.subject.trim()
         : `Clews Recycling — Rate Proposal${p.reference ? ` (${p.reference})` : ""}`;
 
+      const attachments = await buildAttachments(p.attachmentPath, p.attachmentName);
+
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -133,6 +135,7 @@ serve(async (req) => {
           to: [p.to],
           subject: subjectText,
           html: htmlText,
+          ...(attachments.length ? { attachments } : {}),
         }),
       });
 
@@ -145,6 +148,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
 
     const greetingName = p.customerName ? esc(p.customerName) : "there";
