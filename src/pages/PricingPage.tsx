@@ -87,6 +87,9 @@ const PricingPage = () => {
           <TabsTrigger value="builder">
             <Calculator className="h-4 w-4 mr-2" /> Price Builder
           </TabsTrigger>
+          <TabsTrigger value="settings">
+            <Settings2 className="h-4 w-4 mr-2" /> Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="rate-cards" className="space-y-6">
