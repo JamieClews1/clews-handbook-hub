@@ -691,6 +691,8 @@ function EmailQuoteDialog({
           subject: subject.trim() || undefined,
           body,
           reference: reference || undefined,
+          attachmentPath: attachmentPath || undefined,
+          attachmentName: attachmentName || undefined,
         },
       });
       if (error) throw error;
