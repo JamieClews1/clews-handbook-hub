@@ -76,39 +76,54 @@ const PricingPage = () => {
   return (
     <AdminPageLayout
       title="Pricing"
-      description="Manage skip, RoRo and haulage rate cards by customer type. All figures are exclusive of VAT unless a card states otherwise."
+      description="Manage rate cards and build customer quotes. All figures are exclusive of VAT unless a card states otherwise."
     >
-      <div className="mb-6">
-        <PostcodeZoneChecker onZoneResolved={setHighlightZone} />
-      </div>
-
-      <Tabs value={activeType} onValueChange={(v) => setActiveType(v as CustomerType)}>
-        <TabsList>
-          {TYPE_ORDER.map((t) => (
-            <TabsTrigger key={t} value={t}>
-              {CUSTOMER_TYPE_LABELS[t]}
-              <Badge variant="secondary" className="ml-2">
-                {cardsByType[t].length}
-              </Badge>
-            </TabsTrigger>
-          ))}
+      <Tabs defaultValue="rate-cards">
+        <TabsList className="mb-6">
+          <TabsTrigger value="rate-cards">
+            <LayoutGrid className="h-4 w-4 mr-2" /> Rate Cards
+          </TabsTrigger>
+          <TabsTrigger value="builder">
+            <Calculator className="h-4 w-4 mr-2" /> Price Builder
+          </TabsTrigger>
         </TabsList>
 
-        {TYPE_ORDER.map((t) => (
-          <TabsContent key={t} value={t} className="mt-4 space-y-4">
-            <TypePanel
-              type={t}
-              cards={cardsByType[t]}
-              templates={cards.filter((c) => c.customer_type === "trade" || c.customer_type === "broker")}
-              customers={customers}
-              selectedCardId={selectedCardId[t]}
-              onSelectCard={(id) => setSelectedCardId((p) => ({ ...p, [t]: id }))}
-              highlightZone={highlightZone}
-              onChanged={refresh}
-              toast={toast}
-            />
-          </TabsContent>
-        ))}
+        <TabsContent value="rate-cards" className="space-y-6">
+          <PostcodeZoneChecker onZoneResolved={setHighlightZone} />
+
+          <Tabs value={activeType} onValueChange={(v) => setActiveType(v as CustomerType)}>
+            <TabsList>
+              {TYPE_ORDER.map((t) => (
+                <TabsTrigger key={t} value={t}>
+                  {CUSTOMER_TYPE_LABELS[t]}
+                  <Badge variant="secondary" className="ml-2">
+                    {cardsByType[t].length}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {TYPE_ORDER.map((t) => (
+              <TabsContent key={t} value={t} className="mt-4 space-y-4">
+                <TypePanel
+                  type={t}
+                  cards={cardsByType[t]}
+                  templates={cards.filter((c) => c.customer_type === "trade" || c.customer_type === "broker")}
+                  customers={customers}
+                  selectedCardId={selectedCardId[t]}
+                  onSelectCard={(id) => setSelectedCardId((p) => ({ ...p, [t]: id }))}
+                  highlightZone={highlightZone}
+                  onChanged={refresh}
+                  toast={toast}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
+        </TabsContent>
+
+        <TabsContent value="builder">
+          <QuoteBuilder />
+        </TabsContent>
       </Tabs>
     </AdminPageLayout>
   );
