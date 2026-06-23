@@ -3,13 +3,31 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PricingSettings = {
   auto_add_fuel_surcharge: boolean;
+  free_rental_weeks_residential: number;
+  free_rental_weeks_trade: number;
+  rental_cost_skip: number;
+  rental_cost_roro: number;
+  bespoke_rules: string;
+  terms_url: string;
 };
 
 const DEFAULTS: PricingSettings = {
   auto_add_fuel_surcharge: false,
+  free_rental_weeks_residential: 2,
+  free_rental_weeks_trade: 4,
+  rental_cost_skip: 18,
+  rental_cost_roro: 42,
+  bespoke_rules: "Mixed waste loads cannot accept any soil, hardcore or plasterboard.",
+  terms_url: "https://www.clewsrecycling.co.uk/terms-and-conditions",
 };
 
 const BOOLEAN_KEYS: (keyof PricingSettings)[] = ["auto_add_fuel_surcharge"];
+const NUMBER_KEYS: (keyof PricingSettings)[] = [
+  "free_rental_weeks_residential",
+  "free_rental_weeks_trade",
+  "rental_cost_skip",
+  "rental_cost_roro",
+];
 
 export function usePricingSettings() {
   const [settings, setSettings] = useState<PricingSettings>(DEFAULTS);
@@ -29,13 +47,15 @@ export function usePricingSettings() {
     const merged = { ...DEFAULTS };
     for (const row of data ?? []) {
       const key = row.setting_key as keyof PricingSettings;
-      if (key in merged) {
-        const val = row.setting_value;
-        if (BOOLEAN_KEYS.includes(key)) {
-          (merged as any)[key] = val === true || val === "true";
-        } else {
-          (merged as any)[key] = val;
-        }
+      if (!(key in merged)) continue;
+      const val = row.setting_value;
+      if (BOOLEAN_KEYS.includes(key)) {
+        (merged as any)[key] = val === true || val === "true";
+      } else if (NUMBER_KEYS.includes(key)) {
+        const num = typeof val === "number" ? val : Number(val);
+        if (!Number.isNaN(num)) (merged as any)[key] = num;
+      } else {
+        (merged as any)[key] = typeof val === "string" ? val : String(val ?? "");
       }
     }
     setSettings(merged);
