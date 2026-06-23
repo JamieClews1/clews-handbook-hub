@@ -123,6 +123,7 @@ export function QuoteBuilder() {
   const [zoneId, setZoneId] = useState("");
   const [lines, setLines] = useState<QuoteLine[]>([]);
   const [fuelRates, setFuelRates] = useState<FuelRate[]>([]);
+  const [senderName, setSenderName] = useState("");
 
   // Load active fuel surcharge rates (used when auto-add is enabled in Pricing settings)
   useEffect(() => {
@@ -131,6 +132,20 @@ export function QuoteBuilder() {
       .select("vehicle_category, zone, surcharge_amount, active, customer_match, effective_from_date")
       .eq("active", true)
       .then(({ data }) => setFuelRates((data as FuelRate[]) || []));
+  }, []);
+
+  // Default the sender name to the signed-in team member's profile name
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      setSenderName(profile?.full_name || "");
+    })();
   }, []);
 
   const cardsForType = useMemo(
