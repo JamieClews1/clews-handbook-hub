@@ -128,12 +128,16 @@ export function QuoteBuilder() {
     [cards, activeType],
   );
 
-  // default card when type changes
+  const windows = useMemo(() => computeCardWindows(cards), [cards]);
+
+  // default to the currently-effective card when type changes
   useEffect(() => {
-    setCardId(cardsForType[0]?.id || "");
+    const current = cardsForType.find((c) => windows.get(c.id)?.state === "current");
+    setCardId(current?.id || cardsForType[0]?.id || "");
     setZoneId("");
     setLines([]);
-  }, [activeType, cardsForType]);
+  }, [activeType, cardsForType, windows]);
+
 
   const selectedCard = cards.find((c) => c.id === cardId) || null;
   const { zones, rows, values, loading: cardLoading } = useRateCardData(cardId || null);
