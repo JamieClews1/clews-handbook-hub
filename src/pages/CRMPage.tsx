@@ -322,12 +322,19 @@ export default function CRMPage() {
         </TabsList>
 
         <TabsContent value="inbox" className="space-y-4">
+          <CRMMailboxConnect
+            connection={mailbox}
+            loading={mailboxLoading}
+            onChange={reloadMailbox}
+          />
+
           <div className="flex justify-end">
             <Button onClick={handleSync} disabled={syncing}>
               <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
               {syncing ? "Syncing…" : "Sync inbox"}
             </Button>
           </div>
+
 
           {connected === false && (
             <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
