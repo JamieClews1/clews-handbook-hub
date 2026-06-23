@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { StaffRoute } from "./components/StaffRoute";
 import { AppLayout } from "./components/AppLayout";
@@ -64,7 +64,7 @@ import WeightChecksPage from "./pages/WeightChecksPage";
 import PricingCMSPage from "./pages/PricingCMSPage";
 import CRMPage from "./pages/CRMPage";
 import PricingPage from "./pages/PricingPage";
-import PriceBuilderPage from "./pages/PriceBuilderPage";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -149,7 +149,7 @@ const App = () => (
             <Route path="/bookings" element={<Staff><BookingsPage /></Staff>} />
             <Route path="/crm" element={<Staff><CRMPage /></Staff>} />
             <Route path="/pricing" element={<Staff><PricingPage /></Staff>} />
-            <Route path="/pricing/builder" element={<Staff><PriceBuilderPage /></Staff>} />
+            <Route path="/pricing/builder" element={<Navigate to="/pricing" replace />} />
             <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
 
             {/* Catch-all */}

@@ -33,7 +33,7 @@ import {
   TrendingUp,
   Fuel,
   PoundSterling,
-  Calculator,
+  
   Inbox,
 } from "lucide-react";
 import {
@@ -270,7 +270,7 @@ export function AppSidebar() {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/pricing") && !isActive("/pricing/builder")}>
+                    <SidebarMenuButton asChild isActive={isActive("/pricing")}>
                       <Link to="/pricing">
                         <PoundSterling className="h-4 w-4" />
                         {!collapsed && <span>Pricing</span>}
@@ -278,14 +278,6 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/pricing/builder")}>
-                      <Link to="/pricing/builder">
-                        <Calculator className="h-4 w-4" />
-                        {!collapsed && <span>Price Builder</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

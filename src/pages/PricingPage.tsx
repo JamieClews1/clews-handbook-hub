@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Copy } from "lucide-react";
+import { Plus, Copy, LayoutGrid, Calculator } from "lucide-react";
 import { RateCardEditor } from "@/components/pricing/RateCardEditor";
 import { PostcodeZoneChecker } from "@/components/pricing/PostcodeZoneChecker";
+import { QuoteBuilder } from "@/components/pricing/QuoteBuilder";
 import { CUSTOMER_TYPE_LABELS, useRateCards, type RateCard } from "@/components/pricing/useRateCard";
 
 type CustomerType = RateCard["customer_type"];
@@ -75,39 +76,54 @@ const PricingPage = () => {
   return (
     <AdminPageLayout
       title="Pricing"
-      description="Manage skip, RoRo and haulage rate cards by customer type. All figures are exclusive of VAT unless a card states otherwise."
+      description="Manage rate cards and build customer quotes. All figures are exclusive of VAT unless a card states otherwise."
     >
-      <div className="mb-6">
-        <PostcodeZoneChecker onZoneResolved={setHighlightZone} />
-      </div>
-
-      <Tabs value={activeType} onValueChange={(v) => setActiveType(v as CustomerType)}>
-        <TabsList>
-          {TYPE_ORDER.map((t) => (
-            <TabsTrigger key={t} value={t}>
-              {CUSTOMER_TYPE_LABELS[t]}
-              <Badge variant="secondary" className="ml-2">
-                {cardsByType[t].length}
-              </Badge>
-            </TabsTrigger>
-          ))}
+      <Tabs defaultValue="rate-cards">
+        <TabsList className="mb-6">
+          <TabsTrigger value="rate-cards">
+            <LayoutGrid className="h-4 w-4 mr-2" /> Rate Cards
+          </TabsTrigger>
+          <TabsTrigger value="builder">
+            <Calculator className="h-4 w-4 mr-2" /> Price Builder
+          </TabsTrigger>
         </TabsList>
 
-        {TYPE_ORDER.map((t) => (
-          <TabsContent key={t} value={t} className="mt-4 space-y-4">
-            <TypePanel
-              type={t}
-              cards={cardsByType[t]}
-              templates={cards.filter((c) => c.customer_type === "trade" || c.customer_type === "broker")}
-              customers={customers}
-              selectedCardId={selectedCardId[t]}
-              onSelectCard={(id) => setSelectedCardId((p) => ({ ...p, [t]: id }))}
-              highlightZone={highlightZone}
-              onChanged={refresh}
-              toast={toast}
-            />
-          </TabsContent>
-        ))}
+        <TabsContent value="rate-cards" className="space-y-6">
+          <PostcodeZoneChecker onZoneResolved={setHighlightZone} />
+
+          <Tabs value={activeType} onValueChange={(v) => setActiveType(v as CustomerType)}>
+            <TabsList>
+              {TYPE_ORDER.map((t) => (
+                <TabsTrigger key={t} value={t}>
+                  {CUSTOMER_TYPE_LABELS[t]}
+                  <Badge variant="secondary" className="ml-2">
+                    {cardsByType[t].length}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {TYPE_ORDER.map((t) => (
+              <TabsContent key={t} value={t} className="mt-4 space-y-4">
+                <TypePanel
+                  type={t}
+                  cards={cardsByType[t]}
+                  templates={cards.filter((c) => c.customer_type === "trade" || c.customer_type === "broker")}
+                  customers={customers}
+                  selectedCardId={selectedCardId[t]}
+                  onSelectCard={(id) => setSelectedCardId((p) => ({ ...p, [t]: id }))}
+                  highlightZone={highlightZone}
+                  onChanged={refresh}
+                  toast={toast}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
+        </TabsContent>
+
+        <TabsContent value="builder">
+          <QuoteBuilder />
+        </TabsContent>
       </Tabs>
     </AdminPageLayout>
   );
