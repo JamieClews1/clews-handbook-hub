@@ -544,6 +544,161 @@ export function QuoteBuilder() {
   );
 }
 
+function EmailQuoteDialog({
+  customerName,
+  reference,
+  rateCardName,
+  vatInclusive,
+  lines,
+  lineTotal,
+  fuelNet,
+  subtotal,
+  vat,
+  total,
+  freeRentalWeeks,
+  rentalSkip,
+  rentalRoRo,
+  bespokeRules,
+  termsUrl,
+  defaultSenderName,
+  toast,
+}: {
+  customerName: string;
+  reference: string;
+  rateCardName: string;
+  vatInclusive: boolean;
+  lines: QuoteLine[];
+  lineTotal: (l: QuoteLine) => number;
+  fuelNet: number;
+  subtotal: number;
+  vat: number;
+  total: number;
+  freeRentalWeeks: number;
+  rentalSkip: number;
+  rentalRoRo: number;
+  bespokeRules: string;
+  termsUrl: string;
+  defaultSenderName: string;
+  toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [senderName, setSenderName] = useState(defaultSenderName);
+  const [intro, setIntro] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) setSenderName((prev) => prev || defaultSenderName);
+  }, [open, defaultSenderName]);
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim());
+
+  const send = async () => {
+    if (!emailValid) {
+      toast({ title: "Enter a valid email", description: "Please add the customer's email address.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-quote-email", {
+        body: {
+          to: to.trim(),
+          customerName: customerName || undefined,
+          reference: reference || undefined,
+          senderName: senderName || undefined,
+          intro: intro || undefined,
+          rateCardName: rateCardName || undefined,
+          vatInclusive,
+          lines: lines.map((l) => ({
+            label: l.label,
+            detail: [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · "),
+            unitPrice: l.unitPrice,
+            qty: l.qty,
+            total: lineTotal(l),
+          })),
+          fuelNet: fuelNet > 0 ? fuelNet : undefined,
+          subtotal,
+          vat,
+          total,
+          freeRentalWeeks,
+          rentalSkip,
+          rentalRoRo,
+          bespokeRules: bespokeRules || undefined,
+          termsUrl: termsUrl || undefined,
+        },
+      });
+      if (error) throw error;
+      toast({ title: "Quote sent", description: `Proposal emailed to ${to.trim()}.` });
+      setOpen(false);
+      setTo("");
+      setIntro("");
+    } catch (e) {
+      toast({
+        title: "Could not send",
+        description: (e as Error).message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button disabled={lines.length === 0}>
+          <Mail className="h-4 w-4 mr-1" /> Email quote
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Email rate proposal</DialogTitle>
+          <DialogDescription>
+            Send {customerName ? <span className="font-medium text-foreground">{customerName}</span> : "the customer"} a
+            nicely worded email proposing these rates. Rental terms, waste rules and the terms &amp; conditions link are
+            added automatically (edit them under Settings).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Customer email</Label>
+            <Input
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="name@company.co.uk"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Your name (sign-off)</Label>
+            <Input value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="e.g. Jamie Clews" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Personal note (optional)</Label>
+            <Textarea
+              value={intro}
+              onChange={(e) => setIntro(e.target.value)}
+              rows={3}
+              placeholder="Replaces the default opening line, e.g. 'Great to speak earlier — here are the rates we discussed.'"
+            />
+          </div>
+          <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+            <p>{lines.length} item{lines.length === 1 ? "" : "s"} · Total {`£${total.toFixed(2)}`} (inc. VAT)</p>
+            <p>Free rental: {freeRentalWeeks} week{freeRentalWeeks === 1 ? "" : "s"}, then £{rentalSkip}+VAT/wk skip · £{rentalRoRo}+VAT/wk RoRo</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={send} disabled={sending || !emailValid}>
+            <Send className="h-4 w-4 mr-1" /> {sending ? "Sending…" : "Send proposal"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+
 function ItemTable({
   items,
   zone,
