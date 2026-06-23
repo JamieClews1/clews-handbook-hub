@@ -251,6 +251,7 @@ export function QuoteBuilder() {
       "",
       lineText,
       "",
+      fuelEnabled && fuelNet > 0 ? `Fuel surcharge (net): ${fmt(fuelNet)}` : "",
       `Subtotal (net): ${fmt(subtotal)}`,
       `VAT (20%): ${fmt(vat)}`,
       `Total: ${fmt(total)}`,
