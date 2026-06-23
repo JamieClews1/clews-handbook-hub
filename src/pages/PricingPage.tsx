@@ -15,7 +15,16 @@ import { RateCardEditor } from "@/components/pricing/RateCardEditor";
 import { PostcodeZoneChecker } from "@/components/pricing/PostcodeZoneChecker";
 import { QuoteBuilder } from "@/components/pricing/QuoteBuilder";
 import { PricingSettings } from "@/components/pricing/PricingSettings";
-import { CUSTOMER_TYPE_LABELS, useRateCards, type RateCard } from "@/components/pricing/useRateCard";
+import {
+  CUSTOMER_TYPE_LABELS,
+  useRateCards,
+  computeCardWindows,
+  duplicateRateCard,
+  formatUkDate,
+  nextAprilYear,
+  type RateCard,
+  type CardWindow,
+} from "@/components/pricing/useRateCard";
 
 type CustomerType = RateCard["customer_type"];
 const TYPE_ORDER: CustomerType[] = ["residential", "trade", "broker", "bespoke"];
