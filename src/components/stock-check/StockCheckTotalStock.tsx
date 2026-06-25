@@ -219,6 +219,7 @@ export const StockCheckTotalStock = () => {
     const byType: Record<string, number> = {};
     for (const t of containerTypes) byType[t.id] = 0;
     const other = { skip: 0, roro: 0 };
+    const detail: SiteDetailRow[] = [];
 
     for (const p of Object.values(positions)) {
       const count = positionOnSite(p);
@@ -229,8 +230,22 @@ export const StockCheckTotalStock = () => {
       const type = bestTypeFor(p.containerType, candidates);
       if (type) byType[type.id] += count;
       else other[p.category] += count;
+      detail.push({
+        site: p.site,
+        customer: p.customer,
+        category: p.category,
+        typeName: type?.name ?? "Other / unclassified",
+        containerType: p.containerType,
+        ewc: p.ewc && p.ewc !== "__none__" ? p.ewc : "",
+        count,
+        lastKeepDate: p.lastKeepDate,
+        lastCollectionDate: p.lastCollectionDate,
+      });
     }
-    return { onSiteByType: byType, onSiteOther: other };
+    detail.sort((a, b) =>
+      a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
+    );
+    return { onSiteByType: byType, onSiteOther: other, siteDetail: detail };
   }, [containerTypes, jobs, excludedSites, liveSettings]);
 
   if (loading || settingsLoading) {
