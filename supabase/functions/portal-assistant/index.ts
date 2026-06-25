@@ -158,6 +158,10 @@ serve(async (req) => {
       });
     }
 
+    // ---- Deterministic data shortcuts for high-risk audit questions ----
+    const directAnswer = await answerTonnageQuestion(adminClient, messages as ChatMessage[]);
+    if (directAnswer) return streamTextResponse(directAnswer);
+
     // ---- Chat request (streamed) ----
     const systemPrompt = buildSystemPrompt(profile?.full_name || "there");
 
@@ -276,6 +280,121 @@ CRITICAL RULES:
 - Only one action block per message, at the very end.
 - Convert tonnes↔kg correctly (×1000) and DD/MM/YYYY dates to YYYY-MM-DD.
 - Never propose a write to a table outside the whitelists; instead explain you can only read it.`;
+}
+
+function streamTextResponse(text: string): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+  return new Response(body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+}
+
+async function answerTonnageQuestion(supabase: any, messages: ChatMessage[]): Promise<string | null> {
+  const lastUser = [...(messages || [])].reverse().find((m) => m.role === "user")?.content || "";
+  const parsed = parseTonnageQuestion(lastUser);
+  if (!parsed) return null;
+
+  const { start, end, label } = monthWindow(parsed.month, parsed.year);
+  const like = `%${parsed.entity}%`;
+  const { data, error } = await supabase
+    .from("data_hub_jobs")
+    .select("job_number, job_date, customer, site, weight_t, source")
+    .eq("source", "skiptrak")
+    .gte("job_date", start)
+    .lt("job_date", end)
+    .or(`customer.ilike.${like},site.ilike.${like}`)
+    .limit(1000);
+
+  if (error) return `I couldn't check that properly — the data lookup failed: ${error.message}`;
+
+  const rows = (data || []) as Array<{ job_number: string | null; job_date: string; customer: string | null; site: string | null; weight_t: number | string | null }>;
+  const included = rows.filter((r) => isEntityMatch(parsed.entity, r.customer) || isEntityMatch(parsed.entity, r.site));
+  const excluded = rows.filter((r) => !included.includes(r));
+
+  if (included.length === 0) {
+    if (rows.length === 0) return `I checked ${label} and couldn't find any Skiptrak tonnage rows matching “${parsed.entity}”.`;
+    const matches = summariseBySite(rows).slice(0, 5).map((r) => `- ${r.site}: ${formatTonnes(r.tonnes)} t`).join("\n");
+    return `I found loose matches for “${parsed.entity}” in ${label}, but none looked like a clean company/site match. The loose matches were:\n${matches}`;
+  }
+
+  const bySite = summariseBySite(included);
+  const total = bySite.reduce((sum, row) => sum + row.tonnes, 0);
+  const lines = bySite.map((r) => `- ${r.site}: ${formatTonnes(r.tonnes)} t (${r.jobs} job${r.jobs === 1 ? "" : "s"})`).join("\n");
+  const excludedSites = summariseBySite(excluded)
+    .map((r) => r.site)
+    .filter(Boolean)
+    .slice(0, 4)
+    .join(", ");
+
+  return `For ${label}, using Skiptrak tonnage and excluding false text matches, I make it **${formatTonnes(total)} tonnes** for “${parsed.entity}”.\n\n${lines}${excludedSites ? `\n\nI excluded lookalike matches such as ${excludedSites}.` : ""}`;
+}
+
+function parseTonnageQuestion(text: string): { entity: string; month: number; year?: number } | null {
+  if (!/\b(tonnes?|tons?|weight|waste)\b/i.test(text)) return null;
+  const months: Record<string, number> = {
+    january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2, april: 3, apr: 3,
+    may: 4, june: 5, jun: 5, july: 6, jul: 6, august: 7, aug: 7, september: 8, sep: 8, sept: 8,
+    october: 9, oct: 9, november: 10, nov: 10, december: 11, dec: 11,
+  };
+  const monthMatch = text.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+(20\d{2}))?\b/i);
+  if (!monthMatch) return null;
+  const beforeMonth = text.slice(0, monthMatch.index).trim();
+  const entityMatch = beforeMonth.match(/\b(?:from|for|at)\s+(.+?)\s*(?:$|\?)/i);
+  const rawEntity = entityMatch?.[1]?.replace(/\b(?:in|during|for)\s*$/i, "").trim();
+  if (!rawEntity || rawEntity.length < 2) return null;
+  return { entity: rawEntity, month: months[monthMatch[1].toLowerCase()], year: monthMatch[2] ? Number(monthMatch[2]) : undefined };
+}
+
+function monthWindow(month: number, requestedYear?: number): { start: string; end: string; label: string } {
+  const today = new Date();
+  let year = requestedYear ?? today.getUTCFullYear();
+  if (!requestedYear && month > today.getUTCMonth()) year -= 1;
+  const startDate = new Date(Date.UTC(year, month, 1));
+  const endDate = new Date(Date.UTC(year, month + 1, 1));
+  return {
+    start: startDate.toISOString().slice(0, 10),
+    end: endDate.toISOString().slice(0, 10),
+    label: startDate.toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }),
+  };
+}
+
+function isEntityMatch(entity: string, value?: string | null): boolean {
+  if (!value) return false;
+  const e = entity.toLowerCase().trim();
+  const v = value.toLowerCase();
+  if (e.includes(" ")) return v.includes(e);
+  return new RegExp(`(^|[^a-z0-9])${escapeRegExp(e)}([^a-z0-9]|$)`, "i").test(value);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function summariseBySite(rows: Array<{ job_number: string | null; customer: string | null; site: string | null; weight_t: number | string | null }>) {
+  const map = new Map<string, { site: string; tonnes: number; jobs: number; jobNumbers: Set<string> }>();
+  for (const row of rows) {
+    const key = row.site || row.customer || "Unknown";
+    if (!map.has(key)) map.set(key, { site: key, tonnes: 0, jobs: 0, jobNumbers: new Set() });
+    const item = map.get(key)!;
+    const jobKey = row.job_number || `${key}-${item.jobs}`;
+    if (!item.jobNumbers.has(jobKey)) {
+      item.jobNumbers.add(jobKey);
+      item.jobs += 1;
+    }
+    item.tonnes += Number(row.weight_t || 0);
+  }
+  return Array.from(map.values())
+    .map(({ jobNumbers: _jobNumbers, ...rest }) => ({ ...rest, tonnes: Math.round(rest.tonnes * 1000) / 1000 }))
+    .sort((a, b) => b.tonnes - a.tonnes);
+}
+
+function formatTonnes(value: number): string {
+  return value.toLocaleString("en-GB", { minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 });
 }
 
 
