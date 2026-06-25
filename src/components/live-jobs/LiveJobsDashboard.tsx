@@ -133,6 +133,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
+          .order("id", { ascending: true })
           .range(from, from + pageSize - 1);
 
         if (error) { console.error(error); break; }
