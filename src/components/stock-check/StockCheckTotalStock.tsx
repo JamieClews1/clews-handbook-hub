@@ -190,7 +190,7 @@ export const StockCheckTotalStock = () => {
   // counted under it; those that can't (e.g. "40 yd Ro Ro", which no Stock Check
   // keyword covers) still count toward the category total under an "Other" row, so
   // the headline numbers always match Live Jobs.
-  const { onSiteByType, onSiteOther } = useMemo(() => {
+  const { onSiteByType, onSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
     for (const job of jobs) {
       if (!job.container_type) continue;
