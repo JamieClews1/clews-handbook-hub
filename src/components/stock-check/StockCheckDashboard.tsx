@@ -310,6 +310,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
           )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
+          {headerAction}
           <div className="flex items-center gap-1.5">
             <Label className="text-sm text-muted-foreground">Outlook:</Label>
             <div className="inline-flex rounded-md border border-border overflow-hidden">
