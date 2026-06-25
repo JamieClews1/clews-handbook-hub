@@ -336,18 +336,30 @@ export const StockCheckTotalStock = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Total Stock</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Total fleet owned by type — what is out on site plus what is In Yard from the Current Stock Overview.
-          On-site counts use the same categorisation as Live Jobs.
-        </p>
-        {latestCheckDate && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-            <Calendar className="h-3.5 w-3.5" />
-            Based on last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Total Stock</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Total fleet owned by type — what is out on site plus what is In Yard from the Current Stock Overview.
+            On-site counts use the same categorisation as Live Jobs.
           </p>
-        )}
+          {latestCheckDate && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+              <Calendar className="h-3.5 w-3.5" />
+              Based on last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={downloadSiteReport}
+          disabled={siteDetail.length === 0}
+        >
+          <Download className="h-4 w-4" />
+          Download site report
+        </Button>
       </div>
 
       {/* Summary cards */}
