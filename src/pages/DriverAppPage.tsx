@@ -1021,14 +1021,20 @@ const BottomNav = ({
 }) => {
   const items: { key: AppView; label: string; Icon: typeof Truck }[] =
     role === "yard"
-      ? [{ key: "contaminations", label: "Contaminations", Icon: AlertTriangle }]
+      ? [
+          { key: "contaminations", label: "Contaminations", Icon: AlertTriangle },
+          { key: "skiptracker", label: "Skip Tracker", Icon: Boxes },
+        ]
       : [
           { key: "jobs", label: "Jobs", Icon: Truck },
           { key: "contaminations", label: "Contaminations", Icon: AlertTriangle },
+          { key: "skiptracker", label: "Skip Tracker", Icon: Boxes },
         ];
+  const gridCols =
+    items.length === 1 ? "grid-cols-1" : items.length === 2 ? "grid-cols-2" : "grid-cols-3";
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-zinc-900 border-t border-zinc-800">
-      <div className={cn("grid", items.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+      <div className={cn("grid", gridCols)}>
         {items.map(({ key, label, Icon }) => (
           <button
             key={key}
