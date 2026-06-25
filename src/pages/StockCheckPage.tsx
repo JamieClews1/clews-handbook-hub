@@ -18,7 +18,8 @@ const StockCheckPage = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
   const [isManagement, setIsManagement] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("live");
+  const [liveTab, setLiveTab] = useState("current");
   const [editCheckId, setEditCheckId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
