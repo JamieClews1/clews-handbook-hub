@@ -103,7 +103,7 @@ const Index = () => {
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Welcome back. Here's your operational overview.</p>
         </div>
-        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">v1.0.0</span>
+        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">v{appVersion}</span>
       </div>
 
       {/* Quick Stats */}
