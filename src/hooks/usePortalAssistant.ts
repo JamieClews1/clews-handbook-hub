@@ -141,6 +141,17 @@ export function usePortalAssistant() {
     }]);
     setIsLoading(true);
 
+    // Log the question to the user's personal Ask One history (best-effort).
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("assistant_question_log").insert({ user_id: user.id, question });
+        }
+      } catch { /* non-blocking */ }
+    })();
+
+
     let history: { role: string; content: string }[] = [
       ...messages.map((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: messageContent },
