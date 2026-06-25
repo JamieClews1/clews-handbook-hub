@@ -98,6 +98,40 @@ const ProfileDialog = ({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  const lookupTicketSite = async () => {
+    const ticket = form.last_skiptrak_ticket.trim();
+    if (!ticket) return;
+    setLookingUp(true);
+    try {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("site, customer, job_date")
+        .eq("source", "skiptrak")
+        .eq("job_number", ticket)
+        .order("job_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error(`No Skiptrak job found for ticket #${ticket}`);
+        return;
+      }
+      const site = (data.site || "").trim();
+      const location = data.customer ? `${site}${site && data.customer ? " · " : ""}${data.customer}` : site;
+      if (location) {
+        setForm((f) => ({ ...f, last_location: location }));
+        toast.success(`Location set from ticket #${ticket}`);
+      } else {
+        toast.error("Ticket found but no site recorded");
+      }
+    } catch {
+      toast.error("Ticket lookup failed");
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const reset = () => {
     if (row) {
