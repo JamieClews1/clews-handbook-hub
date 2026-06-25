@@ -102,8 +102,22 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
     }
   };
 
-  const generateYearPeriods = async () => {
-    const year = new Date().getFullYear();
+  const generateYearPeriods = async (year: number) => {
+    // Prevent duplicating a year that already exists
+    const prefix = `${year}-`;
+    if (periods.some((p) => p.period_label?.startsWith(prefix))) {
+      toast({
+        title: "Already exists",
+        description: `${year} periods are already configured.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const baseOrder = periods.length
+      ? Math.max(...periods.map((p) => p.display_order ?? 0)) + 1
+      : 0;
+
     const entries = MONTH_NAMES.map((month, idx) => {
       const periodNum = String(idx + 1).padStart(2, "0");
       // Default end date: last day of the month
@@ -113,7 +127,7 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
         period_label: `${year}-${periodNum}`,
         month_name: month,
         period_end_date: endDate.toISOString().split("T")[0],
-        display_order: idx,
+        display_order: baseOrder + idx,
       };
     });
 
