@@ -159,6 +159,9 @@ serve(async (req) => {
     }
 
     // ---- Deterministic data shortcuts for high-risk audit questions ----
+    const overRentalAnswer = await answerOverRentalQuestion(adminClient, messages as ChatMessage[]);
+    if (overRentalAnswer) return streamTextResponse(overRentalAnswer);
+
     const directAnswer = await answerTonnageQuestion(adminClient, messages as ChatMessage[]);
     if (directAnswer) return streamTextResponse(directAnswer);
 
