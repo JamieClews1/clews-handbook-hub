@@ -29,6 +29,7 @@ import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
   Award,
   Boxes,
+  Eye,
   Camera,
   ChevronLeft,
   ChevronRight,
