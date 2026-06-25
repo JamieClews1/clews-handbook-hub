@@ -859,7 +859,10 @@ const LoadReportsPage = () => {
       });
 
       if (submit) {
-        setViewMode("list");
+        // Force the list to refetch so reconciled weights show immediately,
+        // and return to whichever list the user came from ("all" = Logged Load Reports).
+        setListRefreshKey((k) => k + 1);
+        setViewMode(originView === "all" ? "all" : "list");
       }
     } catch (error: any) {
       toast({
