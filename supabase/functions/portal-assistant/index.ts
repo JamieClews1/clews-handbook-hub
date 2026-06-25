@@ -185,6 +185,9 @@ serve(async (req) => {
         case "query_data":
           result = await queryData(adminClient, actionData || {});
           break;
+        case "schema_info":
+          result = await schemaInfo(adminClient, actionData || {});
+          break;
         case "rental_positions":
           result = await rentalPositions(adminClient);
           break;
