@@ -8,19 +8,37 @@ const corsHeaders = {
 };
 
 // Tables the assistant is allowed to READ via the generic query_data tool.
+// Kept broad on purpose: Ask One should be able to explore almost the whole
+// operational dataset the way a colleague with database access would.
 const READ_WHITELIST = new Set<string>([
+  // Movements / weights
   "data_hub_jobs",
+  "data_hub_jobs_archive",
+  "weighbridge_transactions",
+  "weighbridge_customers",
+  "weighbridge_vehicles",
+  "weighbridge_waste_types",
+  // Load reports
   "load_reports",
   "load_line_items",
   "load_waste_types",
+  "load_report_settings",
+  // Rentals / live jobs
   "rental_chases",
   "rental_agreements",
   "rental_chase_emails",
+  "live_jobs_settings",
+  // Stock / inventory
   "skip_inventory",
   "skip_tracker_reports",
   "stock_checks",
   "stock_check_daily_entries",
   "stock_check_container_types",
+  "stock_check_items",
+  "stock_check_excluded_sites",
+  "stock_reports",
+  "stock_report_items",
+  // Pricing
   "pricing_rate_cards",
   "pricing_rate_card_rows",
   "pricing_rate_card_values",
@@ -30,20 +48,64 @@ const READ_WHITELIST = new Set<string>([
   "pricing_settings",
   "pricing_skip_sizes",
   "pricing_waste_types",
+  "postcode_zones",
+  "fuel_surcharge_rates",
+  // Customers / sites / contacts
   "customers",
   "customer_sites",
   "customer_contacts",
   "customer_reporting_periods",
+  "customer_portal_memberships",
+  "customer_skip_rebates",
+  "customer_site_skip_rebates",
+  // Rebates / reporting
+  "rebate_items",
+  "rebate_rules",
+  "rebate_monthly_values",
+  "rebate_price_sets",
+  "rebate_price_set_items",
+  "locked_rebate_reports",
+  "staci_monthly_reports",
+  "staci_pallet_entries",
+  "staci_pallet_rates",
+  "staci_pallet_charges",
+  "facility_recycling_forms",
+  "facility_recycling_waste_entries",
+  // CRM
   "crm_tickets",
   "crm_ticket_messages",
-  "fuel_surcharge_rates",
-  "postcode_zones",
-  "contamination_queries",
-  "weighbridge_transactions",
+  "crm_team_members",
+  "crm_pricing",
+  "crm_email_templates",
+  // RouteOne / drivers
   "route_one_jobs",
   "route_one_drivers",
+  "route_one_vehicles",
+  "driver_locations",
+  // Contaminations
+  "contamination_queries",
+  "contamination_points",
+  "contamination_charge_matrix",
+  "contamination_waste_types",
+  // Compliance / safety
+  "near_miss_reports",
+  "riddor_incidents",
+  "toolbox_talks",
+  "rams",
+  "rams_hazards",
+  "site_inspection_reports",
+  "partners",
+  "partner_documents",
+  "partner_document_requirements",
+  // Company / misc
+  "company_profile",
+  "company_contacts",
+  "company_documents",
+  "diary_cards",
   "bookings",
   "enquiries",
+  "credit_account_applications",
+  "profiles",
 ]);
 
 // Tables the assistant is allowed to WRITE (update/delete) via the generic tools.
