@@ -106,6 +106,8 @@ const App = () => (
 
             {/* Staff-only routes with sidebar layout */}
             <Route path="/portal" element={<Staff><Index /></Staff>} />
+            <Route path="/assistant" element={<Staff><AssistantPage /></Staff>} />
+            <Route path="/Assistant" element={<Staff><AssistantPage /></Staff>} />
             <Route path="/handbook" element={<AppLayout><HandbookPage /></AppLayout>} />
             <Route path="/rams" element={<Staff><RAMSPage /></Staff>} />
             <Route path="/rams/:id" element={<Staff><RAMSDetailPage /></Staff>} />
