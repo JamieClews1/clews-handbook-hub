@@ -1132,7 +1132,6 @@ const LoadReportsPage = () => {
               customerType={selectedCustomer}
               onCustomerTypeChange={currentReportId ? handleEditReportTypeChange : undefined}
             />
-
           )}
 
           {viewMode === "tally" && selectedCustomer === "staci" && (
