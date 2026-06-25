@@ -32,6 +32,8 @@ import {
 import { cn } from "@/lib/utils";
 import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
 import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub";
+import DriverSkipTracker from "@/components/driver/DriverSkipTracker";
+import { Boxes } from "lucide-react";
 import { useDriverLocationTracking } from "@/lib/use-driver-location";
 
 /* ─── Types ───────────────────────────────────── */
@@ -72,7 +74,7 @@ interface Driver {
 }
 
 type AppRole = "driver" | "yard";
-type AppView = "jobs" | "contaminations";
+type AppView = "jobs" | "contaminations" | "skiptracker";
 
 interface AppUser {
   id: string;
@@ -1019,14 +1021,20 @@ const BottomNav = ({
 }) => {
   const items: { key: AppView; label: string; Icon: typeof Truck }[] =
     role === "yard"
-      ? [{ key: "contaminations", label: "Contaminations", Icon: AlertTriangle }]
+      ? [
+          { key: "contaminations", label: "Contaminations", Icon: AlertTriangle },
+          { key: "skiptracker", label: "Skip Tracker", Icon: Boxes },
+        ]
       : [
           { key: "jobs", label: "Jobs", Icon: Truck },
           { key: "contaminations", label: "Contaminations", Icon: AlertTriangle },
+          { key: "skiptracker", label: "Skip Tracker", Icon: Boxes },
         ];
+  const gridCols =
+    items.length === 1 ? "grid-cols-1" : items.length === 2 ? "grid-cols-2" : "grid-cols-3";
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-zinc-900 border-t border-zinc-800">
-      <div className={cn("grid", items.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+      <div className={cn("grid", gridCols)}>
         {items.map(({ key, label, Icon }) => (
           <button
             key={key}
@@ -1228,6 +1236,17 @@ const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) =
   if (view === "contaminations") {
     return (
       <DriverContaminationsHub
+        reporter={{ id: user.id, name: user.name, type: user.role }}
+        userName={user.name}
+        onLogout={onLogout}
+        nav={nav}
+      />
+    );
+  }
+
+  if (view === "skiptracker") {
+    return (
+      <DriverSkipTracker
         reporter={{ id: user.id, name: user.name, type: user.role }}
         userName={user.name}
         onLogout={onLogout}

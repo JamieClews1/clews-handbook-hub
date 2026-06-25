@@ -4918,6 +4918,116 @@ export type Database = {
         }
         Relationships: []
       }
+      skip_inventory: {
+        Row: {
+          asset_number: string
+          asset_type: string
+          condition: string | null
+          created_at: string
+          id: string
+          last_cataloged_at: string | null
+          last_location: string | null
+          last_reported_by: string | null
+          last_skiptrak_ticket: string | null
+          notes: string | null
+          photos: Json
+          repair_notes: string | null
+          repairs_required: boolean
+          updated_at: string
+        }
+        Insert: {
+          asset_number: string
+          asset_type?: string
+          condition?: string | null
+          created_at?: string
+          id?: string
+          last_cataloged_at?: string | null
+          last_location?: string | null
+          last_reported_by?: string | null
+          last_skiptrak_ticket?: string | null
+          notes?: string | null
+          photos?: Json
+          repair_notes?: string | null
+          repairs_required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          asset_number?: string
+          asset_type?: string
+          condition?: string | null
+          created_at?: string
+          id?: string
+          last_cataloged_at?: string | null
+          last_location?: string | null
+          last_reported_by?: string | null
+          last_skiptrak_ticket?: string | null
+          notes?: string | null
+          photos?: Json
+          repair_notes?: string | null
+          repairs_required?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skip_tracker_reports: {
+        Row: {
+          asset_number: string
+          asset_type: string
+          condition: string | null
+          created_at: string
+          id: string
+          inventory_id: string | null
+          location: string | null
+          photos: Json
+          points_awarded: number
+          repair_notes: string | null
+          repairs_required: boolean
+          reporter_driver_id: string | null
+          reporter_name: string
+          skiptrak_ticket: string | null
+        }
+        Insert: {
+          asset_number: string
+          asset_type?: string
+          condition?: string | null
+          created_at?: string
+          id?: string
+          inventory_id?: string | null
+          location?: string | null
+          photos?: Json
+          points_awarded?: number
+          repair_notes?: string | null
+          repairs_required?: boolean
+          reporter_driver_id?: string | null
+          reporter_name: string
+          skiptrak_ticket?: string | null
+        }
+        Update: {
+          asset_number?: string
+          asset_type?: string
+          condition?: string | null
+          created_at?: string
+          id?: string
+          inventory_id?: string | null
+          location?: string | null
+          photos?: Json
+          points_awarded?: number
+          repair_notes?: string | null
+          repairs_required?: boolean
+          reporter_driver_id?: string | null
+          reporter_name?: string
+          skiptrak_ticket?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skip_tracker_reports_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "skip_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staci_monthly_reports: {
         Row: {
           created_at: string
