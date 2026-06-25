@@ -633,6 +633,31 @@ const InventoryList = () => {
         </Card>
       </div>
 
+      <Card>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Condition Report</CardTitle>
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleDownloadReport}>
+            <Download className="h-4 w-4" /> Download report
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[...CONDITIONS, "Unknown"].map((c) => (
+              <div
+                key={c}
+                className={cn(
+                  "rounded-lg border p-3",
+                  conditionStyle[c] || "bg-muted/40 text-muted-foreground border-border",
+                )}
+              >
+                <p className="text-2xl font-bold">{conditionCounts[c] || 0}</p>
+                <p className="text-xs font-medium">{c}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative flex-1">
