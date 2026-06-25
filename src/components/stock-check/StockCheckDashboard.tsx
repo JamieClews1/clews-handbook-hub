@@ -41,7 +41,7 @@ interface DailyEntry {
   actual_out: number | null;
 }
 
-export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?: (checkId: string) => void; headerAction?: React.ReactNode } = {}) => {
+export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?: (checkId: string) => void; headerAction?: ReactNode } = {}) => {
   const [latestCheckId, setLatestCheckId] = useState<string | null>(null);
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
