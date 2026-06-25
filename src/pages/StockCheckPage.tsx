@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ClipboardList, BarChart3, Settings } from "lucide-react";
+import { ArrowLeft, ClipboardList, BarChart3, Settings, Boxes } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { StockCheckDashboard } from "@/components/stock-check/StockCheckDashboard";
+import { StockCheckTotalStock } from "@/components/stock-check/StockCheckTotalStock";
 import { StockCheckTally } from "@/components/stock-check/StockCheckTally";
 import { StockCheckSettings } from "@/components/stock-check/StockCheckSettings";
 import { StockCheckHistory } from "@/components/stock-check/StockCheckHistory";
@@ -79,6 +80,10 @@ const StockCheckPage = () => {
                 <BarChart3 className="h-4 w-4" />
                 Dashboard
               </TabsTrigger>
+              <TabsTrigger value="total" className="gap-2">
+                <Boxes className="h-4 w-4" />
+                Total Stock
+              </TabsTrigger>
               <TabsTrigger value="tally" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
                 {editCheckId ? "Edit Tally" : "New Tally"}
@@ -102,6 +107,9 @@ const StockCheckPage = () => {
                   setActiveTab("tally");
                 }}
               />
+            </TabsContent>
+            <TabsContent value="total">
+              <StockCheckTotalStock />
             </TabsContent>
             <TabsContent value="tally">
               <StockCheckTally
