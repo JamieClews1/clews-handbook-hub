@@ -577,7 +577,7 @@ async function answerOverRentalQuestion(supabase: any, messages: ChatMessage[]):
   return `${intro}\n\n${lines}${more}`;
 }
 
-
+async function answerTonnageQuestion(supabase: any, messages: ChatMessage[]): Promise<string | null> {
   const lastUser = [...(messages || [])].reverse().find((m) => m.role === "user")?.content || "";
   const parsed = parseTonnageQuestion(lastUser);
   if (!parsed) return null;
