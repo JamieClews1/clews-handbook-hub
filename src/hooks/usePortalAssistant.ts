@@ -5,7 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-assistant`;
 
 // Actions that run automatically (reads) and feed results back to the model.
-const AUTO_ACTIONS = new Set(["query_data", "query_reports", "rental_positions"]);
+const AUTO_ACTIONS = new Set(["query_data", "query_reports", "rental_positions", "schema_info"]);
+
+// How many agentic read/think turns the assistant may take per question.
+// Higher = more "determined": it can orient, disambiguate, cross-check and verify
+// across several queries before answering, instead of guessing from one.
+const MAX_AGENT_DEPTH = 20;
 
 export interface AssistantMessage {
   id: string;
