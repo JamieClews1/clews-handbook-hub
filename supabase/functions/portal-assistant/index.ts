@@ -804,7 +804,27 @@ async function queryData(
   }
 }
 
-function aggregateRows(rows: any[], groupBy: string[], sumField?: string) {
+// ---------- Schema discovery ----------
+// Lets the assistant explore what data exists before querying — the same way a
+// colleague with DB access would look at the tables and their columns first.
+async function schemaInfo(supabase: any, spec: { table?: string }) {
+  if (!spec?.table) {
+    return { tables: Array.from(READ_WHITELIST).sort() };
+  }
+  if (!READ_WHITELIST.has(spec.table)) {
+    return { error: `Table "${spec.table}" is not readable.`, tables: Array.from(READ_WHITELIST).sort() };
+  }
+  try {
+    const { data, error } = await supabase.from(spec.table).select("*").limit(1);
+    if (error) return { error: error.message, columns: [] };
+    const columns = data && data[0] ? Object.keys(data[0]) : [];
+    return { table: spec.table, columns, sample: data?.[0] ?? null };
+  } catch (err: any) {
+    return { error: err.message, columns: [] };
+  }
+}
+
+
   const map = new Map<string, any>();
   for (const row of rows) {
     const key = groupBy.map((g) => String(row?.[g] ?? "—")).join(" | ");
