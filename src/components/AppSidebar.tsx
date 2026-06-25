@@ -1,6 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
+  Bot,
   Route,
   Scale,
   ShieldCheck,
@@ -93,6 +94,14 @@ export function AppSidebar() {
                 <Link to="/portal">
                   <LayoutDashboard className="h-4 w-4" />
                   {!collapsed && <span>Dashboard</span>}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/assistant")}>
+                <Link to="/assistant">
+                  <Bot className="h-4 w-4" />
+                  {!collapsed && <span>Ask One</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
