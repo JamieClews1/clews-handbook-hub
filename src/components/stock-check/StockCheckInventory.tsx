@@ -860,6 +860,14 @@ const InventoryList = () => {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <ViewDialog
+                      row={r}
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="View">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                     <ProfileDialog
                       row={r}
                       trigger={
