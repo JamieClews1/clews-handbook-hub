@@ -13,6 +13,9 @@ import {
   Package,
   ArrowRight,
 } from "lucide-react";
+import packageJson from "../../package.json";
+
+const appVersion = packageJson.version;
 
 const Index = () => {
   const navigate = useNavigate();
