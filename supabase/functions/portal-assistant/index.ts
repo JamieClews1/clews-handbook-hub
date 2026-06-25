@@ -296,7 +296,15 @@ READING DATA — use this for any question about jobs, weights, reports, rentals
 \`\`\`
 - Allowed operators: eq, neq, gt, gte, lt, lte, like, ilike, in (value = array or comma list), is (value "null" or "true"/"false").
 - For totals/breakdowns add "groupBy":["customer"] and "aggregate":{"sum":"weight_t"} — the system returns counts and sums per group.
-- Readable tables include: data_hub_jobs (Skiptrak/Midweigh movements — weight_t is TONNES), load_reports + load_line_items, rental_chases + rental_agreements, skip_inventory + skip_tracker_reports, stock_checks, pricing_rate_cards + pricing_rate_card_values + pricing_entries + pricing_settings, customers + customer_sites + customer_contacts, crm_tickets, fuel_surcharge_rates, weighbridge_transactions, route_one_jobs, bookings.
+- You can read almost the WHOLE operational dataset — jobs & weights, load reports, rentals, stock & inventory, pricing & rate cards, rebates & reporting, customers/sites/contacts, CRM, RouteOne/drivers, contaminations, compliance (near-miss, RIDDOR, RAMS, toolbox talks, inspections), partners, weighbridge, bookings, enquiries and more.
+- DON'T GUESS TABLE OR COLUMN NAMES. If you're unsure what data exists or what a table's columns are, look first. Ask for the table list, or a specific table's columns + a sample row:
+\`\`\`action
+{"action":"schema_info"}
+\`\`\`
+\`\`\`action
+{"action":"schema_info","table":"contamination_queries"}
+\`\`\`
+  schema_info runs automatically and feeds the answer back to you — use it freely to orient yourself before querying, exactly like a colleague opening a table to see what's in it.
 - For "what is on site / over-rental" questions about Skiptrak containers, use:
 \`\`\`action
 {"action":"rental_positions"}
