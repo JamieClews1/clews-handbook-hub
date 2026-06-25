@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ClipboardList, BarChart3, Settings, Boxes, PackageSearch } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, ClipboardList, BarChart3, Settings, Boxes, PackageSearch, History } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { StockCheckDashboard } from "@/components/stock-check/StockCheckDashboard";
 import { StockCheckTotalStock } from "@/components/stock-check/StockCheckTotalStock";
@@ -19,6 +20,7 @@ const StockCheckPage = () => {
   const [isManagement, setIsManagement] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [editCheckId, setEditCheckId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -67,7 +69,12 @@ const StockCheckPage = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-foreground mb-6">Stock Check</h1>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-foreground">Stock Check</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Track current stock, totals, asset inventory and stock takes.
+            </p>
+          </div>
 
           <Tabs
             value={activeTab}
@@ -79,7 +86,7 @@ const StockCheckPage = () => {
             <TabsList className="mb-6">
               <TabsTrigger value="dashboard" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
-                Dashboard
+                Overview
               </TabsTrigger>
               <TabsTrigger value="total" className="gap-2">
                 <Boxes className="h-4 w-4" />
@@ -91,18 +98,12 @@ const StockCheckPage = () => {
               </TabsTrigger>
               <TabsTrigger value="tally" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
-                {editCheckId ? "Edit Tally" : "New Tally"}
+                {editCheckId ? "Edit Stock Take" : "New Stock Take"}
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-2">
-                <ClipboardList className="h-4 w-4" />
+                <History className="h-4 w-4" />
                 History
               </TabsTrigger>
-              {canManageSettings && (
-                <TabsTrigger value="settings" className="gap-2">
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </TabsTrigger>
-              )}
             </TabsList>
 
             <TabsContent value="dashboard">
@@ -111,6 +112,24 @@ const StockCheckPage = () => {
                   setEditCheckId(id);
                   setActiveTab("tally");
                 }}
+                headerAction={
+                  canManageSettings ? (
+                    <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                          <Settings className="h-4 w-4" />
+                          Settings
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Stock Check Settings</DialogTitle>
+                        </DialogHeader>
+                        <StockCheckSettings />
+                      </DialogContent>
+                    </Dialog>
+                  ) : undefined
+                }
               />
             </TabsContent>
             <TabsContent value="total">
@@ -133,11 +152,6 @@ const StockCheckPage = () => {
             <TabsContent value="history">
               <StockCheckHistory />
             </TabsContent>
-            {canManageSettings && (
-              <TabsContent value="settings">
-                <StockCheckSettings />
-              </TabsContent>
-            )}
           </Tabs>
         </div>
       </main>

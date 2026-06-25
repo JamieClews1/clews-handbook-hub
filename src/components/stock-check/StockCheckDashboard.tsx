@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,7 @@ interface DailyEntry {
   actual_out: number | null;
 }
 
-export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: string) => void } = {}) => {
+export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?: (checkId: string) => void; headerAction?: ReactNode } = {}) => {
   const [latestCheckId, setLatestCheckId] = useState<string | null>(null);
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
@@ -310,6 +310,7 @@ export const StockCheckDashboard = ({ onEditLast }: { onEditLast?: (checkId: str
           )}
         </div>
         <div className="flex items-center gap-4 flex-wrap">
+          {headerAction}
           <div className="flex items-center gap-1.5">
             <Label className="text-sm text-muted-foreground">Outlook:</Label>
             <div className="inline-flex rounded-md border border-border overflow-hidden">
