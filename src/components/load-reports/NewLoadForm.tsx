@@ -170,6 +170,31 @@ export const NewLoadForm = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
+          {isEditing && onCustomerTypeChange && (
+            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
+              <Label htmlFor="reportType" className="text-base font-medium">
+                Report Type
+              </Label>
+              <Select
+                value={customerType ?? "other"}
+                onValueChange={onCustomerTypeChange}
+              >
+                <SelectTrigger id="reportType" className="h-14 text-lg bg-background">
+                  <SelectValue placeholder="Select report type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REPORT_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Changing the report type updates the available sites below — pick the matching site to re-categorise this report.
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="operator" className="text-base font-medium">
               Operator Name <span className="text-destructive">*</span>
