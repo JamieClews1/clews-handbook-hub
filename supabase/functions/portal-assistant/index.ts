@@ -386,6 +386,76 @@ async function deleteRecords(
   return results;
 }
 
+async function insertRecords(
+  supabase: any,
+  data: { table?: string; rows?: any[] },
+  userId: string,
+) {
+  const results: { created: number; errors: string[] } = { created: 0, errors: [] };
+  if (!data?.table || !INSERT_WHITELIST.has(data.table)) {
+    results.errors.push(`Adding to "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const row of data.rows || []) {
+    try {
+      const payload = { ...row };
+      // Stamp the creator where the table supports it.
+      if (["rental_agreements", "rental_chases"].includes(data.table) && payload.created_by == null) {
+        payload.created_by = userId;
+      }
+      const { error } = await supabase.from(data.table).insert(payload);
+      if (error) results.errors.push(error.message);
+      else results.created++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+// Mark one or more over-rental bins as collected. Upserts a rental_chases row
+// keyed by bin_key, then flags it resolved/collected so it drops off the list.
+async function markRentalCollected(
+  supabase: any,
+  data: { bins?: { bin_key: string; customer?: string; site?: string; container_type?: string; category?: string; collected_date?: string; collection_ticket?: string }[] },
+  userId: string,
+) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  for (const bin of data.bins || []) {
+    try {
+      if (!bin.bin_key) { results.errors.push("Missing bin reference."); continue; }
+      let chaseId: string | null = null;
+      const { data: existing } = await supabase
+        .from("rental_chases").select("id").eq("bin_key", bin.bin_key).maybeSingle();
+      if (existing) {
+        chaseId = existing.id;
+      } else {
+        const { data: created, error: insErr } = await supabase.from("rental_chases").insert({
+          bin_key: bin.bin_key,
+          customer: bin.customer || null,
+          site: bin.site || null,
+          category: bin.category || null,
+          container_type: bin.container_type || null,
+          created_by: userId,
+        }).select("id").single();
+        if (insErr) { results.errors.push(insErr.message); continue; }
+        chaseId = created.id;
+      }
+      const { error } = await supabase.from("rental_chases").update({
+        collected: true,
+        collected_date: bin.collected_date || new Date().toISOString().slice(0, 10),
+        collection_ticket: bin.collection_ticket || null,
+        chase_status: "resolved",
+      }).eq("id", chaseId);
+      if (error) results.errors.push(error.message);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
 // ---------- Load report tools (ported from admin-agent) ----------
 async function createLoadReports(
   supabase: any,
