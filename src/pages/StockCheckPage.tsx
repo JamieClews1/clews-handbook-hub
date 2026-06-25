@@ -85,6 +85,10 @@ const StockCheckPage = () => {
                 <Boxes className="h-4 w-4" />
                 Total Stock
               </TabsTrigger>
+              <TabsTrigger value="inventory" className="gap-2">
+                <PackageSearch className="h-4 w-4" />
+                Inventory
+              </TabsTrigger>
               <TabsTrigger value="tally" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
                 {editCheckId ? "Edit Tally" : "New Tally"}
