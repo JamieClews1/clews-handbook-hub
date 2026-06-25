@@ -67,6 +67,18 @@ type Pos = {
   lastKeepDate: string | null;
   lastCollectionDate: string | null;
 };
+type SiteDetailRow = {
+  site: string;
+  customer: string | null;
+  category: "skip" | "roro";
+  typeName: string;
+  containerType: string;
+  ewc: string;
+  count: number;
+  lastKeepDate: string | null;
+  lastCollectionDate: string | null;
+};
+
 
 // Identical to LiveJobsDashboard.positionOnSite — net delivered, with a present
 // container synthesised from a lone exchange/tip-return, and cleared positions zeroed.
