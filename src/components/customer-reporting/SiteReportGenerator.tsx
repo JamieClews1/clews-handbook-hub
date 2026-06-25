@@ -153,7 +153,10 @@ export function SiteReportGenerator() {
       const startDate = format(dateRange.from, "yyyy-MM-dd");
       const endDate = format(dateRange.to, "yyyy-MM-dd");
 
-      // Build query - filter by customer AND site names from Data Hub mappings
+      // Build query - match by Data Hub mappings.
+      // A physical site receives waste via many different hauliers (customers),
+      // so when site names are configured we filter by SITE only. The customer
+      // mapping is only used as a fallback when no site names are set.
       let query = supabase
         .from("data_hub_jobs")
         .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source")
@@ -161,15 +164,14 @@ export function SiteReportGenerator() {
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
 
-      // Filter by Data Hub customer if set
-      if (dataHubCustomer) {
+      if (siteNames.length > 0) {
+        // Match every job at the configured site(s), regardless of haulier/customer
+        query = query.in("site", siteNames);
+      } else if (dataHubCustomer) {
+        // No site mapping configured - fall back to customer match
         query = query.eq("customer", dataHubCustomer);
       }
 
-      // Filter by any of the configured Data Hub site names (exact match on site field)
-      if (siteNames.length > 0) {
-        query = query.in("site", siteNames);
-      }
 
       const { data: jobs, error } = await query;
 
