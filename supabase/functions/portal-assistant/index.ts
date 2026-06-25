@@ -144,6 +144,12 @@ serve(async (req) => {
         case "delete_records":
           result = await deleteRecords(adminClient, actionData);
           break;
+        case "insert_records":
+          result = await insertRecords(adminClient, actionData, user.id);
+          break;
+        case "mark_rental_collected":
+          result = await markRentalCollected(adminClient, actionData, user.id);
+          break;
         default:
           result = { error: `Unknown action: ${action}` };
       }
