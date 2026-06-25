@@ -521,6 +521,81 @@ const InventoryList = () => {
   const roros = rows.filter((r) => r.asset_type === "roro").length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
 
+  const conditionCounts = useMemo(() => {
+    const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
+    for (const r of rows) {
+      const c = r.condition && CONDITIONS.includes(r.condition) ? r.condition : "Unknown";
+      counts[c] = (counts[c] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
+  const handleDownloadReport = () => {
+    if (rows.length === 0) {
+      toast.error("No profiles to export");
+      return;
+    }
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [];
+    lines.push("Skip / RoRo Inventory & Condition Report");
+    lines.push(`Generated,${format(new Date(), "d MMM yyyy HH:mm")}`);
+    lines.push("");
+    lines.push("Summary");
+    lines.push(`Total profiles,${rows.length}`);
+    lines.push(`Skips,${skips}`);
+    lines.push(`RoRos,${roros}`);
+    lines.push(`Repairs required,${needRepair}`);
+    lines.push("");
+    lines.push("Condition breakdown,Count");
+    [...CONDITIONS, "Unknown"].forEach((c) => {
+      if (conditionCounts[c]) lines.push(`${c},${conditionCounts[c]}`);
+    });
+    lines.push("");
+    lines.push(
+      [
+        "Number",
+        "Type",
+        "Condition",
+        "Repairs Required",
+        "Repair Notes",
+        "Last Location",
+        "Skiptrak Ticket",
+        "Photos",
+        "Notes",
+        "Last Catalogued",
+        "Last Reported By",
+      ].join(","),
+    );
+    for (const r of rows) {
+      lines.push(
+        [
+          esc(r.asset_number),
+          r.asset_type === "roro" ? "RoRo" : "Skip",
+          esc(r.condition || ""),
+          r.repairs_required ? "Yes" : "No",
+          esc(r.repair_notes || ""),
+          esc(r.last_location || ""),
+          esc(r.last_skiptrak_ticket || ""),
+          r.photos?.length || 0,
+          esc(r.notes || ""),
+          r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "",
+          esc(r.last_reported_by || ""),
+        ].join(","),
+      );
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inventory-condition-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Report downloaded");
+  };
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
