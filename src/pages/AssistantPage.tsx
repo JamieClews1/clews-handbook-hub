@@ -82,12 +82,25 @@ const AssistantPage = () => {
             <p className="text-sm text-muted-foreground">Read & interpret your data, or take admin actions — in plain English.</p>
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={reset}>
-            <RotateCcw className="h-3.5 w-3.5" /> New chat
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLogOpen(true)}>
+            <History className="h-3.5 w-3.5" /> History
           </Button>
-        )}
+          {messages.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={reset}>
+              <RotateCcw className="h-3.5 w-3.5" /> New chat
+            </Button>
+          )}
+        </div>
       </div>
+
+      <AssistantQuestionLog
+        open={logOpen}
+        onOpenChange={setLogOpen}
+        loadQuestionLog={loadQuestionLog}
+        clearQuestionLog={clearQuestionLog}
+        onPick={(q) => setInput(q)}
+      />
 
       <div className="flex-1 flex flex-col max-w-screen-lg w-full mx-auto min-h-0">
         <AssistantThread
