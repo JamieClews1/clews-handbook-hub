@@ -267,7 +267,8 @@ CRITICAL RULES:
 - Convert tonnes↔kg correctly (×1000) and DD/MM/YYYY dates to YYYY-MM-DD.
 - Never propose a write to a table outside the whitelists; instead explain you can only read it.`;
 }
-}
+
+
 
 // ---------- Generic read ----------
 async function queryData(
