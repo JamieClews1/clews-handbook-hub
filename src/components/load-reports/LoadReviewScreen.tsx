@@ -326,21 +326,20 @@ export const LoadReviewScreen = ({
             >
               Reconcile
             </Button>
-            {customerType === "evri" && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  const result = reconcileLineItemsToTargetKg(lineItems, weighbridgeWeightKg);
-                  onAcceptReconciled?.(result.reconciled);
-                  setReconciledItems(null);
-                }}
-                className="h-12 w-full text-base flex-1"
-                disabled={isSaving || !!weighbridgeLoading || !onAcceptReconciled}
-              >
-                Auto Reconcile
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                const result = reconcileLineItemsToTargetKg(lineItems, weighbridgeWeightKg);
+                onAcceptReconciled?.(result.reconciled);
+                setReconciledItems(null);
+              }}
+              className="h-12 w-full text-base flex-1"
+              disabled={isSaving || !!weighbridgeLoading || !onAcceptReconciled}
+            >
+              Auto Reconcile
+            </Button>
+
           </div>
 
           {!!reconciledItems && (
