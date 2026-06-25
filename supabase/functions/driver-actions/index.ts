@@ -381,6 +381,146 @@ Deno.serve(async (req) => {
         return json({ id: created.id });
       }
 
+      /* ─── Skip Tracker (driver cataloguing) ─── */
+      case "skip_tracker_data": {
+        const reporterName = String(body?.reporter_name ?? "");
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+
+        const { data: inventory } = await supabase
+          .from("skip_inventory")
+          .select(
+            "id, asset_number, asset_type, condition, repairs_required, last_location, last_cataloged_at",
+          )
+          .order("last_cataloged_at", { ascending: false, nullsFirst: false })
+          .limit(1000);
+
+        const { data: myReports } = await supabase
+          .from("skip_tracker_reports")
+          .select("*")
+          .eq("reporter_name", reporterName)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        const { data: pointRows } = await supabase
+          .from("skip_tracker_reports")
+          .select("reporter_name, points_awarded, created_at")
+          .gte("created_at", monthStart.toISOString());
+
+        const lbMap = new Map<
+          string,
+          { reporter_name: string; points: number; reports: number }
+        >();
+        let myPoints = 0;
+        for (const r of pointRows ?? []) {
+          const key = r.reporter_name || "Unknown";
+          const e = lbMap.get(key) || { reporter_name: key, points: 0, reports: 0 };
+          e.points += r.points_awarded || 0;
+          e.reports += 1;
+          lbMap.set(key, e);
+          if (key === reporterName) myPoints += r.points_awarded || 0;
+        }
+        const leaderboard = Array.from(lbMap.values()).sort((a, b) => b.points - a.points);
+
+        return json({
+          inventory: inventory ?? [],
+          myReports: myReports ?? [],
+          myPoints,
+          leaderboard,
+        });
+      }
+      case "submit_skip_tracker": {
+        const assetNumber = String(body?.asset_number ?? "").trim();
+        const assetType = String(body?.asset_type ?? "skip");
+        const reporterName = String(body?.reporter_name ?? "").trim();
+        const reporterDriverId = body?.reporter_driver_id
+          ? String(body.reporter_driver_id)
+          : null;
+        if (!assetNumber) return json({ error: "Skip/RoRo number required" }, 400);
+        if (!reporterName) return json({ error: "Reporter required" }, 400);
+
+        const POINTS = Number.isFinite(Number(body?.points)) ? Number(body.points) : 10;
+
+        // 6-month rule: block re-cataloguing a bin uploaded in the last 6 months
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const { data: existing } = await supabase
+          .from("skip_inventory")
+          .select("id, last_cataloged_at")
+          .eq("asset_type", assetType)
+          .eq("asset_number", assetNumber)
+          .maybeSingle();
+
+        if (
+          existing?.last_cataloged_at &&
+          new Date(existing.last_cataloged_at) > sixMonthsAgo
+        ) {
+          return json(
+            {
+              error:
+                "This skip/RoRo was catalogued within the last 6 months and cannot be reported again yet.",
+            },
+            409,
+          );
+        }
+
+        const photos = Array.isArray(body?.photos) ? body.photos : [];
+        const condition = body?.condition ? String(body.condition) : null;
+        const repairsRequired = Boolean(body?.repairs_required);
+        const repairNotes = body?.repair_notes ? String(body.repair_notes) : null;
+        const location = body?.location ? String(body.location) : null;
+        const ticket = body?.skiptrak_ticket ? String(body.skiptrak_ticket) : null;
+        const now = new Date().toISOString();
+
+        const invPayload = {
+          asset_number: assetNumber,
+          asset_type: assetType,
+          condition,
+          repairs_required: repairsRequired,
+          repair_notes: repairNotes,
+          photos,
+          last_location: location,
+          last_skiptrak_ticket: ticket,
+          last_cataloged_at: now,
+          last_reported_by: reporterName,
+        };
+
+        let inventoryId = existing?.id ?? null;
+        if (inventoryId) {
+          await supabase.from("skip_inventory").update(invPayload).eq("id", inventoryId);
+        } else {
+          const { data: inv } = await supabase
+            .from("skip_inventory")
+            .insert(invPayload)
+            .select("id")
+            .single();
+          inventoryId = inv?.id ?? null;
+        }
+
+        const { data: report, error: repErr } = await supabase
+          .from("skip_tracker_reports")
+          .insert({
+            inventory_id: inventoryId,
+            asset_number: assetNumber,
+            asset_type: assetType,
+            condition,
+            repairs_required: repairsRequired,
+            repair_notes: repairNotes,
+            photos,
+            location,
+            skiptrak_ticket: ticket,
+            reporter_driver_id: reporterDriverId,
+            reporter_name: reporterName,
+            points_awarded: POINTS,
+          })
+          .select("id")
+          .single();
+        if (repErr) throw repErr;
+
+        return json({ id: report.id, points: POINTS });
+      }
+
       default:
         return json({ error: "Unknown action" }, 400);
     }
