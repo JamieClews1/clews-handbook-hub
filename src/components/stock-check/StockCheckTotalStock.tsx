@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Container, Warehouse, MapPin, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Truck, Container, Warehouse, MapPin, Calendar, Download } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { categoriseContainer } from "@/lib/overRental";
@@ -26,6 +27,7 @@ interface JobRow {
   movement_type: string | null;
   job_date: string | null;
   ewc: string | null;
+  customer: string | null;
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -54,7 +56,10 @@ const bestTypeFor = (containerType: string, types: ContainerType[]): ContainerTy
 // Mirrors the Live Jobs dashboard so Total Stock "On Site" reconciles with it.
 type Pos = {
   category: "skip" | "roro";
+  site: string;
   containerType: string;
+  ewc: string | null;
+  customer: string | null;
   delivered: number;
   collected: number;
   exchanged: number;
@@ -62,6 +67,18 @@ type Pos = {
   lastKeepDate: string | null;
   lastCollectionDate: string | null;
 };
+type SiteDetailRow = {
+  site: string;
+  customer: string | null;
+  category: "skip" | "roro";
+  typeName: string;
+  containerType: string;
+  ewc: string;
+  count: number;
+  lastKeepDate: string | null;
+  lastCollectionDate: string | null;
+};
+
 
 // Identical to LiveJobsDashboard.positionOnSite — net delivered, with a present
 // container synthesised from a lone exchange/tip-return, and cleared positions zeroed.
@@ -123,7 +140,7 @@ export const StockCheckTotalStock = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("site,container_type,movement_type,job_date,ewc")
+          .select("site,container_type,movement_type,job_date,ewc,customer")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
@@ -173,7 +190,7 @@ export const StockCheckTotalStock = () => {
   // counted under it; those that can't (e.g. "40 yd Ro Ro", which no Stock Check
   // keyword covers) still count toward the category total under an "Other" row, so
   // the headline numbers always match Live Jobs.
-  const { onSiteByType, onSiteOther } = useMemo(() => {
+  const { onSiteByType, onSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
     for (const job of jobs) {
       if (!job.container_type) continue;
@@ -184,7 +201,10 @@ export const StockCheckTotalStock = () => {
       if (!positions[posKey]) {
         positions[posKey] = {
           category: cat,
+          site: job.site || "Unknown",
           containerType: job.container_type,
+          ewc: job.ewc,
+          customer: job.customer,
           delivered: 0,
           collected: 0,
           exchanged: 0,
@@ -211,6 +231,7 @@ export const StockCheckTotalStock = () => {
     const byType: Record<string, number> = {};
     for (const t of containerTypes) byType[t.id] = 0;
     const other = { skip: 0, roro: 0 };
+    const detail: SiteDetailRow[] = [];
 
     for (const p of Object.values(positions)) {
       const count = positionOnSite(p);
@@ -221,8 +242,22 @@ export const StockCheckTotalStock = () => {
       const type = bestTypeFor(p.containerType, candidates);
       if (type) byType[type.id] += count;
       else other[p.category] += count;
+      detail.push({
+        site: p.site,
+        customer: p.customer,
+        category: p.category,
+        typeName: type?.name ?? "Other / unclassified",
+        containerType: p.containerType,
+        ewc: p.ewc && p.ewc !== "__none__" ? p.ewc : "",
+        count,
+        lastKeepDate: p.lastKeepDate,
+        lastCollectionDate: p.lastCollectionDate,
+      });
     }
-    return { onSiteByType: byType, onSiteOther: other };
+    detail.sort((a, b) =>
+      a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
+    );
+    return { onSiteByType: byType, onSiteOther: other, siteDetail: detail };
   }, [containerTypes, jobs, excludedSites, liveSettings]);
 
   if (loading || settingsLoading) {
@@ -254,20 +289,77 @@ export const StockCheckTotalStock = () => {
   const roroYard = sumFor(roros, inYardByType);
   const roroSite = sumFor(roros, onSiteByType) + onSiteOther.roro;
 
+  const downloadSiteReport = () => {
+    const esc = (v: string | number | null) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const fmt = (d: string | null) => (d ? format(new Date(d), "dd/MM/yyyy") : "");
+    const header = [
+      "Site",
+      "Customer",
+      "Category",
+      "Type",
+      "Container (raw)",
+      "Waste / EWC",
+      "On Site",
+      "Last On-Site Movement",
+      "Last Collection",
+    ];
+    const lines = [header.map(esc).join(",")];
+    for (const r of siteDetail) {
+      lines.push(
+        [
+          r.site,
+          r.customer ?? "",
+          r.category === "skip" ? "Skip" : "RoRo",
+          r.typeName,
+          r.containerType,
+          r.ewc,
+          r.count,
+          fmt(r.lastKeepDate),
+          fmt(r.lastCollectionDate),
+        ]
+          .map(esc)
+          .join(",")
+      );
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `total-stock-site-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Total Stock</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Total fleet owned by type — what is out on site plus what is In Yard from the Current Stock Overview.
-          On-site counts use the same categorisation as Live Jobs.
-        </p>
-        {latestCheckDate && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-            <Calendar className="h-3.5 w-3.5" />
-            Based on last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Total Stock</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Total fleet owned by type — what is out on site plus what is In Yard from the Current Stock Overview.
+            On-site counts use the same categorisation as Live Jobs.
           </p>
-        )}
+          {latestCheckDate && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+              <Calendar className="h-3.5 w-3.5" />
+              Based on last check: {format(new Date(latestCheckDate), "dd MMM yyyy 'at' HH:mm")}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={downloadSiteReport}
+          disabled={siteDetail.length === 0}
+        >
+          <Download className="h-4 w-4" />
+          Download site report
+        </Button>
       </div>
 
       {/* Summary cards */}
