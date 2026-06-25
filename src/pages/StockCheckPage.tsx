@@ -108,6 +108,9 @@ const StockCheckPage = () => {
                 }}
               />
             </TabsContent>
+            <TabsContent value="total">
+              <StockCheckTotalStock />
+            </TabsContent>
             <TabsContent value="tally">
               <StockCheckTally
                 key={editCheckId ?? "new"}
