@@ -128,7 +128,7 @@ export const StockCheckTotalStock = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("site,container_type,movement_type,job_date,ewc")
+          .select("site,container_type,movement_type,job_date,ewc,customer")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
