@@ -278,6 +278,13 @@ async function queryData(
       }
     }
 
+    // OR group, e.g. "customer.ilike.*reconomy*,site.ilike.*cbre*"
+    if (spec.or && typeof spec.or === "string" && spec.or.trim()) {
+      q = q.or(spec.or.trim());
+    }
+
+
+
     if (spec.orderBy?.column) {
       q = q.order(spec.orderBy.column, { ascending: spec.orderBy.ascending ?? false });
     }
