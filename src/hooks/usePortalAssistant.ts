@@ -176,12 +176,25 @@ export function usePortalAssistant() {
           // Read action — run it, attach results to the message, feed back to model.
           const result = await runAction(extracted.action);
           const rows = result.rows || result.reports || [];
+
+          // schema_info returns table/column metadata rather than data rows.
+          if (extracted.action.action === "schema_info") {
+            setMessages((prev) => prev.map((m, i) =>
+              i === prev.length - 1 ? { ...m, content: extracted.cleanText } : m
+            ));
+            history.push({
+              role: "user",
+              content: `[System: schema lookup result]\n${JSON.stringify(result, null, 2)}\n\nUse this to pick the right table/columns, then run the query you need. Keep going until you can answer confidently.`,
+            });
+            continue;
+          }
+
           setMessages((prev) => prev.map((m, i) =>
             i === prev.length - 1 ? { ...m, content: extracted.cleanText, results: rows } : m
           ));
           history.push({
             role: "user",
-            content: `[System: tool returned ${result.count ?? rows.length ?? 0} rows]\n${JSON.stringify(rows.slice(0, 100), null, 2)}\n\nUse this to answer the question in plain English. If a write is needed, propose it now with the real ids.`,
+            content: `[System: tool returned ${result.count ?? rows.length ?? 0} rows${result.error ? ` — error: ${result.error}` : ""}]\n${JSON.stringify(rows.slice(0, 150), null, 2)}\n\nReason over this. If it doesn't fully answer the question yet — empty, ambiguous, looks wrong, or needs cross-checking — run ANOTHER query (broaden the search, disambiguate names, check a related table, or verify the total) before replying. Only give the final answer once you're confident; then reply in plain English, and if a write is needed propose it with the real ids.`,
           });
           continue; // loop again so the model interprets the results
         }
