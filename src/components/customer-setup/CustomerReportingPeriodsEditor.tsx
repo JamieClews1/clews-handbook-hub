@@ -275,39 +275,49 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
           )}
 
           {periods.length > 0 && (
-            <div className="rounded-md border border-border overflow-hidden">
-              <Table>
-                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Year</TableHead>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Period End Date</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {periods.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.period_label?.split("-")[0] || "—"}</TableCell>
-                      <TableCell>{p.month_name}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="date"
-                          value={p.period_end_date}
-                          onChange={(e) => updateEndDate(p.id, e.target.value)}
-                          className="w-[160px]"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => deletePeriod(p.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <Tabs defaultValue={currentAndFutureYears[0] ?? "previous"} className="space-y-4">
+              <TabsList className="flex flex-wrap h-auto">
+                {currentAndFutureYears.map((y) => (
+                  <TabsTrigger key={y} value={y}>
+                    {y}
+                    {Number(y) === currentYear ? " (current)" : ""}
+                  </TabsTrigger>
+                ))}
+                {previousYears.length > 0 && (
+                  <TabsTrigger value="previous">Previous years</TabsTrigger>
+                )}
+              </TabsList>
+
+              {currentAndFutureYears.map((y) => (
+                <TabsContent key={y} value={y}>
+                  {renderTable(grouped.get(y) ?? [])}
+                </TabsContent>
+              ))}
+
+              {previousYears.length > 0 && (
+                <TabsContent value="previous" className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Year</Label>
+                    <Select value={prevYear} onValueChange={setPrevYear}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200]">
+                        {previousYears
+                          .slice()
+                          .reverse()
+                          .map((y) => (
+                            <SelectItem key={y} value={y}>
+                              {y}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {prevYear && renderTable(grouped.get(prevYear) ?? [])}
+                </TabsContent>
+              )}
+            </Tabs>
           )}
 
           {/* Add new period */}
