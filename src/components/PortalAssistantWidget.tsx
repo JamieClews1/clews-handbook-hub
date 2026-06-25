@@ -4,13 +4,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Send, X, MessageCircle, Paperclip, Maximize2 } from "lucide-react";
+import { Bot, Send, X, MessageCircle, Paperclip, Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { usePortalAssistant } from "@/hooks/usePortalAssistant";
 import { AssistantThread } from "@/components/assistant/AssistantThread";
 
 export function PortalAssistantWidget() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: any[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +76,13 @@ export function PortalAssistantWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[420px] h-[620px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div
+      className={
+        isExpanded
+          ? "fixed inset-3 sm:inset-6 z-50 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          : "fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[calc(100vh-3rem)] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      }
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary/5">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -87,8 +94,17 @@ export function PortalAssistantWidget() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title={isExpanded ? "Shrink" : "Expand"}
+            onClick={() => setIsExpanded((v) => !v)}
+          >
+            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
           <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Open full page">
-            <Link to="/assistant"><Maximize2 className="h-4 w-4" /></Link>
+            <Link to="/assistant"><ExternalLink className="h-4 w-4" /></Link>
           </Button>
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
             <X className="h-4 w-4" />

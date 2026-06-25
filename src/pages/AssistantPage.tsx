@@ -3,9 +3,10 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Send, Paperclip, X, RotateCcw } from "lucide-react";
+import { Bot, Send, Paperclip, X, RotateCcw, History } from "lucide-react";
 import { usePortalAssistant } from "@/hooks/usePortalAssistant";
 import { AssistantThread } from "@/components/assistant/AssistantThread";
+import { AssistantQuestionLog } from "@/components/assistant/AssistantQuestionLog";
 
 const SUGGESTIONS = [
   "Total weight by customer this month",
@@ -18,9 +19,10 @@ const SUGGESTIONS = [
 const AssistantPage = () => {
   const { toast } = useToast();
   const [input, setInput] = useState("");
+  const [logOpen, setLogOpen] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: any[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { messages, isLoading, handleSend, confirmAction, cancelAction, reset } = usePortalAssistant();
+  const { messages, isLoading, handleSend, confirmAction, cancelAction, reset, loadQuestionLog, clearQuestionLog } = usePortalAssistant();
 
   const parseExcelFile = useCallback((file: File): Promise<any[]> => {
     return new Promise((resolve, reject) => {
@@ -80,12 +82,25 @@ const AssistantPage = () => {
             <p className="text-sm text-muted-foreground">Read & interpret your data, or take admin actions — in plain English.</p>
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={reset}>
-            <RotateCcw className="h-3.5 w-3.5" /> New chat
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLogOpen(true)}>
+            <History className="h-3.5 w-3.5" /> History
           </Button>
-        )}
+          {messages.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={reset}>
+              <RotateCcw className="h-3.5 w-3.5" /> New chat
+            </Button>
+          )}
+        </div>
       </div>
+
+      <AssistantQuestionLog
+        open={logOpen}
+        onOpenChange={setLogOpen}
+        loadQuestionLog={loadQuestionLog}
+        clearQuestionLog={clearQuestionLog}
+        onPick={(q) => setInput(q)}
+      />
 
       <div className="flex-1 flex flex-col max-w-screen-lg w-full mx-auto min-h-0">
         <AssistantThread
