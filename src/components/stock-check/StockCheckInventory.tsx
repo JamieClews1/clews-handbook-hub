@@ -29,6 +29,7 @@ import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
   Award,
   Boxes,
+  Eye,
   Camera,
   ChevronLeft,
   ChevronRight,
@@ -98,6 +99,40 @@ const ProfileDialog = ({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  const lookupTicketSite = async () => {
+    const ticket = form.last_skiptrak_ticket.trim();
+    if (!ticket) return;
+    setLookingUp(true);
+    try {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("site, customer, job_date")
+        .eq("source", "skiptrak")
+        .eq("job_number", ticket)
+        .order("job_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error(`No Skiptrak job found for ticket #${ticket}`);
+        return;
+      }
+      const site = (data.site || "").trim();
+      const location = data.customer ? `${site}${site && data.customer ? " · " : ""}${data.customer}` : site;
+      if (location) {
+        setForm((f) => ({ ...f, last_location: location }));
+        toast.success(`Location set from ticket #${ticket}`);
+      } else {
+        toast.error("Ticket found but no site recorded");
+      }
+    } catch {
+      toast.error("Ticket lookup failed");
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const reset = () => {
     if (row) {
@@ -272,13 +307,31 @@ const ProfileDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Skiptrak ticket no.</Label>
-              <Input
-                value={form.last_skiptrak_ticket}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, last_skiptrak_ticket: e.target.value }))
-                }
-                placeholder="e.g. 42718"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={form.last_skiptrak_ticket}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, last_skiptrak_ticket: e.target.value }))
+                  }
+                  onBlur={lookupTicketSite}
+                  placeholder="e.g. 42718"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={lookupTicketSite}
+                  disabled={lookingUp || !form.last_skiptrak_ticket.trim()}
+                  title="Look up location from ticket"
+                >
+                  {lookingUp ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MapPin className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -345,6 +398,95 @@ const ProfileDialog = ({
     </Dialog>
   );
 };
+
+/* ─── Profile view dialog ─── */
+const ViewDialog = ({ row, trigger }: { row: InventoryRow; trigger: React.ReactNode }) => {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Boxes className="h-5 w-5 text-primary" />
+            #{row.asset_number}
+            <Badge variant="outline" className="text-[10px] uppercase">
+              {row.asset_type === "roro" ? "RoRo" : "Skip"}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {row.condition && (
+              <Badge variant="outline" className={cn("text-xs", conditionStyle[row.condition] || "")}>
+                {row.condition}
+              </Badge>
+            )}
+            {row.repairs_required && (
+              <Badge className="text-xs gap-1 bg-red-500 text-white">
+                <Wrench className="h-3 w-3" /> Repairs required
+              </Badge>
+            )}
+          </div>
+
+          {row.repairs_required && row.repair_notes && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Repairs needed</Label>
+              <p className="text-sm bg-red-500/5 border border-red-500/20 rounded-md p-2">
+                {row.repair_notes}
+              </p>
+            </div>
+          )}
+
+          {row.photos && row.photos.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Photos</Label>
+              <div className="flex gap-2 flex-wrap">
+                {row.photos.map((url) => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer">
+                    <img src={url} alt="" className="w-24 h-24 object-cover rounded-lg border" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Last known location</Label>
+              <p className="flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                {row.last_location || "—"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Skiptrak ticket</Label>
+              <p className="flex items-center gap-2">
+                <Ticket className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="font-mono">{row.last_skiptrak_ticket ? `#${row.last_skiptrak_ticket}` : "—"}</span>
+              </p>
+            </div>
+          </div>
+
+          {row.notes && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Notes</Label>
+              <p className="text-sm">{row.notes}</p>
+            </div>
+          )}
+
+          {row.last_cataloged_at && (
+            <p className="text-[11px] text-muted-foreground pt-2 border-t">
+              Last catalogued {format(new Date(row.last_cataloged_at), "d MMM yyyy")}
+              {row.last_reported_by ? ` · ${row.last_reported_by}` : ""}
+            </p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 
 /* ─── Leaderboard ─── */
 const SkipTrackerLeaderboard = () => {
@@ -719,6 +861,14 @@ const InventoryList = () => {
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <ViewDialog
+                      row={r}
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="View">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                     <ProfileDialog
                       row={r}
                       trigger={
