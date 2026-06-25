@@ -142,7 +142,7 @@ export function usePortalAssistant() {
 
     try {
       let depth = 0;
-      while (depth < 5 && !cancelledRef.current) {
+      while (depth < 8 && !cancelledRef.current) {
         depth++;
         const raw = await streamTurn(history);
         const extracted = extractAction(raw);
