@@ -38,6 +38,9 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
   const [newMonthName, setNewMonthName] = useState("");
   const [newEndDate, setNewEndDate] = useState("");
 
+  // Year to generate a full set of periods for
+  const [genYear, setGenYear] = useState(() => new Date().getFullYear());
+
   const loadPeriods = async () => {
     setLoading(true);
     const { data, error } = await supabase
