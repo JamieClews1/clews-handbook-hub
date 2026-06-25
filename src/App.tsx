@@ -32,6 +32,7 @@ import WasteReportingPage from "./pages/WasteReportingPage";
 import PoliciesPage from "./pages/PoliciesPage";
 import SiteReportsPage from "./pages/SiteReportsPage";
 import OnePortalPage from "./pages/OnePortalPage";
+import AssistantPage from "./pages/AssistantPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
