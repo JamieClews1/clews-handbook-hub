@@ -250,7 +250,7 @@ CRITICAL RULES:
 // ---------- Generic read ----------
 async function queryData(
   supabase: any,
-  spec: { table?: string; select?: string; filters?: any[]; orderBy?: { column: string; ascending?: boolean }; limit?: number; groupBy?: string[]; aggregate?: { sum?: string } },
+  spec: { table?: string; select?: string; filters?: any[]; or?: string; orderBy?: { column: string; ascending?: boolean }; limit?: number; groupBy?: string[]; aggregate?: { sum?: string } },
 ) {
   const table = spec.table;
   if (!table || !READ_WHITELIST.has(table)) {
