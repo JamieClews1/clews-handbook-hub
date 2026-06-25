@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Container, Warehouse, MapPin, Calendar } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
+import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
+import { categoriseContainer } from "@/lib/overRental";
 
 interface ContainerType {
   id: string;
@@ -32,7 +34,8 @@ const matchKeyword = (haystack: string, kw: string) => {
   return re.test(haystack);
 };
 
-// Pick the container type whose longest matching keyword wins.
+// Pick the container type whose longest matching keyword wins. Optionally restrict
+// to a set of candidate types (e.g. only the types within a given category).
 const bestTypeFor = (containerType: string, types: ContainerType[]): ContainerType | null => {
   let bestType: ContainerType | null = null;
   let bestLen = 0;
@@ -47,7 +50,31 @@ const bestTypeFor = (containerType: string, types: ContainerType[]): ContainerTy
   return bestType;
 };
 
+// A single physical on-site position (site + container_type + EWC/waste stream).
+// Mirrors the Live Jobs dashboard so Total Stock "On Site" reconciles with it.
+type Pos = {
+  category: "skip" | "roro";
+  containerType: string;
+  delivered: number;
+  collected: number;
+  exchanged: number;
+  tipReturn: number;
+  lastKeepDate: string | null;
+  lastCollectionDate: string | null;
+};
+
+// Identical to LiveJobsDashboard.positionOnSite — net delivered, with a present
+// container synthesised from a lone exchange/tip-return, and cleared positions zeroed.
+const positionOnSite = (p: Pos): number => {
+  const net = p.delivered - p.collected;
+  const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
+  if (cleared && net <= 0) return 0;
+  const present = p.exchanged > 0 || p.tipReturn > 0;
+  return Math.max(net, net >= 0 && present ? Math.max(1, net) : 0);
+};
+
 export const StockCheckTotalStock = () => {
+  const { settings: liveSettings, loading: settingsLoading } = useLiveJobsSettings();
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
@@ -87,7 +114,7 @@ export const StockCheckTotalStock = () => {
         if (items) setLatestItems(items as StockCheckItem[]);
       }
 
-      // Fetch last 12 months of skiptrak movements (same window/source as Rentals).
+      // Fetch last 12 months of skiptrak movements (same window/source as Live Jobs).
       const since = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
       const all: JobRow[] = [];
       const pageSize = 1000;
@@ -139,32 +166,66 @@ export const StockCheckTotalStock = () => {
     return map;
   }, [containerTypes, latestItems, latestCheckDateOnly, jobs, excludedSites]);
 
-  // Out-on-site per type — net delivered across all positions (site + EWC) over the
-  // movement history. Deliver +1, Collect -1; Exchange / Tip&Return are neutral.
-  const onSiteByType = useMemo(() => {
-    type Pos = { delivered: number; collected: number };
-    const positions: Record<string, { typeId: string; counts: Pos }> = {};
+  // Out-on-site — reconciled with the Live Jobs dashboard. Each container is first
+  // categorised (skip / roro) using the SAME live_jobs_settings keyword logic that
+  // Live Jobs uses, then netted per physical position with the identical
+  // positionOnSite rule. Containers that map to a specific Stock Check type are
+  // counted under it; those that can't (e.g. "40 yd Ro Ro", which no Stock Check
+  // keyword covers) still count toward the category total under an "Other" row, so
+  // the headline numbers always match Live Jobs.
+  const { onSiteByType, onSiteOther } = useMemo(() => {
+    const positions: Record<string, Pos> = {};
     for (const job of jobs) {
       if (!job.container_type) continue;
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
-      const type = bestTypeFor(job.container_type, containerTypes);
-      if (!type) continue;
-      const posKey = `${(job.site || "Unknown").toLowerCase().trim()}|||${type.id}|||${(job.ewc || "__none__").trim()}`;
-      if (!positions[posKey]) positions[posKey] = { typeId: type.id, counts: { delivered: 0, collected: 0 } };
+      const cat = categoriseContainer(job.container_type, null, liveSettings);
+      if (cat !== "skip" && cat !== "roro") continue; // ignore artic / unrecognised
+      const posKey = `${(job.site || "Unknown").toLowerCase().trim()}|||${job.container_type.toLowerCase().trim()}|||${(job.ewc || "__none__").trim()}`;
+      if (!positions[posKey]) {
+        positions[posKey] = {
+          category: cat,
+          containerType: job.container_type,
+          delivered: 0,
+          collected: 0,
+          exchanged: 0,
+          tipReturn: 0,
+          lastKeepDate: null,
+          lastCollectionDate: null,
+        };
+      }
+      const pos = positions[posKey];
       const mt = (job.movement_type || "").toLowerCase();
-      if (mt.includes("collect")) positions[posKey].counts.collected += 1;
-      else if (mt.includes("deliver")) positions[posKey].counts.delivered += 1;
+      const staysOnSite = mt.includes("deliver") || mt.includes("exchange") || mt.includes("tip");
+      if (mt.includes("collect")) pos.collected += 1;
+      else if (mt.includes("exchange")) pos.exchanged += 1;
+      else if (mt.includes("tip")) pos.tipReturn += 1;
+      else if (mt.includes("deliver")) pos.delivered += 1;
+      if (job.job_date && staysOnSite && (!pos.lastKeepDate || job.job_date > pos.lastKeepDate)) {
+        pos.lastKeepDate = job.job_date;
+      }
+      if (job.job_date && mt.includes("collect") && (!pos.lastCollectionDate || job.job_date > pos.lastCollectionDate)) {
+        pos.lastCollectionDate = job.job_date;
+      }
     }
-    const map: Record<string, number> = {};
-    for (const t of containerTypes) map[t.id] = 0;
-    for (const p of Object.values(positions)) {
-      const net = Math.max(p.counts.delivered - p.counts.collected, 0);
-      map[p.typeId] += net;
-    }
-    return map;
-  }, [containerTypes, jobs, excludedSites]);
 
-  if (loading) {
+    const byType: Record<string, number> = {};
+    for (const t of containerTypes) byType[t.id] = 0;
+    const other = { skip: 0, roro: 0 };
+
+    for (const p of Object.values(positions)) {
+      const count = positionOnSite(p);
+      if (count <= 0) continue;
+      // Only match against types in the same category so e.g. a "Skip Compactor"
+      // can't leak into the RoRo compactor type.
+      const candidates = containerTypes.filter((t) => t.category === p.category);
+      const type = bestTypeFor(p.containerType, candidates);
+      if (type) byType[type.id] += count;
+      else other[p.category] += count;
+    }
+    return { onSiteByType: byType, onSiteOther: other };
+  }, [containerTypes, jobs, excludedSites, liveSettings]);
+
+  if (loading || settingsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -189,9 +250,9 @@ export const StockCheckTotalStock = () => {
     types.reduce((acc, t) => acc + (src[t.id] || 0), 0);
 
   const skipYard = sumFor(skips, inYardByType);
-  const skipSite = sumFor(skips, onSiteByType);
+  const skipSite = sumFor(skips, onSiteByType) + onSiteOther.skip;
   const roroYard = sumFor(roros, inYardByType);
-  const roroSite = sumFor(roros, onSiteByType);
+  const roroSite = sumFor(roros, onSiteByType) + onSiteOther.roro;
 
   return (
     <div className="space-y-6">
@@ -199,6 +260,7 @@ export const StockCheckTotalStock = () => {
         <h2 className="text-xl font-bold text-foreground">Total Stock</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Total fleet owned by type — what is out on site plus what is In Yard from the Current Stock Overview.
+          On-site counts use the same categorisation as Live Jobs.
         </p>
         {latestCheckDate && (
           <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
@@ -243,8 +305,8 @@ export const StockCheckTotalStock = () => {
       </div>
 
       {/* By type breakdown */}
-      <TotalStockTable title="Skips" icon={<Truck className="h-5 w-5 text-primary" />} types={skips} inYard={inYardByType} onSite={onSiteByType} />
-      <TotalStockTable title="RoRos" icon={<Container className="h-5 w-5 text-primary" />} types={roros} inYard={inYardByType} onSite={onSiteByType} />
+      <TotalStockTable title="Skips" icon={<Truck className="h-5 w-5 text-primary" />} types={skips} inYard={inYardByType} onSite={onSiteByType} otherOnSite={onSiteOther.skip} />
+      <TotalStockTable title="RoRos" icon={<Container className="h-5 w-5 text-primary" />} types={roros} inYard={inYardByType} onSite={onSiteByType} otherOnSite={onSiteOther.roro} />
     </div>
   );
 };
@@ -255,16 +317,18 @@ const TotalStockTable = ({
   types,
   inYard,
   onSite,
+  otherOnSite,
 }: {
   title: string;
   icon: React.ReactNode;
   types: ContainerType[];
   inYard: Record<string, number>;
   onSite: Record<string, number>;
+  otherOnSite: number;
 }) => {
   if (types.length === 0) return null;
   const totalYard = types.reduce((a, t) => a + (inYard[t.id] || 0), 0);
-  const totalSite = types.reduce((a, t) => a + (onSite[t.id] || 0), 0);
+  const totalSite = types.reduce((a, t) => a + (onSite[t.id] || 0), 0) + otherOnSite;
 
   return (
     <div>
@@ -295,6 +359,14 @@ const TotalStockTable = ({
                 </tr>
               );
             })}
+            {otherOnSite > 0 && (
+              <tr className="border-b border-border/50">
+                <td className="py-2 px-3 font-medium text-muted-foreground italic">Other / unclassified</td>
+                <td className="py-2 px-3 text-right">0</td>
+                <td className="py-2 px-3 text-right">{otherOnSite}</td>
+                <td className="py-2 px-3 text-right font-bold text-foreground">{otherOnSite}</td>
+              </tr>
+            )}
             <tr className="border-t-2 border-border font-bold">
               <td className="py-2 px-3 text-foreground">Total</td>
               <td className="py-2 px-3 text-right">{totalYard}</td>
