@@ -74,7 +74,7 @@ interface Driver {
 }
 
 type AppRole = "driver" | "yard";
-type AppView = "jobs" | "contaminations";
+type AppView = "jobs" | "contaminations" | "skiptracker";
 
 interface AppUser {
   id: string;
