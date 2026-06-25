@@ -97,6 +97,14 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/assistant")}>
+                <Link to="/assistant">
+                  <Bot className="h-4 w-4" />
+                  {!collapsed && <span>Ask One</span>}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
