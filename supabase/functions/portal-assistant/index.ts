@@ -297,7 +297,287 @@ function streamTextResponse(text: string): Response {
   return new Response(body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
 }
 
-async function answerTonnageQuestion(supabase: any, messages: ChatMessage[]): Promise<string | null> {
+// ─────────────────────────────────────────────────────────────────────────────
+// Deterministic OVER-RENTAL answer.
+//
+// "What's over-rental / which 40yd bins are out / over the free period" questions are
+// high-risk: the loose `rental_positions` dump lets the model guess. This shortcut
+// reproduces the EXACT logic the Rentals dashboard uses (computeOverRentalBins on the
+// last 12 months of skiptrak movements + live_jobs_settings + manually-collected
+// exclusion via rental_chases), so Ask One gives the same numbers as the dashboard.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type LiveJobsSettings = {
+  rental_free_days: number;
+  artic_vehicle_regs: string[];
+  artic_container_keywords: string[];
+  roro_container_keywords: string[];
+  skip_container_keywords: string[];
+};
+
+const OR_DEFAULT_SETTINGS: LiveJobsSettings = {
+  rental_free_days: 28,
+  artic_vehicle_regs: ["FG61 SYV", "FJ18 FDM"],
+  artic_container_keywords: ["curtain side", "walking floor", "bulk ejector", "artic haulage"],
+  roro_container_keywords: ["ro ro", "roll on roll off", "ro ro haulage"],
+  skip_container_keywords: ["skip", "yard", "yd", "chain lift"],
+};
+
+type ORJob = {
+  job_number: string;
+  job_date: string | null;
+  customer: string | null;
+  site: string | null;
+  container_type: string | null;
+  movement_type: string | null;
+  waste_description: string | null;
+  vehicle_registration: string | null;
+  ewc: string | null;
+};
+
+type ORCategory = "skip" | "roro" | "artic";
+
+type ORBin = {
+  binKey: string;
+  customer: string;
+  site: string;
+  category: ORCategory;
+  containerType: string;
+  netOnSite: number;
+  daysSinceActivity: number | null;
+  lastActivityDate: string | null;
+};
+
+function orFmtDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+function orWindowStart(): string {
+  // First day of the month, 11 months ago (UTC) — matches the dashboard's date-fns window.
+  const now = new Date();
+  return orFmtDate(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1)));
+}
+function orDaysSince(dateStr: string): number {
+  const ms = Date.now() - new Date(dateStr + "T00:00:00Z").getTime();
+  return Math.floor(ms / 86400000);
+}
+
+function orCategorise(containerType: string | null, vehicleReg: string | null, s: LiveJobsSettings): ORCategory | null {
+  const ct = containerType?.toLowerCase() ?? "";
+  const isSkip = ct && s.skip_container_keywords.some((kw) => ct.includes(kw.toLowerCase()));
+  const isRoro = ct && s.roro_container_keywords.some((kw) => ct.includes(kw.toLowerCase()));
+  const isArtic = ct && s.artic_container_keywords.some((kw) => ct.includes(kw.toLowerCase()));
+  if (isRoro) return "roro";
+  if (isSkip) return "skip";
+  if (isArtic) return "artic";
+  if (vehicleReg) {
+    const vr = vehicleReg.toUpperCase().replace(/\s+/g, "");
+    if (s.artic_vehicle_regs.some((r) => r.replace(/\s+/g, "").toUpperCase() === vr)) return "artic";
+  }
+  return null;
+}
+
+// Faithful port of computeOverRentalBins (src/lib/overRental.ts).
+function orComputeBins(jobs: ORJob[], s: LiveJobsSettings): ORBin[] {
+  const windowStart = orWindowStart();
+  const isDeliver = (m: string | null) => m === "Deliver";
+  const isCollect = (m: string | null) => m === "Collect";
+  const isExchange = (m: string | null) => m === "Exchange";
+  const isTipReturn = (m: string | null) => m === "Tip/Return";
+  const staysOnSite = (m: string | null) => isDeliver(m) || isExchange(m) || isTipReturn(m);
+  const maxD = (a: string | null, b: string | null) => (!a ? b : !b ? a : a >= b ? a : b);
+
+  type Pos = { delivered: number; collected: number; lastKeepDate: string | null; lastCollectionDate: string | null };
+  type Ctb = {
+    lastDeliveryOrExchangeDate: string | null;
+    lastTipReturnDate: string | null;
+    positions: Record<string, Pos>;
+  };
+  type SiteAgg = {
+    latestCustomer: string;
+    latestCustomerDate: string | null;
+    site: string;
+    category: ORCategory;
+    lastDeliveryOrExchangeDate: string | null;
+    lastTipReturnDate: string | null;
+    lastCollectionDate: string | null;
+    ctb: Record<string, Ctb>;
+  };
+
+  const siteMap: Record<string, SiteAgg> = {};
+
+  for (const job of jobs) {
+    const cat = orCategorise(job.container_type, job.vehicle_registration, s);
+    if (!cat) continue;
+    const key = `${(job.site || "Unknown").toLowerCase().trim()}|||${cat}`;
+    const customerName = job.customer || "Unknown";
+    if (!siteMap[key]) {
+      siteMap[key] = {
+        latestCustomer: customerName, latestCustomerDate: job.job_date, site: job.site || "Unknown", category: cat,
+        lastDeliveryOrExchangeDate: null, lastTipReturnDate: null, lastCollectionDate: null, ctb: {},
+      };
+    }
+    const sm = siteMap[key];
+    if (job.job_date && (!sm.latestCustomerDate || job.job_date > sm.latestCustomerDate)) {
+      sm.latestCustomer = customerName;
+      sm.latestCustomerDate = job.job_date;
+    }
+    if (job.container_type) {
+      if (!sm.ctb[job.container_type]) sm.ctb[job.container_type] = { lastDeliveryOrExchangeDate: null, lastTipReturnDate: null, positions: {} };
+      const ctb = sm.ctb[job.container_type];
+      if (job.job_date && (isDeliver(job.movement_type) || isExchange(job.movement_type))) ctb.lastDeliveryOrExchangeDate = maxD(ctb.lastDeliveryOrExchangeDate, job.job_date);
+      if (job.job_date && isTipReturn(job.movement_type)) ctb.lastTipReturnDate = maxD(ctb.lastTipReturnDate, job.job_date);
+
+      const posKey = (job.ewc && job.ewc.trim()) || "__none__";
+      if (!ctb.positions[posKey]) ctb.positions[posKey] = { delivered: 0, collected: 0, lastKeepDate: null, lastCollectionDate: null };
+      const pos = ctb.positions[posKey];
+      if (isDeliver(job.movement_type)) pos.delivered++;
+      if (isCollect(job.movement_type)) pos.collected++;
+      if (job.job_date && staysOnSite(job.movement_type)) pos.lastKeepDate = maxD(pos.lastKeepDate, job.job_date);
+      if (job.job_date && isCollect(job.movement_type)) pos.lastCollectionDate = maxD(pos.lastCollectionDate, job.job_date);
+    }
+    if (job.job_date && (isDeliver(job.movement_type) || isExchange(job.movement_type))) sm.lastDeliveryOrExchangeDate = maxD(sm.lastDeliveryOrExchangeDate, job.job_date);
+    if (job.job_date && isTipReturn(job.movement_type)) sm.lastTipReturnDate = maxD(sm.lastTipReturnDate, job.job_date);
+    if (job.job_date && isCollect(job.movement_type)) sm.lastCollectionDate = maxD(sm.lastCollectionDate, job.job_date);
+  }
+
+  const positionNet = (p: Pos): number => {
+    const net = p.delivered - p.collected;
+    const cleared = !!(p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate);
+    if (cleared && net <= 0) return 0;
+    const activity = p.lastCollectionDate && p.lastKeepDate
+      ? (p.lastCollectionDate >= p.lastKeepDate ? p.lastCollectionDate : p.lastKeepDate)
+      : (p.lastKeepDate ?? p.lastCollectionDate);
+    if (activity && activity < windowStart) return 0;
+    return Math.max(net, 0);
+  };
+  const typeNet = (positions: Record<string, Pos>) => Object.values(positions).reduce((sum, p) => sum + positionNet(p), 0);
+
+  const out: ORBin[] = [];
+  for (const sm of Object.values(siteMap)) {
+    if (sm.category === "artic") continue;
+    const lastKeep = [sm.lastDeliveryOrExchangeDate, sm.lastTipReturnDate].filter((d): d is string => !!d).sort().pop() ?? null;
+    const collectionCleared = sm.lastCollectionDate && lastKeep && sm.lastCollectionDate >= lastKeep;
+    const daysSinceLastKeep = lastKeep ? orDaysSince(lastKeep) : null;
+    const netOnSite = Object.values(sm.ctb).reduce((sum, c) => sum + typeNet(c.positions), 0);
+    const isOver =
+      daysSinceLastKeep !== null &&
+      daysSinceLastKeep > s.rental_free_days &&
+      netOnSite > 0 &&
+      !collectionCleared &&
+      lastKeep !== null &&
+      lastKeep >= windowStart;
+    if (!isOver) continue;
+
+    for (const [containerType, c] of Object.entries(sm.ctb)) {
+      const onSite = typeNet(c.positions);
+      if (onSite <= 0) continue;
+      const ctbLastKeep = [c.lastDeliveryOrExchangeDate, c.lastTipReturnDate].filter((d): d is string => !!d).sort().pop() ?? null;
+      const days = ctbLastKeep ? orDaysSince(ctbLastKeep) : null;
+      if (days === null || days <= s.rental_free_days) continue;
+      if (ctbLastKeep! < windowStart) continue;
+      out.push({
+        binKey: `${sm.site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`,
+        customer: sm.latestCustomer, site: sm.site, category: sm.category, containerType,
+        netOnSite: onSite, daysSinceActivity: days, lastActivityDate: ctbLastKeep,
+      });
+    }
+  }
+  out.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
+  return out;
+}
+
+async function answerOverRentalQuestion(supabase: any, messages: ChatMessage[]): Promise<string | null> {
+  const lastUser = [...(messages || [])].reverse().find((m) => m.role === "user")?.content || "";
+  // Trigger only on over-rental / over-the-free-period questions.
+  const isOverRentalQ =
+    /over[\s-]?rental/i.test(lastUser) ||
+    /over (?:the )?(?:free )?rental/i.test(lastUser) ||
+    (/\brental\b/i.test(lastUser) && /\b(over|overdue|out|on site|still out|chase)\b/i.test(lastUser));
+  if (!isOverRentalQ) return null;
+
+  // Optional filters from the question.
+  const sizeMatch = lastUser.match(/(\d+)\s*(?:yd|yard)/i) || lastUser.match(/\b(\d{1,2})\s*yd\b/i);
+  const sizeNum = sizeMatch ? Number(sizeMatch[1]) : null;
+  const wantsRoro = /\bro\s*ro\b|\broros?\b/i.test(lastUser);
+  const wantsSkip = /\bskips?\b/i.test(lastUser) && !wantsRoro;
+
+  // Load settings (merge defaults).
+  const settings: LiveJobsSettings = { ...OR_DEFAULT_SETTINGS };
+  try {
+    const { data: rows } = await supabase.from("live_jobs_settings").select("setting_key, setting_value");
+    for (const row of rows || []) {
+      const k = row.setting_key as keyof LiveJobsSettings;
+      if (k in settings) {
+        if (k === "rental_free_days") (settings as any)[k] = Number(row.setting_value);
+        else (settings as any)[k] = row.setting_value;
+      }
+    }
+  } catch { /* defaults are fine */ }
+
+  // Fetch the last 12 months of skiptrak movements (same window as the dashboard).
+  const since = orWindowStart();
+  const jobs: ORJob[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from("data_hub_jobs")
+      .select("job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
+      .eq("source", "skiptrak")
+      .gte("job_date", since)
+      .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
+      .order("job_date", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) return `I couldn't check the rental data — the lookup failed: ${error.message}`;
+    const batch = (data || []) as ORJob[];
+    jobs.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+    if (from > 60000) break;
+  }
+
+  let bins = orComputeBins(jobs, settings);
+
+  // Exclude bins staff have manually marked collected.
+  try {
+    const { data: chases } = await supabase.from("rental_chases").select("bin_key, collected");
+    const collected = new Set<string>((chases || []).filter((c: any) => c.collected).map((c: any) => c.bin_key));
+    bins = bins.filter((b) => !collected.has(b.binKey));
+  } catch { /* if chases unavailable, show all */ }
+
+  // Apply size / category filters from the question.
+  const sizeLabelParts: string[] = [];
+  if (sizeNum !== null) {
+    sizeLabelParts.push(`${sizeNum}yd`);
+    bins = bins.filter((b) => {
+      const nums = (b.containerType.match(/\d+/g) || []).map(Number);
+      return nums.includes(sizeNum);
+    });
+  }
+  if (wantsRoro) { sizeLabelParts.push("RoRo"); bins = bins.filter((b) => b.category === "roro"); }
+  else if (wantsSkip) { sizeLabelParts.push("skip"); bins = bins.filter((b) => b.category === "skip"); }
+
+  const filterLabel = sizeLabelParts.length ? ` ${sizeLabelParts.join(" ")}` : "";
+
+  if (bins.length === 0) {
+    return `Good news — I can't find any${filterLabel} containers currently over the ${settings.rental_free_days}-day free rental period.`;
+  }
+
+  const lines = bins.slice(0, 40).map((b) => {
+    const qty = b.netOnSite > 1 ? `${b.netOnSite}× ` : "";
+    return `- **${b.customer}** — ${b.site}: ${qty}${b.containerType} · ${b.daysSinceActivity} days on site (since ${b.lastActivityDate})`;
+  }).join("\n");
+
+  const totalContainers = bins.reduce((sum, b) => sum + b.netOnSite, 0);
+  const intro = bins.length === 1
+    ? `There's **1${filterLabel} container** over the ${settings.rental_free_days}-day free rental period:`
+    : `There are **${bins.length}${filterLabel} bins** (${totalContainers} containers) over the ${settings.rental_free_days}-day free rental period:`;
+  const more = bins.length > 40 ? `\n\n…and ${bins.length - 40} more. Open the Rentals section for the full list.` : "";
+
+  return `${intro}\n\n${lines}${more}`;
+}
+
+
   const lastUser = [...(messages || [])].reverse().find((m) => m.role === "user")?.content || "";
   const parsed = parseTonnageQuestion(lastUser);
   if (!parsed) return null;
