@@ -193,6 +193,40 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
     }
   };
 
+  const renderTable = (list: ReportingPeriod[]) => (
+    <div className="rounded-md border border-border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Month</TableHead>
+            <TableHead>Period End Date</TableHead>
+            <TableHead className="w-[80px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {list.map((p) => (
+            <TableRow key={p.id}>
+              <TableCell>{p.month_name}</TableCell>
+              <TableCell>
+                <Input
+                  type="date"
+                  value={p.period_end_date}
+                  onChange={(e) => updateEndDate(p.id, e.target.value)}
+                  className="w-[160px]"
+                />
+              </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="sm" onClick={() => deletePeriod(p.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
