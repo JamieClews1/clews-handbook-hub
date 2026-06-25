@@ -940,6 +940,14 @@ const LoadReportsPage = () => {
     setViewMode("list");
   };
 
+  // Allow changing a report's type while editing. The type is derived from the
+  // assigned site, so we switch the selected type (which refetches the matching
+  // sites) and clear the site so the user re-picks one of the correct type.
+  const handleEditReportTypeChange = (type: string) => {
+    setSelectedCustomer(type as CustomerType);
+    setSelectedSiteId("");
+  };
+
   const handleViewAll = () => {
     setSelectedCustomer(null);
     setOriginView("all");
