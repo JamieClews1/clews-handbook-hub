@@ -53,11 +53,32 @@ const WRITE_WHITELIST = new Set<string>([
   "load_line_items",
   "pricing_entries",
   "pricing_rate_card_values",
+  "pricing_rate_card_rows",
+  "pricing_settings",
+  "pricing_skip_sizes",
+  "pricing_waste_types",
   "rental_chases",
+  "rental_agreements",
   "skip_inventory",
+  "skip_tracker_reports",
   "crm_tickets",
+  "crm_ticket_messages",
+  "customers",
   "customer_sites",
+  "customer_contacts",
+  "customer_reporting_periods",
   "fuel_surcharge_rates",
+]);
+
+// Tables the assistant is allowed to INSERT into via the generic insert tool.
+// Every insert still requires explicit user confirmation in the UI.
+const INSERT_WHITELIST = new Set<string>([
+  "rental_agreements",
+  "customer_contacts",
+  "crm_ticket_messages",
+  "pricing_entries",
+  "fuel_surcharge_rates",
+  "customer_reporting_periods",
 ]);
 
 interface ChatMessage {
@@ -122,6 +143,12 @@ serve(async (req) => {
           break;
         case "delete_records":
           result = await deleteRecords(adminClient, actionData);
+          break;
+        case "insert_records":
+          result = await insertRecords(adminClient, actionData, user.id);
+          break;
+        case "mark_rental_collected":
+          result = await markRentalCollected(adminClient, actionData, user.id);
           break;
         default:
           result = { error: `Unknown action: ${action}` };
@@ -202,28 +229,51 @@ READING DATA — use this for any question about jobs, weights, reports, rentals
 {"action":"rental_positions"}
 \`\`\`
 
+GETTING GREAT ANSWERS (matching rules — follow these to avoid missing rows):
+- Always match text loosely with "ilike" and wrap the value in % wildcards (e.g. "%cbre%"). Never use "eq" for names, sites, EWC codes or descriptions.
+- BROKER + SITE questions: a customer name (the broker, e.g. "Reconomy (UK) Limited") and the physical site (e.g. "CBRE") live in DIFFERENT columns. When the user names both, search BOTH columns with an OR group instead of separate AND filters, e.g.:
+\`\`\`action
+{"action":"query_data","table":"data_hub_jobs","select":"job_number, job_date, customer, site, ewc, weight_t, source","or":"customer.ilike.*reconomy*,site.ilike.*cbre*","filters":[{"column":"ewc","operator":"ilike","value":"%20 03 07%"}],"orderBy":{"column":"job_date","ascending":false},"limit":100}
+\`\`\`
+  (In the "or" field use * as the wildcard, not %. In normal "filters" use %.)
+- EWC codes are often stored with a trailing "*" (e.g. "20 03 07*") and spaces. Always match EWC with ilike + % (e.g. "%20 03 07%"), never exact.
+- DEDUPE Skiptrak vs Midweigh: the same physical job can appear twice in data_hub_jobs — once with source "skiptrak" and once with source "midweigh". When counting jobs or listing "when did we do X", group by job_number or note both sources rather than double-counting. For movement/rental counts use source "skiptrak"; for weighbridge weights Midweigh is in KG (divide by 1000 for tonnes) while weight_t for skiptrak is already TONNES.
+- If the first query returns nothing, broaden it (drop a filter, shorten the search term) and try once more before saying you found nothing.
+
 TAKING ACTIONS (always require user confirmation — propose them in plain English first):
-- Generic edit (only tables: load_reports, load_line_items, pricing_entries, pricing_rate_card_values, rental_chases, skip_inventory, crm_tickets, customer_sites, fuel_surcharge_rates). ALWAYS query_data first to find the real ids:
+- Generic EDIT. Editable tables: load_reports, load_line_items, pricing_entries, pricing_rate_card_values, pricing_rate_card_rows, pricing_settings, pricing_skip_sizes, pricing_waste_types, rental_chases, rental_agreements, skip_inventory, skip_tracker_reports, crm_tickets, crm_ticket_messages, customers, customer_sites, customer_contacts, customer_reporting_periods, fuel_surcharge_rates. ALWAYS query_data first to find the real ids:
 \`\`\`action
 {"action":"update_records","table":"crm_tickets","updates":[{"id":"<real-id>","changes":{"status":"closed"}}],"description":"Close 3 CRM tickets"}
 \`\`\`
-- Generic delete (same whitelist):
+- Generic DELETE (same whitelist):
 \`\`\`action
 {"action":"delete_records","table":"skip_inventory","ids":["<real-id>"],"description":"Remove 1 inventory record"}
 \`\`\`
+- Generic ADD. Insertable tables: rental_agreements, customer_contacts, crm_ticket_messages, pricing_entries, fuel_surcharge_rates, customer_reporting_periods:
+\`\`\`action
+{"action":"insert_records","table":"customer_contacts","rows":[{"customer_id":"<real-id>","name":"Jane Doe","email":"jane@acme.com"}],"description":"Add a new contact for Acme"}
+\`\`\`
+- MARK A RENTAL BIN COLLECTED (drops it off the over-rental chasing list). First call rental_positions to get the bin's details, then:
+\`\`\`action
+{"action":"mark_rental_collected","bins":[{"bin_key":"<bin key>","customer":"...","site":"...","container_type":"...","collected_date":"2026-06-25"}],"description":"Mark 1 skip as collected"}
+\`\`\`
 - Load reports have dedicated tools that also manage line items: create_load_reports, update_load_reports, delete_load_reports.
+- CRM status changes: update crm_tickets (e.g. status to "open"/"closed", assigned_to, priority) via update_records.
+- Pricing edits: update pricing_entries / pricing_rate_card_values / pricing_skip_sizes via update_records after reading the current values.
 
 CRITICAL RULES:
 - ALWAYS read with query_data BEFORE proposing any update/delete — never invent ids.
 - Only one action block per message, at the very end.
 - Convert tonnes↔kg correctly (×1000) and DD/MM/YYYY dates to YYYY-MM-DD.
-- Never propose a write to a table outside the whitelist; instead explain you can only read it.`;
+- Never propose a write to a table outside the whitelists; instead explain you can only read it.`;
 }
+
+
 
 // ---------- Generic read ----------
 async function queryData(
   supabase: any,
-  spec: { table?: string; select?: string; filters?: any[]; orderBy?: { column: string; ascending?: boolean }; limit?: number; groupBy?: string[]; aggregate?: { sum?: string } },
+  spec: { table?: string; select?: string; filters?: any[]; or?: string; orderBy?: { column: string; ascending?: boolean }; limit?: number; groupBy?: string[]; aggregate?: { sum?: string } },
 ) {
   const table = spec.table;
   if (!table || !READ_WHITELIST.has(table)) {
@@ -250,6 +300,13 @@ async function queryData(
         default: break;
       }
     }
+
+    // OR group, e.g. "customer.ilike.*reconomy*,site.ilike.*cbre*"
+    if (spec.or && typeof spec.or === "string" && spec.or.trim()) {
+      q = q.or(spec.or.trim());
+    }
+
+
 
     if (spec.orderBy?.column) {
       q = q.order(spec.orderBy.column, { ascending: spec.orderBy.ascending ?? false });
@@ -347,6 +404,76 @@ async function deleteRecords(
       else results.deleted++;
     } catch (err: any) {
       results.errors.push(`${id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function insertRecords(
+  supabase: any,
+  data: { table?: string; rows?: any[] },
+  userId: string,
+) {
+  const results: { created: number; errors: string[] } = { created: 0, errors: [] };
+  if (!data?.table || !INSERT_WHITELIST.has(data.table)) {
+    results.errors.push(`Adding to "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const row of data.rows || []) {
+    try {
+      const payload = { ...row };
+      // Stamp the creator where the table supports it.
+      if (["rental_agreements", "rental_chases"].includes(data.table) && payload.created_by == null) {
+        payload.created_by = userId;
+      }
+      const { error } = await supabase.from(data.table).insert(payload);
+      if (error) results.errors.push(error.message);
+      else results.created++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+// Mark one or more over-rental bins as collected. Upserts a rental_chases row
+// keyed by bin_key, then flags it resolved/collected so it drops off the list.
+async function markRentalCollected(
+  supabase: any,
+  data: { bins?: { bin_key: string; customer?: string; site?: string; container_type?: string; category?: string; collected_date?: string; collection_ticket?: string }[] },
+  userId: string,
+) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  for (const bin of data.bins || []) {
+    try {
+      if (!bin.bin_key) { results.errors.push("Missing bin reference."); continue; }
+      let chaseId: string | null = null;
+      const { data: existing } = await supabase
+        .from("rental_chases").select("id").eq("bin_key", bin.bin_key).maybeSingle();
+      if (existing) {
+        chaseId = existing.id;
+      } else {
+        const { data: created, error: insErr } = await supabase.from("rental_chases").insert({
+          bin_key: bin.bin_key,
+          customer: bin.customer || null,
+          site: bin.site || null,
+          category: bin.category || null,
+          container_type: bin.container_type || null,
+          created_by: userId,
+        }).select("id").single();
+        if (insErr) { results.errors.push(insErr.message); continue; }
+        chaseId = created.id;
+      }
+      const { error } = await supabase.from("rental_chases").update({
+        collected: true,
+        collected_date: bin.collected_date || new Date().toISOString().slice(0, 10),
+        collection_ticket: bin.collection_ticket || null,
+        chase_status: "resolved",
+      }).eq("id", chaseId);
+      if (error) results.errors.push(error.message);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(err.message);
     }
   }
   return results;
