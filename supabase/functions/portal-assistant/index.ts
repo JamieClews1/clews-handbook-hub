@@ -8,19 +8,37 @@ const corsHeaders = {
 };
 
 // Tables the assistant is allowed to READ via the generic query_data tool.
+// Kept broad on purpose: Ask One should be able to explore almost the whole
+// operational dataset the way a colleague with database access would.
 const READ_WHITELIST = new Set<string>([
+  // Movements / weights
   "data_hub_jobs",
+  "data_hub_jobs_archive",
+  "weighbridge_transactions",
+  "weighbridge_customers",
+  "weighbridge_vehicles",
+  "weighbridge_waste_types",
+  // Load reports
   "load_reports",
   "load_line_items",
   "load_waste_types",
+  "load_report_settings",
+  // Rentals / live jobs
   "rental_chases",
   "rental_agreements",
   "rental_chase_emails",
+  "live_jobs_settings",
+  // Stock / inventory
   "skip_inventory",
   "skip_tracker_reports",
   "stock_checks",
   "stock_check_daily_entries",
   "stock_check_container_types",
+  "stock_check_items",
+  "stock_check_excluded_sites",
+  "stock_reports",
+  "stock_report_items",
+  // Pricing
   "pricing_rate_cards",
   "pricing_rate_card_rows",
   "pricing_rate_card_values",
@@ -30,20 +48,64 @@ const READ_WHITELIST = new Set<string>([
   "pricing_settings",
   "pricing_skip_sizes",
   "pricing_waste_types",
+  "postcode_zones",
+  "fuel_surcharge_rates",
+  // Customers / sites / contacts
   "customers",
   "customer_sites",
   "customer_contacts",
   "customer_reporting_periods",
+  "customer_portal_memberships",
+  "customer_skip_rebates",
+  "customer_site_skip_rebates",
+  // Rebates / reporting
+  "rebate_items",
+  "rebate_rules",
+  "rebate_monthly_values",
+  "rebate_price_sets",
+  "rebate_price_set_items",
+  "locked_rebate_reports",
+  "staci_monthly_reports",
+  "staci_pallet_entries",
+  "staci_pallet_rates",
+  "staci_pallet_charges",
+  "facility_recycling_forms",
+  "facility_recycling_waste_entries",
+  // CRM
   "crm_tickets",
   "crm_ticket_messages",
-  "fuel_surcharge_rates",
-  "postcode_zones",
-  "contamination_queries",
-  "weighbridge_transactions",
+  "crm_team_members",
+  "crm_pricing",
+  "crm_email_templates",
+  // RouteOne / drivers
   "route_one_jobs",
   "route_one_drivers",
+  "route_one_vehicles",
+  "driver_locations",
+  // Contaminations
+  "contamination_queries",
+  "contamination_points",
+  "contamination_charge_matrix",
+  "contamination_waste_types",
+  // Compliance / safety
+  "near_miss_reports",
+  "riddor_incidents",
+  "toolbox_talks",
+  "rams",
+  "rams_hazards",
+  "site_inspection_reports",
+  "partners",
+  "partner_documents",
+  "partner_document_requirements",
+  // Company / misc
+  "company_profile",
+  "company_contacts",
+  "company_documents",
+  "diary_cards",
   "bookings",
   "enquiries",
+  "credit_account_applications",
+  "profiles",
 ]);
 
 // Tables the assistant is allowed to WRITE (update/delete) via the generic tools.
@@ -123,6 +185,9 @@ serve(async (req) => {
         case "query_data":
           result = await queryData(adminClient, actionData || {});
           break;
+        case "schema_info":
+          result = await schemaInfo(adminClient, actionData || {});
+          break;
         case "rental_positions":
           result = await rentalPositions(adminClient);
           break;
@@ -175,7 +240,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-3.1-pro-preview",
         messages: [
           { role: "system", content: systemPrompt },
           ...(messages as ChatMessage[]),
@@ -231,7 +296,15 @@ READING DATA — use this for any question about jobs, weights, reports, rentals
 \`\`\`
 - Allowed operators: eq, neq, gt, gte, lt, lte, like, ilike, in (value = array or comma list), is (value "null" or "true"/"false").
 - For totals/breakdowns add "groupBy":["customer"] and "aggregate":{"sum":"weight_t"} — the system returns counts and sums per group.
-- Readable tables include: data_hub_jobs (Skiptrak/Midweigh movements — weight_t is TONNES), load_reports + load_line_items, rental_chases + rental_agreements, skip_inventory + skip_tracker_reports, stock_checks, pricing_rate_cards + pricing_rate_card_values + pricing_entries + pricing_settings, customers + customer_sites + customer_contacts, crm_tickets, fuel_surcharge_rates, weighbridge_transactions, route_one_jobs, bookings.
+- You can read almost the WHOLE operational dataset — jobs & weights, load reports, rentals, stock & inventory, pricing & rate cards, rebates & reporting, customers/sites/contacts, CRM, RouteOne/drivers, contaminations, compliance (near-miss, RIDDOR, RAMS, toolbox talks, inspections), partners, weighbridge, bookings, enquiries and more.
+- DON'T GUESS TABLE OR COLUMN NAMES. If you're unsure what data exists or what a table's columns are, look first. Ask for the table list, or a specific table's columns + a sample row:
+\`\`\`action
+{"action":"schema_info"}
+\`\`\`
+\`\`\`action
+{"action":"schema_info","table":"contamination_queries"}
+\`\`\`
+  schema_info runs automatically and feeds the answer back to you — use it freely to orient yourself before querying, exactly like a colleague opening a table to see what's in it.
 - For "what is on site / over-rental" questions about Skiptrak containers, use:
 \`\`\`action
 {"action":"rental_positions"}
@@ -255,6 +328,15 @@ QUESTION THE DATA BEFORE YOU ANSWER (this is the most important section — neve
 - SANITY-CHECK THE NUMBER. If a total looks implausible (e.g. hundreds of tonnes from a handful of skip movements), stop — it usually means a unit mix-up (kg vs tonnes) or a false-match site got included. Re-query before answering.
 - STATE YOUR ASSUMPTIONS. When a question is ambiguous, lead with the breakdown by site/customer/source and a clear total for the most likely interpretation, then offer to narrow it — rather than committing to one big number with no context. A correct, qualified answer beats a confident wrong one.
 - WORKED EXAMPLE ("how many tonnes from Ford in May"): (1) list distinct sites matching %ford% for that month; (2) notice "Ford Motor Company" and "CBRE - Ford" are real but "JEWSON - Telford" and "Stanford Flooring" are false matches; (3) sum weight_t for the real Ford sites only, on source skiptrak; (4) answer with the per-site breakdown and combined total, naming what you excluded.
+
+BE DETERMINED (this is how you think — like a sharp analyst who refuses to give up):
+- You have MANY tool turns available, not one. Use them. A good answer often takes 3–8 queries: orient with schema_info if needed → list distinct matches → pull the rows → cross-check → answer. Never stop at the first query if the answer isn't yet solid.
+- If a query returns nothing or looks wrong, DON'T give up — change tactics: broaden the search term, drop the year/date filter, try the OR-group across customer+site, check a related table, or run schema_info to confirm the column name. Exhaust the obvious angles before saying "I couldn't find it".
+- Chase the question across tables. The answer may need joining ideas: e.g. find the customer id in "customers", then their sites in "customer_sites", then movements in "data_hub_jobs". Follow the trail step by step.
+- VERIFY BEFORE YOU COMMIT. Before giving a final number or a definitive "yes/no", do one explicit sanity pass: does the count look right, are the units right (kg vs tonnes), did any false-match slip in, is the date window the one the user meant? If anything is off, query again. A verified answer is the whole point of this assistant.
+- Show your reasoning lightly in the visible reply (what you searched, what you included/excluded, which period) so staff can trust the number — but keep it tight and jargon-free.
+- Only say "I don't know" or "I couldn't find that" after you've genuinely tried several approaches, and when you do, say what you tried and suggest how to narrow it.
+
 
 
 TAKING ACTIONS (always require user confirmation — propose them in plain English first):
@@ -736,6 +818,26 @@ async function queryData(
     return { rows, count: rows.length };
   } catch (err: any) {
     return { error: err.message, rows: [], count: 0 };
+  }
+}
+
+// ---------- Schema discovery ----------
+// Lets the assistant explore what data exists before querying — the same way a
+// colleague with DB access would look at the tables and their columns first.
+async function schemaInfo(supabase: any, spec: { table?: string }) {
+  if (!spec?.table) {
+    return { tables: Array.from(READ_WHITELIST).sort() };
+  }
+  if (!READ_WHITELIST.has(spec.table)) {
+    return { error: `Table "${spec.table}" is not readable.`, tables: Array.from(READ_WHITELIST).sort() };
+  }
+  try {
+    const { data, error } = await supabase.from(spec.table).select("*").limit(1);
+    if (error) return { error: error.message, columns: [] };
+    const columns = data && data[0] ? Object.keys(data[0]) : [];
+    return { table: spec.table, columns, sample: data?.[0] ?? null };
+  } catch (err: any) {
+    return { error: err.message, columns: [] };
   }
 }
 
