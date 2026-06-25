@@ -306,13 +306,31 @@ const ProfileDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Skiptrak ticket no.</Label>
-              <Input
-                value={form.last_skiptrak_ticket}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, last_skiptrak_ticket: e.target.value }))
-                }
-                placeholder="e.g. 42718"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={form.last_skiptrak_ticket}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, last_skiptrak_ticket: e.target.value }))
+                  }
+                  onBlur={lookupTicketSite}
+                  placeholder="e.g. 42718"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={lookupTicketSite}
+                  disabled={lookingUp || !form.last_skiptrak_ticket.trim()}
+                  title="Look up location from ticket"
+                >
+                  {lookingUp ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MapPin className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
