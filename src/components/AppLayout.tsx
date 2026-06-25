@@ -96,7 +96,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <AdminAgentWidget />
+      <PortalAssistantWidget />
     </SidebarProvider>
   );
 }
