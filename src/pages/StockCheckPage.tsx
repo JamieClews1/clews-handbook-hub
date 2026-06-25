@@ -18,7 +18,8 @@ const StockCheckPage = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
   const [isManagement, setIsManagement] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("live");
+  const [liveTab, setLiveTab] = useState("current");
   const [editCheckId, setEditCheckId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -76,17 +77,11 @@ const StockCheckPage = () => {
             </p>
           </div>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => {
-              if (v !== "tally") setEditCheckId(null);
-              setActiveTab(v);
-            }}
-          >
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-6">
-              <TabsTrigger value="dashboard" className="gap-2">
+              <TabsTrigger value="live" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
-                Overview
+                Live
               </TabsTrigger>
               <TabsTrigger value="total" className="gap-2">
                 <Boxes className="h-4 w-4" />
@@ -96,61 +91,79 @@ const StockCheckPage = () => {
                 <PackageSearch className="h-4 w-4" />
                 Inventory
               </TabsTrigger>
-              <TabsTrigger value="tally" className="gap-2">
-                <ClipboardList className="h-4 w-4" />
-                {editCheckId ? "Edit Stock Take" : "New Stock Take"}
-              </TabsTrigger>
-              <TabsTrigger value="history" className="gap-2">
-                <History className="h-4 w-4" />
-                History
-              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="dashboard">
-              <StockCheckDashboard
-                onEditLast={(id) => {
-                  setEditCheckId(id);
-                  setActiveTab("tally");
+            <TabsContent value="live">
+              <Tabs
+                value={liveTab}
+                onValueChange={(v) => {
+                  if (v !== "tally") setEditCheckId(null);
+                  setLiveTab(v);
                 }}
-                headerAction={
-                  canManageSettings ? (
-                    <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="gap-1.5">
-                          <Settings className="h-4 w-4" />
-                          Settings
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Stock Check Settings</DialogTitle>
-                        </DialogHeader>
-                        <StockCheckSettings />
-                      </DialogContent>
-                    </Dialog>
-                  ) : undefined
-                }
-              />
+              >
+                <TabsList className="mb-6">
+                  <TabsTrigger value="current" className="gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Current Stock
+                  </TabsTrigger>
+                  <TabsTrigger value="tally" className="gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    {editCheckId ? "Edit Stock Take" : "New Stock Take"}
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="gap-2">
+                    <History className="h-4 w-4" />
+                    History
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="current">
+                  <StockCheckDashboard
+                    onEditLast={(id) => {
+                      setEditCheckId(id);
+                      setLiveTab("tally");
+                    }}
+                    headerAction={
+                      canManageSettings ? (
+                        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1.5">
+                              <Settings className="h-4 w-4" />
+                              Settings
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Stock Check Settings</DialogTitle>
+                            </DialogHeader>
+                            <StockCheckSettings />
+                          </DialogContent>
+                        </Dialog>
+                      ) : undefined
+                    }
+                  />
+                </TabsContent>
+                <TabsContent value="tally">
+                  <StockCheckTally
+                    key={editCheckId ?? "new"}
+                    userId={user.id}
+                    editCheckId={editCheckId}
+                    onComplete={() => {
+                      setEditCheckId(null);
+                      setLiveTab("current");
+                    }}
+                  />
+                </TabsContent>
+                <TabsContent value="history">
+                  <StockCheckHistory />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
+
             <TabsContent value="total">
               <StockCheckTotalStock />
             </TabsContent>
             <TabsContent value="inventory">
               <StockCheckInventory />
-            </TabsContent>
-            <TabsContent value="tally">
-              <StockCheckTally
-                key={editCheckId ?? "new"}
-                userId={user.id}
-                editCheckId={editCheckId}
-                onComplete={() => {
-                  setEditCheckId(null);
-                  setActiveTab("dashboard");
-                }}
-              />
-            </TabsContent>
-            <TabsContent value="history">
-              <StockCheckHistory />
             </TabsContent>
           </Tabs>
         </div>
