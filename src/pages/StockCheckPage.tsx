@@ -80,6 +80,10 @@ const StockCheckPage = () => {
                 <BarChart3 className="h-4 w-4" />
                 Dashboard
               </TabsTrigger>
+              <TabsTrigger value="total" className="gap-2">
+                <Boxes className="h-4 w-4" />
+                Total Stock
+              </TabsTrigger>
               <TabsTrigger value="tally" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
                 {editCheckId ? "Edit Tally" : "New Tally"}
