@@ -1130,7 +1130,9 @@ const LoadReportsPage = () => {
               onDelete={handleDeleteReport}
               isDeleting={isSaving}
               customerType={selectedCustomer}
+              onCustomerTypeChange={currentReportId ? handleEditReportTypeChange : undefined}
             />
+
           )}
 
           {viewMode === "tally" && selectedCustomer === "staci" && (
