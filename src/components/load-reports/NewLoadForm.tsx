@@ -55,7 +55,16 @@ interface NewLoadFormProps {
   onDelete?: () => void;
   isDeleting?: boolean;
   customerType?: string | null;
+  onCustomerTypeChange?: (value: string) => void;
 }
+
+const REPORT_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "britvic", label: "Britvic" },
+  { value: "vantiva", label: "Weighbridge Load" },
+  { value: "amazon", label: "Amazon" },
+  { value: "evri", label: "EVRi" },
+  { value: "other", label: "Standard" },
+];
 
 export const NewLoadForm = ({
   operatorName,
