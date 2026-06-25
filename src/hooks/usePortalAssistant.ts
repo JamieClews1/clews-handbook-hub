@@ -230,5 +230,34 @@ export function usePortalAssistant() {
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, actionPending: undefined } : m)));
   }, []);
 
-  return { messages, isLoading, handleSend, confirmAction, cancelAction, reset };
+  const loadQuestionLog = useCallback(async (): Promise<AssistantQuestionLogEntry[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("assistant_question_log")
+      .select("id, question, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) {
+      toast({ title: "Couldn't load your question history", description: error.message, variant: "destructive" });
+      return [];
+    }
+    return (data || []) as AssistantQuestionLogEntry[];
+  }, [toast]);
+
+  const clearQuestionLog = useCallback(async (): Promise<boolean> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const { error } = await supabase
+      .from("assistant_question_log")
+      .delete()
+      .eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Couldn't clear history", description: error.message, variant: "destructive" });
+      return false;
+    }
+    return true;
+  }, [toast]);
+
+  return { messages, isLoading, handleSend, confirmAction, cancelAction, reset, loadQuestionLog, clearQuestionLog };
 }
