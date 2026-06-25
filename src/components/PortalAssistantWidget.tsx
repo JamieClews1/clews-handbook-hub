@@ -4,13 +4,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Send, X, MessageCircle, Paperclip, Maximize2 } from "lucide-react";
+import { Bot, Send, X, MessageCircle, Paperclip, Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { usePortalAssistant } from "@/hooks/usePortalAssistant";
 import { AssistantThread } from "@/components/assistant/AssistantThread";
 
 export function PortalAssistantWidget() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: any[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
