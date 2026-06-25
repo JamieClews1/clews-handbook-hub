@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      assistant_question_log: {
+        Row: {
+          created_at: string
+          id: string
+          question: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           assigned_driver: string | null
