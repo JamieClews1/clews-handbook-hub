@@ -1,6 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
+  Bot,
   Route,
   Scale,
   ShieldCheck,
