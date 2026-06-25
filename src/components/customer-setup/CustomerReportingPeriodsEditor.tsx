@@ -42,6 +42,39 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
   // Year to generate a full set of periods for
   const [genYear, setGenYear] = useState(() => new Date().getFullYear());
 
+  // Which previous year is selected within the "Previous years" tab
+  const [prevYear, setPrevYear] = useState<string>("");
+
+  const yearOf = (p: ReportingPeriod) =>
+    p.period_label?.split("-")[0] || String(new Date(p.period_end_date + "T00:00:00").getFullYear());
+
+  // Group periods by year
+  const grouped = useMemo(() => {
+    const map = new Map<string, ReportingPeriod[]>();
+    for (const p of periods) {
+      const y = yearOf(p);
+      if (!map.has(y)) map.set(y, []);
+      map.get(y)!.push(p);
+    }
+    return map;
+  }, [periods]);
+
+  const currentYear = new Date().getFullYear();
+  const allYears = useMemo(
+    () => Array.from(grouped.keys()).sort((a, b) => Number(a) - Number(b)),
+    [grouped],
+  );
+  const currentAndFutureYears = allYears.filter((y) => Number(y) >= currentYear);
+  const previousYears = allYears.filter((y) => Number(y) < currentYear);
+
+  // Default selected previous year (most recent past year)
+  useEffect(() => {
+    if (previousYears.length && !previousYears.includes(prevYear)) {
+      setPrevYear(previousYears[previousYears.length - 1]);
+    }
+  }, [previousYears.join(","), prevYear]);
+
+
   const loadPeriods = async () => {
     setLoading(true);
     const { data, error } = await supabase
