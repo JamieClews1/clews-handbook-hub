@@ -189,7 +189,10 @@ export const StockCheckTotalStock = () => {
       if (!positions[posKey]) {
         positions[posKey] = {
           category: cat,
+          site: job.site || "Unknown",
           containerType: job.container_type,
+          ewc: job.ewc,
+          customer: job.customer,
           delivered: 0,
           collected: 0,
           exchanged: 0,
