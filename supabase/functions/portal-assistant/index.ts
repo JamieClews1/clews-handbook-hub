@@ -824,7 +824,7 @@ async function schemaInfo(supabase: any, spec: { table?: string }) {
   }
 }
 
-
+function aggregateRows(rows: any[], groupBy: string[], sumField?: string) {
   const map = new Map<string, any>();
   for (const row of rows) {
     const key = groupBy.map((g) => String(row?.[g] ?? "—")).join(" | ");
