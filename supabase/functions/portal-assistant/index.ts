@@ -53,11 +53,32 @@ const WRITE_WHITELIST = new Set<string>([
   "load_line_items",
   "pricing_entries",
   "pricing_rate_card_values",
+  "pricing_rate_card_rows",
+  "pricing_settings",
+  "pricing_skip_sizes",
+  "pricing_waste_types",
   "rental_chases",
+  "rental_agreements",
   "skip_inventory",
+  "skip_tracker_reports",
   "crm_tickets",
+  "crm_ticket_messages",
+  "customers",
   "customer_sites",
+  "customer_contacts",
+  "customer_reporting_periods",
   "fuel_surcharge_rates",
+]);
+
+// Tables the assistant is allowed to INSERT into via the generic insert tool.
+// Every insert still requires explicit user confirmation in the UI.
+const INSERT_WHITELIST = new Set<string>([
+  "rental_agreements",
+  "customer_contacts",
+  "crm_ticket_messages",
+  "pricing_entries",
+  "fuel_surcharge_rates",
+  "customer_reporting_periods",
 ]);
 
 interface ChatMessage {
