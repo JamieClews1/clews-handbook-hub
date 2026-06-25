@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 
 type ReportingPeriod = {
@@ -36,6 +37,9 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
   const [newPeriodLabel, setNewPeriodLabel] = useState("");
   const [newMonthName, setNewMonthName] = useState("");
   const [newEndDate, setNewEndDate] = useState("");
+
+  // Year to generate a full set of periods for
+  const [genYear, setGenYear] = useState(() => new Date().getFullYear());
 
   const loadPeriods = async () => {
     setLoading(true);
@@ -98,8 +102,22 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
     }
   };
 
-  const generateYearPeriods = async () => {
-    const year = new Date().getFullYear();
+  const generateYearPeriods = async (year: number) => {
+    // Prevent duplicating a year that already exists
+    const prefix = `${year}-`;
+    if (periods.some((p) => p.period_label?.startsWith(prefix))) {
+      toast({
+        title: "Already exists",
+        description: `${year} periods are already configured.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const baseOrder = periods.length
+      ? Math.max(...periods.map((p) => p.display_order ?? 0)) + 1
+      : 0;
+
     const entries = MONTH_NAMES.map((month, idx) => {
       const periodNum = String(idx + 1).padStart(2, "0");
       // Default end date: last day of the month
@@ -109,7 +127,7 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
         period_label: `${year}-${periodNum}`,
         month_name: month,
         period_end_date: endDate.toISOString().split("T")[0],
-        display_order: idx,
+        display_order: baseOrder + idx,
       };
     });
 
@@ -159,12 +177,32 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Generate a full year of periods */}
+          <div className="flex flex-wrap items-end gap-2 border-b pb-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Year</Label>
+              <Select value={String(genYear)} onValueChange={(v) => setGenYear(Number(v))}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[200]">
+                  {Array.from({ length: 8 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" onClick={() => generateYearPeriods(genYear)} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+              Generate {genYear} Periods
+            </Button>
+          </div>
+
           {periods.length === 0 && (
-            <div className="text-center py-4 space-y-3">
+            <div className="text-center py-4">
               <p className="text-sm text-muted-foreground">No reporting periods configured yet.</p>
-              <Button variant="outline" onClick={generateYearPeriods} disabled={saving}>
-                Generate {new Date().getFullYear()} Periods
-              </Button>
             </div>
           )}
 
@@ -173,6 +211,7 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
               <Table>
                  <TableHeader>
                   <TableRow>
+                    <TableHead>Year</TableHead>
                     <TableHead>Month</TableHead>
                     <TableHead>Period End Date</TableHead>
                     <TableHead className="w-[80px]">Actions</TableHead>
@@ -181,6 +220,7 @@ export function CustomerReportingPeriodsEditor({ customerId, customerName }: Cus
                 <TableBody>
                   {periods.map((p) => (
                     <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.period_label?.split("-")[0] || "—"}</TableCell>
                       <TableCell>{p.month_name}</TableCell>
                       <TableCell>
                         <Input
