@@ -3,9 +3,10 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Send, Paperclip, X, RotateCcw } from "lucide-react";
+import { Bot, Send, Paperclip, X, RotateCcw, History } from "lucide-react";
 import { usePortalAssistant } from "@/hooks/usePortalAssistant";
 import { AssistantThread } from "@/components/assistant/AssistantThread";
+import { AssistantQuestionLog } from "@/components/assistant/AssistantQuestionLog";
 
 const SUGGESTIONS = [
   "Total weight by customer this month",
