@@ -1244,6 +1244,17 @@ const AppShell = ({ user, onLogout }: { user: AppUser; onLogout: () => void }) =
     );
   }
 
+  if (view === "skiptracker") {
+    return (
+      <DriverSkipTracker
+        reporter={{ id: user.id, name: user.name, type: user.role }}
+        userName={user.name}
+        onLogout={onLogout}
+        nav={nav}
+      />
+    );
+  }
+
   return <DriverDashboard driver={user.driver!} onLogout={onLogout} nav={nav} />;
 };
 
