@@ -17,6 +17,12 @@ export interface AssistantMessage {
   results?: any[];
 }
 
+export interface AssistantQuestionLogEntry {
+  id: string;
+  question: string;
+  created_at: string;
+}
+
 function cleanResponseText(text: string): string {
   let clean = text.replace(/```action[\s\S]*?```/g, "");
   clean = clean.replace(/```json[\s\S]*?```/g, "");
