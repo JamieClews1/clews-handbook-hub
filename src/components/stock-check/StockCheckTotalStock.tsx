@@ -289,6 +289,51 @@ export const StockCheckTotalStock = () => {
   const roroYard = sumFor(roros, inYardByType);
   const roroSite = sumFor(roros, onSiteByType) + onSiteOther.roro;
 
+  const downloadSiteReport = () => {
+    const esc = (v: string | number | null) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const fmt = (d: string | null) => (d ? format(new Date(d), "dd/MM/yyyy") : "");
+    const header = [
+      "Site",
+      "Customer",
+      "Category",
+      "Type",
+      "Container (raw)",
+      "Waste / EWC",
+      "On Site",
+      "Last On-Site Movement",
+      "Last Collection",
+    ];
+    const lines = [header.map(esc).join(",")];
+    for (const r of siteDetail) {
+      lines.push(
+        [
+          r.site,
+          r.customer ?? "",
+          r.category === "skip" ? "Skip" : "RoRo",
+          r.typeName,
+          r.containerType,
+          r.ewc,
+          r.count,
+          fmt(r.lastKeepDate),
+          fmt(r.lastCollectionDate),
+        ]
+          .map(esc)
+          .join(",")
+      );
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `total-stock-site-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+
   return (
     <div className="space-y-6">
       <div>
