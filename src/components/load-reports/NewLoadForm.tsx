@@ -89,6 +89,7 @@ export const NewLoadForm = ({
   onDelete,
   isDeleting = false,
   customerType,
+  onCustomerTypeChange,
 }: NewLoadFormProps) => {
   const isEvri = customerType === "evri";
   const jobLabel = isEvri ? "Midweigh Ticket Number" : "Job Number";
