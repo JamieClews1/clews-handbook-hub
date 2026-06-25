@@ -19,9 +19,10 @@ const SUGGESTIONS = [
 const AssistantPage = () => {
   const { toast } = useToast();
   const [input, setInput] = useState("");
+  const [logOpen, setLogOpen] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: any[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { messages, isLoading, handleSend, confirmAction, cancelAction, reset } = usePortalAssistant();
+  const { messages, isLoading, handleSend, confirmAction, cancelAction, reset, loadQuestionLog, clearQuestionLog } = usePortalAssistant();
 
   const parseExcelFile = useCallback((file: File): Promise<any[]> => {
     return new Promise((resolve, reject) => {
