@@ -27,6 +27,7 @@ interface JobRow {
   movement_type: string | null;
   job_date: string | null;
   ewc: string | null;
+  customer: string | null;
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
