@@ -55,7 +55,10 @@ const bestTypeFor = (containerType: string, types: ContainerType[]): ContainerTy
 // Mirrors the Live Jobs dashboard so Total Stock "On Site" reconciles with it.
 type Pos = {
   category: "skip" | "roro";
+  site: string;
   containerType: string;
+  ewc: string | null;
+  customer: string | null;
   delivered: number;
   collected: number;
   exchanged: number;
