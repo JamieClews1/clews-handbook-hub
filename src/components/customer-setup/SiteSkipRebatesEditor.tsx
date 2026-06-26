@@ -295,6 +295,28 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
+  const updateWasteFilter = async (itemId: string, value: string) => {
+    const filters = value.trim() === ""
+      ? null
+      : value.split(",").map(s => s.trim()).filter(s => s.length > 0);
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("customer_site_skip_rebates")
+        .update({ waste_description_filter: filters })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, waste_description_filter: filters } : r)));
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update waste filter.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
