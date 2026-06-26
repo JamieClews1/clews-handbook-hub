@@ -401,7 +401,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={isActive("/rebate-values")}>
                       <Link to="/rebate-values">
                         <DollarSign className="h-4 w-4" />
-                        {!collapsed && <span>Rebate Values</span>}
+                        {!collapsed && <span>Rebates</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
