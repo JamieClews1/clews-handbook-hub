@@ -239,7 +239,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         )
       );
 
-      if (siteDataHubMappings.filter(Boolean).length > 0 && wasteFilterNames.length > 0) {
+      if ((siteId || siteDataHubMappings.filter(Boolean).length > 0) && wasteFilterNames.length > 0) {
         const wasteFilterKeys = new Set(wasteFilterNames.map(normalise));
         let filteredMidweighQuery = supabase
           .from("data_hub_jobs")
