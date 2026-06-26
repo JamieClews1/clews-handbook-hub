@@ -24,11 +24,16 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ArrowLeft, DollarSign, Save, Link2, Settings } from "lucide-react";
+import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
 import { RebateScreenshotUpload } from "@/components/rebate-values/RebateScreenshotUpload";
+import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
+import { MonthlyRebateGenerationV2 } from "@/components/customer-reporting/MonthlyRebateGenerationV2";
+import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
+import { RebateReportTracking } from "@/components/customer-reporting/RebateReportTracking";
+import { Card as UICard, CardContent as UICardContent, CardDescription as UICardDescription, CardHeader as UICardHeader, CardTitle as UICardTitle } from "@/components/ui/card";
 
 type RebateItem = {
   id: string;
