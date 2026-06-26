@@ -166,25 +166,10 @@ export function CustomerSetupAdmin() {
     if (skiptrakCustomers.length > 0 || loadingSkiptrak) return;
     setLoadingSkiptrak(true);
     try {
-      // Fetch distinct customer/site pairs from Skiptrak data
-      const pageSize = 1000;
-      let from = 0;
-      const all: { customer: string | null; site: string | null }[] = [];
-      // Loop through pages until exhausted
-      while (true) {
-        const { data, error } = await supabase
-          .from("data_hub_jobs")
-          .select("customer, site")
-          .eq("source", "skiptrak")
-          .not("customer", "is", null)
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        all.push(...data);
-        if (data.length < pageSize) break;
-        from += pageSize;
-        if (from > 200000) break; // safety
-      }
+      // Fetch distinct customer/site pairs from Skiptrak data in a single call
+      const { data, error } = await supabase.rpc("get_skiptrak_customer_sites");
+      if (error) throw error;
+      const all = (data ?? []) as { customer: string | null; site: string | null }[];
       const custSet = new Set<string>();
       const siteSet = new Set<string>();
       const sitesByCust: Record<string, Set<string>> = {};
