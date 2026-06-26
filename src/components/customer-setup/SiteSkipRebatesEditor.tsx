@@ -58,6 +58,7 @@ type SkipRebateItem = {
   threshold_tonnes: number | null;
   rebate_enabled: boolean;
   container_type_filter: string[] | null;
+  waste_description_filter: string[] | null;
 };
 
 const SKIP_MATERIALS: { id: string; name: string }[] = [
