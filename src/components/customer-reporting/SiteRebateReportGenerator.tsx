@@ -832,8 +832,7 @@ export function SiteRebateReportGenerator() {
   // Consolidate materials into categories for the Total tab
   // Categories: Cardboard, Films, Scrap Metal, Other
   const consolidatedData = (() => {
-    // Note: Pallet Weight Charge weight is excluded from category weight totals
-    // but its rebate value is still included in the "Other" category rebate
+    // Note: all weights (including Pallet Weight Charge) are included in category weight totals
     const categories: Record<string, { 
       weight: number; 
       rebate: number; 
@@ -850,7 +849,6 @@ export function SiteRebateReportGenerator() {
     // Categorize Load Reports materials
     for (const row of reportData) {
       const name = row.material_name.toLowerCase();
-      const isPalletWeightCharge = name.includes("pallet weight charge");
       let category = "Other";
       
       if (name.includes("card") || name.includes("cardboard")) {
@@ -865,10 +863,8 @@ export function SiteRebateReportGenerator() {
         category = "Scrap Metal";
       }
 
-      // Pallet Weight Charge: include rebate value but NOT weight in totals
-      if (!isPalletWeightCharge) {
-        categories[category].weight += row.weight_tonnes;
-      }
+      // Include all weights (including pallet weight) in category totals
+      categories[category].weight += row.weight_tonnes;
       categories[category].rebate += row.rebate_value;
       categories[category].sources.push({
         name: `${row.material_name} (Load Reports)`,
@@ -933,8 +929,7 @@ export function SiteRebateReportGenerator() {
             grouped[cat.category] = { category: cat.category, weight: 0, rebate: 0, sources: [] };
           }
 
-          const isPalletWeightCharge = source.name.toLowerCase().includes("pallet weight charge");
-          grouped[cat.category].weight += isPalletWeightCharge ? 0 : source.weight;
+          grouped[cat.category].weight += source.weight;
           grouped[cat.category].rebate += source.rebate;
           grouped[cat.category].sources.push(source);
         }
@@ -1437,15 +1432,11 @@ Clews Recycling Limited`
                       <TableCell className="text-sm text-muted-foreground align-top">
                         <div className="space-y-0.5">
                           {cat.sources.map((src, srcIdx) => {
-                            const isPalletWeightCharge = src.name.toLowerCase().includes("pallet weight charge");
                             const rateStr = section === "charge" ? Math.abs(src.rate).toFixed(2) : src.rate.toFixed(2);
                             const valStr = section === "charge" ? Math.abs(src.rebate).toFixed(2) : src.rebate.toFixed(2);
                             return (
                               <div key={srcIdx}>
                                 {src.weight.toFixed(2)}t @ £{rateStr} = £{valStr}
-                                {isPalletWeightCharge && (
-                                  <span className="italic"> (pallet tare — not counted in tonnage)</span>
-                                )}
                               </div>
                             );
                           })}
