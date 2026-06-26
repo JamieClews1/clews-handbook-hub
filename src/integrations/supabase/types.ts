@@ -4369,6 +4369,75 @@ export type Database = {
         }
         Relationships: []
       }
+      rebate_report_tracking: {
+        Row: {
+          created_at: string
+          customer_id: string
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          rebate_amount: number | null
+          recipient_email: string | null
+          sent_at: string | null
+          sent_by: string | null
+          site_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          rebate_amount?: number | null
+          recipient_email?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          site_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          rebate_amount?: number | null
+          recipient_email?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          site_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rebate_report_tracking_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rebate_report_tracking_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rebate_rules: {
         Row: {
           created_at: string
