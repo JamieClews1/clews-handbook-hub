@@ -667,29 +667,31 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
   const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
 
-  // Consolidate materials into categories for the Total tab
-  // Categories: Cardboard, Films, Scrap Metal, Other
-  const consolidatedData = (() => {
-    // Note: Pallet Weight Charge weight is excluded from category weight totals
-    // but its rebate value is still included in the "Other" category rebate
-    const categories: Record<string, { 
-      weight: number; 
-      rebate: number; 
-      sources: { name: string; weight: number; rate: number; rebate: number; source: string }[] 
-    }> = {
-      "Cardboard": { weight: 0, rebate: 0, sources: [] },
-      "Paper": { weight: 0, rebate: 0, sources: [] },
-      "Films": { weight: 0, rebate: 0, sources: [] },
-      "Scrap Metal": { weight: 0, rebate: 0, sources: [] },
-      "Other": { weight: 0, rebate: 0, sources: [] },
-    };
+  // Build a flat list of every rebate/charge source line, each tagged with its
+  // display category and whether its weight should count towards totals.
+  // Splitting at this source level (rather than at the aggregated category level)
+  // ensures charges (negative lines) are separated from rebates even when they
+  // sit inside the same category (e.g. "Other" containing both a plastics rebate
+  // and a wood/waste/pallet charge).
+  type RebateSourceLine = {
+    name: string;
+    weight: number;
+    rate: number;
+    rebate: number;
+    source: string;
+    category: string;
+    countWeight: boolean;
+  };
 
-    // Categorize Load Reports materials
+  const allRebateSources: RebateSourceLine[] = (() => {
+    const out: RebateSourceLine[] = [];
+
+    // Load Reports materials
     for (const row of reportData) {
       const name = row.material_name.toLowerCase();
       const isPalletWeightCharge = name.includes("pallet weight charge");
       let category = "Other";
-      
+
       if (name.includes("card") || name.includes("cardboard")) {
         category = "Cardboard";
       } else if (name.includes("paper")) {
@@ -700,50 +702,73 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         category = "Scrap Metal";
       }
 
-      // Pallet Weight Charge: include rebate value but NOT weight in totals
-      if (!isPalletWeightCharge) {
-        categories[category].weight += row.weight_tonnes;
-      }
-      categories[category].rebate += row.rebate_value;
-      categories[category].sources.push({
+      out.push({
         name: `${row.material_name} (Load Reports)`,
         weight: row.weight_tonnes,
         rate: row.rate_per_tonne,
         rebate: row.rebate_value,
         source: row.rate_source,
+        category,
+        // Pallet Weight Charge: include rebate value but NOT weight in totals
+        countWeight: !isPalletWeightCharge,
       });
     }
 
-    // Categorize Skip/RoRo materials
+    // Skip/RoRo materials
     for (const summary of skipRoroSummaries) {
       let category = "Other";
-      
+
       if (summary.material_type === "card_loose") {
         category = "Cardboard";
       } else if (summary.material_type === "scrap_metal") {
         category = "Scrap Metal";
       }
 
-      categories[category].weight += summary.total_weight_tonnes;
-      categories[category].rebate += summary.rebate_value;
-      categories[category].sources.push({
+      out.push({
         name: `${summary.material_label} (RoRo/Skip)`,
         weight: summary.total_weight_tonnes,
         rate: summary.rate_per_tonne,
         rebate: summary.rebate_value,
         source: summary.rate_source,
+        category,
+        countWeight: true,
       });
     }
 
-    // Convert to array and filter out empty categories
+    return out;
+  })();
+
+  // Consolidate a set of source lines into display categories.
+  const consolidateByCategory = (sources: RebateSourceLine[]) => {
+    const categories: Record<string, {
+      weight: number;
+      rebate: number;
+      sources: { name: string; weight: number; rate: number; rebate: number; source: string }[];
+    }> = {};
+
+    for (const s of sources) {
+      if (!categories[s.category]) {
+        categories[s.category] = { weight: 0, rebate: 0, sources: [] };
+      }
+      if (s.countWeight) categories[s.category].weight += s.weight;
+      categories[s.category].rebate += s.rebate;
+      categories[s.category].sources.push({
+        name: s.name,
+        weight: s.weight,
+        rate: s.rate,
+        rebate: s.rebate,
+        source: s.source,
+      });
+    }
+
     return Object.entries(categories)
       .filter(([_, data]) => data.weight > 0 || data.rebate !== 0)
-      .map(([name, data]) => ({
-        category: name,
-        ...data,
-      }))
+      .map(([name, data]) => ({ category: name, ...data }))
       .sort((a, b) => b.rebate - a.rebate);
-  })();
+  };
+
+  // Combined view (used by Excel/customer exports) — every line consolidated together.
+  const consolidatedData = consolidateByCategory(allRebateSources);
 
   const exportToExcel = () => {
     if (!selectedSite || !dateRange?.from || !dateRange?.to) return;
