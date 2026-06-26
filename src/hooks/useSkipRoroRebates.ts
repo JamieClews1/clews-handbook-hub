@@ -261,25 +261,32 @@ export function useSkipRoroRebates(
               job_type: j.job_type ?? null,
               explicit_waste_filter_match: true,
             }));
-          const duplicateKeys = new Set(
-            mappedJobs.map((j) => [
-              j.job_date,
-              normalise(j.waste_description ?? ""),
-              normalise(j.container_type ?? ""),
-              (j.weight_t ?? 0).toFixed(2),
-            ].join("|"))
+          // Always prefer the Skiptrak ticket over the Midweigh weighbridge
+          // duplicate. Build keys from the Skiptrak (non-Midweigh) jobs already
+          // loaded and drop any Midweigh mapped job that matches one of them, so
+          // the report shows the Skiptrak job number rather than the Midweigh
+          // ticket (e.g. Britvic plastic packaging shows 47814 not 81468).
+          const skiptrakKeys = new Set(
+            allJobs
+              .filter((j) => j.category !== "Midweigh")
+              .map((j) => [
+                j.job_date,
+                normalise(j.waste_description ?? ""),
+                normalise(j.container_type ?? ""),
+                (j.weight_t ?? 0).toFixed(2),
+              ].join("|"))
           );
-          allJobs = allJobs.filter((j) => {
-            if (j.category === "Midweigh") return true;
+          const dedupedMidweigh = mappedJobs.filter((j) => {
             const key = [
               j.job_date,
               normalise(j.waste_description ?? ""),
               normalise(j.container_type ?? ""),
               (j.weight_t ?? 0).toFixed(2),
             ].join("|");
-            return !duplicateKeys.has(key);
+            return !skiptrakKeys.has(key);
           });
-          allJobs = [...allJobs, ...mappedJobs];
+          allJobs = [...allJobs, ...dedupedMidweigh];
+
         }
       }
 
