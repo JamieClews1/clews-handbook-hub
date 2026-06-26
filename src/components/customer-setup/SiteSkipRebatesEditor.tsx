@@ -10,6 +10,37 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2 } from "lucide-react";
  import { Checkbox } from "@/components/ui/checkbox";
 
+function ThresholdInput({
+  value,
+  onSave,
+  disabled,
+}: {
+  value: number | null;
+  onSave: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const [localValue, setLocalValue] = useState(String(value ?? 0));
+  useEffect(() => {
+    setLocalValue(String(value ?? 0));
+  }, [value]);
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="number"
+        step="0.1"
+        min="0"
+        className="w-20"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={() => onSave(localValue)}
+        placeholder="0"
+        disabled={disabled}
+      />
+      <span className="text-muted-foreground text-xs">T</span>
+    </div>
+  );
+}
+
 type RebateItem = {
   id: string;
   name: string;
@@ -406,19 +437,11 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                     </TableCell>
                     <TableCell>
                       {item.rebate_enabled && (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            className="w-20"
-                            value={item.threshold_tonnes ?? 0}
-                            onChange={(e) => updateThreshold(item.id, e.target.value)}
-                            placeholder="0"
-                            disabled={saving}
-                          />
-                          <span className="text-muted-foreground text-xs">T</span>
-                        </div>
+                        <ThresholdInput
+                          value={item.threshold_tonnes}
+                          onSave={(val) => updateThreshold(item.id, val)}
+                          disabled={saving}
+                        />
                       )}
                     </TableCell>
                     <TableCell>
