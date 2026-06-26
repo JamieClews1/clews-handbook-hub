@@ -39,7 +39,12 @@ type JobRecord = {
    adjustment: number | null;
    threshold_tonnes: number | null;
    rebate_enabled: boolean;
+   container_type_filter: string[] | null;
+   waste_description_filter: string[] | null;
  };
+
+ // Normalise container/waste strings so "40yd" matches "40 yd Ro Ro" etc.
+ const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
  
  const MATERIAL_LABELS: Record<string, string> = {
    card_loose: "Card Loose",
