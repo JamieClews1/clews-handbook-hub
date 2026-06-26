@@ -5898,6 +5898,13 @@ export type Database = {
         Returns: boolean
       }
       generate_ticket_number: { Args: never; Returns: string }
+      get_skiptrak_customer_sites: {
+        Args: never
+        Returns: {
+          customer: string
+          site: string
+        }[]
+      }
       get_skiptrak_rental_positions: {
         Args: never
         Returns: {
