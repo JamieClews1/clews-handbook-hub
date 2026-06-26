@@ -254,7 +254,6 @@ export function useSkipRoroRebates(
           let skiptrakCandidatesQuery = supabase
             .from("data_hub_jobs")
             .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
-            .eq("source", "skiptrak")
             .in("category", ["Roll on Roll off", "Skips"])
             .gte("job_date", startDate)
             .lte("job_date", endDate);
@@ -379,6 +378,126 @@ export function useSkipRoroRebates(
           const movementType = (j.movement_type ?? "").toLowerCase();
           return movementType !== "deliver" && movementType !== "delivery";
         });
+      }
+
+      // Final safeguard: never display/use a Midweigh ticket where the matching
+      // Skiptrak job exists. Midweigh is only a fallback for blank-site rows;
+      // customer reports must use the operational Skiptrak ticket number.
+      const midweighRows = allJobs.filter((job) => job.category === "Midweigh");
+      if (midweighRows.length > 0) {
+        const mappedSites = siteDataHubMappings.map((site) => site.trim()).filter(Boolean);
+        const candidateRowsById = new Map<string, any>();
+        const baseCandidateQuery = () =>
+          supabase
+            .from("data_hub_jobs")
+            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
+            .in("category", ["Roll on Roll off", "Skips"])
+            .gte("job_date", startDate)
+            .lte("job_date", endDate);
+
+        if (mappedSites.length > 0) {
+          const { data } = await baseCandidateQuery().in("site", mappedSites);
+          for (const row of data ?? []) candidateRowsById.set(row.id, row);
+        }
+
+        if (dataHubCustomer) {
+          const { data } = await baseCandidateQuery().ilike("customer", `%${dataHubCustomer}%`);
+          for (const row of data ?? []) candidateRowsById.set(row.id, row);
+        }
+
+        if (candidateRowsById.size === 0 && mappedSites.length === 0 && !dataHubCustomer) {
+          const { data } = await baseCandidateQuery();
+          for (const row of data ?? []) candidateRowsById.set(row.id, row);
+        }
+
+        const candidates = Array.from(candidateRowsById.values()).filter((candidate) => {
+          const candidateWaste = normalise(candidate.waste_description ?? "");
+          return midweighRows.some((job) => normalise(job.waste_description ?? "") === candidateWaste);
+        });
+
+        const exactMaps = [new Map<string, any>(), new Map<string, any>(), new Map<string, any>()];
+        const dateWasteBuckets = new Map<string, any[]>();
+        const keyParts = (job: { job_date?: string | null; waste_description?: string | null; container_type?: string | null; weight_t?: number | null }) => ({
+          date: (job.job_date ?? "").slice(0, 10),
+          waste: normalise(job.waste_description ?? ""),
+          container: normalise(job.container_type ?? ""),
+          weight: Number(job.weight_t ?? 0),
+        });
+        const keysFor = (job: typeof candidates[number]) => {
+          const parts = keyParts(job);
+          const weightKey = parts.weight > 0 ? parts.weight.toFixed(2) : "";
+          return [
+            weightKey ? `${parts.date}|${parts.waste}|${parts.container}|${weightKey}` : "",
+            weightKey ? `${parts.date}|${parts.waste}|${weightKey}` : "",
+            `${parts.date}|${parts.waste}|${parts.container}`,
+          ];
+        };
+
+        for (const candidate of candidates) {
+          keysFor(candidate).forEach((key, index) => {
+            if (key && !exactMaps[index].has(key)) exactMaps[index].set(key, candidate);
+          });
+          const { date, waste } = keyParts(candidate);
+          const dateWasteKey = `${date}|${waste}`;
+          dateWasteBuckets.set(dateWasteKey, [...(dateWasteBuckets.get(dateWasteKey) ?? []), candidate]);
+        }
+
+        const findSkiptrakMatch = (job: JobRecord) => {
+          const parts = keyParts(job);
+          const weightKey = parts.weight > 0 ? parts.weight.toFixed(2) : "";
+          const possibleKeys = [
+            weightKey ? `${parts.date}|${parts.waste}|${parts.container}|${weightKey}` : "",
+            weightKey ? `${parts.date}|${parts.waste}|${weightKey}` : "",
+            `${parts.date}|${parts.waste}|${parts.container}`,
+          ];
+
+          for (let index = 0; index < possibleKeys.length; index += 1) {
+            const key = possibleKeys[index];
+            if (key && exactMaps[index].has(key)) return exactMaps[index].get(key);
+          }
+
+          const bucket = dateWasteBuckets.get(`${parts.date}|${parts.waste}`) ?? [];
+          return bucket.length === 1 ? bucket[0] : null;
+        };
+
+        const replacedJobs = allJobs.map((job) => {
+          if (job.category !== "Midweigh") return job;
+          const skiptrakMatch = findSkiptrakMatch(job);
+          if (!skiptrakMatch) return job;
+
+          return {
+            ...job,
+            id: skiptrakMatch.id,
+            job_number: skiptrakMatch.job_number,
+            source: skiptrakMatch.source ?? "skiptrak",
+            customer: skiptrakMatch.customer ?? job.customer ?? null,
+            job_date: skiptrakMatch.job_date ?? job.job_date,
+            category: skiptrakMatch.category ?? "Roll on Roll off",
+            waste_description: skiptrakMatch.waste_description ?? job.waste_description,
+            weight_t: skiptrakMatch.weight_t ?? job.weight_t ?? 0,
+            site: skiptrakMatch.site ?? job.site,
+            container_type: skiptrakMatch.container_type ?? job.container_type ?? null,
+            movement_type: skiptrakMatch.movement_type ?? job.movement_type ?? null,
+            job_type: skiptrakMatch.job_type ?? job.job_type ?? null,
+            explicit_waste_filter_match: job.explicit_waste_filter_match,
+          };
+        });
+
+        const preferredById = new Map<string, JobRecord>();
+        for (const job of replacedJobs) {
+          const existing = preferredById.get(job.id);
+          if (!existing) {
+            preferredById.set(job.id, job);
+            continue;
+          }
+
+          const existingWeight = existing.weight_t ?? 0;
+          const jobWeight = job.weight_t ?? 0;
+          if (existing.category === "Midweigh" || (existingWeight === 0 && jobWeight > 0)) {
+            preferredById.set(job.id, job);
+          }
+        }
+        allJobs = Array.from(preferredById.values());
       }
 
       // 4a. Get material-specific weights from load_line_items for jobs with matching Load Reports
