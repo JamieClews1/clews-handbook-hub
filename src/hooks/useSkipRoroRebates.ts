@@ -190,7 +190,7 @@ export function useSkipRoroRebates(
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
           .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
-          .eq("customer", dataHubCustomer)
+          .ilike("customer", `%${dataHubCustomer}%`)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
           .lte("job_date", endDate)

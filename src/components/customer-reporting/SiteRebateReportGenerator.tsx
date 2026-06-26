@@ -1438,7 +1438,7 @@ Clews Recycling Limited`
                         <div className="space-y-0.5">
                           {cat.sources.map((src, srcIdx) => (
                             <div key={srcIdx}>
-                              {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{section === "charge" ? Math.abs(src.rebate).toFixed(2) : src.rebate.toFixed(2)}
+                              {src.weight.toFixed(2)}t @ £{section === "charge" ? Math.abs(src.rate).toFixed(2) : src.rate.toFixed(2)} = £{section === "charge" ? Math.abs(src.rebate).toFixed(2) : src.rebate.toFixed(2)}
                             </div>
                           ))}
                         </div>
@@ -1494,7 +1494,7 @@ Clews Recycling Limited`
                           </>
                         )}
                         <TableRow className="bg-muted/50 font-bold border-t-2">
-                          <TableCell>Total</TableCell>
+                          <TableCell>Net Total</TableCell>
                           <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
                           <TableCell colSpan={2}></TableCell>
                           <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
