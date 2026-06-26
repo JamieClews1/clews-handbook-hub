@@ -1490,7 +1490,7 @@ export type Database = {
           container_type_filter: string[] | null
           created_at: string
           id: string
-          material_type: Database["public"]["Enums"]["skip_material_type"]
+          material_type: string
           rebate_enabled: boolean | null
           set_value: number | null
           site_id: string
@@ -1504,7 +1504,7 @@ export type Database = {
           container_type_filter?: string[] | null
           created_at?: string
           id?: string
-          material_type: Database["public"]["Enums"]["skip_material_type"]
+          material_type: string
           rebate_enabled?: boolean | null
           set_value?: number | null
           site_id: string
@@ -1518,7 +1518,7 @@ export type Database = {
           container_type_filter?: string[] | null
           created_at?: string
           id?: string
-          material_type?: Database["public"]["Enums"]["skip_material_type"]
+          material_type?: string
           rebate_enabled?: boolean | null
           set_value?: number | null
           site_id?: string

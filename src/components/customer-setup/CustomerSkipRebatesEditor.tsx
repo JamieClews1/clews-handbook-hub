@@ -87,7 +87,10 @@ export function CustomerSkipRebatesEditor({ customerId, customerName }: Props) {
   }, [loadData]);
 
   const usedMaterials = new Set(rebates.map((r) => r.material_type));
-  const availableMaterials = MATERIAL_OPTIONS.filter((m) => !usedMaterials.has(m.value));
+  const availableMaterials = [
+    ...MATERIAL_OPTIONS,
+    ...allRebateItems.map((ri) => ({ value: ri.name, label: ri.name })),
+  ].filter((m) => !usedMaterials.has(m.value));
 
   const addMaterial = async () => {
     if (!selectedMaterialType) return;

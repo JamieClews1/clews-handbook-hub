@@ -19,7 +19,7 @@ type RebateItem = {
 type SkipRebateItem = {
   id: string;
   site_id: string;
-  material_type: "card_loose" | "scrap_metal";
+  material_type: string;
   value_type_item_id: string | null;
   value_type: "lower" | "higher" | "set" | "bespoke";
   set_value: number | null;
@@ -29,7 +29,7 @@ type SkipRebateItem = {
   container_type_filter: string[] | null;
 };
 
-const SKIP_MATERIALS: { id: "card_loose" | "scrap_metal"; name: string }[] = [
+const SKIP_MATERIALS: { id: string; name: string }[] = [
   { id: "card_loose", name: "Card Loose" },
   { id: "scrap_metal", name: "Scrap Metal" },
 ];
@@ -47,7 +47,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
   const [allRebateItems, setAllRebateItems] = useState<RebateItem[]>([]);
   const [skipRebates, setSkipRebates] = useState<SkipRebateItem[]>([]);
 
-  const [selectedMaterialType, setSelectedMaterialType] = useState<"card_loose" | "scrap_metal" | "">("");
+  const [selectedMaterialType, setSelectedMaterialType] = useState<string>("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -76,8 +76,13 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     loadData();
   }, [loadData]);
 
-  // No longer restrict materials - allow multiple entries per material type
-  const availableMaterials = SKIP_MATERIALS;
+  // Materials available to add: the two base skip materials plus every rebate
+  // price-card item (by name), excluding any already added to this site.
+  const usedMaterials = new Set(skipRebates.map((r) => r.material_type));
+  const availableMaterials = [
+    ...SKIP_MATERIALS,
+    ...allRebateItems.map((ri) => ({ id: ri.name, name: ri.name })),
+  ].filter((m) => !usedMaterials.has(m.id));
 
   const addMaterial = async () => {
     if (!selectedMaterialType) return;
@@ -273,8 +278,8 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
-  const getMaterialName = (materialType: "card_loose" | "scrap_metal") => {
-    return SKIP_MATERIALS.find((m) => m.id === materialType)?.name ?? "Unknown";
+  const getMaterialName = (materialType: string) => {
+    return SKIP_MATERIALS.find((m) => m.id === materialType)?.name ?? materialType;
   };
 
   if (loading) {
@@ -462,7 +467,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
             <Label className="text-sm">Add material</Label>
             <Select
               value={selectedMaterialType}
-              onValueChange={(v) => setSelectedMaterialType(v as "card_loose" | "scrap_metal" | "")}
+              onValueChange={(v) => setSelectedMaterialType(v)}
               disabled={saving}
             >
               <SelectTrigger>
