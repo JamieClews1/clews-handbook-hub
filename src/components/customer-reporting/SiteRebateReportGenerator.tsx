@@ -832,8 +832,7 @@ export function SiteRebateReportGenerator() {
   // Consolidate materials into categories for the Total tab
   // Categories: Cardboard, Films, Scrap Metal, Other
   const consolidatedData = (() => {
-    // Note: Pallet Weight Charge weight is excluded from category weight totals
-    // but its rebate value is still included in the "Other" category rebate
+    // Note: all weights (including Pallet Weight Charge) are included in category weight totals
     const categories: Record<string, { 
       weight: number; 
       rebate: number; 
