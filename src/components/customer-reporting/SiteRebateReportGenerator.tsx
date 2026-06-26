@@ -850,7 +850,6 @@ export function SiteRebateReportGenerator() {
     // Categorize Load Reports materials
     for (const row of reportData) {
       const name = row.material_name.toLowerCase();
-      const isPalletWeightCharge = name.includes("pallet weight charge");
       let category = "Other";
       
       if (name.includes("card") || name.includes("cardboard")) {
