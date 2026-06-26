@@ -666,6 +666,16 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
   const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
 
+  const getRebateCategory = (name: string, fallbackType?: string) => {
+    const key = `${fallbackType ?? ""} ${name}`.toLowerCase();
+    if (key.includes("card") || key.includes("cardboard")) return "Cardboard";
+    if (key.includes("paper")) return "Paper";
+    if (key.includes("plastic")) return "Plastics";
+    if (key.includes("film")) return "Films";
+    if (key.includes("scrap") || key.includes("ferrous") || key.includes("metal")) return "Scrap Metal";
+    return "Other";
+  };
+
   // Build a flat list of every rebate/charge source line, each tagged with its
   // display category.
   // Splitting at this source level (rather than at the aggregated category level)
@@ -686,56 +696,25 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
 
     // Load Reports materials
     for (const row of reportData) {
-      const name = row.material_name.toLowerCase();
-      let category = "Other";
-
-      if (name.includes("card") || name.includes("cardboard")) {
-        category = "Cardboard";
-      } else if (name.includes("paper")) {
-        category = "Paper";
-      } else if (name.includes("plastic")) {
-        category = "Plastics";
-      } else if (name.includes("film")) {
-        category = "Films";
-      } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
-        category = "Scrap Metal";
-      }
-
       out.push({
         name: `${row.material_name} (Load Reports)`,
         weight: row.weight_tonnes,
         rate: row.rate_per_tonne,
         rebate: row.rebate_value,
         source: row.rate_source,
-        category,
+        category: getRebateCategory(row.material_name),
       });
     }
 
     // Skip/RoRo materials
     for (const summary of skipRoroSummaries) {
-      let category = "Other";
-
-      const materialKey = `${summary.material_type} ${summary.material_label}`.toLowerCase();
-
-      if (summary.material_type === "card_loose" || materialKey.includes("card") || materialKey.includes("cardboard")) {
-        category = "Cardboard";
-      } else if (materialKey.includes("paper")) {
-        category = "Paper";
-      } else if (materialKey.includes("plastic")) {
-        category = "Plastics";
-      } else if (materialKey.includes("film")) {
-        category = "Films";
-      } else if (summary.material_type === "scrap_metal" || materialKey.includes("scrap") || materialKey.includes("ferrous") || materialKey.includes("metal")) {
-        category = "Scrap Metal";
-      }
-
       out.push({
         name: `${summary.material_label} (RoRo/Skip)`,
         weight: summary.total_weight_tonnes,
         rate: summary.rate_per_tonne,
         rebate: summary.rebate_value,
         source: summary.rate_source,
-        category,
+        category: getRebateCategory(summary.material_label, summary.material_type),
       });
     }
 
