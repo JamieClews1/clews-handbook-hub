@@ -1,0 +1,891 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { convertWeightToTonnes } from "@/lib/weighbridge-source";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import * as XLSX from "xlsx";
+import { ReportDateRangePicker } from "./ReportDateRangePicker";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { DateRange } from "react-day-picker";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
+import { getCustomerRebateExportBase64, type CustomerExportCategory } from "@/lib/customer-rebate-export";
+import {
+  fetchTrackingForPeriod,
+  upsertTracking,
+  trackingKey,
+  STATUS_META,
+  type RebateTrackingRow,
+  type RebateTrackingStatus,
+} from "@/lib/rebate-tracking";
+
+type Customer = { id: string; customer_name: string; customer_code: string };
+type Site = {
+  id: string;
+  site_name: string;
+  customer_id: string;
+  data_hub_site: string | null;
+  data_hub_site_2: string | null;
+  data_hub_site_3: string | null;
+  data_hub_site_4: string | null;
+  data_hub_site_5: string | null;
+  load_report_type: string | null;
+};
+type CustomerContact = { id: string; full_name: string; email: string | null; customer_id: string };
+
+type SiteBreakdown = {
+  site: Site;
+  totalRebate: number;
+  totalWeight: number;
+  materials: Array<{ name: string; weight: number; rate: number; rebate: number; source: string }>;
+};
+
+type CustomerRebateSummary = {
+  customer: Customer;
+  contacts: CustomerContact[];
+  totalRebate: number;
+  totalWeight: number;
+  siteBreakdowns: SiteBreakdown[];
+};
+
+type PossiblyDue = {
+  customer: string;
+  source: string;
+  totalWeight: number;
+  totalJobs: number;
+  wasteTypes: Array<{ waste_description: string; total_weight: number; job_count: number }>;
+};
+
+export function MonthlyRebateGenerationV2() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
+  const [generated, setGenerated] = useState(false);
+
+  const [summaries, setSummaries] = useState<CustomerRebateSummary[]>([]);
+  const [possiblyDue, setPossiblyDue] = useState<PossiblyDue[]>([]);
+  const [tracking, setTracking] = useState<Map<string, RebateTrackingRow>>(new Map());
+  const [lockedSiteIds, setLockedSiteIds] = useState<Set<string>>(new Set());
+
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  // Email dialog
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRebateSummary | null>(null);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  // Customer-level status derived from per-site tracking rows.
+  const customerStatus = (s: CustomerRebateSummary): RebateTrackingStatus => {
+    const rows = s.siteBreakdowns
+      .map((sb) => tracking.get(trackingKey(s.customer.id, sb.site.id)))
+      .filter(Boolean) as RebateTrackingRow[];
+    const custRow = tracking.get(trackingKey(s.customer.id, null));
+    if (custRow) rows.push(custRow);
+    if (rows.length === 0) return "not_generated";
+    if (rows.some((r) => r.status === "sent")) return "sent";
+    if (rows.some((r) => r.status === "generated")) return "generated";
+    return "not_generated";
+  };
+
+  const generate = async () => {
+    if (!dateRange?.from || !dateRange?.to) return;
+    setLoading(true);
+    setGenerated(false);
+    setProgress(0);
+    setProgressLabel("Loading customers & sites...");
+
+    try {
+      const periodStart = format(dateRange.from, "yyyy-MM-dd");
+      const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("id, customer_name, customer_code")
+        .order("customer_name");
+
+      // Sites (paginated)
+      const allSites: Site[] = [];
+      {
+        const pageSize = 1000;
+        let offset = 0;
+        while (true) {
+          const { data: page, error } = await supabase
+            .from("customer_sites")
+            .select(
+              "id, site_name, customer_id, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type",
+            )
+            .order("id")
+            .range(offset, offset + pageSize - 1);
+          if (error) throw error;
+          if (!page || page.length === 0) break;
+          allSites.push(...(page as Site[]));
+          if (page.length < pageSize) break;
+          offset += pageSize;
+        }
+      }
+
+      const { data: allContacts } = await supabase
+        .from("customer_contacts")
+        .select("id, full_name, email, customer_id");
+
+      const { data: palletWeightSetting } = await supabase
+        .from("load_report_settings")
+        .select("setting_value")
+        .eq("setting_key", "default_pallet_weight_kg")
+        .single();
+      const palletWeightKg = palletWeightSetting ? Number(palletWeightSetting.setting_value) : 20;
+
+      // Monthly market values (averaged across months in range)
+      const monthsInRange = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to });
+      const monthStarts = monthsInRange.map((m) => format(startOfMonth(m), "yyyy-MM-dd"));
+      const { data: monthlyValues } = await supabase
+        .from("rebate_monthly_values")
+        .select("item_id, lower_range, higher_range, month_start")
+        .in("month_start", monthStarts);
+
+      const valueAccumulator: Record<string, { lowerSum: number; higherSum: number; count: number }> = {};
+      for (const mv of monthlyValues ?? []) {
+        if (!valueAccumulator[mv.item_id]) valueAccumulator[mv.item_id] = { lowerSum: 0, higherSum: 0, count: 0 };
+        valueAccumulator[mv.item_id].lowerSum += mv.lower_range ?? 0;
+        valueAccumulator[mv.item_id].higherSum += mv.higher_range ?? 0;
+        valueAccumulator[mv.item_id].count += 1;
+      }
+      const monthlyValueMap: Record<string, { lower: number; higher: number }> = {};
+      for (const [itemId, acc] of Object.entries(valueAccumulator)) {
+        monthlyValueMap[itemId] = {
+          lower: acc.count > 0 ? acc.lowerSum / acc.count : 0,
+          higher: acc.count > 0 ? acc.higherSum / acc.count : 0,
+        };
+      }
+
+      // Only process customers that have at least one site.
+      const customersWithSites = (customers ?? []).filter((c) =>
+        (allSites ?? []).some((s) => s.customer_id === c.id),
+      );
+      const totalToProcess = customersWithSites.length || 1;
+
+      const result: CustomerRebateSummary[] = [];
+
+      for (let i = 0; i < customersWithSites.length; i++) {
+        const customer = customersWithSites[i];
+        setProgressLabel(`Calculating ${customer.customer_name}...`);
+        setProgress(Math.round((i / totalToProcess) * 90));
+
+        const customerSites = (allSites ?? []).filter((s) => s.customer_id === customer.id);
+        const customerContacts = (allContacts ?? []).filter((c) => c.customer_id === customer.id);
+
+        let customerTotalRebate = 0;
+        let customerTotalWeight = 0;
+        const siteBreakdowns: SiteBreakdown[] = [];
+
+        for (const site of customerSites) {
+          const priceSetLink = await fetchActivePriceSetLink(site.id, periodEnd);
+          if (!priceSetLink) continue;
+
+          const { data: rebateItems } = await supabase
+            .from("rebate_price_set_items")
+            .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
+            .eq("price_set_id", priceSetLink.price_set_id);
+
+          const rebateItemIds = (rebateItems ?? [])
+            .map((item) => item.value_type_item_id)
+            .filter((id): id is string => !!id);
+          let rebateItemNames: Record<string, string> = {};
+          if (rebateItemIds.length > 0) {
+            const { data: rebateItemsData } = await supabase
+              .from("rebate_items")
+              .select("id, name")
+              .in("id", rebateItemIds);
+            for (const ri of rebateItemsData ?? []) rebateItemNames[ri.id] = ri.name;
+          }
+
+          const { data: loadReports } = await supabase
+            .from("load_reports")
+            .select("id, total_pallets, no_pallets_on_load")
+            .eq("site_id", site.id)
+            .gte("report_date", periodStart)
+            .lte("report_date", periodEnd)
+            .eq("status", "submitted")
+            .eq("exclude_from_rebate", false);
+
+          const loadReportIds = (loadReports ?? []).map((r) => r.id);
+          const noPalletsByReportId: Record<string, boolean> = {};
+          for (const r of loadReports ?? []) noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+
+          let lineItemWeights: Record<string, number> = {};
+          let totalPalletWeightTonnes = 0;
+          if (loadReportIds.length > 0) {
+            const { data: lineItems } = await supabase
+              .from("load_line_items")
+              .select("load_report_id, waste_type, total_weight_kg, pallet_count")
+              .in("load_report_id", loadReportIds);
+            for (const item of lineItems ?? []) {
+              const wasteType = item.waste_type;
+              if (wasteType.toLowerCase().includes("pallet weight")) continue;
+              const grossKg = Number(item.total_weight_kg) || 0;
+              const palletCount = Number(item.pallet_count) || 0;
+              const noPallets = noPalletsByReportId[item.load_report_id] ?? false;
+              const palletKg = noPallets ? 0 : palletCount * palletWeightKg;
+              const actualKg = Math.max(0, grossKg - palletKg);
+              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualKg / 1000;
+              totalPalletWeightTonnes += palletKg / 1000;
+            }
+          }
+          const palletWeightTonnes = totalPalletWeightTonnes;
+
+          let loadReportRebate = 0;
+          let loadReportWeight = 0;
+          const materials: SiteBreakdown["materials"] = [];
+
+          for (const item of rebateItems ?? []) {
+            const { data: material } = await supabase
+              .from("load_waste_types")
+              .select("waste_type, rebate_category")
+              .eq("id", item.rebate_item_id)
+              .single();
+
+            const materialName = material?.waste_type ?? "Unknown";
+            const isPalletCharge = materialName.toLowerCase().includes("pallet");
+            const weight = isPalletCharge ? palletWeightTonnes : lineItemWeights[materialName] ?? 0;
+
+            let rate = 0;
+            let rateSource = "Not configured";
+            const adjustment = Number(item.adjustment ?? 0);
+            if (item.value_type === "set" && item.set_value !== null) {
+              rate = Number(item.set_value);
+              rateSource = "Custom";
+            } else if (item.value_type_item_id) {
+              const monthVal = monthlyValueMap[item.value_type_item_id];
+              const itemName = rebateItemNames[item.value_type_item_id] ?? "Market";
+              if (monthVal) {
+                rate = item.value_type === "higher" ? monthVal.higher : monthVal.lower;
+                rateSource = `${itemName} (${item.value_type})`;
+              } else {
+                rateSource = `${itemName} - No monthly value`;
+              }
+            }
+            if (adjustment !== 0) {
+              rate += adjustment;
+              rateSource += ` ${adjustment > 0 ? "+" : ""}${adjustment}`;
+            }
+            const isCostItem = (material?.rebate_category ?? "rebate") === "cost";
+            let rebate = weight * rate;
+            if (isCostItem) rebate = -Math.abs(rebate);
+            loadReportRebate += rebate;
+            loadReportWeight += weight;
+
+            if (weight > 0 || rate !== 0) {
+              materials.push({
+                name: isPalletCharge ? "Pallet Weight Charge" : `${materialName} (Load Reports)`,
+                weight,
+                rate,
+                rebate,
+                source: rateSource,
+              });
+            }
+          }
+
+          // Skip / RoRo rebates
+          const siteDataHubMappings = [
+            site.data_hub_site,
+            site.data_hub_site_2,
+            site.data_hub_site_3,
+            site.data_hub_site_4,
+            site.data_hub_site_5,
+          ].filter((s): s is string => !!s);
+
+          const { data: skipConfigs } = await supabase
+            .from("customer_site_skip_rebates")
+            .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+            .eq("site_id", site.id);
+
+          let skipRoroRebate = 0;
+          let skipRoroWeight = 0;
+
+          if (skipConfigs && skipConfigs.length > 0 && siteDataHubMappings.length > 0) {
+            const { data: rebateRules } = await supabase
+              .from("rebate_rules")
+              .select("rule_key, is_enabled");
+            const excludeSkipJobType = rebateRules?.find((r) => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
+            const excludeDeliverMovement = rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+
+            const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
+            const { data: rawJobs } = await supabase
+              .from("data_hub_jobs")
+              .select("waste_description, weight_t, category, job_type, movement_type")
+              .in("site", siteDataHubMappings)
+              .gte("job_date", periodStart)
+              .lte("job_date", periodEnd)
+              .in("category", targetCategories);
+
+            let jobs = (rawJobs ?? []).map((j) => ({
+              ...j,
+              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
+            }));
+            if (excludeSkipJobType) {
+              jobs = jobs.filter((j) => (j.category !== "Midweigh" ? true : (j.job_type ?? "").toUpperCase() !== "SKIP"));
+            }
+            if (excludeDeliverMovement) {
+              jobs = jobs.filter((j) => {
+                if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
+                const mt = (j.movement_type ?? "").toLowerCase();
+                return mt !== "deliver" && mt !== "delivery";
+              });
+            }
+
+            const { data: mappings } = await supabase
+              .from("data_hub_rebate_mappings")
+              .select("waste_description, material_type_id, rebate_item_id");
+
+            const MATERIAL_TYPE_MAP: Record<string, string> = { card_loose: "Card Loose", scrap_metal: "Scrap Metal" };
+            const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
+              card_loose: ["card loose", "cardboard"],
+              scrap_metal: ["scrap ferrous", "scrap non-ferrous", "scrap metal"],
+            };
+
+            for (const config of skipConfigs) {
+              if (config.rebate_enabled === false) continue;
+              let totalWeight = 0;
+              for (const job of jobs ?? []) {
+                const mapping = (mappings ?? []).find((m) => m.waste_description === job.waste_description);
+                if (mapping?.material_type_id) {
+                  const { data: wasteType } = await supabase
+                    .from("load_waste_types")
+                    .select("waste_type")
+                    .eq("id", mapping.material_type_id)
+                    .single();
+                  const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
+                  const wasteTypeLower = wasteType?.waste_type?.toLowerCase() ?? "";
+                  if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
+                }
+              }
+              if (totalWeight === 0) continue;
+              let rate = 0;
+              if (config.value_type === "set" && config.set_value !== null) rate = Number(config.set_value);
+              else if (config.value_type_item_id) {
+                const monthVal = monthlyValueMap[config.value_type_item_id];
+                if (monthVal) rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
+              }
+              rate += config.adjustment ?? 0;
+              const threshold = config.threshold_tonnes ?? 0;
+              const rebatableWeight = Math.max(0, totalWeight - threshold);
+              const rebate = rebatableWeight * rate;
+              skipRoroRebate += rebate;
+              skipRoroWeight += totalWeight;
+              materials.push({
+                name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (RoRo/Skip)`,
+                weight: totalWeight,
+                rate,
+                rebate,
+                source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
+              });
+            }
+          }
+
+          const siteTotalRebate = loadReportRebate + skipRoroRebate;
+          const siteTotalWeight = loadReportWeight + skipRoroWeight;
+          if (siteTotalRebate !== 0 || materials.length > 0) {
+            siteBreakdowns.push({ site, totalRebate: siteTotalRebate, totalWeight: siteTotalWeight, materials });
+          }
+          customerTotalRebate += siteTotalRebate;
+          customerTotalWeight += siteTotalWeight;
+        }
+
+        if (siteBreakdowns.length > 0) {
+          result.push({
+            customer,
+            contacts: customerContacts,
+            totalRebate: customerTotalRebate,
+            totalWeight: customerTotalWeight,
+            siteBreakdowns,
+          });
+        }
+      }
+
+      result.sort((a, b) => b.totalRebate - a.totalRebate);
+
+      // Locked reports for the period
+      const { data: lockedReports } = await supabase
+        .from("locked_rebate_reports")
+        .select("site_id")
+        .eq("period_start", periodStart)
+        .eq("period_end", periodEnd);
+      setLockedSiteIds(new Set((lockedReports ?? []).map((r) => r.site_id).filter((id): id is string => !!id)));
+
+      // Tracking
+      setProgressLabel("Loading communication status...");
+      setProgress(94);
+      const trackingMap = await fetchTrackingForPeriod(periodStart, periodEnd);
+
+      // Possibly due (unconfigured) — waste removed but nothing in customer setup
+      setProgressLabel("Checking for un-configured rebatable waste...");
+      setProgress(97);
+      const possibly = await computePossiblyDue(periodStart, periodEnd, result);
+
+      setSummaries(result);
+      setTracking(trackingMap);
+      setPossiblyDue(possibly);
+      setProgress(100);
+      setGenerated(true);
+    } catch (error: any) {
+      console.error("Error generating rebate overview:", error);
+      toast({ title: "Error", description: error?.message || "Failed to generate overview", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const computePossiblyDue = async (
+    periodStart: string,
+    periodEnd: string,
+    configured: CustomerRebateSummary[],
+  ): Promise<PossiblyDue[]> => {
+    const { data: rebateMappings } = await supabase
+      .from("data_hub_rebate_mappings")
+      .select("waste_description, material_type_id, rebate_item_id");
+    const rebateableWaste = (rebateMappings ?? [])
+      .filter((m) => m.rebate_item_id !== null || m.material_type_id !== null)
+      .map((m) => m.waste_description);
+    if (rebateableWaste.length === 0) return [];
+
+    const { data: jobs } = await supabase
+      .from("data_hub_jobs")
+      .select("customer, source, waste_description, weight_t, site")
+      .in("waste_description", rebateableWaste)
+      .gte("job_date", periodStart)
+      .lte("job_date", periodEnd)
+      .not("customer", "is", null);
+    if (!jobs || jobs.length === 0) return [];
+
+    const [{ data: configuredSites }, { data: configuredCustomers }] = await Promise.all([
+      supabase
+        .from("customer_sites")
+        .select(
+          "data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, data_hub_customer",
+        ),
+      supabase.from("customers").select("data_hub_customer").not("data_hub_customer", "is", null),
+    ]);
+
+    const configuredKeys = new Set<string>();
+    for (const c of configuredCustomers ?? []) {
+      if (c.data_hub_customer) configuredKeys.add(c.data_hub_customer.toLowerCase());
+    }
+    for (const s of configuredSites ?? []) {
+      [s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]
+        .filter(Boolean)
+        .forEach((v) => configuredKeys.add((v as string).toLowerCase()));
+    }
+
+    const map: Record<string, PossiblyDue> = {};
+    for (const job of jobs) {
+      const custLower = (job.customer ?? "").toLowerCase();
+      const siteLower = (job.site ?? "").toLowerCase();
+      if (configuredKeys.has(custLower) || configuredKeys.has(siteLower)) continue;
+      const key = `${job.customer}|${job.source}`;
+      if (!map[key]) map[key] = { customer: job.customer!, source: job.source, totalWeight: 0, totalJobs: 0, wasteTypes: [] };
+      let wt = map[key].wasteTypes.find((w) => w.waste_description === job.waste_description);
+      if (!wt) {
+        wt = { waste_description: job.waste_description!, total_weight: 0, job_count: 0 };
+        map[key].wasteTypes.push(wt);
+      }
+      const tonnes = convertWeightToTonnes(Number(job.weight_t) || 0, job.source as "skiptrak" | "midweigh") || 0;
+      wt.total_weight += tonnes;
+      wt.job_count += 1;
+      map[key].totalWeight += tonnes;
+      map[key].totalJobs += 1;
+    }
+    return Object.values(map).sort((a, b) => b.totalWeight - a.totalWeight);
+  };
+
+  // ---- Excel / Email helpers ----
+  const buildConsolidatedData = (summary: CustomerRebateSummary): CustomerExportCategory[] => {
+    const categories: Record<string, CustomerExportCategory> = {
+      Cardboard: { category: "Cardboard", weight: 0, rebate: 0, sources: [] },
+      Paper: { category: "Paper", weight: 0, rebate: 0, sources: [] },
+      Films: { category: "Films", weight: 0, rebate: 0, sources: [] },
+      "Scrap Metal": { category: "Scrap Metal", weight: 0, rebate: 0, sources: [] },
+      Other: { category: "Other", weight: 0, rebate: 0, sources: [] },
+    };
+    for (const sb of summary.siteBreakdowns) {
+      for (const mat of sb.materials) {
+        const name = mat.name.toLowerCase();
+        const isPalletWeightCharge = name.includes("pallet weight charge");
+        let category = "Other";
+        if (name.includes("card") || name.includes("cardboard")) category = "Cardboard";
+        else if (name.includes("paper")) category = "Paper";
+        else if (name.includes("film")) category = "Films";
+        else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) category = "Scrap Metal";
+        if (!isPalletWeightCharge) categories[category].weight += mat.weight;
+        categories[category].rebate += mat.rebate;
+        categories[category].sources.push({ name: mat.name, weight: mat.weight, rate: mat.rate, rebate: mat.rebate, source: mat.source });
+      }
+    }
+    return Object.values(categories).filter((c) => c.weight > 0 || c.rebate !== 0).sort((a, b) => b.rebate - a.rebate);
+  };
+
+  const periodLabel = dateRange?.from
+    ? `${format(dateRange.from, "MMMM yyyy")}${dateRange.to && dateRange.to.getMonth() !== dateRange.from.getMonth() ? ` - ${format(dateRange.to, "MMMM yyyy")}` : ""}`
+    : "Rebate Period";
+
+  const markGenerated = async (summary: CustomerRebateSummary) => {
+    if (!dateRange?.from || !dateRange?.to) return;
+    const periodStart = format(dateRange.from, "yyyy-MM-dd");
+    const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+    for (const sb of summary.siteBreakdowns) {
+      await upsertTracking({
+        customerId: summary.customer.id,
+        siteId: sb.site.id,
+        periodStart,
+        periodEnd,
+        status: tracking.get(trackingKey(summary.customer.id, sb.site.id))?.status === "sent" ? "sent" : "generated",
+        rebateAmount: sb.totalRebate,
+        userId: user?.id,
+      });
+    }
+    setTracking(await fetchTrackingForPeriod(periodStart, periodEnd));
+  };
+
+  const downloadExcel = async (summary: CustomerRebateSummary) => {
+    const rows: Array<Record<string, any>> = [];
+    for (const sb of summary.siteBreakdowns) {
+      for (const mat of sb.materials) {
+        rows.push({
+          Customer: summary.customer.customer_name,
+          Site: sb.site.site_name,
+          Material: mat.name,
+          "Weight (t)": Number(mat.weight.toFixed(4)),
+          "Rate (£/t)": Number(mat.rate.toFixed(2)),
+          "Rate Source": mat.source,
+          "Value (£)": Number(mat.rebate.toFixed(2)),
+        });
+      }
+      rows.push({ Customer: summary.customer.customer_name, Site: sb.site.site_name, Material: "SITE TOTAL", "Weight (t)": Number(sb.totalWeight.toFixed(4)), "Rate (£/t)": "", "Rate Source": "", "Value (£)": Number(sb.totalRebate.toFixed(2)) });
+    }
+    rows.push({ Customer: summary.customer.customer_name, Site: "TOTAL", Material: "", "Weight (t)": Number(summary.totalWeight.toFixed(4)), "Rate (£/t)": "", "Rate Source": "", "Value (£)": Number(summary.totalRebate.toFixed(2)) });
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rebate");
+    const safeName = summary.customer.customer_name.replace(/[^a-zA-Z0-9]/g, "_");
+    XLSX.writeFile(workbook, `Rebate-${safeName}-${format(dateRange!.from!, "MMM-yyyy")}.xlsx`);
+    await markGenerated(summary);
+    toast({ title: "Downloaded", description: `Marked ${summary.customer.customer_name} as generated.` });
+  };
+
+  const openEmailDialog = (summary: CustomerRebateSummary) => {
+    setSelectedCustomer(summary);
+    const contactWithEmail = summary.contacts.find((c) => c.email);
+    setEmailRecipient(contactWithEmail?.email ?? "");
+    setEmailSubject(`Rebate Invoice Request - ${periodLabel}`);
+    setEmailBody(
+      `Dear ${contactWithEmail?.full_name ?? "Customer"},\n\nWe are writing to inform you that rebates have been calculated for ${periodLabel}.\n\nTotal Rebate Due: £${summary.totalRebate.toFixed(2)}\n\nPlease submit an invoice for this amount at your earliest convenience.\n\nSite Breakdown:\n${summary.siteBreakdowns.map((sb) => `- ${sb.site.site_name}: £${sb.totalRebate.toFixed(2)}`).join("\n")}\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nClews Recycling Limited`,
+    );
+    setEmailDialogOpen(true);
+  };
+
+  const sendRebateEmail = async () => {
+    if (!selectedCustomer || !emailRecipient || !dateRange?.from || !dateRange?.to) return;
+    setSendingEmail(true);
+    try {
+      const siteName =
+        selectedCustomer.siteBreakdowns.length === 1
+          ? selectedCustomer.siteBreakdowns[0].site.site_name
+          : `${selectedCustomer.siteBreakdowns.length} sites`;
+      const { base64, filename } = await getCustomerRebateExportBase64({
+        customerName: selectedCustomer.customer.customer_name,
+        siteName,
+        periodLabel,
+        consolidatedData: buildConsolidatedData(selectedCustomer),
+        totalWeight: selectedCustomer.totalWeight,
+        totalRebate: selectedCustomer.totalRebate,
+        siteBreakdowns: selectedCustomer.siteBreakdowns.map((sb) => ({
+          siteName: sb.site.site_name,
+          totalWeight: sb.totalWeight,
+          totalRebate: sb.totalRebate,
+          materials: sb.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
+        })),
+      });
+
+      const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+        body: {
+          to: emailRecipient,
+          subject: emailSubject,
+          body: emailBody,
+          customerName: selectedCustomer.customer.customer_name,
+          attachment: { base64, filename },
+        },
+      });
+      if (emailError) throw emailError;
+
+      const periodStart = format(dateRange.from, "yyyy-MM-dd");
+      const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+
+      await supabase.from("rebate_email_logs").insert({
+        customer_id: selectedCustomer.customer.id,
+        period_start: periodStart,
+        period_end: periodEnd,
+        rebate_amount: selectedCustomer.totalRebate,
+        recipient_email: emailRecipient,
+        sent_by: user?.id,
+      });
+
+      for (const sb of selectedCustomer.siteBreakdowns) {
+        await upsertTracking({
+          customerId: selectedCustomer.customer.id,
+          siteId: sb.site.id,
+          periodStart,
+          periodEnd,
+          status: "sent",
+          rebateAmount: sb.totalRebate,
+          userId: user?.id,
+          recipientEmail: emailRecipient,
+        });
+      }
+
+      toast({ title: "Email Sent", description: `Rebate notification sent to ${emailRecipient}` });
+      setEmailDialogOpen(false);
+      setTracking(await fetchTrackingForPeriod(periodStart, periodEnd));
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast({ title: "Error", description: error?.message || "Failed to send email", variant: "destructive" });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const grandTotal = summaries.reduce((sum, s) => sum + s.totalRebate, 0);
+  const sentCount = summaries.filter((s) => customerStatus(s) === "sent").length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap gap-4 items-end">
+        <ReportDateRangePicker value={dateRange} onChange={setDateRange} allCustomers label="Period" />
+        <Button onClick={generate} disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Generate Overview
+            </>
+          )}
+        </Button>
+      </div>
+
+      {loading && (
+        <div className="space-y-2">
+          <Progress value={progress} />
+          <p className="text-sm text-muted-foreground">
+            {progressLabel} ({progress}%)
+          </p>
+        </div>
+      )}
+
+      {generated && !loading && (
+        <div className="space-y-6">
+          {/* Summary header */}
+          <div className="flex items-center justify-between flex-wrap gap-4 p-4 bg-muted/50 rounded-lg">
+            <div>
+              <h3 className="text-lg font-semibold">Rebates Due — {periodLabel}</h3>
+              <p className="text-sm text-muted-foreground">
+                {summaries.length} configured customers • {sentCount} sent • {summaries.length - sentCount} outstanding
+              </p>
+            </div>
+            <Badge className={cn("text-lg px-4 py-2", grandTotal >= 0 ? "bg-green-600" : "bg-red-600")}>
+              Total: £{grandTotal.toFixed(2)}
+            </Badge>
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 text-xs">
+            {(["sent", "generated", "not_generated"] as RebateTrackingStatus[]).map((st) => (
+              <div key={st} className="flex items-center gap-1.5">
+                <span className={cn("h-2.5 w-2.5 rounded-full", STATUS_META[st].dot)} />
+                <span className="text-muted-foreground">{STATUS_META[st].label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* TOP: configured customers — single line each */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Configured customers ({summaries.length})
+            </h4>
+            {summaries.map((summary) => {
+              const status = customerStatus(summary);
+              const meta = STATUS_META[status];
+              const isOpen = expanded.has(summary.customer.id);
+              return (
+                <Card key={summary.customer.id} className={cn("overflow-hidden border-l-4", meta.border)}>
+                  <Collapsible open={isOpen} onOpenChange={() => toggle(summary.customer.id)}>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <CollapsibleTrigger className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                        {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                        <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", meta.dot)} />
+                        <span className="font-medium truncate">{summary.customer.customer_name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {summary.siteBreakdowns.length} site{summary.siteBreakdowns.length !== 1 ? "s" : ""} • {summary.totalWeight.toFixed(2)}t
+                        </span>
+                      </CollapsibleTrigger>
+                      <Badge variant="outline" className={cn("shrink-0 text-xs", meta.badge)}>
+                        {meta.label}
+                      </Badge>
+                      <span className={cn("font-semibold w-24 text-right shrink-0", summary.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                        £{summary.totalRebate.toFixed(2)}
+                      </span>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => openEmailDialog(summary)} title="Send notification">
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <CollapsibleContent>
+                      <div className="border-t px-4 py-3 space-y-2 bg-muted/20">
+                        {summary.siteBreakdowns.map((sb) => (
+                          <div key={sb.site.id} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2">
+                              {sb.site.site_name}
+                              {lockedSiteIds.has(sb.site.id) && (
+                                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300">
+                                  <Lock className="h-2.5 w-2.5 mr-1" />
+                                  Locked
+                                </Badge>
+                              )}
+                              <span className="text-muted-foreground">({sb.totalWeight.toFixed(2)}t)</span>
+                            </span>
+                            <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              );
+            })}
+            {summaries.length === 0 && (
+              <Card>
+                <CardContent className="py-6 text-center text-muted-foreground text-sm">No configured customers with rebates due for this period.</CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* BOTTOM: possibly due (not in customer setup) */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Possibly due — rebatable waste with no customer setup ({possiblyDue.length})
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Waste removed this period that maps to a rebatable material, but the customer has no rebate configured in Customer Setup.
+            </p>
+            {possiblyDue.length > 0 ? (
+              <Card className="overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead className="text-right">Jobs</TableHead>
+                      <TableHead className="text-right">Weight (t)</TableHead>
+                      <TableHead>Waste streams</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {possiblyDue.map((p) => (
+                      <TableRow key={`${p.customer}|${p.source}`}>
+                        <TableCell className="font-medium">{p.customer}</TableCell>
+                        <TableCell className="capitalize text-muted-foreground">{p.source}</TableCell>
+                        <TableCell className="text-right">{p.totalJobs}</TableCell>
+                        <TableCell className="text-right">{p.totalWeight.toFixed(2)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {p.wasteTypes.map((w) => `${w.waste_description} (${w.total_weight.toFixed(2)}t)`).join(", ")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-6 text-center text-muted-foreground text-sm">No un-configured rebatable waste found for this period.</CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Email dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Rebate Notification</DialogTitle>
+            <DialogDescription>Notify {selectedCustomer?.customer.customer_name} about their rebate.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="v2-email-to">Recipient Email</Label>
+              <Input id="v2-email-to" type="email" value={emailRecipient} onChange={(e) => setEmailRecipient(e.target.value)} placeholder="customer@example.com" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="v2-email-subject">Subject</Label>
+              <Input id="v2-email-subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="v2-email-body">Message</Label>
+              <Textarea id="v2-email-body" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={12} className="font-mono text-sm" />
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3 text-sm">
+              <strong>Rebate Amount:</strong> £{selectedCustomer?.totalRebate.toFixed(2)}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>Cancel</Button>
+            <Button onClick={sendRebateEmail} disabled={sendingEmail || !emailRecipient}>
+              {sendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
