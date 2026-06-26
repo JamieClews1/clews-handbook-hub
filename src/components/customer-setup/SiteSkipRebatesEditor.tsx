@@ -467,7 +467,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
             <Label className="text-sm">Add material</Label>
             <Select
               value={selectedMaterialType}
-              onValueChange={(v) => setSelectedMaterialType(v as "card_loose" | "scrap_metal" | "")}
+              onValueChange={(v) => setSelectedMaterialType(v)}
               disabled={saving}
             >
               <SelectTrigger>
