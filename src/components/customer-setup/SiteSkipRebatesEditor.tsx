@@ -76,8 +76,13 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     loadData();
   }, [loadData]);
 
-  // No longer restrict materials - allow multiple entries per material type
-  const availableMaterials = SKIP_MATERIALS;
+  // Materials available to add: the two base skip materials plus every rebate
+  // price-card item (by name), excluding any already added to this site.
+  const usedMaterials = new Set(skipRebates.map((r) => r.material_type));
+  const availableMaterials = [
+    ...SKIP_MATERIALS,
+    ...allRebateItems.map((ri) => ({ id: ri.name, name: ri.name })),
+  ].filter((m) => !usedMaterials.has(m.id));
 
   const addMaterial = async () => {
     if (!selectedMaterialType) return;
