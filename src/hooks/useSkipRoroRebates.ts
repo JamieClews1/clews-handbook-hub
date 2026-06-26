@@ -38,10 +38,12 @@ type JobRecord = {
    set_value: number | null;
    adjustment: number | null;
    threshold_tonnes: number | null;
-   rebate_enabled: boolean;
-   container_type_filter: string[] | null;
-   waste_description_filter: string[] | null;
- };
+  rebate_enabled: boolean;
+  container_type_filter: string[] | null;
+  waste_description_filter: string[] | null;
+  effective_from: string | null;
+  effective_to: string | null;
+};
 
  // Normalise container/waste strings so "40yd" matches "40 yd Ro Ro" etc.
  const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
