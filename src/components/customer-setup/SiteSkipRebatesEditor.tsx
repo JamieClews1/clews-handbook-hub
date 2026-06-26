@@ -88,7 +88,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
         supabase.from("rebate_items").select("id, name, sort_order").order("sort_order", { ascending: true }),
       supabase
         .from("customer_site_skip_rebates")
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
         .eq("site_id", siteId),
       ]);
 
