@@ -321,6 +321,29 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
+  const updateEffectiveDate = async (
+    itemId: string,
+    field: "effective_from" | "effective_to",
+    value: string
+  ) => {
+    const dateValue = value.trim() === "" ? null : value;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("customer_site_skip_rebates")
+        .update({ [field]: dateValue })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, [field]: dateValue } : r)));
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update effective date.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
