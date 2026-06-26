@@ -7,6 +7,8 @@ type JobRecord = {
   id: string;
   job_number: string;
   job_date: string;
+  source?: string | null;
+  customer?: string | null;
   category: string;
   waste_description: string | null;
   weight_t: number;
@@ -163,7 +165,7 @@ export function useSkipRoroRebates(
         
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
+          .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
           .eq("site", siteMapping)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -172,6 +174,8 @@ export function useSkipRoroRebates(
         if (jobs) {
           allJobs = [...allJobs, ...jobs.map(j => ({
             ...j,
+            source: j.source ?? null,
+            customer: j.customer ?? null,
             weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
             job_date: j.job_date ?? "",
             waste_description: j.waste_description ?? null,
@@ -189,7 +193,7 @@ export function useSkipRoroRebates(
       if (dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
+          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
           .ilike("customer", `%${dataHubCustomer}%`)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
@@ -200,6 +204,8 @@ export function useSkipRoroRebates(
           const mappedJobs = midweighJobs.map(j => ({
             id: j.id,
             job_number: j.job_number,
+            source: j.source ?? null,
+            customer: (j as any).customer ?? null,
             job_date: j.job_date ?? "",
             category: j.category ?? "",
             waste_description: j.waste_description ?? null,
@@ -231,7 +237,7 @@ export function useSkipRoroRebates(
         const wasteFilterKeys = new Set(wasteFilterNames.map(normalise));
         let filteredMidweighQuery = supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
+          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -245,22 +251,83 @@ export function useSkipRoroRebates(
 
         if (filteredMidweigh) {
           const existingIds = new Set(allJobs.map((j) => j.id));
+          let skiptrakCandidatesQuery = supabase
+            .from("data_hub_jobs")
+            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
+            .eq("source", "skiptrak")
+            .in("category", ["Roll on Roll off", "Skips"])
+            .gte("job_date", startDate)
+            .lte("job_date", endDate);
+
+          const mappedSites = siteDataHubMappings.map((s) => s.trim()).filter(Boolean);
+          if (mappedSites.length > 0) {
+            skiptrakCandidatesQuery = skiptrakCandidatesQuery.in("site", mappedSites);
+          } else if (dataHubCustomer) {
+            skiptrakCandidatesQuery = skiptrakCandidatesQuery.ilike("customer", `%${dataHubCustomer}%`);
+          }
+
+          const { data: skiptrakCandidates } = await skiptrakCandidatesQuery;
+          const skiptrakByMatchKey = new Map<string, any>();
+          for (const candidate of skiptrakCandidates ?? []) {
+            if (!candidate.waste_description || !wasteFilterKeys.has(normalise(candidate.waste_description))) continue;
+            const key = [
+              candidate.job_date ?? "",
+              normalise(candidate.waste_description ?? ""),
+              normalise(candidate.container_type ?? ""),
+              (candidate.weight_t ?? 0).toFixed(2),
+            ].join("|");
+            if (!skiptrakByMatchKey.has(key)) {
+              skiptrakByMatchKey.set(key, candidate);
+            }
+          }
+
           const mappedJobs = filteredMidweigh
             .filter((j) => j.waste_description && wasteFilterKeys.has(normalise(j.waste_description)))
             .filter((j) => !existingIds.has(j.id))
-            .map((j) => ({
-              id: j.id,
-              job_number: j.job_number,
-              job_date: j.job_date ?? "",
-              category: j.category ?? "",
-              waste_description: j.waste_description ?? null,
-              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
-              site: (j as any).customer ?? "Midweigh",
-              container_type: j.container_type ?? null,
-              movement_type: j.movement_type ?? null,
-              job_type: j.job_type ?? null,
-              explicit_waste_filter_match: true,
-            }));
+            .map((j) => {
+              const midweighWeightT = (j.weight_t ?? 0) / 1000;
+              const matchKey = [
+                j.job_date ?? "",
+                normalise(j.waste_description ?? ""),
+                normalise(j.container_type ?? ""),
+                midweighWeightT.toFixed(2),
+              ].join("|");
+              const skiptrakMatch = skiptrakByMatchKey.get(matchKey);
+
+              if (skiptrakMatch) {
+                return {
+                  id: skiptrakMatch.id,
+                  job_number: skiptrakMatch.job_number,
+                  source: skiptrakMatch.source ?? "skiptrak",
+                  customer: skiptrakMatch.customer ?? null,
+                  job_date: skiptrakMatch.job_date ?? "",
+                  category: skiptrakMatch.category ?? "",
+                  waste_description: skiptrakMatch.waste_description ?? null,
+                  weight_t: skiptrakMatch.weight_t ?? midweighWeightT,
+                  site: skiptrakMatch.site ?? "",
+                  container_type: skiptrakMatch.container_type ?? null,
+                  movement_type: skiptrakMatch.movement_type ?? null,
+                  job_type: skiptrakMatch.job_type ?? null,
+                  explicit_waste_filter_match: true,
+                };
+              }
+
+              return {
+                id: j.id,
+                job_number: j.job_number,
+                source: j.source ?? null,
+                customer: (j as any).customer ?? null,
+                job_date: j.job_date ?? "",
+                category: j.category ?? "",
+                waste_description: j.waste_description ?? null,
+                weight_t: midweighWeightT,
+                site: (j as any).customer ?? "Midweigh",
+                container_type: j.container_type ?? null,
+                movement_type: j.movement_type ?? null,
+                job_type: j.job_type ?? null,
+                explicit_waste_filter_match: true,
+              };
+            });
           // Always prefer the Skiptrak ticket over the Midweigh weighbridge
           // duplicate. Build keys from the Skiptrak (non-Midweigh) jobs already
           // loaded and drop any Midweigh mapped job that matches one of them, so
