@@ -18,6 +18,7 @@ type JobRecord = {
   job_rebate_value?: number;
   // For Artic Curtain Side loads - weight from specific load report line item
   material_weight_t?: number;
+  explicit_waste_filter_match?: boolean;
 };
  
  export type SkipRoroMaterialSummary = {
@@ -189,7 +190,7 @@ export function useSkipRoroRebates(
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
           .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
-          .eq("customer", dataHubCustomer)
+          .ilike("customer", `%${dataHubCustomer}%`)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -226,24 +227,26 @@ export function useSkipRoroRebates(
             .filter((n) => n.length > 0)
         )
       );
-      if (
-        dataHubCustomer &&
-        siteDataHubMappings.filter(Boolean).length > 0 &&
-        wasteFilterNames.length > 0
-      ) {
-        const { data: filteredMidweigh } = await supabase
+      if ((siteId || siteDataHubMappings.filter(Boolean).length > 0) && wasteFilterNames.length > 0) {
+        const wasteFilterKeys = new Set(wasteFilterNames.map(normalise));
+        let filteredMidweighQuery = supabase
           .from("data_hub_jobs")
           .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
-          .eq("customer", dataHubCustomer)
           .or("site.is.null,site.eq.")
-          .in("waste_description", wasteFilterNames)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
           .eq("category", "Midweigh");
 
+        if (dataHubCustomer) {
+          filteredMidweighQuery = filteredMidweighQuery.ilike("customer", `%${dataHubCustomer}%`);
+        }
+
+        const { data: filteredMidweigh } = await filteredMidweighQuery;
+
         if (filteredMidweigh) {
           const existingIds = new Set(allJobs.map((j) => j.id));
           const mappedJobs = filteredMidweigh
+            .filter((j) => j.waste_description && wasteFilterKeys.has(normalise(j.waste_description)))
             .filter((j) => !existingIds.has(j.id))
             .map((j) => ({
               id: j.id,
@@ -256,7 +259,26 @@ export function useSkipRoroRebates(
               container_type: j.container_type ?? null,
               movement_type: j.movement_type ?? null,
               job_type: j.job_type ?? null,
+              explicit_waste_filter_match: true,
             }));
+          const duplicateKeys = new Set(
+            mappedJobs.map((j) => [
+              j.job_date,
+              normalise(j.waste_description ?? ""),
+              normalise(j.container_type ?? ""),
+              (j.weight_t ?? 0).toFixed(2),
+            ].join("|"))
+          );
+          allJobs = allJobs.filter((j) => {
+            if (j.category === "Midweigh") return true;
+            const key = [
+              j.job_date,
+              normalise(j.waste_description ?? ""),
+              normalise(j.container_type ?? ""),
+              (j.weight_t ?? 0).toFixed(2),
+            ].join("|");
+            return !duplicateKeys.has(key);
+          });
           allJobs = [...allJobs, ...mappedJobs];
         }
       }
@@ -268,6 +290,7 @@ export function useSkipRoroRebates(
         allJobs = allJobs.filter(j => {
           // Only apply to Midweigh category
           if (j.category !== "Midweigh") return true;
+          if (j.explicit_waste_filter_match) return true;
           const jobType = (j.job_type ?? "").toUpperCase();
           return jobType !== "SKIP";
         });
