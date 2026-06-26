@@ -1068,8 +1068,8 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
 
             <TabsContent value="total" className="mt-4">
               {consolidatedData.length > 0 ? (() => {
-                const rebateRows = consolidatedData.filter((cat) => cat.rebate >= 0);
-                const chargeRows = consolidatedData.filter((cat) => cat.rebate < 0);
+                const rebateRows = consolidateByCategory(allRebateSources.filter((s) => s.rebate >= 0));
+                const chargeRows = consolidateByCategory(allRebateSources.filter((s) => s.rebate < 0));
                 const rebatesTotal = rebateRows.reduce((sum, c) => sum + c.rebate, 0);
                 const rebatesWeight = rebateRows.reduce((sum, c) => sum + c.weight, 0);
                 const chargesTotal = chargeRows.reduce((sum, c) => sum + c.rebate, 0);
