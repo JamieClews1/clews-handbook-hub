@@ -59,6 +59,8 @@ type SkipRebateItem = {
   rebate_enabled: boolean;
   container_type_filter: string[] | null;
   waste_description_filter: string[] | null;
+  effective_from: string | null;
+  effective_to: string | null;
 };
 
 const SKIP_MATERIALS: { id: string; name: string }[] = [
@@ -88,7 +90,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
         supabase.from("rebate_items").select("id, name, sort_order").order("sort_order", { ascending: true }),
       supabase
         .from("customer_site_skip_rebates")
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter, effective_from, effective_to")
         .eq("site_id", siteId),
       ]);
 
@@ -132,8 +134,10 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
           rebate_enabled: true,
           container_type_filter: null,
           waste_description_filter: null,
+          effective_from: null,
+          effective_to: null,
         })
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter, effective_from, effective_to")
         .single();
 
       if (error) throw error;
@@ -317,6 +321,29 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
+  const updateEffectiveDate = async (
+    itemId: string,
+    field: "effective_from" | "effective_to",
+    value: string
+  ) => {
+    const dateValue = value.trim() === "" ? null : value;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("customer_site_skip_rebates")
+        .update({ [field]: dateValue })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, [field]: dateValue } : r)));
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update effective date.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
@@ -360,6 +387,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                 <TableHead>Material</TableHead>
                 <TableHead>Container Filter</TableHead>
                 <TableHead>Waste Description Filter</TableHead>
+                <TableHead>Effective Dates</TableHead>
                 <TableHead>Rebate Enabled</TableHead>
                 <TableHead>Value Type</TableHead>
                 <TableHead>Range</TableHead>
@@ -398,6 +426,31 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                         disabled={saving}
                       />
                       <span className="text-[10px] text-muted-foreground">Exact waste names for this site only</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 min-w-[150px]">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-8">From</span>
+                          <Input
+                            type="date"
+                            className="text-xs h-8"
+                            value={item.effective_from ?? ""}
+                            onChange={(e) => updateEffectiveDate(item.id, "effective_from", e.target.value)}
+                            disabled={saving}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-8">To</span>
+                          <Input
+                            type="date"
+                            className="text-xs h-8"
+                            value={item.effective_to ?? ""}
+                            onChange={(e) => updateEffectiveDate(item.id, "effective_to", e.target.value)}
+                            disabled={saving}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">Leave blank for always</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

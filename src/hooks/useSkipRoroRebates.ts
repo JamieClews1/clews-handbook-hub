@@ -38,10 +38,12 @@ type JobRecord = {
    set_value: number | null;
    adjustment: number | null;
    threshold_tonnes: number | null;
-   rebate_enabled: boolean;
-   container_type_filter: string[] | null;
-   waste_description_filter: string[] | null;
- };
+  rebate_enabled: boolean;
+  container_type_filter: string[] | null;
+  waste_description_filter: string[] | null;
+  effective_from: string | null;
+  effective_to: string | null;
+};
 
  // Normalise container/waste strings so "40yd" matches "40 yd Ro Ro" etc.
  const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -97,7 +99,7 @@ export function useSkipRoroRebates(
       if (siteId) {
         const { data: siteConfigs } = await supabase
           .from("customer_site_skip_rebates")
-          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter, effective_from, effective_to")
           .eq("site_id", siteId);
         
         skipConfigs = (siteConfigs ?? []) as SkipRebateConfig[];
@@ -107,7 +109,7 @@ export function useSkipRoroRebates(
       if (skipConfigs.length === 0 && customerId) {
         const { data: customerConfigs } = await supabase
           .from("customer_skip_rebates")
-          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter, effective_from, effective_to")
           .eq("customer_id", customerId);
         
         skipConfigs = (customerConfigs ?? []) as SkipRebateConfig[];
@@ -434,9 +436,19 @@ export function useSkipRoroRebates(
  
           const wasteFilter = (config.waste_description_filter ?? []).filter((n) => n.trim().length > 0);
           const containerFilter = (config.container_type_filter ?? []).filter((n) => n.trim().length > 0);
+          const effectiveFrom = config.effective_from ? config.effective_from.slice(0, 10) : null;
+          const effectiveTo = config.effective_to ? config.effective_to.slice(0, 10) : null;
 
           const matchingJobs = allJobs.filter(job => {
             if (!job.waste_description) return false;
+
+            // Effective date window: only count jobs on/after the start date
+            // (and on/before the end date if set). Lets a rebate go live from a
+            // specific date (e.g. Britvic plastic packaging from 24th May) without
+            // touching earlier jobs or any other rebate line.
+            const jobDay = (job.job_date ?? "").slice(0, 10);
+            if (effectiveFrom && jobDay && jobDay < effectiveFrom) return false;
+            if (effectiveTo && jobDay && jobDay > effectiveTo) return false;
 
             // Waste-description matching:
             // - If an explicit waste filter is configured on this line, match by it
