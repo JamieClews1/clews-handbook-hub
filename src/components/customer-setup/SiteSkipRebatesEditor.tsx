@@ -359,6 +359,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
               <TableRow>
                 <TableHead>Material</TableHead>
                 <TableHead>Container Filter</TableHead>
+                <TableHead>Waste Description Filter</TableHead>
                 <TableHead>Rebate Enabled</TableHead>
                 <TableHead>Value Type</TableHead>
                 <TableHead>Range</TableHead>
