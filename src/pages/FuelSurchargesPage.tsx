@@ -48,10 +48,12 @@ export default function FuelSurchargesPage() {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="jobs">Jobs & Export</TabsTrigger>
             <TabsTrigger value="rates">Rates</TabsTrigger>
+            <TabsTrigger value="biffa">Biffa</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard"><FuelSurchargeDashboard /></TabsContent>
           <TabsContent value="jobs"><FuelSurchargeJobsList /></TabsContent>
           <TabsContent value="rates"><FuelSurchargeRatesEditor canEdit={canEdit} /></TabsContent>
+          <TabsContent value="biffa"><BiffaFuelSurcharge canEdit={canEdit} /></TabsContent>
         </Tabs>
       </main>
     </div>
