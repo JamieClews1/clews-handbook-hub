@@ -865,10 +865,8 @@ export function SiteRebateReportGenerator() {
         category = "Scrap Metal";
       }
 
-      // Pallet Weight Charge: include rebate value but NOT weight in totals
-      if (!isPalletWeightCharge) {
-        categories[category].weight += row.weight_tonnes;
-      }
+      // Include all weights (including pallet weight) in category totals
+      categories[category].weight += row.weight_tonnes;
       categories[category].rebate += row.rebate_value;
       categories[category].sources.push({
         name: `${row.material_name} (Load Reports)`,
