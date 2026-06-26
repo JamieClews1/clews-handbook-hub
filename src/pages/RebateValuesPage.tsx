@@ -268,8 +268,24 @@ const RebateValuesPage = () => {
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-screen-2xl mx-auto space-y-6">
-          <Tabs defaultValue="monthly-values" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+          <Tabs defaultValue="monthly-generation" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 mb-6 h-auto">
+              <TabsTrigger value="monthly-generation" className="flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Monthly
+              </TabsTrigger>
+              <TabsTrigger value="rebate-reports" className="flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4" />
+                Rebate Reports
+              </TabsTrigger>
+              <TabsTrigger value="rebate-check" className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Check
+              </TabsTrigger>
+              <TabsTrigger value="tracking" className="flex items-center gap-2">
+                <Inbox className="h-4 w-4" />
+                Tracking
+              </TabsTrigger>
               <TabsTrigger value="monthly-values" className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
                 Monthly Values
@@ -283,6 +299,64 @@ const RebateValuesPage = () => {
                 Rebate Settings
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="monthly-generation">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Rebate Generation</CardTitle>
+                  <CardDescription>
+                    Generate the period overview of rebates due. Configured customers appear at the top; possibly-due
+                    (un-configured) rebatable waste appears at the bottom. Colours show whether each has been communicated.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MonthlyRebateGenerationV2 />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="rebate-reports">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Site Rebate Reports</CardTitle>
+                  <CardDescription>
+                    Calculate rebate values for customer sites based on configured pricing and tonnage data.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SiteRebateReportGenerator />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="rebate-check">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rebate Check</CardTitle>
+                  <CardDescription>
+                    Cross-check rebatable waste leaving site against what is configured in Customer Setup.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RebateCheckReport />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tracking">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Report Tracking (CRM)</CardTitle>
+                  <CardDescription>
+                    See which rebate reports have been generated and sent each month, by which user, and which are still
+                    outstanding.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RebateReportTracking />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="monthly-values">
               <Card>
