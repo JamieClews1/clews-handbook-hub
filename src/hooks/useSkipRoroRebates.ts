@@ -39,7 +39,12 @@ type JobRecord = {
    adjustment: number | null;
    threshold_tonnes: number | null;
    rebate_enabled: boolean;
+   container_type_filter: string[] | null;
+   waste_description_filter: string[] | null;
  };
+
+ // Normalise container/waste strings so "40yd" matches "40 yd Ro Ro" etc.
+ const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
  
  const MATERIAL_LABELS: Record<string, string> = {
    card_loose: "Card Loose",
@@ -92,7 +97,7 @@ export function useSkipRoroRebates(
       if (siteId) {
         const { data: siteConfigs } = await supabase
           .from("customer_site_skip_rebates")
-          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
           .eq("site_id", siteId);
         
         skipConfigs = (siteConfigs ?? []) as SkipRebateConfig[];
@@ -102,7 +107,7 @@ export function useSkipRoroRebates(
       if (skipConfigs.length === 0 && customerId) {
         const { data: customerConfigs } = await supabase
           .from("customer_skip_rebates")
-          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
           .eq("customer_id", customerId);
         
         skipConfigs = (customerConfigs ?? []) as SkipRebateConfig[];
@@ -201,6 +206,55 @@ export function useSkipRoroRebates(
             movement_type: j.movement_type ?? null,
             job_type: j.job_type ?? null,
           }));
+          allJobs = [...allJobs, ...mappedJobs];
+        }
+      }
+
+      // Site mode: some rebatable RoRo loads (e.g. Britvic plastic bottles) arrive
+      // as standalone Midweigh weighbridge tickets with NO site, under a shared
+      // customer (e.g. "Biffa Waste"). When a site rebate line has an explicit
+      // waste-description filter, pull those blank-site Midweigh jobs for this
+      // customer that match the filtered waste names. The waste filter is what
+      // scopes them to THIS site (e.g. only Britvic's "Plastic Packaging").
+      const wasteFilterNames = Array.from(
+        new Set(
+          skipConfigs
+            .flatMap((c) => c.waste_description_filter ?? [])
+            .map((n) => n.trim())
+            .filter((n) => n.length > 0)
+        )
+      );
+      if (
+        dataHubCustomer &&
+        siteDataHubMappings.filter(Boolean).length > 0 &&
+        wasteFilterNames.length > 0
+      ) {
+        const { data: filteredMidweigh } = await supabase
+          .from("data_hub_jobs")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
+          .eq("customer", dataHubCustomer)
+          .or("site.is.null,site.eq.")
+          .in("waste_description", wasteFilterNames)
+          .gte("job_date", startDate)
+          .lte("job_date", endDate)
+          .eq("category", "Midweigh");
+
+        if (filteredMidweigh) {
+          const existingIds = new Set(allJobs.map((j) => j.id));
+          const mappedJobs = filteredMidweigh
+            .filter((j) => !existingIds.has(j.id))
+            .map((j) => ({
+              id: j.id,
+              job_number: j.job_number,
+              job_date: j.job_date ?? "",
+              category: j.category ?? "",
+              waste_description: j.waste_description ?? null,
+              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
+              site: (j as any).customer ?? "Midweigh",
+              container_type: j.container_type ?? null,
+              movement_type: j.movement_type ?? null,
+              job_type: j.job_type ?? null,
+            }));
           allJobs = [...allJobs, ...mappedJobs];
         }
       }
@@ -378,11 +432,38 @@ export function useSkipRoroRebates(
            continue;
          }
  
+          const wasteFilter = (config.waste_description_filter ?? []).filter((n) => n.trim().length > 0);
+          const containerFilter = (config.container_type_filter ?? []).filter((n) => n.trim().length > 0);
+
           const matchingJobs = allJobs.filter(job => {
             if (!job.waste_description) return false;
-            const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
-            return mappedCategory === config.material_type;
+
+            // Waste-description matching:
+            // - If an explicit waste filter is configured on this line, match by it
+            //   (precise per-site mapping, e.g. Britvic "Plastic Packaging").
+            // - Otherwise fall back to the global material-category mapping.
+            if (wasteFilter.length > 0) {
+              const jobWaste = normalise(job.waste_description);
+              const wasteMatches = wasteFilter.some((f) => normalise(f) === jobWaste);
+              if (!wasteMatches) return false;
+            } else {
+              const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
+              if (mappedCategory !== config.material_type) return false;
+            }
+
+            // Optional container-type filter (e.g. "40yd" matches "40 yd Ro Ro").
+            if (containerFilter.length > 0) {
+              const jobContainer = normalise(job.container_type ?? "");
+              const containerMatches = containerFilter.some((f) => {
+                const nf = normalise(f);
+                return nf.length > 0 && jobContainer.includes(nf);
+              });
+              if (!containerMatches) return false;
+            }
+
+            return true;
           });
+
 
           const totalWeightVal = matchingJobs.reduce((sum, j) => sum + (j.weight_t ?? 0), 0);
 

@@ -1498,6 +1498,7 @@ export type Database = {
           updated_at: string
           value_type: string
           value_type_item_id: string | null
+          waste_description_filter: string[] | null
         }
         Insert: {
           adjustment?: number | null
@@ -1512,6 +1513,7 @@ export type Database = {
           updated_at?: string
           value_type?: string
           value_type_item_id?: string | null
+          waste_description_filter?: string[] | null
         }
         Update: {
           adjustment?: number | null
@@ -1526,6 +1528,7 @@ export type Database = {
           updated_at?: string
           value_type?: string
           value_type_item_id?: string | null
+          waste_description_filter?: string[] | null
         }
         Relationships: [
           {
@@ -1624,6 +1627,7 @@ export type Database = {
           updated_at: string
           value_type: string
           value_type_item_id: string | null
+          waste_description_filter: string[] | null
         }
         Insert: {
           adjustment?: number | null
@@ -1638,6 +1642,7 @@ export type Database = {
           updated_at?: string
           value_type?: string
           value_type_item_id?: string | null
+          waste_description_filter?: string[] | null
         }
         Update: {
           adjustment?: number | null
@@ -1652,6 +1657,7 @@ export type Database = {
           updated_at?: string
           value_type?: string
           value_type_item_id?: string | null
+          waste_description_filter?: string[] | null
         }
         Relationships: [
           {

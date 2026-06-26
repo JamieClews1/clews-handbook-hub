@@ -58,6 +58,7 @@ type SkipRebateItem = {
   threshold_tonnes: number | null;
   rebate_enabled: boolean;
   container_type_filter: string[] | null;
+  waste_description_filter: string[] | null;
 };
 
 const SKIP_MATERIALS: { id: string; name: string }[] = [
@@ -87,7 +88,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
         supabase.from("rebate_items").select("id, name, sort_order").order("sort_order", { ascending: true }),
       supabase
         .from("customer_site_skip_rebates")
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
         .eq("site_id", siteId),
       ]);
 
@@ -130,8 +131,9 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
           threshold_tonnes: 0,
           rebate_enabled: true,
           container_type_filter: null,
+          waste_description_filter: null,
         })
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
         .single();
 
       if (error) throw error;
@@ -293,6 +295,28 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
+  const updateWasteFilter = async (itemId: string, value: string) => {
+    const filters = value.trim() === ""
+      ? null
+      : value.split(",").map(s => s.trim()).filter(s => s.length > 0);
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("customer_site_skip_rebates")
+        .update({ waste_description_filter: filters })
+        .eq("id", itemId);
+
+      if (error) throw error;
+
+      setSkipRebates((prev) => prev.map((r) => (r.id === itemId ? { ...r, waste_description_filter: filters } : r)));
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update waste filter.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeMaterial = async (itemId: string) => {
     setSaving(true);
     try {
@@ -335,6 +359,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
               <TableRow>
                 <TableHead>Material</TableHead>
                 <TableHead>Container Filter</TableHead>
+                <TableHead>Waste Description Filter</TableHead>
                 <TableHead>Rebate Enabled</TableHead>
                 <TableHead>Value Type</TableHead>
                 <TableHead>Range</TableHead>
@@ -362,6 +387,17 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                         disabled={saving}
                       />
                       <span className="text-[10px] text-muted-foreground">Comma-separated keywords</span>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="text"
+                        className="min-w-[200px] text-xs"
+                        value={item.waste_description_filter?.join(", ") ?? ""}
+                        onChange={(e) => updateWasteFilter(item.id, e.target.value)}
+                        placeholder="e.g. Plastic Packaging"
+                        disabled={saving}
+                      />
+                      <span className="text-[10px] text-muted-foreground">Exact waste names for this site only</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
