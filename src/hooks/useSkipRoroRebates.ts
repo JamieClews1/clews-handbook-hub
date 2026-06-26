@@ -436,9 +436,19 @@ export function useSkipRoroRebates(
  
           const wasteFilter = (config.waste_description_filter ?? []).filter((n) => n.trim().length > 0);
           const containerFilter = (config.container_type_filter ?? []).filter((n) => n.trim().length > 0);
+          const effectiveFrom = config.effective_from ? config.effective_from.slice(0, 10) : null;
+          const effectiveTo = config.effective_to ? config.effective_to.slice(0, 10) : null;
 
           const matchingJobs = allJobs.filter(job => {
             if (!job.waste_description) return false;
+
+            // Effective date window: only count jobs on/after the start date
+            // (and on/before the end date if set). Lets a rebate go live from a
+            // specific date (e.g. Britvic plastic packaging from 24th May) without
+            // touching earlier jobs or any other rebate line.
+            const jobDay = (job.job_date ?? "").slice(0, 10);
+            if (effectiveFrom && jobDay && jobDay < effectiveFrom) return false;
+            if (effectiveTo && jobDay && jobDay > effectiveTo) return false;
 
             // Waste-description matching:
             // - If an explicit waste filter is configured on this line, match by it
