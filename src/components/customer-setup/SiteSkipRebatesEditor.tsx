@@ -428,6 +428,31 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                       <span className="text-[10px] text-muted-foreground">Exact waste names for this site only</span>
                     </TableCell>
                     <TableCell>
+                      <div className="flex flex-col gap-1 min-w-[150px]">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-8">From</span>
+                          <Input
+                            type="date"
+                            className="text-xs h-8"
+                            value={item.effective_from ?? ""}
+                            onChange={(e) => updateEffectiveDate(item.id, "effective_from", e.target.value)}
+                            disabled={saving}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-8">To</span>
+                          <Input
+                            type="date"
+                            className="text-xs h-8"
+                            value={item.effective_to ?? ""}
+                            onChange={(e) => updateEffectiveDate(item.id, "effective_to", e.target.value)}
+                            disabled={saving}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">Leave blank for always</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={item.rebate_enabled}
