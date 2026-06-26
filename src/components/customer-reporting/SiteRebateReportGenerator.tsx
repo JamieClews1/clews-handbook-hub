@@ -908,6 +908,45 @@ export function SiteRebateReportGenerator() {
       .sort((a, b) => b.rebate - a.rebate);
   })();
 
+  const totalSections = (() => {
+    const buildRows = (isCharge: boolean) => {
+      const grouped: Record<string, {
+        category: string;
+        weight: number;
+        rebate: number;
+        sources: { name: string; weight: number; rate: number; rebate: number; source: string }[];
+      }> = {};
+
+      for (const cat of consolidatedData) {
+        for (const source of cat.sources) {
+          if (isCharge ? source.rebate >= 0 : source.rebate < 0) continue;
+          if (!grouped[cat.category]) {
+            grouped[cat.category] = { category: cat.category, weight: 0, rebate: 0, sources: [] };
+          }
+
+          const isPalletWeightCharge = source.name.toLowerCase().includes("pallet weight charge");
+          grouped[cat.category].weight += isPalletWeightCharge ? 0 : source.weight;
+          grouped[cat.category].rebate += source.rebate;
+          grouped[cat.category].sources.push(source);
+        }
+      }
+
+      return Object.values(grouped).sort((a, b) => isCharge ? a.rebate - b.rebate : b.rebate - a.rebate);
+    };
+
+    const rebateRows = buildRows(false);
+    const chargeRows = buildRows(true);
+
+    return {
+      rebateRows,
+      chargeRows,
+      rebatesTotal: rebateRows.reduce((sum, row) => sum + row.rebate, 0),
+      rebatesWeight: rebateRows.reduce((sum, row) => sum + row.weight, 0),
+      chargesTotal: chargeRows.reduce((sum, row) => sum + row.rebate, 0),
+      chargesWeight: chargeRows.reduce((sum, row) => sum + row.weight, 0),
+    };
+  })();
+
   const exportToExcel = () => {
     const exportCustomer = customers.find((c) => c.id === selectedCustomerId);
     if (!exportCustomer || !dateRange?.from) return;
@@ -1310,8 +1349,16 @@ Clews Recycling Limited`
               <Badge variant="secondary" className="text-sm">
                 {combinedTotalWeight.toFixed(2)} tonnes
               </Badge>
+              <Badge variant="default" className="bg-green-600 text-sm">
+                Rebate £{totalSections.rebatesTotal.toFixed(2)}
+              </Badge>
+              {totalSections.chargesTotal < 0 && (
+                <Badge variant="default" className="bg-red-600 text-sm">
+                  Charges £{Math.abs(totalSections.chargesTotal).toFixed(2)}
+                </Badge>
+              )}
               <Badge variant="default" className={cn("text-sm", combinedTotalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
-                £{combinedTotalRebate.toFixed(2)}
+                Net £{combinedTotalRebate.toFixed(2)}
               </Badge>
               <Button variant="outline" size="sm" onClick={exportToExcel}>
                 <Download className="h-4 w-4 mr-2" />
@@ -1364,14 +1411,9 @@ Clews Recycling Limited`
 
             <TabsContent value="total" className="mt-4">
               {consolidatedData.length > 0 ? (() => {
-                const rebateRows = consolidatedData.filter((cat) => cat.rebate >= 0);
-                const chargeRows = consolidatedData.filter((cat) => cat.rebate < 0);
-                const rebatesTotal = rebateRows.reduce((sum, c) => sum + c.rebate, 0);
-                const rebatesWeight = rebateRows.reduce((sum, c) => sum + c.weight, 0);
-                const chargesTotal = chargeRows.reduce((sum, c) => sum + c.rebate, 0);
-                const chargesWeight = chargeRows.reduce((sum, c) => sum + c.weight, 0);
+                const { rebateRows, chargeRows, rebatesTotal, rebatesWeight, chargesTotal, chargesWeight } = totalSections;
 
-                const renderCategoryRows = (rows: typeof consolidatedData) =>
+                const renderCategoryRows = (rows: typeof totalSections.rebateRows, section: "rebate" | "charge") =>
                   rows.map((cat, idx) => (
                     <TableRow key={idx} className="border-b">
                       <TableCell className="font-semibold align-top">{cat.category}</TableCell>
@@ -1387,13 +1429,13 @@ Clews Recycling Limited`
                         <div className="space-y-0.5">
                           {cat.sources.map((src, srcIdx) => (
                             <div key={srcIdx}>
-                              {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
+                              {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{section === "charge" ? Math.abs(src.rebate).toFixed(2) : src.rebate.toFixed(2)}
                             </div>
                           ))}
                         </div>
                       </TableCell>
                       <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
-                        £{cat.rebate.toFixed(2)}
+                        £{section === "charge" ? Math.abs(cat.rebate).toFixed(2) : cat.rebate.toFixed(2)}
                       </TableCell>
                     </TableRow>
                   ));
@@ -1417,7 +1459,7 @@ Clews Recycling Limited`
                                 Rebates
                               </TableCell>
                             </TableRow>
-                            {renderCategoryRows(rebateRows)}
+                            {renderCategoryRows(rebateRows, "rebate")}
                             <TableRow className="bg-green-50/50 dark:bg-green-950/10 border-t">
                               <TableCell className="font-bold text-green-700 dark:text-green-400">REBATES TOTAL</TableCell>
                               <TableCell className="text-right font-bold text-green-700 dark:text-green-400">{rebatesWeight.toFixed(2)}</TableCell>
@@ -1433,12 +1475,12 @@ Clews Recycling Limited`
                                 Charges
                               </TableCell>
                             </TableRow>
-                            {renderCategoryRows(chargeRows)}
+                            {renderCategoryRows(chargeRows, "charge")}
                             <TableRow className="bg-red-50/50 dark:bg-red-950/10 border-t">
                               <TableCell className="font-bold text-red-700 dark:text-red-400">CHARGES TOTAL</TableCell>
                               <TableCell className="text-right font-bold text-red-700 dark:text-red-400">{chargesWeight.toFixed(2)}</TableCell>
                               <TableCell colSpan={2}></TableCell>
-                              <TableCell className="text-right font-bold text-red-600">£{chargesTotal.toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-bold text-red-600">£{Math.abs(chargesTotal).toFixed(2)}</TableCell>
                             </TableRow>
                           </>
                         )}
