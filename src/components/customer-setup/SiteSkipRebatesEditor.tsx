@@ -47,7 +47,7 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
   const [allRebateItems, setAllRebateItems] = useState<RebateItem[]>([]);
   const [skipRebates, setSkipRebates] = useState<SkipRebateItem[]>([]);
 
-  const [selectedMaterialType, setSelectedMaterialType] = useState<"card_loose" | "scrap_metal" | "">("");
+  const [selectedMaterialType, setSelectedMaterialType] = useState<string>("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
