@@ -278,8 +278,8 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
     }
   };
 
-  const getMaterialName = (materialType: "card_loose" | "scrap_metal") => {
-    return SKIP_MATERIALS.find((m) => m.id === materialType)?.name ?? "Unknown";
+  const getMaterialName = (materialType: string) => {
+    return SKIP_MATERIALS.find((m) => m.id === materialType)?.name ?? materialType;
   };
 
   if (loading) {
