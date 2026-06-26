@@ -33,7 +33,6 @@ import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteR
 import { MonthlyRebateGenerationV2 } from "@/components/customer-reporting/MonthlyRebateGenerationV2";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
 import { RebateReportTracking } from "@/components/customer-reporting/RebateReportTracking";
-import { Card as UICard, CardContent as UICardContent, CardDescription as UICardDescription, CardHeader as UICardHeader, CardTitle as UICardTitle } from "@/components/ui/card";
 
 type RebateItem = {
   id: string;
