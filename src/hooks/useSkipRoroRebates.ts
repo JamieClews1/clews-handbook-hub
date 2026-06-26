@@ -432,11 +432,38 @@ export function useSkipRoroRebates(
            continue;
          }
  
+          const wasteFilter = (config.waste_description_filter ?? []).filter((n) => n.trim().length > 0);
+          const containerFilter = (config.container_type_filter ?? []).filter((n) => n.trim().length > 0);
+
           const matchingJobs = allJobs.filter(job => {
             if (!job.waste_description) return false;
-            const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
-            return mappedCategory === config.material_type;
+
+            // Waste-description matching:
+            // - If an explicit waste filter is configured on this line, match by it
+            //   (precise per-site mapping, e.g. Britvic "Plastic Packaging").
+            // - Otherwise fall back to the global material-category mapping.
+            if (wasteFilter.length > 0) {
+              const jobWaste = normalise(job.waste_description);
+              const wasteMatches = wasteFilter.some((f) => normalise(f) === jobWaste);
+              if (!wasteMatches) return false;
+            } else {
+              const mappedCategory = wasteDescriptionToMaterialCategory[job.waste_description];
+              if (mappedCategory !== config.material_type) return false;
+            }
+
+            // Optional container-type filter (e.g. "40yd" matches "40 yd Ro Ro").
+            if (containerFilter.length > 0) {
+              const jobContainer = normalise(job.container_type ?? "");
+              const containerMatches = containerFilter.some((f) => {
+                const nf = normalise(f);
+                return nf.length > 0 && jobContainer.includes(nf);
+              });
+              if (!containerMatches) return false;
+            }
+
+            return true;
           });
+
 
           const totalWeightVal = matchingJobs.reduce((sum, j) => sum + (j.weight_t ?? 0), 0);
 
