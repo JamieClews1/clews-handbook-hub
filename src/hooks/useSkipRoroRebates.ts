@@ -99,7 +99,7 @@ export function useSkipRoroRebates(
       if (siteId) {
         const { data: siteConfigs } = await supabase
           .from("customer_site_skip_rebates")
-          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
+          .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter, effective_from, effective_to")
           .eq("site_id", siteId);
         
         skipConfigs = (siteConfigs ?? []) as SkipRebateConfig[];
