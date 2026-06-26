@@ -124,7 +124,7 @@ export async function upsertTracking(args: UpsertArgs): Promise<void> {
       patch.sent_by = userId;
       patch.recipient_email = recipientEmail;
     }
-    await supabase.from("rebate_report_tracking").update(patch).eq("id", existing.id);
+    await supabase.from("rebate_report_tracking").update(patch as never).eq("id", existing.id);
     return;
   }
 
