@@ -27,6 +27,7 @@ type JobRecord = {
   gross_weight_t?: number;
   // Total pallet weight deducted (for display)
   pallet_weight_t?: number;
+  explicit_waste_filter_match?: boolean;
 };
 
 type MaterialSummary = {
@@ -264,7 +265,26 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
               container_type: job.container_type ?? null,
               movement_type: job.movement_type ?? null,
               job_type: job.job_type ?? null,
+              explicit_waste_filter_match: true,
             }));
+          const duplicateKeys = new Set(
+            mappedJobs.map((job) => [
+              job.job_date,
+              normalise(job.waste_description ?? ""),
+              normalise(job.container_type ?? ""),
+              (job.weight_t ?? 0).toFixed(2),
+            ].join("|"))
+          );
+          allJobs = allJobs.filter((job) => {
+            if (job.category === "Midweigh") return true;
+            const key = [
+              job.job_date,
+              normalise(job.waste_description ?? ""),
+              normalise(job.container_type ?? ""),
+              (job.weight_t ?? 0).toFixed(2),
+            ].join("|");
+            return !duplicateKeys.has(key);
+          });
           allJobs = [...allJobs, ...mappedJobs];
         }
       }
@@ -275,6 +295,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       if (excludeSkipJobType) {
         allJobs = allJobs.filter(j => {
           if (j.category !== "Midweigh") return true;
+          if (j.explicit_waste_filter_match) return true;
           const jobType = (j.job_type ?? "").toUpperCase();
           return jobType !== "SKIP";
         });

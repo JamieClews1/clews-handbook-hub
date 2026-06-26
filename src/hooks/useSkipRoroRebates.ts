@@ -18,6 +18,7 @@ type JobRecord = {
   job_rebate_value?: number;
   // For Artic Curtain Side loads - weight from specific load report line item
   material_weight_t?: number;
+  explicit_waste_filter_match?: boolean;
 };
  
  export type SkipRoroMaterialSummary = {
@@ -256,7 +257,26 @@ export function useSkipRoroRebates(
               container_type: j.container_type ?? null,
               movement_type: j.movement_type ?? null,
               job_type: j.job_type ?? null,
+              explicit_waste_filter_match: true,
             }));
+          const duplicateKeys = new Set(
+            mappedJobs.map((j) => [
+              j.job_date,
+              normalise(j.waste_description ?? ""),
+              normalise(j.container_type ?? ""),
+              (j.weight_t ?? 0).toFixed(2),
+            ].join("|"))
+          );
+          allJobs = allJobs.filter((j) => {
+            if (j.category === "Midweigh") return true;
+            const key = [
+              j.job_date,
+              normalise(j.waste_description ?? ""),
+              normalise(j.container_type ?? ""),
+              (j.weight_t ?? 0).toFixed(2),
+            ].join("|");
+            return !duplicateKeys.has(key);
+          });
           allJobs = [...allJobs, ...mappedJobs];
         }
       }
@@ -268,6 +288,7 @@ export function useSkipRoroRebates(
         allJobs = allJobs.filter(j => {
           // Only apply to Midweigh category
           if (j.category !== "Midweigh") return true;
+          if (j.explicit_waste_filter_match) return true;
           const jobType = (j.job_type ?? "").toUpperCase();
           return jobType !== "SKIP";
         });
