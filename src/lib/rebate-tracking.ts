@@ -142,5 +142,5 @@ export async function upsertTracking(args: UpsertArgs): Promise<void> {
     recipient_email: status === "sent" ? recipientEmail : null,
   };
 
-  await supabase.from("rebate_report_tracking").insert(insert);
+  await supabase.from("rebate_report_tracking").insert(insert as never);
 }
