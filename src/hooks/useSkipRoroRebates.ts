@@ -210,7 +210,54 @@ export function useSkipRoroRebates(
         }
       }
 
-      // Apply exclusion rules to filter out unwanted jobs
+      // Site mode: some rebatable RoRo loads (e.g. Britvic plastic bottles) arrive
+      // as standalone Midweigh weighbridge tickets with NO site, under a shared
+      // customer (e.g. "Biffa Waste"). When a site rebate line has an explicit
+      // waste-description filter, pull those blank-site Midweigh jobs for this
+      // customer that match the filtered waste names. The waste filter is what
+      // scopes them to THIS site (e.g. only Britvic's "Plastic Packaging").
+      const wasteFilterNames = Array.from(
+        new Set(
+          skipConfigs
+            .flatMap((c) => c.waste_description_filter ?? [])
+            .map((n) => n.trim())
+            .filter((n) => n.length > 0)
+        )
+      );
+      if (
+        dataHubCustomer &&
+        siteDataHubMappings.filter(Boolean).length > 0 &&
+        wasteFilterNames.length > 0
+      ) {
+        const { data: filteredMidweigh } = await supabase
+          .from("data_hub_jobs")
+          .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
+          .eq("customer", dataHubCustomer)
+          .or("site.is.null,site.eq.")
+          .in("waste_description", wasteFilterNames)
+          .gte("job_date", startDate)
+          .lte("job_date", endDate)
+          .eq("category", "Midweigh");
+
+        if (filteredMidweigh) {
+          const existingIds = new Set(allJobs.map((j) => j.id));
+          const mappedJobs = filteredMidweigh
+            .filter((j) => !existingIds.has(j.id))
+            .map((j) => ({
+              id: j.id,
+              job_number: j.job_number,
+              job_date: j.job_date ?? "",
+              category: j.category ?? "",
+              waste_description: j.waste_description ?? null,
+              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : (j.weight_t ?? 0),
+              site: (j as any).customer ?? "Midweigh",
+              container_type: j.container_type ?? null,
+              movement_type: j.movement_type ?? null,
+              job_type: j.job_type ?? null,
+            }));
+          allJobs = [...allJobs, ...mappedJobs];
+        }
+      }
       // Rule 1: Exclude Midweigh jobs with Job Type = "SKIP"
       // These are duplicate weighbridge records for Skiptrak jobs (e.g., Skiptrak 44788 = Midweigh 75756)
       if (excludeSkipJobType) {
