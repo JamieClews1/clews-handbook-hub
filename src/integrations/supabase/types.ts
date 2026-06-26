@@ -4255,6 +4255,8 @@ export type Database = {
           adjustment: number | null
           created_at: string
           display_order: number
+          effective_from: string | null
+          effective_to: string | null
           id: string
           price_set_id: string
           rebate_item_id: string
@@ -4267,6 +4269,8 @@ export type Database = {
           adjustment?: number | null
           created_at?: string
           display_order?: number
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           price_set_id: string
           rebate_item_id: string
@@ -4279,6 +4283,8 @@ export type Database = {
           adjustment?: number | null
           created_at?: string
           display_order?: number
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           price_set_id?: string
           rebate_item_id?: string

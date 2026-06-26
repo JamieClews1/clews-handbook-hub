@@ -58,6 +58,8 @@ type RebateConfig = {
   set_value: number | null;
   adjustment: number;
   rebate_category: string;
+  effective_from: string | null;
+  effective_to: string | null;
 };
 
 type RebateReportRow = {
@@ -297,6 +299,8 @@ export function SiteRebateReportGenerator() {
               set_value: item.set_value,
               adjustment: (fullItem as any)?.adjustment ?? 0,
               rebate_category: material?.rebate_category ?? "rebate",
+              effective_from: (fullItem as any)?.effective_from ?? null,
+              effective_to: (fullItem as any)?.effective_to ?? null,
             });
           }
 
@@ -530,10 +534,24 @@ export function SiteRebateReportGenerator() {
               }
             }
 
-            
+
+            // Effective-date window per material (price-set line start/end).
+            // A load only counts toward a rebate line if its date falls within
+            // the line's [effective_from, effective_to] window.
+            const withinEffectiveWindow = (materialName: string, dateStr: string | null) => {
+              const cfg = rebateConfigs.find((c) => c.material_name === materialName);
+              if (!cfg) return true;
+              if (!dateStr) return true;
+              if (cfg.effective_from && dateStr < cfg.effective_from) return false;
+              if (cfg.effective_to && dateStr > cfg.effective_to) return false;
+              return true;
+            };
+
             for (const item of lineItems ?? []) {
               const wasteType = item.waste_type;
               if (wasteType.toLowerCase().includes("pallet weight")) continue;
+              if (!withinEffectiveWindow(wasteType, reportDateById[item.load_report_id])) continue;
+
 
               const grossKg = Number(item.total_weight_kg) || 0;
               const palletCount = Number(item.pallet_count) || 0;
@@ -586,8 +604,75 @@ export function SiteRebateReportGenerator() {
             // Store weight rebate threshold reductions for rebate calculation
             (lineItemWeights as any).__THRESHOLD_REDUCTIONS__ = thresholdReductionsByMaterial;
           }
+
+          // --- Midweigh standalone weighbridge tickets ---
+          // Some rebatable RoRo loads (e.g. Britvic plastics) arrive as their own
+          // Midweigh weighbridge tickets with no Load Report and a blank site. Pull
+          // these directly when their waste_description matches a price-set waste
+          // type, so they flow into the rebate report automatically.
+          const priceSetWasteTypes = rebateConfigs
+            .map((c) => c.material_name)
+            .filter((n) => n && !n.toLowerCase().includes("pallet"));
+          const midweighCustomer =
+            site?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? null;
+
+          if (midweighCustomer && priceSetWasteTypes.length > 0) {
+            const { data: midweighJobs } = await supabase
+              .from("data_hub_jobs")
+              .select("job_number, job_date, waste_description, weight_t, container_type")
+              .eq("source", "midweigh")
+              .eq("customer", midweighCustomer)
+              .in("waste_description", priceSetWasteTypes)
+              .gte("job_date", periodStart)
+              .lte("job_date", periodEnd);
+
+            const midweighByWasteType: Record<string, number> = {};
+            for (const job of midweighJobs ?? []) {
+              const wasteType = job.waste_description as string;
+              // Honour the price-set line's effective-date window (e.g. Britvic
+              // plastics only count from 24 May onward).
+              const cfg = rebateConfigs.find((c) => c.material_name === wasteType);
+              const jobDate = job.job_date ?? null;
+              if (cfg && jobDate) {
+                if (cfg.effective_from && jobDate < cfg.effective_from) continue;
+                if (cfg.effective_to && jobDate > cfg.effective_to) continue;
+              }
+              // Midweigh weights are stored in KG -> convert to tonnes
+              const tonnes = convertWeightToTonnes(job.weight_t, "midweigh") ?? 0;
+              if (tonnes <= 0) continue;
+              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + tonnes;
+              midweighByWasteType[wasteType] = (midweighByWasteType[wasteType] ?? 0) + tonnes;
+
+
+              // Surface each ticket as an individual report card for visibility
+              loadReportsWithItems.push({
+                id: `midweigh-${job.job_number}`,
+                report_date: job.job_date ?? "",
+                operator_name: "Midweigh weighbridge",
+                vehicle_reg: null,
+                total_pallets: 0,
+                total_weight_kg: job.weight_t ?? 0,
+                notes: job.job_number,
+                no_pallets_on_load: true,
+                wet_charge_percent: null,
+                line_items: [
+                  {
+                    waste_type: wasteType,
+                    pallet_count: 0,
+                    total_weight_kg: job.weight_t ?? 0,
+                    wet_charge_applied: false,
+                    rebate_threshold_applied: false,
+                  },
+                ],
+                rebate_threshold_tonnes: 0,
+                calculated_rebate: 0,
+                weighbridge_weight_kg: job.weight_t ?? 0,
+              });
+            }
+          }
         }
       } else {
+
         // No price set, set empty price set name
         setPriceSetName("");
       }
