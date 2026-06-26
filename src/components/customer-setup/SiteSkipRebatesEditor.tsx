@@ -19,7 +19,7 @@ type RebateItem = {
 type SkipRebateItem = {
   id: string;
   site_id: string;
-  material_type: "card_loose" | "scrap_metal";
+  material_type: string;
   value_type_item_id: string | null;
   value_type: "lower" | "higher" | "set" | "bespoke";
   set_value: number | null;
@@ -29,7 +29,7 @@ type SkipRebateItem = {
   container_type_filter: string[] | null;
 };
 
-const SKIP_MATERIALS: { id: "card_loose" | "scrap_metal"; name: string }[] = [
+const SKIP_MATERIALS: { id: string; name: string }[] = [
   { id: "card_loose", name: "Card Loose" },
   { id: "scrap_metal", name: "Scrap Metal" },
 ];
