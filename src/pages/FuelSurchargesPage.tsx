@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FuelSurchargeDashboard from "@/components/fuel-surcharge/FuelSurchargeDashboard";
 import FuelSurchargeJobsList from "@/components/fuel-surcharge/FuelSurchargeJobsList";
 import FuelSurchargeRatesEditor from "@/components/fuel-surcharge/FuelSurchargeRatesEditor";
+import BiffaFuelSurcharge from "@/components/fuel-surcharge/BiffaFuelSurcharge";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,10 +48,12 @@ export default function FuelSurchargesPage() {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="jobs">Jobs & Export</TabsTrigger>
             <TabsTrigger value="rates">Rates</TabsTrigger>
+            <TabsTrigger value="biffa">Biffa</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard"><FuelSurchargeDashboard /></TabsContent>
           <TabsContent value="jobs"><FuelSurchargeJobsList /></TabsContent>
           <TabsContent value="rates"><FuelSurchargeRatesEditor canEdit={canEdit} /></TabsContent>
+          <TabsContent value="biffa"><BiffaFuelSurcharge canEdit={canEdit} /></TabsContent>
         </Tabs>
       </main>
     </div>
