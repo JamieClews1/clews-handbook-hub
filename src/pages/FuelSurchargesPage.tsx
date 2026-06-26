@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FuelSurchargeDashboard from "@/components/fuel-surcharge/FuelSurchargeDashboard";
 import FuelSurchargeJobsList from "@/components/fuel-surcharge/FuelSurchargeJobsList";
 import FuelSurchargeRatesEditor from "@/components/fuel-surcharge/FuelSurchargeRatesEditor";
+import BiffaFuelSurcharge from "@/components/fuel-surcharge/BiffaFuelSurcharge";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
