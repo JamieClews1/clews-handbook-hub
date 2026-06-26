@@ -1489,6 +1489,8 @@ export type Database = {
           adjustment: number | null
           container_type_filter: string[] | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           material_type: string
           rebate_enabled: boolean | null
@@ -1504,6 +1506,8 @@ export type Database = {
           adjustment?: number | null
           container_type_filter?: string[] | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           material_type: string
           rebate_enabled?: boolean | null
@@ -1519,6 +1523,8 @@ export type Database = {
           adjustment?: number | null
           container_type_filter?: string[] | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           material_type?: string
           rebate_enabled?: boolean | null
@@ -1619,6 +1625,8 @@ export type Database = {
           container_type_filter: string[] | null
           created_at: string
           customer_id: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           material_type: string
           rebate_enabled: boolean | null
@@ -1634,6 +1642,8 @@ export type Database = {
           container_type_filter?: string[] | null
           created_at?: string
           customer_id: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           material_type: string
           rebate_enabled?: boolean | null
@@ -1649,6 +1659,8 @@ export type Database = {
           container_type_filter?: string[] | null
           created_at?: string
           customer_id?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           material_type?: string
           rebate_enabled?: boolean | null
