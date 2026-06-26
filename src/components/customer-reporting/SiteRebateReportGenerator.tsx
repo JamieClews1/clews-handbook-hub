@@ -1434,15 +1434,11 @@ Clews Recycling Limited`
                       <TableCell className="text-sm text-muted-foreground align-top">
                         <div className="space-y-0.5">
                           {cat.sources.map((src, srcIdx) => {
-                            const isPalletWeightCharge = src.name.toLowerCase().includes("pallet weight charge");
                             const rateStr = section === "charge" ? Math.abs(src.rate).toFixed(2) : src.rate.toFixed(2);
                             const valStr = section === "charge" ? Math.abs(src.rebate).toFixed(2) : src.rebate.toFixed(2);
                             return (
                               <div key={srcIdx}>
                                 {src.weight.toFixed(2)}t @ £{rateStr} = £{valStr}
-                                {isPalletWeightCharge && (
-                                  <span className="italic"> (pallet tare — not counted in tonnage)</span>
-                                )}
                               </div>
                             );
                           })}
