@@ -118,9 +118,11 @@ export function SiteRebateReportGenerator() {
   // Get customer for customer-level data_hub_customer mapping
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
   // In Customer Midweigh mode, use customer-level mapping only; otherwise prefer site-level
+  const selectedSiteDataHubCustomer = selectedSite?.data_hub_customer?.trim() || undefined;
+  const selectedCustomerDataHubCustomer = selectedCustomer?.data_hub_customer?.trim() || undefined;
   const effectiveDataHubCustomer = isCustomerMidweighMode 
-    ? selectedCustomer?.data_hub_customer 
-    : (selectedSite?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? undefined);
+    ? selectedCustomerDataHubCustomer 
+    : (selectedSiteDataHubCustomer ?? selectedCustomerDataHubCustomer);
 
   // Use the hook to get Skip/RoRo rebate totals
   // In Customer Midweigh mode, pass empty siteId to skip site-level lookups
