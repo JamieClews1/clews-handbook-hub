@@ -131,8 +131,9 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
           threshold_tonnes: 0,
           rebate_enabled: true,
           container_type_filter: null,
+          waste_description_filter: null,
         })
-        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter")
+        .select("id, site_id, material_type, value_type_item_id, value_type, set_value, adjustment, threshold_tonnes, rebate_enabled, container_type_filter, waste_description_filter")
         .single();
 
       if (error) throw error;
