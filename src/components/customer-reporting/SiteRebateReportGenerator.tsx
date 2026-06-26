@@ -931,8 +931,7 @@ export function SiteRebateReportGenerator() {
             grouped[cat.category] = { category: cat.category, weight: 0, rebate: 0, sources: [] };
           }
 
-          const isPalletWeightCharge = source.name.toLowerCase().includes("pallet weight charge");
-          grouped[cat.category].weight += isPalletWeightCharge ? 0 : source.weight;
+          grouped[cat.category].weight += source.weight;
           grouped[cat.category].rebate += source.rebate;
           grouped[cat.category].sources.push(source);
         }
