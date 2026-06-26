@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      biffa_fuel_surcharge_settings: {
+        Row: {
+          created_at: string
+          haulier_filter: string
+          id: string
+          included_customers: string[]
+          percentage: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          haulier_filter?: string
+          id?: string
+          included_customers?: string[]
+          percentage?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          haulier_filter?: string
+          id?: string
+          included_customers?: string[]
+          percentage?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           assigned_driver: string | null
