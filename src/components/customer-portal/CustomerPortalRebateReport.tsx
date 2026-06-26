@@ -657,11 +657,10 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     }
   };
 
-  // Load Reports totals (exclude Pallet Weight Charge from weight total - it's a deduction, not material weight)
+  // Load Reports totals include every displayed source weight, including pallet
+  // charge weight, so the Total tab matches the visible source lines.
   const loadReportsTotalRebate = reportData.reduce((sum, r) => sum + r.rebate_value, 0);
-  const loadReportsTotalWeight = reportData
-    .filter((r) => r.material_name !== "Pallet Weight Charge")
-    .reduce((sum, r) => sum + r.weight_tonnes, 0);
+  const loadReportsTotalWeight = reportData.reduce((sum, r) => sum + r.weight_tonnes, 0);
 
   // Combined totals (Load Reports + Skip/RoRo)
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
@@ -689,13 +688,14 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     // Load Reports materials
     for (const row of reportData) {
       const name = row.material_name.toLowerCase();
-      const isPalletWeightCharge = name.includes("pallet weight charge");
       let category = "Other";
 
       if (name.includes("card") || name.includes("cardboard")) {
         category = "Cardboard";
       } else if (name.includes("paper")) {
         category = "Paper";
+      } else if (name.includes("plastic")) {
+        category = "Plastics";
       } else if (name.includes("film")) {
         category = "Films";
       } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
@@ -709,8 +709,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         rebate: row.rebate_value,
         source: row.rate_source,
         category,
-        // Pallet Weight Charge: include rebate value but NOT weight in totals
-        countWeight: !isPalletWeightCharge,
+        countWeight: true,
       });
     }
 
@@ -718,9 +717,17 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     for (const summary of skipRoroSummaries) {
       let category = "Other";
 
-      if (summary.material_type === "card_loose") {
+      const materialKey = `${summary.material_type} ${summary.material_label}`.toLowerCase();
+
+      if (summary.material_type === "card_loose" || materialKey.includes("card") || materialKey.includes("cardboard")) {
         category = "Cardboard";
-      } else if (summary.material_type === "scrap_metal") {
+      } else if (materialKey.includes("paper")) {
+        category = "Paper";
+      } else if (materialKey.includes("plastic")) {
+        category = "Plastics";
+      } else if (materialKey.includes("film")) {
+        category = "Films";
+      } else if (summary.material_type === "scrap_metal" || materialKey.includes("scrap") || materialKey.includes("ferrous") || materialKey.includes("metal")) {
         category = "Scrap Metal";
       }
 
@@ -769,6 +776,20 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
 
   // Combined view (used by Excel/customer exports) — every line consolidated together.
   const consolidatedData = consolidateByCategory(allRebateSources);
+
+  const totalSections = (() => {
+    const rebateRows = consolidateByCategory(allRebateSources.filter((s) => s.rebate >= 0));
+    const chargeRows = consolidateByCategory(allRebateSources.filter((s) => s.rebate < 0));
+
+    return {
+      rebateRows,
+      chargeRows,
+      rebatesTotal: rebateRows.reduce((sum, c) => sum + c.rebate, 0),
+      rebatesWeight: rebateRows.reduce((sum, c) => sum + c.weight, 0),
+      chargesTotal: chargeRows.reduce((sum, c) => sum + c.rebate, 0),
+      chargesWeight: chargeRows.reduce((sum, c) => sum + c.weight, 0),
+    };
+  })();
 
   const exportToExcel = () => {
     if (!selectedSite || !dateRange?.from || !dateRange?.to) return;
@@ -1026,8 +1047,16 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
               <Badge variant="secondary" className="text-sm">
                 {combinedTotalWeight.toFixed(2)} tonnes
               </Badge>
+              <Badge variant="default" className="bg-green-600 text-sm">
+                Rebate £{totalSections.rebatesTotal.toFixed(2)}
+              </Badge>
+              {totalSections.chargesTotal < 0 && (
+                <Badge variant="default" className="bg-red-600 text-sm">
+                  Charges £{Math.abs(totalSections.chargesTotal).toFixed(2)}
+                </Badge>
+              )}
               <Badge variant="default" className={cn("text-sm", combinedTotalRebate >= 0 ? "bg-green-600" : "bg-red-600")}>
-                £{combinedTotalRebate.toFixed(2)}
+                Net £{combinedTotalRebate.toFixed(2)}
               </Badge>
             </div>
           </div>
@@ -1068,14 +1097,9 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
 
             <TabsContent value="total" className="mt-4">
               {consolidatedData.length > 0 ? (() => {
-                const rebateRows = consolidateByCategory(allRebateSources.filter((s) => s.rebate >= 0));
-                const chargeRows = consolidateByCategory(allRebateSources.filter((s) => s.rebate < 0));
-                const rebatesTotal = rebateRows.reduce((sum, c) => sum + c.rebate, 0);
-                const rebatesWeight = rebateRows.reduce((sum, c) => sum + c.weight, 0);
-                const chargesTotal = chargeRows.reduce((sum, c) => sum + c.rebate, 0);
-                const chargesWeight = chargeRows.reduce((sum, c) => sum + c.weight, 0);
+                const { rebateRows, chargeRows, rebatesTotal, rebatesWeight, chargesTotal, chargesWeight } = totalSections;
 
-                const renderCategoryRows = (rows: typeof consolidatedData) =>
+                const renderCategoryRows = (rows: typeof consolidatedData, section: "rebate" | "charge") =>
                   rows.map((cat, idx) => (
                     <TableRow key={idx} className="border-b">
                       <TableCell className="font-semibold align-top">{cat.category}</TableCell>
@@ -1089,15 +1113,19 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground align-top">
                         <div className="space-y-0.5">
-                          {cat.sources.map((src, srcIdx) => (
-                            <div key={srcIdx}>
-                              {src.weight.toFixed(2)}t @ £{src.rate.toFixed(2)} = £{src.rebate.toFixed(2)}
-                            </div>
-                          ))}
+                          {cat.sources.map((src, srcIdx) => {
+                            const rateStr = section === "charge" ? Math.abs(src.rate).toFixed(2) : src.rate.toFixed(2);
+                            const valStr = section === "charge" ? Math.abs(src.rebate).toFixed(2) : src.rebate.toFixed(2);
+                            return (
+                              <div key={srcIdx}>
+                                {src.weight.toFixed(2)}t @ £{rateStr} = £{valStr}
+                              </div>
+                            );
+                          })}
                         </div>
                       </TableCell>
                       <TableCell className={cn("text-right font-semibold align-top", cat.rebate >= 0 ? "text-green-600" : "text-red-600")}>
-                        £{cat.rebate.toFixed(2)}
+                        £{section === "charge" ? Math.abs(cat.rebate).toFixed(2) : cat.rebate.toFixed(2)}
                       </TableCell>
                     </TableRow>
                   ));
@@ -1121,7 +1149,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
                                 Rebates
                               </TableCell>
                             </TableRow>
-                            {renderCategoryRows(rebateRows)}
+                            {renderCategoryRows(rebateRows, "rebate")}
                             <TableRow className="bg-green-50/50 dark:bg-green-950/10 border-t">
                               <TableCell className="font-bold text-green-700 dark:text-green-400">REBATES TOTAL</TableCell>
                               <TableCell className="text-right font-bold text-green-700 dark:text-green-400">{rebatesWeight.toFixed(2)}</TableCell>
@@ -1137,17 +1165,17 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
                                 Charges
                               </TableCell>
                             </TableRow>
-                            {renderCategoryRows(chargeRows)}
+                            {renderCategoryRows(chargeRows, "charge")}
                             <TableRow className="bg-red-50/50 dark:bg-red-950/10 border-t">
                               <TableCell className="font-bold text-red-700 dark:text-red-400">CHARGES TOTAL</TableCell>
                               <TableCell className="text-right font-bold text-red-700 dark:text-red-400">{chargesWeight.toFixed(2)}</TableCell>
                               <TableCell colSpan={2}></TableCell>
-                              <TableCell className="text-right font-bold text-red-600">£{chargesTotal.toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-bold text-red-600">£{Math.abs(chargesTotal).toFixed(2)}</TableCell>
                             </TableRow>
                           </>
                         )}
                         <TableRow className="bg-muted/50 font-bold border-t-2">
-                          <TableCell>Total</TableCell>
+                          <TableCell>Net Total</TableCell>
                           <TableCell className="text-right">{combinedTotalWeight.toFixed(2)}</TableCell>
                           <TableCell colSpan={2}></TableCell>
                           <TableCell className={cn("text-right", combinedTotalRebate >= 0 ? "text-green-600" : "text-red-600")}>
@@ -1167,7 +1195,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
               <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground mt-4">
                 <p className="font-medium mb-1">Data Source:</p>
                 <p>
-                  Cardboard, Films, and Scrap Metal are consolidated from both Load Reports and RoRo/Skip data.
+                  Cardboard, Paper, Plastics, Films, and Scrap Metal are consolidated from both Load Reports and RoRo/Skip data.
                   See individual tabs for detailed breakdowns.
                 </p>
               </div>

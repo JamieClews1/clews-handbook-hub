@@ -1513,7 +1513,7 @@ Clews Recycling Limited`
               <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground mt-4">
                 <p className="font-medium mb-1">Data Source:</p>
                 <p>
-                  Cardboard, Films, and Scrap Metal are consolidated from both Load Reports and RoRo/Skip data.
+                  Cardboard, Paper, Plastics, Films, and Scrap Metal are consolidated from both Load Reports and RoRo/Skip data.
                   See individual tabs for detailed breakdowns.
                 </p>
               </div>
