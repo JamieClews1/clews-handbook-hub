@@ -227,24 +227,26 @@ export function useSkipRoroRebates(
             .filter((n) => n.length > 0)
         )
       );
-      if (
-        dataHubCustomer &&
-        siteDataHubMappings.filter(Boolean).length > 0 &&
-        wasteFilterNames.length > 0
-      ) {
-        const { data: filteredMidweigh } = await supabase
+      if (siteDataHubMappings.filter(Boolean).length > 0 && wasteFilterNames.length > 0) {
+        const wasteFilterKeys = new Set(wasteFilterNames.map(normalise));
+        let filteredMidweighQuery = supabase
           .from("data_hub_jobs")
           .select("id, job_number, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
-          .eq("customer", dataHubCustomer)
           .or("site.is.null,site.eq.")
-          .in("waste_description", wasteFilterNames)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
           .eq("category", "Midweigh");
 
+        if (dataHubCustomer) {
+          filteredMidweighQuery = filteredMidweighQuery.ilike("customer", `%${dataHubCustomer}%`);
+        }
+
+        const { data: filteredMidweigh } = await filteredMidweighQuery;
+
         if (filteredMidweigh) {
           const existingIds = new Set(allJobs.map((j) => j.id));
           const mappedJobs = filteredMidweigh
+            .filter((j) => j.waste_description && wasteFilterKeys.has(normalise(j.waste_description)))
             .filter((j) => !existingIds.has(j.id))
             .map((j) => ({
               id: j.id,
