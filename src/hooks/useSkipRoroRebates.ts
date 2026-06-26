@@ -405,6 +405,23 @@ export function useSkipRoroRebates(
           for (const row of data ?? []) candidateRowsById.set(row.id, row);
         }
 
+        // Last-resort broad pull by waste description. Some Skiptrak site names
+        // are not an exact string match to the saved site mapping, but the
+        // duplicate Midweigh ticket still has the same date/waste/container/weight.
+        // Pulling the matching waste descriptions prevents those Midweigh ticket
+        // numbers being used in totals/exports when the Skiptrak job exists.
+        const midweighWasteDescriptions = Array.from(
+          new Set(
+            midweighRows
+              .map((job) => job.waste_description?.trim())
+              .filter((waste): waste is string => !!waste)
+          )
+        );
+        if (midweighWasteDescriptions.length > 0) {
+          const { data } = await baseCandidateQuery().in("waste_description", midweighWasteDescriptions);
+          for (const row of data ?? []) candidateRowsById.set(row.id, row);
+        }
+
         if (candidateRowsById.size === 0 && mappedSites.length === 0 && !dataHubCustomer) {
           const { data } = await baseCandidateQuery();
           for (const row of data ?? []) candidateRowsById.set(row.id, row);
