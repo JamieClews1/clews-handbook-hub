@@ -389,6 +389,17 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                       <span className="text-[10px] text-muted-foreground">Comma-separated keywords</span>
                     </TableCell>
                     <TableCell>
+                      <Input
+                        type="text"
+                        className="min-w-[200px] text-xs"
+                        value={item.waste_description_filter?.join(", ") ?? ""}
+                        onChange={(e) => updateWasteFilter(item.id, e.target.value)}
+                        placeholder="e.g. Plastic Packaging"
+                        disabled={saving}
+                      />
+                      <span className="text-[10px] text-muted-foreground">Exact waste names for this site only</span>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={item.rebate_enabled}
