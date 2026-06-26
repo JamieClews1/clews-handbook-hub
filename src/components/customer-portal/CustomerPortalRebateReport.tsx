@@ -667,7 +667,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
 
   // Build a flat list of every rebate/charge source line, each tagged with its
-  // display category and whether its weight should count towards totals.
+  // display category.
   // Splitting at this source level (rather than at the aggregated category level)
   // ensures charges (negative lines) are separated from rebates even when they
   // sit inside the same category (e.g. "Other" containing both a plastics rebate
@@ -679,7 +679,6 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
     rebate: number;
     source: string;
     category: string;
-    countWeight: boolean;
   };
 
   const allRebateSources: RebateSourceLine[] = (() => {
@@ -709,7 +708,6 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         rebate: row.rebate_value,
         source: row.rate_source,
         category,
-        countWeight: true,
       });
     }
 
@@ -738,7 +736,6 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         rebate: summary.rebate_value,
         source: summary.rate_source,
         category,
-        countWeight: true,
       });
     }
 
@@ -757,7 +754,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       if (!categories[s.category]) {
         categories[s.category] = { weight: 0, rebate: 0, sources: [] };
       }
-      if (s.countWeight) categories[s.category].weight += s.weight;
+      categories[s.category].weight += s.weight;
       categories[s.category].rebate += s.rebate;
       categories[s.category].sources.push({
         name: s.name,
