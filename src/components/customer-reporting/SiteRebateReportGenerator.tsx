@@ -879,11 +879,18 @@ export function SiteRebateReportGenerator() {
 
     // Categorize Skip/RoRo materials
     for (const summary of skipRoroSummaries) {
+      const materialKey = `${summary.material_type} ${summary.material_label}`.toLowerCase();
       let category = "Other";
       
-      if (summary.material_type === "card_loose") {
+      if (summary.material_type === "card_loose" || materialKey.includes("card") || materialKey.includes("cardboard")) {
         category = "Cardboard";
-      } else if (summary.material_type === "scrap_metal") {
+      } else if (materialKey.includes("paper")) {
+        category = "Paper";
+      } else if (materialKey.includes("plastic")) {
+        category = "Plastics";
+      } else if (materialKey.includes("film")) {
+        category = "Films";
+      } else if (summary.material_type === "scrap_metal" || materialKey.includes("scrap") || materialKey.includes("ferrous") || materialKey.includes("metal")) {
         category = "Scrap Metal";
       }
 
