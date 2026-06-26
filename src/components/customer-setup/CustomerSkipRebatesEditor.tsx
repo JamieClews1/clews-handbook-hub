@@ -11,6 +11,37 @@ import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
+function ThresholdInput({
+  value,
+  onSave,
+  disabled,
+}: {
+  value: number | null;
+  onSave: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const [localValue, setLocalValue] = useState(String(value ?? 0));
+  useEffect(() => {
+    setLocalValue(String(value ?? 0));
+  }, [value]);
+  return (
+    <div className="flex items-center gap-1">
+      <Input
+        type="number"
+        step="0.1"
+        min="0"
+        className="w-16"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={() => onSave(localValue)}
+        placeholder="0"
+        disabled={disabled}
+      />
+      <span className="text-muted-foreground text-xs">T</span>
+    </div>
+  );
+}
+
 type RebateItem = {
   id: string;
   name: string;
