@@ -258,6 +258,8 @@ export function useSkipRoroRebates(
           allJobs = [...allJobs, ...mappedJobs];
         }
       }
+
+      // Apply exclusion rules to filter out unwanted jobs
       // Rule 1: Exclude Midweigh jobs with Job Type = "SKIP"
       // These are duplicate weighbridge records for Skiptrak jobs (e.g., Skiptrak 44788 = Midweigh 75756)
       if (excludeSkipJobType) {
