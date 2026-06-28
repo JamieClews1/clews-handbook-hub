@@ -33,6 +33,7 @@ import PoliciesPage from "./pages/PoliciesPage";
 import SiteReportsPage from "./pages/SiteReportsPage";
 import OnePortalPage from "./pages/OnePortalPage";
 import AssistantPage from "./pages/AssistantPage";
+import AIAssistantPage from "./pages/AIAssistantPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
@@ -108,6 +109,7 @@ const App = () => (
             <Route path="/portal" element={<Staff><Index /></Staff>} />
             <Route path="/assistant" element={<Staff><AssistantPage /></Staff>} />
             <Route path="/Assistant" element={<Staff><AssistantPage /></Staff>} />
+            <Route path="/ai-assistant" element={<Staff><AIAssistantPage /></Staff>} />
             <Route path="/handbook" element={<AppLayout><HandbookPage /></AppLayout>} />
             <Route path="/rams" element={<Staff><RAMSPage /></Staff>} />
             <Route path="/rams/:id" element={<Staff><RAMSDetailPage /></Staff>} />
