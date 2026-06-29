@@ -259,6 +259,159 @@ const TOOLS = [
   },
 ];
 
+// Action tools — these CHANGE data or send email. They are NEVER executed
+// inside the model loop; instead they are returned to the UI as proposed
+// actions and only run after the user clicks Confirm. Each requires a
+// human-readable "description".
+const ACTION_TOOLS = [
+  {
+    name: "update_records",
+    description: "Update one or more existing rows in a writable table. Read the records first to get real ids.",
+    input_schema: {
+      type: "object",
+      properties: {
+        table: { type: "string", description: "Table to update." },
+        updates: {
+          type: "array",
+          description: "Each item updates one row by id.",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              changes: { type: "object", description: "Column → new value map." },
+            },
+            required: ["id", "changes"],
+          },
+        },
+        description: { type: "string", description: "Plain-English summary shown on the confirm button." },
+      },
+      required: ["table", "updates", "description"],
+    },
+  },
+  {
+    name: "delete_records",
+    description: "Delete rows by id from a writable table. Read the records first to get real ids.",
+    input_schema: {
+      type: "object",
+      properties: {
+        table: { type: "string" },
+        ids: { type: "array", items: { type: "string" } },
+        description: { type: "string" },
+      },
+      required: ["table", "ids", "description"],
+    },
+  },
+  {
+    name: "insert_records",
+    description: "Insert new rows into an insertable table.",
+    input_schema: {
+      type: "object",
+      properties: {
+        table: { type: "string" },
+        rows: { type: "array", items: { type: "object" } },
+        description: { type: "string" },
+      },
+      required: ["table", "rows", "description"],
+    },
+  },
+  {
+    name: "mark_rental_collected",
+    description: "Mark one or more over-rental bins as collected so they drop off the chasing list.",
+    input_schema: {
+      type: "object",
+      properties: {
+        bins: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              bin_key: { type: "string" },
+              customer: { type: "string" },
+              site: { type: "string" },
+              container_type: { type: "string" },
+              category: { type: "string" },
+              collected_date: { type: "string" },
+              collection_ticket: { type: "string" },
+            },
+            required: ["bin_key"],
+          },
+        },
+        description: { type: "string" },
+      },
+      required: ["bins", "description"],
+    },
+  },
+  {
+    name: "create_load_reports",
+    description: "Create one or more load reports (with line items). Provide site_id when known.",
+    input_schema: {
+      type: "object",
+      properties: {
+        reports: { type: "array", items: { type: "object" } },
+        site_id: { type: "string" },
+        description: { type: "string" },
+      },
+      required: ["reports", "description"],
+    },
+  },
+  {
+    name: "update_load_reports",
+    description: "Update existing load reports and/or their line items.",
+    input_schema: {
+      type: "object",
+      properties: {
+        updates: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { report_id: { type: "string" }, changes: { type: "object" } },
+            required: ["report_id", "changes"],
+          },
+        },
+        line_item_updates: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { report_id: { type: "string" }, changes: { type: "object" } },
+            required: ["report_id", "changes"],
+          },
+        },
+        description: { type: "string" },
+      },
+      required: ["description"],
+    },
+  },
+  {
+    name: "delete_load_reports",
+    description: "Delete load reports (and their line items) by id.",
+    input_schema: {
+      type: "object",
+      properties: {
+        report_ids: { type: "array", items: { type: "string" } },
+        description: { type: "string" },
+      },
+      required: ["report_ids", "description"],
+    },
+  },
+  {
+    name: "send_email",
+    description: "Send an email from the company's noreply address. Compose proper HTML in the body.",
+    input_schema: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Recipient email (comma-separate for multiple)." },
+        cc: { type: "string", description: "Optional CC email(s), comma-separated." },
+        subject: { type: "string" },
+        html: { type: "string", description: "HTML email body." },
+        description: { type: "string" },
+      },
+      required: ["to", "subject", "html", "description"],
+    },
+  },
+];
+
+const ALL_TOOLS = [...TOOLS, ...ACTION_TOOLS];
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
