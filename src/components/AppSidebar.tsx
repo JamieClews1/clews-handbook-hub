@@ -36,6 +36,7 @@ import {
   PoundSterling,
   
   Inbox,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
