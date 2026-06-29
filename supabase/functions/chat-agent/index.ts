@@ -509,6 +509,264 @@ async function runTool(supabase: any, name: string, input: any) {
   }
 }
 
+// ---------- Action executors (only run after user confirmation) ----------
+async function updateRecords(supabase: any, data: { table?: string; updates?: { id: string; changes: any }[] }) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  if (!data?.table || !WRITE_WHITELIST.has(data.table)) {
+    results.errors.push(`Editing "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const u of data.updates || []) {
+    try {
+      const { error } = await supabase.from(data.table).update(u.changes).eq("id", u.id);
+      if (error) results.errors.push(`${u.id}: ${error.message}`);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(`${u.id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function deleteRecords(supabase: any, data: { table?: string; ids?: string[] }) {
+  const results: { deleted: number; errors: string[] } = { deleted: 0, errors: [] };
+  if (!data?.table || !WRITE_WHITELIST.has(data.table)) {
+    results.errors.push(`Deleting from "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const id of data.ids || []) {
+    try {
+      if (data.table === "load_reports") {
+        await supabase.from("load_line_items").delete().eq("load_report_id", id);
+      }
+      const { error } = await supabase.from(data.table).delete().eq("id", id);
+      if (error) results.errors.push(`${id}: ${error.message}`);
+      else results.deleted++;
+    } catch (err: any) {
+      results.errors.push(`${id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function insertRecords(supabase: any, data: { table?: string; rows?: any[] }, userId: string) {
+  const results: { created: number; errors: string[] } = { created: 0, errors: [] };
+  if (!data?.table || !INSERT_WHITELIST.has(data.table)) {
+    results.errors.push(`Adding to "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const row of data.rows || []) {
+    try {
+      const payload = { ...row };
+      if (["rental_agreements", "rental_chases"].includes(data.table) && payload.created_by == null) {
+        payload.created_by = userId;
+      }
+      const { error } = await supabase.from(data.table).insert(payload);
+      if (error) results.errors.push(error.message);
+      else results.created++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+async function markRentalCollected(
+  supabase: any,
+  data: { bins?: { bin_key: string; customer?: string; site?: string; container_type?: string; category?: string; collected_date?: string; collection_ticket?: string }[] },
+  userId: string,
+) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  for (const bin of data.bins || []) {
+    try {
+      if (!bin.bin_key) { results.errors.push("Missing bin reference."); continue; }
+      let chaseId: string | null = null;
+      const { data: existing } = await supabase.from("rental_chases").select("id").eq("bin_key", bin.bin_key).maybeSingle();
+      if (existing) {
+        chaseId = existing.id;
+      } else {
+        const { data: created, error: insErr } = await supabase.from("rental_chases").insert({
+          bin_key: bin.bin_key,
+          customer: bin.customer || null,
+          site: bin.site || null,
+          category: bin.category || null,
+          container_type: bin.container_type || null,
+          created_by: userId,
+        }).select("id").single();
+        if (insErr) { results.errors.push(insErr.message); continue; }
+        chaseId = created.id;
+      }
+      const { error } = await supabase.from("rental_chases").update({
+        collected: true,
+        collected_date: bin.collected_date || new Date().toISOString().slice(0, 10),
+        collection_ticket: bin.collection_ticket || null,
+        chase_status: "resolved",
+      }).eq("id", chaseId);
+      if (error) results.errors.push(error.message);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+async function createLoadReports(
+  supabase: any,
+  data: { reports?: any[]; site_id?: string | null },
+  userId: string,
+  userName: string,
+) {
+  const results: { created: number; errors: string[] } = { created: 0, errors: [] };
+  for (const report of data.reports || []) {
+    try {
+      let totalWeightKg = Number(report.total_weight_kg) || 0;
+      const totalPallets = Number(report.total_pallets) || 0;
+      if ((!totalWeightKg || report.lookup_weight) && report.job_number) {
+        const { data: job } = await supabase
+          .from("data_hub_jobs").select("weight_t")
+          .eq("job_number", String(report.job_number)).eq("source", "skiptrak").maybeSingle();
+        if (job?.weight_t) totalWeightKg = Number(job.weight_t) * 1000;
+      }
+      const { data: newReport, error: reportError } = await supabase
+        .from("load_reports").insert({
+          operator_id: userId,
+          operator_name: userName,
+          notes: report.job_number?.toString() || null,
+          site_id: data.site_id || report.site_id || null,
+          report_date: report.report_date,
+          status: "submitted",
+          total_pallets: totalPallets,
+          total_weight_kg: totalWeightKg,
+          submitted_at: new Date().toISOString(),
+        }).select("id").single();
+      if (reportError) { results.errors.push(`Job ${report.job_number}: ${reportError.message}`); continue; }
+      if (newReport) {
+        const wasteType = report.waste_type || "Card Loose";
+        const totalPalletWeightKg = totalPallets * 20;
+        const netMaterialWeightKg = Math.max(0, totalWeightKg - totalPalletWeightKg);
+        await supabase.from("load_line_items").insert({
+          load_report_id: newReport.id,
+          waste_type: wasteType,
+          pallet_count: totalPallets,
+          avg_weight_kg: totalPallets > 0 ? netMaterialWeightKg / totalPallets : netMaterialWeightKg,
+          total_weight_kg: netMaterialWeightKg,
+          display_order: 0,
+        });
+        if (totalPallets > 0 && totalPalletWeightKg > 0) {
+          await supabase.from("load_line_items").insert({
+            load_report_id: newReport.id,
+            waste_type: "Pallet Weight Charge",
+            pallet_count: 0,
+            avg_weight_kg: totalPalletWeightKg,
+            total_weight_kg: totalPalletWeightKg,
+            display_order: 1,
+          });
+        }
+      }
+      results.created++;
+    } catch (err: any) {
+      results.errors.push(`Job ${report.job_number}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function updateLoadReports(supabase: any, data: { updates?: any[]; line_item_updates?: any[] }) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  for (const update of data.updates || []) {
+    try {
+      const { error } = await supabase.from("load_reports").update(update.changes).eq("id", update.report_id);
+      if (error) results.errors.push(`Report ${update.report_id}: ${error.message}`);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(`Report ${update.report_id}: ${err.message}`);
+    }
+  }
+  for (const update of data.line_item_updates || []) {
+    try {
+      const { error } = await supabase.from("load_line_items").update(update.changes).eq("load_report_id", update.report_id);
+      if (error) results.errors.push(`Line items for ${update.report_id}: ${error.message}`);
+    } catch (err: any) {
+      results.errors.push(`Line items for ${update.report_id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function deleteLoadReports(supabase: any, data: { report_ids?: string[] }) {
+  const results: { deleted: number; errors: string[] } = { deleted: 0, errors: [] };
+  for (const id of data.report_ids || []) {
+    try {
+      await supabase.from("load_line_items").delete().eq("load_report_id", id);
+      const { error } = await supabase.from("load_reports").delete().eq("id", id);
+      if (error) results.errors.push(`Report ${id}: ${error.message}`);
+      else results.deleted++;
+    } catch (err: any) {
+      results.errors.push(`Report ${id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function sendEmail(data: { to?: string; cc?: string; subject?: string; html?: string }) {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) return { error: "Email sending is not configured (missing API key)." };
+  if (!data?.to || !data?.subject || !data?.html) return { error: "An email needs a recipient, subject and body." };
+  const splitAddrs = (s?: string) => (s ? s.split(",").map((x) => x.trim()).filter(Boolean) : undefined);
+  try {
+    const payload: Record<string, unknown> = {
+      from: "WasteOne <noreply@noreply.clewsrecycling.co.uk>",
+      to: splitAddrs(data.to),
+      subject: data.subject,
+      html: data.html,
+    };
+    const cc = splitAddrs(data.cc);
+    if (cc && cc.length) payload.cc = cc;
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resendKey}`, "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      return { error: `Email failed to send: ${t}` };
+    }
+    return { sent: true, to: data.to };
+  } catch (err: any) {
+    return { error: `Email failed to send: ${err.message}` };
+  }
+}
+
+async function executeAction(supabase: any, tool: string, input: any, userId: string, userName: string) {
+  switch (tool) {
+    case "update_records": return await updateRecords(supabase, input || {});
+    case "delete_records": return await deleteRecords(supabase, input || {});
+    case "insert_records": return await insertRecords(supabase, input || {}, userId);
+    case "mark_rental_collected": return await markRentalCollected(supabase, input || {}, userId);
+    case "create_load_reports": return await createLoadReports(supabase, input || {}, userId, userName);
+    case "update_load_reports": return await updateLoadReports(supabase, input || {});
+    case "delete_load_reports": return await deleteLoadReports(supabase, input || {});
+    case "send_email": return await sendEmail(input || {});
+    default: return { error: `Unknown action: ${tool}` };
+  }
+}
+
+function summariseActionResult(description: string, r: any): string {
+  const errs: string[] = Array.isArray(r?.errors) ? r.errors : [];
+  const ok = errs.length === 0;
+  const counts: string[] = [];
+  if (typeof r?.updated === "number") counts.push(`${r.updated} updated`);
+  if (typeof r?.deleted === "number") counts.push(`${r.deleted} deleted`);
+  if (typeof r?.created === "number") counts.push(`${r.created} created`);
+  if (r?.sent) counts.push(`email sent to ${r.to}`);
+  if (r?.error) errs.push(r.error);
+  const head = `${ok && !r?.error ? "✅" : "⚠️"} **${description}**`;
+  const detail = counts.length ? ` — ${counts.join(", ")}` : "";
+  const errLine = errs.length ? `\n  - Problem: ${errs.join("; ")}` : "";
+  return `${head}${detail}${errLine}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
