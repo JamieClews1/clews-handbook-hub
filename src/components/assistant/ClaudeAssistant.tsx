@@ -89,7 +89,7 @@ export function ClaudeAssistant() {
           </div>
           <div>
             <h1 className="text-lg font-bold">AI Assistant</h1>
-            <p className="text-sm text-muted-foreground">Powered by Claude — drafting, summaries, research and more.</p>
+            <p className="text-sm text-muted-foreground">Powered by Claude — answers questions on your live data, plus drafting & research.</p>
           </div>
         </div>
         {messages.length > 0 && (
