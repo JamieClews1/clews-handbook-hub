@@ -235,7 +235,7 @@ const TOOLS = [
           type: "object",
           properties: { column: { type: "string" }, ascending: { type: "boolean" } },
         },
-        limit: { type: "number", description: "Max rows (default 100, max 500)." },
+        limit: { type: "number", description: "Max rows (default 50, max 200). Use groupBy+aggregate for totals instead of pulling many rows." },
         groupBy: { type: "array", items: { type: "string" } },
         aggregate: { type: "object", properties: { sum: { type: "string" } } },
       },
@@ -419,6 +419,40 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Call Anthropic, retrying transient rate-limit (429) / overload (529) errors.
+// Honours the `retry-after` header when present, with a sane cap so the
+// edge function never hangs. Returns the final Response (ok or not).
+async function callAnthropicWithRetry(apiKey: string, payload: unknown): Promise<Response> {
+  const MAX_ATTEMPTS = 4;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok || (res.status !== 429 && res.status !== 529)) return res;
+
+    // Transient — back off and retry unless we're out of attempts.
+    if (attempt === MAX_ATTEMPTS - 1) return res;
+    const retryAfter = Number(res.headers.get("retry-after"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 20_000)
+      : Math.min(1500 * 2 ** attempt, 12_000);
+    await res.text().catch(() => {}); // drain body to free the connection
+    console.warn(`Anthropic ${res.status}; retrying in ${waitMs}ms (attempt ${attempt + 1})`);
+    await sleep(waitMs);
+  }
+  // Unreachable, but keeps the type-checker happy.
+  return new Response(null, { status: 429 });
+}
+
 function aggregateRows(rows: any[], groupBy: string[], sumField?: string) {
   const map = new Map<string, any>();
   for (const row of rows) {
@@ -444,7 +478,7 @@ async function queryData(supabase: any, spec: any) {
   const table = spec?.table;
   if (!table || !READ_WHITELIST.has(table)) return { error: `Table "${table}" is not available to read.`, rows: [], count: 0 };
   try {
-    const limit = Math.min(Number(spec.limit) || 100, 500);
+    const limit = Math.min(Number(spec.limit) || 50, 200);
     let q: any = supabase.from(table).select(spec.select && String(spec.select).trim() ? spec.select : "*");
     for (const f of spec.filters || []) {
       const { column, operator, value } = f || {};
@@ -839,14 +873,8 @@ Deno.serve(async (req) => {
     // Agentic tool loop with Anthropic.
     let finalText = "";
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages }),
+      const anthropicRes = await callAnthropicWithRetry(apiKey, {
+        model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages,
       });
 
       if (!anthropicRes.ok) {
@@ -854,7 +882,12 @@ Deno.serve(async (req) => {
         console.error("Anthropic API error", anthropicRes.status, errText);
         let detail = errText;
         try { detail = JSON.parse(errText)?.error?.message ?? errText; } catch { /* keep raw */ }
-        const status = anthropicRes.status === 429 ? 429 : anthropicRes.status >= 500 ? 502 : 400;
+        if (anthropicRes.status === 429 || anthropicRes.status === 529) {
+          return jsonResponse({
+            error: "The assistant is busy right now (AI rate limit reached). Please wait about a minute and try again. Asking for a smaller slice of data at a time also helps.",
+          }, 429);
+        }
+        const status = anthropicRes.status >= 500 ? 502 : 400;
         return jsonResponse({ error: `Anthropic API error: ${detail}` }, status);
       }
 
@@ -900,7 +933,7 @@ Deno.serve(async (req) => {
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
-          content: JSON.stringify(result).slice(0, 100_000),
+          content: JSON.stringify(result).slice(0, 12_000),
         });
       }
       messages.push({ role: "user", content: toolResults });
