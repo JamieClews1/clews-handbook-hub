@@ -873,14 +873,8 @@ Deno.serve(async (req) => {
     // Agentic tool loop with Anthropic.
     let finalText = "";
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages }),
+      const anthropicRes = await callAnthropicWithRetry(apiKey, {
+        model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages,
       });
 
       if (!anthropicRes.ok) {
@@ -888,7 +882,12 @@ Deno.serve(async (req) => {
         console.error("Anthropic API error", anthropicRes.status, errText);
         let detail = errText;
         try { detail = JSON.parse(errText)?.error?.message ?? errText; } catch { /* keep raw */ }
-        const status = anthropicRes.status === 429 ? 429 : anthropicRes.status >= 500 ? 502 : 400;
+        if (anthropicRes.status === 429 || anthropicRes.status === 529) {
+          return jsonResponse({
+            error: "The assistant is busy right now (AI rate limit reached). Please wait about a minute and try again. Asking for a smaller slice of data at a time also helps.",
+          }, 429);
+        }
+        const status = anthropicRes.status >= 500 ? 502 : 400;
         return jsonResponse({ error: `Anthropic API error: ${detail}` }, status);
       }
 
