@@ -419,6 +419,40 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Call Anthropic, retrying transient rate-limit (429) / overload (529) errors.
+// Honours the `retry-after` header when present, with a sane cap so the
+// edge function never hangs. Returns the final Response (ok or not).
+async function callAnthropicWithRetry(apiKey: string, payload: unknown): Promise<Response> {
+  const MAX_ATTEMPTS = 4;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok || (res.status !== 429 && res.status !== 529)) return res;
+
+    // Transient — back off and retry unless we're out of attempts.
+    if (attempt === MAX_ATTEMPTS - 1) return res;
+    const retryAfter = Number(res.headers.get("retry-after"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 20_000)
+      : Math.min(1500 * 2 ** attempt, 12_000);
+    await res.text().catch(() => {}); // drain body to free the connection
+    console.warn(`Anthropic ${res.status}; retrying in ${waitMs}ms (attempt ${attempt + 1})`);
+    await sleep(waitMs);
+  }
+  // Unreachable, but keeps the type-checker happy.
+  return new Response(null, { status: 429 });
+}
+
 function aggregateRows(rows: any[], groupBy: string[], sumField?: string) {
   const map = new Map<string, any>();
   for (const row of rows) {
