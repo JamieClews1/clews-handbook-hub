@@ -77,7 +77,7 @@ export function ClaudeAssistant() {
         body: { messages: toHistory(history) },
       });
 
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) throw new Error(await readFnError(fnError, "Failed to reach the assistant."));
       if (data?.error) throw new Error(data.error);
       if (!data?.reply) throw new Error("The assistant did not return a reply.");
 
