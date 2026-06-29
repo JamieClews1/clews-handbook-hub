@@ -793,12 +793,30 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: profile } = await adminClient.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const userName = profile?.full_name || "Assistant";
 
-    let body: { messages?: unknown; context?: unknown };
+    let body: { messages?: unknown; context?: unknown; confirmedActions?: unknown };
     try {
       body = await req.json();
     } catch {
       return jsonResponse({ error: "Invalid JSON body." }, 400);
+    }
+
+    // ---- Execution phase: the user clicked Confirm on proposed actions. ----
+    if (Array.isArray(body?.confirmedActions) && body.confirmedActions.length > 0) {
+      const summaries: string[] = [];
+      for (const a of body.confirmedActions as any[]) {
+        if (!a || typeof a.tool !== "string") continue;
+        const desc = typeof a.description === "string" && a.description.trim()
+          ? a.description.trim()
+          : a.tool.replace(/_/g, " ");
+        const result = await executeAction(adminClient, a.tool, a.input || {}, user.id, userName);
+        summaries.push(summariseActionResult(desc, result));
+      }
+      const reply = summaries.length
+        ? `Done — here's what I ran:\n\n${summaries.join("\n")}`
+        : "There was nothing to run.";
+      return jsonResponse({ reply, executed: true });
     }
 
     const rawMessages = body?.messages;
