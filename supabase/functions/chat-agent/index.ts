@@ -235,7 +235,7 @@ const TOOLS = [
           type: "object",
           properties: { column: { type: "string" }, ascending: { type: "boolean" } },
         },
-        limit: { type: "number", description: "Max rows (default 100, max 500)." },
+        limit: { type: "number", description: "Max rows (default 50, max 200). Use groupBy+aggregate for totals instead of pulling many rows." },
         groupBy: { type: "array", items: { type: "string" } },
         aggregate: { type: "object", properties: { sum: { type: "string" } } },
       },
