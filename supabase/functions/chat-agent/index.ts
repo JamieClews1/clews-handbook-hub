@@ -101,6 +101,51 @@ const READ_WHITELIST = new Set<string>([
   "profiles",
 ]);
 
+// Tables Claude may UPDATE / DELETE — every change requires explicit user
+// confirmation in the UI before it runs.
+const WRITE_WHITELIST = new Set<string>([
+  "load_reports",
+  "load_line_items",
+  "pricing_entries",
+  "pricing_rate_card_values",
+  "pricing_rate_card_rows",
+  "pricing_settings",
+  "pricing_skip_sizes",
+  "pricing_waste_types",
+  "rental_chases",
+  "rental_agreements",
+  "skip_inventory",
+  "skip_tracker_reports",
+  "crm_tickets",
+  "crm_ticket_messages",
+  "customers",
+  "customer_sites",
+  "customer_contacts",
+  "customer_reporting_periods",
+  "fuel_surcharge_rates",
+]);
+
+// Tables Claude may INSERT into — also gated behind user confirmation.
+const INSERT_WHITELIST = new Set<string>([
+  "rental_agreements",
+  "customer_contacts",
+  "crm_ticket_messages",
+  "pricing_entries",
+  "fuel_surcharge_rates",
+  "customer_reporting_periods",
+]);
+
+const ACTION_TOOL_NAMES = new Set<string>([
+  "update_records",
+  "delete_records",
+  "insert_records",
+  "mark_rental_collected",
+  "create_load_reports",
+  "update_load_reports",
+  "delete_load_reports",
+  "send_email",
+]);
+
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 2048;
 const MAX_TOOL_ROUNDS = 8;
