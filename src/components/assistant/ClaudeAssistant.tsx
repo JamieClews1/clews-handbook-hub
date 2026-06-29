@@ -105,8 +105,9 @@ export function ClaudeAssistant() {
           <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
             <Bot className="mb-3 h-10 w-10 opacity-40" />
             <p className="max-w-sm text-sm">
-              Ask me to draft an email, summarise notes, build a checklist, or research a topic. I remember the
-              conversation for this session.
+              Ask about jobs, weights, rentals, stock, pricing, customers or CRM — I read your live data to answer. I
+              can also draft emails, summarise notes, build checklists or research a topic, and I remember this
+              conversation.
             </p>
           </div>
         )}
