@@ -933,7 +933,7 @@ Deno.serve(async (req) => {
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
-          content: JSON.stringify(result).slice(0, 100_000),
+          content: JSON.stringify(result).slice(0, 12_000),
         });
       }
       messages.push({ role: "user", content: toolResults });
