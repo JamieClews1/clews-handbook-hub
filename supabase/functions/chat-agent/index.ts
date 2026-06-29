@@ -478,7 +478,7 @@ async function queryData(supabase: any, spec: any) {
   const table = spec?.table;
   if (!table || !READ_WHITELIST.has(table)) return { error: `Table "${table}" is not available to read.`, rows: [], count: 0 };
   try {
-    const limit = Math.min(Number(spec.limit) || 100, 500);
+    const limit = Math.min(Number(spec.limit) || 50, 200);
     let q: any = supabase.from(table).select(spec.select && String(spec.select).trim() ? spec.select : "*");
     for (const f of spec.filters || []) {
       const { column, operator, value } = f || {};
