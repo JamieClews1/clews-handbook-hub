@@ -27,6 +27,20 @@ const TypingDots = () => (
   </div>
 );
 
+// When an edge function returns a non-2xx status, supabase-js throws a
+// FunctionsHttpError whose `.context` is the raw Response. Pull our friendly
+// `error` message out of the body so users see it instead of "non-2xx".
+async function readFnError(fnError: unknown, fallback: string): Promise<string> {
+  const ctx = (fnError as { context?: Response })?.context;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const body = await ctx.clone().json();
+      if (body?.error) return String(body.error);
+    } catch { /* ignore parse errors */ }
+  }
+  return fnError instanceof Error ? fnError.message : fallback;
+}
+
 export function ClaudeAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
