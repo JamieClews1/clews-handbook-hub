@@ -120,7 +120,7 @@ export function ClaudeAssistant() {
           },
         });
 
-        if (fnError) throw new Error(fnError.message);
+        if (fnError) throw new Error(await readFnError(fnError, "Failed to run the action."));
         if (data?.error) throw new Error(data.error);
 
         setMessages((prev) => [
