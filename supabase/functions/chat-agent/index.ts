@@ -846,7 +846,7 @@ Deno.serve(async (req) => {
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: TOOLS, messages }),
+        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages }),
       });
 
       if (!anthropicRes.ok) {
@@ -874,7 +874,25 @@ Deno.serve(async (req) => {
         break; // Final answer reached.
       }
 
-      // Run the requested tools and feed results back.
+      // If Claude proposes any data-changing / email actions, DO NOT run them.
+      // Return them to the UI as pending actions for the user to confirm.
+      const actionUses = toolUses.filter((tu) => ACTION_TOOL_NAMES.has(tu.name));
+      if (actionUses.length > 0) {
+        const pendingActions = actionUses.map((tu) => ({
+          id: tu.id,
+          tool: tu.name,
+          input: tu.input,
+          description: typeof tu.input?.description === "string" && tu.input.description.trim()
+            ? tu.input.description.trim()
+            : tu.name.replace(/_/g, " "),
+        }));
+        return jsonResponse({
+          reply: finalText || "I've prepared the following for your approval:",
+          pendingActions,
+        });
+      }
+
+      // Otherwise run the requested read tools and feed results back.
       messages.push({ role: "assistant", content: contentBlocks });
       const toolResults: any[] = [];
       for (const tu of toolUses) {
