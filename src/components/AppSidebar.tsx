@@ -106,6 +106,14 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/ai-assistant")}>
+                <Link to="/ai-assistant">
+                  <Sparkles className="h-4 w-4" />
+                  {!collapsed && <span>Claude Assistant</span>}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
