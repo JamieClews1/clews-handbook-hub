@@ -4,9 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Bot, Send, RotateCcw, User, AlertCircle, Info } from "lucide-react";
+import { Bot, Send, RotateCcw, User, AlertCircle, Info, Check, X, Zap, Loader2 } from "lucide-react";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type PendingAction = { id: string; tool: string; input: unknown; description: string };
+type ActionState = "pending" | "running" | "done" | "cancelled";
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  pendingActions?: PendingAction[];
+  actionState?: ActionState;
+};
 
 const TypingDots = () => (
   <div className="flex items-center gap-1 py-1" aria-label="Assistant is typing">
@@ -36,6 +43,9 @@ export function ClaudeAssistant() {
     if (!isLoading) inputRef.current?.focus();
   }, [isLoading]);
 
+  // Strip UI-only fields before sending history to the backend.
+  const toHistory = (msgs: ChatMessage[]) => msgs.map((m) => ({ role: m.role, content: m.content }));
+
   const send = useCallback(async () => {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -50,20 +60,73 @@ export function ClaudeAssistant() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("chat-agent", {
-        body: { messages: history },
+        body: { messages: toHistory(history) },
       });
 
       if (fnError) throw new Error(fnError.message);
       if (data?.error) throw new Error(data.error);
       if (!data?.reply) throw new Error("The assistant did not return a reply.");
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      const pending: PendingAction[] | undefined =
+        Array.isArray(data.pendingActions) && data.pendingActions.length > 0 ? data.pendingActions : undefined;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.reply,
+          pendingActions: pending,
+          actionState: pending ? "pending" : undefined,
+        },
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reach the assistant.");
     } finally {
       setIsLoading(false);
     }
   }, [input, isLoading, messages]);
+
+  const confirmActions = useCallback(
+    async (msgIndex: number) => {
+      const msg = messages[msgIndex];
+      if (!msg?.pendingActions || msg.actionState !== "pending" || isLoading) return;
+
+      setError(null);
+      setIsLoading(true);
+      setMessages((prev) => prev.map((m, i) => (i === msgIndex ? { ...m, actionState: "running" } : m)));
+
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("chat-agent", {
+          body: {
+            confirmedActions: msg.pendingActions.map((a) => ({
+              tool: a.tool,
+              input: a.input,
+              description: a.description,
+            })),
+          },
+        });
+
+        if (fnError) throw new Error(fnError.message);
+        if (data?.error) throw new Error(data.error);
+
+        setMessages((prev) => [
+          ...prev.map((m, i) => (i === msgIndex ? { ...m, actionState: "done" as ActionState } : m)),
+          { role: "assistant", content: data?.reply || "Done." },
+        ]);
+      } catch (err) {
+        setMessages((prev) => prev.map((m, i) => (i === msgIndex ? { ...m, actionState: "pending" } : m)));
+        setError(err instanceof Error ? err.message : "Failed to run the action.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [messages, isLoading],
+  );
+
+  const cancelActions = useCallback((msgIndex: number) => {
+    setMessages((prev) => prev.map((m, i) => (i === msgIndex ? { ...m, actionState: "cancelled" } : m)));
+    inputRef.current?.focus();
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -89,7 +152,7 @@ export function ClaudeAssistant() {
           </div>
           <div>
             <h1 className="text-lg font-bold">AI Assistant</h1>
-            <p className="text-sm text-muted-foreground">Powered by Claude — answers questions on your live data, plus drafting & research.</p>
+            <p className="text-sm text-muted-foreground">Powered by Claude — answers questions, drafts, and runs tasks with your approval.</p>
           </div>
         </div>
         {messages.length > 0 && (
@@ -106,8 +169,8 @@ export function ClaudeAssistant() {
             <Bot className="mb-3 h-10 w-10 opacity-40" />
             <p className="max-w-sm text-sm">
               Ask about jobs, weights, rentals, stock, pricing, customers or CRM — I read your live data to answer. I
-              can also draft emails, summarise notes, build checklists or research a topic, and I remember this
-              conversation.
+              can also draft emails and <strong>do tasks for you</strong> (update records, close tickets, edit pricing,
+              mark rentals collected, send emails) — you approve each change before it runs.
             </p>
           </div>
         )}
@@ -121,19 +184,56 @@ export function ClaudeAssistant() {
             >
               {m.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
             </div>
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              }`}
-            >
-              {m.role === "assistant" ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+            <div className={`flex max-w-[80%] flex-col gap-2 ${m.role === "user" ? "items-end" : "items-start"}`}>
+              <div
+                className={`rounded-2xl px-4 py-2.5 text-sm ${
+                  m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                }`}
+              >
+                {m.role === "assistant" ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                )}
+              </div>
+
+              {/* Confirmation card for proposed actions */}
+              {m.pendingActions && m.pendingActions.length > 0 && (
+                <div className="w-full rounded-xl border border-amber-300/60 bg-amber-50 p-3 dark:border-amber-700/50 dark:bg-amber-950/30">
+                  <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                    <Zap className="h-3.5 w-3.5" />
+                    {m.actionState === "done"
+                      ? "Action(s) completed"
+                      : m.actionState === "cancelled"
+                        ? "Action(s) cancelled"
+                        : "Confirm before running"}
+                  </div>
+                  <ul className="mb-3 space-y-1 text-sm">
+                    {m.pendingActions.map((a) => (
+                      <li key={a.id} className="flex items-start gap-1.5">
+                        <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-500" />
+                        <span>{a.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {m.actionState === "pending" && (
+                    <div className="flex gap-2">
+                      <Button size="sm" className="gap-1.5" onClick={() => confirmActions(i)} disabled={isLoading}>
+                        <Check className="h-3.5 w-3.5" /> Confirm & run
+                      </Button>
+                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => cancelActions(i)} disabled={isLoading}>
+                        <X className="h-3.5 w-3.5" /> Cancel
+                      </Button>
+                    </div>
+                  )}
+                  {m.actionState === "running" && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Running…
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="whitespace-pre-wrap break-words">{m.content}</p>
               )}
             </div>
           </div>
@@ -178,8 +278,7 @@ export function ClaudeAssistant() {
 
         <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Info className="h-3 w-3 flex-shrink-0" />
-          Admin note: requires the <code className="rounded bg-muted px-1">ANTHROPIC_API_KEY</code> secret to be set in
-          the backend secret store.
+          I never change data or send email without your confirmation.
         </p>
       </div>
     </div>

@@ -101,6 +101,51 @@ const READ_WHITELIST = new Set<string>([
   "profiles",
 ]);
 
+// Tables Claude may UPDATE / DELETE — every change requires explicit user
+// confirmation in the UI before it runs.
+const WRITE_WHITELIST = new Set<string>([
+  "load_reports",
+  "load_line_items",
+  "pricing_entries",
+  "pricing_rate_card_values",
+  "pricing_rate_card_rows",
+  "pricing_settings",
+  "pricing_skip_sizes",
+  "pricing_waste_types",
+  "rental_chases",
+  "rental_agreements",
+  "skip_inventory",
+  "skip_tracker_reports",
+  "crm_tickets",
+  "crm_ticket_messages",
+  "customers",
+  "customer_sites",
+  "customer_contacts",
+  "customer_reporting_periods",
+  "fuel_surcharge_rates",
+]);
+
+// Tables Claude may INSERT into — also gated behind user confirmation.
+const INSERT_WHITELIST = new Set<string>([
+  "rental_agreements",
+  "customer_contacts",
+  "crm_ticket_messages",
+  "pricing_entries",
+  "fuel_surcharge_rates",
+  "customer_reporting_periods",
+]);
+
+const ACTION_TOOL_NAMES = new Set<string>([
+  "update_records",
+  "delete_records",
+  "insert_records",
+  "mark_rental_collected",
+  "create_load_reports",
+  "update_load_reports",
+  "delete_load_reports",
+  "send_email",
+]);
+
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 2048;
 const MAX_TOOL_ROUNDS = 8;
@@ -138,6 +183,14 @@ GETTING GREAT ANSWERS (matching rules):
 - SANITY-CHECK numbers and state your assumptions and the period you used.
 
 BE DETERMINED: you have many tool turns. A good answer often takes several queries — orient with schema_info, list distinct matches, pull rows, cross-check, then answer. If a query returns nothing, broaden it and try again before giving up.
+
+DOING TASKS (action tools — these CHANGE data or send email):
+- You can take actions on the staff member's behalf: update_records, delete_records, insert_records, create_load_reports, update_load_reports, delete_load_reports, mark_rental_collected, and send_email.
+- NOTHING runs automatically. When you call an action tool, the portal shows ${name} a confirmation card and only runs it if they click Confirm. So always: (1) ALWAYS read with query_data FIRST to find the real records and their ids — never invent ids; (2) write a short, friendly message describing exactly what you're about to do; (3) THEN call the action tool(s).
+- Every action tool MUST include a clear "description" field (a one-line plain-English summary of the change, e.g. "Close 3 CRM tickets" or "Email the quote to jane@acme.com") — this is what the user sees on the confirm button.
+- For record edits use update_records {table, updates:[{id, changes}]}; for removals delete_records {table, ids:[]}; for new rows insert_records {table, rows:[]}. CRM status changes: update crm_tickets (status "open"/"closed", assigned_to, priority). Pricing edits: update pricing_entries / pricing_rate_card_values / pricing_skip_sizes after reading current values. Load reports have dedicated tools that also manage their line items.
+- To email someone use send_email {to, subject, html, description}. Compose proper HTML. Confirm the recipient address before sending.
+- After the user confirms, the portal runs the action and tells them the result — you do not need to do anything else.
 
 STYLE:
 - Be concise and direct. Use bullet points and clear numbers. Round weights sensibly.
@@ -205,6 +258,159 @@ const TOOLS = [
     input_schema: { type: "object", properties: {} },
   },
 ];
+
+// Action tools — these CHANGE data or send email. They are NEVER executed
+// inside the model loop; instead they are returned to the UI as proposed
+// actions and only run after the user clicks Confirm. Each requires a
+// human-readable "description".
+const ACTION_TOOLS = [
+  {
+    name: "update_records",
+    description: "Update one or more existing rows in a writable table. Read the records first to get real ids.",
+    input_schema: {
+      type: "object",
+      properties: {
+        table: { type: "string", description: "Table to update." },
+        updates: {
+          type: "array",
+          description: "Each item updates one row by id.",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              changes: { type: "object", description: "Column → new value map." },
+            },
+            required: ["id", "changes"],
+          },
+        },
+        description: { type: "string", description: "Plain-English summary shown on the confirm button." },
+      },
+      required: ["table", "updates", "description"],
+    },
+  },
+  {
+    name: "delete_records",
+    description: "Delete rows by id from a writable table. Read the records first to get real ids.",
+    input_schema: {
+      type: "object",
+      properties: {
+        table: { type: "string" },
+        ids: { type: "array", items: { type: "string" } },
+        description: { type: "string" },
+      },
+      required: ["table", "ids", "description"],
+    },
+  },
+  {
+    name: "insert_records",
+    description: "Insert new rows into an insertable table.",
+    input_schema: {
+      type: "object",
+      properties: {
+        table: { type: "string" },
+        rows: { type: "array", items: { type: "object" } },
+        description: { type: "string" },
+      },
+      required: ["table", "rows", "description"],
+    },
+  },
+  {
+    name: "mark_rental_collected",
+    description: "Mark one or more over-rental bins as collected so they drop off the chasing list.",
+    input_schema: {
+      type: "object",
+      properties: {
+        bins: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              bin_key: { type: "string" },
+              customer: { type: "string" },
+              site: { type: "string" },
+              container_type: { type: "string" },
+              category: { type: "string" },
+              collected_date: { type: "string" },
+              collection_ticket: { type: "string" },
+            },
+            required: ["bin_key"],
+          },
+        },
+        description: { type: "string" },
+      },
+      required: ["bins", "description"],
+    },
+  },
+  {
+    name: "create_load_reports",
+    description: "Create one or more load reports (with line items). Provide site_id when known.",
+    input_schema: {
+      type: "object",
+      properties: {
+        reports: { type: "array", items: { type: "object" } },
+        site_id: { type: "string" },
+        description: { type: "string" },
+      },
+      required: ["reports", "description"],
+    },
+  },
+  {
+    name: "update_load_reports",
+    description: "Update existing load reports and/or their line items.",
+    input_schema: {
+      type: "object",
+      properties: {
+        updates: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { report_id: { type: "string" }, changes: { type: "object" } },
+            required: ["report_id", "changes"],
+          },
+        },
+        line_item_updates: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { report_id: { type: "string" }, changes: { type: "object" } },
+            required: ["report_id", "changes"],
+          },
+        },
+        description: { type: "string" },
+      },
+      required: ["description"],
+    },
+  },
+  {
+    name: "delete_load_reports",
+    description: "Delete load reports (and their line items) by id.",
+    input_schema: {
+      type: "object",
+      properties: {
+        report_ids: { type: "array", items: { type: "string" } },
+        description: { type: "string" },
+      },
+      required: ["report_ids", "description"],
+    },
+  },
+  {
+    name: "send_email",
+    description: "Send an email from the company's noreply address. Compose proper HTML in the body.",
+    input_schema: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Recipient email (comma-separate for multiple)." },
+        cc: { type: "string", description: "Optional CC email(s), comma-separated." },
+        subject: { type: "string" },
+        html: { type: "string", description: "HTML email body." },
+        description: { type: "string" },
+      },
+      required: ["to", "subject", "html", "description"],
+    },
+  },
+];
+
+const ALL_TOOLS = [...TOOLS, ...ACTION_TOOLS];
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -303,6 +509,264 @@ async function runTool(supabase: any, name: string, input: any) {
   }
 }
 
+// ---------- Action executors (only run after user confirmation) ----------
+async function updateRecords(supabase: any, data: { table?: string; updates?: { id: string; changes: any }[] }) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  if (!data?.table || !WRITE_WHITELIST.has(data.table)) {
+    results.errors.push(`Editing "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const u of data.updates || []) {
+    try {
+      const { error } = await supabase.from(data.table).update(u.changes).eq("id", u.id);
+      if (error) results.errors.push(`${u.id}: ${error.message}`);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(`${u.id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function deleteRecords(supabase: any, data: { table?: string; ids?: string[] }) {
+  const results: { deleted: number; errors: string[] } = { deleted: 0, errors: [] };
+  if (!data?.table || !WRITE_WHITELIST.has(data.table)) {
+    results.errors.push(`Deleting from "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const id of data.ids || []) {
+    try {
+      if (data.table === "load_reports") {
+        await supabase.from("load_line_items").delete().eq("load_report_id", id);
+      }
+      const { error } = await supabase.from(data.table).delete().eq("id", id);
+      if (error) results.errors.push(`${id}: ${error.message}`);
+      else results.deleted++;
+    } catch (err: any) {
+      results.errors.push(`${id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function insertRecords(supabase: any, data: { table?: string; rows?: any[] }, userId: string) {
+  const results: { created: number; errors: string[] } = { created: 0, errors: [] };
+  if (!data?.table || !INSERT_WHITELIST.has(data.table)) {
+    results.errors.push(`Adding to "${data?.table}" is not permitted.`);
+    return results;
+  }
+  for (const row of data.rows || []) {
+    try {
+      const payload = { ...row };
+      if (["rental_agreements", "rental_chases"].includes(data.table) && payload.created_by == null) {
+        payload.created_by = userId;
+      }
+      const { error } = await supabase.from(data.table).insert(payload);
+      if (error) results.errors.push(error.message);
+      else results.created++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+async function markRentalCollected(
+  supabase: any,
+  data: { bins?: { bin_key: string; customer?: string; site?: string; container_type?: string; category?: string; collected_date?: string; collection_ticket?: string }[] },
+  userId: string,
+) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  for (const bin of data.bins || []) {
+    try {
+      if (!bin.bin_key) { results.errors.push("Missing bin reference."); continue; }
+      let chaseId: string | null = null;
+      const { data: existing } = await supabase.from("rental_chases").select("id").eq("bin_key", bin.bin_key).maybeSingle();
+      if (existing) {
+        chaseId = existing.id;
+      } else {
+        const { data: created, error: insErr } = await supabase.from("rental_chases").insert({
+          bin_key: bin.bin_key,
+          customer: bin.customer || null,
+          site: bin.site || null,
+          category: bin.category || null,
+          container_type: bin.container_type || null,
+          created_by: userId,
+        }).select("id").single();
+        if (insErr) { results.errors.push(insErr.message); continue; }
+        chaseId = created.id;
+      }
+      const { error } = await supabase.from("rental_chases").update({
+        collected: true,
+        collected_date: bin.collected_date || new Date().toISOString().slice(0, 10),
+        collection_ticket: bin.collection_ticket || null,
+        chase_status: "resolved",
+      }).eq("id", chaseId);
+      if (error) results.errors.push(error.message);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+async function createLoadReports(
+  supabase: any,
+  data: { reports?: any[]; site_id?: string | null },
+  userId: string,
+  userName: string,
+) {
+  const results: { created: number; errors: string[] } = { created: 0, errors: [] };
+  for (const report of data.reports || []) {
+    try {
+      let totalWeightKg = Number(report.total_weight_kg) || 0;
+      const totalPallets = Number(report.total_pallets) || 0;
+      if ((!totalWeightKg || report.lookup_weight) && report.job_number) {
+        const { data: job } = await supabase
+          .from("data_hub_jobs").select("weight_t")
+          .eq("job_number", String(report.job_number)).eq("source", "skiptrak").maybeSingle();
+        if (job?.weight_t) totalWeightKg = Number(job.weight_t) * 1000;
+      }
+      const { data: newReport, error: reportError } = await supabase
+        .from("load_reports").insert({
+          operator_id: userId,
+          operator_name: userName,
+          notes: report.job_number?.toString() || null,
+          site_id: data.site_id || report.site_id || null,
+          report_date: report.report_date,
+          status: "submitted",
+          total_pallets: totalPallets,
+          total_weight_kg: totalWeightKg,
+          submitted_at: new Date().toISOString(),
+        }).select("id").single();
+      if (reportError) { results.errors.push(`Job ${report.job_number}: ${reportError.message}`); continue; }
+      if (newReport) {
+        const wasteType = report.waste_type || "Card Loose";
+        const totalPalletWeightKg = totalPallets * 20;
+        const netMaterialWeightKg = Math.max(0, totalWeightKg - totalPalletWeightKg);
+        await supabase.from("load_line_items").insert({
+          load_report_id: newReport.id,
+          waste_type: wasteType,
+          pallet_count: totalPallets,
+          avg_weight_kg: totalPallets > 0 ? netMaterialWeightKg / totalPallets : netMaterialWeightKg,
+          total_weight_kg: netMaterialWeightKg,
+          display_order: 0,
+        });
+        if (totalPallets > 0 && totalPalletWeightKg > 0) {
+          await supabase.from("load_line_items").insert({
+            load_report_id: newReport.id,
+            waste_type: "Pallet Weight Charge",
+            pallet_count: 0,
+            avg_weight_kg: totalPalletWeightKg,
+            total_weight_kg: totalPalletWeightKg,
+            display_order: 1,
+          });
+        }
+      }
+      results.created++;
+    } catch (err: any) {
+      results.errors.push(`Job ${report.job_number}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function updateLoadReports(supabase: any, data: { updates?: any[]; line_item_updates?: any[] }) {
+  const results: { updated: number; errors: string[] } = { updated: 0, errors: [] };
+  for (const update of data.updates || []) {
+    try {
+      const { error } = await supabase.from("load_reports").update(update.changes).eq("id", update.report_id);
+      if (error) results.errors.push(`Report ${update.report_id}: ${error.message}`);
+      else results.updated++;
+    } catch (err: any) {
+      results.errors.push(`Report ${update.report_id}: ${err.message}`);
+    }
+  }
+  for (const update of data.line_item_updates || []) {
+    try {
+      const { error } = await supabase.from("load_line_items").update(update.changes).eq("load_report_id", update.report_id);
+      if (error) results.errors.push(`Line items for ${update.report_id}: ${error.message}`);
+    } catch (err: any) {
+      results.errors.push(`Line items for ${update.report_id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function deleteLoadReports(supabase: any, data: { report_ids?: string[] }) {
+  const results: { deleted: number; errors: string[] } = { deleted: 0, errors: [] };
+  for (const id of data.report_ids || []) {
+    try {
+      await supabase.from("load_line_items").delete().eq("load_report_id", id);
+      const { error } = await supabase.from("load_reports").delete().eq("id", id);
+      if (error) results.errors.push(`Report ${id}: ${error.message}`);
+      else results.deleted++;
+    } catch (err: any) {
+      results.errors.push(`Report ${id}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
+async function sendEmail(data: { to?: string; cc?: string; subject?: string; html?: string }) {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) return { error: "Email sending is not configured (missing API key)." };
+  if (!data?.to || !data?.subject || !data?.html) return { error: "An email needs a recipient, subject and body." };
+  const splitAddrs = (s?: string) => (s ? s.split(",").map((x) => x.trim()).filter(Boolean) : undefined);
+  try {
+    const payload: Record<string, unknown> = {
+      from: "WasteOne <noreply@noreply.clewsrecycling.co.uk>",
+      to: splitAddrs(data.to),
+      subject: data.subject,
+      html: data.html,
+    };
+    const cc = splitAddrs(data.cc);
+    if (cc && cc.length) payload.cc = cc;
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resendKey}`, "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      return { error: `Email failed to send: ${t}` };
+    }
+    return { sent: true, to: data.to };
+  } catch (err: any) {
+    return { error: `Email failed to send: ${err.message}` };
+  }
+}
+
+async function executeAction(supabase: any, tool: string, input: any, userId: string, userName: string) {
+  switch (tool) {
+    case "update_records": return await updateRecords(supabase, input || {});
+    case "delete_records": return await deleteRecords(supabase, input || {});
+    case "insert_records": return await insertRecords(supabase, input || {}, userId);
+    case "mark_rental_collected": return await markRentalCollected(supabase, input || {}, userId);
+    case "create_load_reports": return await createLoadReports(supabase, input || {}, userId, userName);
+    case "update_load_reports": return await updateLoadReports(supabase, input || {});
+    case "delete_load_reports": return await deleteLoadReports(supabase, input || {});
+    case "send_email": return await sendEmail(input || {});
+    default: return { error: `Unknown action: ${tool}` };
+  }
+}
+
+function summariseActionResult(description: string, r: any): string {
+  const errs: string[] = Array.isArray(r?.errors) ? r.errors : [];
+  const ok = errs.length === 0;
+  const counts: string[] = [];
+  if (typeof r?.updated === "number") counts.push(`${r.updated} updated`);
+  if (typeof r?.deleted === "number") counts.push(`${r.deleted} deleted`);
+  if (typeof r?.created === "number") counts.push(`${r.created} created`);
+  if (r?.sent) counts.push(`email sent to ${r.to}`);
+  if (r?.error) errs.push(r.error);
+  const head = `${ok && !r?.error ? "✅" : "⚠️"} **${description}**`;
+  const detail = counts.length ? ` — ${counts.join(", ")}` : "";
+  const errLine = errs.length ? `\n  - Problem: ${errs.join("; ")}` : "";
+  return `${head}${detail}${errLine}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -329,12 +793,30 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: profile } = await adminClient.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const userName = profile?.full_name || "Assistant";
 
-    let body: { messages?: unknown; context?: unknown };
+    let body: { messages?: unknown; context?: unknown; confirmedActions?: unknown };
     try {
       body = await req.json();
     } catch {
       return jsonResponse({ error: "Invalid JSON body." }, 400);
+    }
+
+    // ---- Execution phase: the user clicked Confirm on proposed actions. ----
+    if (Array.isArray(body?.confirmedActions) && body.confirmedActions.length > 0) {
+      const summaries: string[] = [];
+      for (const a of body.confirmedActions as any[]) {
+        if (!a || typeof a.tool !== "string") continue;
+        const desc = typeof a.description === "string" && a.description.trim()
+          ? a.description.trim()
+          : a.tool.replace(/_/g, " ");
+        const result = await executeAction(adminClient, a.tool, a.input || {}, user.id, userName);
+        summaries.push(summariseActionResult(desc, result));
+      }
+      const reply = summaries.length
+        ? `Done — here's what I ran:\n\n${summaries.join("\n")}`
+        : "There was nothing to run.";
+      return jsonResponse({ reply, executed: true });
     }
 
     const rawMessages = body?.messages;
@@ -364,7 +846,7 @@ Deno.serve(async (req) => {
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: TOOLS, messages }),
+        body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages }),
       });
 
       if (!anthropicRes.ok) {
@@ -392,7 +874,25 @@ Deno.serve(async (req) => {
         break; // Final answer reached.
       }
 
-      // Run the requested tools and feed results back.
+      // If Claude proposes any data-changing / email actions, DO NOT run them.
+      // Return them to the UI as pending actions for the user to confirm.
+      const actionUses = toolUses.filter((tu) => ACTION_TOOL_NAMES.has(tu.name));
+      if (actionUses.length > 0) {
+        const pendingActions = actionUses.map((tu) => ({
+          id: tu.id,
+          tool: tu.name,
+          input: tu.input,
+          description: typeof tu.input?.description === "string" && tu.input.description.trim()
+            ? tu.input.description.trim()
+            : tu.name.replace(/_/g, " "),
+        }));
+        return jsonResponse({
+          reply: finalText || "I've prepared the following for your approval:",
+          pendingActions,
+        });
+      }
+
+      // Otherwise run the requested read tools and feed results back.
       messages.push({ role: "assistant", content: contentBlocks });
       const toolResults: any[] = [];
       for (const tu of toolUses) {
