@@ -36,6 +36,7 @@ import {
   PoundSterling,
   
   Inbox,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -102,6 +103,14 @@ export function AppSidebar() {
                 <Link to="/assistant">
                   <Bot className="h-4 w-4" />
                   {!collapsed && <span>Ask One</span>}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/ai-assistant")}>
+                <Link to="/ai-assistant">
+                  <Sparkles className="h-4 w-4" />
+                  {!collapsed && <span>Claude Assistant</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
