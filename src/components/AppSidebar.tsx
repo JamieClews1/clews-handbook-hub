@@ -11,6 +11,7 @@ import {
   Building2,
   MapPin,
   Truck as TruckIcon,
+  Container as ContainerIcon,
   Smartphone,
   CalendarCheck,
   Box,
@@ -157,7 +158,7 @@ export function AppSidebar() {
 
         {/* OnePortal */}
         <SidebarGroup>
-          <Collapsible defaultOpen={isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/diary", "/bookings"])}>
+          <Collapsible defaultOpen={isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings"])}>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
                 {!collapsed && (
@@ -259,6 +260,16 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/container-loads")}>
+                      <Link to="/container-loads">
+                        <ContainerIcon className="h-4 w-4" />
+                        {!collapsed && <span>Container Loads</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
 
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/diary")}>

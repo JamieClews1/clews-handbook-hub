@@ -35,6 +35,7 @@ import OnePortalPage from "./pages/OnePortalPage";
 import AssistantPage from "./pages/AssistantPage";
 import AIAssistantPage from "./pages/AIAssistantPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
+import ContainerLoadsPage from "./pages/ContainerLoadsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import CreditApplicationPage from "./pages/CreditApplicationPage";
@@ -135,6 +136,7 @@ const App = () => (
             <Route path="/site-reports" element={<Staff><SiteReportsPage /></Staff>} />
             <Route path="/one-portal" element={<Staff><OnePortalPage /></Staff>} />
             <Route path="/load-reports" element={<Staff><LoadReportsPage /></Staff>} />
+            <Route path="/container-loads" element={<Staff><ContainerLoadsPage /></Staff>} />
             <Route path="/performance-hub" element={<Staff><PerformanceHubPage /></Staff>} />
             <Route path="/performance-hub/reports" element={<Staff><PerformanceHubReportsPage /></Staff>} />
             <Route path="/performance-hub/waste-kpis" element={<Staff><WasteKPIsPage /></Staff>} />

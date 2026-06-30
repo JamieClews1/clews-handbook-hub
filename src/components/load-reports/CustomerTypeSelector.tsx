@@ -1,10 +1,11 @@
-import { Truck, ClipboardList } from "lucide-react";
+import { Truck, ClipboardList, Container } from "lucide-react";
 
 export type CustomerType = "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other";
 
 interface CustomerTypeSelectorProps {
   onSelect: (customer: CustomerType) => void;
   onViewAll?: () => void;
+  onContainer?: () => void;
 }
 
 const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; available: boolean }[] = [
@@ -16,7 +17,7 @@ const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; av
   { id: "other", name: "Standard", icon: <Truck className="h-8 w-8" />, available: true },
 ];
 
-export const CustomerTypeSelector = ({ onSelect, onViewAll }: CustomerTypeSelectorProps) => {
+export const CustomerTypeSelector = ({ onSelect, onViewAll, onContainer }: CustomerTypeSelectorProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -56,6 +57,19 @@ export const CustomerTypeSelector = ({ onSelect, onViewAll }: CustomerTypeSelect
           </button>
         ))}
       </div>
+
+      {onContainer && (
+        <button
+          onClick={onContainer}
+          className="w-full mt-2 flex items-center justify-center gap-3 min-h-[72px] p-5 rounded-xl font-bold text-lg tracking-wide transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] cursor-pointer shadow-lg hover:shadow-xl"
+        >
+          <Container className="h-7 w-7" />
+          Container (export loads)
+          <span className="text-xs font-normal opacity-75">bales, photos & paperwork</span>
+        </button>
+      )}
+
+
 
       {onViewAll && (
         <button
