@@ -340,6 +340,98 @@ export type Database = {
         }
         Relationships: []
       }
+      container_loads: {
+        Row: {
+          annex7: Json
+          bale_count: number
+          basel_code: string | null
+          booking_reference: string | null
+          container_number: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          destination_country: string | null
+          destination_facility: string | null
+          ewc_code: string | null
+          export_date: string | null
+          id: string
+          material: string | null
+          notes: string | null
+          operator_name: string | null
+          packing: Json
+          photos: Json
+          reference: string | null
+          seal_number: string | null
+          status: string
+          total_weight_t: number | null
+          updated_at: string
+          vessel: string | null
+        }
+        Insert: {
+          annex7?: Json
+          bale_count?: number
+          basel_code?: string | null
+          booking_reference?: string | null
+          container_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          destination_country?: string | null
+          destination_facility?: string | null
+          ewc_code?: string | null
+          export_date?: string | null
+          id?: string
+          material?: string | null
+          notes?: string | null
+          operator_name?: string | null
+          packing?: Json
+          photos?: Json
+          reference?: string | null
+          seal_number?: string | null
+          status?: string
+          total_weight_t?: number | null
+          updated_at?: string
+          vessel?: string | null
+        }
+        Update: {
+          annex7?: Json
+          bale_count?: number
+          basel_code?: string | null
+          booking_reference?: string | null
+          container_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          destination_country?: string | null
+          destination_facility?: string | null
+          ewc_code?: string | null
+          export_date?: string | null
+          id?: string
+          material?: string | null
+          notes?: string | null
+          operator_name?: string | null
+          packing?: Json
+          photos?: Json
+          reference?: string | null
+          seal_number?: string | null
+          status?: string
+          total_weight_t?: number | null
+          updated_at?: string
+          vessel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "container_loads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contamination_activity_log: {
         Row: {
           action_type: string
