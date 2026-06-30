@@ -17,7 +17,7 @@ const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; av
   { id: "other", name: "Standard", icon: <Truck className="h-8 w-8" />, available: true },
 ];
 
-export const CustomerTypeSelector = ({ onSelect, onViewAll }: CustomerTypeSelectorProps) => {
+export const CustomerTypeSelector = ({ onSelect, onViewAll, onContainer }: CustomerTypeSelectorProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
