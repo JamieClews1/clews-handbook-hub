@@ -1,10 +1,11 @@
-import { Truck, ClipboardList } from "lucide-react";
+import { Truck, ClipboardList, Container } from "lucide-react";
 
 export type CustomerType = "britvic" | "staci" | "vantiva" | "amazon" | "evri" | "other";
 
 interface CustomerTypeSelectorProps {
   onSelect: (customer: CustomerType) => void;
   onViewAll?: () => void;
+  onContainer?: () => void;
 }
 
 const customerTypes: { id: CustomerType; name: string; icon: React.ReactNode; available: boolean }[] = [
