@@ -262,6 +262,16 @@ export function AppSidebar() {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/container-loads")}>
+                      <Link to="/container-loads">
+                        <ContainerIcon className="h-4 w-4" />
+                        {!collapsed && <span>Container Loads</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/diary")}>
                       <Link to="/diary">
                         <Calendar className="h-4 w-4" />
