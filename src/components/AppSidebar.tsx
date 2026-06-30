@@ -11,6 +11,7 @@ import {
   Building2,
   MapPin,
   Truck as TruckIcon,
+  Container as ContainerIcon,
   Smartphone,
   CalendarCheck,
   Box,
