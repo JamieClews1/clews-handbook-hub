@@ -35,6 +35,7 @@ import OnePortalPage from "./pages/OnePortalPage";
 import AssistantPage from "./pages/AssistantPage";
 import AIAssistantPage from "./pages/AIAssistantPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
+import ContainerLoadsPage from "./pages/ContainerLoadsPage";
 import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import CreditApplicationPage from "./pages/CreditApplicationPage";
