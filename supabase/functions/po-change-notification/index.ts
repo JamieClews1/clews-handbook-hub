@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailSubject = `PO Number Updated - ${customerName} - Job ${jobNumber}`;
 
     const emailResponse = await resend.emails.send({
-      from: "Customer Portal <noreply@clewsrecycling.co.uk>",
+      from: "Customer Portal <accounts@noreply.clewsrecycling.co.uk>",
       to: recipients,
       subject: emailSubject,
       html: `
