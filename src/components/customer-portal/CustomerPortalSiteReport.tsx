@@ -513,6 +513,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       if (notifyError) throw notifyError;
 
+      // Mark the persisted pending changes as sent so they aren't auto-sent again.
+      const jobIds = pendingPOChanges.map((c) => c.jobId);
+      if (jobIds.length > 0) {
+        await supabase
+          .from("po_pending_changes")
+          .update({ sent: true, sent_at: new Date().toISOString() })
+          .in("job_id", jobIds)
+          .eq("sent", false);
+      }
+
       toast({
         title: "Notification sent",
         description: `Notified the team of ${pendingPOChanges.length} PO change${pendingPOChanges.length === 1 ? "" : "s"}.`,
