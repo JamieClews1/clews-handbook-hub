@@ -133,6 +133,11 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
+    if (emailResponse.error) {
+      console.error("Resend returned an error:", emailResponse.error);
+      throw new Error(emailResponse.error.message || "Failed to send email");
+    }
+
     console.log("PO change notification sent successfully:", emailResponse);
 
     return new Response(JSON.stringify({ success: true }), {
