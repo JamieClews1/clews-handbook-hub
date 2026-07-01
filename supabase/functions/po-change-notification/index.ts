@@ -1,7 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +15,7 @@ const corsHeaders = {
 };
 
 interface POChangeRequest {
-  notificationEmail: string;
+  notificationEmail?: string;
   customerName: string;
   siteName: string;
   jobNumber: string;
@@ -26,7 +32,6 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const {
-      notificationEmail,
       customerName,
       siteName,
       jobNumber,
@@ -36,17 +41,47 @@ const handler = async (req: Request): Promise<Response> => {
       changedBy,
     }: POChangeRequest = await req.json();
 
-    if (!notificationEmail || !customerName || !jobNumber || !newPONumber) {
+    if (!customerName || !jobNumber || !newPONumber) {
       throw new Error("Missing required fields");
     }
 
-    console.log("Sending PO change notification to:", notificationEmail);
+    // Check whether PO notifications are enabled
+    const { data: config } = await supabase
+      .from("po_notification_config")
+      .select("enabled")
+      .eq("id", true)
+      .maybeSingle();
+
+    if (config && config.enabled === false) {
+      console.log("PO notifications are disabled — skipping email.");
+      return new Response(JSON.stringify({ success: true, skipped: "disabled" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Fetch active recipients configured in Settings
+    const { data: recipientRows } = await supabase
+      .from("po_notification_recipients")
+      .select("email")
+      .eq("is_active", true);
+
+    let recipients = (recipientRows ?? [])
+      .map((r: { email: string }) => r.email?.trim())
+      .filter((e: string) => !!e);
+
+    // Fallback to the default orders inbox if none configured
+    if (recipients.length === 0) {
+      recipients = ["orders@clewsrecycling.co.uk"];
+    }
+
+    console.log("Sending PO change notification to:", recipients.join(", "));
 
     const emailSubject = `PO Number Updated - ${customerName} - Job ${jobNumber}`;
 
     const emailResponse = await resend.emails.send({
       from: "Customer Portal <noreply@clewsrecycling.co.uk>",
-      to: [notificationEmail],
+      to: recipients,
       subject: emailSubject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
