@@ -106,7 +106,13 @@ const OtherRentalsPostcodes = () => {
       if (job.site && !g.sites.includes(job.site)) g.sites.push(job.site);
       if (job.job_date && (!g.latestDate || job.job_date > g.latestDate)) g.latestDate = job.job_date;
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.latestDate && b.latestDate) return b.latestDate.localeCompare(a.latestDate);
+      if (a.latestDate) return -1;
+      if (b.latestDate) return 1;
+      return b.count - a.count;
+    });
+  }, [jobs]);
   }, [jobs]);
 
   const filtered = useMemo(() => {
