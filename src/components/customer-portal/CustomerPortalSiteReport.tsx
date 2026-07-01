@@ -788,13 +788,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                   <div className="text-xs text-amber-700 dark:text-amber-300">
                     {pendingPOChanges.map((c) => `${c.jobNumber} → ${c.newPONumber}`).join(", ")}
                   </div>
+                  <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    These will be sent automatically after 20 minutes if you don't notify sooner.
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPendingPOChanges([])}
+                  onClick={clearPOChanges}
                   disabled={notifyingPO}
                 >
                   Clear
