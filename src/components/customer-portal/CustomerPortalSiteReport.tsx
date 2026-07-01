@@ -718,6 +718,37 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
             </div>
           )}
 
+          {pendingPOChanges.length > 0 && (
+            <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+              <div className="flex items-start gap-2">
+                <BellRing className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                    {pendingPOChanges.length} PO change{pendingPOChanges.length === 1 ? "" : "s"} ready to notify
+                  </div>
+                  <div className="text-xs text-amber-700 dark:text-amber-300">
+                    {pendingPOChanges.map((c) => `${c.jobNumber} → ${c.newPONumber}`).join(", ")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPendingPOChanges([])}
+                  disabled={notifyingPO}
+                >
+                  Clear
+                </Button>
+                <Button size="sm" onClick={notifyPOChanges} disabled={notifyingPO} className="gap-1.5">
+                  {notifyingPO ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+                  Ready to notify of PO changes
+                </Button>
+              </div>
+            </div>
+          )}
+
+
           {(() => {
             const hasPalletData = Object.keys(palletData).length > 0;
             const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
