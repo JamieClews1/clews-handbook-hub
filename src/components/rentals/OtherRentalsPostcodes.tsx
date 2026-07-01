@@ -113,7 +113,6 @@ const OtherRentalsPostcodes = () => {
       return b.count - a.count;
     });
   }, [jobs]);
-  }, [jobs]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
