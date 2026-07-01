@@ -427,13 +427,17 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         )
       );
 
+      const jobDateStr = job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "";
+      const siteName = selectedSite?.site_name || "";
+
       // Queue the change for a grouped notification (instead of sending one email per PO)
+      let originalOldPO = oldPO;
       setPendingPOChanges((prev) => {
         const entry = {
           jobId: job.id,
-          siteName: selectedSite?.site_name || "",
+          siteName,
           jobNumber: job.job_number,
-          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+          jobDate: jobDateStr,
           oldPONumber: oldPO,
           newPONumber: newPO,
         };
@@ -441,11 +445,40 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         if (existingIdx >= 0) {
           const next = [...prev];
           // Keep the original oldPONumber, update to latest newPONumber
+          originalOldPO = next[existingIdx].oldPONumber;
           next[existingIdx] = { ...entry, oldPONumber: next[existingIdx].oldPONumber };
           return next;
         }
         return [...prev, entry];
       });
+
+      // Persist the pending change so the team is still auto-notified after 20 minutes
+      // even if the user closes the tab without pressing "Ready to notify".
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        // Remove any earlier unsent entry for this job, then insert the latest.
+        await supabase
+          .from("po_pending_changes")
+          .delete()
+          .eq("job_id", job.id)
+          .eq("sent", false);
+        await supabase.from("po_pending_changes").insert({
+          customer_id: customerId,
+          customer_name: customerName,
+          user_id: userData.user?.id,
+          changed_by: userData.user?.email || "Unknown",
+          notification_email: notificationEmail,
+          job_id: job.id,
+          site_name: siteName,
+          job_number: job.job_number,
+          job_date: jobDateStr,
+          old_po_number: originalOldPO,
+          new_po_number: newPO,
+          sent: false,
+        });
+      } catch (persistErr) {
+        console.error("Failed to persist pending PO change:", persistErr);
+      }
 
       toast({ title: "Saved", description: "PO number updated. Notify the team when you're done." });
       setEditingJobId(null);
@@ -480,6 +513,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       if (notifyError) throw notifyError;
 
+      // Mark the persisted pending changes as sent so they aren't auto-sent again.
+      const jobIds = pendingPOChanges.map((c) => c.jobId);
+      if (jobIds.length > 0) {
+        await supabase
+          .from("po_pending_changes")
+          .update({ sent: true, sent_at: new Date().toISOString() })
+          .in("job_id", jobIds)
+          .eq("sent", false);
+      }
+
       toast({
         title: "Notification sent",
         description: `Notified the team of ${pendingPOChanges.length} PO change${pendingPOChanges.length === 1 ? "" : "s"}.`,
@@ -490,6 +533,22 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       toast({ title: "Error", description: error?.message || "Failed to send notification.", variant: "destructive" });
     } finally {
       setNotifyingPO(false);
+    }
+  };
+
+  const clearPOChanges = async () => {
+    const jobIds = pendingPOChanges.map((c) => c.jobId);
+    setPendingPOChanges([]);
+    if (jobIds.length > 0) {
+      try {
+        await supabase
+          .from("po_pending_changes")
+          .delete()
+          .in("job_id", jobIds)
+          .eq("sent", false);
+      } catch (err) {
+        console.error("Failed to clear pending PO changes:", err);
+      }
     }
   };
 
@@ -729,13 +788,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                   <div className="text-xs text-amber-700 dark:text-amber-300">
                     {pendingPOChanges.map((c) => `${c.jobNumber} → ${c.newPONumber}`).join(", ")}
                   </div>
+                  <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    These will be sent automatically after 20 minutes if you don't notify sooner.
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPendingPOChanges([])}
+                  onClick={clearPOChanges}
                   disabled={notifyingPO}
                 >
                   Clear

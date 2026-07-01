@@ -3562,6 +3562,63 @@ export type Database = {
         }
         Relationships: []
       }
+      po_pending_changes: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          job_date: string | null
+          job_id: string
+          job_number: string
+          new_po_number: string
+          notification_email: string | null
+          old_po_number: string | null
+          sent: boolean
+          sent_at: string | null
+          site_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          job_date?: string | null
+          job_id: string
+          job_number: string
+          new_po_number: string
+          notification_email?: string | null
+          old_po_number?: string | null
+          sent?: boolean
+          sent_at?: string | null
+          site_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          job_date?: string | null
+          job_id?: string
+          job_number?: string
+          new_po_number?: string
+          notification_email?: string | null
+          old_po_number?: string | null
+          sent?: boolean
+          sent_at?: string | null
+          site_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       postcode_zones: {
         Row: {
           created_at: string
