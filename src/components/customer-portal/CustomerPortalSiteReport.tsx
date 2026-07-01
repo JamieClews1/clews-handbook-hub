@@ -536,6 +536,22 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     }
   };
 
+  const clearPOChanges = async () => {
+    const jobIds = pendingPOChanges.map((c) => c.jobId);
+    setPendingPOChanges([]);
+    if (jobIds.length > 0) {
+      try {
+        await supabase
+          .from("po_pending_changes")
+          .delete()
+          .in("job_id", jobIds)
+          .eq("sent", false);
+      } catch (err) {
+        console.error("Failed to clear pending PO changes:", err);
+      }
+    }
+  };
+
   const toggleWasteType = (wasteType: string) => {
     setSelectedWasteTypes((prev) =>
       prev.includes(wasteType)
