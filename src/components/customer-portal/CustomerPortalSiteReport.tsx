@@ -427,13 +427,17 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         )
       );
 
+      const jobDateStr = job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "";
+      const siteName = selectedSite?.site_name || "";
+
       // Queue the change for a grouped notification (instead of sending one email per PO)
+      let originalOldPO = oldPO;
       setPendingPOChanges((prev) => {
         const entry = {
           jobId: job.id,
-          siteName: selectedSite?.site_name || "",
+          siteName,
           jobNumber: job.job_number,
-          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+          jobDate: jobDateStr,
           oldPONumber: oldPO,
           newPONumber: newPO,
         };
@@ -441,11 +445,41 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         if (existingIdx >= 0) {
           const next = [...prev];
           // Keep the original oldPONumber, update to latest newPONumber
+          originalOldPO = next[existingIdx].oldPONumber;
           next[existingIdx] = { ...entry, oldPONumber: next[existingIdx].oldPONumber };
           return next;
         }
         return [...prev, entry];
       });
+
+      // Persist the pending change so the team is still auto-notified after 20 minutes
+      // even if the user closes the tab without pressing "Ready to notify".
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        await supabase
+          .from("po_pending_changes")
+          .upsert(
+            {
+              customer_id: customerId,
+              customer_name: customerName,
+              user_id: userData.user?.id,
+              changed_by: userData.user?.email || "Unknown",
+              notification_email: notificationEmail,
+              job_id: job.id,
+              site_name: siteName,
+              job_number: job.job_number,
+              job_date: jobDateStr,
+              old_po_number: originalOldPO,
+              new_po_number: newPO,
+              sent: false,
+              // Refresh timestamp on each edit so the 20-min timer measures the latest change
+              created_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,job_id", ignoreDuplicates: false }
+          );
+      } catch (persistErr) {
+        console.error("Failed to persist pending PO change:", persistErr);
+      }
 
       toast({ title: "Saved", description: "PO number updated. Notify the team when you're done." });
       setEditingJobId(null);
