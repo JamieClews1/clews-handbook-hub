@@ -456,27 +456,26 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       // even if the user closes the tab without pressing "Ready to notify".
       try {
         const { data: userData } = await supabase.auth.getUser();
+        // Remove any earlier unsent entry for this job, then insert the latest.
         await supabase
           .from("po_pending_changes")
-          .upsert(
-            {
-              customer_id: customerId,
-              customer_name: customerName,
-              user_id: userData.user?.id,
-              changed_by: userData.user?.email || "Unknown",
-              notification_email: notificationEmail,
-              job_id: job.id,
-              site_name: siteName,
-              job_number: job.job_number,
-              job_date: jobDateStr,
-              old_po_number: originalOldPO,
-              new_po_number: newPO,
-              sent: false,
-              // Refresh timestamp on each edit so the 20-min timer measures the latest change
-              created_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id,job_id", ignoreDuplicates: false }
-          );
+          .delete()
+          .eq("job_id", job.id)
+          .eq("sent", false);
+        await supabase.from("po_pending_changes").insert({
+          customer_id: customerId,
+          customer_name: customerName,
+          user_id: userData.user?.id,
+          changed_by: userData.user?.email || "Unknown",
+          notification_email: notificationEmail,
+          job_id: job.id,
+          site_name: siteName,
+          job_number: job.job_number,
+          job_date: jobDateStr,
+          old_po_number: originalOldPO,
+          new_po_number: newPO,
+          sent: false,
+        });
       } catch (persistErr) {
         console.error("Failed to persist pending PO change:", persistErr);
       }
