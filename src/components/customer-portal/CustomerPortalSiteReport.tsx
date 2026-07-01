@@ -420,25 +420,6 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       if (updateError) throw updateError;
 
-      // Send notification email
-      const { error: notifyError } = await supabase.functions.invoke("po-change-notification", {
-        body: {
-          notificationEmail,
-          customerName,
-          siteName: selectedSite?.site_name || "",
-          jobNumber: job.job_number,
-          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
-          oldPONumber: oldPO,
-          newPONumber: newPO,
-          changedBy: (await supabase.auth.getUser()).data.user?.email || "Unknown",
-        },
-      });
-
-      if (notifyError) {
-        console.error("Failed to send notification:", notifyError);
-        // Don't fail the save if notification fails
-      }
-
       // Update local state
       setJobRecords((prev) =>
         prev.map((j) =>
@@ -446,7 +427,27 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         )
       );
 
-      toast({ title: "Saved", description: "PO number updated successfully." });
+      // Queue the change for a grouped notification (instead of sending one email per PO)
+      setPendingPOChanges((prev) => {
+        const entry = {
+          jobId: job.id,
+          siteName: selectedSite?.site_name || "",
+          jobNumber: job.job_number,
+          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+          oldPONumber: oldPO,
+          newPONumber: newPO,
+        };
+        const existingIdx = prev.findIndex((c) => c.jobId === job.id);
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          // Keep the original oldPONumber, update to latest newPONumber
+          next[existingIdx] = { ...entry, oldPONumber: next[existingIdx].oldPONumber };
+          return next;
+        }
+        return [...prev, entry];
+      });
+
+      toast({ title: "Saved", description: "PO number updated. Notify the team when you're done." });
       setEditingJobId(null);
       setEditingPOValue("");
     } catch (error: any) {
@@ -454,6 +455,41 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       toast({ title: "Error", description: error?.message || "Failed to save PO number.", variant: "destructive" });
     } finally {
       setSavingPO(false);
+    }
+  };
+
+  const notifyPOChanges = async () => {
+    if (pendingPOChanges.length === 0) return;
+    setNotifyingPO(true);
+    try {
+      const changedBy = (await supabase.auth.getUser()).data.user?.email || "Unknown";
+      const { error: notifyError } = await supabase.functions.invoke("po-change-notification", {
+        body: {
+          notificationEmail,
+          customerName,
+          changedBy,
+          changes: pendingPOChanges.map(({ siteName, jobNumber, jobDate, oldPONumber, newPONumber }) => ({
+            siteName,
+            jobNumber,
+            jobDate,
+            oldPONumber,
+            newPONumber,
+          })),
+        },
+      });
+
+      if (notifyError) throw notifyError;
+
+      toast({
+        title: "Notification sent",
+        description: `Notified the team of ${pendingPOChanges.length} PO change${pendingPOChanges.length === 1 ? "" : "s"}.`,
+      });
+      setPendingPOChanges([]);
+    } catch (error: any) {
+      console.error("Error sending PO notification:", error);
+      toast({ title: "Error", description: error?.message || "Failed to send notification.", variant: "destructive" });
+    } finally {
+      setNotifyingPO(false);
     }
   };
 
