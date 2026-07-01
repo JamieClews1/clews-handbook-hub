@@ -101,6 +101,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [editingPOValue, setEditingPOValue] = useState("");
   const [savingPO, setSavingPO] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState<string>("orders@clewsrecycling.co.uk");
+  // Batched PO changes awaiting notification
+  const [pendingPOChanges, setPendingPOChanges] = useState<
+    { jobId: string; siteName: string; jobNumber: string; jobDate: string; oldPONumber: string | null; newPONumber: string }[]
+  >([]);
+  const [notifyingPO, setNotifyingPO] = useState(false);
 
   useEffect(() => {
     loadSites();
