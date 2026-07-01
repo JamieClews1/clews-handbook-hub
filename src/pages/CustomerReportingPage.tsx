@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database, Package, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database, Package, ClipboardCheck, Settings } from "lucide-react";
 import { SiteReportGenerator } from "@/components/customer-reporting/SiteReportGenerator";
 import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
 import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
@@ -14,6 +14,7 @@ import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckRe
 import { DataHubCustomerReport } from "@/components/customer-reporting/DataHubCustomerReport";
 
 import { POCheckReport } from "@/components/customer-reporting/POCheckReport";
+import { PONotificationSettings } from "@/components/customer-reporting/PONotificationSettings";
 
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
