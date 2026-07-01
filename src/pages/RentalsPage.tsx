@@ -2,10 +2,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, PoundSterling, AlertTriangle, FileCheck } from "lucide-react";
+import { ArrowLeft, PoundSterling, AlertTriangle, FileCheck, MapPin } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import RentalsDashboard from "@/components/rentals/RentalsDashboard";
 import RentalAgreements from "@/components/rentals/RentalAgreements";
+import OtherRentalsPostcodes from "@/components/rentals/OtherRentalsPostcodes";
 import { useEffect, useState } from "react";
 
 const RentalsPage = () => {
@@ -68,12 +69,18 @@ const RentalsPage = () => {
               <TabsTrigger value="agreements">
                 <FileCheck className="h-4 w-4 mr-1.5" /> Rental Agreements
               </TabsTrigger>
+              <TabsTrigger value="other-rentals">
+                <MapPin className="h-4 w-4 mr-1.5" /> Bin Rentals (Other 1)
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="over-rental" className="mt-6">
               <RentalsDashboard />
             </TabsContent>
             <TabsContent value="agreements" className="mt-6">
               <RentalAgreements />
+            </TabsContent>
+            <TabsContent value="other-rentals" className="mt-6">
+              <OtherRentalsPostcodes />
             </TabsContent>
           </Tabs>
         </div>
