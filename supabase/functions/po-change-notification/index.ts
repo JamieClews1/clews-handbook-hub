@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailSubject = `PO Number Updated - ${customerName} - Job ${jobNumber}`;
 
     const emailResponse = await resend.emails.send({
-      from: "Customer Portal <noreply@clewsrecycling.co.uk>",
+      from: "Customer Portal <accounts@noreply.clewsrecycling.co.uk>",
       to: recipients,
       subject: emailSubject,
       html: `
@@ -132,6 +132,11 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
       `,
     });
+
+    if (emailResponse.error) {
+      console.error("Resend returned an error:", emailResponse.error);
+      throw new Error(emailResponse.error.message || "Failed to send email");
+    }
 
     console.log("PO change notification sent successfully:", emailResponse);
 
