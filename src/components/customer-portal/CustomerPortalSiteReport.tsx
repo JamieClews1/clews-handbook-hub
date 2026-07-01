@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter, Pencil, Save, X } from "lucide-react";
+import { CalendarIcon, FileDown, Loader2, FileSpreadsheet, Filter, Pencil, Save, X, BellRing } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
@@ -101,6 +101,11 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [editingPOValue, setEditingPOValue] = useState("");
   const [savingPO, setSavingPO] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState<string>("orders@clewsrecycling.co.uk");
+  // Batched PO changes awaiting notification
+  const [pendingPOChanges, setPendingPOChanges] = useState<
+    { jobId: string; siteName: string; jobNumber: string; jobDate: string; oldPONumber: string | null; newPONumber: string }[]
+  >([]);
+  const [notifyingPO, setNotifyingPO] = useState(false);
 
   useEffect(() => {
     loadSites();
@@ -415,25 +420,6 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       if (updateError) throw updateError;
 
-      // Send notification email
-      const { error: notifyError } = await supabase.functions.invoke("po-change-notification", {
-        body: {
-          notificationEmail,
-          customerName,
-          siteName: selectedSite?.site_name || "",
-          jobNumber: job.job_number,
-          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
-          oldPONumber: oldPO,
-          newPONumber: newPO,
-          changedBy: (await supabase.auth.getUser()).data.user?.email || "Unknown",
-        },
-      });
-
-      if (notifyError) {
-        console.error("Failed to send notification:", notifyError);
-        // Don't fail the save if notification fails
-      }
-
       // Update local state
       setJobRecords((prev) =>
         prev.map((j) =>
@@ -441,7 +427,27 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
         )
       );
 
-      toast({ title: "Saved", description: "PO number updated successfully." });
+      // Queue the change for a grouped notification (instead of sending one email per PO)
+      setPendingPOChanges((prev) => {
+        const entry = {
+          jobId: job.id,
+          siteName: selectedSite?.site_name || "",
+          jobNumber: job.job_number,
+          jobDate: job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
+          oldPONumber: oldPO,
+          newPONumber: newPO,
+        };
+        const existingIdx = prev.findIndex((c) => c.jobId === job.id);
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          // Keep the original oldPONumber, update to latest newPONumber
+          next[existingIdx] = { ...entry, oldPONumber: next[existingIdx].oldPONumber };
+          return next;
+        }
+        return [...prev, entry];
+      });
+
+      toast({ title: "Saved", description: "PO number updated. Notify the team when you're done." });
       setEditingJobId(null);
       setEditingPOValue("");
     } catch (error: any) {
@@ -449,6 +455,41 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       toast({ title: "Error", description: error?.message || "Failed to save PO number.", variant: "destructive" });
     } finally {
       setSavingPO(false);
+    }
+  };
+
+  const notifyPOChanges = async () => {
+    if (pendingPOChanges.length === 0) return;
+    setNotifyingPO(true);
+    try {
+      const changedBy = (await supabase.auth.getUser()).data.user?.email || "Unknown";
+      const { error: notifyError } = await supabase.functions.invoke("po-change-notification", {
+        body: {
+          notificationEmail,
+          customerName,
+          changedBy,
+          changes: pendingPOChanges.map(({ siteName, jobNumber, jobDate, oldPONumber, newPONumber }) => ({
+            siteName,
+            jobNumber,
+            jobDate,
+            oldPONumber,
+            newPONumber,
+          })),
+        },
+      });
+
+      if (notifyError) throw notifyError;
+
+      toast({
+        title: "Notification sent",
+        description: `Notified the team of ${pendingPOChanges.length} PO change${pendingPOChanges.length === 1 ? "" : "s"}.`,
+      });
+      setPendingPOChanges([]);
+    } catch (error: any) {
+      console.error("Error sending PO notification:", error);
+      toast({ title: "Error", description: error?.message || "Failed to send notification.", variant: "destructive" });
+    } finally {
+      setNotifyingPO(false);
     }
   };
 
@@ -676,6 +717,37 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
               </Table>
             </div>
           )}
+
+          {pendingPOChanges.length > 0 && (
+            <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+              <div className="flex items-start gap-2">
+                <BellRing className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                    {pendingPOChanges.length} PO change{pendingPOChanges.length === 1 ? "" : "s"} ready to notify
+                  </div>
+                  <div className="text-xs text-amber-700 dark:text-amber-300">
+                    {pendingPOChanges.map((c) => `${c.jobNumber} → ${c.newPONumber}`).join(", ")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPendingPOChanges([])}
+                  disabled={notifyingPO}
+                >
+                  Clear
+                </Button>
+                <Button size="sm" onClick={notifyPOChanges} disabled={notifyingPO} className="gap-1.5">
+                  {notifyingPO ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+                  Ready to notify of PO changes
+                </Button>
+              </div>
+            </div>
+          )}
+
 
           {(() => {
             const hasPalletData = Object.keys(palletData).length > 0;
