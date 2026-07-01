@@ -171,6 +171,20 @@ const CustomerReportingPage = () => {
           <TabsContent value="po-check">
             <POCheckReport />
           </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Reporting Settings</CardTitle>
+                <CardDescription>
+                  Manage PO change notifications sent when customers update PO numbers in the portal
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PONotificationSettings />
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
