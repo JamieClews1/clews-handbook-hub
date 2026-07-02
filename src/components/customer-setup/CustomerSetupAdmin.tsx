@@ -350,9 +350,23 @@ export function CustomerSetupAdmin() {
       if (!q) return true;
       const code = c.customer_code.toLowerCase();
       const name = c.customer_name.toLowerCase();
-      return code.includes(q) || name.includes(q);
+      const dataHubCustomer = (c.data_hub_customer ?? "").toLowerCase();
+      return code.includes(q) || name.includes(q) || dataHubCustomer.includes(q);
     });
   }, [customers, customerSearch, showArchived]);
+
+  const sourceCustomerMatches = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (q.length < 3) return [];
+    const existingNames = new Set(customers.map((c) => c.customer_name.toLowerCase()));
+    const existingAliases = new Set(customers.map((c) => (c.data_hub_customer ?? "").toLowerCase()).filter(Boolean));
+    return skiptrakCustomers
+      .filter((name) => {
+        const normalized = name.toLowerCase();
+        return normalized.includes(q) && !existingNames.has(normalized) && !existingAliases.has(normalized);
+      })
+      .slice(0, 8);
+  }, [customers, customerSearch, skiptrakCustomers]);
 
   const contactsById = useMemo(() => {
     const map: Record<string, CustomerContact> = {};
@@ -378,6 +392,46 @@ export function CustomerSetupAdmin() {
     setCustomers((data ?? []) as Customer[]);
     if (!selectedCustomerId && (data?.[0]?.id ?? null)) {
       setSelectedCustomerId(data![0]!.id);
+    }
+  };
+
+  const generateCustomerCode = (name: string) => {
+    const words = name
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, " ")
+      .replace(/\b(LIMITED|LTD|PLC|LLP|THE|UK)\b/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    const base = (words.map((word) => word[0]).join("") || name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) || "CUST").slice(0, 12);
+    const existingCodes = new Set(customers.map((c) => c.customer_code.toUpperCase()));
+    if (!existingCodes.has(base)) return base;
+    for (let i = 2; i < 1000; i += 1) {
+      const candidate = `${base}${i}`.slice(0, 50);
+      if (!existingCodes.has(candidate)) return candidate;
+    }
+    return `${base}${Date.now()}`.slice(0, 50);
+  };
+
+  const createCustomerFromSource = async (sourceName: string) => {
+    const name = sourceName.trim();
+    if (!name) return;
+    const code = generateCustomerCode(name);
+    setSavingCustomer(true);
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .insert({ customer_code: code, customer_name: name, data_hub_customer: name })
+        .select("id")
+        .single();
+      if (error) throw error;
+      toast({ title: "Created", description: `${name} added from Data Hub.` });
+      await loadCustomers();
+      if (data?.id) setSelectedCustomerId(data.id);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to create customer.", variant: "destructive" });
+    } finally {
+      setSavingCustomer(false);
     }
   };
 
