@@ -935,14 +935,19 @@ export function CustomerSetupAdmin() {
         throw new Error("User was created but no user id was returned.");
       }
 
-      const { error: membershipError } = await supabase.from("customer_portal_memberships").insert({
+      const { error: membershipError } = await supabase.from("customer_portal_memberships").upsert({
         customer_id: selectedCustomerId,
         user_id: userId,
         contact_id: inviteForm.contact_id,
-      });
+      }, { onConflict: "customer_id,user_id" });
       if (membershipError) throw membershipError;
 
-      toast({ title: "Invited", description: "Portal login created and linked." });
+      toast({
+        title: data?.already_existed ? "Linked" : "Invited",
+        description: data?.already_existed
+          ? "Existing login found and linked to this customer."
+          : "Portal login created and linked.",
+      });
       setInviteOpen(false);
       await loadCustomerDetails(selectedCustomerId);
     } catch (e: any) {

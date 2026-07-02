@@ -72,19 +72,72 @@ Deno.serve(async (req) => {
     // Generate a random temporary password
     const tempPassword = crypto.randomUUID();
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // Generate a random temporary password
+    const tempPassword = crypto.randomUUID();
+
     // Create auth user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name },
     });
 
+    let userId: string | undefined = newUser?.user?.id;
+    let userEmail: string | undefined = newUser?.user?.email ?? normalizedEmail;
+    let alreadyExisted = false;
+
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // If the user already exists, reuse the existing auth account so it can be linked.
+      const msg = (createError.message || "").toLowerCase();
+      const isExisting =
+        msg.includes("already been registered") ||
+        msg.includes("already registered") ||
+        msg.includes("already exists") ||
+        (createError as { code?: string }).code === "email_exists";
+
+      if (!isExisting) {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Look up the existing user by paging through the auth users list.
+      let page = 1;
+      const perPage = 200;
+      while (!userId && page <= 50) {
+        const { data: list, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage,
+        });
+        if (listError) {
+          return new Response(JSON.stringify({ error: listError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const found = list?.users?.find(
+          (u) => (u.email || "").toLowerCase() === normalizedEmail,
+        );
+        if (found) {
+          userId = found.id;
+          userEmail = found.email ?? normalizedEmail;
+          alreadyExisted = true;
+          break;
+        }
+        if (!list?.users || list.users.length < perPage) break;
+        page++;
+      }
+
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: "User already exists but could not be located." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Update profile with user types (profile created by trigger)
@@ -92,7 +145,7 @@ Deno.serve(async (req) => {
       const { error: updateError } = await supabaseAdmin
         .from("profiles")
         .update({ user_types, full_name })
-        .eq("id", newUser.user.id);
+        .eq("id", userId);
 
       if (updateError) {
         console.error("Error updating profile:", updateError);
@@ -102,16 +155,17 @@ Deno.serve(async (req) => {
     // Send password reset email so user can set their own password
     await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
-      email,
+      email: normalizedEmail,
     });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        user: { 
-          id: newUser.user.id, 
-          email: newUser.user.email 
-        } 
+      JSON.stringify({
+        success: true,
+        already_existed: alreadyExisted,
+        user: {
+          id: userId,
+          email: userEmail,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
