@@ -536,9 +536,9 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading || loadingOnSite ? (
             <div className="text-center py-6 text-muted-foreground">Loading...</div>
-          ) : upcomingBookings.length === 0 ? (
+          ) : !hasUpcoming ? (
             <div className="text-center py-6 text-muted-foreground">
               No upcoming services scheduled. Click "New Request" to book one.
             </div>
@@ -556,6 +556,22 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {filteredUpcomingActivity.map((a, i) => (
+                  <TableRow key={`activity-${i}`}>
+                    <TableCell className="font-mono font-medium text-sm">{a.jobNumber || "—"}</TableCell>
+                    <TableCell>{a.siteName}</TableCell>
+                    <TableCell>{format(new Date(a.date + "T00:00:00"), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="text-sm">TBC</TableCell>
+                    <TableCell>
+                      {a.containerType}
+                      <span className="block text-xs text-muted-foreground">{a.wasteType}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={STATUS_COLORS.scheduled}>{a.movementType}</Badge>
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))}
                 {upcomingBookings.map(b => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono font-medium text-sm">{b.booking_reference}</TableCell>
