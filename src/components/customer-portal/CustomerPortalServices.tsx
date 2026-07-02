@@ -82,6 +82,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
   const [sites, setSites] = useState<{ id: string; site_name: string; data_hub_site: string | null; data_hub_site_2: string | null; data_hub_site_3: string | null; data_hub_site_4: string | null; data_hub_site_5: string | null; data_hub_customer: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [onSiteContainers, setOnSiteContainers] = useState<OnSiteContainer[]>([]);
+  const [upcomingActivity, setUpcomingActivity] = useState<UpcomingActivity[]>([]);
   const [loadingOnSite, setLoadingOnSite] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [requestType, setRequestType] = useState<RequestType>("new");
