@@ -59,6 +59,15 @@ type DataHubJob = {
   job_number: string | null;
 };
 
+type UpcomingActivity = {
+  siteName: string;
+  containerType: string;
+  wasteType: string;
+  movementType: string;
+  date: string;
+  jobNumber: string | null;
+};
+
 interface Props {
   customerId: string;
   customerName: string;
@@ -73,6 +82,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
   const [sites, setSites] = useState<{ id: string; site_name: string; data_hub_site: string | null; data_hub_site_2: string | null; data_hub_site_3: string | null; data_hub_site_4: string | null; data_hub_site_5: string | null; data_hub_customer: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [onSiteContainers, setOnSiteContainers] = useState<OnSiteContainer[]>([]);
+  const [upcomingActivity, setUpcomingActivity] = useState<UpcomingActivity[]>([]);
   const [loadingOnSite, setLoadingOnSite] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [requestType, setRequestType] = useState<RequestType>("new");
@@ -182,18 +192,37 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     // If net <= 0 but there are recent exchanges, at least 1 container is still on site.
     const containerMap: Record<string, { delivered: number; collected: number; exchanges: number; lastActivity: string | null; lastMovement: string | null; lastJobNumber: string | null }> = {};
 
+    // Today anchors the split: past/present feeds "What's On Your Sites",
+    // anything dated after today is a scheduled (upcoming) service.
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const futureActivity: UpcomingActivity[] = [];
+
     for (const job of allJobs) {
       if (!job.site || !job.container_type) continue;
       const alias = siteAliases.find(a => a.dataHubNames.some(n => n.toLowerCase() === job.site!.toLowerCase()));
       if (!alias) continue;
 
       const wasteDesc = job.waste_description || "Unknown";
+
+      // Future-dated movements are upcoming scheduled services, not "last activity".
+      if (job.job_date && job.job_date > todayStr) {
+        futureActivity.push({
+          siteName: alias.siteName,
+          containerType: job.container_type,
+          wasteType: wasteDesc,
+          movementType: job.movement_type || "Service",
+          date: job.job_date,
+          jobNumber: job.job_number,
+        });
+        continue;
+      }
+
       const key = `${alias.siteName}|||${job.container_type}|||${wasteDesc}`;
       if (!containerMap[key]) {
         containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null, lastJobNumber: null };
       }
 
-      // Track latest activity date and movement type
+      // Track latest past activity date and movement type
       if (job.job_date && (!containerMap[key].lastActivity || job.job_date > containerMap[key].lastActivity!)) {
         containerMap[key].lastActivity = job.job_date;
         containerMap[key].lastMovement = job.movement_type;
@@ -236,6 +265,10 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     // Sort by site name then container type
     results.sort((a, b) => a.siteName.localeCompare(b.siteName) || a.containerType.localeCompare(b.containerType));
     setOnSiteContainers(results);
+
+    // Upcoming scheduled services: soonest first
+    futureActivity.sort((a, b) => a.date.localeCompare(b.date));
+    setUpcomingActivity(futureActivity);
     setLoadingOnSite(false);
   };
 
@@ -257,6 +290,16 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     if (!siteName) return onSiteContainers;
     return onSiteContainers.filter(c => c.siteName === siteName);
   }, [onSiteContainers, siteFilter, sites]);
+
+  const filteredUpcomingActivity = useMemo(() => {
+    if (siteFilter === "all") return upcomingActivity;
+    const siteName = sites.find(s => s.id === siteFilter)?.site_name;
+    if (!siteName) return upcomingActivity;
+    return upcomingActivity.filter(a => a.siteName === siteName);
+  }, [upcomingActivity, siteFilter, sites]);
+
+  const upcomingCount = upcomingBookings.length + filteredUpcomingActivity.length;
+  const hasUpcoming = upcomingBookings.length > 0 || filteredUpcomingActivity.length > 0;
 
   const filteredBookingsHistory = useMemo(() => {
     const nonUpcoming = bookings.filter(b => !upcomingBookings.includes(b));
@@ -379,7 +422,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
               <Calendar className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{upcomingBookings.length}</p>
+              <p className="text-2xl font-bold">{upcomingCount}</p>
               <p className="text-xs text-muted-foreground">Upcoming Services</p>
             </div>
           </CardContent>
@@ -493,9 +536,9 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading || loadingOnSite ? (
             <div className="text-center py-6 text-muted-foreground">Loading...</div>
-          ) : upcomingBookings.length === 0 ? (
+          ) : !hasUpcoming ? (
             <div className="text-center py-6 text-muted-foreground">
               No upcoming services scheduled. Click "New Request" to book one.
             </div>
@@ -513,6 +556,22 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {filteredUpcomingActivity.map((a, i) => (
+                  <TableRow key={`activity-${i}`}>
+                    <TableCell className="font-mono font-medium text-sm">{a.jobNumber || "—"}</TableCell>
+                    <TableCell>{a.siteName}</TableCell>
+                    <TableCell>{format(new Date(a.date + "T00:00:00"), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="text-sm">TBC</TableCell>
+                    <TableCell>
+                      {a.containerType}
+                      <span className="block text-xs text-muted-foreground">{a.wasteType}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={STATUS_COLORS.scheduled}>{a.movementType}</Badge>
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))}
                 {upcomingBookings.map(b => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono font-medium text-sm">{b.booking_reference}</TableCell>
