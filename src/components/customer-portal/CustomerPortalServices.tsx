@@ -59,6 +59,15 @@ type DataHubJob = {
   job_number: string | null;
 };
 
+type UpcomingActivity = {
+  siteName: string;
+  containerType: string;
+  wasteType: string;
+  movementType: string;
+  date: string;
+  jobNumber: string | null;
+};
+
 interface Props {
   customerId: string;
   customerName: string;
