@@ -422,7 +422,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
               <Calendar className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{upcomingBookings.length}</p>
+              <p className="text-2xl font-bold">{upcomingCount}</p>
               <p className="text-xs text-muted-foreground">Upcoming Services</p>
             </div>
           </CardContent>
