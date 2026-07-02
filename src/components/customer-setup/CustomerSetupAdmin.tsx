@@ -166,10 +166,20 @@ export function CustomerSetupAdmin() {
     if (skiptrakCustomers.length > 0 || loadingSkiptrak) return;
     setLoadingSkiptrak(true);
     try {
-      // Fetch distinct customer/site pairs from Skiptrak data in a single call
-      const { data, error } = await supabase.rpc("get_skiptrak_customer_sites");
-      if (error) throw error;
-      const all = (data ?? []) as { customer: string | null; site: string | null }[];
+      // Fetch distinct customer/site pairs from Skiptrak data.
+      // The backend caps each response at 1000 rows, so page through
+      // the full set (thousands of pairs) to avoid missing customers.
+      const all: { customer: string | null; site: string | null }[] = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await supabase
+          .rpc("get_skiptrak_customer_sites")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as { customer: string | null; site: string | null }[];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+      }
       const custSet = new Set<string>();
       const siteSet = new Set<string>();
       const sitesByCust: Record<string, Set<string>> = {};
@@ -183,6 +193,7 @@ export function CustomerSetupAdmin() {
           sitesByCust[c].add(s);
         }
       }
+
       setSkiptrakCustomers(Array.from(custSet).sort());
       setSkiptrakAllSites(Array.from(siteSet).sort());
       const map: Record<string, string[]> = {};
