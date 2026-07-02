@@ -291,6 +291,16 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     return onSiteContainers.filter(c => c.siteName === siteName);
   }, [onSiteContainers, siteFilter, sites]);
 
+  const filteredUpcomingActivity = useMemo(() => {
+    if (siteFilter === "all") return upcomingActivity;
+    const siteName = sites.find(s => s.id === siteFilter)?.site_name;
+    if (!siteName) return upcomingActivity;
+    return upcomingActivity.filter(a => a.siteName === siteName);
+  }, [upcomingActivity, siteFilter, sites]);
+
+  const upcomingCount = upcomingBookings.length + filteredUpcomingActivity.length;
+  const hasUpcoming = upcomingBookings.length > 0 || filteredUpcomingActivity.length > 0;
+
   const filteredBookingsHistory = useMemo(() => {
     const nonUpcoming = bookings.filter(b => !upcomingBookings.includes(b));
     if (siteFilter === "all") return nonUpcoming;
