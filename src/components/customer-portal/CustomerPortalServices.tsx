@@ -192,18 +192,37 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     // If net <= 0 but there are recent exchanges, at least 1 container is still on site.
     const containerMap: Record<string, { delivered: number; collected: number; exchanges: number; lastActivity: string | null; lastMovement: string | null; lastJobNumber: string | null }> = {};
 
+    // Today anchors the split: past/present feeds "What's On Your Sites",
+    // anything dated after today is a scheduled (upcoming) service.
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const futureActivity: UpcomingActivity[] = [];
+
     for (const job of allJobs) {
       if (!job.site || !job.container_type) continue;
       const alias = siteAliases.find(a => a.dataHubNames.some(n => n.toLowerCase() === job.site!.toLowerCase()));
       if (!alias) continue;
 
       const wasteDesc = job.waste_description || "Unknown";
+
+      // Future-dated movements are upcoming scheduled services, not "last activity".
+      if (job.job_date && job.job_date > todayStr) {
+        futureActivity.push({
+          siteName: alias.siteName,
+          containerType: job.container_type,
+          wasteType: wasteDesc,
+          movementType: job.movement_type || "Service",
+          date: job.job_date,
+          jobNumber: job.job_number,
+        });
+        continue;
+      }
+
       const key = `${alias.siteName}|||${job.container_type}|||${wasteDesc}`;
       if (!containerMap[key]) {
         containerMap[key] = { delivered: 0, collected: 0, exchanges: 0, lastActivity: null, lastMovement: null, lastJobNumber: null };
       }
 
-      // Track latest activity date and movement type
+      // Track latest past activity date and movement type
       if (job.job_date && (!containerMap[key].lastActivity || job.job_date > containerMap[key].lastActivity!)) {
         containerMap[key].lastActivity = job.job_date;
         containerMap[key].lastMovement = job.movement_type;
@@ -246,6 +265,10 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
     // Sort by site name then container type
     results.sort((a, b) => a.siteName.localeCompare(b.siteName) || a.containerType.localeCompare(b.containerType));
     setOnSiteContainers(results);
+
+    // Upcoming scheduled services: soonest first
+    futureActivity.sort((a, b) => a.date.localeCompare(b.date));
+    setUpcomingActivity(futureActivity);
     setLoadingOnSite(false);
   };
 
