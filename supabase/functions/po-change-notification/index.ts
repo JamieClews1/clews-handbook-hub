@@ -86,9 +86,19 @@ const handler = async (req: Request): Promise<Response> => {
       .select("email")
       .eq("is_active", true);
 
-    let recipients = (recipientRows ?? [])
+    const recipientSet = new Set<string>();
+    (recipientRows ?? [])
       .map((r: { email: string }) => r.email?.trim())
-      .filter((e: string) => !!e);
+      .filter((e: string) => !!e)
+      .forEach((e: string) => recipientSet.add(e));
+
+    // Always include any explicit recipient overrides passed from the client
+    (Array.isArray(body.recipients) ? body.recipients : [])
+      .map((e) => e?.trim())
+      .filter((e): e is string => !!e)
+      .forEach((e) => recipientSet.add(e));
+
+    let recipients = Array.from(recipientSet);
 
     // Fallback to the default orders inbox if none configured
     if (recipients.length === 0) {
