@@ -191,7 +191,10 @@ export function CustomerPortalPORequests({
     setLoading(true);
     try {
       const startDate = format(subMonths(new Date(), parseInt(lookback, 10)), "yyyy-MM-dd");
-      const endDate = format(new Date(), "yyyy-MM-dd");
+      // Cap at today when only completed jobs are wanted; otherwise allow future-dated jobs
+      const endDate = onlyCompleted
+        ? format(new Date(), "yyyy-MM-dd")
+        : format(addMonths(new Date(), 12), "yyyy-MM-dd");
 
       const siteNames = new Set<string>();
       const customerFilters = new Set<string>();
