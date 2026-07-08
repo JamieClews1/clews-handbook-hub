@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel, ClipboardList } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -16,6 +16,7 @@ import { CustomerPortalProfile } from "@/components/customer-portal/CustomerPort
 import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard";
 import { CustomerPortalServices } from "@/components/customer-portal/CustomerPortalServices";
 import { CustomerPortalFuelSurcharges } from "@/components/customer-portal/CustomerPortalFuelSurcharges";
+import { CustomerPortalPORequests } from "@/components/customer-portal/CustomerPortalPORequests";
 
 type PortalMembership = {
   id: string;
@@ -403,7 +404,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 4 : 6;
+            const tabCount = isStaciCustomer ? 4 : 7;
 
             // Compute effective site filter for child components.
             // Broker mode: derive from broker dropdowns.
@@ -427,7 +428,7 @@ const CustomerPortalPage = () => {
 
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
-            <TabsList className={`grid w-full max-w-2xl ${tabCount === 4 ? "grid-cols-4" : "grid-cols-6"}`}>
+            <TabsList className={`grid w-full max-w-3xl ${tabCount === 4 ? "grid-cols-4" : "grid-cols-4 sm:grid-cols-7"}`}>
               {!isStaciCustomer && (
                 <TabsTrigger value="site-reports" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -440,6 +441,13 @@ const CustomerPortalPage = () => {
                   <DollarSign className="h-4 w-4" />
                   <span className="hidden sm:inline">Rebate Reports</span>
                   <span className="sm:hidden">Rebates</span>
+                </TabsTrigger>
+              )}
+              {!isStaciCustomer && (
+                <TabsTrigger value="po-requests" className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="hidden sm:inline">PO Requests</span>
+                  <span className="sm:hidden">POs</span>
                 </TabsTrigger>
               )}
               {isStaciCustomer && (
@@ -506,6 +514,28 @@ const CustomerPortalPage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="po-requests">
+              <Card>
+                <CardHeader>
+                  <CardTitle>PO Requests</CardTitle>
+                  <CardDescription>
+                    Provide purchase order numbers for jobs that are missing one
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalPORequests
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+
 
             <TabsContent value="staci-reports">
               {currentCustomerId && (
