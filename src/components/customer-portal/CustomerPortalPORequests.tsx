@@ -261,9 +261,8 @@ export function CustomerPortalPORequests({
       setJobRecords((prev) => prev.filter((j) => !jobIds.includes(j.id)));
 
       const { data: userData } = await supabase.auth.getUser();
+      const changedBy = userData.user?.email || "Unknown";
 
-      // Queue changes for a grouped notification + persist so the team is
-      // auto-notified even if the tab is closed.
       const newEntries = group.jobs.map((job) => ({
         jobId: job.id,
         siteName: (job.site && siteNameLookup.get(job.site)) || job.site || "",
@@ -273,11 +272,31 @@ export function CustomerPortalPORequests({
         newPONumber: newPO,
       }));
 
-      setPendingPOChanges((prev) => {
-        const filtered = prev.filter((c) => !jobIds.includes(c.jobId));
-        return [...filtered, ...newEntries];
-      });
+      // Send the notification email immediately to the required recipients.
+      let emailSent = false;
+      try {
+        const { error: notifyError } = await supabase.functions.invoke("po-change-notification", {
+          body: {
+            notificationEmail,
+            recipients: ALWAYS_NOTIFY,
+            customerName,
+            changedBy,
+            changes: newEntries.map(({ siteName, jobNumber, jobDate, oldPONumber, newPONumber }) => ({
+              siteName,
+              jobNumber,
+              jobDate,
+              oldPONumber,
+              newPONumber,
+            })),
+          },
+        });
+        if (notifyError) throw notifyError;
+        emailSent = true;
+      } catch (notifyErr) {
+        console.error("Failed to send PO notification email:", notifyErr);
+      }
 
+      // Persist for audit / auto-send fallback (marked sent if the email went out).
       try {
         await supabase.from("po_pending_changes").delete().in("job_id", jobIds).eq("sent", false);
         await supabase.from("po_pending_changes").insert(
@@ -285,7 +304,7 @@ export function CustomerPortalPORequests({
             customer_id: customerId,
             customer_name: customerName,
             user_id: userData.user?.id,
-            changed_by: userData.user?.email || "Unknown",
+            changed_by: changedBy,
             notification_email: notificationEmail,
             job_id: e.jobId,
             site_name: e.siteName,
@@ -293,7 +312,8 @@ export function CustomerPortalPORequests({
             job_date: e.jobDate,
             old_po_number: e.oldPONumber,
             new_po_number: e.newPONumber,
-            sent: false,
+            sent: emailSent,
+            sent_at: emailSent ? new Date().toISOString() : null,
           }))
         );
       } catch (persistErr) {
@@ -308,7 +328,9 @@ export function CustomerPortalPORequests({
 
       toast({
         title: "PO applied",
-        description: `PO ${newPO} added to ${group.jobs.length} job${group.jobs.length === 1 ? "" : "s"}. Notify the team when you're done.`,
+        description: emailSent
+          ? `PO ${newPO} added to ${group.jobs.length} job${group.jobs.length === 1 ? "" : "s"} and the team has been emailed.`
+          : `PO ${newPO} added to ${group.jobs.length} job${group.jobs.length === 1 ? "" : "s"}. The email could not be sent — please notify the team.`,
       });
     } catch (error: any) {
       console.error("Error applying PO:", error);
