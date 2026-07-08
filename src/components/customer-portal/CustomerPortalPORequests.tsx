@@ -422,18 +422,27 @@ export function CustomerPortalPORequests({
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-2">
-          <Label>Period</Label>
-          <Select value={lookback} onValueChange={setLookback}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LOOKBACK_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-2">
+            <Label>Period</Label>
+            <Select value={lookback} onValueChange={setLookback}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LOOKBACK_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex items-center gap-2 pb-2 text-sm cursor-pointer select-none">
+            <Checkbox
+              checked={onlyCompleted}
+              onCheckedChange={(v) => setOnlyCompleted(v === true)}
+            />
+            <span>Only completed jobs (up to today)</span>
+          </label>
         </div>
         <Badge variant={totalMissing > 0 ? "destructive" : "secondary"} className="text-sm">
           {totalMissing} job{totalMissing === 1 ? "" : "s"} without a PO
