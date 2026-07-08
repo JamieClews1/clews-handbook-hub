@@ -80,6 +80,24 @@ const isMissingPO = (job: JobRecord): boolean => {
   return t === "" || t === "TBC";
 };
 
+// Cost of the job, read from the raw skiptrak/midweigh "Cost" field
+const getCost = (job: JobRecord): number => {
+  const rawObj =
+    job.raw && typeof job.raw === "object" && !Array.isArray(job.raw)
+      ? (job.raw as Record<string, unknown>)
+      : null;
+  const cost = rawObj?.["Cost"];
+  if (typeof cost === "number") return cost;
+  if (typeof cost === "string") {
+    const n = parseFloat(cost.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+const gbp = (n: number) =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n || 0);
+
 const LOOKBACK_OPTIONS = [
   { value: "3", label: "Last 3 months" },
   { value: "6", label: "Last 6 months" },
