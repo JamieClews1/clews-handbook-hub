@@ -540,6 +540,7 @@ export function CustomerPortalPORequests({
                           <TableHead>Container</TableHead>
                           <TableHead>EWC</TableHead>
                           <TableHead className="text-right">Weight (t)</TableHead>
+                          <TableHead className="text-right">Cost</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
