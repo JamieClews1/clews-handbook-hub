@@ -68,6 +68,7 @@ import PricingCMSPage from "./pages/PricingCMSPage";
 import CRMPage from "./pages/CRMPage";
 import MailboxCallbackPage from "./pages/MailboxCallbackPage";
 import PricingPage from "./pages/PricingPage";
+import PoChecksPage from "./pages/PoChecksPage";
 
 import NotFound from "./pages/NotFound";
 
