@@ -431,6 +431,36 @@ export function AppSidebar() {
           </Collapsible>
         </SidebarGroup>
 
+        {/* PO Checks */}
+        <SidebarGroup>
+          <Collapsible defaultOpen={isInSection(["/po-checks"])}>
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
+                {!collapsed && (
+                  <>
+                    <span>PO Checks</span>
+                    <ChevronDown className="ml-auto h-3.5 w-3.5" />
+                  </>
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={isActive("/po-checks")}>
+                      <Link to="/po-checks">
+                        <FileCheck className="h-4 w-4" />
+                        {!collapsed && <span>PO Checks</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
         {/* Setup (Admin) */}
         {isAdmin && (
           <SidebarGroup>
