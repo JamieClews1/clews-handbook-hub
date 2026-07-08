@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Accordion,
   AccordionContent,
@@ -13,7 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Loader2, Save, BellRing, ClipboardList, CheckCircle2 } from "lucide-react";
-import { format, subMonths } from "date-fns";
+import { format, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 type Site = {
@@ -79,6 +80,24 @@ const isMissingPO = (job: JobRecord): boolean => {
   return t === "" || t === "TBC";
 };
 
+// Cost of the job, read from the raw skiptrak/midweigh "Cost" field
+const getCost = (job: JobRecord): number => {
+  const rawObj =
+    job.raw && typeof job.raw === "object" && !Array.isArray(job.raw)
+      ? (job.raw as Record<string, unknown>)
+      : null;
+  const cost = rawObj?.["Cost"];
+  if (typeof cost === "number") return cost;
+  if (typeof cost === "string") {
+    const n = parseFloat(cost.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+const gbp = (n: number) =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n || 0);
+
 const LOOKBACK_OPTIONS = [
   { value: "3", label: "Last 3 months" },
   { value: "6", label: "Last 6 months" },
@@ -95,6 +114,8 @@ export function CustomerPortalPORequests({
   const [loading, setLoading] = useState(false);
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [lookback, setLookback] = useState("6");
+  // When true, only show jobs already completed (up to today) and exclude future-dated jobs
+  const [onlyCompleted, setOnlyCompleted] = useState(true);
   const [notificationEmail, setNotificationEmail] = useState<string>("orders@clewsrecycling.co.uk");
 
   // Recipients that must always be emailed when a PO is added
@@ -170,7 +191,10 @@ export function CustomerPortalPORequests({
     setLoading(true);
     try {
       const startDate = format(subMonths(new Date(), parseInt(lookback, 10)), "yyyy-MM-dd");
-      const endDate = format(new Date(), "yyyy-MM-dd");
+      // Cap at today when only completed jobs are wanted; otherwise allow future-dated jobs
+      const endDate = onlyCompleted
+        ? format(new Date(), "yyyy-MM-dd")
+        : format(addMonths(new Date(), 12), "yyyy-MM-dd");
 
       const siteNames = new Set<string>();
       const customerFilters = new Set<string>();
@@ -206,7 +230,7 @@ export function CustomerPortalPORequests({
     } finally {
       setLoading(false);
     }
-  }, [sites, lookback, toast]);
+  }, [sites, lookback, onlyCompleted, toast]);
 
   useEffect(() => {
     loadJobs();
@@ -398,18 +422,27 @@ export function CustomerPortalPORequests({
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-2">
-          <Label>Period</Label>
-          <Select value={lookback} onValueChange={setLookback}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LOOKBACK_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-2">
+            <Label>Period</Label>
+            <Select value={lookback} onValueChange={setLookback}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LOOKBACK_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex items-center gap-2 pb-2 text-sm cursor-pointer select-none">
+            <Checkbox
+              checked={onlyCompleted}
+              onCheckedChange={(v) => setOnlyCompleted(v === true)}
+            />
+            <span>Only completed jobs (up to today)</span>
+          </label>
         </div>
         <Badge variant={totalMissing > 0 ? "destructive" : "secondary"} className="text-sm">
           {totalMissing} job{totalMissing === 1 ? "" : "s"} without a PO
@@ -451,6 +484,7 @@ export function CustomerPortalPORequests({
         <Accordion type="multiple" className="space-y-3">
           {groups.map((group) => {
             const totalWeight = group.jobs.reduce((s, j) => s + (j.weight_t || 0), 0);
+            const totalCost = group.jobs.reduce((s, j) => s + getCost(j), 0);
             return (
               <AccordionItem key={group.key} value={group.key} className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
@@ -463,6 +497,9 @@ export function CustomerPortalPORequests({
                       {group.jobs.length} job{group.jobs.length === 1 ? "" : "s"}
                     </Badge>
                     <Badge variant="outline" className="text-xs">{totalWeight.toFixed(2)} t</Badge>
+                    <Badge className="text-xs bg-primary/10 text-primary hover:bg-primary/10 border-transparent">
+                      PO value {gbp(totalCost)}
+                    </Badge>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-1">
@@ -503,6 +540,7 @@ export function CustomerPortalPORequests({
                           <TableHead>Container</TableHead>
                           <TableHead>EWC</TableHead>
                           <TableHead className="text-right">Weight (t)</TableHead>
+                          <TableHead className="text-right">Cost</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -518,6 +556,7 @@ export function CustomerPortalPORequests({
                             <TableCell className="text-right">
                               {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
                             </TableCell>
+                            <TableCell className="text-right font-medium">{gbp(getCost(job))}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
