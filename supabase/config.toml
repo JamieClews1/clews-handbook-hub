@@ -30,6 +30,9 @@ verify_jwt = false
 [functions.po-change-notification]
 verify_jwt = false
 
+[functions.po-request-email]
+verify_jwt = false
+
 [functions.data-hub-ai]
 verify_jwt = true
  
