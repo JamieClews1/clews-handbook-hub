@@ -515,6 +515,28 @@ const CustomerPortalPage = () => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="po-requests">
+              <Card>
+                <CardHeader>
+                  <CardTitle>PO Requests</CardTitle>
+                  <CardDescription>
+                    Provide purchase order numbers for jobs that are missing one
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalPORequests
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+
+
             <TabsContent value="staci-reports">
               {currentCustomerId && (
                 <StaciReportsDashboard
