@@ -230,7 +230,7 @@ export function CustomerPortalPORequests({
     } finally {
       setLoading(false);
     }
-  }, [sites, lookback, toast]);
+  }, [sites, lookback, onlyCompleted, toast]);
 
   useEffect(() => {
     loadJobs();
