@@ -404,7 +404,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 4 : 7;
+            const tabCount = isStaciCustomer ? 4 : 6;
 
             // Compute effective site filter for child components.
             // Broker mode: derive from broker dropdowns.
@@ -428,47 +428,47 @@ const CustomerPortalPage = () => {
 
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
-            <TabsList className={`grid w-full max-w-3xl ${tabCount === 4 ? "grid-cols-4" : "grid-cols-4 sm:grid-cols-7"}`}>
+            <TabsList className={`grid h-auto w-full max-w-3xl gap-1 ${tabCount === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-6"}`}>
               {!isStaciCustomer && (
-                <TabsTrigger value="site-reports" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
+                <TabsTrigger value="site-reports" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                  <FileText className="h-4 w-4 shrink-0" />
                   <span className="hidden sm:inline">Site Reports</span>
                   <span className="sm:hidden">Reports</span>
                 </TabsTrigger>
               )}
               {!isStaciCustomer && (
-                <TabsTrigger value="rebate-reports" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
+                <TabsTrigger value="rebate-reports" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                  <DollarSign className="h-4 w-4 shrink-0" />
                   <span className="hidden sm:inline">Rebate Reports</span>
                   <span className="sm:hidden">Rebates</span>
                 </TabsTrigger>
               )}
               {!isStaciCustomer && (
-                <TabsTrigger value="po-requests" className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
+                <TabsTrigger value="po-requests" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                  <ClipboardList className="h-4 w-4 shrink-0" />
                   <span className="hidden sm:inline">PO Requests</span>
                   <span className="sm:hidden">POs</span>
                 </TabsTrigger>
               )}
               {isStaciCustomer && (
-                <TabsTrigger value="staci-reports" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
+                <TabsTrigger value="staci-reports" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                  <Package className="h-4 w-4 shrink-0" />
                   <span className="hidden sm:inline">STACI Reports</span>
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger value="fuel-surcharges" className="flex items-center gap-2">
-                <Fuel className="h-4 w-4" />
+              <TabsTrigger value="fuel-surcharges" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <Fuel className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline">Fuel Surcharges</span>
                 <span className="sm:hidden">Fuel</span>
               </TabsTrigger>
-              <TabsTrigger value="bookings" className="flex items-center gap-2">
-                <CalendarCheck className="h-4 w-4" />
+              <TabsTrigger value="bookings" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <CalendarCheck className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline">Bookings</span>
                 <span className="sm:hidden">Book</span>
               </TabsTrigger>
-              <TabsTrigger value="contact" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
+              <TabsTrigger value="contact" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <Mail className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline">Contact Us</span>
                 <span className="sm:hidden">Contact</span>
               </TabsTrigger>
