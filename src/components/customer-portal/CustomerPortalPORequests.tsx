@@ -484,6 +484,7 @@ export function CustomerPortalPORequests({
         <Accordion type="multiple" className="space-y-3">
           {groups.map((group) => {
             const totalWeight = group.jobs.reduce((s, j) => s + (j.weight_t || 0), 0);
+            const totalCost = group.jobs.reduce((s, j) => s + getCost(j), 0);
             return (
               <AccordionItem key={group.key} value={group.key} className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
@@ -496,6 +497,9 @@ export function CustomerPortalPORequests({
                       {group.jobs.length} job{group.jobs.length === 1 ? "" : "s"}
                     </Badge>
                     <Badge variant="outline" className="text-xs">{totalWeight.toFixed(2)} t</Badge>
+                    <Badge className="text-xs bg-primary/10 text-primary hover:bg-primary/10 border-transparent">
+                      PO value {gbp(totalCost)}
+                    </Badge>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-1">
