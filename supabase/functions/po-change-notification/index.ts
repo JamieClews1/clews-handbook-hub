@@ -26,6 +26,8 @@ interface POChangeRequest {
   notificationEmail?: string;
   customerName: string;
   changedBy: string;
+  // Explicit recipient override (always emailed in addition to configured recipients)
+  recipients?: string[];
   // Batched changes (preferred)
   changes?: POChange[];
   // Single change (legacy compatibility)
