@@ -556,6 +556,7 @@ export function CustomerPortalPORequests({
                             <TableCell className="text-right">
                               {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
                             </TableCell>
+                            <TableCell className="text-right font-medium">{gbp(getCost(job))}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
