@@ -97,6 +97,9 @@ export function CustomerPortalPORequests({
   const [lookback, setLookback] = useState("6");
   const [notificationEmail, setNotificationEmail] = useState<string>("orders@clewsrecycling.co.uk");
 
+  // Recipients that must always be emailed when a PO is added
+  const ALWAYS_NOTIFY = ["orders@clewsrecycling.co.uk", "sharon@clewsrecycling.co.uk"];
+
   // Per-group PO input + saving state
   const [poInputs, setPoInputs] = useState<Record<string, string>>({});
   const [savingGroup, setSavingGroup] = useState<string | null>(null);
