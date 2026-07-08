@@ -114,6 +114,8 @@ export function CustomerPortalPORequests({
   const [loading, setLoading] = useState(false);
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [lookback, setLookback] = useState("6");
+  // When true, only show jobs already completed (up to today) and exclude future-dated jobs
+  const [onlyCompleted, setOnlyCompleted] = useState(true);
   const [notificationEmail, setNotificationEmail] = useState<string>("orders@clewsrecycling.co.uk");
 
   // Recipients that must always be emailed when a PO is added
