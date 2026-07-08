@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Accordion,
   AccordionContent,
@@ -13,7 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Loader2, Save, BellRing, ClipboardList, CheckCircle2 } from "lucide-react";
-import { format, subMonths } from "date-fns";
+import { format, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 type Site = {
