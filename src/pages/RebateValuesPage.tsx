@@ -348,6 +348,21 @@ const RebateValuesPage = () => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="sent-rebates">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sent Rebates</CardTitle>
+                  <CardDescription>
+                    A record of every rebate notification email that has been sent — to which customer, for which period,
+                    the amount, the recipient, and who sent it.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SentRebates />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="tracking">
               <Card>
                 <CardHeader>
