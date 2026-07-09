@@ -110,6 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailPayload: Record<string, unknown> = {
       from: `${senderName} <${senderEmail}>`,
       to: [to],
+      cc: ["accounts@clewsrecycling.co.uk"],
       subject: subject,
       html: emailHtml,
     };
