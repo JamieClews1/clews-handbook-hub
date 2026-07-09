@@ -405,7 +405,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
               const excludeDeliverMovement = rebateRules?.find(r => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
 
               // Get data hub jobs for these sites - MUST filter by category like useSkipRoroRebates
-              const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
+              const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
               const { data: rawJobs } = await supabase
                 .from("data_hub_jobs")
                 .select("waste_description, weight_t, category, job_type, movement_type")

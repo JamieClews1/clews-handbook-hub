@@ -170,7 +170,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
       // Filter by site mappings and categories (Roll on Roll off, Skips, Midweigh)
-      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
+      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
       
       let allJobs: JobRecord[] = [];
       
