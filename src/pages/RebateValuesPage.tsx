@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox } from "lucide-react";
+import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox, MailCheck } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
@@ -33,6 +33,7 @@ import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteR
 import { MonthlyRebateGenerationV2 } from "@/components/customer-reporting/MonthlyRebateGenerationV2";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
 import { RebateReportTracking } from "@/components/customer-reporting/RebateReportTracking";
+import { SentRebates } from "@/components/customer-reporting/SentRebates";
 
 type RebateItem = {
   id: string;
@@ -269,7 +270,11 @@ const RebateValuesPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-screen-2xl mx-auto space-y-6">
           <Tabs defaultValue="monthly-generation" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 mb-6 h-auto">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 mb-6 h-auto">
+              <TabsTrigger value="sent-rebates" className="flex items-center gap-2">
+                <MailCheck className="h-4 w-4" />
+                Sent Rebates
+              </TabsTrigger>
               <TabsTrigger value="monthly-generation" className="flex items-center gap-2">
                 <Send className="h-4 w-4" />
                 Monthly
@@ -339,6 +344,21 @@ const RebateValuesPage = () => {
                 </CardHeader>
                 <CardContent>
                   <RebateCheckReport />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="sent-rebates">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sent Rebates</CardTitle>
+                  <CardDescription>
+                    A record of every rebate notification email that has been sent — to which customer, for which period,
+                    the amount, the recipient, and who sent it.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SentRebates />
                 </CardContent>
               </Card>
             </TabsContent>
