@@ -41,6 +41,7 @@ type Site = {
   data_hub_site_4: string | null;
   data_hub_site_5: string | null;
   load_report_type: string | null;
+  owner_contact_id: string | null;
 };
 type CustomerContact = { id: string; full_name: string; email: string | null; customer_id: string };
 
