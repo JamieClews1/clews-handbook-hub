@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox } from "lucide-react";
+import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox, MailCheck } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
