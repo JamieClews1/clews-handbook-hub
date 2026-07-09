@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
               ${contactName ? `Dear ${contactName},` : "Hello,"}
             </p>
             <p style="margin: 0 0 12px; color: #333;">
-              The following jobs for <strong>${customerName}</strong> are currently missing a Purchase Order number.
+              The following jobs for <strong>${customerName}${siteName ? ` - ${siteName}` : ""}</strong> are currently missing a Purchase Order number.
               Please could you provide the relevant PO number(s) so we can complete our records. One PO number can
               cover multiple jobs of the same waste type.
             </p>
