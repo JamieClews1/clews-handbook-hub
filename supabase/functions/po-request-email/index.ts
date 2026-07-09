@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Clews Recycling <orders@noreply.clewsrecycling.co.uk>",
       to: recipients,
-      subject: `Purchase Order request - ${customerName} - ${totalJobs} job${totalJobs === 1 ? "" : "s"} outstanding`,
+      subject: `Purchase Order request - ${customerName}${siteName ? ` - ${siteName}` : ""} - ${totalJobs} job${totalJobs === 1 ? "" : "s"} outstanding`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto;">
           <div style="background-color: #16a34a; padding: 20px; border-radius: 8px 8px 0 0;">
