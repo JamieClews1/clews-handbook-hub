@@ -90,10 +90,12 @@ export function MonthlyRebateGenerationV2() {
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRebateSummary | null>(null);
+  const [selectedSite, setSelectedSite] = useState<SiteBreakdown | null>(null);
   const [emailRecipient, setEmailRecipient] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingSiteId, setSendingSiteId] = useState<string | null>(null);
 
   const toggle = (id: string) =>
     setExpanded((prev) => {
