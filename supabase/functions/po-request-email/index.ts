@@ -19,6 +19,7 @@ interface PORequestItem {
 
 interface PORequestBody {
   customerName: string;
+  siteName?: string | null;
   recipients: string[];
   requestedBy?: string;
   contactName?: string | null;
@@ -35,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const body: PORequestBody = await req.json();
-    const { customerName, requestedBy, contactName } = body;
+    const { customerName, requestedBy, contactName, siteName } = body;
 
     const recipients = (Array.isArray(body.recipients) ? body.recipients : [])
       .map((e) => e?.trim())
