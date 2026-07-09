@@ -155,7 +155,7 @@ export function useSkipRoroRebates(
       const startDate = format(dateRange!.from!, "yyyy-MM-dd");
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
-      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
+      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
       
       let allJobs: JobRecord[] = [];
       
