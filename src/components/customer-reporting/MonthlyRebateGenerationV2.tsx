@@ -339,7 +339,7 @@ export function MonthlyRebateGenerationV2() {
             const excludeSkipJobType = rebateRules?.find((r) => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
             const excludeDeliverMovement = rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
 
-            const targetCategories = ["Roll on Roll off", "Skips", "Midweigh"];
+            const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
             const { data: rawJobs } = await supabase
               .from("data_hub_jobs")
               .select("waste_description, weight_t, category, job_type, movement_type")
