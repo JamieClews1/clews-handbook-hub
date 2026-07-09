@@ -771,22 +771,74 @@ export function MonthlyRebateGenerationV2() {
                       </Button>
                     </div>
                     <CollapsibleContent>
-                      <div className="border-t px-4 py-3 space-y-2 bg-muted/20">
-                        {summary.siteBreakdowns.map((sb) => (
-                          <div key={sb.site.id} className="flex items-center justify-between text-sm">
-                            <span className="flex items-center gap-2">
-                              {sb.site.site_name}
-                              {lockedSiteIds.has(sb.site.id) && (
-                                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300">
-                                  <Lock className="h-2.5 w-2.5 mr-1" />
-                                  Locked
-                                </Badge>
+                      <div className="border-t px-4 py-3 space-y-3 bg-muted/20">
+                        {summary.siteBreakdowns.map((sb) => {
+                          const siteTracking = tracking.get(trackingKey(summary.customer.id, sb.site.id));
+                          const isSent = siteTracking?.status === "sent";
+                          return (
+                            <div key={sb.site.id} className="rounded-md border bg-background/60">
+                              <div className="flex items-center justify-between text-sm px-3 py-2 border-b">
+                                <span className="flex items-center gap-2 font-medium">
+                                  {sb.site.site_name}
+                                  {lockedSiteIds.has(sb.site.id) && (
+                                    <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300">
+                                      <Lock className="h-2.5 w-2.5 mr-1" />
+                                      Locked
+                                    </Badge>
+                                  )}
+                                  <span className="text-muted-foreground font-normal">({sb.totalWeight.toFixed(2)}t)</span>
+                                </span>
+                                <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                              </div>
+
+                              {/* Value breakdown by material */}
+                              {sb.materials.length > 0 ? (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow className="hover:bg-transparent">
+                                      <TableHead className="h-8 text-xs">Material</TableHead>
+                                      <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                                      <TableHead className="h-8 text-xs text-right">Rate (£/t)</TableHead>
+                                      <TableHead className="h-8 text-xs text-right">Rebate</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {sb.materials.map((m, i) => (
+                                      <TableRow key={`${sb.site.id}-${m.name}-${i}`} className="hover:bg-transparent">
+                                        <TableCell className="py-1.5 text-xs">
+                                          {m.name}
+                                          <span className="text-muted-foreground ml-1 capitalize">· {m.source}</span>
+                                        </TableCell>
+                                        <TableCell className="py-1.5 text-xs text-right">{m.weight.toFixed(2)}</TableCell>
+                                        <TableCell className="py-1.5 text-xs text-right">£{m.rate.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right font-medium", m.rebate >= 0 ? "text-green-600" : "text-red-600")}>£{m.rebate.toFixed(2)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <p className="px-3 py-2 text-xs text-muted-foreground">No material breakdown available.</p>
                               )}
-                              <span className="text-muted-foreground">({sb.totalWeight.toFixed(2)}t)</span>
-                            </span>
-                            <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
-                          </div>
-                        ))}
+
+                              {/* Sent details */}
+                              {isSent && (
+                                <div className="px-3 py-2 border-t bg-green-50/60 dark:bg-green-950/20 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+                                  <span className="flex items-center gap-1.5 text-green-700 dark:text-green-400 font-medium">
+                                    <Mail className="h-3 w-3" /> Sent
+                                  </span>
+                                  {siteTracking?.recipient_email && (
+                                    <span className="text-muted-foreground">To: <span className="text-foreground">{siteTracking.recipient_email}</span></span>
+                                  )}
+                                  {siteTracking?.sent_at && (
+                                    <span className="text-muted-foreground">
+                                      On: <span className="text-foreground">{format(new Date(siteTracking.sent_at), "d MMM yyyy 'at' HH:mm")}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
