@@ -288,11 +288,73 @@ export function PoChecksDashboard() {
   const totalMissing = jobRecords.length;
   const totalValue = jobRecords.reduce((s, j) => s + getCost(j), 0);
 
-  const sendPORequest = async () => {
-    const recipientList = recipients
+  const parseRecipients = () =>
+    recipients
       .split(/[,;\s]+/)
       .map((e) => e.trim())
       .filter(Boolean);
+
+  const buildItems = (groups: SiteGroup[]) =>
+    groups.flatMap((sg) =>
+      sg.wasteGroups.map((wg) => ({
+        siteName: sg.siteName,
+        wasteType: wg.wasteType,
+        periodLabel: wg.periodLabel,
+        jobCount: wg.jobs.length,
+        totalWeight: wg.jobs.reduce((s, j) => s + (j.weight_t || 0), 0),
+        totalCost: wg.jobs.reduce((s, j) => s + getCost(j), 0),
+      }))
+    );
+
+  // Send a single request email for the given site groups. When `siteLabel` is
+  // provided the email subject is scoped to that individual site.
+  const sendRequestFor = async (
+    groups: SiteGroup[],
+    recipientList: string[],
+    requestedBy: string,
+    siteLabel?: string
+  ) => {
+    const items = buildItems(groups);
+    if (items.length === 0) return;
+    const { error } = await supabase.functions.invoke("po-request-email", {
+      body: {
+        customerName,
+        siteName: siteLabel ?? null,
+        recipients: recipientList,
+        requestedBy,
+        items,
+      },
+    });
+    if (error) throw error;
+  };
+
+  // Send an individual PO request for a single site.
+  const sendSitePORequest = async (sg: SiteGroup) => {
+    const recipientList = parseRecipients();
+    if (recipientList.length === 0) {
+      toast({ title: "No recipients", description: "Add at least one email address.", variant: "destructive" });
+      return;
+    }
+
+    setSendingSite(sg.siteName);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const requestedBy = userData.user?.email || "Clews team";
+      await sendRequestFor([sg], recipientList, requestedBy, sg.siteName);
+      toast({
+        title: "PO request sent",
+        description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${sg.siteName}.`,
+      });
+    } catch (error: any) {
+      console.error("Error sending site PO request:", error);
+      toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
+    } finally {
+      setSendingSite(null);
+    }
+  };
+
+  const sendPORequest = async () => {
+    const recipientList = parseRecipients();
 
     if (recipientList.length === 0) {
       toast({ title: "No recipients", description: "Add at least one email address.", variant: "destructive" });
@@ -308,32 +370,23 @@ export function PoChecksDashboard() {
       const { data: userData } = await supabase.auth.getUser();
       const requestedBy = userData.user?.email || "Clews team";
 
-      // Flatten site + waste groups into request items
-      const items = siteGroups.flatMap((sg) =>
-        sg.wasteGroups.map((wg) => ({
-          siteName: sg.siteName,
-          wasteType: wg.wasteType,
-          periodLabel: wg.periodLabel,
-          jobCount: wg.jobs.length,
-          totalWeight: wg.jobs.reduce((s, j) => s + (j.weight_t || 0), 0),
-          totalCost: wg.jobs.reduce((s, j) => s + getCost(j), 0),
-        }))
-      );
-
-      const { error } = await supabase.functions.invoke("po-request-email", {
-        body: {
-          customerName,
-          recipients: recipientList,
-          requestedBy,
-          items,
-        },
-      });
-      if (error) throw error;
-
-      toast({
-        title: "PO request sent",
-        description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${customerName}.`,
-      });
+      if (isBiffa) {
+        // Biffa: one individual request email per site.
+        for (const sg of siteGroups) {
+          await sendRequestFor([sg], recipientList, requestedBy, sg.siteName);
+        }
+        toast({
+          title: "PO requests sent",
+          description: `Sent ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"} to ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"}.`,
+        });
+      } else {
+        // Other customers: a single combined request covering all sites.
+        await sendRequestFor(siteGroups, recipientList, requestedBy);
+        toast({
+          title: "PO request sent",
+          description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${customerName}.`,
+        });
+      }
     } catch (error: any) {
       console.error("Error sending PO request:", error);
       toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
