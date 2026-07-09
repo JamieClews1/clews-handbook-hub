@@ -55,10 +55,25 @@ export const MissingReportsAlert = ({ customerType }: MissingReportsAlertProps) 
 
     setLoading(true);
     try {
-      // 1. Get sites that match this customer type AND have a rebate price set
+      // 1. Get sites that match this customer type AND have a rebate price set.
+      // Restrict to sites that actually have a price set first — otherwise the
+      // "other" branch can match >1000 sites and get truncated by the default
+      // row cap, silently dropping valid sites (e.g. Rex Brown).
+      const { data: priceSetSites } = await supabase
+        .from("customer_site_price_sets")
+        .select("site_id");
+      const priceSetSiteIds = [...new Set((priceSetSites || []).map((p: any) => p.site_id).filter(Boolean))];
+
+      if (priceSetSiteIds.length === 0) {
+        setMissingJobs([]);
+        setLoading(false);
+        return;
+      }
+
       let siteQuery = supabase
         .from("customer_sites")
-        .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type, customer_site_price_sets(id)");
+        .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type, customer_site_price_sets(id)")
+        .in("id", priceSetSiteIds);
 
       if (customerType !== "other") {
         siteQuery = siteQuery.eq("load_report_type", customerType);
