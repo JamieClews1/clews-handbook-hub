@@ -528,7 +528,7 @@ export function MonthlyRebateGenerationV2() {
   };
 
   // ---- Excel / Email helpers ----
-  const buildConsolidatedData = (summary: CustomerRebateSummary): CustomerExportCategory[] => {
+  const buildConsolidatedData = (siteBreakdowns: SiteBreakdown[]): CustomerExportCategory[] => {
     const categories: Record<string, CustomerExportCategory> = {
       Cardboard: { category: "Cardboard", weight: 0, rebate: 0, sources: [] },
       Paper: { category: "Paper", weight: 0, rebate: 0, sources: [] },
@@ -537,7 +537,7 @@ export function MonthlyRebateGenerationV2() {
       "Scrap Metal": { category: "Scrap Metal", weight: 0, rebate: 0, sources: [] },
       Other: { category: "Other", weight: 0, rebate: 0, sources: [] },
     };
-    for (const sb of summary.siteBreakdowns) {
+    for (const sb of siteBreakdowns) {
       for (const mat of sb.materials) {
         const name = mat.name.toLowerCase();
         let category = "Other";
