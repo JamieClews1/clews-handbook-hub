@@ -538,6 +538,22 @@ export function PoChecksDashboard() {
                       </div>
                     );
                   })}
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      disabled={sendingSite === sg.siteName}
+                      onClick={() => sendSitePORequest(sg)}
+                    >
+                      {sendingSite === sg.siteName ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      Send request for {sg.siteName}
+                    </Button>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             ))}
