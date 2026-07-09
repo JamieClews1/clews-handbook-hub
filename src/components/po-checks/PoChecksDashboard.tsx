@@ -125,6 +125,7 @@ export function PoChecksDashboard() {
   const [onlyCompleted, setOnlyCompleted] = useState(true);
   const [recipients, setRecipients] = useState<string>("");
   const [sending, setSending] = useState(false);
+  const [sendingSite, setSendingSite] = useState<string | null>(null);
 
   const selectedCustomer = customers.find((c) => c.id === customerId) || null;
   const customerName = selectedCustomer?.customer_name || "";
