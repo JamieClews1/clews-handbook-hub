@@ -988,7 +988,10 @@ export function MonthlyRebateGenerationV2() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Send Rebate Notification</DialogTitle>
-            <DialogDescription>Notify {selectedCustomer?.customer.customer_name} about their rebate.</DialogDescription>
+            <DialogDescription>
+              Notify the owner of {selectedSite?.site.site_name}
+              {selectedCustomer ? ` (${selectedCustomer.customer.customer_name})` : ""} about their rebate.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
