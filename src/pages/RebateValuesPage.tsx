@@ -33,6 +33,7 @@ import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteR
 import { MonthlyRebateGenerationV2 } from "@/components/customer-reporting/MonthlyRebateGenerationV2";
 import { RebateCheckReport } from "@/components/customer-reporting/RebateCheckReport";
 import { RebateReportTracking } from "@/components/customer-reporting/RebateReportTracking";
+import { SentRebates } from "@/components/customer-reporting/SentRebates";
 
 type RebateItem = {
   id: string;
