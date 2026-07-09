@@ -862,7 +862,19 @@ export function MonthlyRebateGenerationV2() {
                                   )}
                                   <span className="text-muted-foreground font-normal">({sb.totalWeight.toFixed(2)}t)</span>
                                 </span>
-                                <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1.5 text-xs"
+                                    onClick={() => openEmailDialog(summary, sb)}
+                                    title={`Send rebate email for ${sb.site.site_name}`}
+                                  >
+                                    <Mail className="h-3 w-3" />
+                                    {isSent ? "Resend" : "Send"}
+                                  </Button>
+                                </div>
                               </div>
 
                               {/* Value breakdown by material */}
