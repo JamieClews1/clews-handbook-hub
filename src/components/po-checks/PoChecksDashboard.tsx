@@ -485,8 +485,15 @@ export function PoChecksDashboard() {
               </div>
               <Button onClick={sendPORequest} disabled={sending} className="gap-1.5">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Send PO request for {totalMissing} outstanding job{totalMissing === 1 ? "" : "s"}
+                {isBiffa
+                  ? `Send ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"}`
+                  : `Send PO request for ${totalMissing} outstanding job${totalMissing === 1 ? "" : "s"}`}
               </Button>
+              {isBiffa && (
+                <p className="text-xs text-muted-foreground">
+                  Biffa receives a separate PO request email per site. Use the button on each site below to send just that site.
+                </p>
+              )}
             </CardContent>
           </Card>
 
