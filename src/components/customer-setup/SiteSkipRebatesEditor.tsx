@@ -41,6 +41,41 @@ function ThresholdInput({
   );
 }
 
+function FilterInput({
+  value,
+  onSave,
+  disabled,
+  className,
+  placeholder,
+}: {
+  value: string[] | null;
+  onSave: (value: string) => void;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+}) {
+  const joined = value?.join(", ") ?? "";
+  const [localValue, setLocalValue] = useState(joined);
+  useEffect(() => {
+    setLocalValue(joined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joined]);
+  return (
+    <Input
+      type="text"
+      className={className}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        if (localValue !== joined) onSave(localValue);
+      }}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+}
+
+
 type RebateItem = {
   id: string;
   name: string;
@@ -406,22 +441,20 @@ export function SiteSkipRebatesEditor({ siteId, siteName }: Props) {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{getMaterialName(item.material_type)}</TableCell>
                     <TableCell>
-                      <Input
-                        type="text"
+                      <FilterInput
                         className="min-w-[180px] text-xs"
-                        value={item.container_type_filter?.join(", ") ?? ""}
-                        onChange={(e) => updateContainerFilter(item.id, e.target.value)}
+                        value={item.container_type_filter}
+                        onSave={(val) => updateContainerFilter(item.id, val)}
                         placeholder="e.g. 8YD, Skip, RoRo"
                         disabled={saving}
                       />
                       <span className="text-[10px] text-muted-foreground">Comma-separated keywords</span>
                     </TableCell>
                     <TableCell>
-                      <Input
-                        type="text"
+                      <FilterInput
                         className="min-w-[200px] text-xs"
-                        value={item.waste_description_filter?.join(", ") ?? ""}
-                        onChange={(e) => updateWasteFilter(item.id, e.target.value)}
+                        value={item.waste_description_filter}
+                        onSave={(val) => updateWasteFilter(item.id, val)}
                         placeholder="e.g. Plastic Packaging"
                         disabled={saving}
                       />
