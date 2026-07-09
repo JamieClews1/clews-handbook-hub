@@ -41,6 +41,7 @@ type Site = {
   data_hub_site_4: string | null;
   data_hub_site_5: string | null;
   load_report_type: string | null;
+  owner_contact_id: string | null;
 };
 type CustomerContact = { id: string; full_name: string; email: string | null; customer_id: string };
 
@@ -89,10 +90,12 @@ export function MonthlyRebateGenerationV2() {
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRebateSummary | null>(null);
+  const [selectedSite, setSelectedSite] = useState<SiteBreakdown | null>(null);
   const [emailRecipient, setEmailRecipient] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingSiteId, setSendingSiteId] = useState<string | null>(null);
 
   const toggle = (id: string) =>
     setExpanded((prev) => {
@@ -139,7 +142,7 @@ export function MonthlyRebateGenerationV2() {
           const { data: page, error } = await supabase
             .from("customer_sites")
             .select(
-              "id, site_name, customer_id, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type",
+              "id, site_name, customer_id, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type, owner_contact_id",
             )
             .order("id")
             .range(offset, offset + pageSize - 1);
@@ -525,7 +528,7 @@ export function MonthlyRebateGenerationV2() {
   };
 
   // ---- Excel / Email helpers ----
-  const buildConsolidatedData = (summary: CustomerRebateSummary): CustomerExportCategory[] => {
+  const buildConsolidatedData = (siteBreakdowns: SiteBreakdown[]): CustomerExportCategory[] => {
     const categories: Record<string, CustomerExportCategory> = {
       Cardboard: { category: "Cardboard", weight: 0, rebate: 0, sources: [] },
       Paper: { category: "Paper", weight: 0, rebate: 0, sources: [] },
@@ -534,7 +537,7 @@ export function MonthlyRebateGenerationV2() {
       "Scrap Metal": { category: "Scrap Metal", weight: 0, rebate: 0, sources: [] },
       Other: { category: "Other", weight: 0, rebate: 0, sources: [] },
     };
-    for (const sb of summary.siteBreakdowns) {
+    for (const sb of siteBreakdowns) {
       for (const mat of sb.materials) {
         const name = mat.name.toLowerCase();
         let category = "Other";
@@ -599,78 +602,100 @@ export function MonthlyRebateGenerationV2() {
     toast({ title: "Downloaded", description: `Marked ${summary.customer.customer_name} as generated.` });
   };
 
-  const openEmailDialog = (summary: CustomerRebateSummary) => {
+  // Resolve the recipient email for a specific site: prefer the site's owner
+  // contact, then fall back to the first customer contact with an email.
+  const siteRecipient = (summary: CustomerRebateSummary, sb: SiteBreakdown) => {
+    const owner = sb.site.owner_contact_id
+      ? summary.contacts.find((c) => c.id === sb.site.owner_contact_id && c.email)
+      : undefined;
+    return owner ?? summary.contacts.find((c) => c.email);
+  };
+
+  const buildSiteBody = (contactName: string | undefined, sb: SiteBreakdown) =>
+    `Dear ${contactName ?? "Customer"},\n\nWe are writing to inform you that rebates have been calculated for ${sb.site.site_name} for ${periodLabel}.\n\nTotal Rebate Due: £${sb.totalRebate.toFixed(2)}\n\nPlease submit an invoice for this amount at your earliest convenience.\n\nMaterial Breakdown:\n${sb.materials.map((m) => `- ${m.name}: ${m.weight.toFixed(2)}t @ £${m.rate.toFixed(2)}/t = £${m.rebate.toFixed(2)}`).join("\n")}\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nClews Recycling Limited`;
+
+  const openEmailDialog = (summary: CustomerRebateSummary, sb: SiteBreakdown) => {
     setSelectedCustomer(summary);
-    const contactWithEmail = summary.contacts.find((c) => c.email);
-    setEmailRecipient(contactWithEmail?.email ?? "");
-    setEmailSubject(`Rebate Invoice Request - ${periodLabel}`);
-    setEmailBody(
-      `Dear ${contactWithEmail?.full_name ?? "Customer"},\n\nWe are writing to inform you that rebates have been calculated for ${periodLabel}.\n\nTotal Rebate Due: £${summary.totalRebate.toFixed(2)}\n\nPlease submit an invoice for this amount at your earliest convenience.\n\nSite Breakdown:\n${summary.siteBreakdowns.map((sb) => `- ${sb.site.site_name}: £${sb.totalRebate.toFixed(2)}`).join("\n")}\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nClews Recycling Limited`,
-    );
+    setSelectedSite(sb);
+    const contact = siteRecipient(summary, sb);
+    setEmailRecipient(contact?.email ?? "");
+    setEmailSubject(`Rebate Invoice Request - ${sb.site.site_name} - ${periodLabel}`);
+    setEmailBody(buildSiteBody(contact?.full_name, sb));
     setEmailDialogOpen(true);
   };
 
-  const sendRebateEmail = async () => {
-    if (!selectedCustomer || !emailRecipient || !dateRange?.from || !dateRange?.to) return;
-    setSendingEmail(true);
-    try {
-      const siteName =
-        selectedCustomer.siteBreakdowns.length === 1
-          ? selectedCustomer.siteBreakdowns[0].site.site_name
-          : `${selectedCustomer.siteBreakdowns.length} sites`;
-      const { base64, filename } = await getCustomerRebateExportBase64({
-        customerName: selectedCustomer.customer.customer_name,
-        siteName,
-        periodLabel,
-        consolidatedData: buildConsolidatedData(selectedCustomer),
-        totalWeight: selectedCustomer.totalWeight,
-        totalRebate: selectedCustomer.totalRebate,
-        siteBreakdowns: selectedCustomer.siteBreakdowns.map((sb) => ({
+  // Core send for a single site. Returns true on success.
+  const sendSiteRebate = async (
+    summary: CustomerRebateSummary,
+    sb: SiteBreakdown,
+    recipient: string,
+    subject: string,
+    body: string,
+  ): Promise<boolean> => {
+    if (!recipient || !dateRange?.from || !dateRange?.to) return false;
+    const { base64, filename } = await getCustomerRebateExportBase64({
+      customerName: summary.customer.customer_name,
+      siteName: sb.site.site_name,
+      periodLabel,
+      consolidatedData: buildConsolidatedData([sb]),
+      totalWeight: sb.totalWeight,
+      totalRebate: sb.totalRebate,
+      siteBreakdowns: [
+        {
           siteName: sb.site.site_name,
           totalWeight: sb.totalWeight,
           totalRebate: sb.totalRebate,
           materials: sb.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
-        })),
-      });
-
-      const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
-        body: {
-          to: emailRecipient,
-          subject: emailSubject,
-          body: emailBody,
-          customerName: selectedCustomer.customer.customer_name,
-          attachment: { base64, filename },
         },
-      });
-      if (emailError) throw emailError;
+      ],
+    });
 
+    const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+      body: {
+        to: recipient,
+        subject,
+        body,
+        customerName: `${summary.customer.customer_name} - ${sb.site.site_name}`,
+        attachment: { base64, filename },
+      },
+    });
+    if (emailError) throw emailError;
+
+    const periodStart = format(dateRange.from, "yyyy-MM-dd");
+    const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+
+    await supabase.from("rebate_email_logs").insert({
+      customer_id: summary.customer.id,
+      period_start: periodStart,
+      period_end: periodEnd,
+      rebate_amount: sb.totalRebate,
+      recipient_email: recipient,
+      sent_by: user?.id,
+    });
+
+    await upsertTracking({
+      customerId: summary.customer.id,
+      siteId: sb.site.id,
+      periodStart,
+      periodEnd,
+      status: "sent",
+      rebateAmount: sb.totalRebate,
+      userId: user?.id,
+      recipientEmail: recipient,
+    });
+    return true;
+  };
+
+  // Send from the review dialog (single site).
+  const sendRebateEmail = async () => {
+    if (!selectedCustomer || !selectedSite || !emailRecipient || !dateRange?.from || !dateRange?.to) return;
+    setSendingEmail(true);
+    try {
+      await sendSiteRebate(selectedCustomer, selectedSite, emailRecipient, emailSubject, emailBody);
+      toast({ title: "Email Sent", description: `Rebate notification for ${selectedSite.site.site_name} sent to ${emailRecipient}` });
+      setEmailDialogOpen(false);
       const periodStart = format(dateRange.from, "yyyy-MM-dd");
       const periodEnd = format(dateRange.to, "yyyy-MM-dd");
-
-      await supabase.from("rebate_email_logs").insert({
-        customer_id: selectedCustomer.customer.id,
-        period_start: periodStart,
-        period_end: periodEnd,
-        rebate_amount: selectedCustomer.totalRebate,
-        recipient_email: emailRecipient,
-        sent_by: user?.id,
-      });
-
-      for (const sb of selectedCustomer.siteBreakdowns) {
-        await upsertTracking({
-          customerId: selectedCustomer.customer.id,
-          siteId: sb.site.id,
-          periodStart,
-          periodEnd,
-          status: "sent",
-          rebateAmount: sb.totalRebate,
-          userId: user?.id,
-          recipientEmail: emailRecipient,
-        });
-      }
-
-      toast({ title: "Email Sent", description: `Rebate notification sent to ${emailRecipient}` });
-      setEmailDialogOpen(false);
       setTracking(await fetchTrackingForPeriod(periodStart, periodEnd));
     } catch (error: any) {
       console.error("Error sending email:", error);
@@ -679,6 +704,48 @@ export function MonthlyRebateGenerationV2() {
       setSendingEmail(false);
     }
   };
+
+  // Send one email per site to each site's owner (top-level split).
+  const sendAllSites = async (summary: CustomerRebateSummary) => {
+    if (!dateRange?.from || !dateRange?.to) return;
+    setSendingSiteId(summary.customer.id);
+    let sent = 0;
+    const missing: string[] = [];
+    try {
+      for (const sb of summary.siteBreakdowns) {
+        const contact = siteRecipient(summary, sb);
+        if (!contact?.email) {
+          missing.push(sb.site.site_name);
+          continue;
+        }
+        await sendSiteRebate(
+          summary,
+          sb,
+          contact.email,
+          `Rebate Invoice Request - ${sb.site.site_name} - ${periodLabel}`,
+          buildSiteBody(contact.full_name, sb),
+        );
+        sent += 1;
+      }
+      const periodStart = format(dateRange.from, "yyyy-MM-dd");
+      const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+      setTracking(await fetchTrackingForPeriod(periodStart, periodEnd));
+      toast({
+        title: sent > 0 ? "Emails Sent" : "Nothing sent",
+        description: [
+          sent > 0 ? `${sent} site email${sent === 1 ? "" : "s"} sent.` : "",
+          missing.length > 0 ? `No contact for: ${missing.join(", ")}.` : "",
+        ].filter(Boolean).join(" "),
+        variant: missing.length > 0 && sent === 0 ? "destructive" : undefined,
+      });
+    } catch (error: any) {
+      console.error("Error sending site emails:", error);
+      toast({ title: "Error", description: error?.message || "Failed to send emails", variant: "destructive" });
+    } finally {
+      setSendingSiteId(null);
+    }
+  };
+
 
   const grandTotal = summaries.reduce((sum, s) => sum + s.totalRebate, 0);
   const sentCount = summaries.filter((s) => customerStatus(s) === "sent").length;
@@ -766,8 +833,15 @@ export function MonthlyRebateGenerationV2() {
                       <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => openEmailDialog(summary)} title="Send notification">
-                        <Mail className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8"
+                        onClick={() => sendAllSites(summary)}
+                        disabled={sendingSiteId === summary.customer.id}
+                        title={`Send a separate email to each site owner (${summary.siteBreakdowns.length})`}
+                      >
+                        {sendingSiteId === summary.customer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                       </Button>
                     </div>
                     <CollapsibleContent>
@@ -788,7 +862,19 @@ export function MonthlyRebateGenerationV2() {
                                   )}
                                   <span className="text-muted-foreground font-normal">({sb.totalWeight.toFixed(2)}t)</span>
                                 </span>
-                                <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1.5 text-xs"
+                                    onClick={() => openEmailDialog(summary, sb)}
+                                    title={`Send rebate email for ${sb.site.site_name}`}
+                                  >
+                                    <Mail className="h-3 w-3" />
+                                    {isSent ? "Resend" : "Send"}
+                                  </Button>
+                                </div>
                               </div>
 
                               {/* Value breakdown by material */}
@@ -902,7 +988,10 @@ export function MonthlyRebateGenerationV2() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Send Rebate Notification</DialogTitle>
-            <DialogDescription>Notify {selectedCustomer?.customer.customer_name} about their rebate.</DialogDescription>
+            <DialogDescription>
+              Notify the owner of {selectedSite?.site.site_name}
+              {selectedCustomer ? ` (${selectedCustomer.customer.customer_name})` : ""} about their rebate.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
