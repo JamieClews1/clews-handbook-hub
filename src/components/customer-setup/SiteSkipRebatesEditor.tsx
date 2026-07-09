@@ -41,6 +41,41 @@ function ThresholdInput({
   );
 }
 
+function FilterInput({
+  value,
+  onSave,
+  disabled,
+  className,
+  placeholder,
+}: {
+  value: string[] | null;
+  onSave: (value: string) => void;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+}) {
+  const joined = value?.join(", ") ?? "";
+  const [localValue, setLocalValue] = useState(joined);
+  useEffect(() => {
+    setLocalValue(joined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joined]);
+  return (
+    <Input
+      type="text"
+      className={className}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        if (localValue !== joined) onSave(localValue);
+      }}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+}
+
+
 type RebateItem = {
   id: string;
   name: string;
