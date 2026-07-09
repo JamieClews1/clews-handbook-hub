@@ -2729,6 +2729,33 @@ export type Database = {
           },
         ]
       }
+      load_report_exclusions: {
+        Row: {
+          created_at: string
+          excluded_by: string | null
+          id: string
+          job_number: string
+          reason: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          excluded_by?: string | null
+          id?: string
+          job_number: string
+          reason?: string | null
+          source: string
+        }
+        Update: {
+          created_at?: string
+          excluded_by?: string | null
+          id?: string
+          job_number?: string
+          reason?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       load_report_settings: {
         Row: {
           created_at: string
