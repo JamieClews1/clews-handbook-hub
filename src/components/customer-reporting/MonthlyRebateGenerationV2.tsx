@@ -833,8 +833,15 @@ export function MonthlyRebateGenerationV2() {
                       <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => openEmailDialog(summary)} title="Send notification">
-                        <Mail className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8"
+                        onClick={() => sendAllSites(summary)}
+                        disabled={sendingSiteId === summary.customer.id}
+                        title={`Send a separate email to each site owner (${summary.siteBreakdowns.length})`}
+                      >
+                        {sendingSiteId === summary.customer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                       </Button>
                     </div>
                     <CollapsibleContent>
