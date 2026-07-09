@@ -19,6 +19,7 @@ interface PORequestItem {
 
 interface PORequestBody {
   customerName: string;
+  siteName?: string | null;
   recipients: string[];
   requestedBy?: string;
   contactName?: string | null;
@@ -35,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const body: PORequestBody = await req.json();
-    const { customerName, requestedBy, contactName } = body;
+    const { customerName, requestedBy, contactName, siteName } = body;
 
     const recipients = (Array.isArray(body.recipients) ? body.recipients : [])
       .map((e) => e?.trim())
@@ -67,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Clews Recycling <orders@noreply.clewsrecycling.co.uk>",
       to: recipients,
-      subject: `Purchase Order request - ${customerName} - ${totalJobs} job${totalJobs === 1 ? "" : "s"} outstanding`,
+      subject: `Purchase Order request - ${customerName}${siteName ? ` - ${siteName}` : ""} - ${totalJobs} job${totalJobs === 1 ? "" : "s"} outstanding`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 720px; margin: 0 auto;">
           <div style="background-color: #16a34a; padding: 20px; border-radius: 8px 8px 0 0;">
@@ -79,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
               ${contactName ? `Dear ${contactName},` : "Hello,"}
             </p>
             <p style="margin: 0 0 12px; color: #333;">
-              The following jobs for <strong>${customerName}</strong> are currently missing a Purchase Order number.
+              The following jobs for <strong>${customerName}${siteName ? ` - ${siteName}` : ""}</strong> are currently missing a Purchase Order number.
               Please could you provide the relevant PO number(s) so we can complete our records. One PO number can
               cover multiple jobs of the same waste type.
             </p>
