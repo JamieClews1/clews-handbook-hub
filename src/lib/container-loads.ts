@@ -13,6 +13,7 @@ export interface ContainerPhoto {
   path: string;
   url: string;
   caption?: string;
+  uploaded_at?: string;
 }
 
 export interface Annex7Fields {
