@@ -204,13 +204,14 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     try {
       const newPhotos = [...load.photos];
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop() || "jpg";
+        const stamped = await stampImage(file);
         const path = `container-loads/${loadId}/${Date.now()}-${Math.random()
           .toString(36)
-          .slice(2, 8)}.${ext}`;
-        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+          .slice(2, 8)}.jpg`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, stamped, {
           cacheControl: "3600",
           upsert: false,
+          contentType: "image/jpeg",
         });
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
