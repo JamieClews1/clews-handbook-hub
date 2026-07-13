@@ -176,7 +176,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         });
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-        newPhotos.push({ path, url: data.publicUrl, caption: "" });
+        newPhotos.push({ path, url: data.publicUrl, caption: "", uploaded_at: new Date().toISOString() });
       }
       await persist({ photos: newPhotos });
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
@@ -474,6 +474,17 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
+                      {p.uploaded_at && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(p.uploaded_at).toLocaleString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      )}
                       <Input
                         value={p.caption ?? ""}
                         onChange={(e) => setPhotoCaption(p.path, e.target.value)}
