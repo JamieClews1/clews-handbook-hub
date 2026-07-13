@@ -176,7 +176,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         });
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-        newPhotos.push({ path, url: data.publicUrl, caption: "" });
+        newPhotos.push({ path, url: data.publicUrl, caption: "", uploaded_at: new Date().toISOString() });
       }
       await persist({ photos: newPhotos });
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
