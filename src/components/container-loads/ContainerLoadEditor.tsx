@@ -51,6 +51,44 @@ import { generateAnnex7Pdf, generatePackingSheetPdf } from "@/lib/container-pape
 
 const BUCKET = "load-photos";
 
+// Burn a date/time stamp onto the bottom of a photo so it is embedded in the
+// image itself (visible in the app, downloads, and the container load report).
+async function stampImage(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.drawImage(bitmap, 0, 0);
+
+  const stamp = new Date().toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  // Scale the stamp relative to image size so it is legible on any resolution.
+  const fontSize = Math.max(18, Math.round(canvas.width * 0.03));
+  const pad = Math.round(fontSize * 0.5);
+  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+  ctx.textBaseline = "bottom";
+  const textWidth = ctx.measureText(stamp).width;
+  const boxH = fontSize + pad * 2;
+
+  // Semi-transparent backing bar for contrast.
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+  ctx.fillRect(0, canvas.height - boxH, textWidth + pad * 2, boxH);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(stamp, pad, canvas.height - pad);
+
+  return await new Promise<Blob>((resolve) =>
+    canvas.toBlob((b) => resolve(b || file), "image/jpeg", 0.92)
+  );
+}
+
 interface Props {
   loadId: string;
   onBack: () => void;
@@ -166,13 +204,14 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     try {
       const newPhotos = [...load.photos];
       for (const file of Array.from(files)) {
-        const ext = file.name.split(".").pop() || "jpg";
+        const stamped = await stampImage(file);
         const path = `container-loads/${loadId}/${Date.now()}-${Math.random()
           .toString(36)
-          .slice(2, 8)}.${ext}`;
-        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+          .slice(2, 8)}.jpg`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, stamped, {
           cacheControl: "3600",
           upsert: false,
+          contentType: "image/jpeg",
         });
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
