@@ -343,6 +343,7 @@ export type Database = {
       container_loads: {
         Row: {
           annex7: Json
+          annex7_upload: Json | null
           bale_count: number
           basel_code: string | null
           booking_reference: string | null
@@ -360,6 +361,8 @@ export type Database = {
           notes: string | null
           operator_name: string | null
           packing: Json
+          packing_upload: Json | null
+          paperwork_mode: string
           photos: Json
           reference: string | null
           seal_number: string | null
@@ -370,6 +373,7 @@ export type Database = {
         }
         Insert: {
           annex7?: Json
+          annex7_upload?: Json | null
           bale_count?: number
           basel_code?: string | null
           booking_reference?: string | null
@@ -387,6 +391,8 @@ export type Database = {
           notes?: string | null
           operator_name?: string | null
           packing?: Json
+          packing_upload?: Json | null
+          paperwork_mode?: string
           photos?: Json
           reference?: string | null
           seal_number?: string | null
@@ -397,6 +403,7 @@ export type Database = {
         }
         Update: {
           annex7?: Json
+          annex7_upload?: Json | null
           bale_count?: number
           basel_code?: string | null
           booking_reference?: string | null
@@ -414,6 +421,8 @@ export type Database = {
           notes?: string | null
           operator_name?: string | null
           packing?: Json
+          packing_upload?: Json | null
+          paperwork_mode?: string
           photos?: Json
           reference?: string | null
           seal_number?: string | null
@@ -1817,6 +1826,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_broker: boolean
+          is_container_load_customer: boolean
           po_notification_email: string | null
           updated_at: string
         }
@@ -1829,6 +1839,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_broker?: boolean
+          is_container_load_customer?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }
@@ -1841,6 +1852,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_broker?: boolean
+          is_container_load_customer?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }

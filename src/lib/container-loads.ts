@@ -46,7 +46,19 @@ export interface Annex7Fields {
   contract_number?: string;
 }
 
+export type PaperworkMode = "create" | "upload";
+
+export interface PaperworkFile {
+  path: string;
+  url: string;
+  name?: string;
+  uploaded_at?: string;
+}
+
 export interface ContainerLoad {
+  paperwork_mode: PaperworkMode;
+  annex7_upload: PaperworkFile | null;
+  packing_upload: PaperworkFile | null;
   id: string;
   reference: string | null;
   status: ContainerStatus;
@@ -120,6 +132,9 @@ export function normalizeContainerLoad(row: any): ContainerLoad {
     photos: Array.isArray(row.photos) ? (row.photos as ContainerPhoto[]) : [],
     packing: Array.isArray(row.packing) ? (row.packing as PackingRow[]) : [],
     annex7: (row.annex7 && typeof row.annex7 === "object" ? row.annex7 : {}) as Annex7Fields,
+    paperwork_mode: (row.paperwork_mode ?? "create") as PaperworkMode,
+    annex7_upload: (row.annex7_upload ?? null) as PaperworkFile | null,
+    packing_upload: (row.packing_upload ?? null) as PaperworkFile | null,
   };
 }
 

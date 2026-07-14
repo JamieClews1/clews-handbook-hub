@@ -24,6 +24,7 @@ import {
   normalizeContainerLoad,
 } from "@/lib/container-loads";
 import { ContainerLoadEditor } from "@/components/container-loads/ContainerLoadEditor";
+import { ContainerLoadSettingsDialog } from "@/components/container-loads/ContainerLoadSettingsDialog";
 
 const ContainerLoadsPage = () => {
   const navigate = useNavigate();
@@ -166,10 +167,13 @@ const ContainerLoadsPage = () => {
                     </p>
                   </div>
                 </div>
-                <Button onClick={handleNew} disabled={creating} className="gap-2">
-                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                  New container load
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ContainerLoadSettingsDialog />
+                  <Button onClick={handleNew} disabled={creating} className="gap-2">
+                    {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    New container load
+                  </Button>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3 mb-5">

@@ -44,6 +44,7 @@ import {
   CONTAINER_STATUS_META,
   CONTAINER_STATUS_ORDER,
   PackingRow,
+  PaperworkMode,
   normalizeContainerLoad,
   packingTotalKg,
 } from "@/lib/container-loads";
@@ -113,7 +114,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       setLoading(true);
       const [{ data }, { data: custs }, { data: company }] = await Promise.all([
         supabase.from("container_loads").select("*").eq("id", loadId).single(),
-        supabase.from("customers").select("id, customer_name").order("customer_name"),
+        supabase
+          .from("customers")
+          .select("id, customer_name")
+          .eq("is_container_load_customer", true)
+          .order("customer_name"),
         supabase.from("company_profile").select("company_name, operational_address, telephone, email").maybeSingle(),
       ]);
       setCustomers(custs || []);
@@ -165,6 +170,9 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           annex7: merged.annex7 as any,
           notes: merged.notes,
           operator_name: merged.operator_name,
+          paperwork_mode: merged.paperwork_mode,
+          annex7_upload: merged.annex7_upload as any,
+          packing_upload: merged.packing_upload as any,
         })
         .eq("id", loadId);
       if (error) throw error;
@@ -231,6 +239,43 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     if (!load) return;
     await supabase.storage.from(BUCKET).remove([path]);
     await persist({ photos: load.photos.filter((p) => p.path !== path) });
+  };
+
+  const uploadPaperwork = async (kind: "annex7" | "packing", file: File | null) => {
+    if (!file || !load) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "pdf";
+      const path = `container-loads/${loadId}/paperwork/${kind}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type || "application/pdf",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const record = {
+        path,
+        url: data.publicUrl,
+        name: file.name,
+        uploaded_at: new Date().toISOString(),
+      };
+      await persist(
+        kind === "annex7" ? { annex7_upload: record } : { packing_upload: record },
+      );
+      toast({ title: "Uploaded", description: `${file.name} uploaded.` });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePaperwork = async (kind: "annex7" | "packing") => {
+    if (!load) return;
+    const existing = kind === "annex7" ? load.annex7_upload : load.packing_upload;
+    if (existing?.path) await supabase.storage.from(BUCKET).remove([existing.path]);
+    await persist(kind === "annex7" ? { annex7_upload: null } : { packing_upload: null });
   };
 
   const setPhotoCaption = (path: string, caption: string) =>
@@ -363,10 +408,10 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           <TabsTrigger value="photos" className="gap-1">
             <Camera className="h-4 w-4" /> Photos
           </TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="paperwork" className="gap-1">
             <FileText className="h-4 w-4" /> Paperwork
           </TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
         </TabsList>
 
         {/* BALES & PACKING */}
@@ -674,18 +719,113 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         <TabsContent value="paperwork" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Generate documents</CardTitle>
+              <CardTitle className="text-base">Paperwork method</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Button className="gap-2" onClick={() => handleGenerate("annex7")}>
-                <FileText className="h-4 w-4" /> Annex 7 (PDF)
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={() => handleGenerate("packing")}>
-                <FileText className="h-4 w-4" /> Packing sheet (PDF)
-              </Button>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Choose how the Annex 7 and Packing List are produced for this container load.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => persist({ paperwork_mode: "upload" })}
+                  className={`text-left rounded-lg border p-4 transition hover:border-primary/60 ${
+                    load.paperwork_mode === "upload"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="font-semibold text-sm mb-1">A · Upload paperwork</div>
+                  <div className="text-xs text-muted-foreground">
+                    Upload existing Annex 7 and Packing List documents (PDF or image).
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => persist({ paperwork_mode: "create" })}
+                  className={`text-left rounded-lg border p-4 transition hover:border-primary/60 ${
+                    load.paperwork_mode === "create"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="font-semibold text-sm mb-1">B · Create paperwork</div>
+                  <div className="text-xs text-muted-foreground">
+                    Fill in the Annex 7 details below and generate Annex 7 &amp; Packing List PDFs.
+                  </div>
+                </button>
+              </div>
             </CardContent>
           </Card>
 
+          {load.paperwork_mode === "upload" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Uploaded paperwork</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {(["annex7", "packing"] as const).map((kind) => {
+                  const label = kind === "annex7" ? "Annex 7" : "Packing List";
+                  const file = kind === "annex7" ? load.annex7_upload : load.packing_upload;
+                  return (
+                    <div key={kind} className="space-y-2">
+                      <Label>{label}</Label>
+                      {file ? (
+                        <div className="flex items-center gap-2 rounded-md border p-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm underline flex-1 truncate"
+                          >
+                            {file.name || label}
+                          </a>
+                          {file.uploaded_at && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(file.uploaded_at).toLocaleDateString("en-GB")}
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removePaperwork(kind)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          type="file"
+                          accept="application/pdf,image/*"
+                          disabled={uploading}
+                          onChange={(e) =>
+                            uploadPaperwork(kind, e.target.files?.[0] ?? null)
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Generate documents</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                <Button className="gap-2" onClick={() => handleGenerate("annex7")}>
+                  <FileText className="h-4 w-4" /> Annex 7 (PDF)
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={() => handleGenerate("packing")}>
+                  <FileText className="h-4 w-4" /> Packing sheet (PDF)
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {load.paperwork_mode === "create" && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Annex 7 details</CardTitle>
@@ -806,6 +946,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </Button>
             </CardContent>
           </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
