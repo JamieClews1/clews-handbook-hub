@@ -579,7 +579,7 @@ export function PoChecksDashboard() {
                       variant="outline"
                       className="gap-1.5"
                       disabled={sendingSite === sg.siteName}
-                      onClick={() => sendSitePORequest(sg)}
+                      onClick={() => openDialogForSite(sg)}
                     >
                       {sendingSite === sg.siteName ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
