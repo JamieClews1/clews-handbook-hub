@@ -46,7 +46,19 @@ export interface Annex7Fields {
   contract_number?: string;
 }
 
+export type PaperworkMode = "create" | "upload";
+
+export interface PaperworkFile {
+  path: string;
+  url: string;
+  name?: string;
+  uploaded_at?: string;
+}
+
 export interface ContainerLoad {
+  paperwork_mode: PaperworkMode;
+  annex7_upload: PaperworkFile | null;
+  packing_upload: PaperworkFile | null;
   id: string;
   reference: string | null;
   status: ContainerStatus;
