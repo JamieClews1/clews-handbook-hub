@@ -138,7 +138,7 @@ export function AppSidebar() {
 
         {/* WasteOne */}
         <SidebarGroup>
-          <Collapsible defaultOpen={isInSection(["/route-one", "/weigh-one"])}>
+          <Collapsible defaultOpen={isInSection(["/route-one", "/weigh-one", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"])}>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
                 {!collapsed && (
@@ -168,11 +168,52 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="load-reports">
+                    <SidebarMenuButton asChild isActive={isActive("/load-reports")}>
+                      <Link to="/load-reports">
+                        <TruckIcon className="h-4 w-4" />
+                        {!collapsed && <span>Load Reports</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-live-jobs">
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/live-jobs")}>
+                      <Link to="/performance-hub/live-jobs">
+                        <Radio className="h-4 w-4" />
+                        {!collapsed && <span>Live Jobs</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-rentals">
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/rentals")}>
+                      <Link to="/performance-hub/rentals">
+                        <PoundSterling className="h-4 w-4" />
+                        {!collapsed && <span>Rentals</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-contaminations">
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/contaminations")}>
+                      <Link to="/performance-hub/contaminations">
+                        <AlertTriangle className="h-4 w-4" />
+                        {!collapsed && <span>Contaminations</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-stock-check">
+                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/stock-check")}>
+                      <Link to="/performance-hub/stock-check">
+                        <Box className="h-4 w-4" />
+                        {!collapsed && <span>Stock Check</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
+
 
         {/* OnePortal */}
         <SidebarGroup>
