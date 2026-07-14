@@ -166,41 +166,34 @@ export function PoChecksDashboard() {
     loadCustomers();
   }, []);
 
-  // Load sites when a customer is chosen
+  // Load sites + contacts when a customer is chosen
   useEffect(() => {
-    const loadSites = async () => {
+    const load = async () => {
       if (!customerId) {
         setSites([]);
+        setContactsById({});
         return;
       }
-      const { data } = await supabase
-        .from("customer_sites")
-        .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-        .eq("customer_id", customerId)
-        .order("site_name");
-      setSites(data ?? []);
+      const [sitesRes, contactsRes] = await Promise.all([
+        supabase
+          .from("customer_sites")
+          .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, owner_contact_id")
+          .eq("customer_id", customerId)
+          .order("site_name"),
+        supabase
+          .from("customer_contacts")
+          .select("id, full_name, email")
+          .eq("customer_id", customerId),
+      ]);
+      setSites((sitesRes.data as Site[]) ?? []);
+      const map: Record<string, Contact> = {};
+      (contactsRes.data ?? []).forEach((c) => {
+        map[c.id] = c as Contact;
+      });
+      setContactsById(map);
     };
-    loadSites();
+    load();
   }, [customerId]);
-
-  // Pre-fill recipients with the customer's PO notification email + portal contacts
-  useEffect(() => {
-    const loadRecipients = async () => {
-      if (!customerId) {
-        setRecipients("");
-        return;
-      }
-      const emails = new Set<string>();
-      if (selectedCustomer?.po_notification_email) emails.add(selectedCustomer.po_notification_email.trim());
-      const { data: contacts } = await supabase
-        .from("customer_contacts")
-        .select("email")
-        .eq("customer_id", customerId);
-      (contacts ?? []).forEach((c) => c.email && emails.add(c.email.trim()));
-      setRecipients(Array.from(emails).join(", "));
-    };
-    loadRecipients();
-  }, [customerId, selectedCustomer?.po_notification_email]);
 
   const siteNameLookup = useMemo(() => {
     const map = new Map<string, string>();
