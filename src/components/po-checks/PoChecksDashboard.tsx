@@ -13,6 +13,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, Send, ClipboardList, CheckCircle2, Building2, MapPin } from "lucide-react";
 import { format, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
