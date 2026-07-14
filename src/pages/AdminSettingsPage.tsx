@@ -4,8 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { HRContactSettings } from "@/components/HRContactSettings";
 import { EmailTemplateSettings } from "@/components/EmailTemplateSettings";
+import { SectionVisibilitySettings } from "@/components/SectionVisibilitySettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Mail } from "lucide-react";
+import { Settings, Mail, LayoutGrid } from "lucide-react";
+
 
 const AdminSettingsPage = () => {
   const navigate = useNavigate();
@@ -44,11 +46,21 @@ const AdminSettingsPage = () => {
             <Mail className="h-4 w-4" />
             Communications
           </TabsTrigger>
+          <TabsTrigger value="sections" className="gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            Section Visibility
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
           <HRContactSettings />
         </TabsContent>
+
+        <TabsContent value="sections">
+          <SectionVisibilitySettings />
+        </TabsContent>
+
+
 
         <TabsContent value="communications">
           <EmailTemplateSettings />
