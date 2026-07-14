@@ -24,6 +24,7 @@ import {
   normalizeContainerLoad,
 } from "@/lib/container-loads";
 import { ContainerLoadEditor } from "@/components/container-loads/ContainerLoadEditor";
+import { ContainerLoadSettingsDialog } from "@/components/container-loads/ContainerLoadSettingsDialog";
 
 const ContainerLoadsPage = () => {
   const navigate = useNavigate();
