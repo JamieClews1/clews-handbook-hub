@@ -406,22 +406,6 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem data-sec="performance-live-jobs">
-                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/live-jobs")}>
-                      <Link to="/performance-hub/live-jobs">
-                        <Radio className="h-4 w-4" />
-                        {!collapsed && <span>Live Jobs</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem data-sec="performance-rentals">
-                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/rentals")}>
-                      <Link to="/performance-hub/rentals">
-                        <PoundSterling className="h-4 w-4" />
-                        {!collapsed && <span>Rentals</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                   <SidebarMenuItem data-sec="performance-data">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/data")}>
                       <Link to="/performance-hub/data">
@@ -430,22 +414,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem data-sec="performance-contaminations">
-                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/contaminations")}>
-                      <Link to="/performance-hub/contaminations">
-                        <AlertTriangle className="h-4 w-4" />
-                        {!collapsed && <span>Contaminations</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem data-sec="performance-stock-check">
-                    <SidebarMenuButton asChild isActive={isActive("/performance-hub/stock-check")}>
-                      <Link to="/performance-hub/stock-check">
-                        <Box className="h-4 w-4" />
-                        {!collapsed && <span>Stock Check</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+
                   <SidebarMenuItem data-sec="performance-fuel-surcharges">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/fuel-surcharges")}>
                       <Link to="/performance-hub/fuel-surcharges">
