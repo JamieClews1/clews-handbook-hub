@@ -217,7 +217,6 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         continue;
       }
 
-      siteMap[key].customers.add(customerName);
       // Track the most recent customer name for display
       if (job.job_date && (!siteMap[key].latestCustomerDate || job.job_date > siteMap[key].latestCustomerDate!)) {
         siteMap[key].latestCustomer = customerName;
