@@ -9,12 +9,30 @@ export interface PackingRow {
   notes?: string;
 }
 
+export type PhotoCategory =
+  | "cab_reg"
+  | "trailer_number"
+  | "empty_trailer"
+  | "half_loaded"
+  | "fully_loaded"
+  | "other";
+
+export const PHOTO_REQUIREMENTS: { key: PhotoCategory; label: string; hint: string }[] = [
+  { key: "cab_reg", label: "Front of cab", hint: "Showing vehicle registration number" },
+  { key: "trailer_number", label: "Trailer number", hint: "Trailer visibly showing trailer number" },
+  { key: "empty_trailer", label: "Empty trailer", hint: "Full trailer empty with curtain pulled back" },
+  { key: "half_loaded", label: "Half loaded", hint: "Half full stages of loading the material" },
+  { key: "fully_loaded", label: "Fully loaded", hint: "All material fully loaded, curtain pulled back" },
+];
+
 export interface ContainerPhoto {
   path: string;
   url: string;
   caption?: string;
   uploaded_at?: string;
+  category?: PhotoCategory;
 }
+
 
 export interface Annex7Fields {
   // 1. Person who arranges the shipment (exporter)
