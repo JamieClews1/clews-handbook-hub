@@ -196,8 +196,25 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           lastCollectionDate: null,
           containerTypes: new Set(),
           wasteTypes: new Set(),
+          plannedCollections: [],
           containerTypeBreakdown: {},
         };
+      }
+
+      siteMap[key].customers.add(customerName);
+
+      // Booked-but-not-yet-done collections/exchanges/etc: record ticket for
+      // visibility, then skip the counting/date-tracking below so they don't
+      // clear the container off the live list prematurely.
+      if (isFuture) {
+        if (isCollection(job.movement_type) && job.job_number && job.job_date) {
+          siteMap[key].plannedCollections.push({
+            jobNumber: job.job_number,
+            date: job.job_date,
+            containerType: job.container_type,
+          });
+        }
+        continue;
       }
 
       siteMap[key].customers.add(customerName);
