@@ -43,6 +43,14 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -62,18 +70,23 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      borderColor: {
+        hairline: "hsl(var(--border-hairline))",
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius-lg)",
+        md: "var(--radius)",
+        sm: "var(--radius-sm)",
       },
       boxShadow: {
         'glow': 'var(--shadow-glow)',
         'card': 'var(--shadow-md)',
         'card-hover': 'var(--shadow-lg)',
+        'pop': 'var(--shadow-pop)',
+        'hover': 'var(--shadow-hover)',
       },
       keyframes: {
         "accordion-down": {
