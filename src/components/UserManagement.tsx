@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { UserComplianceView } from "./UserComplianceView";
 import { usernameToEmail, emailToUsername } from "@/lib/auth-utils";
+import { isSuperAdminEmail } from "@/lib/super-admin";
+
 
 interface UserProfile {
   id: string;
@@ -426,7 +428,11 @@ export const UserManagement = () => {
                         <UserComplianceView userId={user.id} userTypes={user.user_types} userName={user.full_name || user.email} />
                       </TableCell>
                       <TableCell>
-                        {user.isAdmin ? (
+                        {isSuperAdminEmail(user.email) ? (
+                          <span className="inline-flex items-center gap-1 text-primary font-semibold">
+                            <Shield className="h-4 w-4" /> Super Admin
+                          </span>
+                        ) : user.isAdmin ? (
                           <span className="inline-flex items-center gap-1 text-primary">
                             <Shield className="h-4 w-4" /> Admin
                           </span>
@@ -434,6 +440,7 @@ export const UserManagement = () => {
                           <span className="text-muted-foreground">User</span>
                         )}
                       </TableCell>
+
                       <TableCell>{renderStaffActions(user)}</TableCell>
                     </TableRow>
                   ))}

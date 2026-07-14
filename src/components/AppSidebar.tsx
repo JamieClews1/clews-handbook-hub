@@ -58,6 +58,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/hooks/useAuth";
 import { VersionBadge } from "./VersionBadge";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
+import { isSuperAdminEmail } from "@/lib/super-admin";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -67,8 +68,8 @@ export function AppSidebar() {
   const { hidden } = usePortalSectionVisibility();
   const currentPath = location.pathname;
 
-  const SUPER_ADMIN_EMAILS = ["jamie@clewsrecycling.co.uk", "jclewsie@gmail.com"];
-  const isSuperAdmin = !!user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isSuperAdmin = isSuperAdminEmail(user?.email);
+
 
   const isActive = (path: string) => currentPath === path;
   const isInSection = (paths: string[]) => paths.some(p => currentPath.startsWith(p));
