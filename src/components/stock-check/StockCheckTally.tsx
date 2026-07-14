@@ -29,6 +29,14 @@ interface StockCheckTallyProps {
   editCheckId?: string | null;
 }
 
+interface LastCheckInfo {
+  id: string;
+  operator_name: string;
+  created_at: string;
+  notes: string | null;
+  itemNotes: { name: string; notes: string }[];
+}
+
 export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckTallyProps) => {
   const { toast } = useToast();
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
@@ -37,6 +45,7 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastCheck, setLastCheck] = useState<LastCheckInfo | null>(null);
   const isEditing = !!editCheckId;
 
   useEffect(() => {
