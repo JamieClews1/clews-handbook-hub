@@ -408,10 +408,10 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           <TabsTrigger value="photos" className="gap-1">
             <Camera className="h-4 w-4" /> Photos
           </TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="paperwork" className="gap-1">
             <FileText className="h-4 w-4" /> Paperwork
           </TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
         </TabsList>
 
         {/* BALES & PACKING */}
