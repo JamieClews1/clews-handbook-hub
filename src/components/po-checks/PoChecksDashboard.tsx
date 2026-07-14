@@ -133,14 +133,21 @@ export function PoChecksDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState<string>("");
   const [sites, setSites] = useState<Site[]>([]);
+  const [contactsById, setContactsById] = useState<Record<string, Contact>>({});
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [lookback, setLookback] = useState("6");
   // When true, only show jobs already completed (up to today) and exclude future-dated jobs
   const [onlyCompleted, setOnlyCompleted] = useState(true);
-  const [recipients, setRecipients] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [sendingSite, setSendingSite] = useState<string | null>(null);
+
+  // Dialog state — collect recipient email(s) before sending
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"all" | "site">("all");
+  const [dialogSite, setDialogSite] = useState<SiteGroup | null>(null);
+  const [dialogEmail, setDialogEmail] = useState("");
+  const [dialogSuggestion, setDialogSuggestion] = useState<string | null>(null);
 
   const selectedCustomer = customers.find((c) => c.id === customerId) || null;
   const customerName = selectedCustomer?.customer_name || "";
