@@ -59,6 +59,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { VersionBadge } from "./VersionBadge";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 import { isSuperAdminEmail } from "@/lib/super-admin";
+import { useSidebarGroupState } from "@/hooks/useSidebarGroupState";
+
+// Shared classes so every nav group looks identical.
+const GROUP_LABEL_CLS =
+  "cursor-pointer rounded-md transition-colors uppercase tracking-[0.12em] text-[11px] font-medium text-sidebar-foreground/50 hover:text-sidebar-foreground/80 px-3 h-8";
+const GROUP_SPACING_CLS = "mt-5 first:mt-0";
+const ICON_CLS = "!h-[18px] !w-[18px]";
+const SUB_ICON_CLS = "!h-4 !w-4";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -70,9 +78,31 @@ export function AppSidebar() {
 
   const isSuperAdmin = isSuperAdminEmail(user?.email);
 
+  // Persisted open/closed state per group (falls back to "open if on that route")
+  const [wasteOneOpen, setWasteOneOpen] = useSidebarGroupState(
+    "wasteone",
+    isInSection(["/route-one", "/weigh-one", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"]),
+  );
+  const [onePortalOpen, setOnePortalOpen] = useSidebarGroupState(
+    "oneportal",
+    isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings", "/crm", "/pricing"]),
+  );
+  const [performanceOpen, setPerformanceOpen] = useSidebarGroupState(
+    "performance",
+    isInSection(["/performance-hub", "/staci-reports", "/customer-reporting", "/rebate-values"]),
+  );
+  const [poChecksOpen, setPoChecksOpen] = useSidebarGroupState(
+    "po-checks",
+    isInSection(["/po-checks"]),
+  );
+  // Setup collapsed by default — rarely touched.
+  const [setupOpen, setSetupOpen] = useSidebarGroupState("setup", false);
+
+  function isInSection(paths: string[]) {
+    return paths.some(p => currentPath.startsWith(p));
+  }
 
   const isActive = (path: string) => currentPath === path;
-  const isInSection = (paths: string[]) => paths.some(p => currentPath.startsWith(p));
 
   // Only the super admin sees hidden items (dimmed). Everyone else has them removed.
   const hiddenKeys = Array.from(hidden);
