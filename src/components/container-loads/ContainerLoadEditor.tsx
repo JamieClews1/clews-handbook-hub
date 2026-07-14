@@ -170,6 +170,9 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           annex7: merged.annex7 as any,
           notes: merged.notes,
           operator_name: merged.operator_name,
+          paperwork_mode: merged.paperwork_mode,
+          annex7_upload: merged.annex7_upload as any,
+          packing_upload: merged.packing_upload as any,
         })
         .eq("id", loadId);
       if (error) throw error;
