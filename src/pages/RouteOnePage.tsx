@@ -56,6 +56,7 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
   wasted_journey: "Wasted Journey",
 };
 
+// Legacy fully-colored card style — retained for detail dialogs and list badges.
 const JOB_TYPE_COLORS: Record<JobType, string> = {
   delivery: "bg-emerald-600 border-emerald-700 text-white",
   exchange: "bg-amber-500 border-amber-600 text-white",
@@ -70,6 +71,24 @@ const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
   collection: "bg-white/25 text-white hover:bg-white/35 border-0",
   waste_truck: "bg-white/25 text-white hover:bg-white/35 border-0",
   wasted_journey: "bg-white/25 text-white hover:bg-white/35 border-0",
+};
+
+// Kanban job-card accent bar (3px, square-cornered, left edge).
+const JOB_TYPE_ACCENT: Record<JobType, string> = {
+  delivery: "bg-emerald-500",
+  exchange: "bg-amber-500",
+  collection: "bg-orange-500",
+  waste_truck: "bg-blue-500",
+  wasted_journey: "bg-red-500",
+};
+
+// Independent tag colors used for the job-type pill on kanban cards.
+const JOB_TYPE_TAG: Record<JobType, string> = {
+  delivery: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20",
+  exchange: "bg-amber-500/10 text-amber-700 border border-amber-500/20",
+  collection: "bg-orange-500/10 text-orange-700 border border-orange-500/20",
+  waste_truck: "bg-blue-500/10 text-blue-700 border border-blue-500/20",
+  wasted_journey: "bg-red-500/10 text-red-700 border border-red-500/20",
 };
 
 const STATUS_COLORS: Record<JobStatus, string> = {
