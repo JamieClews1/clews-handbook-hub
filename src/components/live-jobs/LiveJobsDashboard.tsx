@@ -642,6 +642,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [wasteSearch, setWasteSearch] = useState("");
 
   // Collect all unique container types across all sites in this tab
   const allContainerTypes = useMemo(() => {
@@ -665,10 +666,20 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
     });
   };
 
-  // Filter sites by selected container types
+  const wasteSearchLower = wasteSearch.trim().toLowerCase();
+
+  // Filter sites by selected container types and waste type search
   const filteredSites = useMemo(() => {
-    if (selectedTypes.size === 0) return sites;
-    return sites
+    let result = sites;
+
+    if (wasteSearchLower) {
+      result = result.filter(s =>
+        s.wasteTypes.some(wt => wt.toLowerCase().includes(wasteSearchLower))
+      );
+    }
+
+    if (selectedTypes.size === 0) return result;
+    return result
       .map(s => {
         const matchingTypes = s.containerTypes.filter(ct => selectedTypes.has(ct));
         if (matchingTypes.length === 0) return null;
@@ -682,7 +693,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
         return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
-  }, [sites, selectedTypes]);
+  }, [sites, selectedTypes, wasteSearchLower]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
