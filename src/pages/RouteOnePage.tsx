@@ -874,8 +874,11 @@ const RouteOnePage = () => {
                     <SkiptrakJobCard key={sj.job_number} job={sj} onClick={() => setViewingSkiptrakJob(sj)} />
                   ))}
                   {totalCount === 0 && (
-                    <div className="h-full flex items-center justify-center">
-                      <p className="text-xs text-muted-foreground">Drop jobs here</p>
+                    <div className="h-full flex items-center justify-center py-8">
+                      <div className="w-full mx-2 rounded-md border border-dashed border-hairline py-6 flex flex-col items-center gap-1.5 text-muted-foreground">
+                        <Truck className="h-5 w-5 opacity-60" />
+                        <p className="text-[11px]">Drop jobs here</p>
+                      </div>
                     </div>
                   )}
                 </div>
