@@ -654,6 +654,47 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   );
 }
 
+type StatTone = "muted" | "success" | "info" | "warning" | "destructive";
+
+function StatCard({
+  label,
+  value,
+  icon,
+  tone,
+  caption,
+  emphasise,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone: StatTone;
+  caption?: string;
+  emphasise?: boolean;
+}) {
+  const toneStyles: Record<StatTone, { iconBg: string; iconFg: string; value: string; border: string }> = {
+    muted:       { iconBg: "bg-muted",              iconFg: "text-foreground",              value: "text-foreground",   border: "border-hairline" },
+    success:     { iconBg: "bg-success/10",         iconFg: "text-success",                 value: "text-foreground",   border: "border-hairline" },
+    info:        { iconBg: "bg-info/10",            iconFg: "text-info",                    value: "text-foreground",   border: "border-hairline" },
+    warning:     { iconBg: "bg-warning/10",         iconFg: "text-warning",                 value: "text-foreground",   border: "border-hairline" },
+    destructive: { iconBg: "bg-destructive/10",     iconFg: "text-destructive",             value: "text-destructive",  border: "border-destructive/40" },
+  };
+  const t = toneStyles[tone];
+  return (
+    <Card className={`${t.border} ${emphasise ? "border" : ""} transition-shadow hover:shadow-hover`}>
+      <CardContent className="p-5 space-y-3">
+        <div className={`w-10 h-10 rounded-lg ${t.iconBg} ${t.iconFg} flex items-center justify-center`}>
+          {icon}
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[13px] text-muted-foreground leading-none">{label}</p>
+          <p className={`text-[26px] font-medium leading-tight ${t.value}`}>{value}</p>
+          {caption && <p className="text-xs text-muted-foreground pt-0.5">{caption}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 type SortField = "customer" | "site" | "netOnSite" | "delivered" | "exchanged" | "collected" | "containerType";
 type SortDir = "asc" | "desc";
 
