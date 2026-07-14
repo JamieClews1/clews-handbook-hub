@@ -81,7 +81,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
+      {gateStyle && <style>{gateStyle}</style>}
       <SidebarContent className="pt-2">
+
         {/* Brand */}
         <div className="px-4 py-3 mb-2">
           {!collapsed ? (
