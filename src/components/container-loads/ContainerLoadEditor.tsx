@@ -946,6 +946,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </Button>
             </CardContent>
           </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
