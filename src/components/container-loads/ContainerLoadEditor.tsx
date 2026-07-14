@@ -241,6 +241,43 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     await persist({ photos: load.photos.filter((p) => p.path !== path) });
   };
 
+  const uploadPaperwork = async (kind: "annex7" | "packing", file: File | null) => {
+    if (!file || !load) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "pdf";
+      const path = `container-loads/${loadId}/paperwork/${kind}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type || "application/pdf",
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const record = {
+        path,
+        url: data.publicUrl,
+        name: file.name,
+        uploaded_at: new Date().toISOString(),
+      };
+      await persist(
+        kind === "annex7" ? { annex7_upload: record } : { packing_upload: record },
+      );
+      toast({ title: "Uploaded", description: `${file.name} uploaded.` });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePaperwork = async (kind: "annex7" | "packing") => {
+    if (!load) return;
+    const existing = kind === "annex7" ? load.annex7_upload : load.packing_upload;
+    if (existing?.path) await supabase.storage.from(BUCKET).remove([existing.path]);
+    await persist(kind === "annex7" ? { annex7_upload: null } : { packing_upload: null });
+  };
+
   const setPhotoCaption = (path: string, caption: string) =>
     update({
       photos: load!.photos.map((p) => (p.path === path ? { ...p, caption } : p)),
