@@ -861,7 +861,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
       )}
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card border-b border-hairline">
             <TableRow>
               <SortHeader field="customer">Customer</SortHeader>
               <SortHeader field="site">Site</SortHeader>
