@@ -88,12 +88,12 @@ const OnePortalPage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sections
-              .filter((section) => isAdmin || !isHidden(section.key))
+              .filter((section) => isSuperAdmin || !isHidden(section.key))
               .map((section) => {
                 const hiddenForUsers = isHidden(section.key);
                 return (
                   <Link key={section.title} to={section.href} className="group relative">
-                    {hiddenForUsers && isAdmin && (
+                    {hiddenForUsers && isSuperAdmin && (
                       <Badge variant="secondary" className="absolute top-3 right-3 z-10">Hidden</Badge>
                     )}
                     <div
