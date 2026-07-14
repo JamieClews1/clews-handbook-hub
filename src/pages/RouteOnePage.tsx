@@ -789,10 +789,10 @@ const RouteOnePage = () => {
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(null)}
           >
-            <div className="px-3 py-2 border-b border-border bg-muted/50">
+            <div className="px-3 py-2.5 border-b border-hairline bg-muted/40">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unassigned</span>
-                <Badge variant="secondary" className="text-[10px] h-5">{unassignedJobs.length}</Badge>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Unassigned</span>
+                <span className="text-[11px] font-medium text-muted-foreground bg-background rounded-full px-2 py-0.5">{unassignedJobs.length}</span>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
