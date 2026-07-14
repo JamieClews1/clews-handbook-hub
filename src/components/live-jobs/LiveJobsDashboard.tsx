@@ -826,7 +826,18 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
             {sorted.map((s, i) => (
               <TableRow key={i}>
                 <TableCell className="font-medium">{s.customer}</TableCell>
-                <TableCell>{s.site}</TableCell>
+                <TableCell>
+                  {s.site}
+                  {s.plannedCollections && s.plannedCollections.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {s.plannedCollections.map((pc, idx) => (
+                        <Badge key={idx} variant="outline" className="text-[10px] font-normal text-muted-foreground">
+                          Collection booked #{pc.jobNumber} · {format(new Date(pc.date), "dd MMM")}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-center">
                   <Badge variant="default">{s.netOnSite}</Badge>
                 </TableCell>
