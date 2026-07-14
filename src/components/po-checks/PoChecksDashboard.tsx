@@ -40,6 +40,13 @@ type Site = {
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
   data_hub_site_5: string | null;
+  owner_contact_id: string | null;
+};
+
+type Contact = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 };
 
 type JobRecord = {
