@@ -15,14 +15,16 @@ export type PhotoCategory =
   | "empty_trailer"
   | "half_loaded"
   | "fully_loaded"
+  | "container_tag"
   | "other";
 
 export const PHOTO_REQUIREMENTS: { key: PhotoCategory; label: string; hint: string }[] = [
   { key: "cab_reg", label: "Front of cab", hint: "Showing vehicle registration number" },
-  { key: "trailer_number", label: "Trailer number", hint: "Trailer visibly showing trailer number" },
-  { key: "empty_trailer", label: "Empty trailer", hint: "Full trailer empty with curtain pulled back" },
+  { key: "trailer_number", label: "Trailer/Container number", hint: "Trailer/Container visibly showing number" },
+  { key: "empty_trailer", label: "Empty trailer/container", hint: "Full trailer/container empty with curtain pulled back" },
   { key: "half_loaded", label: "Half loaded", hint: "Half full stages of loading the material" },
   { key: "fully_loaded", label: "Fully loaded", hint: "All material fully loaded, curtain pulled back" },
+  { key: "container_tag", label: "Container tag", hint: "Close-up of the container identification tag" },
 ];
 
 export interface ContainerPhoto {
