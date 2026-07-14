@@ -29,6 +29,14 @@ interface StockCheckTallyProps {
   editCheckId?: string | null;
 }
 
+interface LastCheckInfo {
+  id: string;
+  operator_name: string;
+  created_at: string;
+  notes: string | null;
+  itemNotes: { name: string; notes: string }[];
+}
+
 export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckTallyProps) => {
   const { toast } = useToast();
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
@@ -37,6 +45,7 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastCheck, setLastCheck] = useState<LastCheckInfo | null>(null);
   const isEditing = !!editCheckId;
 
   useEffect(() => {
@@ -60,6 +69,34 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
         return;
       }
       setContainerTypes(types);
+
+      // Fetch previous stock check (excluding the one being edited) for reference notes
+      let lastQuery = supabase
+        .from("stock_checks")
+        .select("id, operator_name, created_at, notes")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (editCheckId) lastQuery = lastQuery.neq("id", editCheckId);
+      const { data: lastChecks } = await lastQuery;
+      const last = lastChecks?.[0];
+      if (last) {
+        const { data: lastItems } = await supabase
+          .from("stock_check_items")
+          .select("container_type_id, notes")
+          .eq("stock_check_id", last.id)
+          .not("notes", "is", null);
+        const typeNameById = new Map(types.map((t: any) => [t.id, t.name]));
+        const itemNotes = (lastItems || [])
+          .filter((i: any) => i.notes && i.notes.trim())
+          .map((i: any) => ({ name: typeNameById.get(i.container_type_id) || "Unknown", notes: i.notes }));
+        setLastCheck({
+          id: last.id,
+          operator_name: last.operator_name,
+          created_at: last.created_at,
+          notes: last.notes,
+          itemNotes,
+        });
+      }
 
       // If editing, load existing check + items
       let existingItems: Record<string, { in_yard: number; runner: number; notes: string | null }> = {};
@@ -247,6 +284,35 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
           />
         </CardContent>
       </Card>
+
+      {/* Notes from last stock check */}
+      {lastCheck && (lastCheck.notes || lastCheck.itemNotes.length > 0) && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-foreground">
+                Notes from last stock take
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {lastCheck.operator_name} · {new Date(lastCheck.created_at).toLocaleString()}
+              </span>
+            </div>
+            {lastCheck.notes && (
+              <p className="text-sm text-foreground whitespace-pre-wrap">{lastCheck.notes}</p>
+            )}
+            {lastCheck.itemNotes.length > 0 && (
+              <ul className="text-sm text-foreground space-y-1 mt-1">
+                {lastCheck.itemNotes.map((n, idx) => (
+                  <li key={idx}>
+                    <span className="font-medium">{n.name}:</span> {n.notes}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Skips Section */}
       <div>
