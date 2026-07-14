@@ -1224,47 +1224,47 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
-  const colorClass = mappedType
-    ? JOB_TYPE_COLORS[mappedType]
-    : "bg-muted border-border text-foreground";
-  const badgeClass = mappedType
-    ? JOB_TYPE_BADGE_COLORS[mappedType]
-    : "bg-muted text-muted-foreground";
+  const accent = mappedType ? JOB_TYPE_ACCENT[mappedType] : "bg-muted-foreground/40";
+  const tagClass = mappedType ? JOB_TYPE_TAG[mappedType] : "bg-muted text-muted-foreground border border-hairline";
 
   return (
     <div
       onClick={onClick}
-      className={`rounded-lg border-2 border-dashed p-2.5 shadow-sm cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all ${colorClass} ${!mappedType ? "border-border" : "border-white/30"}`}
+      className="group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-pointer transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden"
     >
-      <div className="flex items-center gap-1.5">
-        <span className={`text-xs font-bold truncate ${mappedType ? "text-white" : "text-foreground"}`}>{job.customer || "Unknown"}</span>
+      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accent}`} />
+
+      <div className="flex items-start justify-between gap-1">
+        <span className="text-[13px] font-medium truncate text-foreground">{job.customer || "Unknown"}</span>
+        {job.job_number && (
+          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">#{job.job_number}</span>
+        )}
       </div>
+
       {job.site && (
         <div className="flex items-center gap-1 mt-1">
-          <MapPin className={`h-3 w-3 shrink-0 ${mappedType ? "text-white/60" : "text-muted-foreground"}`} />
-          <span className={`text-[11px] truncate ${mappedType ? "text-white/90" : "text-muted-foreground"}`}>{job.site}</span>
+          <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] truncate text-muted-foreground">{job.site}</span>
         </div>
       )}
       {job.tipping_location && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>→ {job.tipping_location}</span>
+          <span className="text-[10px] text-muted-foreground">→ {job.tipping_location}</span>
         </div>
       )}
-      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {job.movement_type && (
-          <Badge className={`text-[10px] px-1.5 py-0 h-4 ${badgeClass}`}>
+          <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${tagClass}`}>
             {job.movement_type}
           </Badge>
         )}
         {job.container_type && (
-          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>{job.container_type}</span>
+          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
         )}
         {job.weight_t != null && job.weight_t > 0 && (
-          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>{job.weight_t}t</span>
+          <span className="text-[10px] text-muted-foreground">{job.weight_t}t</span>
         )}
-      </div>
-      <div className="mt-1">
-        <Badge className={`text-[9px] px-1 py-0 h-3.5 ${mappedType ? "bg-white/20 text-white border-0" : "bg-muted text-muted-foreground"}`}>Skiptrak #{job.job_number}</Badge>
       </div>
     </div>
   );
