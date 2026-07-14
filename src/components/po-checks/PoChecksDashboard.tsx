@@ -595,6 +595,54 @@ export function PoChecksDashboard() {
           </Accordion>
         </>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === "site" && dialogSite
+                ? `Send PO request for ${dialogSite.siteName}`
+                : isBiffa
+                ? `Send ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"}`
+                : `Send PO request for ${customerName}`}
+            </DialogTitle>
+            <DialogDescription>
+              Enter the email address(es) to send the PO request to. Separate multiple addresses with commas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Recipient email</Label>
+            <Input
+              value={dialogEmail}
+              onChange={(e) => setDialogEmail(e.target.value)}
+              placeholder="name@customer.com"
+              autoFocus
+            />
+            {dialogSuggestion ? (
+              <p className="text-xs text-muted-foreground">
+                Suggested from site owner in customer setup: <span className="font-medium">{dialogSuggestion}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No site owner email found in customer setup — please enter an address manually.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={sending || sendingSite !== null}>
+              Cancel
+            </Button>
+            <Button onClick={confirmDialogSend} disabled={sending || sendingSite !== null} className="gap-1.5">
+              {sending || sendingSite !== null ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
