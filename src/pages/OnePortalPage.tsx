@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
+import { isSuperAdminEmail } from "@/lib/super-admin";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,8 +42,8 @@ const OnePortalPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { isHidden } = usePortalSectionVisibility();
-  const SUPER_ADMIN_EMAILS = ["jamie@clewsrecycling.co.uk", "jclewsie@gmail.com"];
-  const isSuperAdmin = !!user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isSuperAdmin = isSuperAdminEmail(user?.email);
+
 
 
 
