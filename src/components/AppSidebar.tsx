@@ -59,6 +59,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { VersionBadge } from "./VersionBadge";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 import { isSuperAdminEmail } from "@/lib/super-admin";
+import { useSidebarGroupState } from "@/hooks/useSidebarGroupState";
+
+// Shared classes so every nav group looks identical.
+const GROUP_LABEL_CLS =
+  "cursor-pointer rounded-md transition-colors uppercase tracking-[0.12em] text-[11px] font-medium text-sidebar-foreground/50 hover:text-sidebar-foreground/80 px-3 h-8";
+const GROUP_SPACING_CLS = "mt-5 first:mt-0";
+const ICON_CLS = "!h-[18px] !w-[18px]";
+const SUB_ICON_CLS = "!h-4 !w-4";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -70,9 +78,31 @@ export function AppSidebar() {
 
   const isSuperAdmin = isSuperAdminEmail(user?.email);
 
+  // Persisted open/closed state per group (falls back to "open if on that route")
+  const [wasteOneOpen, setWasteOneOpen] = useSidebarGroupState(
+    "wasteone",
+    isInSection(["/route-one", "/weigh-one", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"]),
+  );
+  const [onePortalOpen, setOnePortalOpen] = useSidebarGroupState(
+    "oneportal",
+    isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings", "/crm", "/pricing"]),
+  );
+  const [performanceOpen, setPerformanceOpen] = useSidebarGroupState(
+    "performance",
+    isInSection(["/performance-hub", "/staci-reports", "/customer-reporting", "/rebate-values"]),
+  );
+  const [poChecksOpen, setPoChecksOpen] = useSidebarGroupState(
+    "po-checks",
+    isInSection(["/po-checks"]),
+  );
+  // Setup collapsed by default — rarely touched.
+  const [setupOpen, setSetupOpen] = useSidebarGroupState("setup", false);
+
+  function isInSection(paths: string[]) {
+    return paths.some(p => currentPath.startsWith(p));
+  }
 
   const isActive = (path: string) => currentPath === path;
-  const isInSection = (paths: string[]) => paths.some(p => currentPath.startsWith(p));
 
   // Only the super admin sees hidden items (dimmed). Everyone else has them removed.
   const hiddenKeys = Array.from(hidden);
@@ -107,12 +137,12 @@ export function AppSidebar() {
         </div>
 
         {/* Dashboard */}
-        <SidebarGroup>
+        <SidebarGroup className="mt-5 first:mt-0 gap-1">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive("/portal")}>
                 <Link to="/portal">
-                  <LayoutDashboard className="h-4 w-4" />
+                  <LayoutDashboard className="h-[18px] w-[18px]" />
                   {!collapsed && <span>Dashboard</span>}
                 </Link>
               </SidebarMenuButton>
@@ -120,7 +150,7 @@ export function AppSidebar() {
             <SidebarMenuItem data-sec="assistant">
               <SidebarMenuButton asChild isActive={isActive("/assistant")}>
                 <Link to="/assistant">
-                  <Bot className="h-4 w-4" />
+                  <Bot className="h-[18px] w-[18px]" />
                   {!collapsed && <span>Ask One</span>}
                 </Link>
               </SidebarMenuButton>
@@ -128,7 +158,7 @@ export function AppSidebar() {
             <SidebarMenuItem data-sec="ai-assistant">
               <SidebarMenuButton asChild isActive={isActive("/ai-assistant")}>
                 <Link to="/ai-assistant">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-[18px] w-[18px]" />
                   {!collapsed && <span>Claude Assistant</span>}
                 </Link>
               </SidebarMenuButton>
@@ -137,10 +167,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* WasteOne */}
-        <SidebarGroup>
-          <Collapsible defaultOpen={isInSection(["/route-one", "/weigh-one", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"])}>
+        <SidebarGroup className="mt-5 first:mt-0 gap-1">
+          <Collapsible open={wasteOneOpen} onOpenChange={setWasteOneOpen}>
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
+              <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
                   <>
                     <span>WasteOne</span>
@@ -155,7 +185,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="route-one">
                     <SidebarMenuButton asChild isActive={isActive("/route-one")}>
                       <Link to="/route-one">
-                        <Route className="h-4 w-4" />
+                        <Route className="h-[18px] w-[18px]" />
                         {!collapsed && <span>RouteOne</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -163,7 +193,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="weigh-one">
                     <SidebarMenuButton asChild isActive={isActive("/weigh-one")}>
                       <Link to="/weigh-one">
-                        <Scale className="h-4 w-4" />
+                        <Scale className="h-[18px] w-[18px]" />
                         {!collapsed && <span>WeighOne</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -171,7 +201,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="load-reports">
                     <SidebarMenuButton asChild isActive={isActive("/load-reports")}>
                       <Link to="/load-reports">
-                        <TruckIcon className="h-4 w-4" />
+                        <TruckIcon className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Load Reports</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -179,7 +209,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-live-jobs">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/live-jobs")}>
                       <Link to="/performance-hub/live-jobs">
-                        <Radio className="h-4 w-4" />
+                        <Radio className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Live Jobs</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -187,7 +217,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-rentals">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/rentals")}>
                       <Link to="/performance-hub/rentals">
-                        <PoundSterling className="h-4 w-4" />
+                        <PoundSterling className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Rentals</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -195,7 +225,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-contaminations">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/contaminations")}>
                       <Link to="/performance-hub/contaminations">
-                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTriangle className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Contaminations</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -203,7 +233,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-stock-check">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/stock-check")}>
                       <Link to="/performance-hub/stock-check">
-                        <Box className="h-4 w-4" />
+                        <Box className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Stock Check</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -216,10 +246,10 @@ export function AppSidebar() {
 
 
         {/* OnePortal */}
-        <SidebarGroup>
-          <Collapsible defaultOpen={isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings"])}>
+        <SidebarGroup className="mt-5 first:mt-0 gap-1">
+          <Collapsible open={onePortalOpen} onOpenChange={setOnePortalOpen}>
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
+              <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
                   <>
                     <span>OnePortal</span>
@@ -235,7 +265,7 @@ export function AppSidebar() {
                     <SidebarMenuItem data-sec="duty-of-care">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
-                          <ShieldCheck className="h-4 w-4" />
+                          <ShieldCheck className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Compliance</span>}
                           {!collapsed && <ChevronDown className="ml-auto h-3 w-3" />}
                         </SidebarMenuButton>
@@ -265,7 +295,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="policies">
                     <SidebarMenuButton asChild isActive={isActive("/policies")}>
                       <Link to="/policies">
-                        <ScrollText className="h-4 w-4" />
+                        <ScrollText className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Policies</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -275,7 +305,7 @@ export function AppSidebar() {
                     <SidebarMenuItem data-sec="handbook">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
-                          <Users className="h-4 w-4" />
+                          <Users className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Team</span>}
                           {!collapsed && <ChevronDown className="ml-auto h-3 w-3" />}
                         </SidebarMenuButton>
@@ -305,7 +335,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="waste-reporting">
                     <SidebarMenuButton asChild isActive={isActive("/waste-reporting")}>
                       <Link to="/waste-reporting">
-                        <Recycle className="h-4 w-4" />
+                        <Recycle className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Waste Reporting</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -317,7 +347,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="container-loads">
                     <SidebarMenuButton asChild isActive={isActive("/container-loads")}>
                       <Link to="/container-loads">
-                        <ContainerIcon className="h-4 w-4" />
+                        <ContainerIcon className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Container Loads</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -327,7 +357,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="diary">
                     <SidebarMenuButton asChild isActive={isActive("/diary")}>
                       <Link to="/diary">
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Diary</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -336,7 +366,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="bookings">
                     <SidebarMenuButton asChild isActive={isActive("/bookings")}>
                       <Link to="/bookings">
-                        <CalendarCheck className="h-4 w-4" />
+                        <CalendarCheck className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Bookings</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -345,7 +375,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="crm">
                     <SidebarMenuButton asChild isActive={isActive("/crm")}>
                       <Link to="/crm">
-                        <Inbox className="h-4 w-4" />
+                        <Inbox className="h-[18px] w-[18px]" />
                         {!collapsed && <span>CRM Inbox</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -354,7 +384,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="pricing">
                     <SidebarMenuButton asChild isActive={isActive("/pricing")}>
                       <Link to="/pricing">
-                        <PoundSterling className="h-4 w-4" />
+                        <PoundSterling className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Pricing</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -367,10 +397,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Performance & Data */}
-        <SidebarGroup>
-          <Collapsible defaultOpen={isInSection(["/performance-hub", "/staci-reports", "/customer-reporting", "/rebate-values"])}>
+        <SidebarGroup className="mt-5 first:mt-0 gap-1">
+          <Collapsible open={performanceOpen} onOpenChange={setPerformanceOpen}>
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
+              <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
                   <>
                     <span>Performance</span>
@@ -385,7 +415,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-waste-kpis">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/waste-kpis")}>
                       <Link to="/performance-hub/waste-kpis">
-                        <Gauge className="h-4 w-4" />
+                        <Gauge className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Waste KPIs</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -393,7 +423,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-projections">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/projections")}>
                       <Link to="/performance-hub/projections">
-                        <TrendingUp className="h-4 w-4" />
+                        <TrendingUp className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Projections</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -401,7 +431,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-reports">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/reports")}>
                       <Link to="/performance-hub/reports">
-                        <BarChart3 className="h-4 w-4" />
+                        <BarChart3 className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Reports</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -409,7 +439,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-data">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/data")}>
                       <Link to="/performance-hub/data">
-                        <Upload className="h-4 w-4" />
+                        <Upload className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Data Uploads</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -418,7 +448,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="performance-fuel-surcharges">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/fuel-surcharges")}>
                       <Link to="/performance-hub/fuel-surcharges">
-                        <Fuel className="h-4 w-4" />
+                        <Fuel className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Fuel Surcharges</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -426,7 +456,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="staci-reports">
                     <SidebarMenuButton asChild isActive={isActive("/staci-reports")}>
                       <Link to="/staci-reports">
-                        <Package className="h-4 w-4" />
+                        <Package className="h-[18px] w-[18px]" />
                         {!collapsed && <span>STACI Reports</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -434,7 +464,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="customer-reporting">
                     <SidebarMenuButton asChild isActive={isActive("/customer-reporting")}>
                       <Link to="/customer-reporting">
-                        <FileText className="h-4 w-4" />
+                        <FileText className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Customer Reports</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -442,7 +472,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="rebate-values">
                     <SidebarMenuButton asChild isActive={isActive("/rebate-values")}>
                       <Link to="/rebate-values">
-                        <DollarSign className="h-4 w-4" />
+                        <DollarSign className="h-[18px] w-[18px]" />
                         {!collapsed && <span>Rebates</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -454,10 +484,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* PO Checks */}
-        <SidebarGroup>
-          <Collapsible defaultOpen={isInSection(["/po-checks"])}>
+        <SidebarGroup className="mt-5 first:mt-0 gap-1">
+          <Collapsible open={poChecksOpen} onOpenChange={setPoChecksOpen}>
             <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
+              <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
                   <>
                     <span>PO Checks</span>
@@ -472,7 +502,7 @@ export function AppSidebar() {
                   <SidebarMenuItem data-sec="po-checks">
                     <SidebarMenuButton asChild isActive={isActive("/po-checks")}>
                       <Link to="/po-checks">
-                        <FileCheck className="h-4 w-4" />
+                        <FileCheck className="h-[18px] w-[18px]" />
                         {!collapsed && <span>PO Checks</span>}
                       </Link>
                     </SidebarMenuButton>
@@ -485,10 +515,10 @@ export function AppSidebar() {
 
         {/* Setup (Admin) */}
         {isAdmin && (
-          <SidebarGroup>
-            <Collapsible defaultOpen={isInSection(["/admin"])}>
+          <SidebarGroup className="mt-5 first:mt-0 gap-1">
+            <Collapsible open={setupOpen} onOpenChange={setSetupOpen}>
               <CollapsibleTrigger asChild>
-                <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors">
+                <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                   {!collapsed && (
                     <>
                       <span>Setup</span>
@@ -503,7 +533,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/customers")}>
                         <Link to="/admin/customers">
-                          <Building2 className="h-4 w-4" />
+                          <Building2 className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Customers</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -511,7 +541,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/users")}>
                         <Link to="/admin/users">
-                          <Users className="h-4 w-4" />
+                          <Users className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Users</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -519,7 +549,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/handbook")}>
                         <Link to="/admin/handbook">
-                          <BookOpen className="h-4 w-4" />
+                          <BookOpen className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Handbook Builder</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -527,7 +557,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/rams")}>
                         <Link to="/admin/rams">
-                          <FileText className="h-4 w-4" />
+                          <FileText className="h-[18px] w-[18px]" />
                           {!collapsed && <span>RAMS Builder</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -535,7 +565,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/toolbox-talks")}>
                         <Link to="/admin/toolbox-talks">
-                          <MessageSquare className="h-4 w-4" />
+                          <MessageSquare className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Toolbox Talks</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -543,7 +573,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/questionnaires")}>
                         <Link to="/admin/questionnaires">
-                          <ClipboardList className="h-4 w-4" />
+                          <ClipboardList className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Questionnaires</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -551,7 +581,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isInSection(["/admin/apps", "/admin/driver-app"])}>
                         <Link to="/admin/apps">
-                          <Smartphone className="h-4 w-4" />
+                          <Smartphone className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Apps</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -559,7 +589,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/pricing")}>
                         <Link to="/admin/pricing">
-                          <DollarSign className="h-4 w-4" />
+                          <DollarSign className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Pricing CMS</span>}
                         </Link>
                       </SidebarMenuButton>
@@ -567,7 +597,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive("/admin/settings")}>
                         <Link to="/admin/settings">
-                          <Settings className="h-4 w-4" />
+                          <Settings className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Settings</span>}
                         </Link>
                       </SidebarMenuButton>
