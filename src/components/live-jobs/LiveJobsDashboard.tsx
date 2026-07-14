@@ -159,17 +159,23 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // ── Compute live containers (net on-site per customer+site) ──
   const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
-    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
+    const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; plannedCollections: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
 
     const monthlyMap: Record<string, { month: string; deliveries: number; exchanges: number; collections: number }> = {};
     const recentCutoff = new Date();
     recentCutoff.setDate(recentCutoff.getDate() - 30);
+    const todayStr = format(new Date(), "yyyy-MM-dd");
 
     const recentJobs: Job[] = [];
 
     for (const job of jobs) {
       const cat = categoriseContainer(job.container_type, job.vehicle_registration, settings);
       if (!cat) continue;
+
+      // Future-dated jobs are booked but haven't happened yet. Don't let them
+      // clear the container off-site — track planned collections separately so
+      // staff can see the ticket number without the container disappearing.
+      const isFuture = !!(job.job_date && job.job_date > todayStr);
 
       // Group by site+category only, merging all customer name variants
       const key = `${(job.site || "Unknown").toLowerCase().trim()}|||${cat}`;
@@ -190,11 +196,27 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           lastCollectionDate: null,
           containerTypes: new Set(),
           wasteTypes: new Set(),
+          plannedCollections: [],
           containerTypeBreakdown: {},
         };
       }
 
       siteMap[key].customers.add(customerName);
+
+      // Booked-but-not-yet-done collections/exchanges/etc: record ticket for
+      // visibility, then skip the counting/date-tracking below so they don't
+      // clear the container off the live list prematurely.
+      if (isFuture) {
+        if (isCollection(job.movement_type) && job.job_number && job.job_date) {
+          siteMap[key].plannedCollections.push({
+            jobNumber: job.job_number,
+            date: job.job_date,
+            containerType: job.container_type,
+          });
+        }
+        continue;
+      }
+
       // Track the most recent customer name for display
       if (job.job_date && (!siteMap[key].latestCustomerDate || job.job_date > siteMap[key].latestCustomerDate!)) {
         siteMap[key].latestCustomer = customerName;
@@ -638,7 +660,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string }) {
+function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -804,7 +826,18 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
             {sorted.map((s, i) => (
               <TableRow key={i}>
                 <TableCell className="font-medium">{s.customer}</TableCell>
-                <TableCell>{s.site}</TableCell>
+                <TableCell>
+                  {s.site}
+                  {s.plannedCollections && s.plannedCollections.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {s.plannedCollections.map((pc, idx) => (
+                        <Badge key={idx} variant="outline" className="text-[10px] font-normal text-muted-foreground">
+                          Collection booked #{pc.jobNumber} · {format(new Date(pc.date), "dd MMM")}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-center">
                   <Badge variant="default">{s.netOnSite}</Badge>
                 </TableCell>
