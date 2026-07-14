@@ -168,7 +168,7 @@ export function AppSidebar() {
 
         {/* WasteOne */}
         <SidebarGroup className="mt-5 first:mt-0 gap-1">
-          <Collapsible defaultOpen={isInSection(["/route-one", "/weigh-one", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"])}>
+          <Collapsible open={wasteOneOpen} onOpenChange={setWasteOneOpen}>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
@@ -247,7 +247,7 @@ export function AppSidebar() {
 
         {/* OnePortal */}
         <SidebarGroup className="mt-5 first:mt-0 gap-1">
-          <Collapsible defaultOpen={isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings"])}>
+          <Collapsible open={onePortalOpen} onOpenChange={setOnePortalOpen}>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
@@ -398,7 +398,7 @@ export function AppSidebar() {
 
         {/* Performance & Data */}
         <SidebarGroup className="mt-5 first:mt-0 gap-1">
-          <Collapsible defaultOpen={isInSection(["/performance-hub", "/staci-reports", "/customer-reporting", "/rebate-values"])}>
+          <Collapsible open={performanceOpen} onOpenChange={setPerformanceOpen}>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
@@ -485,7 +485,7 @@ export function AppSidebar() {
 
         {/* PO Checks */}
         <SidebarGroup className="mt-5 first:mt-0 gap-1">
-          <Collapsible defaultOpen={isInSection(["/po-checks"])}>
+          <Collapsible open={poChecksOpen} onOpenChange={setPoChecksOpen}>
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                 {!collapsed && (
@@ -516,7 +516,7 @@ export function AppSidebar() {
         {/* Setup (Admin) */}
         {isAdmin && (
           <SidebarGroup className="mt-5 first:mt-0 gap-1">
-            <Collapsible defaultOpen={isInSection(["/admin"])}>
+            <Collapsible open={setupOpen} onOpenChange={setSetupOpen}>
               <CollapsibleTrigger asChild>
                 <SidebarGroupLabel className={GROUP_LABEL_CLS}>
                   {!collapsed && (
