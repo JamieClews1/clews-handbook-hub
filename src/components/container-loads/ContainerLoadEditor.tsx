@@ -295,6 +295,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       photos: load!.photos.map((p) => (p.path === path ? { ...p, caption } : p)),
     });
 
+  const setPhotoCategory = async (path: string, category: PhotoCategory) => {
+    const photos = load!.photos.map((p) => (p.path === path ? { ...p, category } : p));
+    await persist({ photos });
+  };
+
   // Packing rows
   const generateRowsFromCount = () => {
     if (!load) return;
