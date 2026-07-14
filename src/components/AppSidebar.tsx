@@ -311,14 +311,8 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem data-sec="load-reports">
-                    <SidebarMenuButton asChild isActive={isActive("/load-reports")}>
-                      <Link to="/load-reports">
-                        <TruckIcon className="h-4 w-4" />
-                        {!collapsed && <span>Load Reports</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+
+
 
                   <SidebarMenuItem data-sec="container-loads">
                     <SidebarMenuButton asChild isActive={isActive("/container-loads")}>
