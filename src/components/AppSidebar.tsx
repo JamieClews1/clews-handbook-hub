@@ -57,20 +57,33 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import { VersionBadge } from "./VersionBadge";
+import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { isAdmin } = useAuth();
+  const { hidden } = usePortalSectionVisibility();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
   const isInSection = (paths: string[]) => paths.some(p => currentPath.startsWith(p));
 
+  // For non-admins, hide gated items entirely. For admins, dim them.
+  const hiddenKeys = Array.from(hidden);
+  const gateStyle = hiddenKeys.length
+    ? isAdmin
+      ? hiddenKeys.map((k) => `[data-sec="${k}"]{opacity:.45}`).join("")
+      : hiddenKeys.map((k) => `[data-sec="${k}"]{display:none!important}`).join("")
+    : "";
+
+
   return (
     <Sidebar collapsible="icon" className="border-r-0">
+      {gateStyle && <style>{gateStyle}</style>}
       <SidebarContent className="pt-2">
+
         {/* Brand */}
         <div className="px-4 py-3 mb-2">
           {!collapsed ? (
@@ -99,7 +112,7 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
+            <SidebarMenuItem data-sec="assistant">
               <SidebarMenuButton asChild isActive={isActive("/assistant")}>
                 <Link to="/assistant">
                   <Bot className="h-4 w-4" />
@@ -107,7 +120,7 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
+            <SidebarMenuItem data-sec="ai-assistant">
               <SidebarMenuButton asChild isActive={isActive("/ai-assistant")}>
                 <Link to="/ai-assistant">
                   <Sparkles className="h-4 w-4" />
@@ -134,7 +147,7 @@ export function AppSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="route-one">
                     <SidebarMenuButton asChild isActive={isActive("/route-one")}>
                       <Link to="/route-one">
                         <Route className="h-4 w-4" />
@@ -142,7 +155,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="weigh-one">
                     <SidebarMenuButton asChild isActive={isActive("/weigh-one")}>
                       <Link to="/weigh-one">
                         <Scale className="h-4 w-4" />
@@ -173,7 +186,7 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <Collapsible defaultOpen={isInSection(["/duty-of-care", "/near-miss", "/site-reports"])}>
-                    <SidebarMenuItem>
+                    <SidebarMenuItem data-sec="duty-of-care">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
                           <ShieldCheck className="h-4 w-4" />
@@ -203,7 +216,7 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                   </Collapsible>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="policies">
                     <SidebarMenuButton asChild isActive={isActive("/policies")}>
                       <Link to="/policies">
                         <ScrollText className="h-4 w-4" />
@@ -213,7 +226,7 @@ export function AppSidebar() {
                   </SidebarMenuItem>
 
                   <Collapsible defaultOpen={isInSection(["/handbook", "/rams", "/toolbox-talks"])}>
-                    <SidebarMenuItem>
+                    <SidebarMenuItem data-sec="handbook">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
                           <Users className="h-4 w-4" />
@@ -243,7 +256,7 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                   </Collapsible>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="waste-reporting">
                     <SidebarMenuButton asChild isActive={isActive("/waste-reporting")}>
                       <Link to="/waste-reporting">
                         <Recycle className="h-4 w-4" />
@@ -252,7 +265,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="load-reports">
                     <SidebarMenuButton asChild isActive={isActive("/load-reports")}>
                       <Link to="/load-reports">
                         <TruckIcon className="h-4 w-4" />
@@ -261,7 +274,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="container-loads">
                     <SidebarMenuButton asChild isActive={isActive("/container-loads")}>
                       <Link to="/container-loads">
                         <ContainerIcon className="h-4 w-4" />
@@ -271,7 +284,7 @@ export function AppSidebar() {
                   </SidebarMenuItem>
 
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="diary">
                     <SidebarMenuButton asChild isActive={isActive("/diary")}>
                       <Link to="/diary">
                         <Calendar className="h-4 w-4" />
@@ -280,7 +293,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="bookings">
                     <SidebarMenuButton asChild isActive={isActive("/bookings")}>
                       <Link to="/bookings">
                         <CalendarCheck className="h-4 w-4" />
@@ -289,7 +302,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="crm">
                     <SidebarMenuButton asChild isActive={isActive("/crm")}>
                       <Link to="/crm">
                         <Inbox className="h-4 w-4" />
@@ -298,7 +311,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="pricing">
                     <SidebarMenuButton asChild isActive={isActive("/pricing")}>
                       <Link to="/pricing">
                         <PoundSterling className="h-4 w-4" />
@@ -329,7 +342,7 @@ export function AppSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-waste-kpis">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/waste-kpis")}>
                       <Link to="/performance-hub/waste-kpis">
                         <Gauge className="h-4 w-4" />
@@ -337,7 +350,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-projections">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/projections")}>
                       <Link to="/performance-hub/projections">
                         <TrendingUp className="h-4 w-4" />
@@ -345,7 +358,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-reports">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/reports")}>
                       <Link to="/performance-hub/reports">
                         <BarChart3 className="h-4 w-4" />
@@ -353,7 +366,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-live-jobs">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/live-jobs")}>
                       <Link to="/performance-hub/live-jobs">
                         <Radio className="h-4 w-4" />
@@ -361,7 +374,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-rentals">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/rentals")}>
                       <Link to="/performance-hub/rentals">
                         <PoundSterling className="h-4 w-4" />
@@ -369,7 +382,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-data">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/data")}>
                       <Link to="/performance-hub/data">
                         <Upload className="h-4 w-4" />
@@ -377,7 +390,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-contaminations">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/contaminations")}>
                       <Link to="/performance-hub/contaminations">
                         <AlertTriangle className="h-4 w-4" />
@@ -385,7 +398,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-stock-check">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/stock-check")}>
                       <Link to="/performance-hub/stock-check">
                         <Box className="h-4 w-4" />
@@ -393,7 +406,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="performance-fuel-surcharges">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/fuel-surcharges")}>
                       <Link to="/performance-hub/fuel-surcharges">
                         <Fuel className="h-4 w-4" />
@@ -401,7 +414,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="staci-reports">
                     <SidebarMenuButton asChild isActive={isActive("/staci-reports")}>
                       <Link to="/staci-reports">
                         <Package className="h-4 w-4" />
@@ -409,7 +422,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="customer-reporting">
                     <SidebarMenuButton asChild isActive={isActive("/customer-reporting")}>
                       <Link to="/customer-reporting">
                         <FileText className="h-4 w-4" />
@@ -417,7 +430,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="rebate-values">
                     <SidebarMenuButton asChild isActive={isActive("/rebate-values")}>
                       <Link to="/rebate-values">
                         <DollarSign className="h-4 w-4" />
@@ -447,7 +460,7 @@ export function AppSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
+                  <SidebarMenuItem data-sec="po-checks">
                     <SidebarMenuButton asChild isActive={isActive("/po-checks")}>
                       <Link to="/po-checks">
                         <FileCheck className="h-4 w-4" />

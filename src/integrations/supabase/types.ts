@@ -3694,6 +3694,27 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_section_visibility: {
+        Row: {
+          hidden: boolean
+          section_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          hidden?: boolean
+          section_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          hidden?: boolean
+          section_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       postcode_zones: {
         Row: {
           created_at: string
