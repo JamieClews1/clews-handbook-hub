@@ -1,43 +1,66 @@
-# Portal AI Assistant ("Ask One")
 
-Build a portal-wide AI assistant that behaves like the Lovable agent: it reads and interprets your data in plain English, and can take administrative actions — with no model training, just instructions + a fixed set of safe tools. It generalises the two agents you already have (`data-hub-ai` for reading, `admin-agent` for load-report actions) into one assistant available to all staff, as both a floating widget and a dedicated page.
+# WasteOne UI modernization — rollout plan
 
-## How it works (no training needed)
-The assistant is three parts, exactly like me:
-1. **Instructions** — a server-side system prompt describing its job, your schema, tone, and the rules it must follow.
-2. **Tools** — a fixed menu of safe operations it can call. It decides which to call; your code runs the actual database work and validates everything.
-3. **Result interpretation** — tool output is fed back to the model so it explains findings in plain English.
+Scope: visual/UX pass only. No IA, routing, or feature changes. Follows the brief's own recommendation to ship in stages so each screen can be reviewed before the next.
 
-```text
-Staff question ─▶ model picks a tool ─▶ edge function runs it (validated, server-side)
-       ▲                                            │
-       └────────── plain-English answer ◀── results fed back to model
-```
+## Stage 1 — Design tokens (foundation, every later stage inherits)
 
-## Backend — one edge function: `portal-assistant`
-A new Supabase edge function modelled on `admin-agent` (auth via JWT, streaming chat, hidden `action` blocks the UI strips and confirms).
+Edit `src/index.css` and `tailwind.config.ts`:
 
-**Read tool (safe, any staff):** `query_data`
-- The model proposes a read against a **whitelist of tables**: `data_hub_jobs`, load reports + line items, rentals/rental_chases, stock (skip_inventory, stock_checks), pricing (rate cards, entries, settings), customers/sites, CRM tickets, fuel surcharges.
-- Reuses the proven `data-hub-ai` approach: model returns a structured query spec (select / filters / groupBy / orderBy / limit), executed with the Supabase client. No raw SQL is executed. Capped row limits.
-- It can also call the existing `get_skiptrak_rental_positions` RPC for rentals questions.
+- **Sidebar surface**: new token `--sidebar-background: 220 10% 9%` (near-black `#14161A`), `--sidebar-foreground` muted gray, `--sidebar-accent` = brand green filled pill.
+- **Semantic palette** (locked meanings): `--success` green, `--warning` amber, `--destructive` red, `--info` blue, `--muted` gray. Category tag colors move into a separate `--tag-*` scale so status vs. category never share a token.
+- **Radius scale**: `--radius-sm: 8px` (controls/pills), `--radius: 12px` (cards), `--radius-lg: 16px` (modals).
+- **Type scale**: 12 / 13 / 14 / 16 / 20 / 26–28. Restrict weights to 400/500 (drop 600/700 utility overrides from components in later stages).
+- **Elevation**: hairline border token `--border-hairline` for cards; shadow tokens reserved for floating (`--shadow-pop` for modals/dropdowns/popovers only).
+- **Spacing helpers**: table row min-height `44px`, card padding `p-5`, grid gap tokens `gap-3` (stats) / `gap-4` (panels).
 
-**Action tools (write, confirmation required):**
-- Port the existing load-report actions (`create/update/delete/query_load_reports`) verbatim from `admin-agent`.
-- Add guarded write actions for the other areas you selected, e.g. update pricing entries/rate-card values, mark rental bins collected, update a CRM ticket status, edit stock inventory.
-- Every write follows the admin-agent safety contract: **query first → propose in plain English → execute only after the user clicks Confirm.** No write runs without explicit confirmation.
+## Stage 2 — Sidebar
 
-**Security:** function verifies the JWT and requires an authenticated staff user (all signed-in staff). Reads use the table whitelist; writes are limited to the whitelisted action handlers. Destructive actions always need confirmation. Mutations are logged (reusing the existing job-override / assignment-log style audit where present).
+`src/components/AppSidebar.tsx`:
+- Near-black background via new sidebar tokens.
+- Group labels: uppercase, 11px, muted; 20px gap between groups.
+- Active item: filled green pill behind icon + label (not just text color).
+- Setup group collapsed by default; state persisted in `localStorage`.
+- Icon sizes normalized to 18–20px.
 
-## Frontend
-1. **`PortalAssistantWidget.tsx`** — a floating chat bubble available on every portal page (generalised from `AdminAgentWidget`): streaming replies, markdown rendering, spreadsheet attach, and a Confirm/Cancel card for proposed actions.
-2. **Dedicated `/assistant` page** — full-page chat with more room for result tables and Excel export (reuses the widget's chat core plus the `DataHubAIChat` result-table renderer).
-3. Mount the widget in the portal layout; add a nav/sidebar entry for the page. Gate both to signed-in staff.
+## Stage 3 — Live Jobs dashboard
 
-## Technical notes
-- Model: `google/gemini-3-flash-preview` via Lovable AI Gateway (already configured; `LOVABLE_API_KEY` present). Handle 429/402 with clear messages.
-- Reuse existing patterns rather than new infra: streaming SSE response, hidden ```action``` blocks, query-before-write rule.
-- Start with reads enabled everywhere + writes for load reports (already battle-tested), then layer in the additional write actions area by area so each is verified before the next.
+`src/components/live-jobs/LiveJobsDashboard.tsx`:
+- Stat card row: filled 28–32px icon badge (semantic tint) → 13px muted label → 26px/500 number. Over-Rental card gets full hairline red border.
+- Monthly chart: light horizontal gridlines, soft area fill under skips line, top-right legend, hover tooltips, wrapped in card matching stat padding.
+- Filter pills: filled bg for selected; "More" overflow when > ~8 sizes.
+- Site tables: sticky header, row hover tint, 44–48px rows, generous first/last column padding.
 
-## What I'll build first
-Edge function `portal-assistant` (read tool across all selected areas + load-report write actions), the floating widget, and the `/assistant` page — then extend write actions to pricing, rentals, stock, and CRM in follow-up passes.
+## Stage 4 — RouteOne kanban
+
+`src/components/route-one/*` (job cards + driver columns):
+- Job cards: light bg + 3px square-cornered left accent bar (driver group / job type). Job-type pill uses independent tag color. Job ID small, right-aligned, muted.
+- Driver column header: avatar + name row 1; reg + vehicle type muted subtitle row 2; job-count as muted pill right-aligned; hairline divider under header.
+- Empty column: dashed-border placeholder + icon, not gray text.
+
+## Stage 5 — Cross-cutting table + button polish
+
+- Wrap shared `<Table>` usage with sticky header + hover row + 44px min height (applies to Load Reports, Rentals, Contaminations, Stock Check, etc. via `src/components/ui/table.tsx` tweaks).
+- Button variants normalized to primary (filled green, one per screen), secondary (outline/ghost), icon-only. All 36px / radius 8px.
+- Skeleton loaders replace bare spinners on the top-traffic pages (dashboard, live jobs, RouteOne, load reports).
+- Card hover: `translateY(-1px)` + soft shadow, 150ms.
+
+## Stage 6 — Handbook
+
+`src/pages/Handbook.tsx` + section accordions:
+- Leading icon per section (mapped by title keyword).
+- Hover bg + 150–200ms ease expand transition.
+- Top utility bar (Admin / language / Sign Out) unified with Handbook tab: same 36px height, radius 8px, border treatment.
+
+## What I need from you
+
+I'd like to ship this in that order — smaller, reviewable steps rather than one giant sweep, exactly as the brief recommends. **Approve this plan and I'll start with Stage 1 (tokens) + Stage 2 (sidebar) in the next turn**, then pause so you can eyeball before I move on to the dashboard.
+
+If you'd rather I bundle stages differently (e.g. do stages 1–3 in one push), say so and I'll adjust.
+
+## Not doing (out of scope, confirming)
+
+- No routing / IA changes.
+- No new features or data changes.
+- No brand-color change to the green primary.
+- No changes to permissioning, super admin, portal visibility CMS.
