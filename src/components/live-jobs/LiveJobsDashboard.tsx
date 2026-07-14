@@ -743,27 +743,46 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
 
   return (
     <Card>
-      {allContainerTypes.length > 1 && (
+      {(allContainerTypes.length > 1 || sites.some(s => s.wasteTypes.length > 0)) && (
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
-            <Badge
-              variant={selectedTypes.size === 0 ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setSelectedTypes(new Set())}
-            >
-              All ({sites.length})
-            </Badge>
-            {allContainerTypes.map(ct => (
-              <Badge
-                key={ct}
-                variant={selectedTypes.has(ct) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => toggleType(ct)}
-              >
-                {ct}
-              </Badge>
-            ))}
+          <div className="flex flex-col gap-3">
+            {allContainerTypes.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
+                <Badge
+                  variant={selectedTypes.size === 0 ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedTypes(new Set())}
+                >
+                  All ({sites.length})
+                </Badge>
+                {allContainerTypes.map(ct => (
+                  <Badge
+                    key={ct}
+                    variant={selectedTypes.has(ct) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleType(ct)}
+                  >
+                    {ct}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground mr-1">Search by waste type:</span>
+              <Input
+                type="text"
+                placeholder="e.g. wood, cardboard, soil..."
+                value={wasteSearch}
+                onChange={e => setWasteSearch(e.target.value)}
+                className="max-w-sm h-8 text-sm"
+              />
+              {wasteSearch && (
+                <Badge variant="secondary" className="cursor-pointer" onClick={() => setWasteSearch("")}>
+                  Clear
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
       )}
