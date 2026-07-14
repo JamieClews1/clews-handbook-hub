@@ -972,7 +972,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
       </CardHeader>
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card border-b border-hairline">
             <TableRow>
               <TableHead>Customer</TableHead>
               <TableHead>Site</TableHead>
