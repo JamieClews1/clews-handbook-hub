@@ -831,22 +831,22 @@ const RouteOnePage = () => {
                 onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
-                <div className="px-3 py-2.5 border-b border-border bg-card">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                <div className="px-3 py-2.5 border-b border-hairline bg-card">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0">
                         <User className="h-3.5 w-3.5 text-primary-foreground" />
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{driver.driver_name}</p>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">{driver.driver_name}</p>
                         {driver.route_one_vehicles && (
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground truncate">
                             {driver.route_one_vehicles.registration} · {driver.route_one_vehicles.vehicle_type}
                           </p>
                         )}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] h-5 font-bold">{totalCount}</Badge>
+                    <span className="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 shrink-0">{totalCount}</span>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
