@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
@@ -641,6 +642,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [wasteSearch, setWasteSearch] = useState("");
 
   // Collect all unique container types across all sites in this tab
   const allContainerTypes = useMemo(() => {
@@ -664,10 +666,20 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
     });
   };
 
-  // Filter sites by selected container types
+  const wasteSearchLower = wasteSearch.trim().toLowerCase();
+
+  // Filter sites by selected container types and waste type search
   const filteredSites = useMemo(() => {
-    if (selectedTypes.size === 0) return sites;
-    return sites
+    let result = sites;
+
+    if (wasteSearchLower) {
+      result = result.filter(s =>
+        s.wasteTypes.some(wt => wt.toLowerCase().includes(wasteSearchLower))
+      );
+    }
+
+    if (selectedTypes.size === 0) return result;
+    return result
       .map(s => {
         const matchingTypes = s.containerTypes.filter(ct => selectedTypes.has(ct));
         if (matchingTypes.length === 0) return null;
@@ -681,7 +693,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
         return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
-  }, [sites, selectedTypes]);
+  }, [sites, selectedTypes, wasteSearchLower]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -731,27 +743,46 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
 
   return (
     <Card>
-      {allContainerTypes.length > 1 && (
+      {(allContainerTypes.length > 1 || sites.some(s => s.wasteTypes.length > 0)) && (
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
-            <Badge
-              variant={selectedTypes.size === 0 ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setSelectedTypes(new Set())}
-            >
-              All ({sites.length})
-            </Badge>
-            {allContainerTypes.map(ct => (
-              <Badge
-                key={ct}
-                variant={selectedTypes.has(ct) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => toggleType(ct)}
-              >
-                {ct}
-              </Badge>
-            ))}
+          <div className="flex flex-col gap-3">
+            {allContainerTypes.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
+                <Badge
+                  variant={selectedTypes.size === 0 ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedTypes(new Set())}
+                >
+                  All ({sites.length})
+                </Badge>
+                {allContainerTypes.map(ct => (
+                  <Badge
+                    key={ct}
+                    variant={selectedTypes.has(ct) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleType(ct)}
+                  >
+                    {ct}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground mr-1">Search by waste type:</span>
+              <Input
+                type="text"
+                placeholder="e.g. wood, cardboard, soil..."
+                value={wasteSearch}
+                onChange={e => setWasteSearch(e.target.value)}
+                className="max-w-sm h-8 text-sm"
+              />
+              {wasteSearch && (
+                <Badge variant="secondary" className="cursor-pointer" onClick={() => setWasteSearch("")}>
+                  Clear
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
       )}
