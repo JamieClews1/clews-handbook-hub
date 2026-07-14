@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { UserComplianceView } from "./UserComplianceView";
 import { usernameToEmail, emailToUsername } from "@/lib/auth-utils";
+import { isSuperAdminEmail } from "@/lib/super-admin";
+
 
 interface UserProfile {
   id: string;
