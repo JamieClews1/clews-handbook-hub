@@ -285,6 +285,35 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
         </CardContent>
       </Card>
 
+      {/* Notes from last stock check */}
+      {lastCheck && (lastCheck.notes || lastCheck.itemNotes.length > 0) && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-foreground">
+                Notes from last stock take
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {lastCheck.operator_name} · {new Date(lastCheck.created_at).toLocaleString()}
+              </span>
+            </div>
+            {lastCheck.notes && (
+              <p className="text-sm text-foreground whitespace-pre-wrap">{lastCheck.notes}</p>
+            )}
+            {lastCheck.itemNotes.length > 0 && (
+              <ul className="text-sm text-foreground space-y-1 mt-1">
+                {lastCheck.itemNotes.map((n, idx) => (
+                  <li key={idx}>
+                    <span className="font-medium">{n.name}:</span> {n.notes}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* Skips Section */}
       <div>
         <div className="flex items-center gap-2 mb-3">
