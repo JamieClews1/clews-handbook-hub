@@ -303,11 +303,54 @@ export function PoChecksDashboard() {
   const totalMissing = jobRecords.length;
   const totalValue = jobRecords.reduce((s, j) => s + getCost(j), 0);
 
-  const parseRecipients = () =>
-    recipients
+  const parseRecipients = (raw: string) =>
+    raw
       .split(/[,;\s]+/)
       .map((e) => e.trim())
       .filter(Boolean);
+
+  // Look up owner email for a given site name
+  const ownerEmailForSite = useCallback(
+    (siteName: string): string | null => {
+      const site = sites.find((s) => s.site_name === siteName);
+      if (!site?.owner_contact_id) return null;
+      return contactsById[site.owner_contact_id]?.email ?? null;
+    },
+    [sites, contactsById]
+  );
+
+  // Suggest recipients based on site owner(s) in customer setup
+  const suggestForSite = (sg: SiteGroup): string | null => ownerEmailForSite(sg.siteName);
+  const suggestForAll = (): string | null => {
+    const emails = new Set<string>();
+    for (const sg of siteGroups) {
+      const e = ownerEmailForSite(sg.siteName);
+      if (e) emails.add(e);
+    }
+    return emails.size > 0 ? Array.from(emails).join(", ") : null;
+  };
+
+  const openDialogForAll = () => {
+    if (totalMissing === 0) {
+      toast({ title: "Nothing to request", description: "There are no outstanding POs for this customer.", variant: "destructive" });
+      return;
+    }
+    const suggestion = suggestForAll();
+    setDialogMode("all");
+    setDialogSite(null);
+    setDialogSuggestion(suggestion);
+    setDialogEmail(suggestion ?? "");
+    setDialogOpen(true);
+  };
+
+  const openDialogForSite = (sg: SiteGroup) => {
+    const suggestion = suggestForSite(sg);
+    setDialogMode("site");
+    setDialogSite(sg);
+    setDialogSuggestion(suggestion);
+    setDialogEmail(suggestion ?? "");
+    setDialogOpen(true);
+  };
 
   const buildItems = (groups: SiteGroup[]) =>
     groups.flatMap((sg) =>
@@ -321,8 +364,6 @@ export function PoChecksDashboard() {
       }))
     );
 
-  // Send a single request email for the given site groups. When `siteLabel` is
-  // provided the email subject is scoped to that individual site.
   const sendRequestFor = async (
     groups: SiteGroup[],
     recipientList: string[],
@@ -343,50 +384,37 @@ export function PoChecksDashboard() {
     if (error) throw error;
   };
 
-  // Send an individual PO request for a single site.
-  const sendSitePORequest = async (sg: SiteGroup) => {
-    const recipientList = parseRecipients();
+  const confirmDialogSend = async () => {
+    const recipientList = parseRecipients(dialogEmail);
     if (recipientList.length === 0) {
-      toast({ title: "No recipients", description: "Add at least one email address.", variant: "destructive" });
+      toast({ title: "No recipients", description: "Enter at least one email address.", variant: "destructive" });
       return;
     }
 
-    setSendingSite(sg.siteName);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const requestedBy = userData.user?.email || "Clews team";
-      await sendRequestFor([sg], recipientList, requestedBy, sg.siteName);
-      toast({
-        title: "PO request sent",
-        description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${sg.siteName}.`,
-      });
-    } catch (error: any) {
-      console.error("Error sending site PO request:", error);
-      toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
-    } finally {
-      setSendingSite(null);
-    }
-  };
+    const { data: userData } = await supabase.auth.getUser();
+    const requestedBy = userData.user?.email || "Clews team";
 
-  const sendPORequest = async () => {
-    const recipientList = parseRecipients();
-
-    if (recipientList.length === 0) {
-      toast({ title: "No recipients", description: "Add at least one email address.", variant: "destructive" });
-      return;
-    }
-    if (totalMissing === 0) {
-      toast({ title: "Nothing to request", description: "There are no outstanding POs for this customer.", variant: "destructive" });
+    if (dialogMode === "site" && dialogSite) {
+      setSendingSite(dialogSite.siteName);
+      try {
+        await sendRequestFor([dialogSite], recipientList, requestedBy, dialogSite.siteName);
+        toast({
+          title: "PO request sent",
+          description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${dialogSite.siteName}.`,
+        });
+        setDialogOpen(false);
+      } catch (error: any) {
+        console.error("Error sending site PO request:", error);
+        toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
+      } finally {
+        setSendingSite(null);
+      }
       return;
     }
 
     setSending(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const requestedBy = userData.user?.email || "Clews team";
-
       if (isBiffa) {
-        // Biffa: one individual request email per site.
         for (const sg of siteGroups) {
           await sendRequestFor([sg], recipientList, requestedBy, sg.siteName);
         }
@@ -395,13 +423,13 @@ export function PoChecksDashboard() {
           description: `Sent ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"} to ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"}.`,
         });
       } else {
-        // Other customers: a single combined request covering all sites.
         await sendRequestFor(siteGroups, recipientList, requestedBy);
         toast({
           title: "PO request sent",
           description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${customerName}.`,
         });
       }
+      setDialogOpen(false);
     } catch (error: any) {
       console.error("Error sending PO request:", error);
       toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
