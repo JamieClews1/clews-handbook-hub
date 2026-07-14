@@ -875,7 +875,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
           </TableHeader>
           <TableBody>
             {sorted.map((s, i) => (
-              <TableRow key={i}>
+              <TableRow key={i} className="h-11 hover:bg-muted/40 transition-colors">
                 <TableCell className="font-medium">{s.customer}</TableCell>
                 <TableCell>
                   {s.site}
