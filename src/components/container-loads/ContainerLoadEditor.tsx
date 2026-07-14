@@ -47,6 +47,8 @@ import {
   CONTAINER_STATUS_ORDER,
   PackingRow,
   PaperworkMode,
+  PhotoCategory,
+  PHOTO_REQUIREMENTS,
   normalizeContainerLoad,
   packingTotalKg,
 } from "@/lib/container-loads";
