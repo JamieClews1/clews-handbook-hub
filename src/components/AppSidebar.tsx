@@ -57,16 +57,27 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import { VersionBadge } from "./VersionBadge";
+import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { isAdmin } = useAuth();
+  const { hidden } = usePortalSectionVisibility();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
   const isInSection = (paths: string[]) => paths.some(p => currentPath.startsWith(p));
+
+  // For non-admins, hide gated items entirely. For admins, dim them.
+  const hiddenKeys = Array.from(hidden);
+  const gateStyle = hiddenKeys.length
+    ? isAdmin
+      ? hiddenKeys.map((k) => `[data-sec="${k}"]{opacity:.45}`).join("")
+      : hiddenKeys.map((k) => `[data-sec="${k}"]{display:none!important}`).join("")
+    : "";
+
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
