@@ -425,17 +425,13 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       </div>
 
       <Tabs defaultValue="bales" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="bales" className="gap-1">
             <Package className="h-4 w-4" /> Bales
           </TabsTrigger>
           <TabsTrigger value="photos" className="gap-1">
             <Camera className="h-4 w-4" /> Photos
           </TabsTrigger>
-          <TabsTrigger value="paperwork" className="gap-1">
-            <FileText className="h-4 w-4" /> Paperwork
-          </TabsTrigger>
-          <TabsTrigger value="details">Details</TabsTrigger>
         </TabsList>
 
         {/* BALES & PACKING */}
@@ -458,600 +454,142 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                     onChange={(e) => update({ bale_count: parseInt(e.target.value) || 0 })}
                   />
                 </div>
-                <Button variant="outline" className="gap-2 mb-1" onClick={generateRowsFromCount}>
-                  <Plus className="h-4 w-4" /> Build packing rows
-                </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Optionally list each bale below for the packing sheet. Total listed:{" "}
-                {load.packing.length} bales · {packingTotalKg(load.packing).toLocaleString()} kg
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Packing breakdown</CardTitle>
-              <Button variant="outline" size="sm" className="gap-2" onClick={addRow}>
-                <Plus className="h-4 w-4" /> Add bale
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {load.packing.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No bale lines yet — set a bale count and tap “Build packing rows”, or add bales manually.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <div className="hidden sm:grid grid-cols-[60px_1fr_120px_1fr_40px] gap-2 text-xs font-medium text-muted-foreground px-1">
-                    <span>Bale #</span>
-                    <span>Material</span>
-                    <span>Weight (kg)</span>
-                    <span>Notes</span>
-                    <span></span>
-                  </div>
-                  {load.packing.map((row, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-2 sm:grid-cols-[60px_1fr_120px_1fr_40px] gap-2"
-                    >
-                      <Input
-                        value={row.bale_no}
-                        onChange={(e) => updateRow(idx, { bale_no: e.target.value })}
-                        placeholder="#"
-                      />
-                      <Input
-                        value={row.material}
-                        onChange={(e) => updateRow(idx, { material: e.target.value })}
-                        placeholder="Material"
-                      />
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        value={row.weight_kg ?? ""}
-                        onChange={(e) =>
-                          updateRow(idx, {
-                            weight_kg: e.target.value === "" ? null : parseFloat(e.target.value),
-                          })
-                        }
-                        placeholder="kg"
-                      />
-                      <Input
-                        value={row.notes ?? ""}
-                        onChange={(e) => updateRow(idx, { notes: e.target.value })}
-                        placeholder="Notes"
-                      />
-                      <Button variant="ghost" size="icon" onClick={() => removeRow(idx)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* PHOTOS */}
         <TabsContent value="photos" className="space-y-4">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Loading photo requirements</CardTitle>
+              <CardTitle className="text-base">Loading photos required</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Loading photos must be sent to <strong>Nevis Resources Limited</strong> via email.
-                Capture each of the following before dispatch:
+                Tap a tile to take that photo. A date & time stamp is added automatically.
               </p>
-              <div className="grid sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PHOTO_REQUIREMENTS.map((req) => {
                   const count = load.photos.filter((p) => p.category === req.key).length;
                   const done = count > 0;
                   return (
-                    <div
+                    <button
                       key={req.key}
-                      className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => {
+                        setUploadCategory(req.key);
+                        fileRef.current?.click();
+                      }}
+                      className={`flex items-start gap-3 rounded-lg border p-3 text-left transition active:scale-[0.99] ${
                         done
                           ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800"
-                          : "border-border bg-muted/30"
+                          : "border-border bg-muted/20 hover:border-primary/40"
                       }`}
                     >
                       <div
-                        className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
-                          done ? "bg-emerald-600 text-white" : "bg-muted-foreground/20 text-muted-foreground"
+                        className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          done
+                            ? "bg-emerald-600 text-white"
+                            : "bg-primary/10 text-primary"
                         }`}
                       >
-                        {done ? "✓" : ""}
+                        {done ? (
+                          <span className="text-base font-bold">✓</span>
+                        ) : (
+                          <Camera className="h-4 w-4" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium leading-tight">
+                        <div className="font-semibold text-sm leading-tight">
                           {req.label}
                           {done && count > 1 && (
                             <span className="text-xs text-muted-foreground font-normal"> · {count}</span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">{req.hint}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{req.hint}</div>
+                        <div className="text-[11px] font-medium mt-1 text-primary">
+                          {done ? "Retake / add another" : "Tap to take photo"}
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Photos of load & container</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                onChange={(e) => handleUpload(e.target.files)}
-              />
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Category for new photos</Label>
-                  <Select
-                    value={uploadCategory}
-                    onValueChange={(v) => setUploadCategory(v as PhotoCategory)}
-                  >
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PHOTO_REQUIREMENTS.map((r) => (
-                        <SelectItem key={r.key} value={r.key}>
-                          {r.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={() => fileRef.current?.click()}
+                <button
+                  type="button"
                   disabled={uploading}
-                  className="gap-2"
+                  onClick={() => {
+                    setUploadCategory("other");
+                    fileRef.current?.click();
+                  }}
+                  className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/10 p-3 text-left hover:border-primary/40"
                 >
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Add photos
-                </Button>
-              </div>
-
-              {load.photos.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">
-                  No photos yet. Capture the loaded container and bales.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {load.photos.map((p) => (
-                    <div key={p.path} className="space-y-1.5">
-                      <div className="relative group">
-                        <a href={p.url} target="_blank" rel="noreferrer">
-                          <img
-                            src={p.url}
-                            alt={p.caption || "Container load"}
-                            className="w-full h-32 object-cover rounded-lg border"
-                          />
-                        </a>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-7 w-7 opacity-90"
-                          onClick={() => removePhoto(p.path)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      {p.uploaded_at && (
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(p.uploaded_at).toLocaleString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      )}
-                      <Select
-                        value={p.category ?? "other"}
-                        onValueChange={(v) => setPhotoCategory(p.path, v as PhotoCategory)}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PHOTO_REQUIREMENTS.map((r) => (
-                            <SelectItem key={r.key} value={r.key}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        value={p.caption ?? ""}
-                        onChange={(e) => setPhotoCaption(p.path, e.target.value)}
-                        onBlur={() => persist()}
-                        placeholder="Caption"
-                        className="h-8 text-xs"
-                      />
+                  <div className="mt-0.5 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm">Other photo</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Any additional photo of the load
                     </div>
-                  ))}
+                  </div>
+                </button>
+              </div>
+              {uploading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading photo…
                 </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* DETAILS */}
-        <TabsContent value="details" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Load details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Customer</Label>
-                <Input
-                  list="container-customers"
-                  value={load.customer_name ?? ""}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    const match = customers.find(
-                      (c) => c.customer_name.toLowerCase() === name.toLowerCase(),
-                    );
-                    update({ customer_name: name, customer_id: match?.id ?? null });
-                  }}
-                  placeholder="Customer name"
-                />
-                <datalist id="container-customers">
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.customer_name} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="space-y-2">
-                <Label>Export date</Label>
-                <Input
-                  type="date"
-                  value={load.export_date ?? ""}
-                  onChange={(e) => update({ export_date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Container number</Label>
-                <Input
-                  value={load.container_number ?? ""}
-                  onChange={(e) => update({ container_number: e.target.value.toUpperCase() })}
-                  placeholder="e.g. MSCU1234567"
-                  className="uppercase"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Seal number</Label>
-                <Input
-                  value={load.seal_number ?? ""}
-                  onChange={(e) => update({ seal_number: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Material / waste description</Label>
-                <Input
-                  value={load.material ?? ""}
-                  onChange={(e) => update({ material: e.target.value })}
-                  placeholder="e.g. Mixed paper & board"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total weight (tonnes)</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={load.total_weight_t ?? ""}
-                  onChange={(e) =>
-                    update({ total_weight_t: e.target.value === "" ? null : parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Basel code</Label>
-                <Input
-                  value={load.basel_code ?? ""}
-                  onChange={(e) => update({ basel_code: e.target.value.toUpperCase() })}
-                  placeholder="e.g. B3020"
-                  className="uppercase"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>EWC code</Label>
-                <Input
-                  value={load.ewc_code ?? ""}
-                  onChange={(e) => update({ ewc_code: e.target.value })}
-                  placeholder="e.g. 19 12 01"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Destination facility</Label>
-                <Input
-                  value={load.destination_facility ?? ""}
-                  onChange={(e) => update({ destination_facility: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Destination country</Label>
-                <Input
-                  value={load.destination_country ?? ""}
-                  onChange={(e) => update({ destination_country: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Booking reference</Label>
-                <Input
-                  value={load.booking_reference ?? ""}
-                  onChange={(e) => update({ booking_reference: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Vessel</Label>
-                <Input value={load.vessel ?? ""} onChange={(e) => update({ vessel: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Loaded by (operator)</Label>
-                <Input
-                  value={load.operator_name ?? ""}
-                  onChange={(e) => update({ operator_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Notes</Label>
-                <Textarea
-                  value={load.notes ?? ""}
-                  onChange={(e) => update({ notes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* PAPERWORK */}
-        <TabsContent value="paperwork" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Paperwork method</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Choose how the Annex 7 and Packing List are produced for this container load.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => persist({ paperwork_mode: "upload" })}
-                  className={`text-left rounded-lg border p-4 transition hover:border-primary/60 ${
-                    load.paperwork_mode === "upload"
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                      : "border-border"
-                  }`}
-                >
-                  <div className="font-semibold text-sm mb-1">A · Upload paperwork</div>
-                  <div className="text-xs text-muted-foreground">
-                    Upload existing Annex 7 and Packing List documents (PDF or image).
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => persist({ paperwork_mode: "create" })}
-                  className={`text-left rounded-lg border p-4 transition hover:border-primary/60 ${
-                    load.paperwork_mode === "create"
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                      : "border-border"
-                  }`}
-                >
-                  <div className="font-semibold text-sm mb-1">B · Create paperwork</div>
-                  <div className="text-xs text-muted-foreground">
-                    Fill in the Annex 7 details below and generate Annex 7 &amp; Packing List PDFs.
-                  </div>
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {load.paperwork_mode === "upload" ? (
+          {load.photos.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Uploaded paperwork</CardTitle>
+                <CardTitle className="text-base">Captured photos ({load.photos.length})</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
-                {(["annex7", "packing"] as const).map((kind) => {
-                  const label = kind === "annex7" ? "Annex 7" : "Packing List";
-                  const file = kind === "annex7" ? load.annex7_upload : load.packing_upload;
-                  return (
-                    <div key={kind} className="space-y-2">
-                      <Label>{label}</Label>
-                      {file ? (
-                        <div className="flex items-center gap-2 rounded-md border p-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={file.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm underline flex-1 truncate"
-                          >
-                            {file.name || label}
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {load.photos.map((p) => {
+                    const req = PHOTO_REQUIREMENTS.find((r) => r.key === p.category);
+                    return (
+                      <div key={p.path} className="space-y-1">
+                        <div className="relative">
+                          <a href={p.url} target="_blank" rel="noreferrer">
+                            <img
+                              src={p.url}
+                              alt={req?.label || "Photo"}
+                              className="w-full h-28 object-cover rounded-lg border"
+                            />
                           </a>
-                          {file.uploaded_at && (
-                            <span className="text-[11px] text-muted-foreground">
-                              {new Date(file.uploaded_at).toLocaleDateString("en-GB")}
-                            </span>
-                          )}
                           <Button
-                            variant="ghost"
+                            variant="destructive"
                             size="icon"
-                            onClick={() => removePaperwork(kind)}
+                            className="absolute top-1 right-1 h-7 w-7 opacity-90"
+                            onClick={() => removePhoto(p.path)}
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                      ) : (
-                        <Input
-                          type="file"
-                          accept="application/pdf,image/*"
-                          disabled={uploading}
-                          onChange={(e) =>
-                            uploadPaperwork(kind, e.target.files?.[0] ?? null)
-                          }
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+                        <div className="text-[11px] font-medium truncate">
+                          {req?.label || "Other"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Generate documents</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                <Button className="gap-2" onClick={() => handleGenerate("annex7")}>
-                  <FileText className="h-4 w-4" /> Annex 7 (PDF)
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={() => handleGenerate("packing")}>
-                  <FileText className="h-4 w-4" /> Packing sheet (PDF)
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {load.paperwork_mode === "create" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Annex 7 details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">1. Exporter (person who arranges shipment)</p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Name"
-                    value={load.annex7.exporter_name ?? ""}
-                    onChange={(e) => updateAnnex({ exporter_name: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Contact / tel"
-                    value={load.annex7.exporter_tel ?? ""}
-                    onChange={(e) => updateAnnex({ exporter_tel: e.target.value })}
-                  />
-                  <Input
-                    className="sm:col-span-2"
-                    placeholder="Address"
-                    value={load.annex7.exporter_address ?? ""}
-                    onChange={(e) => updateAnnex({ exporter_address: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">2. Importer / consignee</p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Name"
-                    value={load.annex7.consignee_name ?? ""}
-                    onChange={(e) => updateAnnex({ consignee_name: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Contact / tel"
-                    value={load.annex7.consignee_tel ?? ""}
-                    onChange={(e) => updateAnnex({ consignee_tel: e.target.value })}
-                  />
-                  <Input
-                    className="sm:col-span-2"
-                    placeholder="Address"
-                    value={load.annex7.consignee_address ?? ""}
-                    onChange={(e) => updateAnnex({ consignee_address: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">5. Carrier</p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Carrier name"
-                    value={load.annex7.carrier_name ?? ""}
-                    onChange={(e) => updateAnnex({ carrier_name: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Means of transport (e.g. Road + Sea)"
-                    value={load.annex7.means_of_transport ?? ""}
-                    onChange={(e) => updateAnnex({ means_of_transport: e.target.value })}
-                  />
-                  <Input
-                    className="sm:col-span-2"
-                    placeholder="Carrier address"
-                    value={load.annex7.carrier_address ?? ""}
-                    onChange={(e) => updateAnnex({ carrier_address: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">6–8. Countries</p>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <Input
-                    placeholder="Dispatch"
-                    value={load.annex7.country_dispatch ?? ""}
-                    onChange={(e) => updateAnnex({ country_dispatch: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Transit"
-                    value={load.annex7.country_transit ?? ""}
-                    onChange={(e) => updateAnnex({ country_transit: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Destination"
-                    value={load.annex7.country_destination ?? ""}
-                    onChange={(e) => updateAnnex({ country_destination: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold">11. Recovery facility</p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Facility name"
-                    value={load.annex7.recovery_facility_name ?? ""}
-                    onChange={(e) => updateAnnex({ recovery_facility_name: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Recovery operation (e.g. R3)"
-                    value={load.annex7.recovery_operation ?? ""}
-                    onChange={(e) => updateAnnex({ recovery_operation: e.target.value })}
-                  />
-                  <Input
-                    className="sm:col-span-2"
-                    placeholder="Facility address"
-                    value={load.annex7.recovery_facility_address ?? ""}
-                    onChange={(e) => updateAnnex({ recovery_facility_address: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Annex 7 details
-              </Button>
-            </CardContent>
-          </Card>
           )}
         </TabsContent>
       </Tabs>
