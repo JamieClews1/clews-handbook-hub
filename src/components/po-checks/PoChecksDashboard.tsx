@@ -13,6 +13,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, Send, ClipboardList, CheckCircle2, Building2, MapPin } from "lucide-react";
 import { format, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +40,13 @@ type Site = {
   data_hub_site_3: string | null;
   data_hub_site_4: string | null;
   data_hub_site_5: string | null;
+  owner_contact_id: string | null;
+};
+
+type Contact = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 };
 
 type JobRecord = {
@@ -118,14 +133,21 @@ export function PoChecksDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState<string>("");
   const [sites, setSites] = useState<Site[]>([]);
+  const [contactsById, setContactsById] = useState<Record<string, Contact>>({});
   const [jobRecords, setJobRecords] = useState<JobRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [lookback, setLookback] = useState("6");
   // When true, only show jobs already completed (up to today) and exclude future-dated jobs
   const [onlyCompleted, setOnlyCompleted] = useState(true);
-  const [recipients, setRecipients] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [sendingSite, setSendingSite] = useState<string | null>(null);
+
+  // Dialog state — collect recipient email(s) before sending
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"all" | "site">("all");
+  const [dialogSite, setDialogSite] = useState<SiteGroup | null>(null);
+  const [dialogEmail, setDialogEmail] = useState("");
+  const [dialogSuggestion, setDialogSuggestion] = useState<string | null>(null);
 
   const selectedCustomer = customers.find((c) => c.id === customerId) || null;
   const customerName = selectedCustomer?.customer_name || "";
@@ -144,41 +166,34 @@ export function PoChecksDashboard() {
     loadCustomers();
   }, []);
 
-  // Load sites when a customer is chosen
+  // Load sites + contacts when a customer is chosen
   useEffect(() => {
-    const loadSites = async () => {
+    const load = async () => {
       if (!customerId) {
         setSites([]);
+        setContactsById({});
         return;
       }
-      const { data } = await supabase
-        .from("customer_sites")
-        .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-        .eq("customer_id", customerId)
-        .order("site_name");
-      setSites(data ?? []);
+      const [sitesRes, contactsRes] = await Promise.all([
+        supabase
+          .from("customer_sites")
+          .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, owner_contact_id")
+          .eq("customer_id", customerId)
+          .order("site_name"),
+        supabase
+          .from("customer_contacts")
+          .select("id, full_name, email")
+          .eq("customer_id", customerId),
+      ]);
+      setSites((sitesRes.data as Site[]) ?? []);
+      const map: Record<string, Contact> = {};
+      (contactsRes.data ?? []).forEach((c) => {
+        map[c.id] = c as Contact;
+      });
+      setContactsById(map);
     };
-    loadSites();
+    load();
   }, [customerId]);
-
-  // Pre-fill recipients with the customer's PO notification email + portal contacts
-  useEffect(() => {
-    const loadRecipients = async () => {
-      if (!customerId) {
-        setRecipients("");
-        return;
-      }
-      const emails = new Set<string>();
-      if (selectedCustomer?.po_notification_email) emails.add(selectedCustomer.po_notification_email.trim());
-      const { data: contacts } = await supabase
-        .from("customer_contacts")
-        .select("email")
-        .eq("customer_id", customerId);
-      (contacts ?? []).forEach((c) => c.email && emails.add(c.email.trim()));
-      setRecipients(Array.from(emails).join(", "));
-    };
-    loadRecipients();
-  }, [customerId, selectedCustomer?.po_notification_email]);
 
   const siteNameLookup = useMemo(() => {
     const map = new Map<string, string>();
@@ -288,11 +303,54 @@ export function PoChecksDashboard() {
   const totalMissing = jobRecords.length;
   const totalValue = jobRecords.reduce((s, j) => s + getCost(j), 0);
 
-  const parseRecipients = () =>
-    recipients
+  const parseRecipients = (raw: string) =>
+    raw
       .split(/[,;\s]+/)
       .map((e) => e.trim())
       .filter(Boolean);
+
+  // Look up owner email for a given site name
+  const ownerEmailForSite = useCallback(
+    (siteName: string): string | null => {
+      const site = sites.find((s) => s.site_name === siteName);
+      if (!site?.owner_contact_id) return null;
+      return contactsById[site.owner_contact_id]?.email ?? null;
+    },
+    [sites, contactsById]
+  );
+
+  // Suggest recipients based on site owner(s) in customer setup
+  const suggestForSite = (sg: SiteGroup): string | null => ownerEmailForSite(sg.siteName);
+  const suggestForAll = (): string | null => {
+    const emails = new Set<string>();
+    for (const sg of siteGroups) {
+      const e = ownerEmailForSite(sg.siteName);
+      if (e) emails.add(e);
+    }
+    return emails.size > 0 ? Array.from(emails).join(", ") : null;
+  };
+
+  const openDialogForAll = () => {
+    if (totalMissing === 0) {
+      toast({ title: "Nothing to request", description: "There are no outstanding POs for this customer.", variant: "destructive" });
+      return;
+    }
+    const suggestion = suggestForAll();
+    setDialogMode("all");
+    setDialogSite(null);
+    setDialogSuggestion(suggestion);
+    setDialogEmail(suggestion ?? "");
+    setDialogOpen(true);
+  };
+
+  const openDialogForSite = (sg: SiteGroup) => {
+    const suggestion = suggestForSite(sg);
+    setDialogMode("site");
+    setDialogSite(sg);
+    setDialogSuggestion(suggestion);
+    setDialogEmail(suggestion ?? "");
+    setDialogOpen(true);
+  };
 
   const buildItems = (groups: SiteGroup[]) =>
     groups.flatMap((sg) =>
@@ -306,8 +364,6 @@ export function PoChecksDashboard() {
       }))
     );
 
-  // Send a single request email for the given site groups. When `siteLabel` is
-  // provided the email subject is scoped to that individual site.
   const sendRequestFor = async (
     groups: SiteGroup[],
     recipientList: string[],
@@ -328,50 +384,37 @@ export function PoChecksDashboard() {
     if (error) throw error;
   };
 
-  // Send an individual PO request for a single site.
-  const sendSitePORequest = async (sg: SiteGroup) => {
-    const recipientList = parseRecipients();
+  const confirmDialogSend = async () => {
+    const recipientList = parseRecipients(dialogEmail);
     if (recipientList.length === 0) {
-      toast({ title: "No recipients", description: "Add at least one email address.", variant: "destructive" });
+      toast({ title: "No recipients", description: "Enter at least one email address.", variant: "destructive" });
       return;
     }
 
-    setSendingSite(sg.siteName);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const requestedBy = userData.user?.email || "Clews team";
-      await sendRequestFor([sg], recipientList, requestedBy, sg.siteName);
-      toast({
-        title: "PO request sent",
-        description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${sg.siteName}.`,
-      });
-    } catch (error: any) {
-      console.error("Error sending site PO request:", error);
-      toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
-    } finally {
-      setSendingSite(null);
-    }
-  };
+    const { data: userData } = await supabase.auth.getUser();
+    const requestedBy = userData.user?.email || "Clews team";
 
-  const sendPORequest = async () => {
-    const recipientList = parseRecipients();
-
-    if (recipientList.length === 0) {
-      toast({ title: "No recipients", description: "Add at least one email address.", variant: "destructive" });
-      return;
-    }
-    if (totalMissing === 0) {
-      toast({ title: "Nothing to request", description: "There are no outstanding POs for this customer.", variant: "destructive" });
+    if (dialogMode === "site" && dialogSite) {
+      setSendingSite(dialogSite.siteName);
+      try {
+        await sendRequestFor([dialogSite], recipientList, requestedBy, dialogSite.siteName);
+        toast({
+          title: "PO request sent",
+          description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${dialogSite.siteName}.`,
+        });
+        setDialogOpen(false);
+      } catch (error: any) {
+        console.error("Error sending site PO request:", error);
+        toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
+      } finally {
+        setSendingSite(null);
+      }
       return;
     }
 
     setSending(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const requestedBy = userData.user?.email || "Clews team";
-
       if (isBiffa) {
-        // Biffa: one individual request email per site.
         for (const sg of siteGroups) {
           await sendRequestFor([sg], recipientList, requestedBy, sg.siteName);
         }
@@ -380,13 +423,13 @@ export function PoChecksDashboard() {
           description: `Sent ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"} to ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"}.`,
         });
       } else {
-        // Other customers: a single combined request covering all sites.
         await sendRequestFor(siteGroups, recipientList, requestedBy);
         toast({
           title: "PO request sent",
           description: `Emailed ${recipientList.length} recipient${recipientList.length === 1 ? "" : "s"} for ${customerName}.`,
         });
       }
+      setDialogOpen(false);
     } catch (error: any) {
       console.error("Error sending PO request:", error);
       toast({ title: "Error", description: error?.message || "Failed to send PO request.", variant: "destructive" });
@@ -475,15 +518,7 @@ export function PoChecksDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Label>Recipients (comma separated)</Label>
-                <Input
-                  value={recipients}
-                  onChange={(e) => setRecipients(e.target.value)}
-                  placeholder="accounts@customer.com, orders@customer.com"
-                />
-              </div>
-              <Button onClick={sendPORequest} disabled={sending} className="gap-1.5">
+              <Button onClick={openDialogForAll} disabled={sending} className="gap-1.5">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {isBiffa
                   ? `Send ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"}`
@@ -544,7 +579,7 @@ export function PoChecksDashboard() {
                       variant="outline"
                       className="gap-1.5"
                       disabled={sendingSite === sg.siteName}
-                      onClick={() => sendSitePORequest(sg)}
+                      onClick={() => openDialogForSite(sg)}
                     >
                       {sendingSite === sg.siteName ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -560,6 +595,54 @@ export function PoChecksDashboard() {
           </Accordion>
         </>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === "site" && dialogSite
+                ? `Send PO request for ${dialogSite.siteName}`
+                : isBiffa
+                ? `Send ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"}`
+                : `Send PO request for ${customerName}`}
+            </DialogTitle>
+            <DialogDescription>
+              Enter the email address(es) to send the PO request to. Separate multiple addresses with commas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Recipient email</Label>
+            <Input
+              value={dialogEmail}
+              onChange={(e) => setDialogEmail(e.target.value)}
+              placeholder="name@customer.com"
+              autoFocus
+            />
+            {dialogSuggestion ? (
+              <p className="text-xs text-muted-foreground">
+                Suggested from site owner in customer setup: <span className="font-medium">{dialogSuggestion}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No site owner email found in customer setup — please enter an address manually.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={sending || sendingSite !== null}>
+              Cancel
+            </Button>
+            <Button onClick={confirmDialogSend} disabled={sending || sendingSite !== null} className="gap-1.5">
+              {sending || sendingSite !== null ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
