@@ -114,7 +114,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       setLoading(true);
       const [{ data }, { data: custs }, { data: company }] = await Promise.all([
         supabase.from("container_loads").select("*").eq("id", loadId).single(),
-        supabase.from("customers").select("id, customer_name").order("customer_name"),
+        supabase
+          .from("customers")
+          .select("id, customer_name")
+          .eq("is_container_load_customer", true)
+          .order("customer_name"),
         supabase.from("company_profile").select("company_name, operational_address, telephone, email").maybeSingle(),
       ]);
       setCustomers(custs || []);
