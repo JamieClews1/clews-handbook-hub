@@ -388,15 +388,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   const wasteTruckSites = useMemo(() => liveSites.filter(s => s.category === "artic" && s.lastActivityDate && s.lastActivityDate >= sixMonthsAgo), [liveSites, sixMonthsAgo]);
 
   const chartConfig = {
-    deliveries: { label: "Deliveries", color: "hsl(var(--primary))" },
-    exchanges: { label: "Exchanges", color: "hsl(var(--accent))" },
-    collections: { label: "Collections", color: "hsl(var(--destructive))" },
+    deliveries: { label: "Deliveries", color: "hsl(var(--success))" },
+    exchanges: { label: "Exchanges", color: "hsl(var(--warning))" },
+    collections: { label: "Collections", color: "hsl(var(--info))" },
   };
 
   const barConfig = {
-    skip: { label: "Skips", color: "hsl(142 76% 36%)" },
-    roro: { label: "RoRos", color: "hsl(217 91% 60%)" },
-    artic: { label: "Artics", color: "hsl(45 93% 47%)" },
+    skip: { label: "Skips", color: "hsl(var(--success))" },
+    roro: { label: "RoRos", color: "hsl(var(--info))" },
+    artic: { label: "Artics", color: "hsl(var(--warning))" },
   };
 
   if (loading) {
