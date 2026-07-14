@@ -959,6 +959,12 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           )}
         </TabsContent>
       </Tabs>
+      <ContainerLoadSendDialog
+        load={load}
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        onSent={() => persist()}
+      />
     </div>
   );
 };
