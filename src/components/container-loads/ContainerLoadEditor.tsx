@@ -36,8 +36,10 @@ import {
   Camera,
   Package,
   Loader2,
+  Send,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ContainerLoadSendDialog } from "./ContainerLoadSendDialog";
 import {
   ContainerLoad,
   ContainerStatus,
@@ -103,6 +105,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [sendOpen, setSendOpen] = useState(false);
 
   const update = (patch: Partial<ContainerLoad>) =>
     setLoad((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -372,6 +375,13 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setSendOpen(true)}
+            className="gap-2"
+          >
+            <Send className="h-4 w-4" /> Send
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -949,6 +959,12 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           )}
         </TabsContent>
       </Tabs>
+      <ContainerLoadSendDialog
+        load={load}
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        onSent={() => persist()}
+      />
     </div>
   );
 };

@@ -340,6 +340,36 @@ export type Database = {
         }
         Relationships: []
       }
+      container_load_email_settings: {
+        Row: {
+          cc_email: string
+          default_body: string
+          default_subject: string
+          id: string
+          reply_to_email: string
+          signature: string
+          updated_at: string
+        }
+        Insert: {
+          cc_email?: string
+          default_body?: string
+          default_subject?: string
+          id?: string
+          reply_to_email?: string
+          signature?: string
+          updated_at?: string
+        }
+        Update: {
+          cc_email?: string
+          default_body?: string
+          default_subject?: string
+          id?: string
+          reply_to_email?: string
+          signature?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       container_loads: {
         Row: {
           annex7: Json
@@ -366,7 +396,9 @@ export type Database = {
           photos: Json
           reference: string | null
           seal_number: string | null
+          sent_at: string | null
           status: string
+          supplier_email: string | null
           total_weight_t: number | null
           updated_at: string
           vessel: string | null
@@ -396,7 +428,9 @@ export type Database = {
           photos?: Json
           reference?: string | null
           seal_number?: string | null
+          sent_at?: string | null
           status?: string
+          supplier_email?: string | null
           total_weight_t?: number | null
           updated_at?: string
           vessel?: string | null
@@ -426,7 +460,9 @@ export type Database = {
           photos?: Json
           reference?: string | null
           seal_number?: string | null
+          sent_at?: string | null
           status?: string
+          supplier_email?: string | null
           total_weight_t?: number | null
           updated_at?: string
           vessel?: string | null
