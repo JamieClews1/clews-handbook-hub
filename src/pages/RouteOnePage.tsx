@@ -56,6 +56,7 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
   wasted_journey: "Wasted Journey",
 };
 
+// Legacy fully-colored card style — retained for detail dialogs and list badges.
 const JOB_TYPE_COLORS: Record<JobType, string> = {
   delivery: "bg-emerald-600 border-emerald-700 text-white",
   exchange: "bg-amber-500 border-amber-600 text-white",
@@ -70,6 +71,24 @@ const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
   collection: "bg-white/25 text-white hover:bg-white/35 border-0",
   waste_truck: "bg-white/25 text-white hover:bg-white/35 border-0",
   wasted_journey: "bg-white/25 text-white hover:bg-white/35 border-0",
+};
+
+// Kanban job-card accent bar (3px, square-cornered, left edge).
+const JOB_TYPE_ACCENT: Record<JobType, string> = {
+  delivery: "bg-emerald-500",
+  exchange: "bg-amber-500",
+  collection: "bg-orange-500",
+  waste_truck: "bg-blue-500",
+  wasted_journey: "bg-red-500",
+};
+
+// Independent tag colors used for the job-type pill on kanban cards.
+const JOB_TYPE_TAG: Record<JobType, string> = {
+  delivery: "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20",
+  exchange: "bg-amber-500/10 text-amber-700 border border-amber-500/20",
+  collection: "bg-orange-500/10 text-orange-700 border border-orange-500/20",
+  waste_truck: "bg-blue-500/10 text-blue-700 border border-blue-500/20",
+  wasted_journey: "bg-red-500/10 text-red-700 border border-red-500/20",
 };
 
 const STATUS_COLORS: Record<JobStatus, string> = {
@@ -770,10 +789,10 @@ const RouteOnePage = () => {
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(null)}
           >
-            <div className="px-3 py-2 border-b border-border bg-muted/50">
+            <div className="px-3 py-2.5 border-b border-hairline bg-muted/40">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unassigned</span>
-                <Badge variant="secondary" className="text-[10px] h-5">{unassignedJobs.length}</Badge>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Unassigned</span>
+                <span className="text-[11px] font-medium text-muted-foreground bg-background rounded-full px-2 py-0.5">{unassignedJobs.length}</span>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
@@ -812,22 +831,22 @@ const RouteOnePage = () => {
                 onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
-                <div className="px-3 py-2.5 border-b border-border bg-card">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                <div className="px-3 py-2.5 border-b border-hairline bg-card">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0">
                         <User className="h-3.5 w-3.5 text-primary-foreground" />
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{driver.driver_name}</p>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">{driver.driver_name}</p>
                         {driver.route_one_vehicles && (
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground truncate">
                             {driver.route_one_vehicles.registration} · {driver.route_one_vehicles.vehicle_type}
                           </p>
                         )}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] h-5 font-bold">{totalCount}</Badge>
+                    <span className="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 shrink-0">{totalCount}</span>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
@@ -855,8 +874,11 @@ const RouteOnePage = () => {
                     <SkiptrakJobCard key={sj.job_number} job={sj} onClick={() => setViewingSkiptrakJob(sj)} />
                   ))}
                   {totalCount === 0 && (
-                    <div className="h-full flex items-center justify-center">
-                      <p className="text-xs text-muted-foreground">Drop jobs here</p>
+                    <div className="h-full flex items-center justify-center py-8">
+                      <div className="w-full mx-2 rounded-md border border-dashed border-hairline py-6 flex flex-col items-center gap-1.5 text-muted-foreground">
+                        <Truck className="h-5 w-5 opacity-60" />
+                        <p className="text-[11px]">Drop jobs here</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1112,68 +1134,76 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`rounded-lg border p-2.5 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] select-none shadow-sm ${JOB_TYPE_COLORS[jobType]} ${
+      className={`group relative rounded-md bg-card border border-hairline pl-3 pr-2.5 py-2 cursor-pointer select-none transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${
         isDragging ? "opacity-50 scale-95" : ""
       }`}
     >
+      {/* 3px square-cornered left accent bar */}
+      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${JOB_TYPE_ACCENT[jobType] ?? "bg-muted"}`} />
+
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="h-3 w-3 shrink-0 text-white/50" />
-          <span className="text-xs font-bold truncate text-white">{job.customer_name}</span>
+          <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+          <span className="text-[13px] font-medium truncate text-foreground">{job.customer_name}</span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="h-5 w-5 flex items-center justify-center rounded hover:bg-white/20 shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreVertical className="h-3 w-3 text-white/70" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-              <Pencil className="h-3 w-3 mr-2" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">Delete Job</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1 shrink-0">
+          {job.job_number && (
+            <span className="text-[10px] text-muted-foreground tabular-nums">#{job.job_number}</span>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                <Pencil className="h-3 w-3 mr-2" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">Delete Job</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {job.site_name && (
-        <div className="flex items-center gap-1 mt-1.5">
-          <MapPin className="h-3 w-3 text-white/60 shrink-0" />
-          <span className="text-[11px] truncate text-white/90">{job.site_name}</span>
+        <div className="flex items-center gap-1 mt-1">
+          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+          <span className="text-[11px] truncate text-muted-foreground">{job.site_name}</span>
         </div>
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className={`text-[10px] px-1.5 py-0 h-4 ${JOB_TYPE_BADGE_COLORS[jobType]}`}>
+        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${JOB_TYPE_TAG[jobType]}`}>
           {JOB_TYPE_LABELS[jobType]}
         </Badge>
         {job.container_type && (
-          <span className="text-[10px] text-white/70">{job.container_type}</span>
+          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
         )}
         {job.container_size && (
-          <span className="text-[10px] text-white/70">{job.container_size}</span>
+          <span className="text-[10px] text-muted-foreground">{job.container_size}</span>
         )}
         {status === "query" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white text-red-600 font-bold">
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-destructive/10 text-destructive font-medium">
             <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Query
           </Badge>
         )}
         {status === "completed" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/30 text-white">Done</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-success/10 text-success">Done</Badge>
         )}
         {status === "in_progress" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/30 text-white">In Progress</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-info/10 text-info">In Progress</Badge>
         )}
       </div>
 
       {job.estimated_duration_mins && (
-        <div className="flex items-center gap-1 mt-1.5 text-white/50">
+        <div className="flex items-center gap-1 mt-1.5 text-muted-foreground">
           <Clock className="h-2.5 w-2.5" />
           <span className="text-[10px]">{job.estimated_duration_mins} min</span>
         </div>
@@ -1197,47 +1227,47 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
-  const colorClass = mappedType
-    ? JOB_TYPE_COLORS[mappedType]
-    : "bg-muted border-border text-foreground";
-  const badgeClass = mappedType
-    ? JOB_TYPE_BADGE_COLORS[mappedType]
-    : "bg-muted text-muted-foreground";
+  const accent = mappedType ? JOB_TYPE_ACCENT[mappedType] : "bg-muted-foreground/40";
+  const tagClass = mappedType ? JOB_TYPE_TAG[mappedType] : "bg-muted text-muted-foreground border border-hairline";
 
   return (
     <div
       onClick={onClick}
-      className={`rounded-lg border-2 border-dashed p-2.5 shadow-sm cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all ${colorClass} ${!mappedType ? "border-border" : "border-white/30"}`}
+      className="group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-pointer transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden"
     >
-      <div className="flex items-center gap-1.5">
-        <span className={`text-xs font-bold truncate ${mappedType ? "text-white" : "text-foreground"}`}>{job.customer || "Unknown"}</span>
+      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accent}`} />
+
+      <div className="flex items-start justify-between gap-1">
+        <span className="text-[13px] font-medium truncate text-foreground">{job.customer || "Unknown"}</span>
+        {job.job_number && (
+          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">#{job.job_number}</span>
+        )}
       </div>
+
       {job.site && (
         <div className="flex items-center gap-1 mt-1">
-          <MapPin className={`h-3 w-3 shrink-0 ${mappedType ? "text-white/60" : "text-muted-foreground"}`} />
-          <span className={`text-[11px] truncate ${mappedType ? "text-white/90" : "text-muted-foreground"}`}>{job.site}</span>
+          <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] truncate text-muted-foreground">{job.site}</span>
         </div>
       )}
       {job.tipping_location && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>→ {job.tipping_location}</span>
+          <span className="text-[10px] text-muted-foreground">→ {job.tipping_location}</span>
         </div>
       )}
-      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {job.movement_type && (
-          <Badge className={`text-[10px] px-1.5 py-0 h-4 ${badgeClass}`}>
+          <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${tagClass}`}>
             {job.movement_type}
           </Badge>
         )}
         {job.container_type && (
-          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>{job.container_type}</span>
+          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
         )}
         {job.weight_t != null && job.weight_t > 0 && (
-          <span className={`text-[10px] ${mappedType ? "text-white/70" : "text-muted-foreground"}`}>{job.weight_t}t</span>
+          <span className="text-[10px] text-muted-foreground">{job.weight_t}t</span>
         )}
-      </div>
-      <div className="mt-1">
-        <Badge className={`text-[9px] px-1 py-0 h-3.5 ${mappedType ? "bg-white/20 text-white border-0" : "bg-muted text-muted-foreground"}`}>Skiptrak #{job.job_number}</Badge>
       </div>
     </div>
   );
