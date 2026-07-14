@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer, Legend } from "recharts";
 import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
@@ -388,15 +388,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   const wasteTruckSites = useMemo(() => liveSites.filter(s => s.category === "artic" && s.lastActivityDate && s.lastActivityDate >= sixMonthsAgo), [liveSites, sixMonthsAgo]);
 
   const chartConfig = {
-    deliveries: { label: "Deliveries", color: "hsl(var(--primary))" },
-    exchanges: { label: "Exchanges", color: "hsl(var(--accent))" },
-    collections: { label: "Collections", color: "hsl(var(--destructive))" },
+    deliveries: { label: "Deliveries", color: "hsl(var(--success))" },
+    exchanges: { label: "Exchanges", color: "hsl(var(--warning))" },
+    collections: { label: "Collections", color: "hsl(var(--info))" },
   };
 
   const barConfig = {
-    skip: { label: "Skips", color: "hsl(142 76% 36%)" },
-    roro: { label: "RoRos", color: "hsl(217 91% 60%)" },
-    artic: { label: "Artics", color: "hsl(45 93% 47%)" },
+    skip: { label: "Skips", color: "hsl(var(--success))" },
+    roro: { label: "RoRos", color: "hsl(var(--info))" },
+    artic: { label: "Artics", color: "hsl(var(--warning))" },
   };
 
   if (loading) {
@@ -537,81 +537,91 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         </Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <MapPin className="h-4 w-4" /> Live Sites
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{liveCounts.totalSites}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Container className="h-4 w-4" /> Skips On-Site
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{liveCounts.skip}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Truck className="h-4 w-4" /> RoRos On-Site
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{liveCounts.roro}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ArrowRightLeft className="h-4 w-4" /> Waste Truck Sites
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{wasteTruckSites.length}</p>
-            <p className="text-xs text-muted-foreground">Visited in last {settings.waste_truck_months} months</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-destructive">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" /> Over Rental
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-destructive">{overRentalSites.length}</p>
-            <p className="text-xs text-muted-foreground">Sites over {settings.rental_free_days} days</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Live Sites"
+          value={liveCounts.totalSites}
+          icon={<MapPin className="h-5 w-5" />}
+          tone="muted"
+        />
+        <StatCard
+          label="Skips On-Site"
+          value={liveCounts.skip}
+          icon={<Container className="h-5 w-5" />}
+          tone="success"
+        />
+        <StatCard
+          label="RoRos On-Site"
+          value={liveCounts.roro}
+          icon={<Truck className="h-5 w-5" />}
+          tone="info"
+        />
+        <StatCard
+          label="Waste Truck Sites"
+          value={wasteTruckSites.length}
+          icon={<ArrowRightLeft className="h-5 w-5" />}
+          tone="warning"
+          caption={`Visited in last ${settings.waste_truck_months} months`}
+        />
+        <StatCard
+          label="Over Rental"
+          value={overRentalSites.length}
+          icon={<AlertTriangle className="h-5 w-5" />}
+          tone="destructive"
+          caption={`Sites over ${settings.rental_free_days} days`}
+          emphasise
+        />
       </div>
 
-      {/* ── Monthly Line Chart ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5" /> Monthly Activity
+      {/* ── Monthly Activity ── */}
+      <Card className="border-hairline">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base font-medium">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" /> Monthly Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" tickFormatter={(v: string) => {
-                const [y, m] = v.split("-");
-                return format(new Date(+y, +m - 1), "MMM yy");
-              }} />
-              <YAxis />
+            <AreaChart data={monthlyData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="fillDeliveries" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-deliveries)" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="var(--color-deliveries)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="fillExchanges" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-exchanges)" stopOpacity={0.22} />
+                  <stop offset="100%" stopColor="var(--color-exchanges)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="fillCollections" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-collections)" stopOpacity={0.22} />
+                  <stop offset="100%" stopColor="var(--color-collections)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border-hairline))" vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickFormatter={(v: string) => {
+                  const [y, m] = v.split("-");
+                  return format(new Date(+y, +m - 1), "MMM yy");
+                }}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                width={32}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Line type="monotone" dataKey="deliveries" stroke="var(--color-deliveries)" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="exchanges" stroke="var(--color-exchanges)" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="collections" stroke="var(--color-collections)" strokeWidth={2} dot={false} />
-            </LineChart>
+              <Legend
+                iconType="circle"
+                wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+              />
+              <Area type="monotone" dataKey="deliveries" stroke="var(--color-deliveries)" strokeWidth={2} fill="url(#fillDeliveries)" />
+              <Area type="monotone" dataKey="exchanges" stroke="var(--color-exchanges)" strokeWidth={2} fill="url(#fillExchanges)" />
+              <Area type="monotone" dataKey="collections" stroke="var(--color-collections)" strokeWidth={2} fill="url(#fillCollections)" />
+            </AreaChart>
           </ChartContainer>
         </CardContent>
       </Card>
@@ -641,6 +651,47 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+type StatTone = "muted" | "success" | "info" | "warning" | "destructive";
+
+function StatCard({
+  label,
+  value,
+  icon,
+  tone,
+  caption,
+  emphasise,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone: StatTone;
+  caption?: string;
+  emphasise?: boolean;
+}) {
+  const toneStyles: Record<StatTone, { iconBg: string; iconFg: string; value: string; border: string }> = {
+    muted:       { iconBg: "bg-muted",              iconFg: "text-foreground",              value: "text-foreground",   border: "border-hairline" },
+    success:     { iconBg: "bg-success/10",         iconFg: "text-success",                 value: "text-foreground",   border: "border-hairline" },
+    info:        { iconBg: "bg-info/10",            iconFg: "text-info",                    value: "text-foreground",   border: "border-hairline" },
+    warning:     { iconBg: "bg-warning/10",         iconFg: "text-warning",                 value: "text-foreground",   border: "border-hairline" },
+    destructive: { iconBg: "bg-destructive/10",     iconFg: "text-destructive",             value: "text-destructive",  border: "border-destructive/40" },
+  };
+  const t = toneStyles[tone];
+  return (
+    <Card className={`${t.border} ${emphasise ? "border" : ""} transition-shadow hover:shadow-hover`}>
+      <CardContent className="p-5 space-y-3">
+        <div className={`w-10 h-10 rounded-lg ${t.iconBg} ${t.iconFg} flex items-center justify-center`}>
+          {icon}
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[13px] text-muted-foreground leading-none">{label}</p>
+          <p className={`text-[26px] font-medium leading-tight ${t.value}`}>{value}</p>
+          {caption && <p className="text-xs text-muted-foreground pt-0.5">{caption}</p>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -810,7 +861,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
       )}
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card border-b border-hairline">
             <TableRow>
               <SortHeader field="customer">Customer</SortHeader>
               <SortHeader field="site">Site</SortHeader>
@@ -824,7 +875,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
           </TableHeader>
           <TableBody>
             {sorted.map((s, i) => (
-              <TableRow key={i}>
+              <TableRow key={i} className="h-11 hover:bg-muted/40 transition-colors">
                 <TableCell className="font-medium">{s.customer}</TableCell>
                 <TableCell>
                   {s.site}
@@ -921,7 +972,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
       </CardHeader>
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card border-b border-hairline">
             <TableRow>
               <TableHead>Customer</TableHead>
               <TableHead>Site</TableHead>
@@ -934,7 +985,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
           </TableHeader>
           <TableBody>
             {sites.map((s, i) => (
-              <TableRow key={i} className="bg-destructive/5">
+              <TableRow key={i} className="h-11 bg-destructive/5 hover:bg-destructive/10 transition-colors">
                 <TableCell className="font-medium">{s.customer}</TableCell>
                 <TableCell>{s.site}</TableCell>
                 <TableCell>
