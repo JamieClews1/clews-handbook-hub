@@ -1,6 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
 import {
   ArrowLeft,
   Package,
