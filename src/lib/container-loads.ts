@@ -132,6 +132,9 @@ export function normalizeContainerLoad(row: any): ContainerLoad {
     photos: Array.isArray(row.photos) ? (row.photos as ContainerPhoto[]) : [],
     packing: Array.isArray(row.packing) ? (row.packing as PackingRow[]) : [],
     annex7: (row.annex7 && typeof row.annex7 === "object" ? row.annex7 : {}) as Annex7Fields,
+    paperwork_mode: (row.paperwork_mode ?? "create") as PaperworkMode,
+    annex7_upload: (row.annex7_upload ?? null) as PaperworkFile | null,
+    packing_upload: (row.packing_upload ?? null) as PaperworkFile | null,
   };
 }
 
