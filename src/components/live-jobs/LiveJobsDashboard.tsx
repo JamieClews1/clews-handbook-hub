@@ -985,7 +985,7 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
           </TableHeader>
           <TableBody>
             {sites.map((s, i) => (
-              <TableRow key={i} className="bg-destructive/5">
+              <TableRow key={i} className="h-11 bg-destructive/5 hover:bg-destructive/10 transition-colors">
                 <TableCell className="font-medium">{s.customer}</TableCell>
                 <TableCell>{s.site}</TableCell>
                 <TableCell>
