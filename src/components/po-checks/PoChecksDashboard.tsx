@@ -518,15 +518,7 @@ export function PoChecksDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Label>Recipients (comma separated)</Label>
-                <Input
-                  value={recipients}
-                  onChange={(e) => setRecipients(e.target.value)}
-                  placeholder="accounts@customer.com, orders@customer.com"
-                />
-              </div>
-              <Button onClick={sendPORequest} disabled={sending} className="gap-1.5">
+              <Button onClick={openDialogForAll} disabled={sending} className="gap-1.5">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {isBiffa
                   ? `Send ${siteGroups.length} individual site request${siteGroups.length === 1 ? "" : "s"}`
