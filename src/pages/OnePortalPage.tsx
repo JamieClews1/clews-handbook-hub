@@ -84,45 +84,54 @@ const OnePortalPage = () => {
           </h1>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sections.map((section) => (
-              <Link key={section.title} to={section.href} className="group">
-                <div
-                  className={`h-full p-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 ${
-                    section.variant === "destructive"
-                      ? "bg-destructive hover:bg-destructive/90"
-                      : "bg-primary hover:bg-primary/90"
-                  }`}
-                >
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <section.icon
-                      className={`h-12 w-12 ${
+            {sections
+              .filter((section) => isAdmin || !isHidden(section.key))
+              .map((section) => {
+                const hiddenForUsers = isHidden(section.key);
+                return (
+                  <Link key={section.title} to={section.href} className="group relative">
+                    {hiddenForUsers && isAdmin && (
+                      <Badge variant="secondary" className="absolute top-3 right-3 z-10">Hidden</Badge>
+                    )}
+                    <div
+                      className={`h-full p-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 ${
                         section.variant === "destructive"
-                          ? "text-destructive-foreground"
-                          : "text-primary-foreground"
-                      }`}
-                    />
-                    <h2
-                      className={`text-xl font-bold uppercase tracking-wide ${
-                        section.variant === "destructive"
-                          ? "text-destructive-foreground"
-                          : "text-primary-foreground"
-                      }`}
+                          ? "bg-destructive hover:bg-destructive/90"
+                          : "bg-primary hover:bg-primary/90"
+                      } ${hiddenForUsers ? "opacity-60" : ""}`}
                     >
-                      {section.title}
-                    </h2>
-                    <p
-                      className={`text-sm ${
-                        section.variant === "destructive"
-                          ? "text-destructive-foreground/80"
-                          : "text-primary-foreground/80"
-                      }`}
-                    >
-                      {section.description}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                      <div className="flex flex-col items-center text-center space-y-4">
+                        <section.icon
+                          className={`h-12 w-12 ${
+                            section.variant === "destructive"
+                              ? "text-destructive-foreground"
+                              : "text-primary-foreground"
+                          }`}
+                        />
+                        <h2
+                          className={`text-xl font-bold uppercase tracking-wide ${
+                            section.variant === "destructive"
+                              ? "text-destructive-foreground"
+                              : "text-primary-foreground"
+                          }`}
+                        >
+                          {section.title}
+                        </h2>
+                        <p
+                          className={`text-sm ${
+                            section.variant === "destructive"
+                              ? "text-destructive-foreground/80"
+                              : "text-primary-foreground/80"
+                          }`}
+                        >
+                          {section.description}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+
           </div>
         </div>
       </main>
