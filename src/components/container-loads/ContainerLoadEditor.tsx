@@ -36,8 +36,10 @@ import {
   Camera,
   Package,
   Loader2,
+  Send,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ContainerLoadSendDialog } from "./ContainerLoadSendDialog";
 import {
   ContainerLoad,
   ContainerStatus,
