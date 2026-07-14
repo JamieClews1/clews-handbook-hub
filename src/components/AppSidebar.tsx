@@ -63,20 +63,24 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { hidden } = usePortalSectionVisibility();
   const currentPath = location.pathname;
+
+  const SUPER_ADMIN_EMAILS = ["jamie@clewsrecycling.co.uk", "jclewsie@gmail.com"];
+  const isSuperAdmin = !!user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   const isActive = (path: string) => currentPath === path;
   const isInSection = (paths: string[]) => paths.some(p => currentPath.startsWith(p));
 
-  // For non-admins, hide gated items entirely. For admins, dim them.
+  // Only the super admin sees hidden items (dimmed). Everyone else has them removed.
   const hiddenKeys = Array.from(hidden);
   const gateStyle = hiddenKeys.length
-    ? isAdmin
+    ? isSuperAdmin
       ? hiddenKeys.map((k) => `[data-sec="${k}"]{opacity:.45}`).join("")
       : hiddenKeys.map((k) => `[data-sec="${k}"]{display:none!important}`).join("")
     : "";
+
 
 
   return (

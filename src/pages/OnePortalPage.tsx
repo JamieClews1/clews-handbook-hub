@@ -38,8 +38,11 @@ const sections = [
 
 const OnePortalPage = () => {
   const navigate = useNavigate();
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading } = useAuth();
   const { isHidden } = usePortalSectionVisibility();
+  const SUPER_ADMIN_EMAILS = ["jamie@clewsrecycling.co.uk", "jclewsie@gmail.com"];
+  const isSuperAdmin = !!user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+
 
 
   useEffect(() => {
