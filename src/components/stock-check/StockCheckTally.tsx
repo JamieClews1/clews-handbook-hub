@@ -70,6 +70,34 @@ export const StockCheckTally = ({ userId, onComplete, editCheckId }: StockCheckT
       }
       setContainerTypes(types);
 
+      // Fetch previous stock check (excluding the one being edited) for reference notes
+      let lastQuery = supabase
+        .from("stock_checks")
+        .select("id, operator_name, created_at, notes")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (editCheckId) lastQuery = lastQuery.neq("id", editCheckId);
+      const { data: lastChecks } = await lastQuery;
+      const last = lastChecks?.[0];
+      if (last) {
+        const { data: lastItems } = await supabase
+          .from("stock_check_items")
+          .select("container_type_id, notes")
+          .eq("stock_check_id", last.id)
+          .not("notes", "is", null);
+        const typeNameById = new Map(types.map((t: any) => [t.id, t.name]));
+        const itemNotes = (lastItems || [])
+          .filter((i: any) => i.notes && i.notes.trim())
+          .map((i: any) => ({ name: typeNameById.get(i.container_type_id) || "Unknown", notes: i.notes }));
+        setLastCheck({
+          id: last.id,
+          operator_name: last.operator_name,
+          created_at: last.created_at,
+          notes: last.notes,
+          itemNotes,
+        });
+      }
+
       // If editing, load existing check + items
       let existingItems: Record<string, { in_yard: number; runner: number; notes: string | null }> = {};
       let existingOperator = "";
