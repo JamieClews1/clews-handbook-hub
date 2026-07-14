@@ -105,6 +105,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [sendOpen, setSendOpen] = useState(false);
 
   const update = (patch: Partial<ContainerLoad>) =>
     setLoad((prev) => (prev ? { ...prev, ...patch } : prev));
