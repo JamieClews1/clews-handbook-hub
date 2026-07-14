@@ -47,6 +47,8 @@ import {
   CONTAINER_STATUS_ORDER,
   PackingRow,
   PaperworkMode,
+  PhotoCategory,
+  PHOTO_REQUIREMENTS,
   normalizeContainerLoad,
   packingTotalKg,
 } from "@/lib/container-loads";
@@ -106,6 +108,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
 
   const update = (patch: Partial<ContainerLoad>) =>
     setLoad((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -226,7 +229,13 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         });
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-        newPhotos.push({ path, url: data.publicUrl, caption: "", uploaded_at: new Date().toISOString() });
+        newPhotos.push({
+          path,
+          url: data.publicUrl,
+          caption: "",
+          uploaded_at: new Date().toISOString(),
+          category: uploadCategory,
+        });
       }
       await persist({ photos: newPhotos });
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
@@ -285,6 +294,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     update({
       photos: load!.photos.map((p) => (p.path === path ? { ...p, caption } : p)),
     });
+
+  const setPhotoCategory = async (path: string, category: PhotoCategory) => {
+    const photos = load!.photos.map((p) => (p.path === path ? { ...p, category } : p));
+    await persist({ photos });
+  };
 
   // Packing rows
   const generateRowsFromCount = () => {
@@ -522,6 +536,51 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         <TabsContent value="photos" className="space-y-4">
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Loading photo requirements</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Loading photos must be sent to <strong>Nevis Resources Limited</strong> via email.
+                Capture each of the following before dispatch:
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {PHOTO_REQUIREMENTS.map((req) => {
+                  const count = load.photos.filter((p) => p.category === req.key).length;
+                  const done = count > 0;
+                  return (
+                    <div
+                      key={req.key}
+                      className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
+                        done
+                          ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800"
+                          : "border-border bg-muted/30"
+                      }`}
+                    >
+                      <div
+                        className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
+                          done ? "bg-emerald-600 text-white" : "bg-muted-foreground/20 text-muted-foreground"
+                        }`}
+                      >
+                        {done ? "✓" : ""}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium leading-tight">
+                          {req.label}
+                          {done && count > 1 && (
+                            <span className="text-xs text-muted-foreground font-normal"> · {count}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{req.hint}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Photos of load & container</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -534,14 +593,35 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                 className="hidden"
                 onChange={(e) => handleUpload(e.target.files)}
               />
-              <Button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="gap-2"
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Add photos
-              </Button>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Category for new photos</Label>
+                  <Select
+                    value={uploadCategory}
+                    onValueChange={(v) => setUploadCategory(v as PhotoCategory)}
+                  >
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PHOTO_REQUIREMENTS.map((r) => (
+                        <SelectItem key={r.key} value={r.key}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="gap-2"
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Add photos
+                </Button>
+              </div>
 
               {load.photos.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">
@@ -579,6 +659,22 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                           })}
                         </p>
                       )}
+                      <Select
+                        value={p.category ?? "other"}
+                        onValueChange={(v) => setPhotoCategory(p.path, v as PhotoCategory)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PHOTO_REQUIREMENTS.map((r) => (
+                            <SelectItem key={r.key} value={r.key}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Input
                         value={p.caption ?? ""}
                         onChange={(e) => setPhotoCaption(p.path, e.target.value)}
