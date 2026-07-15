@@ -165,7 +165,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const { data: reportData } = await balesQuery;
 
-      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0 };
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0, goodPalletsCount: 0 };
       (reportData ?? []).forEach((r: any) => {
         const cardCount = Number(r.card_bales_count) || 0;
         const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
