@@ -369,7 +369,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     let totalPallets = 0;
     let totalWeightKg = 0;
     let totalCost = 0;
-    let goodPallets = 0;
+    const goodPallets = balesDolavData.goodPalletsCount;
     let scrapPallets = 0;
 
     rows.forEach((r) => {
