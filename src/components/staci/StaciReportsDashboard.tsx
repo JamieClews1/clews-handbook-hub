@@ -193,6 +193,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         agg.scrapMetalLooseWeightKg += scrapMetalCount * scrapMetalPerUnit;
         if (r.scrap_metal_loose_on_pallets) agg.scrapMetalLooseOnPalletsCount += scrapMetalCount;
         agg.scrapPalletsCount += Number(r.pallets_scrap_count) || 0;
+        agg.goodPalletsCount += Number(r.pallets_out) || 0;
       });
       setBalesDolavData(agg);
 
