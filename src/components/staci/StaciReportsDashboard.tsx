@@ -79,7 +79,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     glassDolavCount: number; glassDolavWeightKg: number; glassDolavOnPalletsCount: number;
     scrapMetalLooseCount: number; scrapMetalLooseWeightKg: number; scrapMetalLooseOnPalletsCount: number;
     scrapPalletsCount: number;
-  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0 });
+    goodPalletsCount: number;
+  }>({ cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0, goodPalletsCount: 0 });
   const [haulageData, setHaulageData] = useState<{
     artic: { loads: number; totalCost: number; rate: number };
     pickup: { loads: number; totalCost: number; rate: number };
@@ -152,7 +153,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       // Bales/dolavs query - filter by customer sites when in portal view
       let balesQuery = supabase
         .from("load_reports")
-        .select("card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets, pallets_scrap_count")
+        .select("pallets_out, card_bales_count, card_bales_weight_kg, card_bales_on_pallets, films_bale_count, films_bale_weight_kg, films_bale_on_pallets, papers_dolav_count, papers_dolav_weight_kg, papers_dolav_on_pallets, glass_dolav_count, glass_dolav_weight_kg, glass_dolav_on_pallets, scrap_metal_loose_count, scrap_metal_loose_weight_kg, scrap_metal_loose_on_pallets, pallets_scrap_count")
         .gte("report_date", from)
         .lte("report_date", to)
         .eq("status", "submitted")
@@ -164,7 +165,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const { data: reportData } = await balesQuery;
 
-      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0 };
+      const agg = { cardBalesCount: 0, cardBalesWeightKg: 0, cardBalesOnPalletsCount: 0, filmsBaleCount: 0, filmsBaleWeightKg: 0, filmsBaleOnPalletsCount: 0, papersDolavCount: 0, papersDolavWeightKg: 0, papersDolavOnPalletsCount: 0, glassDolavCount: 0, glassDolavWeightKg: 0, glassDolavOnPalletsCount: 0, scrapMetalLooseCount: 0, scrapMetalLooseWeightKg: 0, scrapMetalLooseOnPalletsCount: 0, scrapPalletsCount: 0, goodPalletsCount: 0 };
       (reportData ?? []).forEach((r: any) => {
         const cardCount = Number(r.card_bales_count) || 0;
         const cardPerUnit = Number(r.card_bales_weight_kg) || 0;
@@ -192,6 +193,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         agg.scrapMetalLooseWeightKg += scrapMetalCount * scrapMetalPerUnit;
         if (r.scrap_metal_loose_on_pallets) agg.scrapMetalLooseOnPalletsCount += scrapMetalCount;
         agg.scrapPalletsCount += Number(r.pallets_scrap_count) || 0;
+        agg.goodPalletsCount += Number(r.pallets_out) || 0;
       });
       setBalesDolavData(agg);
 
@@ -367,7 +369,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     let totalPallets = 0;
     let totalWeightKg = 0;
     let totalCost = 0;
-    let goodPallets = 0;
+    const goodPallets = balesDolavData.goodPalletsCount;
     let scrapPallets = 0;
 
     rows.forEach((r) => {
@@ -402,8 +404,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       totalWeightKg += netWeight;
       totalCost += lineCost;
 
-      if (r.pallet_type === "good") goodPallets += count;
-      else scrapPallets += count;
+      if (r.pallet_type !== "good") scrapPallets += count;
     });
 
     // "Pallet Charges" in the colour breakdown only relates to colour-coded pallet entries
