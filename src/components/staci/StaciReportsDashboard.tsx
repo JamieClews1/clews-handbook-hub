@@ -404,8 +404,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       totalWeightKg += netWeight;
       totalCost += lineCost;
 
-      if (r.pallet_type === "good") goodPallets += count;
-      else scrapPallets += count;
+      if (r.pallet_type !== "good") scrapPallets += count;
     });
 
     // "Pallet Charges" in the colour breakdown only relates to colour-coded pallet entries
