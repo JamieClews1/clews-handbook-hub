@@ -42,6 +42,7 @@ export function RebateReportTracking() {
   const [loading, setLoading] = useState(false);
   const [sites, setSites] = useState<ConfiguredSite[]>([]);
   const [tracking, setTracking] = useState<Map<string, RebateTrackingRow>>(new Map());
+  const [amounts, setAmounts] = useState<Map<string, number>>(new Map());
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<"all" | RebateTrackingStatus>("all");
   const [search, setSearch] = useState("");
