@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Mail, Building2, Trash2, Copy, Download, Eye } from "lucide-react";
+import { Loader2, Search, Mail, Building2, Trash2, Copy, Download, Eye, Archive } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ const dupKey = (r: { customer_id: string; site_id: string | null; period_start: 
 
 export function SentRebates() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<SentRebateRow[]>([]);
   const [search, setSearch] = useState("");
@@ -422,6 +424,27 @@ export function SentRebates() {
                           <Download className={`h-4 w-4 ${r.file_path ? "" : "opacity-40"}`} />
                         )}
                       </Button>
+                      {!r.file_path && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                          onClick={() => {
+                            const month = r.period_start.slice(0, 7);
+                            const params = new URLSearchParams({
+                              tab: "rebate-reports",
+                              customer: r.customer_id,
+                              month,
+                              logId: r.id,
+                            });
+                            if (r.site_id) params.set("site", r.site_id);
+                            navigate(`/customer-reporting?${params.toString()}`);
+                          }}
+                          title="Regenerate the Excel and archive it against this sent log (does not resend the email)"
+                        >
+                          <Archive className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"

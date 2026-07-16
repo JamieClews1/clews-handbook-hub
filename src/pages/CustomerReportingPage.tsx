@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
@@ -19,6 +19,8 @@ import { PONotificationSettings } from "@/components/customer-reporting/PONotifi
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "site-reports";
   const { user, isAdmin, loading } = useAuth();
   const [isManagement, setIsManagement] = useState(false);
 
@@ -75,7 +77,15 @@ const CustomerReportingPage = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="site-reports" className="space-y-6">
+        <Tabs
+          value={initialTab}
+          onValueChange={(v) => {
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", v);
+            setSearchParams(next, { replace: true });
+          }}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
