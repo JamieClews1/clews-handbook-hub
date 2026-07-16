@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Mail, Building2, Trash2, Copy, Download } from "lucide-react";
+import { Loader2, Search, Mail, Building2, Trash2, Copy, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,7 @@ export function SentRebates() {
   const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<SentRebateRow | null>(null);
   const [bulkConfirm, setBulkConfirm] = useState(false);
 
@@ -220,6 +221,29 @@ export function SentRebates() {
     }
   };
 
+  const handleView = async (row: SentRebateRow) => {
+    if (!row.file_path) {
+      toast({
+        title: "No file available",
+        description: "This report was sent before file archiving was enabled, so a copy isn't stored. Re-send the report to archive a copy.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setViewing(row.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from("rebate-reports")
+        .createSignedUrl(row.file_path, 60 * 10);
+      if (error) throw error;
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to open.", variant: "destructive" });
+    } finally {
+      setViewing(null);
+    }
+  };
+
   const handleBulkDeleteOlder = async () => {
     const ids = olderDuplicates.map((r) => r.id);
     if (!ids.length) return;
@@ -366,8 +390,26 @@ export function SentRebates() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        onClick={() => handleView(r)}
+                        disabled={viewing === r.id}
+                        title={
+                          r.file_path
+                            ? "View the report that was sent"
+                            : "No stored copy — sent before archiving was enabled"
+                        }
+                      >
+                        {viewing === r.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className={`h-4 w-4 ${r.file_path ? "" : "opacity-40"}`} />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleDownload(r)}
-                        disabled={downloading === r.id || !r.file_path}
+                        disabled={downloading === r.id}
                         title={
                           r.file_path
                             ? "Download the report that was sent"
