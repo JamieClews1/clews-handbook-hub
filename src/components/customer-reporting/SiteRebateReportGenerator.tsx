@@ -219,10 +219,6 @@ export function SiteRebateReportGenerator() {
   const loadCustomers = async () => {
     const { data } = await supabase
       .from("customers")
-
-  const loadCustomers = async () => {
-    const { data } = await supabase
-      .from("customers")
       .select("id, customer_name, customer_code, data_hub_customer")
       .order("customer_name");
     setCustomers(data ?? []);
