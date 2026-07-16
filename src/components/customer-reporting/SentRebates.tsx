@@ -221,6 +221,29 @@ export function SentRebates() {
     }
   };
 
+  const handleView = async (row: SentRebateRow) => {
+    if (!row.file_path) {
+      toast({
+        title: "No file available",
+        description: "This report was sent before file archiving was enabled, so a copy isn't stored. Re-send the report to archive a copy.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setViewing(row.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from("rebate-reports")
+        .createSignedUrl(row.file_path, 60 * 10);
+      if (error) throw error;
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to open.", variant: "destructive" });
+    } finally {
+      setViewing(null);
+    }
+  };
+
   const handleBulkDeleteOlder = async () => {
     const ids = olderDuplicates.map((r) => r.id);
     if (!ids.length) return;
