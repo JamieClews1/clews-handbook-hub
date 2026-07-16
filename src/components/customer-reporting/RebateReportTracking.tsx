@@ -254,6 +254,14 @@ export function RebateReportTracking() {
                         {meta.label}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {(() => {
+                        const amt = amounts.get(trackingKey(s.customerId, s.siteId));
+                        return amt == null
+                          ? "—"
+                          : new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(amt);
+                      })()}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {row?.generated_at ? (
                         <>
