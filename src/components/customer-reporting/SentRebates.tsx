@@ -70,7 +70,7 @@ export function SentRebates() {
     try {
       const { data: logs, error } = await supabase
         .from("rebate_email_logs")
-        .select("id, customer_id, site_id, period_start, period_end, rebate_amount, recipient_email, sent_by, sent_at")
+        .select("id, customer_id, site_id, period_start, period_end, rebate_amount, recipient_email, sent_by, sent_at, file_path, file_name")
         .order("sent_at", { ascending: false });
       if (error) throw error;
 
