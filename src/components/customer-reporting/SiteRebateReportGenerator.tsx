@@ -1237,7 +1237,7 @@ Clews Recycling Limited`
           .from("rebate-reports")
           .upload(path, bytes, {
             contentType:
-              "application/vnd.openxmlformats-officedetails.spreadsheetml.sheet",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             upsert: false,
           });
         if (upErr) console.error("Failed to store rebate report file", upErr);
