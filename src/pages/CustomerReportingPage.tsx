@@ -77,7 +77,15 @@ const CustomerReportingPage = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="site-reports" className="space-y-6">
+        <Tabs
+          value={initialTab}
+          onValueChange={(v) => {
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", v);
+            setSearchParams(next, { replace: true });
+          }}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="site-reports" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
