@@ -4470,6 +4470,8 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          file_name: string | null
+          file_path: string | null
           id: string
           period_end: string
           period_start: string
@@ -4482,6 +4484,8 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          file_name?: string | null
+          file_path?: string | null
           id?: string
           period_end: string
           period_start: string
@@ -4494,6 +4498,8 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          file_name?: string | null
+          file_path?: string | null
           id?: string
           period_end?: string
           period_start?: string
