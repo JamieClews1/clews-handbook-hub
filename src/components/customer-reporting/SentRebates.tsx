@@ -390,8 +390,26 @@ export function SentRebates() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        onClick={() => handleView(r)}
+                        disabled={viewing === r.id}
+                        title={
+                          r.file_path
+                            ? "View the report that was sent"
+                            : "No stored copy — sent before archiving was enabled"
+                        }
+                      >
+                        {viewing === r.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className={`h-4 w-4 ${r.file_path ? "" : "opacity-40"}`} />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleDownload(r)}
-                        disabled={downloading === r.id || !r.file_path}
+                        disabled={downloading === r.id}
                         title={
                           r.file_path
                             ? "Download the report that was sent"
