@@ -31,6 +31,8 @@ type SentRebateRow = {
   recipient_email: string | null;
   sent_by: string | null;
   sent_at: string | null;
+  file_path: string | null;
+  file_name: string | null;
   customerName: string;
   siteName: string | null;
   sentByName: string | null;
