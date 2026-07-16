@@ -361,20 +361,40 @@ export function SentRebates() {
                     {r.sent_at ? format(new Date(r.sent_at), "d MMM yyyy HH:mm") : "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setConfirmDelete(r)}
-                      disabled={deleting === r.id}
-                      title="Delete this sent log"
-                    >
-                      {deleting === r.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDownload(r)}
+                        disabled={downloading === r.id || !r.file_path}
+                        title={
+                          r.file_path
+                            ? "Download the report that was sent"
+                            : "No stored copy — sent before archiving was enabled"
+                        }
+                      >
+                        {downloading === r.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className={`h-4 w-4 ${r.file_path ? "" : "opacity-40"}`} />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setConfirmDelete(r)}
+                        disabled={deleting === r.id}
+                        title="Delete this sent log"
+                      >
+                        {deleting === r.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
