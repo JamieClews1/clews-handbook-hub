@@ -19,6 +19,8 @@ import { PONotificationSettings } from "@/components/customer-reporting/PONotifi
 const CustomerReportingPage = () => {
   const [language, setLanguage] = useState("en");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "site-reports";
   const { user, isAdmin, loading } = useAuth();
   const [isManagement, setIsManagement] = useState(false);
 
