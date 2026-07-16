@@ -1225,6 +1225,27 @@ Clews Recycling Limited`
       });
       if (emailError) throw emailError;
 
+      // Upload a copy of the sent report to storage so it can be re-downloaded later
+      let uploadedPath: string | null = null;
+      try {
+        const bin = atob(base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const periodStart = format(dateRange.from, "yyyy-MM-dd");
+        const path = `${built.exportCustomer.id}/${periodStart}/${Date.now()}-${filename}`;
+        const { error: upErr } = await supabase.storage
+          .from("rebate-reports")
+          .upload(path, bytes, {
+            contentType:
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            upsert: false,
+          });
+        if (upErr) console.error("Failed to store rebate report file", upErr);
+        else uploadedPath = path;
+      } catch (e) {
+        console.error("Failed to prepare rebate report upload", e);
+      }
+
       const { error: logError } = await supabase.from("rebate_email_logs").insert({
         customer_id: built.exportCustomer.id,
         site_id: isCustomerMidweighMode ? null : (selectedSiteId || null),
@@ -1233,6 +1254,8 @@ Clews Recycling Limited`
         rebate_amount: combinedTotalRebate,
         recipient_email: emailRecipient,
         sent_by: user?.id,
+        file_path: uploadedPath,
+        file_name: filename,
       });
       if (logError) console.error("Failed to log rebate email", logError);
 

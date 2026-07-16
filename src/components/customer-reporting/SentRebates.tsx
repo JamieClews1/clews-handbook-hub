@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Mail, Building2, Trash2, Copy } from "lucide-react";
+import { Loader2, Search, Mail, Building2, Trash2, Copy, Download } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,8 @@ type SentRebateRow = {
   recipient_email: string | null;
   sent_by: string | null;
   sent_at: string | null;
+  file_path: string | null;
+  file_name: string | null;
   customerName: string;
   siteName: string | null;
   sentByName: string | null;
@@ -60,6 +62,7 @@ export function SentRebates() {
   const [periodFilter, setPeriodFilter] = useState("all");
   const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<SentRebateRow | null>(null);
   const [bulkConfirm, setBulkConfirm] = useState(false);
 
@@ -68,7 +71,7 @@ export function SentRebates() {
     try {
       const { data: logs, error } = await supabase
         .from("rebate_email_logs")
-        .select("id, customer_id, site_id, period_start, period_end, rebate_amount, recipient_email, sent_by, sent_at")
+        .select("id, customer_id, site_id, period_start, period_end, rebate_amount, recipient_email, sent_by, sent_at, file_path, file_name")
         .order("sent_at", { ascending: false });
       if (error) throw error;
 
@@ -184,6 +187,36 @@ export function SentRebates() {
     } finally {
       setDeleting(null);
       setConfirmDelete(null);
+    }
+  };
+
+  const handleDownload = async (row: SentRebateRow) => {
+    if (!row.file_path) {
+      toast({
+        title: "No file available",
+        description: "This report was sent before file archiving was enabled, so a copy isn't stored.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setDownloading(row.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from("rebate-reports")
+        .download(row.file_path);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = row.file_name ?? "rebate-report.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to download.", variant: "destructive" });
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -328,20 +361,40 @@ export function SentRebates() {
                     {r.sent_at ? format(new Date(r.sent_at), "d MMM yyyy HH:mm") : "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setConfirmDelete(r)}
-                      disabled={deleting === r.id}
-                      title="Delete this sent log"
-                    >
-                      {deleting === r.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDownload(r)}
+                        disabled={downloading === r.id || !r.file_path}
+                        title={
+                          r.file_path
+                            ? "Download the report that was sent"
+                            : "No stored copy — sent before archiving was enabled"
+                        }
+                      >
+                        {downloading === r.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className={`h-4 w-4 ${r.file_path ? "" : "opacity-40"}`} />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setConfirmDelete(r)}
+                        disabled={deleting === r.id}
+                        title="Delete this sent log"
+                      >
+                        {deleting === r.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
