@@ -1319,6 +1319,56 @@ Clews Recycling Limited`
     }
   };
 
+  // Archive-only: generate the xlsx and upload it, updating the sent-log row's file_path.
+  // Used to backfill archives for older sends where no file was stored at send time.
+  const archiveReportCopy = async () => {
+    const built = buildCustomerExportInput();
+    if (!built || !dateRange?.from) {
+      toast({ title: "Nothing to archive", description: "Generate the report first.", variant: "destructive" });
+      return;
+    }
+    if (!preloadLogIdParam) {
+      toast({ title: "No target log", description: "Open this from Sent Rebates › Regenerate archive.", variant: "destructive" });
+      return;
+    }
+    setArchiving(true);
+    try {
+      const { base64, filename } = await getCustomerRebateExportBase64(built.input);
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const periodStart = format(dateRange.from, "yyyy-MM-dd");
+      const path = `${built.exportCustomer.id}/${periodStart}/${Date.now()}-${filename}`;
+      const { error: upErr } = await supabase.storage
+        .from("rebate-reports")
+        .upload(path, bytes, {
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          upsert: false,
+        });
+      if (upErr) throw upErr;
+      const { error: updateErr } = await supabase
+        .from("rebate_email_logs")
+        .update({ file_path: path, file_name: filename })
+        .eq("id", preloadLogIdParam);
+      if (updateErr) throw updateErr;
+      toast({
+        title: "Archive saved",
+        description: "A copy of this report is now stored against the sent log.",
+      });
+      // Clear the logId param so the button hides
+      const next = new URLSearchParams(searchParams);
+      next.delete("logId");
+      setSearchParams(next, { replace: true });
+    } catch (e: any) {
+      console.error("Archive failed", e);
+      toast({ title: "Archive failed", description: e?.message ?? "Could not store the report.", variant: "destructive" });
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+
+
 
   return (
     <div className="space-y-6">
