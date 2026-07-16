@@ -57,6 +57,7 @@ const dupKey = (r: { customer_id: string; site_id: string | null; period_start: 
 
 export function SentRebates() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<SentRebateRow[]>([]);
   const [search, setSearch] = useState("");
