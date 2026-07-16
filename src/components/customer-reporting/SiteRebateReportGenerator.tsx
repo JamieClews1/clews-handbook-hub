@@ -100,6 +100,15 @@ export function SiteRebateReportGenerator() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+
+  // URL-based preselection (used by "Regenerate archive" from Sent Rebates)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preloadLogIdParam = searchParams.get("logId");
+  const preloadCustomerParam = searchParams.get("customer");
+  const preloadSiteParam = searchParams.get("site");
+  const preloadMonthParam = searchParams.get("month"); // YYYY-MM
+  const preloadHandled = useRef({ customer: false, site: false, month: false });
 
   // Check if "Customer Midweigh" virtual option is selected
   const isCustomerMidweighMode = selectedSiteId === "__CUSTOMER_MIDWEIGH__";
