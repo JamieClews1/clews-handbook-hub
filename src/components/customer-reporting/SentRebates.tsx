@@ -63,6 +63,7 @@ export function SentRebates() {
   const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<SentRebateRow | null>(null);
   const [bulkConfirm, setBulkConfirm] = useState(false);
 
