@@ -1495,6 +1495,23 @@ Clews Recycling Limited`
                 <Send className="h-4 w-4 mr-2" />
                 Send to Customer
               </Button>
+              {preloadLogIdParam && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700"
+                  onClick={archiveReportCopy}
+                  disabled={archiving}
+                  title="Save an Excel copy of this report against the sent-log row (does not resend the email)"
+                >
+                  {archiving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Archive className="h-4 w-4 mr-2" />
+                  )}
+                  Archive copy to sent log
+                </Button>
+              )}
             </div>
           </div>
 
