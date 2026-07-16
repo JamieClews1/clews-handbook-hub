@@ -174,11 +174,51 @@ export function SiteRebateReportGenerator() {
   useEffect(() => {
     if (selectedCustomerId) {
       loadSites(selectedCustomerId);
-      setSelectedSiteId("");
+      // Don't wipe a site that was preloaded from URL
+      if (!(preloadSiteParam && !preloadHandled.current.site)) {
+        setSelectedSiteId("");
+      }
       setReportData([]);
       setReportGenerated(false);
     }
   }, [selectedCustomerId]);
+
+  // Preload customer / site / month from URL params (one-shot)
+  useEffect(() => {
+    if (preloadCustomerParam && !preloadHandled.current.customer && customers.length > 0) {
+      const exists = customers.some((c) => c.id === preloadCustomerParam);
+      if (exists) {
+        setSelectedCustomerId(preloadCustomerParam);
+        preloadHandled.current.customer = true;
+      }
+    }
+  }, [customers, preloadCustomerParam]);
+
+  useEffect(() => {
+    if (preloadSiteParam && !preloadHandled.current.site && sites.length > 0) {
+      const exists = sites.some((s) => s.id === preloadSiteParam);
+      if (exists) {
+        setSelectedSiteId(preloadSiteParam);
+        preloadHandled.current.site = true;
+      }
+    }
+  }, [sites, preloadSiteParam]);
+
+  useEffect(() => {
+    if (preloadMonthParam && !preloadHandled.current.month) {
+      const parsed = parseISO(`${preloadMonthParam}-01`);
+      if (!isNaN(parsed.getTime())) {
+        setDateMode("month");
+        setSelectedMonth(startOfMonth(parsed));
+        setDateRange({ from: startOfMonth(parsed), to: endOfMonth(parsed) });
+        preloadHandled.current.month = true;
+      }
+    }
+  }, [preloadMonthParam]);
+
+  const loadCustomers = async () => {
+    const { data } = await supabase
+      .from("customers")
 
   const loadCustomers = async () => {
     const { data } = await supabase
