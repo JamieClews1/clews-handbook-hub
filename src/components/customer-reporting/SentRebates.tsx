@@ -190,6 +190,36 @@ export function SentRebates() {
     }
   };
 
+  const handleDownload = async (row: SentRebateRow) => {
+    if (!row.file_path) {
+      toast({
+        title: "No file available",
+        description: "This report was sent before file archiving was enabled, so a copy isn't stored.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setDownloading(row.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from("rebate-reports")
+        .download(row.file_path);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = row.file_name ?? "rebate-report.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to download.", variant: "destructive" });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const handleBulkDeleteOlder = async () => {
     const ids = olderDuplicates.map((r) => r.id);
     if (!ids.length) return;
