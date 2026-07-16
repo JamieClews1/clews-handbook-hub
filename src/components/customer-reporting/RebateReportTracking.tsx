@@ -108,6 +108,24 @@ export function RebateReportTracking() {
       } else {
         setUserNames({});
       }
+
+      // Fetch rebate amounts from the latest email log per customer/site for this period
+      const { data: logs } = await supabase
+        .from("rebate_email_logs")
+        .select("customer_id, site_id, rebate_amount, sent_at")
+        .eq("period_start", periodStart)
+        .eq("period_end", periodEnd)
+        .order("sent_at", { ascending: false });
+      const amountMap = new Map<string, number>();
+      (logs ?? []).forEach((l: any) => {
+        const k = trackingKey(l.customer_id, l.site_id);
+        if (!amountMap.has(k) && l.rebate_amount != null) amountMap.set(k, Number(l.rebate_amount));
+      });
+      // Fallback: also pull amounts stored on tracking rows
+      trackingMap.forEach((r, k) => {
+        if (!amountMap.has(k) && r.rebate_amount != null) amountMap.set(k, Number(r.rebate_amount));
+      });
+      setAmounts(amountMap);
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to load tracking.", variant: "destructive" });
     } finally {
