@@ -132,6 +132,95 @@ const DigitalWasteTrackingPage = () => {
     enabled: !!user && jobIds.length > 0,
   });
 
+  const { data: submissions = {} } = useQuery({
+    queryKey: ["dwt-submissions", jobIds.join(",")],
+    queryFn: async () => {
+      if (jobIds.length === 0) return {} as Record<string, any>;
+      const { data } = await supabase
+        .from("dwt_submissions")
+        .select("job_id, wt_id, status, http_status, error_message, submitted_at")
+        .in("job_id", jobIds)
+        .order("submitted_at", { ascending: false });
+      const map: Record<string, any> = {};
+      (data ?? []).forEach((s: any) => { if (!map[s.job_id]) map[s.job_id] = s; });
+      return map;
+    },
+    enabled: !!user && jobIds.length > 0,
+  });
+
+  const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
+  const [testingApi, setTestingApi] = useState(false);
+
+  const buildPayload = (m: any) => ({
+    job_id: m.row.id,
+    ticket_number: m.ticket,
+    payload: {
+      receiverAuthorisationNumber: receiverAuthNumber,
+      wasteMovement: {
+        ticketNumber: m.ticket,
+        receivedAt: m.row.job_date,
+        receivedTime: m.time || null,
+        producer: { name: m.customer, siteAddress: m.site || null },
+        carrier: {
+          registrationNumber: m.carrierReg,
+          name: m.carrierName,
+          vehicleRegistration: m.vehicle,
+          meansOfTransport: m.meansOfTransport,
+        },
+        waste: {
+          ewcCode: m.ewc,
+          description: m.waste,
+          physicalForm: m.physicalForm,
+          containerType: m.container,
+          weightTonnes: m.weightT,
+        },
+      },
+    },
+  });
+
+  const isRowComplete = (m: any) =>
+    !!(receiverAuthNumber && m.customer && m.vehicle && m.carrierReg && m.carrierName && m.physicalForm && m.ewc && m.waste && m.container && m.weightT != null);
+
+  const uploadRows = async (rowsToSend: any[]) => {
+    if (rowsToSend.length === 0) return;
+    const ids = new Set(rowsToSend.map((m) => m.row.id));
+    setUploadingIds((prev) => new Set([...prev, ...ids]));
+    try {
+      const { data, error } = await supabase.functions.invoke("submit-dwt-receipt", {
+        body: { receipts: rowsToSend.map(buildPayload) },
+      });
+      if (error) throw error;
+      const results = (data as any)?.results ?? [];
+      const okCount = results.filter((r: any) => r.ok).length;
+      const failCount = results.length - okCount;
+      if (okCount > 0) toast.success(`${okCount} load${okCount === 1 ? "" : "s"} submitted to DEFRA DWT`);
+      if (failCount > 0) toast.error(`${failCount} submission${failCount === 1 ? "" : "s"} failed — see DWT column for details`);
+      qc.invalidateQueries({ queryKey: ["dwt-submissions", jobIds.join(",")] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Upload failed");
+    } finally {
+      setUploadingIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((i) => next.delete(i));
+        return next;
+      });
+    }
+  };
+
+  const testApi = async () => {
+    setTestingApi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("submit-dwt-receipt", { body: { action: "test" } });
+      if (error) throw error;
+      if ((data as any)?.ok) toast.success(`Connected to DEFRA DWT (${(data as any).environment})`);
+      else toast.error((data as any)?.error ?? "API connection failed");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Test failed");
+    } finally {
+      setTestingApi(false);
+    }
+  };
+
   const merged = useMemo(() => {
     return rows.map((r) => {
       const ov = overridesMap[r.id] ?? {};
