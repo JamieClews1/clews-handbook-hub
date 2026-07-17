@@ -340,7 +340,21 @@ const ACTION_TOOLS = [
         description: { type: "string" },
       },
       required: ["bins", "description"],
+  },
+  {
+    name: "merge_sites",
+    description: "Rename one or more data_hub_jobs.site values into a single canonical spelling so delivery/collection pairs, rebates and rentals line up. Read data_hub_jobs first with query_data to confirm the exact spellings.",
+    input_schema: {
+      type: "object",
+      properties: {
+        from: { type: "array", items: { type: "string" }, description: "Site names to rename (exact match)." },
+        to: { type: "string", description: "Canonical site name to keep." },
+        customer: { type: "string", description: "Optional customer ilike filter to scope the rename." },
+        description: { type: "string" },
+      },
+      required: ["from", "to", "description"],
     },
+  },
   },
   {
     name: "create_load_reports",
