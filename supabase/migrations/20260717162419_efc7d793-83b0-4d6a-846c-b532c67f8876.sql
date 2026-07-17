@@ -1,0 +1,1 @@
+ALTER TABLE public.company_profile ADD COLUMN IF NOT EXISTS dwt_api_code TEXT DEFAULT '1f83215e-4b90-4785-9ab2-2614839aa2e9';
