@@ -5,8 +5,10 @@ import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { HRContactSettings } from "@/components/HRContactSettings";
 import { EmailTemplateSettings } from "@/components/EmailTemplateSettings";
 import { SectionVisibilitySettings } from "@/components/SectionVisibilitySettings";
+import { BusinessProfileSettings } from "@/components/BusinessProfileSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Mail, LayoutGrid } from "lucide-react";
+import { Settings, Mail, LayoutGrid, Building2 } from "lucide-react";
+
 
 
 const AdminSettingsPage = () => {
