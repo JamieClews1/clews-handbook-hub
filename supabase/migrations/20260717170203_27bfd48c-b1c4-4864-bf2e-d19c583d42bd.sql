@@ -1,0 +1,1 @@
+ALTER TABLE public.rental_chases ADD COLUMN IF NOT EXISTS own_skip boolean NOT NULL DEFAULT false;

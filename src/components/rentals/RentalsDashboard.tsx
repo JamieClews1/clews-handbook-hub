@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database } from "lucide-react";
+import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database, Package } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -39,6 +39,7 @@ type Chase = {
   collected: boolean;
   collection_ticket: string | null;
   collected_date: string | null;
+  own_skip: boolean;
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -126,6 +127,7 @@ export default function RentalsDashboard() {
   const [emailBin, setEmailBin] = useState<OverRentalBin | null>(null);
   const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
   const [agreementBin, setAgreementBin] = useState<OverRentalBin | null>(null);
+  const [ownSkipBin, setOwnSkipBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -207,9 +209,18 @@ export default function RentalsDashboard() {
   const allBins = useMemo(() => {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
-    // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
+    // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site)
+    // and bins where the customer supplies their own skip.
     return computeOverRentalBins(jobs, settings)
-      .filter((b) => !chases[b.binKey]?.collected);
+      .filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip);
+  }, [jobs, settings, settingsLoading, chases]);
+
+  // Bins the customer has confirmed are their own — pulled off the chase list but
+  // kept visible for reference.
+  const ownSkipBins = useMemo(() => {
+    if (settingsLoading) return [];
+    return computeOverRentalBins(jobs, settings)
+      .filter((b) => chases[b.binKey]?.own_skip && !chases[b.binKey]?.collected);
   }, [jobs, settings, settingsLoading, chases]);
 
   // Bins covered by an active rental agreement (e.g. open-ended ones) are pulled out
@@ -452,6 +463,9 @@ export default function RentalsDashboard() {
                           <Button variant="ghost" size="sm" onClick={() => setCollectBin(b)} title="Mark as collected">
                             <PackageCheck className="h-4 w-4 mr-1" /> Collected
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setOwnSkipBin(b)} title="Customer supplies own skip — clear from list">
+                            <Package className="h-4 w-4 mr-1" /> Own Skip
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setManageBin(b)}>
                             <Settings2 className="h-4 w-4" />
                           </Button>
@@ -500,6 +514,65 @@ export default function RentalsDashboard() {
                     <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {ownSkipBins.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
+              <Package className="h-5 w-5" />
+              Customer Own Skip ({ownSkipBins.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              These bins are the customer's own container, so they're excluded from the chase list. Undo to move a bin back into Over Rental.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Container</TableHead>
+                  <TableHead className="text-center">On-Site</TableHead>
+                  <TableHead>Last Ticket</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ownSkipBins.map((b) => {
+                  const c = chases[b.binKey];
+                  return (
+                    <TableRow key={b.binKey}>
+                      <TableCell className="font-medium">{b.customer}</TableCell>
+                      <TableCell>{b.site}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{b.netOnSite}</Badge></TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{c?.notes ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            if (!c) return;
+                            const { error } = await supabase.from("rental_chases").update({ own_skip: false }).eq("id", c.id);
+                            if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+                            toast({ title: "Moved back to Over Rental" });
+                            fetchChases();
+                          }}
+                        >
+                          Undo
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -555,6 +628,17 @@ export default function RentalsDashboard() {
           userId={user?.id ?? null}
           onClose={() => setAgreementBin(null)}
           onSaved={() => { setAgreementBin(null); fetchAgreements(); }}
+          toast={toast}
+        />
+      )}
+
+      {ownSkipBin && (
+        <OwnSkipDialog
+          bin={ownSkipBin}
+          chase={chases[ownSkipBin.binKey]}
+          userId={user?.id ?? null}
+          onClose={() => setOwnSkipBin(null)}
+          onSaved={() => { setOwnSkipBin(null); fetchChases(); }}
           toast={toast}
         />
       )}
@@ -1014,6 +1098,56 @@ function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, on
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={send} disabled={sending}>
             <Mail className="h-4 w-4 mr-1" /> {sending ? "Sending…" : "Send Email"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OwnSkipDialog({ bin, chase, userId, onClose, onSaved, toast }: {
+  bin: OverRentalBin; chase?: Chase; userId: string | null;
+  onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [notes, setNotes] = useState(chase?.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const id = await ensureChase(bin, userId);
+    if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
+    const { error } = await supabase.from("rental_chases").update({
+      own_skip: true,
+      chase_status: "resolved",
+      notes: notes.trim() || null,
+    }).eq("id", id);
+    setSaving(false);
+    if (error) { toast({ title: "Failed to save", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Marked as own skip", description: "Cleared from the over-rental list." });
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Customer Owns This Skip</DialogTitle>
+          <DialogDescription>{bin.customer} — {bin.site} ({bin.containerType})</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Marks this container as the customer's own skip. It will be removed from the over-rental
+            chase list and shown separately under "Customer Own Skip".
+          </p>
+          <div className="space-y-1.5">
+            <Label>Notes (optional)</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="e.g. Customer owns the 12yd — we just tip and return." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            <Package className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Confirm Own Skip"}
           </Button>
         </DialogFooter>
       </DialogContent>

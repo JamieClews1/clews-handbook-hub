@@ -4983,6 +4983,7 @@ export type Database = {
           customer: string | null
           id: string
           notes: string | null
+          own_skip: boolean
           site: string | null
           updated_at: string
         }
@@ -5003,6 +5004,7 @@ export type Database = {
           customer?: string | null
           id?: string
           notes?: string | null
+          own_skip?: boolean
           site?: string | null
           updated_at?: string
         }
@@ -5023,6 +5025,7 @@ export type Database = {
           customer?: string | null
           id?: string
           notes?: string | null
+          own_skip?: boolean
           site?: string | null
           updated_at?: string
         }
