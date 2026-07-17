@@ -211,7 +211,9 @@ const DigitalWasteTrackingPage = () => {
                     <tbody>
                       {filtered.map((r) => {
                         const time = rawField(r.raw, ["Time In", "TimeIn", "Time", "Weigh In Time", "In Time"]);
-                        const carrier = rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]);
+                        const carrierReg = rawField(r.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]);
+                        const carrierName = rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]);
+                        const physicalForm = rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]);
                         return (
                           <tr key={r.id} className="border-b border-border/30 hover:bg-muted/30">
                             <td className="px-3 py-2 font-mono font-semibold">{r.job_number}</td>
@@ -221,7 +223,9 @@ const DigitalWasteTrackingPage = () => {
                               {r.site && <div className="text-xs text-muted-foreground">{r.site}</div>}
                             </td>
                             <td className="px-3 py-2 font-mono">{r.vehicle_registration || "—"}</td>
-                            <td className="px-3 py-2">{carrier || "—"}</td>
+                            <td className="px-3 py-2 font-mono">{carrierReg || "—"}</td>
+                            <td className="px-3 py-2">{carrierName || "—"}</td>
+                            <td className="px-3 py-2">{physicalForm || "—"}</td>
                             <td className="px-3 py-2 font-mono">{r.ewc || "—"}</td>
                             <td className="px-3 py-2">{r.waste_description || "—"}</td>
                             <td className="px-3 py-2">{r.container_type || "—"}</td>
