@@ -47,6 +47,7 @@ const EMPTY: Profile = {
   dwt_environment: "sandbox",
   dwt_api_base_url: "https://waste-tracking.integration.api.defra.gov.uk",
   dwt_client_id: "",
+  dwt_api_code: "1f83215e-4b90-4785-9ab2-2614839aa2e9",
   dwt_client_secret_updated_at: null,
 };
 
