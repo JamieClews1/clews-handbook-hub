@@ -27,7 +27,7 @@ async function getAccessToken(): Promise<{ token?: string; error?: string; raw?:
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Basic ${basic}`,
     },
-    body: 'grant_type=client_credentials',
+    body: `grant_type=client_credentials&client_id=${encodeURIComponent(CLIENT_ID)}&client_secret=${encodeURIComponent(CLIENT_SECRET)}`,
   });
   const text = await res.text();
   let json: any;
