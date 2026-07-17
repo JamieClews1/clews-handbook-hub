@@ -48,6 +48,7 @@ type Override = {
   waste_description?: string;
   container_type?: string;
   customer?: string;
+  means_of_transport?: string;
 };
 
 const rawField = (raw: Json, keys: string[]): string => {
