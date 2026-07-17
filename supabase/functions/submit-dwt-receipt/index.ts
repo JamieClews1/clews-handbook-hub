@@ -102,8 +102,17 @@ Deno.serve(async (req) => {
     const endpoint = `${BASE_URL}/movements/receive`;
     const results: any[] = [];
 
+    // Load API Code from company_profile (falls back to sandbox dummy #1)
+    const { data: profileRow } = await supabase
+      .from('company_profile')
+      .select('dwt_api_code')
+      .limit(1)
+      .maybeSingle();
+    const defaultApiCode = profileRow?.dwt_api_code || '1f83215e-4b90-4785-9ab2-2614839aa2e9';
+
     for (const r of receipts) {
-      const payload = r.payload ?? r;
+      const payload = { ...(r.payload ?? r) };
+      if (!payload.apiCode) payload.apiCode = defaultApiCode;
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: {
