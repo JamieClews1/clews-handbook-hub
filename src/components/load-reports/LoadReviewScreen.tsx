@@ -189,21 +189,33 @@ export const LoadReviewScreen = ({
       {/* Report Info Card */}
       <Card className="border-2">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-              <Truck className="h-5 w-5 text-white" />
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                <Truck className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Load Report Summary</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {formatLoadReportDateLocale(reportDate, "en-GB", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">Load Report Summary</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {formatLoadReportDateLocale(reportDate, "en-GB", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPdf}
+              className="gap-2 shrink-0"
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
