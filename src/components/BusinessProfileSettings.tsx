@@ -27,6 +27,7 @@ type Profile = {
   dwt_environment: string | null;
   dwt_api_base_url: string | null;
   dwt_client_id: string | null;
+  dwt_api_code: string | null;
   dwt_client_secret_updated_at: string | null;
 };
 
