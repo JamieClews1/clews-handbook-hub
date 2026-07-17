@@ -248,6 +248,10 @@ export type Database = {
           created_at: string
           credit_terms: string | null
           date_of_incorporation: string | null
+          dwt_api_base_url: string | null
+          dwt_client_id: string | null
+          dwt_client_secret_updated_at: string | null
+          dwt_environment: string | null
           email: string | null
           employers_liability_insurance_expiry: string | null
           employers_liability_insurance_provider: string | null
@@ -282,6 +286,10 @@ export type Database = {
           created_at?: string
           credit_terms?: string | null
           date_of_incorporation?: string | null
+          dwt_api_base_url?: string | null
+          dwt_client_id?: string | null
+          dwt_client_secret_updated_at?: string | null
+          dwt_environment?: string | null
           email?: string | null
           employers_liability_insurance_expiry?: string | null
           employers_liability_insurance_provider?: string | null
@@ -316,6 +324,10 @@ export type Database = {
           created_at?: string
           credit_terms?: string | null
           date_of_incorporation?: string | null
+          dwt_api_base_url?: string | null
+          dwt_client_id?: string | null
+          dwt_client_secret_updated_at?: string | null
+          dwt_environment?: string | null
           email?: string | null
           employers_liability_insurance_expiry?: string | null
           employers_liability_insurance_provider?: string | null
