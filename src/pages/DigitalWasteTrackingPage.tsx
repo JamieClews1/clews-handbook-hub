@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar, Pencil, AlertTriangle } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 import clewsLogo from "@/assets/clews-logo.png";
 import { Json } from "@/integrations/supabase/types";
 
@@ -29,11 +39,33 @@ interface Row {
   raw: Json;
 }
 
+type Override = {
+  carrier_registration?: string;
+  carrier_name?: string;
+  physical_form?: string;
+  vehicle_registration?: string;
+  ewc?: string;
+  waste_description?: string;
+  container_type?: string;
+  customer?: string;
+};
+
+const rawField = (raw: Json, keys: string[]): string => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return "";
+  for (const k of keys) {
+    const v = (raw as Record<string, unknown>)[k];
+    if (v != null && v !== "") return String(v);
+  }
+  return "";
+};
+
 const DigitalWasteTrackingPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const qc = useQueryClient();
   const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<Row | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -59,7 +91,6 @@ const DigitalWasteTrackingPage = () => {
         more = (data?.length ?? 0) === ps;
         from += ps;
       }
-      // Inbound only — waste received onto site
       return all.filter((r) => {
         const mt = (r.movement_type ?? "").toUpperCase();
         return mt === "" || mt === "INWARD" || mt === "IN" || mt.includes("IN");
@@ -69,21 +100,64 @@ const DigitalWasteTrackingPage = () => {
     staleTime: 60_000,
   });
 
+  const jobIds = useMemo(() => rows.map((r) => r.id), [rows]);
+
+  const { data: overridesMap = {} } = useQuery({
+    queryKey: ["dwt-overrides", date, jobIds.length],
+    queryFn: async () => {
+      if (jobIds.length === 0) return {} as Record<string, Override>;
+      const { data, error } = await supabase
+        .from("dwt_job_overrides")
+        .select("job_id, overrides")
+        .in("job_id", jobIds);
+      if (error) throw error;
+      const map: Record<string, Override> = {};
+      (data ?? []).forEach((r: any) => { map[r.job_id] = (r.overrides ?? {}) as Override; });
+      return map;
+    },
+    enabled: !!user && jobIds.length > 0,
+  });
+
+  const merged = useMemo(() => {
+    return rows.map((r) => {
+      const ov = overridesMap[r.id] ?? {};
+      return {
+        row: r,
+        ticket: r.job_number,
+        time: rawField(r.raw, ["Time In", "TimeIn", "Time", "Weigh In Time", "In Time"]),
+        customer: ov.customer || r.customer || "",
+        site: r.site || "",
+        vehicle: ov.vehicle_registration || r.vehicle_registration || "",
+        carrierReg: ov.carrier_registration || rawField(r.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+        carrierName: ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
+        physicalForm: ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
+        ewc: ov.ewc || r.ewc || "",
+        waste: ov.waste_description || r.waste_description || "",
+        container: ov.container_type || r.container_type || "",
+        weightT: r.weight_t != null ? Number(r.weight_t) / 1000 : null,
+      };
+    });
+  }, [rows, overridesMap]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((r) =>
-      [r.job_number, r.customer, r.site, r.vehicle_registration, r.waste_description, r.ewc, r.driver]
+    if (!term) return merged;
+    return merged.filter((m) =>
+      [m.ticket, m.customer, m.site, m.vehicle, m.waste, m.ewc, m.carrierName, m.carrierReg]
         .some((v) => (v ?? "").toLowerCase().includes(term))
     );
-  }, [rows, search]);
+  }, [merged, search]);
 
   const totalWeight = useMemo(
-    () => filtered.reduce((sum, r) => sum + (r.weight_t ? Number(r.weight_t) / 1000 : 0), 0),
+    () => filtered.reduce((sum, m) => sum + (m.weightT ?? 0), 0),
     [filtered]
   );
   const uniqueEwc = useMemo(
-    () => new Set(filtered.map((r) => (r.ewc ?? "").trim()).filter(Boolean)).size,
+    () => new Set(filtered.map((m) => m.ewc.trim()).filter(Boolean)).size,
+    [filtered]
+  );
+  const incompleteCount = useMemo(
+    () => filtered.filter((m) => !m.customer || !m.vehicle || !m.carrierReg || !m.carrierName || !m.physicalForm || !m.ewc || !m.waste || !m.container || m.weightT == null).length,
     [filtered]
   );
 
@@ -95,14 +169,7 @@ const DigitalWasteTrackingPage = () => {
     );
   }
 
-  const rawField = (raw: Json, keys: string[]): string => {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return "";
-    for (const k of keys) {
-      const v = (raw as Record<string, unknown>)[k];
-      if (v != null && v !== "") return String(v);
-    }
-    return "";
-  };
+  const missingCls = "bg-destructive/10 text-destructive font-semibold";
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,17 +209,17 @@ const DigitalWasteTrackingPage = () => {
             <Info className="h-4 w-4" />
             <AlertTitle>Phase 1 — Receipt of Waste (RoW)</AlertTitle>
             <AlertDescription>
-              As the waste receiver we must submit each accepted load at the point of receipt. This screen
-              is the source of truth that will POST to the DWT <code>ReceiptDataset()</code> endpoint,
-              returning a <strong>WT-ID</strong> per movement. The API link will be added in a later step —
-              for now we are proving the daily dataset is complete and correct.
+              As the waste receiver we must submit each accepted load at the point of receipt. Any field
+              shown in <span className="text-destructive font-semibold">red</span> is missing and must be
+              completed — click the pencil to edit before submission.
             </AlertDescription>
           </Alert>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <StatCard icon={Truck} label="Loads received" value={filtered.length.toString()} />
             <StatCard icon={Weight} label="Total weight" value={`${totalWeight.toFixed(3)} t`} />
             <StatCard icon={Package} label="Unique EWC codes" value={uniqueEwc.toString()} />
+            <StatCard icon={AlertTriangle} label="Incomplete rows" value={incompleteCount.toString()} tone={incompleteCount > 0 ? "warn" : "ok"} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -198,52 +265,52 @@ const DigitalWasteTrackingPage = () => {
                         <th className="text-left px-3 py-2 font-medium">Time</th>
                         <th className="text-left px-3 py-2 font-medium">Customer / Producer</th>
                         <th className="text-left px-3 py-2 font-medium">Vehicle</th>
-                        <th className="text-left px-3 py-2 font-medium">Carrier Registration</th>
+                        <th className="text-left px-3 py-2 font-medium">Carrier Reg</th>
                         <th className="text-left px-3 py-2 font-medium">Carrier Name</th>
                         <th className="text-left px-3 py-2 font-medium">Physical Form</th>
                         <th className="text-left px-3 py-2 font-medium">EWC</th>
                         <th className="text-left px-3 py-2 font-medium">Waste description</th>
                         <th className="text-left px-3 py-2 font-medium">Container</th>
                         <th className="text-right px-3 py-2 font-medium">Weight (t)</th>
-                        <th className="text-left px-3 py-2 font-medium">DWT status</th>
+                        <th className="text-left px-3 py-2 font-medium">DWT</th>
+                        <th />
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((r) => {
-                        const time = rawField(r.raw, ["Time In", "TimeIn", "Time", "Weigh In Time", "In Time"]);
-                        const carrierReg = rawField(r.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]);
-                        const carrierName = rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]);
-                        const physicalForm = rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]);
-                        return (
-                          <tr key={r.id} className="border-b border-border/30 hover:bg-muted/30">
-                            <td className="px-3 py-2 font-mono font-semibold">{r.job_number}</td>
-                            <td className="px-3 py-2 tabular-nums text-muted-foreground">{time || "—"}</td>
-                            <td className="px-3 py-2">
-                              <div className="font-medium">{r.customer || "—"}</div>
-                              {r.site && <div className="text-xs text-muted-foreground">{r.site}</div>}
-                            </td>
-                            <td className="px-3 py-2 font-mono">{r.vehicle_registration || "—"}</td>
-                            <td className="px-3 py-2 font-mono">{carrierReg || "—"}</td>
-                            <td className="px-3 py-2">{carrierName || "—"}</td>
-                            <td className="px-3 py-2">{physicalForm || "—"}</td>
-                            <td className="px-3 py-2 font-mono">{r.ewc || "—"}</td>
-                            <td className="px-3 py-2">{r.waste_description || "—"}</td>
-                            <td className="px-3 py-2">{r.container_type || "—"}</td>
-                            <td className="px-3 py-2 text-right tabular-nums font-semibold">
-                              {r.weight_t != null ? (Number(r.weight_t) / 1000).toFixed(3) : "—"}
-                            </td>
-                            <td className="px-3 py-2">
-                              <Badge variant="secondary" className="text-[10px]">Pending API</Badge>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {filtered.map((m) => (
+                        <tr key={m.row.id} className="border-b border-border/30 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-mono font-semibold">{m.ticket}</td>
+                          <td className="px-3 py-2 tabular-nums text-muted-foreground">{m.time || "—"}</td>
+                          <td className={`px-3 py-2 ${!m.customer ? missingCls : ""}`}>
+                            <div className="font-medium">{m.customer || "Missing"}</div>
+                            {m.site && <div className="text-xs text-muted-foreground">{m.site}</div>}
+                          </td>
+                          <td className={`px-3 py-2 font-mono ${!m.vehicle ? missingCls : ""}`}>{m.vehicle || "Missing"}</td>
+                          <td className={`px-3 py-2 font-mono ${!m.carrierReg ? missingCls : ""}`}>{m.carrierReg || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.carrierName ? missingCls : ""}`}>{m.carrierName || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.physicalForm ? missingCls : ""}`}>{m.physicalForm || "Missing"}</td>
+                          <td className={`px-3 py-2 font-mono ${!m.ewc ? missingCls : ""}`}>{m.ewc || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.waste ? missingCls : ""}`}>{m.waste || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.container ? missingCls : ""}`}>{m.container || "Missing"}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums font-semibold ${m.weightT == null ? missingCls : ""}`}>
+                            {m.weightT != null ? m.weightT.toFixed(3) : "Missing"}
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge variant="secondary" className="text-[10px]">Pending API</Badge>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Button size="sm" variant="ghost" onClick={() => setEditing(m.row)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                     <tfoot className="bg-muted/30 border-t border-border/50 font-semibold">
                       <tr>
                         <td className="px-3 py-2" colSpan={10}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
-                        <td />
+                        <td colSpan={2} />
                       </tr>
                     </tfoot>
                   </table>
@@ -253,21 +320,129 @@ const DigitalWasteTrackingPage = () => {
           </Card>
 
           <p className="text-xs text-muted-foreground">
-            Data source: Midweigh weighbridge (data_hub_jobs). Once the DWT Receipt of Waste API is
-            connected, each row will POST automatically at the point of receipt and store its returned
-            WT-ID against the ticket.
+            Data source: Midweigh weighbridge (data_hub_jobs). Manual edits are saved to dwt_job_overrides
+            and take precedence over the raw ticket. Once the DWT Receipt of Waste API is connected each
+            completed row will POST at the point of receipt and store its returned WT-ID.
           </p>
         </div>
       </main>
+
+      <EditDialog
+        row={editing}
+        currentOverride={editing ? overridesMap[editing.id] : undefined}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["dwt-overrides", date] });
+          setEditing(null);
+        }}
+      />
     </div>
   );
 };
 
-function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function EditDialog({
+  row,
+  currentOverride,
+  onClose,
+  onSaved,
+}: {
+  row: Row | null;
+  currentOverride?: Override;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<Override>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!row) return;
+    setForm({
+      customer: currentOverride?.customer ?? row.customer ?? "",
+      vehicle_registration: currentOverride?.vehicle_registration ?? row.vehicle_registration ?? "",
+      carrier_registration: currentOverride?.carrier_registration ?? rawField(row.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+      carrier_name: currentOverride?.carrier_name ?? rawField(row.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
+      physical_form: currentOverride?.physical_form ?? rawField(row.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
+      ewc: currentOverride?.ewc ?? row.ewc ?? "",
+      waste_description: currentOverride?.waste_description ?? row.waste_description ?? "",
+      container_type: currentOverride?.container_type ?? row.container_type ?? "",
+    });
+  }, [row, currentOverride]);
+
+  if (!row) return null;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const cleaned: Override = {};
+      Object.entries(form).forEach(([k, v]) => {
+        if (v != null && String(v).trim() !== "") (cleaned as any)[k] = String(v).trim();
+      });
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("dwt_job_overrides")
+        .upsert(
+          { job_id: row.id, overrides: cleaned as any, updated_by: userRes.user?.id ?? null },
+          { onConflict: "job_id" }
+        );
+      if (error) throw error;
+      toast.success("DWT details saved");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!row} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit DWT details — Ticket {row.job_number}</DialogTitle>
+          <DialogDescription>
+            Complete any missing fields required for Digital Waste Tracking submission.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-2">
+          <Field label="Customer / Producer" value={form.customer} onChange={(v) => setForm({ ...form, customer: v })} />
+          <Field label="Vehicle Registration" value={form.vehicle_registration} onChange={(v) => setForm({ ...form, vehicle_registration: v })} />
+          <Field label="Carrier Registration" value={form.carrier_registration} onChange={(v) => setForm({ ...form, carrier_registration: v })} placeholder="e.g. CBDU203180" />
+          <Field label="Carrier Name" value={form.carrier_name} onChange={(v) => setForm({ ...form, carrier_name: v })} />
+          <Field label="Physical Form" value={form.physical_form} onChange={(v) => setForm({ ...form, physical_form: v })} placeholder="Solid / Liquid / Sludge / Mixed" />
+          <Field label="EWC Code" value={form.ewc} onChange={(v) => setForm({ ...form, ewc: v })} placeholder="e.g. 20 03 01" />
+          <Field label="Container" value={form.container_type} onChange={(v) => setForm({ ...form, container_type: v })} />
+          <div className="col-span-2">
+            <Field label="Waste Description" value={form.waste_description} onChange={(v) => setForm({ ...form, waste_description: v })} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }: { label: string; value?: string; onChange: (v: string) => void; placeholder?: string }) {
+  const missing = !value || value.trim() === "";
+  return (
+    <div className="space-y-1.5">
+      <Label className={missing ? "text-destructive" : ""}>{label}{missing && " *"}</Label>
+      <Input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={missing ? "border-destructive/60" : ""} />
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, tone = "default" }: { icon: any; label: string; value: string; tone?: "default" | "warn" | "ok" }) {
+  const toneCls =
+    tone === "warn" ? "bg-destructive/10 text-destructive" :
+    tone === "ok" ? "bg-emerald-500/10 text-emerald-600" :
+    "bg-primary/10 text-primary";
   return (
     <Card>
       <CardContent className="p-4 flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${toneCls}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div>
