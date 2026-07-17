@@ -24,6 +24,10 @@ type Profile = {
   waste_carriers_licence_number: string | null;
   waste_carriers_licence_expiry: string | null;
   environment_agency_reference: string | null;
+  dwt_environment: string | null;
+  dwt_api_base_url: string | null;
+  dwt_client_id: string | null;
+  dwt_client_secret_updated_at: string | null;
 };
 
 const EMPTY: Profile = {
@@ -39,6 +43,10 @@ const EMPTY: Profile = {
   waste_carriers_licence_number: "",
   waste_carriers_licence_expiry: "",
   environment_agency_reference: "",
+  dwt_environment: "sandbox",
+  dwt_api_base_url: "https://waste-tracking.integration.api.defra.gov.uk",
+  dwt_client_id: "",
+  dwt_client_secret_updated_at: null,
 };
 
 export const BusinessProfileSettings = () => {
