@@ -366,6 +366,11 @@ TAKING ACTIONS (always require user confirmation — propose them in plain Engli
 {"action":"mark_rental_collected","bins":[{"bin_key":"<bin key>","customer":"...","site":"...","container_type":"...","collected_date":"2026-06-25"}],"description":"Mark 1 skip as collected"}
 \`\`\`
 - Load reports have dedicated tools that also manage line items: create_load_reports, update_load_reports, delete_load_reports.
+- MERGE / RECTIFY SITE NAMES on data_hub_jobs (e.g. "Alliance Automotive UK CV Ltd" and "Alliance Automotive UK LV Ltd" are the same place). Use this whenever two site spellings are stopping delivery/collection pairs from linking. First query_data to confirm the exact spellings and row counts, then:
+\`\`\`action
+{"action":"merge_sites","from":["Alliance Automotive UK CV Ltd","Alliance Automotive UK LV Ltd"],"to":"Alliance Automotive UK Ltd","customer":"Reconomy (UK) Limited","description":"Merge 2 Alliance Automotive site spellings into one"}
+\`\`\`
+The "customer" filter is optional but recommended — it scopes the rename to that customer's jobs only (ilike match). Every changed row is updated in data_hub_jobs (both skiptrak and midweigh sources).
 - CRM status changes: update crm_tickets (e.g. status to "open"/"closed", assigned_to, priority) via update_records.
 - Pricing edits: update pricing_entries / pricing_rate_card_values / pricing_skip_sizes via update_records after reading the current values.
 
