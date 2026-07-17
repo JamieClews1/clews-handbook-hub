@@ -68,6 +68,19 @@ const DigitalWasteTrackingPage = () => {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
 
+  const { data: receiverAuthNumber = "" } = useQuery({
+    queryKey: ["dwt-receiver-auth"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_profile")
+        .select("environment_agency_reference")
+        .limit(1)
+        .maybeSingle();
+      return (data?.environment_agency_reference as string) || "EAWML 48106";
+    },
+    staleTime: 5 * 60_000,
+  });
+
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
