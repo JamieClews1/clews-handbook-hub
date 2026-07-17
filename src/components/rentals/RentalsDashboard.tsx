@@ -631,6 +631,17 @@ export default function RentalsDashboard() {
           toast={toast}
         />
       )}
+
+      {ownSkipBin && (
+        <OwnSkipDialog
+          bin={ownSkipBin}
+          chase={chases[ownSkipBin.binKey]}
+          userId={user?.id ?? null}
+          onClose={() => setOwnSkipBin(null)}
+          onSaved={() => { setOwnSkipBin(null); fetchChases(); }}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
