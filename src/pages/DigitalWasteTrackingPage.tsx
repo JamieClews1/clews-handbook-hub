@@ -420,13 +420,40 @@ const DigitalWasteTrackingPage = () => {
                             {m.weightT != null ? m.weightT.toFixed(3) : "Missing"}
                           </td>
                           <td className="px-3 py-2">
-                            <Badge variant="secondary" className="text-[10px]">Pending API</Badge>
+                            {(() => {
+                              const s = submissions[m.row.id];
+                              if (s?.status === "submitted") return (
+                                <Badge className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30" variant="outline">
+                                  <CheckCircle2 className="h-3 w-3" /> {s.wt_id ? s.wt_id.slice(0, 10) : "Submitted"}
+                                </Badge>
+                              );
+                              if (s?.status === "error") return (
+                                <Badge className="text-[10px] gap-1" variant="destructive" title={s.error_message ?? ""}>
+                                  <XCircle className="h-3 w-3" /> Failed
+                                </Badge>
+                              );
+                              return <Badge variant="secondary" className="text-[10px]">Not submitted</Badge>;
+                            })()}
                           </td>
                           <td className="px-3 py-2">
-                            <Button size="sm" variant="ghost" onClick={() => setEditing(m.row)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => setEditing(m.row)} title="Edit fields">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={!isRowComplete(m) || uploadingIds.has(m.row.id) || submissions[m.row.id]?.status === "submitted"}
+                                onClick={() => uploadRows([m])}
+                                title={!isRowComplete(m) ? "Complete missing fields first" : "Submit to DEFRA DWT"}
+                              >
+                                {uploadingIds.has(m.row.id)
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <Upload className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
                           </td>
+
                         </tr>
                       ))}
                     </tbody>
