@@ -327,7 +327,7 @@ const DigitalWasteTrackingPage = () => {
                     </tbody>
                     <tfoot className="bg-muted/30 border-t border-border/50 font-semibold">
                       <tr>
-                        <td className="px-3 py-2" colSpan={11}>Total</td>
+                        <td className="px-3 py-2" colSpan={12}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
                         <td colSpan={2} />
                       </tr>
