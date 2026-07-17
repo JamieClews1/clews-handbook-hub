@@ -9,7 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Save, Send, Truck, Scale } from "lucide-react";
+import { ArrowLeft, Save, Send, Truck, Scale, Download } from "lucide-react";
+import jsPDF from "jspdf";
 import { LineItem } from "./TallyScreen";
 import { Droplets } from "lucide-react";
 import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
