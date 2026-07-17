@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ShieldCheck, ExternalLink, Radio } from "lucide-react";
 
 type Profile = {
   id?: string;
@@ -174,6 +176,84 @@ export const BusinessProfileSettings = () => {
               placeholder="EAWML 48106"
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                DEFRA Digital Waste Tracking API
+              </CardTitle>
+              <CardDescription>
+                Credentials used to submit Receipt of Waste records to the government DWT service.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="gap-1.5">
+              <Radio className="h-3 w-3" /> Sandbox — credentials stored
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Environment</Label>
+              <Input value="Sandbox (Integration)" readOnly className="bg-muted/40" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>API Base URL</Label>
+              <Input value="https://waste-tracking.integration.api.defra.gov.uk" readOnly className="bg-muted/40 font-mono text-xs" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Client ID</Label>
+              <Input value="1k2vbblqa4s66ge82rq5e6bct8" readOnly className="bg-muted/40 font-mono text-xs" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Client Secret</Label>
+              <Input value="•••••••••••••••••••••••••••••••••••••••••••••" readOnly className="bg-muted/40 font-mono text-xs" />
+              <p className="text-[11px] text-muted-foreground">
+                Stored securely as a backend secret (<code>DWT_CLIENT_SECRET</code>). Never exposed to the browser.
+              </p>
+            </div>
+          </div>
+
+          <Alert>
+            <ShieldCheck className="h-4 w-4" />
+            <AlertTitle>How it works</AlertTitle>
+            <AlertDescription className="space-y-1 text-xs">
+              <p>1. Backend exchanges Client ID + Secret for an access token.</p>
+              <p>2. Access token authorises Receipt of Waste submissions from Digital Waste Tracking.</p>
+              <p>3. Switch to production credentials once sandbox validation is complete.</p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a
+                  href="https://defra.github.io/waste-tracking-service/test/api-specification/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  API specification <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href="https://defra.github.io/waste-tracking-service/test/api-authentication-guide/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  Authentication guide <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href="https://defra.github.io/waste-tracking-service/test/api-testing-and-examples/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  Testing examples <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
