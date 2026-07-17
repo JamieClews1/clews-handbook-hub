@@ -787,12 +787,45 @@ async function sendEmail(data: { to?: string; cc?: string; subject?: string; htm
   }
 }
 
+// Rename one or more data_hub_jobs.site values into a single canonical spelling.
+async function mergeSites(
+  supabase: any,
+  data: { from?: string[]; to?: string; customer?: string },
+) {
+  const results: { updated: number; groups: { from: string; updated: number }[]; errors: string[] } = {
+    updated: 0,
+    groups: [],
+    errors: [],
+  };
+  const from = (data?.from || []).map((s) => String(s || "").trim()).filter(Boolean);
+  const to = String(data?.to || "").trim();
+  if (!to) { results.errors.push("Missing target site name (`to`)."); return results; }
+  if (from.length === 0) { results.errors.push("Missing source site names (`from`)."); return results; }
+  const customer = data?.customer ? String(data.customer).trim() : "";
+  for (const oldName of from) {
+    if (oldName === to) continue;
+    try {
+      let q: any = supabase.from("data_hub_jobs").update({ site: to }).eq("site", oldName);
+      if (customer) q = q.ilike("customer", `%${customer}%`);
+      const { data: rows, error } = await q.select("id");
+      if (error) { results.errors.push(`${oldName}: ${error.message}`); continue; }
+      const n = rows?.length || 0;
+      results.updated += n;
+      results.groups.push({ from: oldName, updated: n });
+    } catch (err: any) {
+      results.errors.push(`${oldName}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
 async function executeAction(supabase: any, tool: string, input: any, userId: string, userName: string) {
   switch (tool) {
     case "update_records": return await updateRecords(supabase, input || {});
     case "delete_records": return await deleteRecords(supabase, input || {});
     case "insert_records": return await insertRecords(supabase, input || {}, userId);
     case "mark_rental_collected": return await markRentalCollected(supabase, input || {}, userId);
+    case "merge_sites": return await mergeSites(supabase, input || {});
     case "create_load_reports": return await createLoadReports(supabase, input || {}, userId, userName);
     case "update_load_reports": return await updateLoadReports(supabase, input || {});
     case "delete_load_reports": return await deleteLoadReports(supabase, input || {});
