@@ -215,6 +215,9 @@ serve(async (req) => {
         case "mark_rental_collected":
           result = await markRentalCollected(adminClient, actionData, user.id);
           break;
+        case "merge_sites":
+          result = await mergeSites(adminClient, actionData);
+          break;
         default:
           result = { error: `Unknown action: ${action}` };
       }
@@ -363,6 +366,11 @@ TAKING ACTIONS (always require user confirmation — propose them in plain Engli
 {"action":"mark_rental_collected","bins":[{"bin_key":"<bin key>","customer":"...","site":"...","container_type":"...","collected_date":"2026-06-25"}],"description":"Mark 1 skip as collected"}
 \`\`\`
 - Load reports have dedicated tools that also manage line items: create_load_reports, update_load_reports, delete_load_reports.
+- MERGE / RECTIFY SITE NAMES on data_hub_jobs (e.g. "Alliance Automotive UK CV Ltd" and "Alliance Automotive UK LV Ltd" are the same place). Use this whenever two site spellings are stopping delivery/collection pairs from linking. First query_data to confirm the exact spellings and row counts, then:
+\`\`\`action
+{"action":"merge_sites","from":["Alliance Automotive UK CV Ltd","Alliance Automotive UK LV Ltd"],"to":"Alliance Automotive UK Ltd","customer":"Reconomy (UK) Limited","description":"Merge 2 Alliance Automotive site spellings into one"}
+\`\`\`
+The "customer" filter is optional but recommended — it scopes the rename to that customer's jobs only (ilike match). Every changed row is updated in data_hub_jobs (both skiptrak and midweigh sources).
 - CRM status changes: update crm_tickets (e.g. status to "open"/"closed", assigned_to, priority) via update_records.
 - Pricing edits: update pricing_entries / pricing_rate_card_values / pricing_skip_sizes via update_records after reading the current values.
 
@@ -994,6 +1002,39 @@ async function markRentalCollected(
       else results.updated++;
     } catch (err: any) {
       results.errors.push(err.message);
+    }
+  }
+  return results;
+}
+
+// Rename one or more data_hub_jobs.site values into a single canonical spelling
+// so delivery/collection pairs, rebate matching and rentals line up correctly.
+async function mergeSites(
+  supabase: any,
+  data: { from?: string[]; to?: string; customer?: string },
+) {
+  const results: { updated: number; groups: { from: string; updated: number }[]; errors: string[] } = {
+    updated: 0,
+    groups: [],
+    errors: [],
+  };
+  const from = (data?.from || []).map((s) => String(s || "").trim()).filter(Boolean);
+  const to = String(data?.to || "").trim();
+  if (!to) { results.errors.push("Missing target site name (`to`)."); return results; }
+  if (from.length === 0) { results.errors.push("Missing source site names (`from`)."); return results; }
+  const customer = data?.customer ? String(data.customer).trim() : "";
+  for (const oldName of from) {
+    if (oldName === to) continue;
+    try {
+      let q: any = supabase.from("data_hub_jobs").update({ site: to }).eq("site", oldName);
+      if (customer) q = q.ilike("customer", `%${customer}%`);
+      const { data: rows, error } = await q.select("id");
+      if (error) { results.errors.push(`${oldName}: ${error.message}`); continue; }
+      const n = rows?.length || 0;
+      results.updated += n;
+      results.groups.push({ from: oldName, updated: n });
+    } catch (err: any) {
+      results.errors.push(`${oldName}: ${err.message}`);
     }
   }
   return results;

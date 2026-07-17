@@ -140,6 +140,7 @@ const ACTION_TOOL_NAMES = new Set<string>([
   "delete_records",
   "insert_records",
   "mark_rental_collected",
+  "merge_sites",
   "create_load_reports",
   "update_load_reports",
   "delete_load_reports",
@@ -185,7 +186,8 @@ GETTING GREAT ANSWERS (matching rules):
 BE DETERMINED: you have many tool turns. A good answer often takes several queries — orient with schema_info, list distinct matches, pull rows, cross-check, then answer. If a query returns nothing, broaden it and try again before giving up.
 
 DOING TASKS (action tools — these CHANGE data or send email):
-- You can take actions on the staff member's behalf: update_records, delete_records, insert_records, create_load_reports, update_load_reports, delete_load_reports, mark_rental_collected, and send_email.
+- You can take actions on the staff member's behalf: update_records, delete_records, insert_records, create_load_reports, update_load_reports, delete_load_reports, mark_rental_collected, merge_sites, and send_email.
+- MERGE / RECTIFY SITE NAMES: when two site spellings on data_hub_jobs (e.g. "Alliance Automotive UK CV Ltd" vs "…LV Ltd") are stopping delivery/collection pairs from linking, use merge_sites {from:[…], to:"canonical", customer?:"…", description}. Always query_data first to confirm exact spellings and row counts. Optional "customer" scopes the rename to that customer's jobs only.
 - NOTHING runs automatically. When you call an action tool, the portal shows ${name} a confirmation card and only runs it if they click Confirm. So always: (1) ALWAYS read with query_data FIRST to find the real records and their ids — never invent ids; (2) write a short, friendly message describing exactly what you're about to do; (3) THEN call the action tool(s).
 - Every action tool MUST include a clear "description" field (a one-line plain-English summary of the change, e.g. "Close 3 CRM tickets" or "Email the quote to jane@acme.com") — this is what the user sees on the confirm button.
 - For record edits use update_records {table, updates:[{id, changes}]}; for removals delete_records {table, ids:[]}; for new rows insert_records {table, rows:[]}. CRM status changes: update crm_tickets (status "open"/"closed", assigned_to, priority). Pricing edits: update pricing_entries / pricing_rate_card_values / pricing_skip_sizes after reading current values. Load reports have dedicated tools that also manage their line items.
@@ -339,6 +341,20 @@ const ACTION_TOOLS = [
         description: { type: "string" },
       },
       required: ["bins", "description"],
+    },
+  },
+  {
+    name: "merge_sites",
+    description: "Rename one or more data_hub_jobs.site values into a single canonical spelling so delivery/collection pairs, rebates and rentals line up. Read data_hub_jobs first with query_data to confirm the exact spellings.",
+    input_schema: {
+      type: "object",
+      properties: {
+        from: { type: "array", items: { type: "string" }, description: "Site names to rename (exact match)." },
+        to: { type: "string", description: "Canonical site name to keep." },
+        customer: { type: "string", description: "Optional customer ilike filter to scope the rename." },
+        description: { type: "string" },
+      },
+      required: ["from", "to", "description"],
     },
   },
   {
@@ -772,12 +788,45 @@ async function sendEmail(data: { to?: string; cc?: string; subject?: string; htm
   }
 }
 
+// Rename one or more data_hub_jobs.site values into a single canonical spelling.
+async function mergeSites(
+  supabase: any,
+  data: { from?: string[]; to?: string; customer?: string },
+) {
+  const results: { updated: number; groups: { from: string; updated: number }[]; errors: string[] } = {
+    updated: 0,
+    groups: [],
+    errors: [],
+  };
+  const from = (data?.from || []).map((s) => String(s || "").trim()).filter(Boolean);
+  const to = String(data?.to || "").trim();
+  if (!to) { results.errors.push("Missing target site name (`to`)."); return results; }
+  if (from.length === 0) { results.errors.push("Missing source site names (`from`)."); return results; }
+  const customer = data?.customer ? String(data.customer).trim() : "";
+  for (const oldName of from) {
+    if (oldName === to) continue;
+    try {
+      let q: any = supabase.from("data_hub_jobs").update({ site: to }).eq("site", oldName);
+      if (customer) q = q.ilike("customer", `%${customer}%`);
+      const { data: rows, error } = await q.select("id");
+      if (error) { results.errors.push(`${oldName}: ${error.message}`); continue; }
+      const n = rows?.length || 0;
+      results.updated += n;
+      results.groups.push({ from: oldName, updated: n });
+    } catch (err: any) {
+      results.errors.push(`${oldName}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
 async function executeAction(supabase: any, tool: string, input: any, userId: string, userName: string) {
   switch (tool) {
     case "update_records": return await updateRecords(supabase, input || {});
     case "delete_records": return await deleteRecords(supabase, input || {});
     case "insert_records": return await insertRecords(supabase, input || {}, userId);
     case "mark_rental_collected": return await markRentalCollected(supabase, input || {}, userId);
+    case "merge_sites": return await mergeSites(supabase, input || {});
     case "create_load_reports": return await createLoadReports(supabase, input || {}, userId, userName);
     case "update_load_reports": return await updateLoadReports(supabase, input || {});
     case "delete_load_reports": return await deleteLoadReports(supabase, input || {});
