@@ -81,7 +81,7 @@ export function AppSidebar() {
   // Persisted open/closed state per group (falls back to "open if on that route")
   const [wasteOneOpen, setWasteOneOpen] = useSidebarGroupState(
     "wasteone",
-    isInSection(["/route-one", "/weigh-one", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"]),
+    isInSection(["/route-one", "/weigh-one", "/digital-waste-tracking", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"]),
   );
   const [onePortalOpen, setOnePortalOpen] = useSidebarGroupState(
     "oneportal",
@@ -195,6 +195,14 @@ export function AppSidebar() {
                       <Link to="/weigh-one">
                         <Scale className="h-[18px] w-[18px]" />
                         {!collapsed && <span>WeighOne</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="digital-waste-tracking">
+                    <SidebarMenuButton asChild isActive={isActive("/digital-waste-tracking")}>
+                      <Link to="/digital-waste-tracking">
+                        <Radio className="h-[18px] w-[18px]" />
+                        {!collapsed && <span>Digital Waste Tracking</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

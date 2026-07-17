@@ -56,6 +56,7 @@ import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
+import DigitalWasteTrackingPage from "./pages/DigitalWasteTrackingPage";
 import DriverAppPage from "./pages/DriverAppPage";
 import BanksmanAppPage from "./pages/BanksmanAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
@@ -153,6 +154,7 @@ const App = () => (
             <Route path="/performance-hub/stock-check" element={<Staff><StockCheckPage /></Staff>} />
             <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
+            <Route path="/digital-waste-tracking" element={<Staff><DigitalWasteTrackingPage /></Staff>} />
             <Route path="/performance-hub/projections" element={<Staff><ProjectionsPage /></Staff>} />
             <Route path="/performance-hub/fuel-surcharges" element={<Staff><FuelSurchargesPage /></Staff>} />
             <Route path="/diary" element={<Staff><DiaryPage /></Staff>} />

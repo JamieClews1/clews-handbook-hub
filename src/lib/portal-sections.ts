@@ -16,6 +16,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   // WasteOne
   { key: "route-one", label: "RouteOne", category: "WasteOne", path: "/route-one" },
   { key: "weigh-one", label: "WeighOne", category: "WasteOne", path: "/weigh-one" },
+  { key: "digital-waste-tracking", label: "Digital Waste Tracking", category: "WasteOne", path: "/digital-waste-tracking" },
 
   // OnePortal
   { key: "duty-of-care", label: "Duty of Care", category: "OnePortal", path: "/duty-of-care" },
