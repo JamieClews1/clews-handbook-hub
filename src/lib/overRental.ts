@@ -85,6 +85,13 @@ function positionNetOnSite(p: PosCounts, windowStart?: string): number {
       : (p.lastKeepDate ?? p.lastCollectionDate);
     if (activity && activity < windowStart) return 0;
   }
+  // Implicit standing bin: an Exchange-only (or Tip/Return-only) position with no Deliver
+  // and no Collect represents a bin whose establishing delivery predates our data. Every
+  // Exchange keeps a bin permanently on site, so treat this as net = 1 (e.g. Technicolor
+  // 48422: 40yd RoRo serviced by Exchanges for years, no Deliver on record).
+  if (net === 0 && p.delivered === 0 && p.collected === 0 && (p.exchanged > 0 || p.tipReturn > 0)) {
+    return 1;
+  }
   return Math.max(net, 0);
 }
 
