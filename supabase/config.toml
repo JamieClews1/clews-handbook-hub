@@ -70,3 +70,6 @@ verify_jwt = false
 
 [functions.driver-actions]
 verify_jwt = false
+
+[functions.check-live-sync]
+verify_jwt = false
