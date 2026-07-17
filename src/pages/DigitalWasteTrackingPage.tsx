@@ -416,6 +416,7 @@ function EditDialog({
           <Field label="Physical Form" value={form.physical_form} onChange={(v) => setForm({ ...form, physical_form: v })} placeholder="Solid / Liquid / Sludge / Mixed" />
           <Field label="EWC Code" value={form.ewc} onChange={(v) => setForm({ ...form, ewc: v })} placeholder="e.g. 20 03 01" />
           <Field label="Container" value={form.container_type} onChange={(v) => setForm({ ...form, container_type: v })} />
+          <Field label="Means of Transport" value={form.means_of_transport} onChange={(v) => setForm({ ...form, means_of_transport: v })} placeholder="Road / Rail / Sea / Air" />
           <div className="col-span-2">
             <Field label="Waste Description" value={form.waste_description} onChange={(v) => setForm({ ...form, waste_description: v })} />
           </div>
