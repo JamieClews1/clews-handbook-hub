@@ -9,7 +9,12 @@ const CLIENT_SECRET = Deno.env.get('DWT_CLIENT_SECRET') ?? '';
 const BASE_URL = (Deno.env.get('DWT_API_BASE_URL') ?? 'https://waste-tracking.integration.api.defra.gov.uk').replace(/\/+$/, '');
 const ENVIRONMENT = Deno.env.get('DWT_ENVIRONMENT') ?? 'sandbox';
 
-const TOKEN_URL = 'https://waste-tracking-service-tst.auth.eu-west-2.amazoncognito.com/oauth2/token';
+const TOKEN_BASE_URL = Deno.env.get('DWT_OAUTH_BASE_URL') ?? (
+  ENVIRONMENT === 'production'
+    ? 'https://waste-movement-external-api-75ee2.auth.eu-west-2.amazoncognito.com'
+    : 'https://waste-movement-external-api-8ec5c.auth.eu-west-2.amazoncognito.com'
+);
+const TOKEN_URL = `${TOKEN_BASE_URL.replace(/\/+$/, '')}/oauth2/token`;
 
 async function getAccessToken(): Promise<{ token?: string; error?: string; raw?: any }> {
   if (!CLIENT_ID || !CLIENT_SECRET) {
@@ -22,7 +27,7 @@ async function getAccessToken(): Promise<{ token?: string; error?: string; raw?:
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Basic ${basic}`,
     },
-    body: 'grant_type=client_credentials',
+    body: `grant_type=client_credentials&client_id=${encodeURIComponent(CLIENT_ID)}&client_secret=${encodeURIComponent(CLIENT_SECRET)}`,
   });
   const text = await res.text();
   let json: any;
