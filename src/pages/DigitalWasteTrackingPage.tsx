@@ -295,6 +295,7 @@ const DigitalWasteTrackingPage = () => {
                           <td className={`px-3 py-2 font-mono ${!m.ewc ? missingCls : ""}`}>{m.ewc || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.waste ? missingCls : ""}`}>{m.waste || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.container ? missingCls : ""}`}>{m.container || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.meansOfTransport ? missingCls : ""}`}>{m.meansOfTransport || "Missing"}</td>
                           <td className={`px-3 py-2 text-right tabular-nums font-semibold ${m.weightT == null ? missingCls : ""}`}>
                             {m.weightT != null ? m.weightT.toFixed(3) : "Missing"}
                           </td>
