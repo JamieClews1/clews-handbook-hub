@@ -215,6 +215,9 @@ serve(async (req) => {
         case "mark_rental_collected":
           result = await markRentalCollected(adminClient, actionData, user.id);
           break;
+        case "merge_sites":
+          result = await mergeSites(adminClient, actionData);
+          break;
         default:
           result = { error: `Unknown action: ${action}` };
       }
