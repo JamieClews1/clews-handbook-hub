@@ -369,6 +369,7 @@ function EditDialog({
       ewc: currentOverride?.ewc ?? row.ewc ?? "",
       waste_description: currentOverride?.waste_description ?? row.waste_description ?? "",
       container_type: currentOverride?.container_type ?? row.container_type ?? "",
+      means_of_transport: currentOverride?.means_of_transport ?? rawField(row.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) ?? "Road",
     });
   }, [row, currentOverride]);
 
