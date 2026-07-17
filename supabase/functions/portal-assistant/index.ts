@@ -1007,6 +1007,39 @@ async function markRentalCollected(
   return results;
 }
 
+// Rename one or more data_hub_jobs.site values into a single canonical spelling
+// so delivery/collection pairs, rebate matching and rentals line up correctly.
+async function mergeSites(
+  supabase: any,
+  data: { from?: string[]; to?: string; customer?: string },
+) {
+  const results: { updated: number; groups: { from: string; updated: number }[]; errors: string[] } = {
+    updated: 0,
+    groups: [],
+    errors: [],
+  };
+  const from = (data?.from || []).map((s) => String(s || "").trim()).filter(Boolean);
+  const to = String(data?.to || "").trim();
+  if (!to) { results.errors.push("Missing target site name (`to`)."); return results; }
+  if (from.length === 0) { results.errors.push("Missing source site names (`from`)."); return results; }
+  const customer = data?.customer ? String(data.customer).trim() : "";
+  for (const oldName of from) {
+    if (oldName === to) continue;
+    try {
+      let q: any = supabase.from("data_hub_jobs").update({ site: to }).eq("site", oldName);
+      if (customer) q = q.ilike("customer", `%${customer}%`);
+      const { data: rows, error } = await q.select("id");
+      if (error) { results.errors.push(`${oldName}: ${error.message}`); continue; }
+      const n = rows?.length || 0;
+      results.updated += n;
+      results.groups.push({ from: oldName, updated: n });
+    } catch (err: any) {
+      results.errors.push(`${oldName}: ${err.message}`);
+    }
+  }
+  return results;
+}
+
 // ---------- Load report tools (ported from admin-agent) ----------
 async function createLoadReports(
   supabase: any,
