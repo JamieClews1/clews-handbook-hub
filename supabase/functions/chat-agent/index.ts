@@ -340,6 +340,7 @@ const ACTION_TOOLS = [
         description: { type: "string" },
       },
       required: ["bins", "description"],
+    },
   },
   {
     name: "merge_sites",
@@ -354,7 +355,6 @@ const ACTION_TOOLS = [
       },
       required: ["from", "to", "description"],
     },
-  },
   },
   {
     name: "create_load_reports",
