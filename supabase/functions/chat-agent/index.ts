@@ -140,6 +140,7 @@ const ACTION_TOOL_NAMES = new Set<string>([
   "delete_records",
   "insert_records",
   "mark_rental_collected",
+  "merge_sites",
   "create_load_reports",
   "update_load_reports",
   "delete_load_reports",
