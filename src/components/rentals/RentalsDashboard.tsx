@@ -209,9 +209,18 @@ export default function RentalsDashboard() {
   const allBins = useMemo(() => {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
-    // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site).
+    // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site)
+    // and bins where the customer supplies their own skip.
     return computeOverRentalBins(jobs, settings)
-      .filter((b) => !chases[b.binKey]?.collected);
+      .filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip);
+  }, [jobs, settings, settingsLoading, chases]);
+
+  // Bins the customer has confirmed are their own — pulled off the chase list but
+  // kept visible for reference.
+  const ownSkipBins = useMemo(() => {
+    if (settingsLoading) return [];
+    return computeOverRentalBins(jobs, settings)
+      .filter((b) => chases[b.binKey]?.own_skip && !chases[b.binKey]?.collected);
   }, [jobs, settings, settingsLoading, chases]);
 
   // Bins covered by an active rental agreement (e.g. open-ended ones) are pulled out
