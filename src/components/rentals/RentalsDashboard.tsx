@@ -520,6 +520,65 @@ export default function RentalsDashboard() {
         </Card>
       )}
 
+      {ownSkipBins.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
+              <Package className="h-5 w-5" />
+              Customer Own Skip ({ownSkipBins.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              These bins are the customer's own container, so they're excluded from the chase list. Undo to move a bin back into Over Rental.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Container</TableHead>
+                  <TableHead className="text-center">On-Site</TableHead>
+                  <TableHead>Last Ticket</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ownSkipBins.map((b) => {
+                  const c = chases[b.binKey];
+                  return (
+                    <TableRow key={b.binKey}>
+                      <TableCell className="font-medium">{b.customer}</TableCell>
+                      <TableCell>{b.site}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{b.netOnSite}</Badge></TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{c?.notes ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            if (!c) return;
+                            const { error } = await supabase.from("rental_chases").update({ own_skip: false }).eq("id", c.id);
+                            if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+                            toast({ title: "Moved back to Over Rental" });
+                            fetchChases();
+                          }}
+                        >
+                          Undo
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {manageBin && (
         <ManageDialog
           bin={manageBin}
