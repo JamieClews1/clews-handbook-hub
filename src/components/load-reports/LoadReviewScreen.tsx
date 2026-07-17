@@ -91,6 +91,99 @@ export const LoadReviewScreen = ({
     return colors[wasteType] || "";
   };
 
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginX = 40;
+    let y = 50;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Load Report Summary", marginX, y);
+    y += 22;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const dateStr = formatLoadReportDateLocale(reportDate, "en-GB", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
+    const info: [string, string][] = [
+      ["Date", dateStr],
+      ["Operator", operatorName || "-"],
+      ["Vehicle", vehicleReg || "-"],
+      ["Job Number", jobNumber || "-"],
+    ];
+    if (typeof weighbridgeWeightKg === "number") {
+      info.push(["Weighbridge Weight (kg)", Math.round(weighbridgeWeightKg).toLocaleString()]);
+    }
+    if (cardboardIncomingKg > 0) {
+      info.push(["Pallets In (cardboard)", `${cardboardPalletsIn} x 90 kg = ${cardboardIncomingKg.toLocaleString()} kg`]);
+    }
+    if (palletsOutAdjustmentKg > 0) {
+      info.push(["Pallets Out (empty)", `${palletsOutCount} x 20 kg = ${palletsOutAdjustmentKg.toLocaleString()} kg`]);
+    }
+    if (customerType) info.push(["Customer Type", customerType]);
+    info.forEach(([k, v]) => {
+      doc.text(`${k}:`, marginX, y);
+      doc.text(String(v), marginX + 160, y);
+      y += 14;
+    });
+
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("Tally", marginX, y);
+    y += 14;
+
+    const headers = ["Waste Type", "Pallets", "Avg (kg)", "Total (kg)", "Pallet Wt (kg)", "Actual (kg)"];
+    const colX = [marginX, marginX + 190, marginX + 250, marginX + 315, marginX + 395, marginX + 475];
+    doc.setFontSize(9);
+    headers.forEach((h, i) => doc.text(h, colX[i], y));
+    y += 4;
+    doc.line(marginX, y, pageWidth - marginX, y);
+    y += 12;
+
+    doc.setFont("helvetica", "normal");
+    let tPallets = 0, tTotal = 0, tPalletWt = 0, tActual = 0;
+    lineItems.forEach((item) => {
+      if (y > 780) { doc.addPage(); y = 50; }
+      const total = item.pallet_count * item.avg_weight_kg;
+      const palletWt = noPalletsOnLoad ? 0 : item.pallet_count * (item.pallet_weight_kg || 0);
+      const actual = total - palletWt;
+      tPallets += item.pallet_count; tTotal += total; tPalletWt += palletWt; tActual += actual;
+      doc.text(String(item.waste_type), colX[0], y);
+      doc.text(String(item.pallet_count), colX[1], y);
+      doc.text(String(item.avg_weight_kg), colX[2], y);
+      doc.text(total.toLocaleString(), colX[3], y);
+      doc.text(palletWt.toLocaleString(), colX[4], y);
+      doc.text(actual.toLocaleString(), colX[5], y);
+      y += 14;
+    });
+    y += 2;
+    doc.line(marginX, y, pageWidth - marginX, y);
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL", colX[0], y);
+    doc.text(String(tPallets), colX[1], y);
+    doc.text(tTotal.toLocaleString(), colX[3], y);
+    doc.text(tPalletWt.toLocaleString(), colX[4], y);
+    doc.text(tActual.toLocaleString(), colX[5], y);
+    y += 20;
+
+    if (wetChargePercent > 0) {
+      doc.setFont("helvetica", "normal");
+      doc.text(`Wet charge: -${wetChargePercent}% on ${lineItems.filter(i => i.wet_charge_applied && i.pallet_count > 0).map(i => i.waste_type).join(", ") || "None"}`, marginX, y);
+      y += 14;
+    }
+    if (rebateThresholdTonnes > 0) {
+      doc.text(`Rebate threshold: ${rebateThresholdTonnes}t on ${lineItems.filter(i => i.rebate_threshold_applied && i.pallet_count > 0).map(i => i.waste_type).join(", ") || "None"}`, marginX, y);
+      y += 14;
+    }
+
+    const safeJob = (jobNumber || "load-report").replace(/[^a-z0-9-_]+/gi, "_");
+    doc.save(`load-report-${safeJob}-${reportDate}.pdf`);
+  };
+
+
   return (
     <div className="space-y-6 pb-8">
       {/* Report Info Card */}
