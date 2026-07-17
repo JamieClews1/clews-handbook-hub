@@ -198,7 +198,9 @@ const DigitalWasteTrackingPage = () => {
                         <th className="text-left px-3 py-2 font-medium">Time</th>
                         <th className="text-left px-3 py-2 font-medium">Customer / Producer</th>
                         <th className="text-left px-3 py-2 font-medium">Vehicle</th>
-                        <th className="text-left px-3 py-2 font-medium">Carrier</th>
+                        <th className="text-left px-3 py-2 font-medium">Carrier Registration</th>
+                        <th className="text-left px-3 py-2 font-medium">Carrier Name</th>
+                        <th className="text-left px-3 py-2 font-medium">Physical Form</th>
                         <th className="text-left px-3 py-2 font-medium">EWC</th>
                         <th className="text-left px-3 py-2 font-medium">Waste description</th>
                         <th className="text-left px-3 py-2 font-medium">Container</th>
