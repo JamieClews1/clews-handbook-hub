@@ -135,6 +135,7 @@ const DigitalWasteTrackingPage = () => {
         ewc: ov.ewc || r.ewc || "",
         waste: ov.waste_description || r.waste_description || "",
         container: ov.container_type || r.container_type || "",
+        meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || "Road",
         weightT: r.weight_t != null ? Number(r.weight_t) / 1000 : null,
       };
     });
