@@ -68,6 +68,19 @@ const DigitalWasteTrackingPage = () => {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
 
+  const { data: receiverAuthNumber = "" } = useQuery({
+    queryKey: ["dwt-receiver-auth"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_profile")
+        .select("environment_agency_reference")
+        .limit(1)
+        .maybeSingle();
+      return (data?.environment_agency_reference as string) || "EAWML 48106";
+    },
+    staleTime: 5 * 60_000,
+  });
+
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
@@ -264,6 +277,7 @@ const DigitalWasteTrackingPage = () => {
                     <thead className="bg-muted/40 border-b border-border/50 text-xs uppercase text-muted-foreground">
                       <tr>
                         <th className="text-left px-3 py-2 font-medium">Ticket #</th>
+                        <th className="text-left px-3 py-2 font-medium">Receiver's Auth #</th>
                         <th className="text-left px-3 py-2 font-medium">Time</th>
                         <th className="text-left px-3 py-2 font-medium">Customer / Producer</th>
                         <th className="text-left px-3 py-2 font-medium">Vehicle</th>
@@ -283,6 +297,7 @@ const DigitalWasteTrackingPage = () => {
                       {filtered.map((m) => (
                         <tr key={m.row.id} className="border-b border-border/30 hover:bg-muted/30">
                           <td className="px-3 py-2 font-mono font-semibold">{m.ticket}</td>
+                          <td className={`px-3 py-2 font-mono text-xs ${!receiverAuthNumber ? missingCls : ""}`}>{receiverAuthNumber || "Missing"}</td>
                           <td className="px-3 py-2 tabular-nums text-muted-foreground">{m.time || "—"}</td>
                           <td className={`px-3 py-2 ${!m.customer ? missingCls : ""}`}>
                             <div className="font-medium">{m.customer || "Missing"}</div>
@@ -312,7 +327,7 @@ const DigitalWasteTrackingPage = () => {
                     </tbody>
                     <tfoot className="bg-muted/30 border-t border-border/50 font-semibold">
                       <tr>
-                        <td className="px-3 py-2" colSpan={11}>Total</td>
+                        <td className="px-3 py-2" colSpan={12}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
                         <td colSpan={2} />
                       </tr>
