@@ -297,6 +297,7 @@ const DigitalWasteTrackingPage = () => {
                       {filtered.map((m) => (
                         <tr key={m.row.id} className="border-b border-border/30 hover:bg-muted/30">
                           <td className="px-3 py-2 font-mono font-semibold">{m.ticket}</td>
+                          <td className={`px-3 py-2 font-mono text-xs ${!receiverAuthNumber ? missingCls : ""}`}>{receiverAuthNumber || "Missing"}</td>
                           <td className="px-3 py-2 tabular-nums text-muted-foreground">{m.time || "—"}</td>
                           <td className={`px-3 py-2 ${!m.customer ? missingCls : ""}`}>
                             <div className="font-medium">{m.customer || "Missing"}</div>
