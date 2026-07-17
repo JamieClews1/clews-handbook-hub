@@ -48,6 +48,7 @@ type Override = {
   waste_description?: string;
   container_type?: string;
   customer?: string;
+  means_of_transport?: string;
 };
 
 const rawField = (raw: Json, keys: string[]): string => {
@@ -134,6 +135,7 @@ const DigitalWasteTrackingPage = () => {
         ewc: ov.ewc || r.ewc || "",
         waste: ov.waste_description || r.waste_description || "",
         container: ov.container_type || r.container_type || "",
+        meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || "Road",
         weightT: r.weight_t != null ? Number(r.weight_t) / 1000 : null,
       };
     });
@@ -271,6 +273,7 @@ const DigitalWasteTrackingPage = () => {
                         <th className="text-left px-3 py-2 font-medium">EWC</th>
                         <th className="text-left px-3 py-2 font-medium">Waste description</th>
                         <th className="text-left px-3 py-2 font-medium">Container</th>
+                        <th className="text-left px-3 py-2 font-medium">Means of Transport</th>
                         <th className="text-right px-3 py-2 font-medium">Weight (t)</th>
                         <th className="text-left px-3 py-2 font-medium">DWT</th>
                         <th />
@@ -292,6 +295,7 @@ const DigitalWasteTrackingPage = () => {
                           <td className={`px-3 py-2 font-mono ${!m.ewc ? missingCls : ""}`}>{m.ewc || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.waste ? missingCls : ""}`}>{m.waste || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.container ? missingCls : ""}`}>{m.container || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.meansOfTransport ? missingCls : ""}`}>{m.meansOfTransport || "Missing"}</td>
                           <td className={`px-3 py-2 text-right tabular-nums font-semibold ${m.weightT == null ? missingCls : ""}`}>
                             {m.weightT != null ? m.weightT.toFixed(3) : "Missing"}
                           </td>
@@ -308,7 +312,7 @@ const DigitalWasteTrackingPage = () => {
                     </tbody>
                     <tfoot className="bg-muted/30 border-t border-border/50 font-semibold">
                       <tr>
-                        <td className="px-3 py-2" colSpan={10}>Total</td>
+                        <td className="px-3 py-2" colSpan={11}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
                         <td colSpan={2} />
                       </tr>
@@ -365,6 +369,7 @@ function EditDialog({
       ewc: currentOverride?.ewc ?? row.ewc ?? "",
       waste_description: currentOverride?.waste_description ?? row.waste_description ?? "",
       container_type: currentOverride?.container_type ?? row.container_type ?? "",
+      means_of_transport: currentOverride?.means_of_transport || rawField(row.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || "Road",
     });
   }, [row, currentOverride]);
 
@@ -411,6 +416,7 @@ function EditDialog({
           <Field label="Physical Form" value={form.physical_form} onChange={(v) => setForm({ ...form, physical_form: v })} placeholder="Solid / Liquid / Sludge / Mixed" />
           <Field label="EWC Code" value={form.ewc} onChange={(v) => setForm({ ...form, ewc: v })} placeholder="e.g. 20 03 01" />
           <Field label="Container" value={form.container_type} onChange={(v) => setForm({ ...form, container_type: v })} />
+          <Field label="Means of Transport" value={form.means_of_transport} onChange={(v) => setForm({ ...form, means_of_transport: v })} placeholder="Road / Rail / Sea / Air" />
           <div className="col-span-2">
             <Field label="Waste Description" value={form.waste_description} onChange={(v) => setForm({ ...form, waste_description: v })} />
           </div>
