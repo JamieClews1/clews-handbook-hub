@@ -298,7 +298,7 @@ const DigitalWasteTrackingPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-bold text-foreground">Digital Waste Tracking</h1>
                 <Badge variant="outline" className="gap-1.5">
-                  <Radio className="h-3 w-3" /> API not connected
+                  <Radio className="h-3 w-3" /> DEFRA sandbox
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
@@ -307,7 +307,23 @@ const DigitalWasteTrackingPage = () => {
                 via the Receipt of Waste API.
               </p>
             </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={testApi} disabled={testingApi} className="gap-2">
+                {testingApi ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+                Test API
+              </Button>
+              <Button
+                size="sm"
+                className="gap-2"
+                disabled={uploadingIds.size > 0}
+                onClick={() => uploadRows(filtered.filter((m) => isRowComplete(m) && submissions[m.row.id]?.status !== "submitted"))}
+              >
+                {uploadingIds.size > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                Upload all valid to DWT
+              </Button>
+            </div>
           </div>
+
 
           <Alert>
             <Info className="h-4 w-4" />
