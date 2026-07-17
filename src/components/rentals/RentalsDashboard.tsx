@@ -39,6 +39,7 @@ type Chase = {
   collected: boolean;
   collection_ticket: string | null;
   collected_date: string | null;
+  own_skip: boolean;
 };
 
 type Profile = { id: string; full_name: string | null; email: string | null };
