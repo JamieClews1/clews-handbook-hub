@@ -361,6 +361,13 @@ function positionNetFromRow(r: RentalPositionRow, windowStart: string): number {
     ? (r.last_collection_date >= r.last_keep_date ? r.last_collection_date : r.last_keep_date)
     : (r.last_keep_date ?? r.last_collection_date);
   if (activity && activity < windowStart) return 0;
+  // Implicit standing bin: an Exchange-only (or Tip/Return-only) position with no Deliver
+  // and no Collect represents a bin whose establishing delivery predates our data. Every
+  // Exchange keeps a bin permanently on site, so treat this as net = 1 (e.g. Technicolor
+  // 48422: 40yd RoRo serviced by Exchanges for years, no Deliver on record).
+  if (net === 0 && r.delivered === 0 && r.collected === 0 && (r.exchanged > 0 || r.tipreturn > 0)) {
+    return 1;
+  }
   return Math.max(net, 0);
 }
 
