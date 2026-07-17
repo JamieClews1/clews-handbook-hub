@@ -1104,3 +1104,53 @@ function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, on
     </Dialog>
   );
 }
+
+function OwnSkipDialog({ bin, chase, userId, onClose, onSaved, toast }: {
+  bin: OverRentalBin; chase?: Chase; userId: string | null;
+  onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const [notes, setNotes] = useState(chase?.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const id = await ensureChase(bin, userId);
+    if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
+    const { error } = await supabase.from("rental_chases").update({
+      own_skip: true,
+      chase_status: "resolved",
+      notes: notes.trim() || null,
+    }).eq("id", id);
+    setSaving(false);
+    if (error) { toast({ title: "Failed to save", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Marked as own skip", description: "Cleared from the over-rental list." });
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Customer Owns This Skip</DialogTitle>
+          <DialogDescription>{bin.customer} — {bin.site} ({bin.containerType})</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Marks this container as the customer's own skip. It will be removed from the over-rental
+            chase list and shown separately under "Customer Own Skip".
+          </p>
+          <div className="space-y-1.5">
+            <Label>Notes (optional)</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="e.g. Customer owns the 12yd — we just tip and return." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            <Package className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Confirm Own Skip"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
