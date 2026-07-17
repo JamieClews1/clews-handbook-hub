@@ -244,7 +244,20 @@ export const BusinessProfileSettings = () => {
                 Stored securely as backend secret <code>DWT_CLIENT_SECRET</code>. Ask an admin to rotate via secrets manager.
               </p>
             </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>API Code (apiCode)</Label>
+              <Input
+                value={profile.dwt_api_code ?? ""}
+                onChange={(e) => set("dwt_api_code", e.target.value)}
+                placeholder="1f83215e-4b90-4785-9ab2-2614839aa2e9"
+                className="font-mono text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Mandatory UUID sent in every Receipt of Waste request body. Use one of the 10 sandbox dummy codes for testing; DEFRA will issue a Production API Code once approved for the live environment.
+              </p>
+            </div>
           </div>
+
 
 
           <Alert>
