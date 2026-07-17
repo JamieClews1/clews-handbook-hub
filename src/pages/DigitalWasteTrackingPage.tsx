@@ -277,6 +277,7 @@ const DigitalWasteTrackingPage = () => {
                     <thead className="bg-muted/40 border-b border-border/50 text-xs uppercase text-muted-foreground">
                       <tr>
                         <th className="text-left px-3 py-2 font-medium">Ticket #</th>
+                        <th className="text-left px-3 py-2 font-medium">Receiver's Auth #</th>
                         <th className="text-left px-3 py-2 font-medium">Time</th>
                         <th className="text-left px-3 py-2 font-medium">Customer / Producer</th>
                         <th className="text-left px-3 py-2 font-medium">Vehicle</th>
