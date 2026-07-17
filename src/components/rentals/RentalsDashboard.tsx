@@ -463,6 +463,9 @@ export default function RentalsDashboard() {
                           <Button variant="ghost" size="sm" onClick={() => setCollectBin(b)} title="Mark as collected">
                             <PackageCheck className="h-4 w-4 mr-1" /> Collected
                           </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setOwnSkipBin(b)} title="Customer supplies own skip — clear from list">
+                            <Package className="h-4 w-4 mr-1" /> Own Skip
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setManageBin(b)}>
                             <Settings2 className="h-4 w-4" />
                           </Button>
