@@ -198,6 +198,14 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="digital-waste-tracking">
+                    <SidebarMenuButton asChild isActive={isActive("/digital-waste-tracking")}>
+                      <Link to="/digital-waste-tracking">
+                        <Radio className="h-[18px] w-[18px]" />
+                        {!collapsed && <span>Digital Waste Tracking</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem data-sec="load-reports">
                     <SidebarMenuButton asChild isActive={isActive("/load-reports")}>
                       <Link to="/load-reports">
