@@ -38,8 +38,12 @@ const AdminSettingsPage = () => {
 
   return (
     <AdminPageLayout title="Admin Settings" description="Configure system settings, HR contact information, and automated communications">
-      <Tabs defaultValue="general" className="space-y-6">
+      <Tabs defaultValue="business" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="business" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            Business Profile
+          </TabsTrigger>
           <TabsTrigger value="general" className="gap-2">
             <Settings className="h-4 w-4" />
             General
@@ -54,6 +58,10 @@ const AdminSettingsPage = () => {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="business">
+          <BusinessProfileSettings />
+        </TabsContent>
+
         <TabsContent value="general">
           <HRContactSettings />
         </TabsContent>
@@ -61,6 +69,7 @@ const AdminSettingsPage = () => {
         <TabsContent value="sections">
           <SectionVisibilitySettings />
         </TabsContent>
+
 
 
 
