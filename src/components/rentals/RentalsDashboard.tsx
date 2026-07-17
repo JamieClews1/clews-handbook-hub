@@ -127,6 +127,7 @@ export default function RentalsDashboard() {
   const [emailBin, setEmailBin] = useState<OverRentalBin | null>(null);
   const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
   const [agreementBin, setAgreementBin] = useState<OverRentalBin | null>(null);
+  const [ownSkipBin, setOwnSkipBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
