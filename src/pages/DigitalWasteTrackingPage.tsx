@@ -198,7 +198,9 @@ const DigitalWasteTrackingPage = () => {
                         <th className="text-left px-3 py-2 font-medium">Time</th>
                         <th className="text-left px-3 py-2 font-medium">Customer / Producer</th>
                         <th className="text-left px-3 py-2 font-medium">Vehicle</th>
-                        <th className="text-left px-3 py-2 font-medium">Carrier</th>
+                        <th className="text-left px-3 py-2 font-medium">Carrier Registration</th>
+                        <th className="text-left px-3 py-2 font-medium">Carrier Name</th>
+                        <th className="text-left px-3 py-2 font-medium">Physical Form</th>
                         <th className="text-left px-3 py-2 font-medium">EWC</th>
                         <th className="text-left px-3 py-2 font-medium">Waste description</th>
                         <th className="text-left px-3 py-2 font-medium">Container</th>
@@ -209,7 +211,9 @@ const DigitalWasteTrackingPage = () => {
                     <tbody>
                       {filtered.map((r) => {
                         const time = rawField(r.raw, ["Time In", "TimeIn", "Time", "Weigh In Time", "In Time"]);
-                        const carrier = rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]);
+                        const carrierReg = rawField(r.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]);
+                        const carrierName = rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]);
+                        const physicalForm = rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]);
                         return (
                           <tr key={r.id} className="border-b border-border/30 hover:bg-muted/30">
                             <td className="px-3 py-2 font-mono font-semibold">{r.job_number}</td>
@@ -219,7 +223,9 @@ const DigitalWasteTrackingPage = () => {
                               {r.site && <div className="text-xs text-muted-foreground">{r.site}</div>}
                             </td>
                             <td className="px-3 py-2 font-mono">{r.vehicle_registration || "—"}</td>
-                            <td className="px-3 py-2">{carrier || "—"}</td>
+                            <td className="px-3 py-2 font-mono">{carrierReg || "—"}</td>
+                            <td className="px-3 py-2">{carrierName || "—"}</td>
+                            <td className="px-3 py-2">{physicalForm || "—"}</td>
                             <td className="px-3 py-2 font-mono">{r.ewc || "—"}</td>
                             <td className="px-3 py-2">{r.waste_description || "—"}</td>
                             <td className="px-3 py-2">{r.container_type || "—"}</td>
@@ -235,7 +241,7 @@ const DigitalWasteTrackingPage = () => {
                     </tbody>
                     <tfoot className="bg-muted/30 border-t border-border/50 font-semibold">
                       <tr>
-                        <td className="px-3 py-2" colSpan={8}>Total</td>
+                        <td className="px-3 py-2" colSpan={10}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
                         <td />
                       </tr>
