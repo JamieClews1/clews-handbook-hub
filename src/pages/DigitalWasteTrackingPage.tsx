@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar, Pencil, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar, Pencil, AlertTriangle, Upload, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -132,6 +132,95 @@ const DigitalWasteTrackingPage = () => {
     enabled: !!user && jobIds.length > 0,
   });
 
+  const { data: submissions = {} } = useQuery({
+    queryKey: ["dwt-submissions", jobIds.join(",")],
+    queryFn: async () => {
+      if (jobIds.length === 0) return {} as Record<string, any>;
+      const { data } = await supabase
+        .from("dwt_submissions")
+        .select("job_id, wt_id, status, http_status, error_message, submitted_at")
+        .in("job_id", jobIds)
+        .order("submitted_at", { ascending: false });
+      const map: Record<string, any> = {};
+      (data ?? []).forEach((s: any) => { if (!map[s.job_id]) map[s.job_id] = s; });
+      return map;
+    },
+    enabled: !!user && jobIds.length > 0,
+  });
+
+  const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
+  const [testingApi, setTestingApi] = useState(false);
+
+  const buildPayload = (m: any) => ({
+    job_id: m.row.id,
+    ticket_number: m.ticket,
+    payload: {
+      receiverAuthorisationNumber: receiverAuthNumber,
+      wasteMovement: {
+        ticketNumber: m.ticket,
+        receivedAt: m.row.job_date,
+        receivedTime: m.time || null,
+        producer: { name: m.customer, siteAddress: m.site || null },
+        carrier: {
+          registrationNumber: m.carrierReg,
+          name: m.carrierName,
+          vehicleRegistration: m.vehicle,
+          meansOfTransport: m.meansOfTransport,
+        },
+        waste: {
+          ewcCode: m.ewc,
+          description: m.waste,
+          physicalForm: m.physicalForm,
+          containerType: m.container,
+          weightTonnes: m.weightT,
+        },
+      },
+    },
+  });
+
+  const isRowComplete = (m: any) =>
+    !!(receiverAuthNumber && m.customer && m.vehicle && m.carrierReg && m.carrierName && m.physicalForm && m.ewc && m.waste && m.container && m.weightT != null);
+
+  const uploadRows = async (rowsToSend: any[]) => {
+    if (rowsToSend.length === 0) return;
+    const ids = new Set(rowsToSend.map((m) => m.row.id));
+    setUploadingIds((prev) => new Set([...prev, ...ids]));
+    try {
+      const { data, error } = await supabase.functions.invoke("submit-dwt-receipt", {
+        body: { receipts: rowsToSend.map(buildPayload) },
+      });
+      if (error) throw error;
+      const results = (data as any)?.results ?? [];
+      const okCount = results.filter((r: any) => r.ok).length;
+      const failCount = results.length - okCount;
+      if (okCount > 0) toast.success(`${okCount} load${okCount === 1 ? "" : "s"} submitted to DEFRA DWT`);
+      if (failCount > 0) toast.error(`${failCount} submission${failCount === 1 ? "" : "s"} failed — see DWT column for details`);
+      qc.invalidateQueries({ queryKey: ["dwt-submissions", jobIds.join(",")] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Upload failed");
+    } finally {
+      setUploadingIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((i) => next.delete(i));
+        return next;
+      });
+    }
+  };
+
+  const testApi = async () => {
+    setTestingApi(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("submit-dwt-receipt", { body: { action: "test" } });
+      if (error) throw error;
+      if ((data as any)?.ok) toast.success(`Connected to DEFRA DWT (${(data as any).environment})`);
+      else toast.error((data as any)?.error ?? "API connection failed");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Test failed");
+    } finally {
+      setTestingApi(false);
+    }
+  };
+
   const merged = useMemo(() => {
     return rows.map((r) => {
       const ov = overridesMap[r.id] ?? {};
@@ -209,7 +298,7 @@ const DigitalWasteTrackingPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-bold text-foreground">Digital Waste Tracking</h1>
                 <Badge variant="outline" className="gap-1.5">
-                  <Radio className="h-3 w-3" /> API not connected
+                  <Radio className="h-3 w-3" /> DEFRA sandbox
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
@@ -218,7 +307,23 @@ const DigitalWasteTrackingPage = () => {
                 via the Receipt of Waste API.
               </p>
             </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={testApi} disabled={testingApi} className="gap-2">
+                {testingApi ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+                Test API
+              </Button>
+              <Button
+                size="sm"
+                className="gap-2"
+                disabled={uploadingIds.size > 0}
+                onClick={() => uploadRows(filtered.filter((m) => isRowComplete(m) && submissions[m.row.id]?.status !== "submitted"))}
+              >
+                {uploadingIds.size > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                Upload all valid to DWT
+              </Button>
+            </div>
           </div>
+
 
           <Alert>
             <Info className="h-4 w-4" />
@@ -315,13 +420,40 @@ const DigitalWasteTrackingPage = () => {
                             {m.weightT != null ? m.weightT.toFixed(3) : "Missing"}
                           </td>
                           <td className="px-3 py-2">
-                            <Badge variant="secondary" className="text-[10px]">Pending API</Badge>
+                            {(() => {
+                              const s = submissions[m.row.id];
+                              if (s?.status === "submitted") return (
+                                <Badge className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30" variant="outline">
+                                  <CheckCircle2 className="h-3 w-3" /> {s.wt_id ? s.wt_id.slice(0, 10) : "Submitted"}
+                                </Badge>
+                              );
+                              if (s?.status === "error") return (
+                                <Badge className="text-[10px] gap-1" variant="destructive" title={s.error_message ?? ""}>
+                                  <XCircle className="h-3 w-3" /> Failed
+                                </Badge>
+                              );
+                              return <Badge variant="secondary" className="text-[10px]">Not submitted</Badge>;
+                            })()}
                           </td>
                           <td className="px-3 py-2">
-                            <Button size="sm" variant="ghost" onClick={() => setEditing(m.row)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => setEditing(m.row)} title="Edit fields">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={!isRowComplete(m) || uploadingIds.has(m.row.id) || submissions[m.row.id]?.status === "submitted"}
+                                onClick={() => uploadRows([m])}
+                                title={!isRowComplete(m) ? "Complete missing fields first" : "Submit to DEFRA DWT"}
+                              >
+                                {uploadingIds.has(m.row.id)
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <Upload className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
                           </td>
+
                         </tr>
                       ))}
                     </tbody>

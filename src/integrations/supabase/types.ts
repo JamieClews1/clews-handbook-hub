@@ -2330,6 +2330,54 @@ export type Database = {
           },
         ]
       }
+      dwt_submissions: {
+        Row: {
+          created_at: string
+          environment: string | null
+          error_message: string | null
+          http_status: number | null
+          id: string
+          job_id: string
+          request_payload: Json | null
+          response_body: Json | null
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          ticket_number: string | null
+          wt_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment?: string | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          job_id: string
+          request_payload?: Json | null
+          response_body?: Json | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          ticket_number?: string | null
+          wt_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          job_id?: string
+          request_payload?: Json | null
+          response_body?: Json | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          ticket_number?: string | null
+          wt_id?: string | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           available_variables: string[] | null
