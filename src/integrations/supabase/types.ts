@@ -2283,6 +2283,41 @@ export type Database = {
           },
         ]
       }
+      dwt_job_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          overrides: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          overrides?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          overrides?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dwt_job_overrides_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "data_hub_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           available_variables: string[] | null
