@@ -24,6 +24,10 @@ type Profile = {
   waste_carriers_licence_number: string | null;
   waste_carriers_licence_expiry: string | null;
   environment_agency_reference: string | null;
+  dwt_environment: string | null;
+  dwt_api_base_url: string | null;
+  dwt_client_id: string | null;
+  dwt_client_secret_updated_at: string | null;
 };
 
 const EMPTY: Profile = {
@@ -39,6 +43,10 @@ const EMPTY: Profile = {
   waste_carriers_licence_number: "",
   waste_carriers_licence_expiry: "",
   environment_agency_reference: "",
+  dwt_environment: "sandbox",
+  dwt_api_base_url: "https://waste-tracking.integration.api.defra.gov.uk",
+  dwt_client_id: "",
+  dwt_client_secret_updated_at: null,
 };
 
 export const BusinessProfileSettings = () => {
@@ -200,24 +208,42 @@ export const BusinessProfileSettings = () => {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Environment</Label>
-              <Input value="Sandbox (Integration)" readOnly className="bg-muted/40" />
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={profile.dwt_environment ?? "sandbox"}
+                onChange={(e) => set("dwt_environment", e.target.value)}
+              >
+                <option value="sandbox">Sandbox (Integration)</option>
+                <option value="production">Production</option>
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label>API Base URL</Label>
-              <Input value="https://waste-tracking.integration.api.defra.gov.uk" readOnly className="bg-muted/40 font-mono text-xs" />
+              <Input
+                value={profile.dwt_api_base_url ?? ""}
+                onChange={(e) => set("dwt_api_base_url", e.target.value)}
+                placeholder="https://waste-tracking.integration.api.defra.gov.uk"
+                className="font-mono text-xs"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Client ID</Label>
-              <Input value="1k2vbblqa4s66ge82rq5e6bct8" readOnly className="bg-muted/40 font-mono text-xs" />
+              <Input
+                value={profile.dwt_client_id ?? ""}
+                onChange={(e) => set("dwt_client_id", e.target.value)}
+                placeholder="Client ID issued by DEFRA"
+                className="font-mono text-xs"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Client Secret</Label>
               <Input value="•••••••••••••••••••••••••••••••••••••••••••••" readOnly className="bg-muted/40 font-mono text-xs" />
               <p className="text-[11px] text-muted-foreground">
-                Stored securely as a backend secret (<code>DWT_CLIENT_SECRET</code>). Never exposed to the browser.
+                Stored securely as backend secret <code>DWT_CLIENT_SECRET</code>. Ask an admin to rotate via secrets manager.
               </p>
             </div>
           </div>
+
 
           <Alert>
             <ShieldCheck className="h-4 w-4" />
