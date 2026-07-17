@@ -56,6 +56,7 @@ import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
+import DigitalWasteTrackingPage from "./pages/DigitalWasteTrackingPage";
 import DriverAppPage from "./pages/DriverAppPage";
 import BanksmanAppPage from "./pages/BanksmanAppPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
