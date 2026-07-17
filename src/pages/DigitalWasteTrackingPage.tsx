@@ -273,6 +273,7 @@ const DigitalWasteTrackingPage = () => {
                         <th className="text-left px-3 py-2 font-medium">EWC</th>
                         <th className="text-left px-3 py-2 font-medium">Waste description</th>
                         <th className="text-left px-3 py-2 font-medium">Container</th>
+                        <th className="text-left px-3 py-2 font-medium">Means of Transport</th>
                         <th className="text-right px-3 py-2 font-medium">Weight (t)</th>
                         <th className="text-left px-3 py-2 font-medium">DWT</th>
                         <th />
