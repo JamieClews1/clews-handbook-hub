@@ -352,7 +352,7 @@ export function SiteReportGenerator() {
 
   // Export to Excel
   const exportToExcel = () => {
-    if (!selectedCustomer || !selectedSite || !dateRange?.from || !dateRange?.to) return;
+    if (!selectedCustomer || !selectedSiteLabel || !dateRange?.from || !dateRange?.to) return;
 
     // Helper to round numbers for Excel (keeps as number type)
     const round2 = (n: number) => Math.round(n * 100) / 100;
