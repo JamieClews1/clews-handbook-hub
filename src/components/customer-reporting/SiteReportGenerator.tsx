@@ -417,7 +417,7 @@ export function SiteReportGenerator() {
     XLSX.utils.book_append_sheet(wb, ws, "Site Report");
 
     // Generate filename
-    const fileName = `${selectedCustomer.customer_name}_${selectedSite.site_name}_${format(dateRange.from, "yyyyMMdd")}-${format(dateRange.to, "yyyyMMdd")}.xlsx`;
+    const fileName = `${selectedCustomer.customer_name}_${selectedSiteLabel}_${format(dateRange.from, "yyyyMMdd")}-${format(dateRange.to, "yyyyMMdd")}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
