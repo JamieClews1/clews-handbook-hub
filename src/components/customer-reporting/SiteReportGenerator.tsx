@@ -132,42 +132,11 @@ export function SiteReportGenerator() {
 
     try {
       const isAllSites = selectedSiteId === "__ALL__";
-      const targetSites = isAllSites ? sites : sites.filter((s) => s.id === selectedSiteId);
-      if (targetSites.length === 0) return;
-
-      const siteNames = Array.from(
-        new Set(
-          targetSites.flatMap((s) => [
-            s.data_hub_site,
-            s.data_hub_site_2,
-            s.data_hub_site_3,
-            s.data_hub_site_4,
-            s.data_hub_site_5,
-          ]),
-        ),
-      ).filter(Boolean) as string[];
-
-      const customerFallbacks = Array.from(
-        new Set(
-          targetSites
-            .filter((s) => ![s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5].some(Boolean))
-            .map((s) => s.data_hub_customer)
-            .filter(Boolean) as string[],
-        ),
-      );
-
-      if (siteNames.length === 0 && customerFallbacks.length === 0) {
-        setJobRecords([]);
-        setReportGenerated(true);
-        return;
-      }
+      const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
       const startDate = format(dateRange.from, "yyyy-MM-dd");
       const endDate = format(dateRange.to, "yyyy-MM-dd");
 
-      // Build query - match by Data Hub mappings.
-      // Match by SITE names where configured (covers all hauliers); use CUSTOMER
-      // mapping only for sites without any site-name mapping.
       let query = supabase
         .from("data_hub_jobs")
         .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source")
@@ -175,22 +144,73 @@ export function SiteReportGenerator() {
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
 
-      const orParts: string[] = [];
-      if (siteNames.length > 0) {
-        orParts.push(`site.in.(${siteNames.map((n) => `"${n.replace(/"/g, '\\"')}"`).join(",")})`);
-      }
-      if (customerFallbacks.length > 0) {
-        orParts.push(`customer.in.(${customerFallbacks.map((n) => `"${n.replace(/"/g, '\\"')}"`).join(",")})`);
-      }
-      if (orParts.length === 1 && siteNames.length > 0 && customerFallbacks.length === 0) {
-        query = query.in("site", siteNames);
-      } else if (orParts.length === 1 && customerFallbacks.length > 0 && siteNames.length === 0) {
-        query = query.in("customer", customerFallbacks);
+      if (isAllSites) {
+        // Pull everything for this customer directly from Data Hub, ignoring site mappings.
+        // Match against any known customer alias: the customer name itself plus any
+        // data_hub_customer values configured on their sites.
+        const customerAliases = Array.from(
+          new Set(
+            [
+              selectedCustomer?.customer_name,
+              ...sites.map((s) => s.data_hub_customer),
+            ].filter(Boolean) as string[],
+          ),
+        );
+        if (customerAliases.length === 0) {
+          setJobRecords([]);
+          setReportGenerated(true);
+          return;
+        }
+        query = query.in("customer", customerAliases);
       } else {
-        query = query.or(orParts.join(","));
+        const targetSites = sites.filter((s) => s.id === selectedSiteId);
+        if (targetSites.length === 0) return;
+
+        const siteNames = Array.from(
+          new Set(
+            targetSites.flatMap((s) => [
+              s.data_hub_site,
+              s.data_hub_site_2,
+              s.data_hub_site_3,
+              s.data_hub_site_4,
+              s.data_hub_site_5,
+            ]),
+          ),
+        ).filter(Boolean) as string[];
+
+        const customerFallbacks = Array.from(
+          new Set(
+            targetSites
+              .filter((s) => ![s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5].some(Boolean))
+              .map((s) => s.data_hub_customer)
+              .filter(Boolean) as string[],
+          ),
+        );
+
+        if (siteNames.length === 0 && customerFallbacks.length === 0) {
+          setJobRecords([]);
+          setReportGenerated(true);
+          return;
+        }
+
+        const orParts: string[] = [];
+        if (siteNames.length > 0) {
+          orParts.push(`site.in.(${siteNames.map((n) => `"${n.replace(/"/g, '\\"')}"`).join(",")})`);
+        }
+        if (customerFallbacks.length > 0) {
+          orParts.push(`customer.in.(${customerFallbacks.map((n) => `"${n.replace(/"/g, '\\"')}"`).join(",")})`);
+        }
+        if (orParts.length === 1 && siteNames.length > 0 && customerFallbacks.length === 0) {
+          query = query.in("site", siteNames);
+        } else if (orParts.length === 1 && customerFallbacks.length > 0 && siteNames.length === 0) {
+          query = query.in("customer", customerFallbacks);
+        } else {
+          query = query.or(orParts.join(","));
+        }
       }
 
       const { data: jobs, error } = await query;
+
 
       if (error) throw error;
 
