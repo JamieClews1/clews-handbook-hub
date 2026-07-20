@@ -240,6 +240,8 @@ export function SiteReportGenerator() {
     return sum + (typeof cost === "number" ? cost : typeof cost === "string" ? parseFloat(cost) || 0 : 0);
   }, 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
+  const isAllSites = selectedSiteId === "__ALL__";
+  const selectedSiteLabel = isAllSites ? "All Sites" : selectedSite?.site_name ?? "";
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
   // Helper to get raw object
