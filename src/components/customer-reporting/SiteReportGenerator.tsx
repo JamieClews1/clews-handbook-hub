@@ -436,6 +436,41 @@ export function SiteReportGenerator() {
 
     XLSX.utils.book_append_sheet(wb, ws, "Site Report");
 
+    // Totals tab: aggregate by waste type
+    const totalsMap = filteredJobRecords.reduce((acc, job) => {
+      const desc = job.waste_description || "Unknown";
+      if (!acc[desc]) acc[desc] = { loads: 0, weight: 0, cost: 0 };
+      acc[desc].loads += 1;
+      acc[desc].weight += job.weight_t || 0;
+      const c = getJobCost(job);
+      acc[desc].cost += typeof c === "number" ? c : 0;
+      return acc;
+    }, {} as Record<string, { loads: number; weight: number; cost: number }>);
+
+    const totalsRows = Object.entries(totalsMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([desc, v]) => [desc, v.loads, round2(v.weight), round2(v.cost)]);
+
+    const grandLoads = totalsRows.reduce((s, r) => s + (r[1] as number), 0);
+    const grandWeight = round2(totalsRows.reduce((s, r) => s + (r[2] as number), 0));
+    const grandCost = round2(totalsRows.reduce((s, r) => s + (r[3] as number), 0));
+
+    const totalsData: (string | number)[][] = [
+      ["Totals by Waste Type"],
+      [],
+      ["Customer:", selectedCustomer.customer_name],
+      ["Site:", selectedSiteLabel],
+      ["Date Range:", `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`],
+      [],
+      ["Row Labels", "Loads", "Total Weight", "Total Cost"],
+      ...totalsRows,
+      ["Grand Total", grandLoads, grandWeight, grandCost],
+    ];
+    const totalsWs = XLSX.utils.aoa_to_sheet(totalsData);
+    totalsWs["!cols"] = [{ wch: 40 }, { wch: 10 }, { wch: 14 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, totalsWs, "Totals");
+
+
     // Generate filename
     const fileName = `${selectedCustomer.customer_name}_${selectedSiteLabel}_${format(dateRange.from, "yyyyMMdd")}-${format(dateRange.to, "yyyyMMdd")}.xlsx`;
     XLSX.writeFile(wb, fileName);
