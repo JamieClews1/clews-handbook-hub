@@ -466,6 +466,7 @@ export function SiteReportGenerator() {
               <SelectValue placeholder="Select site" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__ALL__">All Sites</SelectItem>
               {sites.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   {s.site_name}
