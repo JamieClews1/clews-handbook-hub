@@ -131,20 +131,32 @@ export function SiteReportGenerator() {
     setReportGenerated(false);
 
     try {
-      const site = sites.find((s) => s.id === selectedSiteId);
-      if (!site) return;
+      const isAllSites = selectedSiteId === "__ALL__";
+      const targetSites = isAllSites ? sites : sites.filter((s) => s.id === selectedSiteId);
+      if (targetSites.length === 0) return;
 
-      const siteNames = [
-        site.data_hub_site,
-        site.data_hub_site_2,
-        site.data_hub_site_3,
-        site.data_hub_site_4,
-        site.data_hub_site_5,
-      ].filter(Boolean) as string[];
+      const siteNames = Array.from(
+        new Set(
+          targetSites.flatMap((s) => [
+            s.data_hub_site,
+            s.data_hub_site_2,
+            s.data_hub_site_3,
+            s.data_hub_site_4,
+            s.data_hub_site_5,
+          ]),
+        ),
+      ).filter(Boolean) as string[];
 
-      const dataHubCustomer = site.data_hub_customer;
+      const customerFallbacks = Array.from(
+        new Set(
+          targetSites
+            .filter((s) => ![s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5].some(Boolean))
+            .map((s) => s.data_hub_customer)
+            .filter(Boolean) as string[],
+        ),
+      );
 
-      if (siteNames.length === 0 && !dataHubCustomer) {
+      if (siteNames.length === 0 && customerFallbacks.length === 0) {
         setJobRecords([]);
         setReportGenerated(true);
         return;
@@ -154,9 +166,8 @@ export function SiteReportGenerator() {
       const endDate = format(dateRange.to, "yyyy-MM-dd");
 
       // Build query - match by Data Hub mappings.
-      // A physical site receives waste via many different hauliers (customers),
-      // so when site names are configured we filter by SITE only. The customer
-      // mapping is only used as a fallback when no site names are set.
+      // Match by SITE names where configured (covers all hauliers); use CUSTOMER
+      // mapping only for sites without any site-name mapping.
       let query = supabase
         .from("data_hub_jobs")
         .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source")
@@ -164,14 +175,20 @@ export function SiteReportGenerator() {
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
 
+      const orParts: string[] = [];
       if (siteNames.length > 0) {
-        // Match every job at the configured site(s), regardless of haulier/customer
-        query = query.in("site", siteNames);
-      } else if (dataHubCustomer) {
-        // No site mapping configured - fall back to customer match
-        query = query.eq("customer", dataHubCustomer);
+        orParts.push(`site.in.(${siteNames.map((n) => `"${n.replace(/"/g, '\\"')}"`).join(",")})`);
       }
-
+      if (customerFallbacks.length > 0) {
+        orParts.push(`customer.in.(${customerFallbacks.map((n) => `"${n.replace(/"/g, '\\"')}"`).join(",")})`);
+      }
+      if (orParts.length === 1 && siteNames.length > 0 && customerFallbacks.length === 0) {
+        query = query.in("site", siteNames);
+      } else if (orParts.length === 1 && customerFallbacks.length > 0 && siteNames.length === 0) {
+        query = query.in("customer", customerFallbacks);
+      } else {
+        query = query.or(orParts.join(","));
+      }
 
       const { data: jobs, error } = await query;
 
