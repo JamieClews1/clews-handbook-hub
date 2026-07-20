@@ -364,7 +364,7 @@ export function SiteReportGenerator() {
       ["Site Recycling Report"],
       [],
       ["Customer:", selectedCustomer.customer_name],
-      ["Site:", selectedSite.site_name],
+      ["Site:", selectedSiteLabel],
       ["Date Range:", `${format(dateRange.from, "dd/MM/yyyy")} - ${format(dateRange.to, "dd/MM/yyyy")}`],
       ["Generated:", format(new Date(), "dd/MM/yyyy HH:mm")],
       [],
