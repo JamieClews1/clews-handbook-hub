@@ -588,7 +588,7 @@ export function SiteReportGenerator() {
         <div className="space-y-6">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-lg font-semibold">
-              {selectedSite?.site_name} - {dateRange?.from && dateRange?.to && (
+              {selectedSiteLabel} - {dateRange?.from && dateRange?.to && (
                 <>
                   {format(dateRange.from, "dd MMM yyyy")} to {format(dateRange.to, "dd MMM yyyy")}
                 </>
