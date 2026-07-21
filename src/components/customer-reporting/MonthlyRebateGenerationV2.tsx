@@ -30,11 +30,12 @@ import {
   type RebateTrackingStatus,
 } from "@/lib/rebate-tracking";
 
-type Customer = { id: string; customer_name: string; customer_code: string };
+type Customer = { id: string; customer_name: string; customer_code: string; data_hub_customer: string | null };
 type Site = {
   id: string;
   site_name: string;
   customer_id: string;
+  data_hub_customer: string | null;
   data_hub_site: string | null;
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
@@ -130,7 +131,7 @@ export function MonthlyRebateGenerationV2() {
 
       const { data: customers } = await supabase
         .from("customers")
-        .select("id, customer_name, customer_code")
+        .select("id, customer_name, customer_code, data_hub_customer")
         .order("customer_name");
 
       // Sites (paginated)
@@ -142,7 +143,7 @@ export function MonthlyRebateGenerationV2() {
           const { data: page, error } = await supabase
             .from("customer_sites")
             .select(
-              "id, site_name, customer_id, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type, owner_contact_id",
+              "id, site_name, customer_id, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5, load_report_type, owner_contact_id",
             )
             .order("id")
             .range(offset, offset + pageSize - 1);
@@ -210,12 +211,21 @@ export function MonthlyRebateGenerationV2() {
 
         for (const site of customerSites) {
           const priceSetLink = await fetchActivePriceSetLink(site.id, periodEnd);
-          if (!priceSetLink) continue;
 
-          const { data: rebateItems } = await supabase
-            .from("rebate_price_set_items")
-            .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
-            .eq("price_set_id", priceSetLink.price_set_id);
+          let rebateItems: Array<{
+            rebate_item_id: string;
+            value_type: string;
+            set_value: number | null;
+            value_type_item_id: string | null;
+            adjustment: number | null;
+          }> | null = null;
+          if (priceSetLink) {
+            const { data } = await supabase
+              .from("rebate_price_set_items")
+              .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
+              .eq("price_set_id", priceSetLink.price_set_id);
+            rebateItems = (data ?? []) as typeof rebateItems;
+          }
 
           const rebateItemIds = (rebateItems ?? [])
             .map((item) => item.value_type_item_id)
@@ -324,15 +334,31 @@ export function MonthlyRebateGenerationV2() {
             site.data_hub_site_5,
           ].filter((s): s is string => !!s);
 
-          const { data: skipConfigs } = await supabase
+          const dataHubCustomer =
+            site.data_hub_customer?.trim() ||
+            customer.data_hub_customer?.trim() ||
+            null;
+
+          // Site-level configs first; fall back to customer-level.
+          const { data: siteSkipConfigs } = await supabase
             .from("customer_site_skip_rebates")
             .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
             .eq("site_id", site.id);
 
+          let skipConfigs = siteSkipConfigs ?? [];
+          if (skipConfigs.length === 0) {
+            const { data: custConfigs } = await supabase
+              .from("customer_skip_rebates")
+              .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+              .eq("customer_id", customer.id);
+            skipConfigs = custConfigs ?? [];
+          }
+
           let skipRoroRebate = 0;
           let skipRoroWeight = 0;
 
-          if (skipConfigs && skipConfigs.length > 0 && siteDataHubMappings.length > 0) {
+          const canQueryJobs = siteDataHubMappings.length > 0 || Boolean(dataHubCustomer);
+          if (skipConfigs.length > 0 && canQueryJobs) {
             const { data: rebateRules } = await supabase
               .from("rebate_rules")
               .select("rule_key, is_enabled");
@@ -340,15 +366,49 @@ export function MonthlyRebateGenerationV2() {
             const excludeDeliverMovement = rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
 
             const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
-            const { data: rawJobs } = await supabase
-              .from("data_hub_jobs")
-              .select("waste_description, weight_t, category, job_type, movement_type")
-              .in("site", siteDataHubMappings)
-              .gte("job_date", periodStart)
-              .lte("job_date", periodEnd)
-              .in("category", targetCategories);
+            const rawJobs: Array<{
+              id?: string;
+              waste_description: string | null;
+              weight_t: number | null;
+              category: string | null;
+              job_type: string | null;
+              movement_type: string | null;
+            }> = [];
+            const seenIds = new Set<string>();
 
-            let jobs = (rawJobs ?? []).map((j) => ({
+            if (siteDataHubMappings.length > 0) {
+              const { data: siteJobs } = await supabase
+                .from("data_hub_jobs")
+                .select("id, waste_description, weight_t, category, job_type, movement_type")
+                .in("site", siteDataHubMappings)
+                .gte("job_date", periodStart)
+                .lte("job_date", periodEnd)
+                .in("category", targetCategories);
+              for (const j of siteJobs ?? []) {
+                if (j.id && seenIds.has(j.id)) continue;
+                if (j.id) seenIds.add(j.id);
+                rawJobs.push(j);
+              }
+            }
+
+            // Midweigh jobs by customer (site is blank on these tickets)
+            if (dataHubCustomer) {
+              const { data: midweighJobs } = await supabase
+                .from("data_hub_jobs")
+                .select("id, waste_description, weight_t, category, job_type, movement_type")
+                .eq("source", "midweigh")
+                .eq("customer", dataHubCustomer)
+                .gte("job_date", periodStart)
+                .lte("job_date", periodEnd)
+                .in("category", targetCategories);
+              for (const j of midweighJobs ?? []) {
+                if (j.id && seenIds.has(j.id)) continue;
+                if (j.id) seenIds.add(j.id);
+                rawJobs.push(j);
+              }
+            }
+
+            let jobs = rawJobs.map((j) => ({
               ...j,
               weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
             }));
