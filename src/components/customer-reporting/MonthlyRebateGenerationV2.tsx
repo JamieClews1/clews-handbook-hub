@@ -334,15 +334,31 @@ export function MonthlyRebateGenerationV2() {
             site.data_hub_site_5,
           ].filter((s): s is string => !!s);
 
-          const { data: skipConfigs } = await supabase
+          const dataHubCustomer =
+            site.data_hub_customer?.trim() ||
+            customer.data_hub_customer?.trim() ||
+            null;
+
+          // Site-level configs first; fall back to customer-level.
+          const { data: siteSkipConfigs } = await supabase
             .from("customer_site_skip_rebates")
             .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
             .eq("site_id", site.id);
 
+          let skipConfigs = siteSkipConfigs ?? [];
+          if (skipConfigs.length === 0) {
+            const { data: custConfigs } = await supabase
+              .from("customer_skip_rebates")
+              .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+              .eq("customer_id", customer.id);
+            skipConfigs = custConfigs ?? [];
+          }
+
           let skipRoroRebate = 0;
           let skipRoroWeight = 0;
 
-          if (skipConfigs && skipConfigs.length > 0 && siteDataHubMappings.length > 0) {
+          const canQueryJobs = siteDataHubMappings.length > 0 || Boolean(dataHubCustomer);
+          if (skipConfigs.length > 0 && canQueryJobs) {
             const { data: rebateRules } = await supabase
               .from("rebate_rules")
               .select("rule_key, is_enabled");
@@ -350,15 +366,49 @@ export function MonthlyRebateGenerationV2() {
             const excludeDeliverMovement = rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
 
             const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
-            const { data: rawJobs } = await supabase
-              .from("data_hub_jobs")
-              .select("waste_description, weight_t, category, job_type, movement_type")
-              .in("site", siteDataHubMappings)
-              .gte("job_date", periodStart)
-              .lte("job_date", periodEnd)
-              .in("category", targetCategories);
+            const rawJobs: Array<{
+              id?: string;
+              waste_description: string | null;
+              weight_t: number | null;
+              category: string | null;
+              job_type: string | null;
+              movement_type: string | null;
+            }> = [];
+            const seenIds = new Set<string>();
 
-            let jobs = (rawJobs ?? []).map((j) => ({
+            if (siteDataHubMappings.length > 0) {
+              const { data: siteJobs } = await supabase
+                .from("data_hub_jobs")
+                .select("id, waste_description, weight_t, category, job_type, movement_type")
+                .in("site", siteDataHubMappings)
+                .gte("job_date", periodStart)
+                .lte("job_date", periodEnd)
+                .in("category", targetCategories);
+              for (const j of siteJobs ?? []) {
+                if (j.id && seenIds.has(j.id)) continue;
+                if (j.id) seenIds.add(j.id);
+                rawJobs.push(j);
+              }
+            }
+
+            // Midweigh jobs by customer (site is blank on these tickets)
+            if (dataHubCustomer) {
+              const { data: midweighJobs } = await supabase
+                .from("data_hub_jobs")
+                .select("id, waste_description, weight_t, category, job_type, movement_type")
+                .eq("source", "midweigh")
+                .eq("customer", dataHubCustomer)
+                .gte("job_date", periodStart)
+                .lte("job_date", periodEnd)
+                .in("category", targetCategories);
+              for (const j of midweighJobs ?? []) {
+                if (j.id && seenIds.has(j.id)) continue;
+                if (j.id) seenIds.add(j.id);
+                rawJobs.push(j);
+              }
+            }
+
+            let jobs = rawJobs.map((j) => ({
               ...j,
               weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
             }));
