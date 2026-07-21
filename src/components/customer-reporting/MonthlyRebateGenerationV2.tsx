@@ -131,7 +131,7 @@ export function MonthlyRebateGenerationV2() {
 
       const { data: customers } = await supabase
         .from("customers")
-        .select("id, customer_name, customer_code")
+        .select("id, customer_name, customer_code, data_hub_customer")
         .order("customer_name");
 
       // Sites (paginated)
