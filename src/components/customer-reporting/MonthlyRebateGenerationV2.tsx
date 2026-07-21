@@ -30,11 +30,12 @@ import {
   type RebateTrackingStatus,
 } from "@/lib/rebate-tracking";
 
-type Customer = { id: string; customer_name: string; customer_code: string };
+type Customer = { id: string; customer_name: string; customer_code: string; data_hub_customer: string | null };
 type Site = {
   id: string;
   site_name: string;
   customer_id: string;
+  data_hub_customer: string | null;
   data_hub_site: string | null;
   data_hub_site_2: string | null;
   data_hub_site_3: string | null;
