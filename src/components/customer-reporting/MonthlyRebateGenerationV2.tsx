@@ -211,12 +211,21 @@ export function MonthlyRebateGenerationV2() {
 
         for (const site of customerSites) {
           const priceSetLink = await fetchActivePriceSetLink(site.id, periodEnd);
-          if (!priceSetLink) continue;
 
-          const { data: rebateItems } = await supabase
-            .from("rebate_price_set_items")
-            .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
-            .eq("price_set_id", priceSetLink.price_set_id);
+          let rebateItems: Array<{
+            rebate_item_id: string;
+            value_type: string;
+            set_value: number | null;
+            value_type_item_id: string | null;
+            adjustment: number | null;
+          }> | null = null;
+          if (priceSetLink) {
+            const { data } = await supabase
+              .from("rebate_price_set_items")
+              .select("rebate_item_id, value_type, set_value, value_type_item_id, adjustment")
+              .eq("price_set_id", priceSetLink.price_set_id);
+            rebateItems = (data ?? []) as typeof rebateItems;
+          }
 
           const rebateItemIds = (rebateItems ?? [])
             .map((item) => item.value_type_item_id)
