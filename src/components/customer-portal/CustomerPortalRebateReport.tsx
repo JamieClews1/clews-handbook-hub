@@ -937,7 +937,15 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
             materials: consolidatedData.flatMap((cat) => cat.sources),
           },
         ],
+        loadReportsScope: dateRange?.from && dateRange?.to
+          ? {
+              siteIds: [selectedSite.id],
+              periodStart: format(dateRange.from, "yyyy-MM-dd"),
+              periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+            }
+          : undefined,
       });
+
     } catch (err) {
       console.error("Customer export failed", err);
       toast({ title: "Export failed", description: "Could not generate the customer report.", variant: "destructive" });

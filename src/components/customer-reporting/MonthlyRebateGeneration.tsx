@@ -710,8 +710,16 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
             source: m.source,
           })),
         })),
+        loadReportsScope: dateRange?.from && dateRange?.to
+          ? {
+              siteIds: summary.siteBreakdowns.map((sb) => sb.site.id),
+              periodStart: format(dateRange.from, "yyyy-MM-dd"),
+              periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+            }
+          : undefined,
       });
     };
+
 
 
     const openEmailDialog = (summary: CustomerRebateSummary) => {
