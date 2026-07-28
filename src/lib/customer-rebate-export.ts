@@ -44,6 +44,10 @@ export type CustomerRebateExportInput = {
     siteIds: string[];
     periodStart: string; // yyyy-MM-dd
     periodEnd: string;   // yyyy-MM-dd
+    /** Weight per pallet in kg (default 20). */
+    palletWeightKg?: number;
+    /** £/tonne rate for the pallet weight charge (typically negative). */
+    palletChargeRate?: number;
   };
 };
 
