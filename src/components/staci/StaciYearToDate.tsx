@@ -156,6 +156,18 @@ export function StaciYearToDate({ customerId }: Props) {
     const landfillKg = Object.values(wasteMap).filter(w => w.category === "Landfill").reduce((s, w) => s + w.kg, 0);
     const woodKg = Object.values(wasteMap).filter(w => w.category === "Wood").reduce((s, w) => s + w.kg, 0);
 
+    // Ensure every month Jan–Dec is present
+    for (let i = 0; i < 12; i++) {
+      const mm = String(i + 1).padStart(2, "0");
+      const key = `${year}-${mm}`;
+      if (!monthly[key]) {
+        monthly[key] = {
+          month: key, monthLabel: MONTH_LABELS[i], pallets: 0, weightKg: 0, grossCost: 0,
+          palletRebate: 0, netCost: 0, haulageCost: 0, haulageLoads: 0,
+          recyclableKg: 0, wfeKg: 0, landfillKg: 0, woodKg: 0,
+        };
+      }
+    }
     const monthRows = Object.values(monthly).sort((a, b) => a.month.localeCompare(b.month));
 
     return {
