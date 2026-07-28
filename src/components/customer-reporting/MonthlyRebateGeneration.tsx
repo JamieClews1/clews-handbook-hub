@@ -715,6 +715,9 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
               siteIds: summary.siteBreakdowns.map((sb) => sb.site.id),
               periodStart: format(dateRange.from, "yyyy-MM-dd"),
               periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+              palletChargeRate: summary.siteBreakdowns
+                .flatMap((sb) => sb.materials)
+                .find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
             }
           : undefined,
       });
