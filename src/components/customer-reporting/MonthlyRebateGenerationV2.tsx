@@ -712,6 +712,7 @@ export function MonthlyRebateGenerationV2() {
         siteIds: [sb.site.id],
         periodStart: format(dateRange.from, "yyyy-MM-dd"),
         periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+        palletChargeRate: sb.materials.find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
       },
     });
 

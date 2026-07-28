@@ -1206,6 +1206,8 @@ export function SiteRebateReportGenerator() {
               siteIds: [selectedSite.id],
               periodStart: format(dateRange.from, "yyyy-MM-dd"),
               periodEnd: format(dateRange.to ?? dateRange.from, "yyyy-MM-dd"),
+              palletWeightKg: palletWeightKgState,
+              palletChargeRate: reportData.find((r) => r.material_name.toLowerCase().includes("pallet"))?.rate_per_tonne ?? 0,
             }
           : undefined,
       },
