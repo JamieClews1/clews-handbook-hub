@@ -942,6 +942,9 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
               siteIds: [selectedSite.id],
               periodStart: format(dateRange.from, "yyyy-MM-dd"),
               periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+              palletChargeRate: consolidatedData
+                .flatMap((c) => c.sources)
+                .find((s) => s.name.toLowerCase().includes("pallet"))?.rate ?? 0,
             }
           : undefined,
       });
