@@ -38,6 +38,8 @@ import {
 } from "recharts";
 import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
 import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
+import { StaciYearToDate } from "@/components/staci/StaciYearToDate";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 
 const TARE_KG = 20;
@@ -647,7 +649,17 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   }, [stats, balesDolavData, baleRates, haulageData, dbPalletWeightCharge]);
 
   return (
-    <div className="space-y-8">
+    <Tabs defaultValue="monthly" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="monthly">Monthly Dashboard</TabsTrigger>
+        <TabsTrigger value="ytd">Year To Date</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="ytd" className="space-y-6">
+        <StaciYearToDate customerId={customerId} />
+      </TabsContent>
+
+      <TabsContent value="monthly" className="space-y-8">
       {/* Date range */}
       <Card>
         <CardContent className="py-4 flex flex-wrap items-center gap-4">
@@ -1208,6 +1220,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         dateTo={dateTo}
         dashboardLoading={fetching}
       />
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
