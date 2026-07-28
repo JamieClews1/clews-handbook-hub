@@ -699,6 +699,32 @@ async function addIndividualLoadReportSheets(
       r++;
     }
 
+    // Pallet Weight Charge line (if pallets on load and a rate configured)
+    const noPallets = Boolean((rep as any).no_pallets_on_load);
+    const palletsOnLoad = noPallets ? 0 : totalPallets;
+    if (palletsOnLoad > 0 && palletChargeRate !== 0) {
+      const palletWeightKgTotal = palletsOnLoad * palletWeightKg;
+      const palletWeightT = palletWeightKgTotal / 1000;
+      const palletCharge = -Math.abs(palletWeightT * palletChargeRate);
+      const pwRow = ws.getRow(r);
+      pwRow.getCell(2).value = "Pallet Weight Charge";
+      pwRow.getCell(3).value = `${palletsOnLoad} pallets × ${palletWeightKg}kg @ ${fmtCurrency(-Math.abs(palletChargeRate))}/t`;
+      pwRow.getCell(4).value = palletWeightKgTotal;
+      pwRow.getCell(4).numFmt = "#,##0";
+      pwRow.getCell(4).alignment = { horizontal: "right" };
+      pwRow.getCell(5).value = fmtCurrency(palletCharge);
+      pwRow.getCell(5).alignment = { horizontal: "right" };
+      [2, 3, 4, 5].forEach((c) => {
+        const cell = pwRow.getCell(c);
+        cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: CHARGE_RED } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CHARGE_RED_LIGHT } };
+        cell.border = { top: { style: "thin", color: { argb: BORDER_GREY } }, bottom: { style: "thin", color: { argb: BORDER_GREY } } };
+      });
+      sizer.measure(3, `${palletsOnLoad} pallets × ${palletWeightKg}kg @ ${fmtCurrency(-Math.abs(palletChargeRate))}/t`);
+      sizer.measure(5, fmtCurrency(palletCharge));
+      r++;
+    }
+
     if (rep.notes) {
       r += 1;
       const nl = ws.getCell(`B${r}`);
