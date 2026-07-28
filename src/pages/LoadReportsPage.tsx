@@ -384,6 +384,50 @@ const LoadReportsPage = () => {
     }
   };
 
+  const autoAssignSiteFromJob = async (jobNum: string) => {
+    const trimmed = jobNum.trim();
+    if (!trimmed) return;
+    if (selectedSiteId) return; // don't override user selection
+    if (!sites.length) return;
+
+    const { data: jobs } = await supabase
+      .from("data_hub_jobs")
+      .select("customer, site, source")
+      .eq("job_number", trimmed)
+      .limit(5);
+    if (!jobs || jobs.length === 0) return;
+
+    // Prefer skiptrak record if present
+    const job = jobs.find((j: any) => j.source === "skiptrak") || jobs[0];
+    const jobSite = (job.site || "").trim().toLowerCase();
+    const jobCustomer = (job.customer || "").trim().toLowerCase();
+    if (!jobSite && !jobCustomer) return;
+
+    const siteIds = sites.map((s) => s.id);
+    const { data: mappings } = await supabase
+      .from("customer_sites")
+      .select("id, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+      .in("id", siteIds);
+    if (!mappings) return;
+
+    const norm = (s: string | null | undefined) => (s || "").trim().toLowerCase();
+    const match = mappings.find((m: any) => {
+      const siteMatches = [
+        m.data_hub_site,
+        m.data_hub_site_2,
+        m.data_hub_site_3,
+        m.data_hub_site_4,
+        m.data_hub_site_5,
+      ].map(norm).some((s) => s && s === jobSite);
+      if (siteMatches) return true;
+      // Fallback: unique customer match when job has no site
+      if (!jobSite && jobCustomer && norm(m.data_hub_customer) === jobCustomer) return true;
+      return false;
+    });
+
+    if (match) setSelectedSiteId(match.id);
+  };
+
   const handleJobNumberChange = (value: string) => {
     setJobNumber(value);
 
@@ -391,6 +435,7 @@ const LoadReportsPage = () => {
     window.clearTimeout((handleJobNumberChange as any)._t);
     (handleJobNumberChange as any)._t = window.setTimeout(() => {
       fetchWeighbridgeWeightKg(value);
+      autoAssignSiteFromJob(value);
     }, 300);
   };
 
