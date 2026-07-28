@@ -498,6 +498,13 @@ export async function buildCustomerRebateWorkbook(
     dsizer.apply(ds);
   }
 
+  // =========================================================================
+  // SHEETS 3+ — INDIVIDUAL LOAD REPORT TABS
+  // =========================================================================
+  if (input.loadReportsScope && input.loadReportsScope.siteIds.length > 0) {
+    await addIndividualLoadReportSheets(wb, input.loadReportsScope, logoBuffer);
+  }
+
   // ---- Filename ----
   const safeCustomer = customerName.replace(/[^a-zA-Z0-9]/g, "_");
   const safeSite = siteName.replace(/[^a-zA-Z0-9]/g, "_");
@@ -505,6 +512,204 @@ export async function buildCustomerRebateWorkbook(
 
   return { workbook: wb, fileName };
 }
+
+// -------------------------------------------------------------------------
+// Individual load report sheet builder
+// -------------------------------------------------------------------------
+function safeSheetName(base: string, used: Set<string>): string {
+  // Excel: 31 char limit, no : \ / ? * [ ]
+  let name = base.replace(/[:\\/?*\[\]]/g, " ").trim().slice(0, 31) || "Load Report";
+  let candidate = name;
+  let i = 2;
+  while (used.has(candidate.toLowerCase())) {
+    const suffix = ` (${i++})`;
+    candidate = (name.slice(0, 31 - suffix.length) + suffix);
+  }
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
+async function addIndividualLoadReportSheets(
+  wb: ExcelJS.Workbook,
+  scope: { siteIds: string[]; periodStart: string; periodEnd: string },
+  logoBuffer: ArrayBuffer | null,
+) {
+  const { data: reports } = await supabase
+    .from("load_reports")
+    .select(
+      "id, report_date, vehicle_reg, operator_name, notes, total_weight_kg, total_pallets, pallets_out, no_pallets_on_load, site_id"
+    )
+    .in("site_id", scope.siteIds)
+    .gte("report_date", scope.periodStart)
+    .lte("report_date", scope.periodEnd)
+    .eq("status", "submitted")
+    .eq("exclude_from_rebate", false)
+    .order("report_date", { ascending: true });
+
+  if (!reports || reports.length === 0) return;
+
+  const reportIds = reports.map((r) => r.id);
+  const { data: lineItems } = await supabase
+    .from("load_line_items")
+    .select("load_report_id, waste_type, total_weight_kg, pallet_count")
+    .in("load_report_id", reportIds);
+
+  // Load site names for header context
+  const { data: siteRows } = await supabase
+    .from("customer_sites")
+    .select("id, site_name")
+    .in("id", scope.siteIds);
+  const siteNameById = new Map<string, string>((siteRows ?? []).map((s: any) => [s.id, s.site_name]));
+
+  const itemsByReport = new Map<string, Array<{ waste_type: string; total_weight_kg: number; pallet_count: number }>>();
+  for (const li of lineItems ?? []) {
+    const arr = itemsByReport.get(li.load_report_id) ?? [];
+    arr.push({
+      waste_type: li.waste_type,
+      total_weight_kg: Number(li.total_weight_kg) || 0,
+      pallet_count: Number(li.pallet_count) || 0,
+    });
+    itemsByReport.set(li.load_report_id, arr);
+  }
+
+  const usedNames = new Set<string>(wb.worksheets.map((w) => w.name.toLowerCase()));
+
+  for (const rep of reports) {
+    const dateStr = rep.report_date ? format(parseISO(rep.report_date as unknown as string), "yyyy-MM-dd") : "";
+    const veh = (rep.vehicle_reg ?? "").toString().replace(/\s+/g, "").toUpperCase();
+    const baseName = `LR ${dateStr}${veh ? ` ${veh}` : ""}`.trim();
+    const sheetName = safeSheetName(baseName || `LR ${rep.id.slice(0, 8)}`, usedNames);
+
+    const ws = wb.addWorksheet(sheetName, {
+      views: [{ showGridLines: false }],
+      pageSetup: {
+        fitToPage: true,
+        fitToWidth: 1,
+        orientation: "portrait",
+        margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+      },
+    });
+
+    const sizer = new ColumnSizer({ 1: 2, 2: 22, 3: 32, 4: 12, 5: 12 });
+    ws.getColumn(1).width = 2;
+
+    addLogoHeader(
+      wb,
+      ws,
+      logoBuffer,
+      "LOAD REPORT",
+      format(new Date(), "d MMM yyyy"),
+      "E",
+    );
+
+    let r = 5;
+    const siteName = siteNameById.get(rep.site_id as string) ?? "";
+    const infoRows: [string, string][] = [
+      ["Site", siteName],
+      ["Report Date", dateStr ? format(parseISO(rep.report_date as unknown as string), "d MMM yyyy") : ""],
+      ["Vehicle Reg", (rep.vehicle_reg ?? "").toString()],
+      ["Operator", (rep.operator_name ?? "").toString()],
+      ["Total Weight (kg)", (Number(rep.total_weight_kg) || 0).toLocaleString("en-GB")],
+      ["Pallets on Load", String(rep.total_pallets ?? 0)],
+      ["Pallets Out", String(rep.pallets_out ?? 0)],
+    ];
+    for (const [label, value] of infoRows) {
+      const l = ws.getCell(`B${r}`);
+      l.value = label;
+      l.font = { name: "Calibri", size: 10, bold: true, color: { argb: HEADER_GREY } };
+      ws.mergeCells(`C${r}:E${r}`);
+      const v = ws.getCell(`C${r}`);
+      v.value = value;
+      v.font = { name: "Calibri", size: 10, color: { argb: "FF333333" } };
+      sizer.measure(2, label);
+      sizer.measure(3, value);
+      r++;
+    }
+    r += 1;
+
+    // Line items table
+    const headers = ["", "Waste Type", "Notes", "Weight (kg)", "Pallets"];
+    const headerRow = ws.getRow(r);
+    headers.forEach((h, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_GREEN } };
+      cell.alignment = { horizontal: i >= 3 ? "right" : "left", vertical: "middle" };
+      sizer.measure(i + 1, h);
+    });
+    headerRow.height = 20;
+    r++;
+
+    const items = itemsByReport.get(rep.id) ?? [];
+    let totalKg = 0;
+    let totalPallets = 0;
+    items.forEach((item, idx) => {
+      const row = ws.getRow(r);
+      const fill = idx % 2 === 1 ? ZEBRA : "FFFFFFFF";
+      row.getCell(2).value = item.waste_type;
+      sizer.measure(2, item.waste_type);
+      row.getCell(3).value = "";
+      const w = row.getCell(4);
+      w.value = item.total_weight_kg;
+      w.numFmt = "#,##0";
+      w.alignment = { horizontal: "right" };
+      sizer.measure(4, item.total_weight_kg.toLocaleString("en-GB"));
+      const p = row.getCell(5);
+      p.value = item.pallet_count;
+      p.numFmt = "#,##0";
+      p.alignment = { horizontal: "right" };
+      sizer.measure(5, String(item.pallet_count));
+      [2, 3, 4, 5].forEach((c) => {
+        row.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+        row.getCell(c).border = { bottom: { style: "hair", color: { argb: BORDER_GREY } } };
+      });
+      totalKg += item.total_weight_kg;
+      totalPallets += item.pallet_count;
+      r++;
+    });
+
+    // Totals row
+    if (items.length > 0) {
+      const totRow = ws.getRow(r);
+      totRow.getCell(2).value = "TOTAL";
+      totRow.getCell(4).value = totalKg;
+      totRow.getCell(4).numFmt = "#,##0";
+      totRow.getCell(4).alignment = { horizontal: "right" };
+      totRow.getCell(5).value = totalPallets;
+      totRow.getCell(5).numFmt = "#,##0";
+      totRow.getCell(5).alignment = { horizontal: "right" };
+      [2, 3, 4, 5].forEach((c) => {
+        const cell = totRow.getCell(c);
+        cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_GREY } };
+      });
+      totRow.height = 20;
+      r++;
+    } else {
+      const cell = ws.getCell(`B${r}`);
+      cell.value = "No line items recorded on this load.";
+      cell.font = { name: "Calibri", size: 10, italic: true, color: { argb: MUTED } };
+      r++;
+    }
+
+    if (rep.notes) {
+      r += 1;
+      const nl = ws.getCell(`B${r}`);
+      nl.value = "Notes";
+      nl.font = { name: "Calibri", size: 10, bold: true, color: { argb: HEADER_GREY } };
+      r++;
+      ws.mergeCells(`B${r}:E${r + 2}`);
+      const nv = ws.getCell(`B${r}`);
+      nv.value = rep.notes;
+      nv.alignment = { wrapText: true, vertical: "top" };
+      nv.font = { name: "Calibri", size: 10, color: { argb: "FF333333" } };
+    }
+
+    sizer.apply(ws);
+  }
+}
+
 
 /**
  * Generates a polished, customer-facing rebate statement in Excel format,
