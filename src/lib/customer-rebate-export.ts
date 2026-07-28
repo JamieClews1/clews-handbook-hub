@@ -35,7 +35,18 @@ export type CustomerRebateExportInput = {
   totalWeight: number;
   totalRebate: number;
   siteBreakdowns?: CustomerExportSiteBreakdown[];
+  /**
+   * When provided, a separate worksheet tab is created for each individual
+   * load report in the given site(s) and date range. Load report data is
+   * fetched directly from Supabase (load_reports + load_line_items).
+   */
+  loadReportsScope?: {
+    siteIds: string[];
+    periodStart: string; // yyyy-MM-dd
+    periodEnd: string;   // yyyy-MM-dd
+  };
 };
+
 
 // Brand colours (Clews / WasteOne fresh green)
 const BRAND_GREEN = "FF2E7D32";
