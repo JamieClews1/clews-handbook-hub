@@ -176,7 +176,7 @@ export function StaciYearToDate({ customerId }: Props) {
       colourMap, wasteMap, totalBreakdownKg, recyclableKg, wfeKg, landfillKg, woodKg,
       monthRows,
     };
-  }, [reports]);
+  }, [reports, year]);
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
