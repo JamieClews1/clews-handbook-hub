@@ -52,18 +52,30 @@ export function StaciYearToDate({ customerId }: Props) {
 
   useEffect(() => {
     const load = async () => {
-      if (!customerId) { setJobs([]); return; }
       setLoading(true);
       try {
+        let resolvedCustomerId = customerId;
+        let custName = "";
+        if (!resolvedCustomerId) {
+          const { data: staci } = await supabase
+            .from("customers")
+            .select("id, customer_name")
+            .ilike("customer_name", "staci")
+            .maybeSingle();
+          resolvedCustomerId = staci?.id;
+          custName = staci?.customer_name ?? "STACI";
+        }
+        if (!resolvedCustomerId) { setJobs([]); return; }
         const [{ data: cust }, { data: siteRows }] = await Promise.all([
-          supabase.from("customers").select("customer_name").eq("id", customerId).maybeSingle(),
-          supabase.from("customer_sites").select("data_hub_customer").eq("customer_id", customerId),
+          supabase.from("customers").select("customer_name").eq("id", resolvedCustomerId).maybeSingle(),
+          supabase.from("customer_sites").select("data_hub_customer").eq("customer_id", resolvedCustomerId),
         ]);
-        setCustomerName(cust?.customer_name ?? "");
-        const aliases = Array.from(new Set([
-          cust?.customer_name,
-          ...((siteRows ?? []).map((s: any) => s.data_hub_customer)),
-        ].filter(Boolean))) as string[];
+        setCustomerName(cust?.customer_name ?? custName);
+        const aliasSet = new Set<string>();
+        for (const a of [cust?.customer_name, custName, ...((siteRows ?? []).map((s: any) => s.data_hub_customer))]) {
+          if (a) { aliasSet.add(a); aliasSet.add(String(a).toUpperCase()); aliasSet.add(String(a).toLowerCase()); aliasSet.add(String(a).replace(/\b\w/g, c => c.toUpperCase())); }
+        }
+        const aliases = Array.from(aliasSet);
         if (aliases.length === 0) { setJobs([]); return; }
 
         const from = `${year}-01-01`;
