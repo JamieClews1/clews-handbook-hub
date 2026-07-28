@@ -38,6 +38,8 @@ import {
 } from "recharts";
 import { StaciMonthlyReport } from "@/components/staci/StaciMonthlyReport";
 import { StaciLoadReportCards } from "@/components/customer-reporting/StaciLoadReportCards";
+import { StaciYearToDate } from "@/components/staci/StaciYearToDate";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 
 const TARE_KG = 20;
