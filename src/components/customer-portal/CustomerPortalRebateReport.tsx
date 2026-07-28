@@ -1004,16 +1004,9 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
         </Button>
 
         {reportGenerated && reportData.length > 0 && (
-          <Button variant="outline" onClick={exportToExcel}>
+          <Button variant="outline" onClick={handleCustomerExport}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Export to Excel
-          </Button>
-        )}
-
-        {reportGenerated && reportData.length > 0 && (
-          <Button className="bg-green-600 hover:bg-green-700" onClick={handleCustomerExport}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Customer Export
           </Button>
         )}
       </div>
