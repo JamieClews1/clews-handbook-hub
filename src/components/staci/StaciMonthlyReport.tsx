@@ -142,13 +142,16 @@ export function StaciMonthlyReport({
 
   const buildReportData = () => {
     if (!stats) return null;
+    // Total rebate = gross recycling cost - monthly recycling invoice (bales/dolav net value applied)
+    const totalRebate = +(stats.totalCost - monthlyRecyclingInvoice).toFixed(2);
     return {
       period: { from: format(fromDate, "yyyy-MM-dd"), to: format(toDate, "yyyy-MM-dd") },
       totalPallets: stats.totalPallets,
       totalWeightKg: Math.round(stats.totalWeightKg + balesDolavTotalWeightKg),
       grossCost: +stats.totalCost.toFixed(2),
-      palletRebate: +stats.palletRebate.toFixed(2),
-      netCost: +stats.netCost.toFixed(2),
+      palletRebate: totalRebate,
+      netCost: +monthlyNetCost.toFixed(2),
+      monthlyRecyclingInvoice: +monthlyRecyclingInvoice.toFixed(2),
       goodPallets: stats.goodPallets,
       colourBreakdown: Object.entries(stats.colourMap).map(([colour, d]) => ({
         colour: STACI_COLOUR_CONFIG[colour as StaciPalletColour]?.label ?? colour,
