@@ -708,7 +708,13 @@ export function MonthlyRebateGenerationV2() {
           materials: sb.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
         },
       ],
+      loadReportsScope: {
+        siteIds: [sb.site.id],
+        periodStart: format(dateRange.from, "yyyy-MM-dd"),
+        periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+      },
     });
+
 
     const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
       body: {
