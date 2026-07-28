@@ -649,7 +649,17 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
   }, [stats, balesDolavData, baleRates, haulageData, dbPalletWeightCharge]);
 
   return (
-    <div className="space-y-8">
+    <Tabs defaultValue="monthly" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="monthly">Monthly Dashboard</TabsTrigger>
+        <TabsTrigger value="ytd">Year To Date</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="ytd" className="space-y-6">
+        <StaciYearToDate customerId={customerId} />
+      </TabsContent>
+
+      <TabsContent value="monthly" className="space-y-8">
       {/* Date range */}
       <Card>
         <CardContent className="py-4 flex flex-wrap items-center gap-4">
