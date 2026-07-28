@@ -535,9 +535,11 @@ function safeSheetName(base: string, used: Set<string>): string {
 
 async function addIndividualLoadReportSheets(
   wb: ExcelJS.Workbook,
-  scope: { siteIds: string[]; periodStart: string; periodEnd: string },
+  scope: { siteIds: string[]; periodStart: string; periodEnd: string; palletWeightKg?: number; palletChargeRate?: number },
   logoBuffer: ArrayBuffer | null,
 ) {
+  const palletWeightKg = scope.palletWeightKg ?? 20;
+  const palletChargeRate = scope.palletChargeRate ?? 0;
   const { data: reports } = await supabase
     .from("load_reports")
     .select(
