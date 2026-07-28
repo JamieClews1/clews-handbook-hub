@@ -677,6 +677,17 @@ export function SiteRebateReportGenerator() {
             const midweighByWasteType: Record<string, number> = {};
             for (const job of midweighJobs ?? []) {
               const wasteType = job.waste_description as string;
+              // Skip RoRo / Skip container tickets — those are already counted
+              // by the Skip/RoRo rebate summary and would double-count here.
+              const containerLower = (job.container_type ?? "").toLowerCase();
+              if (
+                containerLower.includes("ro ro") ||
+                containerLower.includes("roro") ||
+                containerLower.includes("roll on") ||
+                containerLower.includes("skip")
+              ) {
+                continue;
+              }
               // Honour the price-set line's effective-date window (e.g. Britvic
               // plastics only count from 24 May onward).
               const cfg = rebateConfigs.find((c) => c.material_name === wasteType);
@@ -688,6 +699,7 @@ export function SiteRebateReportGenerator() {
               // Midweigh weights are stored in KG -> convert to tonnes
               const tonnes = convertWeightToTonnes(job.weight_t, "midweigh") ?? 0;
               if (tonnes <= 0) continue;
+
               lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + tonnes;
               midweighByWasteType[wasteType] = (midweighByWasteType[wasteType] ?? 0) + tonnes;
 
