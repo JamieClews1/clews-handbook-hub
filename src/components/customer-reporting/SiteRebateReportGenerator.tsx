@@ -1201,8 +1201,16 @@ export function SiteRebateReportGenerator() {
             materials: consolidatedData.flatMap((cat) => cat.sources),
           },
         ],
+        loadReportsScope: !isCustomerMidweighMode && selectedSite && dateRange?.from
+          ? {
+              siteIds: [selectedSite.id],
+              periodStart: format(dateRange.from, "yyyy-MM-dd"),
+              periodEnd: format(dateRange.to ?? dateRange.from, "yyyy-MM-dd"),
+            }
+          : undefined,
       },
     };
+
   };
 
   const handleCustomerExport = async () => {
