@@ -502,26 +502,29 @@ export function SiteRebateItemsEditor({ priceSetId, priceSetName, loadReportType
     if (materials.length === 0) return null;
 
     return (
-      <div className="flex items-end gap-2">
-        <div className="flex-1 space-y-1">
-          <Label className="text-sm">Add {label}</Label>
-          <Select value={selectedMaterialId} onValueChange={setSelectedMaterialId} disabled={saving}>
-            <SelectTrigger>
-              <SelectValue placeholder={`Select a ${label.toLowerCase()} material to add`} />
-            </SelectTrigger>
-            <SelectContent>
-              {materials.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.waste_type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={() => addMaterial()} disabled={!selectedMaterialId || saving || !materials.some(m => m.id === selectedMaterialId)} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Add
-        </Button>
+      <div className="space-y-1">
+        <Label className="text-sm">Add {label}</Label>
+        <Select
+          value=""
+          onValueChange={(val) => {
+            if (val) addMaterial(val);
+          }}
+          disabled={saving}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`Select a ${label.toLowerCase()} material to add`} />
+          </SelectTrigger>
+          <SelectContent>
+            {materials.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.waste_type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Selecting a material adds it to the table above — then set its Value Type and price.
+        </p>
       </div>
     );
   };
