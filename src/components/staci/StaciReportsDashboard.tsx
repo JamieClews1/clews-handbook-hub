@@ -1220,6 +1220,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         dateTo={dateTo}
         dashboardLoading={fetching}
       />
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
