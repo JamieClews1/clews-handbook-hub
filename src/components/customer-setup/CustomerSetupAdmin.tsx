@@ -1581,9 +1581,17 @@ export function CustomerSetupAdmin() {
                   </TabsContent>
                 )}
 
+                <TabsContent value="finance" className="mt-4">
+                  <CustomerFinanceDetails
+                    customerId={selectedCustomer.id}
+                    customerName={selectedCustomer.customer_name}
+                  />
+                </TabsContent>
+
                 <TabsContent value="staci-rates" className="mt-4">
                   <StaciPalletRatesEditor />
                 </TabsContent>
+
               </Tabs>
             )}
           </CardContent>
