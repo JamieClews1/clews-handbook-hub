@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobTypes } from "./jobTypes";
+import { JobPricingPicker } from "./JobPricingPicker";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
