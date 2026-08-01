@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobTypes } from "./jobTypes";
+import { JobPricingPicker } from "./JobPricingPicker";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
@@ -420,7 +421,11 @@ export function JobFormFields({
         </div>
       </div>
 
+      {/* Pricing (Pricing CMS: tier × zone) */}
+      <JobPricingPicker form={form} setForm={setForm} />
+
       {/* Costs */}
+
       <div className="rounded-lg border border-border p-3 space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Costs</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
