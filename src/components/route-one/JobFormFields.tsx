@@ -357,9 +357,14 @@ export function JobFormFields({
             <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(JOB_TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {jobTypes.map((t) => (
+                  <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
                 ))}
+                {form.job_type && !jobTypes.some((t) => t.key === form.job_type) && (
+                  <SelectItem value={form.job_type}>
+                    {JOB_TYPE_LABELS[form.job_type] ?? form.job_type}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -367,11 +372,13 @@ export function JobFormFields({
             <Label className="text-xs">Container Type</Label>
             <Select value={form.container_type || ""} onValueChange={(v) => setForm({ ...form, container_type: v })}>
               <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Skip">Skip</SelectItem>
-                <SelectItem value="RoRo">RoRo</SelectItem>
-                <SelectItem value="Trailer">Trailer</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+              <SelectContent className="max-h-64">
+                {containerTypes.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+                {form.container_type && !containerTypes.includes(form.container_type) && (
+                  <SelectItem value={form.container_type}>{form.container_type}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
