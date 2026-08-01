@@ -1230,7 +1230,9 @@ export function CustomerSetupAdmin() {
                     <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
                   )}
                    <TabsTrigger value="contacts">Contacts</TabsTrigger>
+                   <TabsTrigger value="finance">Finance Details</TabsTrigger>
                    <TabsTrigger value="portal">Portal access</TabsTrigger>
+
                    {selectedCustomer.custom_reporting_periods_enabled && (
                      <TabsTrigger value="reporting-periods">Reporting Periods</TabsTrigger>
                    )}
