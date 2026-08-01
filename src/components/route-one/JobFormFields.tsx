@@ -211,16 +211,18 @@ export function JobFormFields({
   const loadPreviousJobs = async () => {
     setPrevLoading(true);
     setPrevOpen(true);
+    // NOTE: no server-side ORDER BY here — sorting 100k+ Data Hub rows alongside
+    // an ilike filter times out. We fetch then sort client-side.
     let q = supabase
       .from("data_hub_jobs")
       .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t")
-      .order("job_date", { ascending: false })
-      .limit(25);
+      .limit(50);
     const site = (form.site_name || "").trim();
     if (customer) q = q.ilike("customer", `%${customer}%`);
     // When a site is chosen, restrict history to that exact site (case-insensitive)
     if (site) q = q.ilike("site", site);
-    const { data: hub } = await q;
+    const { data: hub, error: hubErr } = await q;
+    if (hubErr) console.error("Previous jobs (Data Hub) lookup failed", hubErr);
 
     let rq = supabase
       .from("route_one_jobs")
@@ -229,15 +231,19 @@ export function JobFormFields({
       .limit(25);
     if (customer) rq = rq.ilike("customer_name", `%${customer}%`);
     if (site) rq = rq.ilike("site_name", site);
-    const { data: own } = await rq;
+    const { data: own, error: ownErr } = await rq;
+    if (ownErr) console.error("Previous jobs (RouteOne) lookup failed", ownErr);
 
     const rows = [
       ...(own ?? []).map((j: any) => ({ ...j, _source: "routeone" })),
       ...(hub ?? []).map((j: any) => ({ ...j, _source: "skiptrak" })),
-    ];
-    setPrevJobs(rows);
+    ].sort((a, b) =>
+      String(b.scheduled_date || b.job_date || "").localeCompare(String(a.scheduled_date || a.job_date || ""))
+    );
+    setPrevJobs(rows.slice(0, 40));
     setPrevLoading(false);
   };
+
 
   /** Prefill the form from a previous job, defaulting to an exchange. */
   const applyPrevious = (j: any) => {
