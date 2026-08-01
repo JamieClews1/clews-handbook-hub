@@ -128,7 +128,14 @@ const RouteOnePage = () => {
     po_number: "",
     scheduled_date: format(new Date(), "yyyy-MM-dd"),
     assigned_driver_id: "",
-    estimated_duration_mins: 60,
+    haulage_cost: "",
+    charge_per_tonne: "",
+    min_weight_charge: "",
+    weight_included_t: "",
+    cost_items: [] as any[],
+    contamination_charge: "",
+    contamination_query_id: "",
+    vat_rate: 20 as any,
   });
 
   // Edit form state
