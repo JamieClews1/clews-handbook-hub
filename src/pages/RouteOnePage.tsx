@@ -515,6 +515,9 @@ const RouteOnePage = () => {
                   <TabsContent value="driver-app">
                     <DriverAppManagement />
                   </TabsContent>
+                  <TabsContent value="cost-items">
+                    <CostItemsSettings />
+                  </TabsContent>
                 </div>
 
               </Tabs>
