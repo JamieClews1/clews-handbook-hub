@@ -156,6 +156,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
       let query = supabase
         .from("load_reports")
         .select("*, customer_sites(site_name), load_line_items(waste_type, pallet_count)")
+        .order("created_at", { ascending: false })
         .order("report_date", { ascending: false });
 
       if (dateFilterEnabled) {
