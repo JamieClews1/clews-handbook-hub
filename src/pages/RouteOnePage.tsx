@@ -285,7 +285,7 @@ const RouteOnePage = () => {
       scheduled_date: editForm.scheduled_date,
       assigned_driver_id: editForm.assigned_driver_id || null,
       status: editForm.assigned_driver_id ? (editingJob.status === "unassigned" ? "assigned" : editingJob.status) : "unassigned",
-      estimated_duration_mins: editForm.estimated_duration_mins,
+      ...costFields(editForm),
     };
     updateJob.mutate(
       { id: editingJob.id, updates },
@@ -312,7 +312,14 @@ const RouteOnePage = () => {
       po_number: job.po_number || "",
       scheduled_date: job.scheduled_date || format(selectedDate, "yyyy-MM-dd"),
       assigned_driver_id: job.assigned_driver_id || "",
-      estimated_duration_mins: job.estimated_duration_mins || 60,
+      haulage_cost: job.haulage_cost ?? "",
+      charge_per_tonne: job.charge_per_tonne ?? "",
+      min_weight_charge: job.min_weight_charge ?? "",
+      weight_included_t: job.weight_included_t ?? "",
+      cost_items: Array.isArray(job.cost_items) ? job.cost_items : [],
+      contamination_charge: job.contamination_charge ?? "",
+      contamination_query_id: job.contamination_query_id ?? "",
+      vat_rate: job.vat_rate ?? 20,
     });
     setEditingJob(job);
   };
@@ -322,9 +329,12 @@ const RouteOnePage = () => {
       customer_name: "", site_name: "", site_address: "", site_postcode: "",
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
       notes: "", po_number: "", scheduled_date: format(selectedDate, "yyyy-MM-dd"),
-      assigned_driver_id: "", estimated_duration_mins: 60,
+      assigned_driver_id: "",
+      haulage_cost: "", charge_per_tonne: "", min_weight_charge: "", weight_included_t: "",
+      cost_items: [], contamination_charge: "", contamination_query_id: "", vat_rate: 20,
     });
   };
+
 
   const navigateDate = (dir: number) => {
     setSelectedDate((d) => addDays(d, viewMode === "day" ? dir : dir * 7));
