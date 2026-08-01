@@ -22,6 +22,8 @@ import { DataHubCombobox } from "./DataHubCombobox";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
+import { CustomerFinanceDetails } from "@/components/finance/CustomerFinanceDetails";
+
 import { CustomerReportingPeriodsEditor } from "./CustomerReportingPeriodsEditor";
 import { CreditApplicationsManager } from "./CreditApplicationsManager";
 import { Switch } from "@/components/ui/switch";
