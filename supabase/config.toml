@@ -76,3 +76,6 @@ verify_jwt = false
 
 [functions.send-invoice-email]
 verify_jwt = true
+
+[functions.finance-overdue-reminders]
+verify_jwt = false
