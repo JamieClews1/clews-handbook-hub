@@ -125,6 +125,8 @@ export function JobFormFields({
   const [prevLoading, setPrevLoading] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
   const [catalogue, setCatalogue] = useState<any[]>([]);
+  const [containerTypes, setContainerTypes] = useState<string[]>([]);
+  const { types: jobTypes } = useJobTypes();
 
   const customer = form.customer_name || "";
 
