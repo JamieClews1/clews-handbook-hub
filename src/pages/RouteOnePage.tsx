@@ -905,7 +905,6 @@ const RouteOnePage = () => {
 
 // Autocomplete input now lives in src/components/route-one/JobFormFields.tsx
 
-}
 
 // Shared form fields for Create and Edit dialogs
 // JobFormFields now lives in src/components/route-one/JobFormFields.tsx
