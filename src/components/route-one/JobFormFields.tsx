@@ -292,18 +292,18 @@ export function JobFormFields({
                 className="text-[11px] text-primary hover:underline"
                 onClick={() => setManualSite((m) => !m)}
               >
-                {manualSite ? "Pick from setup sites" : "Enter manually"}
+                {manualSite ? "Pick from known sites" : "Enter manually"}
               </button>
             </div>
             {manualSite || setupSites.length === 0 ? (
               <Input
                 value={form.site_name || ""}
                 onChange={(e) => setForm({ ...form, site_name: e.target.value })}
-                placeholder={setupSites.length === 0 ? "No setup sites — type site name" : "Site name"}
+                placeholder={setupSites.length === 0 ? "No known sites — type site name" : "Site name"}
               />
             ) : (
               <Select value={form.site_name || ""} onValueChange={(v) => setForm({ ...form, site_name: v })}>
-                <SelectTrigger><SelectValue placeholder={`Select from ${setupSites.length} setup sites...`} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={`Select from ${setupSites.length} known sites...`} /></SelectTrigger>
                 <SelectContent className="max-h-64">
                   {setupSites.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
