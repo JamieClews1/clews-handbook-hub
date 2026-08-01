@@ -214,7 +214,7 @@ const RouteOnePage = () => {
         scheduled_date: form.scheduled_date,
         assigned_driver_id: form.assigned_driver_id || null,
         status: form.assigned_driver_id ? "assigned" : "unassigned",
-        estimated_duration_mins: form.estimated_duration_mins,
+        ...costFields(form),
       });
       if (error) throw error;
     },
