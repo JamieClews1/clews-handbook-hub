@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_sync_log: {
+        Row: {
+          created_at: string
+          direction: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          invoice_id: string | null
+          last_attempt_at: string
+          message: string | null
+          payload: Json | null
+          provider: string
+          retry_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          direction?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          invoice_id?: string | null
+          last_attempt_at?: string
+          message?: string | null
+          payload?: Json | null
+          provider?: string
+          retry_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          invoice_id?: string | null
+          last_attempt_at?: string
+          message?: string | null
+          payload?: Json | null
+          provider?: string
+          retry_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_sync_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_question_log: {
         Row: {
           created_at: string
@@ -1442,6 +1498,80 @@ export type Database = {
           },
         ]
       }
+      customer_finance_details: {
+        Row: {
+          accounting_customer_ref: string | null
+          accounting_provider: string
+          billing_address_line1: string | null
+          billing_address_line2: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_county: string | null
+          billing_postcode: string | null
+          created_at: string
+          customer_id: string
+          finance_contact_email: string | null
+          finance_contact_name: string | null
+          finance_contact_phone: string | null
+          id: string
+          notes: string | null
+          payment_terms_days: number | null
+          po_required: boolean
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          accounting_customer_ref?: string | null
+          accounting_provider?: string
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_county?: string | null
+          billing_postcode?: string | null
+          created_at?: string
+          customer_id: string
+          finance_contact_email?: string | null
+          finance_contact_name?: string | null
+          finance_contact_phone?: string | null
+          id?: string
+          notes?: string | null
+          payment_terms_days?: number | null
+          po_required?: boolean
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          accounting_customer_ref?: string | null
+          accounting_provider?: string
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_county?: string | null
+          billing_postcode?: string | null
+          created_at?: string
+          customer_id?: string
+          finance_contact_email?: string | null
+          finance_contact_name?: string | null
+          finance_contact_phone?: string | null
+          id?: string
+          notes?: string | null
+          payment_terms_days?: number | null
+          po_required?: boolean
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_finance_details_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_portal_memberships: {
         Row: {
           contact_id: string | null
@@ -2601,6 +2731,63 @@ export type Database = {
           },
         ]
       }
+      finance_settings: {
+        Row: {
+          accounting_provider: string
+          accounting_sync_enabled: boolean
+          created_at: string
+          default_payment_terms_days: number
+          default_vat_rate: number
+          id: string
+          invoice_email_body: string
+          invoice_email_subject: string
+          invoice_number_padding: number
+          invoice_prefix: string
+          next_invoice_number: number
+          reminder_days: number[]
+          reminder_email_body: string
+          reminder_email_subject: string
+          reminders_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          accounting_provider?: string
+          accounting_sync_enabled?: boolean
+          created_at?: string
+          default_payment_terms_days?: number
+          default_vat_rate?: number
+          id?: string
+          invoice_email_body?: string
+          invoice_email_subject?: string
+          invoice_number_padding?: number
+          invoice_prefix?: string
+          next_invoice_number?: number
+          reminder_days?: number[]
+          reminder_email_body?: string
+          reminder_email_subject?: string
+          reminders_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accounting_provider?: string
+          accounting_sync_enabled?: boolean
+          created_at?: string
+          default_payment_terms_days?: number
+          default_vat_rate?: number
+          id?: string
+          invoice_email_body?: string
+          invoice_email_subject?: string
+          invoice_number_padding?: number
+          invoice_prefix?: string
+          next_invoice_number?: number
+          reminder_days?: number[]
+          reminder_email_body?: string
+          reminder_email_subject?: string
+          reminders_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fuel_surcharge_rates: {
         Row: {
           active: boolean
@@ -2797,6 +2984,232 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      invoice_line_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          net_amount: number
+          nominal_code: string | null
+          quantity: number
+          sort_order: number
+          unit: string | null
+          unit_price: number
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          net_amount?: number
+          nominal_code?: string | null
+          quantity?: number
+          sort_order?: number
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          net_amount?: number
+          nominal_code?: string | null
+          quantity?: number
+          sort_order?: number
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_payments: {
+        Row: {
+          accounting_ref: string | null
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          method: string | null
+          payment_date: string
+          recorded_by: string | null
+          reference: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          accounting_ref?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method?: string | null
+          payment_date?: string
+          recorded_by?: string | null
+          reference?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          accounting_ref?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: string | null
+          payment_date?: string
+          recorded_by?: string | null
+          reference?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          accounting_provider: string
+          accounting_ref: string | null
+          accounting_sync_status: string
+          accounting_synced_at: string | null
+          amount_paid: number
+          bill_to: Json
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          due_date: string
+          gross_total: number
+          id: string
+          invoice_number: string
+          issue_date: string
+          job_number: string | null
+          job_source: string | null
+          last_reminder_at: string | null
+          last_reminder_day: number | null
+          load_report_id: string | null
+          net_total: number
+          notes: string | null
+          pdf_path: string | null
+          purchase_order: string | null
+          send_count: number
+          sent_at: string | null
+          sent_to: string | null
+          site_id: string | null
+          status: string
+          status_override: boolean
+          updated_at: string
+          vat_total: number
+        }
+        Insert: {
+          accounting_provider?: string
+          accounting_ref?: string | null
+          accounting_sync_status?: string
+          accounting_synced_at?: string | null
+          amount_paid?: number
+          bill_to?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          due_date?: string
+          gross_total?: number
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          job_number?: string | null
+          job_source?: string | null
+          last_reminder_at?: string | null
+          last_reminder_day?: number | null
+          load_report_id?: string | null
+          net_total?: number
+          notes?: string | null
+          pdf_path?: string | null
+          purchase_order?: string | null
+          send_count?: number
+          sent_at?: string | null
+          sent_to?: string | null
+          site_id?: string | null
+          status?: string
+          status_override?: boolean
+          updated_at?: string
+          vat_total?: number
+        }
+        Update: {
+          accounting_provider?: string
+          accounting_ref?: string | null
+          accounting_sync_status?: string
+          accounting_synced_at?: string | null
+          amount_paid?: number
+          bill_to?: Json
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          due_date?: string
+          gross_total?: number
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          job_number?: string | null
+          job_source?: string | null
+          last_reminder_at?: string | null
+          last_reminder_day?: number | null
+          load_report_id?: string | null
+          net_total?: number
+          notes?: string | null
+          pdf_path?: string | null
+          purchase_order?: string | null
+          send_count?: number
+          sent_at?: string | null
+          sent_to?: string | null
+          site_id?: string | null
+          status?: string
+          status_override?: boolean
+          updated_at?: string
+          vat_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       live_jobs_settings: {
         Row: {
@@ -6442,6 +6855,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_finance_user: { Args: { _user_id: string }; Returns: boolean }
       is_management: { Args: { _user_id: string }; Returns: boolean }
       lookup_job_weights: {
         Args: { pairs: Json }
@@ -6458,13 +6872,14 @@ export type Database = {
           weight_t: number
         }[]
       }
+      next_invoice_number: { Args: never; Returns: string }
       user_has_reconomy_membership: {
         Args: { _user_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "finance"
       booking_status:
         | "pending"
         | "confirmed"
@@ -6615,7 +7030,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "finance"],
       booking_status: [
         "pending",
         "confirmed",

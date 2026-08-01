@@ -69,6 +69,7 @@ import PricingCMSPage from "./pages/PricingCMSPage";
 import CRMPage from "./pages/CRMPage";
 import MailboxCallbackPage from "./pages/MailboxCallbackPage";
 import PricingPage from "./pages/PricingPage";
+import FinancePage from "./pages/FinancePage";
 import PoChecksPage from "./pages/PoChecksPage";
 
 import NotFound from "./pages/NotFound";
@@ -164,6 +165,7 @@ const App = () => (
             <Route path="/pricing" element={<Staff><PricingPage /></Staff>} />
             <Route path="/pricing/builder" element={<Navigate to="/pricing" replace />} />
             <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
+            <Route path="/finance" element={<Staff><FinancePage /></Staff>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

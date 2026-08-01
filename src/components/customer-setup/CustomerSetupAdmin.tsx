@@ -22,6 +22,8 @@ import { DataHubCombobox } from "./DataHubCombobox";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
+import { CustomerFinanceDetails } from "@/components/finance/CustomerFinanceDetails";
+
 import { CustomerReportingPeriodsEditor } from "./CustomerReportingPeriodsEditor";
 import { CreditApplicationsManager } from "./CreditApplicationsManager";
 import { Switch } from "@/components/ui/switch";
@@ -1230,7 +1232,9 @@ export function CustomerSetupAdmin() {
                     <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
                   )}
                    <TabsTrigger value="contacts">Contacts</TabsTrigger>
+                   <TabsTrigger value="finance">Finance Details</TabsTrigger>
                    <TabsTrigger value="portal">Portal access</TabsTrigger>
+
                    {selectedCustomer.custom_reporting_periods_enabled && (
                      <TabsTrigger value="reporting-periods">Reporting Periods</TabsTrigger>
                    )}
@@ -1579,9 +1583,17 @@ export function CustomerSetupAdmin() {
                   </TabsContent>
                 )}
 
+                <TabsContent value="finance" className="mt-4">
+                  <CustomerFinanceDetails
+                    customerId={selectedCustomer.id}
+                    customerName={selectedCustomer.customer_name}
+                  />
+                </TabsContent>
+
                 <TabsContent value="staci-rates" className="mt-4">
                   <StaciPalletRatesEditor />
                 </TabsContent>
+
               </Tabs>
             )}
           </CardContent>
