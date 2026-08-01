@@ -39,6 +39,9 @@ import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
+import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
+import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
+import { useJobTypes, jobTypeLabel, jobTypeSolidClass, jobTypeAccentClass } from "@/components/route-one/jobTypes";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,6 +96,14 @@ const JOB_TYPE_TAG: Record<JobType, string> = {
   wasted_journey: "bg-red-500/10 text-red-700 border border-red-500/20",
 };
 
+// Configured job types (route_one_job_types) win; static maps are the fallback
+// for legacy keys such as `wasted_journey`.
+const jtLabel = (k: string) => jobTypeLabel(k) || JOB_TYPE_LABELS[k as JobType] || k;
+const jtSolid = (k: string) => JOB_TYPE_COLORS[k as JobType] ?? jobTypeSolidClass(k);
+const jtAccent = (k: string) => JOB_TYPE_ACCENT[k as JobType] ?? jobTypeAccentClass(k);
+const jtTag = (k: string) =>
+  JOB_TYPE_TAG[k as JobType] ?? "bg-muted text-foreground border border-border";
+
 const STATUS_COLORS: Record<JobStatus, string> = {
   unassigned: "bg-muted text-muted-foreground",
   assigned: "bg-primary/10 text-primary",
@@ -126,6 +137,8 @@ const costFields = (form: any) => {
 const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  // Loads configured job types into the shared registry used by jtLabel/jtSolid.
+  useJobTypes();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
@@ -495,12 +508,14 @@ const RouteOnePage = () => {
                 <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
               <Tabs defaultValue="drivers" className="mt-4">
-                <TabsList className="w-full grid grid-cols-5">
+                <TabsList className="w-full grid grid-cols-4 lg:grid-cols-7">
                   <TabsTrigger value="drivers">Drivers</TabsTrigger>
                   <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                   <TabsTrigger value="yard-staff">Yard Staff</TabsTrigger>
                   <TabsTrigger value="driver-app">Driver App</TabsTrigger>
                   <TabsTrigger value="cost-items">Cost Items</TabsTrigger>
+                  <TabsTrigger value="job-types">Job Types</TabsTrigger>
+                  <TabsTrigger value="container-types">Containers</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="drivers">
@@ -517,6 +532,12 @@ const RouteOnePage = () => {
                   </TabsContent>
                   <TabsContent value="cost-items">
                     <CostItemsSettings />
+                  </TabsContent>
+                  <TabsContent value="job-types">
+                    <JobTypesSettings />
+                  </TabsContent>
+                  <TabsContent value="container-types">
+                    <ContainerTypesSettings />
                   </TabsContent>
                 </div>
 
@@ -628,12 +649,12 @@ const RouteOnePage = () => {
             const jt = viewingJob.job_type as JobType;
             return (
               <div className="space-y-4">
-                <div className={`rounded-lg p-3 ${JOB_TYPE_COLORS[jt]}`}>
+                <div className={`rounded-lg p-3 ${jtSolid(jt)}`}>
                   <p className="text-sm font-bold">{viewingJob.customer_name}</p>
                   {viewingJob.site_name && <p className="text-xs mt-0.5 opacity-90">{viewingJob.site_name}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <DetailRow label="Job Type" value={JOB_TYPE_LABELS[jt]} />
+                  <DetailRow label="Job Type" value={jtLabel(jt)} />
                   <DetailRow label="Status" value={viewingJob.status} />
                   <DetailRow label="Date" value={viewingJob.scheduled_date} />
                   <DetailRow label="Duration" value={viewingJob.estimated_duration_mins ? `${viewingJob.estimated_duration_mins} min` : "—"} />
@@ -672,7 +693,7 @@ const RouteOnePage = () => {
           </DialogHeader>
           {viewingSkiptrakJob && (() => {
             const mt = getSkiptrakJobType(viewingSkiptrakJob.movement_type);
-            const colorClass = mt ? JOB_TYPE_COLORS[mt] : "bg-muted text-foreground";
+            const colorClass = mt ? jtSolid(mt) : "bg-muted text-foreground";
             return (
               <div className="space-y-4">
                 <div className={`rounded-lg p-3 ${colorClass}`}>
@@ -747,7 +768,7 @@ const RouteOnePage = () => {
                       <TableCell className="font-medium text-sm">{job.customer_name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{job.site_name || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <Badge className={`text-[10px] ${JOB_TYPE_COLORS[jt]}`}>{JOB_TYPE_LABELS[jt]}</Badge>
+                        <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{job.container_type || "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{job.container_size || "—"}</TableCell>
@@ -792,7 +813,7 @@ const RouteOnePage = () => {
                       <TableCell className="text-sm text-muted-foreground">{sj.site || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell">
                         {mt ? (
-                          <Badge className={`text-[10px] ${JOB_TYPE_COLORS[mt]}`}>{sj.movement_type}</Badge>
+                          <Badge className={`text-[10px] ${jtSolid(mt)}`}>{sj.movement_type}</Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">{sj.movement_type || "—"}</span>
                         )}
@@ -989,7 +1010,7 @@ function JobCard({
       }`}
     >
       {/* 3px square-cornered left accent bar */}
-      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${JOB_TYPE_ACCENT[jobType] ?? "bg-muted"}`} />
+      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${jtAccent(jobType) ?? "bg-muted"}`} />
 
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -1030,8 +1051,8 @@ function JobCard({
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${JOB_TYPE_TAG[jobType]}`}>
-          {JOB_TYPE_LABELS[jobType]}
+        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${jtTag(jobType)}`}>
+          {jtLabel(jobType)}
         </Badge>
         {job.container_type && (
           <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
@@ -1077,7 +1098,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
-  const accent = mappedType ? JOB_TYPE_ACCENT[mappedType] : "bg-muted-foreground/40";
+  const accent = mappedType ? jtAccent(mappedType) : "bg-muted-foreground/40";
   const tagClass = mappedType ? JOB_TYPE_TAG[mappedType] : "bg-muted text-muted-foreground border border-hairline";
 
   return (

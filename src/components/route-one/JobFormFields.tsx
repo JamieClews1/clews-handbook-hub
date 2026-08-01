@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useJobTypes } from "./jobTypes";
 
+/** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
   delivery: "Delivery",
   exchange: "Exchange",
@@ -123,6 +125,8 @@ export function JobFormFields({
   const [prevLoading, setPrevLoading] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
   const [catalogue, setCatalogue] = useState<any[]>([]);
+  const [containerTypes, setContainerTypes] = useState<string[]>([]);
+  const { types: jobTypes } = useJobTypes();
 
   const customer = form.customer_name || "";
 
@@ -179,6 +183,15 @@ export function JobFormFields({
       .eq("is_active", true)
       .order("display_order")
       .then(({ data }) => setCatalogue(data ?? []));
+  }, []);
+
+  useEffect(() => {
+    supabase
+      .from("route_one_container_types")
+      .select("name")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data }) => setContainerTypes((data ?? []).map((r: any) => r.name).filter(Boolean)));
   }, []);
 
   const fetchCustomers = async (query: string): Promise<string[]> => {
@@ -344,9 +357,14 @@ export function JobFormFields({
             <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(JOB_TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {jobTypes.map((t) => (
+                  <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
                 ))}
+                {form.job_type && !jobTypes.some((t) => t.key === form.job_type) && (
+                  <SelectItem value={form.job_type}>
+                    {JOB_TYPE_LABELS[form.job_type] ?? form.job_type}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -354,11 +372,13 @@ export function JobFormFields({
             <Label className="text-xs">Container Type</Label>
             <Select value={form.container_type || ""} onValueChange={(v) => setForm({ ...form, container_type: v })}>
               <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Skip">Skip</SelectItem>
-                <SelectItem value="RoRo">RoRo</SelectItem>
-                <SelectItem value="Trailer">Trailer</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+              <SelectContent className="max-h-64">
+                {containerTypes.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+                {form.container_type && !containerTypes.includes(form.container_type) && (
+                  <SelectItem value={form.container_type}>{form.container_type}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
