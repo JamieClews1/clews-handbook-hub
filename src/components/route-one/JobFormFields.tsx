@@ -202,8 +202,10 @@ export function JobFormFields({
       .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t")
       .order("job_date", { ascending: false })
       .limit(25);
+    const site = (form.site_name || "").trim();
     if (customer) q = q.ilike("customer", `%${customer}%`);
-    if (form.site_name) q = q.ilike("site", `%${form.site_name}%`);
+    // When a site is chosen, restrict history to that exact site (case-insensitive)
+    if (site) q = q.ilike("site", site);
     const { data: hub } = await q;
 
     let rq = supabase
@@ -212,6 +214,7 @@ export function JobFormFields({
       .order("scheduled_date", { ascending: false })
       .limit(25);
     if (customer) rq = rq.ilike("customer_name", `%${customer}%`);
+    if (site) rq = rq.ilike("site_name", site);
     const { data: own } = await rq;
 
     const rows = [
@@ -515,12 +518,19 @@ export function JobFormFields({
       <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Previous jobs {customer ? `for ${customer}` : ""}</DialogTitle>
+            <DialogTitle>
+              Previous jobs {customer ? `for ${customer}` : ""}
+              {form.site_name ? ` — ${form.site_name}` : ""}
+            </DialogTitle>
           </DialogHeader>
           {prevLoading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
           ) : prevJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No previous jobs found. Enter a customer first.</p>
+            <p className="text-sm text-muted-foreground">
+              {form.site_name
+                ? `No previous jobs found at ${form.site_name}.`
+                : "No previous jobs found. Enter a customer first."}
+            </p>
           ) : (
             <div className="space-y-1">
               {prevJobs.map((j, i) => (
