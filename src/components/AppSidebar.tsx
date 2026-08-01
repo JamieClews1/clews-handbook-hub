@@ -398,7 +398,18 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
+                  {canAccessFinance && (
+                    <SidebarMenuItem data-sec="finance">
+                      <SidebarMenuButton asChild isActive={isActive("/finance")}>
+                        <Link to="/finance">
+                          <PoundSterling className="h-[18px] w-[18px]" />
+                          {!collapsed && <span>Finance</span>}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
+
               </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>
