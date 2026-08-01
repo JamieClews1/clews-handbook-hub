@@ -137,6 +137,8 @@ const costFields = (form: any) => {
 const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  // Loads configured job types into the shared registry used by jtLabel/jtSolid.
+  useJobTypes();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
