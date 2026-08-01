@@ -37,6 +37,8 @@ import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
+import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
+import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,6 +101,28 @@ const STATUS_COLORS: Record<JobStatus, string> = {
   query: "bg-red-500/10 text-red-600",
 };
 
+/** Normalise the cost inputs on a job form into DB columns. */
+const costFields = (form: any) => {
+  const toNum = (v: any) => {
+    if (v === "" || v == null) return null;
+    const n = typeof v === "number" ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const totals = computeJobTotals(form);
+  return {
+    haulage_cost: toNum(form.haulage_cost),
+    charge_per_tonne: toNum(form.charge_per_tonne),
+    min_weight_charge: toNum(form.min_weight_charge),
+    weight_included_t: toNum(form.weight_included_t),
+    cost_items: Array.isArray(form.cost_items) ? form.cost_items : [],
+    contamination_charge: toNum(form.contamination_charge),
+    contamination_query_id: form.contamination_query_id || null,
+    vat_rate: toNum(form.vat_rate) ?? 20,
+    total_net: totals.net,
+    total_inc_vat: totals.gross,
+  };
+};
+
 const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -126,7 +150,14 @@ const RouteOnePage = () => {
     po_number: "",
     scheduled_date: format(new Date(), "yyyy-MM-dd"),
     assigned_driver_id: "",
-    estimated_duration_mins: 60,
+    haulage_cost: "",
+    charge_per_tonne: "",
+    min_weight_charge: "",
+    weight_included_t: "",
+    cost_items: [] as any[],
+    contamination_charge: "",
+    contamination_query_id: "",
+    vat_rate: 20 as any,
   });
 
   // Edit form state
@@ -205,7 +236,7 @@ const RouteOnePage = () => {
         scheduled_date: form.scheduled_date,
         assigned_driver_id: form.assigned_driver_id || null,
         status: form.assigned_driver_id ? "assigned" : "unassigned",
-        estimated_duration_mins: form.estimated_duration_mins,
+        ...costFields(form),
       });
       if (error) throw error;
     },
@@ -276,7 +307,7 @@ const RouteOnePage = () => {
       scheduled_date: editForm.scheduled_date,
       assigned_driver_id: editForm.assigned_driver_id || null,
       status: editForm.assigned_driver_id ? (editingJob.status === "unassigned" ? "assigned" : editingJob.status) : "unassigned",
-      estimated_duration_mins: editForm.estimated_duration_mins,
+      ...costFields(editForm),
     };
     updateJob.mutate(
       { id: editingJob.id, updates },
@@ -303,7 +334,14 @@ const RouteOnePage = () => {
       po_number: job.po_number || "",
       scheduled_date: job.scheduled_date || format(selectedDate, "yyyy-MM-dd"),
       assigned_driver_id: job.assigned_driver_id || "",
-      estimated_duration_mins: job.estimated_duration_mins || 60,
+      haulage_cost: job.haulage_cost ?? "",
+      charge_per_tonne: job.charge_per_tonne ?? "",
+      min_weight_charge: job.min_weight_charge ?? "",
+      weight_included_t: job.weight_included_t ?? "",
+      cost_items: Array.isArray(job.cost_items) ? job.cost_items : [],
+      contamination_charge: job.contamination_charge ?? "",
+      contamination_query_id: job.contamination_query_id ?? "",
+      vat_rate: job.vat_rate ?? 20,
     });
     setEditingJob(job);
   };
@@ -313,9 +351,12 @@ const RouteOnePage = () => {
       customer_name: "", site_name: "", site_address: "", site_postcode: "",
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
       notes: "", po_number: "", scheduled_date: format(selectedDate, "yyyy-MM-dd"),
-      assigned_driver_id: "", estimated_duration_mins: 60,
+      assigned_driver_id: "",
+      haulage_cost: "", charge_per_tonne: "", min_weight_charge: "", weight_included_t: "",
+      cost_items: [], contamination_charge: "", contamination_query_id: "", vat_rate: 20,
     });
   };
+
 
   const navigateDate = (dir: number) => {
     setSelectedDate((d) => addDays(d, viewMode === "day" ? dir : dir * 7));
@@ -454,11 +495,12 @@ const RouteOnePage = () => {
                 <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
               <Tabs defaultValue="drivers" className="mt-4">
-                <TabsList className="w-full grid grid-cols-4">
+                <TabsList className="w-full grid grid-cols-5">
                   <TabsTrigger value="drivers">Drivers</TabsTrigger>
                   <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                   <TabsTrigger value="yard-staff">Yard Staff</TabsTrigger>
                   <TabsTrigger value="driver-app">Driver App</TabsTrigger>
+                  <TabsTrigger value="cost-items">Cost Items</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="drivers">
@@ -472,6 +514,9 @@ const RouteOnePage = () => {
                   </TabsContent>
                   <TabsContent value="driver-app">
                     <DriverAppManagement />
+                  </TabsContent>
+                  <TabsContent value="cost-items">
+                    <CostItemsSettings />
                   </TabsContent>
                 </div>
 
@@ -509,7 +554,7 @@ const RouteOnePage = () => {
                 New Job
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Job</DialogTitle>
               </DialogHeader>
@@ -526,7 +571,7 @@ const RouteOnePage = () => {
 
       {/* Edit Job Dialog */}
       <Dialog open={!!editingJob} onOpenChange={(open) => { if (!open) setEditingJob(null); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-4 w-4" />
@@ -903,207 +948,12 @@ const RouteOnePage = () => {
   );
 };
 
-// Autocomplete input with dropdown suggestions
-function AutocompleteInput({
-  value,
-  onChange,
-  placeholder,
-  fetchSuggestions,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  placeholder: string;
-  fetchSuggestions: (query: string) => Promise<string[]>;
-}) {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+// Autocomplete input now lives in src/components/route-one/JobFormFields.tsx
 
-  const handleChange = (val: string) => {
-    onChange(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.length < 2) {
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      const results = await fetchSuggestions(val);
-      setSuggestions(results);
-      setOpen(results.length > 0);
-      setLoading(false);
-    }, 300);
-  };
-
-  return (
-    <div className="relative">
-      <Input
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder={placeholder}
-        onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
-        onBlur={() => setTimeout(() => setOpen(false), 200)}
-      />
-      {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              type="button"
-              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent truncate"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onChange(s);
-                setOpen(false);
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Shared form fields for Create and Edit dialogs
-function JobFormFields({
-  form,
-  setForm,
-  drivers,
-}: {
-  form: any;
-  setForm: (f: any) => void;
-  drivers: any[];
-}) {
-  const fetchCustomers = async (query: string): Promise<string[]> => {
-    const { data } = await supabase
-      .from("data_hub_jobs")
-      .select("customer")
-      .ilike("customer", `%${query}%`)
-      .not("customer", "is", null)
-      .limit(100);
-    if (!data) return [];
-    const unique = [...new Set(data.map((r: any) => r.customer).filter(Boolean))];
-    return unique.slice(0, 10);
-  };
+// JobFormFields now lives in src/components/route-one/JobFormFields.tsx
 
-  const fetchSites = async (query: string): Promise<string[]> => {
-    let q = supabase
-      .from("data_hub_jobs")
-      .select("site")
-      .ilike("site", `%${query}%`)
-      .not("site", "is", null)
-      .limit(100);
-    if (form.customer_name) {
-      q = q.ilike("customer", `%${form.customer_name}%`);
-    }
-    const { data } = await q;
-    if (!data) return [];
-    const unique = [...new Set(data.map((r: any) => r.site).filter(Boolean))];
-    return unique.slice(0, 10);
-  };
-
-  return (
-    <div className="grid gap-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Customer *</Label>
-          <AutocompleteInput
-            value={form.customer_name}
-            onChange={(val) => setForm({ ...form, customer_name: val })}
-            placeholder="Start typing customer..."
-            fetchSuggestions={fetchCustomers}
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Site</Label>
-          <AutocompleteInput
-            value={form.site_name}
-            onChange={(val) => setForm({ ...form, site_name: val })}
-            placeholder="Start typing site..."
-            fetchSuggestions={fetchSites}
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Site Address</Label>
-          <Input value={form.site_address} onChange={(e) => setForm({ ...form, site_address: e.target.value })} />
-        </div>
-        <div>
-          <Label className="text-xs">Postcode</Label>
-          <Input value={form.site_postcode} onChange={(e) => setForm({ ...form, site_postcode: e.target.value })} placeholder="e.g. LS1 4AP" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Job Type *</Label>
-          <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(JOB_TYPE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs">Container Type</Label>
-          <Select value={form.container_type} onValueChange={(v) => setForm({ ...form, container_type: v })}>
-            <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Skip">Skip</SelectItem>
-              <SelectItem value="RoRo">RoRo</SelectItem>
-              <SelectItem value="Trailer">Trailer</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label className="text-xs">Date</Label>
-          <Input type="date" value={form.scheduled_date} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
-        </div>
-        <div>
-          <Label className="text-xs">Duration (mins)</Label>
-          <Input type="number" value={form.estimated_duration_mins} onChange={(e) => setForm({ ...form, estimated_duration_mins: parseInt(e.target.value) || 60 })} />
-        </div>
-        <div>
-          <Label className="text-xs">PO Number</Label>
-          <Input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} />
-        </div>
-      </div>
-      <div>
-        <Label className="text-xs">Assign Driver</Label>
-        <Select value={form.assigned_driver_id || "unassigned"} onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}>
-          <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
-            {drivers.map((d: any) => (
-              <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label className="text-xs">Container Size</Label>
-        <Input value={form.container_size} onChange={(e) => setForm({ ...form, container_size: e.target.value })} placeholder="e.g. 8yd, 20yd" />
-      </div>
-      <div>
-        <Label className="text-xs">Waste Type</Label>
-        <Input value={form.waste_type} onChange={(e) => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
-      </div>
-      <div>
-        <Label className="text-xs">Notes</Label>
-        <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
-      </div>
-    </div>
-  );
-}
 
 // Job Card Component
 function JobCard({

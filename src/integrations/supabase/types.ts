@@ -5488,6 +5488,39 @@ export type Database = {
         }
         Relationships: []
       }
+      route_one_cost_items: {
+        Row: {
+          created_at: string
+          default_charge: number
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_charge?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_charge?: number
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       route_one_drivers: {
         Row: {
           category: string | null
@@ -5585,11 +5618,15 @@ export type Database = {
       route_one_jobs: {
         Row: {
           assigned_driver_id: string | null
+          charge_per_tonne: number | null
           completed_at: string | null
           container_size: string | null
           container_type: string | null
+          contamination_charge: number | null
           contamination_notes: string | null
+          contamination_query_id: string | null
           contamination_type: string | null
+          cost_items: Json
           created_at: string
           created_by: string | null
           customer_name: string
@@ -5597,9 +5634,11 @@ export type Database = {
           driver_notes: string | null
           estimated_duration_mins: number | null
           ewc_code: string | null
+          haulage_cost: number | null
           id: string
           job_number: string
           job_type: Database["public"]["Enums"]["route_one_job_type"]
+          min_weight_charge: number | null
           notes: string | null
           po_number: string | null
           query_reason: string | null
@@ -5610,16 +5649,24 @@ export type Database = {
           site_postcode: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["route_one_job_status"]
+          total_inc_vat: number | null
+          total_net: number | null
           updated_at: string
+          vat_rate: number
           waste_type: string | null
+          weight_included_t: number | null
         }
         Insert: {
           assigned_driver_id?: string | null
+          charge_per_tonne?: number | null
           completed_at?: string | null
           container_size?: string | null
           container_type?: string | null
+          contamination_charge?: number | null
           contamination_notes?: string | null
+          contamination_query_id?: string | null
           contamination_type?: string | null
+          cost_items?: Json
           created_at?: string
           created_by?: string | null
           customer_name: string
@@ -5627,9 +5674,11 @@ export type Database = {
           driver_notes?: string | null
           estimated_duration_mins?: number | null
           ewc_code?: string | null
+          haulage_cost?: number | null
           id?: string
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
+          min_weight_charge?: number | null
           notes?: string | null
           po_number?: string | null
           query_reason?: string | null
@@ -5640,16 +5689,24 @@ export type Database = {
           site_postcode?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["route_one_job_status"]
+          total_inc_vat?: number | null
+          total_net?: number | null
           updated_at?: string
+          vat_rate?: number
           waste_type?: string | null
+          weight_included_t?: number | null
         }
         Update: {
           assigned_driver_id?: string | null
+          charge_per_tonne?: number | null
           completed_at?: string | null
           container_size?: string | null
           container_type?: string | null
+          contamination_charge?: number | null
           contamination_notes?: string | null
+          contamination_query_id?: string | null
           contamination_type?: string | null
+          cost_items?: Json
           created_at?: string
           created_by?: string | null
           customer_name?: string
@@ -5657,9 +5714,11 @@ export type Database = {
           driver_notes?: string | null
           estimated_duration_mins?: number | null
           ewc_code?: string | null
+          haulage_cost?: number | null
           id?: string
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
+          min_weight_charge?: number | null
           notes?: string | null
           po_number?: string | null
           query_reason?: string | null
@@ -5670,8 +5729,12 @@ export type Database = {
           site_postcode?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["route_one_job_status"]
+          total_inc_vat?: number | null
+          total_net?: number | null
           updated_at?: string
+          vat_rate?: number
           waste_type?: string | null
+          weight_included_t?: number | null
         }
         Relationships: [
           {
