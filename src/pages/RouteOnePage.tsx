@@ -903,69 +903,8 @@ const RouteOnePage = () => {
   );
 };
 
-// Autocomplete input with dropdown suggestions
-function AutocompleteInput({
-  value,
-  onChange,
-  placeholder,
-  fetchSuggestions,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  placeholder: string;
-  fetchSuggestions: (query: string) => Promise<string[]>;
-}) {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+// Autocomplete input now lives in src/components/route-one/JobFormFields.tsx
 
-  const handleChange = (val: string) => {
-    onChange(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.length < 2) {
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      const results = await fetchSuggestions(val);
-      setSuggestions(results);
-      setOpen(results.length > 0);
-      setLoading(false);
-    }, 300);
-  };
-
-  return (
-    <div className="relative">
-      <Input
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder={placeholder}
-        onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
-        onBlur={() => setTimeout(() => setOpen(false), 200)}
-      />
-      {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              type="button"
-              className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent truncate"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onChange(s);
-                setOpen(false);
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 // Shared form fields for Create and Edit dialogs
