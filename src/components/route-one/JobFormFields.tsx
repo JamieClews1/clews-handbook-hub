@@ -518,12 +518,19 @@ export function JobFormFields({
       <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Previous jobs {customer ? `for ${customer}` : ""}</DialogTitle>
+            <DialogTitle>
+              Previous jobs {customer ? `for ${customer}` : ""}
+              {form.site_name ? ` — ${form.site_name}` : ""}
+            </DialogTitle>
           </DialogHeader>
           {prevLoading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
           ) : prevJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No previous jobs found. Enter a customer first.</p>
+            <p className="text-sm text-muted-foreground">
+              {form.site_name
+                ? `No previous jobs found at ${form.site_name}.`
+                : "No previous jobs found. Enter a customer first."}
+            </p>
           ) : (
             <div className="space-y-1">
               {prevJobs.map((j, i) => (
