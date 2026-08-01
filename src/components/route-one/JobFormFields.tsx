@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useJobTypes } from "./jobTypes";
 
+/** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
   delivery: "Delivery",
   exchange: "Exchange",
