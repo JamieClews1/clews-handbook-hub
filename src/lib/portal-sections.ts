@@ -33,6 +33,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "bookings", label: "Bookings", category: "OnePortal", path: "/bookings" },
   { key: "crm", label: "CRM Inbox", category: "OnePortal", path: "/crm" },
   { key: "pricing", label: "Pricing", category: "OnePortal", path: "/pricing" },
+  { key: "finance", label: "Finance", category: "OnePortal", path: "/finance" },
 
   // Performance
   { key: "performance-waste-kpis", label: "Waste KPIs", category: "Performance", path: "/performance-hub/waste-kpis" },
