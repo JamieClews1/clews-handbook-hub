@@ -155,8 +155,8 @@ export function JobFormFields({
           .select("site")
           .ilike("customer", `%${customer}%`)
           .not("site", "is", null)
-          .order("job_date", { ascending: false })
           .limit(1000),
+
       ]);
 
       if (cancelled) return;
