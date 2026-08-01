@@ -60,6 +60,7 @@ import { VersionBadge } from "./VersionBadge";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 import { useSidebarGroupState } from "@/hooks/useSidebarGroupState";
+import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 
 // Shared classes so every nav group looks identical.
 const GROUP_LABEL_CLS =
@@ -77,6 +78,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   const isSuperAdmin = isSuperAdminEmail(user?.email);
+  const { canAccess: canAccessFinance } = useFinanceAccess();
 
   // Persisted open/closed state per group (falls back to "open if on that route")
   const [wasteOneOpen, setWasteOneOpen] = useSidebarGroupState(
@@ -85,7 +87,7 @@ export function AppSidebar() {
   );
   const [onePortalOpen, setOnePortalOpen] = useSidebarGroupState(
     "oneportal",
-    isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings", "/crm", "/pricing"]),
+    isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings", "/crm", "/pricing", "/finance"]),
   );
   const [performanceOpen, setPerformanceOpen] = useSidebarGroupState(
     "performance",
