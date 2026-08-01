@@ -185,6 +185,15 @@ export function JobFormFields({
       .then(({ data }) => setCatalogue(data ?? []));
   }, []);
 
+  useEffect(() => {
+    supabase
+      .from("route_one_container_types")
+      .select("name")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data }) => setContainerTypes((data ?? []).map((r: any) => r.name).filter(Boolean)));
+  }, []);
+
   const fetchCustomers = async (query: string): Promise<string[]> => {
     const [{ data: setup }, { data: hub }] = await Promise.all([
       supabase.from("customers").select("customer_name").ilike("customer_name", `%${query}%`).limit(20),
