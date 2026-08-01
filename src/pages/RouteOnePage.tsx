@@ -101,6 +101,28 @@ const STATUS_COLORS: Record<JobStatus, string> = {
   query: "bg-red-500/10 text-red-600",
 };
 
+/** Normalise the cost inputs on a job form into DB columns. */
+const costFields = (form: any) => {
+  const toNum = (v: any) => {
+    if (v === "" || v == null) return null;
+    const n = typeof v === "number" ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const totals = computeJobTotals(form);
+  return {
+    haulage_cost: toNum(form.haulage_cost),
+    charge_per_tonne: toNum(form.charge_per_tonne),
+    min_weight_charge: toNum(form.min_weight_charge),
+    weight_included_t: toNum(form.weight_included_t),
+    cost_items: Array.isArray(form.cost_items) ? form.cost_items : [],
+    contamination_charge: toNum(form.contamination_charge),
+    contamination_query_id: form.contamination_query_id || null,
+    vat_rate: toNum(form.vat_rate) ?? 20,
+    total_net: totals.net,
+    total_inc_vat: totals.gross,
+  };
+};
+
 const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
