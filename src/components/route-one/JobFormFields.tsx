@@ -23,6 +23,26 @@ export const JOB_TYPE_LABELS: Record<string, string> = {
 
 export type CostItem = { name: string; charge: number; qty: number };
 
+type KnownSite = {
+  name: string;
+  address: string;
+  postcode: string;
+};
+
+const normaliseCustomer = (value: string) =>
+  value
+    .replace(/\s*\([^)]*\)\s*$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const rawText = (raw: Record<string, unknown> | null | undefined, keys: string[]) => {
+  for (const key of keys) {
+    const value = raw?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+};
+
 const num = (v: any) => {
   const n = typeof v === "number" ? v : parseFloat(v);
   return Number.isFinite(n) ? n : 0;
@@ -119,7 +139,7 @@ export function JobFormFields({
   setForm: (f: any) => void;
   drivers: any[];
 }) {
-  const [setupSites, setSetupSites] = useState<string[]>([]);
+  const [setupSites, setSetupSites] = useState<KnownSite[]>([]);
   const [manualSite, setManualSite] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
   const [prevJobs, setPrevJobs] = useState<any[]>([]);
@@ -142,35 +162,48 @@ export function JobFormFields({
         .ilike("customer_name", `%${customer}%`)
         .limit(5);
 
+      const customerSearch = normaliseCustomer(customer);
       const [setupRes, hubRes] = await Promise.all([
         custs?.length
           ? supabase
               .from("customer_sites")
-              .select("site_name")
+              .select("site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
               .in("customer_id", custs.map((c) => c.id))
               .order("site_name")
           : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("data_hub_jobs")
-          .select("site")
-          .ilike("customer", `%${customer}%`)
+          .select("customer, site, raw, job_date")
+          .ilike("customer", `%${customerSearch}%`)
           .not("site", "is", null)
           .limit(1000),
 
       ]);
 
       if (cancelled) return;
-      const names = [
-        ...((setupRes.data ?? []) as any[]).map((s) => s.site_name),
-        ...((hubRes.data ?? []) as any[]).map((s) => s.site),
-      ]
-        .map((n: any) => (typeof n === "string" ? n.trim() : ""))
-        .filter(Boolean);
+      const known = new Map<string, KnownSite>();
+      const addSite = (nameValue: unknown, raw?: Record<string, unknown> | null) => {
+        const name = typeof nameValue === "string" ? nameValue.trim() : "";
+        if (!name) return;
+        const key = name.toLowerCase();
+        const address = rawText(raw, ["Site Address", "Site address", "Address"]);
+        const postcode = rawText(raw, ["Location Postc", "Location Postcode", "Postcode"]);
+        const existing = known.get(key);
+        known.set(key, {
+          name: existing?.name || name,
+          address: existing?.address || address,
+          postcode: existing?.postcode || postcode,
+        });
+      };
 
-      // De-dupe case-insensitively, keeping first-seen casing
-      const seen = new Map<string, string>();
-      for (const n of names) if (!seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n);
-      setSetupSites([...seen.values()].sort((a, b) => a.localeCompare(b)));
+      for (const row of (setupRes.data ?? []) as any[]) {
+        addSite(row.site_name);
+        [row.data_hub_site, row.data_hub_site_2, row.data_hub_site_3, row.data_hub_site_4, row.data_hub_site_5]
+          .forEach((siteName) => addSite(siteName));
+      }
+      for (const row of (hubRes.data ?? []) as any[]) addSite(row.site, row.raw);
+
+      setSetupSites([...known.values()].sort((a, b) => a.name.localeCompare(b.name)));
     };
     load();
     return () => { cancelled = true; };
@@ -213,14 +246,16 @@ export function JobFormFields({
     setPrevOpen(true);
     // NOTE: no server-side ORDER BY here — sorting 100k+ Data Hub rows alongside
     // an ilike filter times out. We fetch then sort client-side.
+    const site = (form.site_name || "").trim();
+    const customerSearch = normaliseCustomer(customer);
     let q = supabase
       .from("data_hub_jobs")
-      .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t")
-      .limit(50);
-    const site = (form.site_name || "").trim();
-    if (customer) q = q.ilike("customer", `%${customer}%`);
-    // When a site is chosen, restrict history to that exact site (case-insensitive)
+      .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, raw")
+      .limit(200);
+    // The selected site is the strongest key. Customer names often carry source
+    // suffixes such as “(Weighbridge)”, so normalise those before matching.
     if (site) q = q.ilike("site", site);
+    else if (customerSearch) q = q.ilike("customer", `%${customerSearch}%`);
     const { data: hub, error: hubErr } = await q;
     if (hubErr) console.error("Previous jobs (Data Hub) lookup failed", hubErr);
 
@@ -229,14 +264,20 @@ export function JobFormFields({
       .select("id, job_number, scheduled_date, customer_name, site_name, site_address, site_postcode, job_type, container_type, container_size, waste_type, haulage_cost, charge_per_tonne, min_weight_charge, weight_included_t, cost_items, vat_rate, po_number")
       .order("scheduled_date", { ascending: false })
       .limit(25);
-    if (customer) rq = rq.ilike("customer_name", `%${customer}%`);
+    if (customerSearch) rq = rq.ilike("customer_name", `%${customerSearch}%`);
     if (site) rq = rq.ilike("site_name", site);
     const { data: own, error: ownErr } = await rq;
     if (ownErr) console.error("Previous jobs (RouteOne) lookup failed", ownErr);
 
+    const matchingHub = (hub ?? []).filter((job: any) => {
+      if (!customerSearch) return true;
+      const jobCustomer = normaliseCustomer(job.customer || "").toLowerCase();
+      const wanted = customerSearch.toLowerCase();
+      return jobCustomer.includes(wanted) || wanted.includes(jobCustomer);
+    });
     const rows = [
       ...(own ?? []).map((j: any) => ({ ...j, _source: "routeone" })),
-      ...(hub ?? []).map((j: any) => ({ ...j, _source: "skiptrak" })),
+      ...matchingHub.map((j: any) => ({ ...j, _source: "skiptrak" })),
     ].sort((a, b) =>
       String(b.scheduled_date || b.job_date || "").localeCompare(String(a.scheduled_date || a.job_date || ""))
     );
@@ -268,10 +309,14 @@ export function JobFormFields({
         notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),
       });
     } else {
+      const previousAddress = rawText(j.raw, ["Site Address", "Site address", "Address"]);
+      const previousPostcode = rawText(j.raw, ["Location Postc", "Location Postcode", "Postcode"]);
       setForm({
         ...form,
         customer_name: j.customer || form.customer_name,
         site_name: j.site || form.site_name,
+        site_address: previousAddress || form.site_address,
+        site_postcode: previousPostcode || form.site_postcode,
         job_type: "exchange",
         container_type: j.container_type || "",
         waste_type: j.waste_description || "",
@@ -325,11 +370,25 @@ export function JobFormFields({
                 placeholder={setupSites.length === 0 ? "No known sites — type site name" : "Site name"}
               />
             ) : (
-              <Select value={form.site_name || ""} onValueChange={(v) => setForm({ ...form, site_name: v })}>
+              <Select
+                value={form.site_name || ""}
+                onValueChange={(v) => {
+                  const selected = setupSites.find((site) => site.name === v);
+                  setForm({
+                    ...form,
+                    site_name: v,
+                    site_address: selected?.address || v,
+                    site_postcode: selected?.postcode || "",
+                  });
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder={`Select from ${setupSites.length} known sites...`} /></SelectTrigger>
                 <SelectContent className="max-h-64">
                   {setupSites.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s.name} value={s.name}>
+                      <span>{s.name}</span>
+                      {s.postcode && <span className="ml-2 text-muted-foreground">{s.postcode}</span>}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
