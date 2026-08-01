@@ -126,7 +126,7 @@ export function JobFormFields({
 
   const customer = form.customer_name || "";
 
-  // Pre-existing setup sites for the chosen customer
+  // Sites for the chosen customer — from customer setup AND the Data Hub history
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -136,18 +136,41 @@ export function JobFormFields({
         .select("id, customer_name")
         .ilike("customer_name", `%${customer}%`)
         .limit(5);
-      if (!custs?.length) { if (!cancelled) setSetupSites([]); return; }
-      const { data: sites } = await supabase
-        .from("customer_sites")
-        .select("site_name")
-        .in("customer_id", custs.map((c) => c.id))
-        .order("site_name");
+
+      const [setupRes, hubRes] = await Promise.all([
+        custs?.length
+          ? supabase
+              .from("customer_sites")
+              .select("site_name")
+              .in("customer_id", custs.map((c) => c.id))
+              .order("site_name")
+          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("data_hub_jobs")
+          .select("site")
+          .ilike("customer", `%${customer}%`)
+          .not("site", "is", null)
+          .order("job_date", { ascending: false })
+          .limit(1000),
+      ]);
+
       if (cancelled) return;
-      setSetupSites([...new Set((sites ?? []).map((s: any) => s.site_name).filter(Boolean))]);
+      const names = [
+        ...((setupRes.data ?? []) as any[]).map((s) => s.site_name),
+        ...((hubRes.data ?? []) as any[]).map((s) => s.site),
+      ]
+        .map((n: any) => (typeof n === "string" ? n.trim() : ""))
+        .filter(Boolean);
+
+      // De-dupe case-insensitively, keeping first-seen casing
+      const seen = new Map<string, string>();
+      for (const n of names) if (!seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n);
+      setSetupSites([...seen.values()].sort((a, b) => a.localeCompare(b)));
     };
     load();
     return () => { cancelled = true; };
   }, [customer]);
+
 
   useEffect(() => {
     supabase
