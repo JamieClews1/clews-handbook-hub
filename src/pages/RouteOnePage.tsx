@@ -93,6 +93,14 @@ const JOB_TYPE_TAG: Record<JobType, string> = {
   wasted_journey: "bg-red-500/10 text-red-700 border border-red-500/20",
 };
 
+// Configured job types (route_one_job_types) win; static maps are the fallback
+// for legacy keys such as `wasted_journey`.
+const jtLabel = (k: string) => jobTypeLabel(k) || JOB_TYPE_LABELS[k as JobType] || k;
+const jtSolid = (k: string) => JOB_TYPE_COLORS[k as JobType] ?? jobTypeSolidClass(k);
+const jtAccent = (k: string) => JOB_TYPE_ACCENT[k as JobType] ?? jobTypeAccentClass(k);
+const jtTag = (k: string) =>
+  JOB_TYPE_TAG[k as JobType] ?? "bg-muted text-foreground border border-border";
+
 const STATUS_COLORS: Record<JobStatus, string> = {
   unassigned: "bg-muted text-muted-foreground",
   assigned: "bg-primary/10 text-primary",
