@@ -420,7 +420,11 @@ export function JobFormFields({
         </div>
       </div>
 
+      {/* Pricing (Pricing CMS: tier × zone) */}
+      <JobPricingPicker form={form} setForm={setForm} />
+
       {/* Costs */}
+
       <div className="rounded-lg border border-border p-3 space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Costs</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
