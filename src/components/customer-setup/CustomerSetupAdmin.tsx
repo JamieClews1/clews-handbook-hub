@@ -30,6 +30,8 @@ import { Switch } from "@/components/ui/switch";
 import { SitePriceSetScheduleEditor } from "./SitePriceSetScheduleEditor";
 import { selectActivePriceSetLink } from "@/lib/rebate-price-set";
 import { SiteHistoryDialog } from "./SiteHistoryDialog";
+import { GdprCleanup } from "./GdprCleanup";
+
 
 
 type Customer = {
@@ -1114,6 +1116,8 @@ export function CustomerSetupAdmin() {
       <TabsList>
         <TabsTrigger value="customers">Customers</TabsTrigger>
         <TabsTrigger value="new-customers">New customers</TabsTrigger>
+        <TabsTrigger value="gdpr">GDPR cleanup</TabsTrigger>
+
       </TabsList>
 
       <TabsContent value="customers" className="mt-4">
@@ -1618,6 +1622,11 @@ export function CustomerSetupAdmin() {
           </CardContent>
         </Card>
       </TabsContent>
+
+      <TabsContent value="gdpr" className="mt-4">
+        <GdprCleanup />
+      </TabsContent>
+
 
       {/* Create customer dialog */}
       <Dialog open={createCustomerOpen} onOpenChange={setCreateCustomerOpen}>
