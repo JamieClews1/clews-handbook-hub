@@ -254,6 +254,10 @@ export function FinanceSettingsTab() {
         </CardContent>
       </Card>
 
+      <InvoiceDesigner settings={settings} set={set} company={company} />
+
+
+
       <div className="flex justify-end">
         <Button onClick={save} disabled={saving}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
