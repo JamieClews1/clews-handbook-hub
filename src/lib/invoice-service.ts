@@ -36,8 +36,8 @@ export async function generateAndStoreInvoicePdf(
   lines: InvoiceLine[],
   customerName: string,
 ): Promise<{ path: string; blob: Blob }> {
-  const company = await fetchCompanyBranding();
-  const blob = invoicePdfBlob(invoice, lines, company, customerName);
+  const [company, settings] = await Promise.all([fetchCompanyBranding(), fetchFinanceSettings()]);
+  const blob = invoicePdfBlob(invoice, lines, company, customerName, settings);
   const path = `${invoice.customer_id}/${invoice.invoice_number}.pdf`;
   const { error } = await supabase.storage
     .from("invoices")
@@ -49,8 +49,8 @@ export async function generateAndStoreInvoicePdf(
 
 export async function downloadInvoicePdf(invoice: Invoice, customerName: string) {
   const { lines } = await fetchInvoiceWithLines(invoice.id);
-  const company = await fetchCompanyBranding();
-  const blob = invoicePdfBlob(invoice, lines, company, customerName);
+  const [company, settings] = await Promise.all([fetchCompanyBranding(), fetchFinanceSettings()]);
+  const blob = invoicePdfBlob(invoice, lines, company, customerName, settings);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
