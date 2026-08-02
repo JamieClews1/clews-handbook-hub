@@ -1735,7 +1735,26 @@ export function CustomerSetupAdmin() {
         </DialogContent>
       </Dialog>
 
+      {/* Site history dialog */}
+      {historySite && (
+        <SiteHistoryDialog
+          open={!!historySite}
+          onOpenChange={(o) => !o && setHistorySite(null)}
+          siteName={historySite.site_name}
+          customerName={selectedCustomer?.customer_name ?? ""}
+          dataHubCustomer={historySite.data_hub_customer}
+          dataHubSites={[
+            historySite.data_hub_site,
+            historySite.data_hub_site_2,
+            historySite.data_hub_site_3,
+            historySite.data_hub_site_4,
+            historySite.data_hub_site_5,
+          ].filter((s): s is string => !!s && !!s.trim())}
+        />
+      )}
+
       {/* Site dialog */}
+
       <Dialog open={editSiteOpen} onOpenChange={setEditSiteOpen}>
         <DialogContent className="max-w-screen-2xl max-h-[90vh]">
           <DialogHeader>
