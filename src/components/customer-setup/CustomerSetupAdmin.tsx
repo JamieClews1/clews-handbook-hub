@@ -147,6 +147,8 @@ export function CustomerSetupAdmin() {
   );
 
   const [editSiteOpen, setEditSiteOpen] = useState(false);
+  const [showArchivedSites, setShowArchivedSites] = useState(false);
+  const [siteSearch, setSiteSearch] = useState("");
   const [historySite, setHistorySite] = useState<CustomerSite | null>(null);
   const [editingSite, setEditingSite] = useState<CustomerSite | null>(null);
 
