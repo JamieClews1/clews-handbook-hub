@@ -1391,10 +1391,9 @@ export function CustomerSetupAdmin() {
                           );
                         })}
                         {sites.filter((s) => !!s.is_archived === showArchivedSites).length === 0 && (
-
                           <TableRow>
                             <TableCell colSpan={6} className="text-muted-foreground">
-                              No sites yet.
+                              {showArchivedSites ? "No archived sites." : "No active sites."}
                             </TableCell>
                           </TableRow>
                         )}
