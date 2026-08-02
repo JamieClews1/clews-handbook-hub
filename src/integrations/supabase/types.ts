@@ -2830,6 +2830,75 @@ export type Database = {
         }
         Relationships: []
       }
+      gdpr_cleanup_log: {
+        Row: {
+          action: string
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          last_activity_date: string | null
+          notes: string | null
+          performed_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          last_activity_date?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          last_activity_date?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gdpr_retention_settings: {
+        Row: {
+          apply_to_contacts: boolean
+          apply_to_customers: boolean
+          auto_archive: boolean
+          created_at: string
+          id: string
+          notes: string | null
+          retention_months: number
+          updated_at: string
+        }
+        Insert: {
+          apply_to_contacts?: boolean
+          apply_to_customers?: boolean
+          auto_archive?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          retention_months?: number
+          updated_at?: string
+        }
+        Update: {
+          apply_to_contacts?: boolean
+          apply_to_customers?: boolean
+          auto_archive?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          retention_months?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       handbook_sections: {
         Row: {
           created_at: string
@@ -6948,6 +7017,19 @@ export type Database = {
         Returns: boolean
       }
       generate_ticket_number: { Args: never; Returns: string }
+      get_customer_activity_summary: {
+        Args: never
+        Returns: {
+          contact_count: number
+          customer_code: string
+          customer_id: string
+          customer_name: string
+          is_inactive: boolean
+          job_count: number
+          last_activity_date: string
+          site_count: number
+        }[]
+      }
       get_skiptrak_customer_sites: {
         Args: never
         Returns: {
