@@ -795,6 +795,7 @@ const RouteOnePage = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingJob(job)}
                     >
+                      <TableCell className="text-sm tabular-nums font-medium">{job.job_number || "—"}</TableCell>
                       <TableCell>
                         <div className={`w-3 h-3 rounded-full ${
                           status === "completed" ? "bg-emerald-500" :
