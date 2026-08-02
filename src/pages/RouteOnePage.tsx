@@ -811,7 +811,7 @@ const RouteOnePage = () => {
                         <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{job.container_type || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{job.container_size || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm tabular-nums">{job.net_weight_t != null ? `${job.net_weight_t}t` : job.weight_t != null ? `${job.weight_t}t` : "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{job.waste_type || "—"}</TableCell>
                       <TableCell className="text-sm">{driver?.driver_name || "Unassigned"}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{job.scheduled_date ? format(new Date(job.scheduled_date), "dd/MM/yy") : ""}</TableCell>
