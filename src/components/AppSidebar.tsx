@@ -490,14 +490,6 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem data-sec="rebate-values">
-                    <SidebarMenuButton asChild isActive={isActive("/rebate-values")}>
-                      <Link to="/rebate-values">
-                        <DollarSign className="h-[18px] w-[18px]" />
-                        {!collapsed && <span>Rebates</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
