@@ -1329,7 +1329,15 @@ export function CustomerSetupAdmin() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sites.map((s) => {
+                        {sites
+                          .filter((s) => !!s.is_archived === showArchivedSites)
+                          .filter((s) => {
+                            const q = siteSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return [s.site_name, s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]
+                              .some((v) => (v ?? "").toLowerCase().includes(q));
+                          })
+                          .map((s) => {
                           const owner = s.owner_contact_id ? contactsById[s.owner_contact_id] : null;
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
                           const priceSet = priceSets.find((ps) => ps.id === priceSetId);
