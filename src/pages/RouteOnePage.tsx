@@ -768,12 +768,13 @@ const RouteOnePage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[90px]">Job No</TableHead>
                   <TableHead className="w-[40px]">Status</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Site</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead className="hidden md:table-cell">Container</TableHead>
-                  <TableHead className="hidden lg:table-cell">Size</TableHead>
+                  <TableHead className="hidden lg:table-cell">Net Weight</TableHead>
                   <TableHead className="hidden lg:table-cell">Waste</TableHead>
                   <TableHead>Driver</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
@@ -794,6 +795,7 @@ const RouteOnePage = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingJob(job)}
                     >
+                      <TableCell className="text-sm tabular-nums font-medium">{job.job_number || "—"}</TableCell>
                       <TableCell>
                         <div className={`w-3 h-3 rounded-full ${
                           status === "completed" ? "bg-emerald-500" :
@@ -809,7 +811,7 @@ const RouteOnePage = () => {
                         <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{job.container_type || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{job.container_size || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm tabular-nums">{job.net_weight_t != null ? `${job.net_weight_t}t` : job.weight_t != null ? `${job.weight_t}t` : "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{job.waste_type || "—"}</TableCell>
                       <TableCell className="text-sm">{driver?.driver_name || "Unassigned"}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{job.scheduled_date ? format(new Date(job.scheduled_date), "dd/MM/yy") : ""}</TableCell>
@@ -844,6 +846,7 @@ const RouteOnePage = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingSkiptrakJob(sj)}
                     >
+                      <TableCell className="text-sm tabular-nums font-medium">{sj.job_number || "—"}</TableCell>
                       <TableCell>
                         <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border border-dashed border-muted-foreground/40" />
                       </TableCell>
@@ -857,7 +860,7 @@ const RouteOnePage = () => {
                         )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{sj.container_type || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">—</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm tabular-nums">{sj.weight_t != null ? `${sj.weight_t}t` : "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">{sj.waste_description || "—"}</TableCell>
                       <TableCell className="text-sm">{sj.driver || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{sj.job_date ? format(new Date(sj.job_date), "dd/MM/yy") : ""}</TableCell>
@@ -871,7 +874,7 @@ const RouteOnePage = () => {
                 })}
                 {jobs.length === 0 && skiptrakScheduledJobs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
                       No jobs found for this period
                     </TableCell>
                   </TableRow>
