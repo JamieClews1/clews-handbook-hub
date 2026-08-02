@@ -59,6 +59,8 @@ type CustomerSite = {
   data_hub_site_5: string | null;
   broker_subclient: string | null;
   owner_contact_id: string | null;
+  is_archived?: boolean | null;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -145,6 +147,8 @@ export function CustomerSetupAdmin() {
   );
 
   const [editSiteOpen, setEditSiteOpen] = useState(false);
+  const [showArchivedSites, setShowArchivedSites] = useState(false);
+  const [siteSearch, setSiteSearch] = useState("");
   const [historySite, setHistorySite] = useState<CustomerSite | null>(null);
   const [editingSite, setEditingSite] = useState<CustomerSite | null>(null);
 
@@ -457,7 +461,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,load_report_type,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,load_report_type,is_archived,archived_at,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -719,6 +723,21 @@ export function CustomerSetupAdmin() {
       toast({ title: "Error", description: e?.message ?? "Failed to save site.", variant: "destructive" });
     } finally {
       setSavingSite(false);
+    }
+  };
+
+  const setSiteArchived = async (siteId: string, archived: boolean) => {
+    if (!selectedCustomerId) return;
+    try {
+      const { error } = await supabase
+        .from("customer_sites")
+        .update({ is_archived: archived, archived_at: archived ? new Date().toISOString() : null })
+        .eq("id", siteId);
+      if (error) throw error;
+      toast({ title: archived ? "Archived" : "Restored", description: archived ? "Site archived." : "Site restored to active sites." });
+      await loadCustomerDetails(selectedCustomerId);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update site.", variant: "destructive" });
     }
   };
 
@@ -1277,9 +1296,25 @@ export function CustomerSetupAdmin() {
                           {syncingBrokerSites ? "Syncing…" : "Sync Sites from Skiptrak"}
                         </Button>
                       )}
+                      <Button
+                        variant={showArchivedSites ? "default" : "outline"}
+                        onClick={() => setShowArchivedSites((v) => !v)}
+                      >
+                        {showArchivedSites
+                          ? `Showing archived (${sites.filter((s) => s.is_archived).length})`
+                          : `Show archived (${sites.filter((s) => s.is_archived).length})`}
+                      </Button>
                       <Button onClick={openCreateSite}>New site</Button>
                     </div>
                   </div>
+
+                  <Input
+                    placeholder={showArchivedSites ? "Search archived sites…" : "Search sites…"}
+                    value={siteSearch}
+                    onChange={(e) => setSiteSearch(e.target.value)}
+                    className="max-w-sm"
+                  />
+
 
                   <div className="rounded-md border border-border overflow-hidden">
                     <Table>
@@ -1294,14 +1329,27 @@ export function CustomerSetupAdmin() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sites.map((s) => {
+                        {sites
+                          .filter((s) => !!s.is_archived === showArchivedSites)
+                          .filter((s) => {
+                            const q = siteSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return [s.site_name, s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]
+                              .some((v) => (v ?? "").toLowerCase().includes(q));
+                          })
+                          .map((s) => {
                           const owner = s.owner_contact_id ? contactsById[s.owner_contact_id] : null;
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
                           const priceSet = priceSets.find((ps) => ps.id === priceSetId);
                           const loadReportType = (s as any).load_report_type;
                           return (
                             <TableRow key={s.id}>
-                              <TableCell className="font-medium">{s.site_name}</TableCell>
+                              <TableCell className="font-medium">
+                                {s.site_name}
+                                {s.is_archived && (
+                                  <Badge variant="outline" className="ml-2">Archived</Badge>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 {loadReportType ? (
                                   <Badge variant="secondary">{loadReportType.toUpperCase()}</Badge>
@@ -1326,6 +1374,13 @@ export function CustomerSetupAdmin() {
                                   <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>
                                     Edit
                                   </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSiteArchived(s.id, !s.is_archived)}
+                                  >
+                                    {s.is_archived ? "Restore" : "Archive"}
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => deleteSite(s.id)}>
                                     Delete
                                   </Button>
@@ -1335,10 +1390,10 @@ export function CustomerSetupAdmin() {
                             </TableRow>
                           );
                         })}
-                        {sites.length === 0 && (
+                        {sites.filter((s) => !!s.is_archived === showArchivedSites).length === 0 && (
                           <TableRow>
                             <TableCell colSpan={6} className="text-muted-foreground">
-                              No sites yet.
+                              {showArchivedSites ? "No archived sites." : "No active sites."}
                             </TableCell>
                           </TableRow>
                         )}

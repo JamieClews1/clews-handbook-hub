@@ -1864,6 +1864,7 @@ export type Database = {
       }
       customer_sites: {
         Row: {
+          archived_at: string | null
           broker_subclient: string | null
           created_at: string
           customer_id: string
@@ -1874,12 +1875,14 @@ export type Database = {
           data_hub_site_4: string | null
           data_hub_site_5: string | null
           id: string
+          is_archived: boolean
           load_report_type: string | null
           owner_contact_id: string | null
           site_name: string
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           broker_subclient?: string | null
           created_at?: string
           customer_id: string
@@ -1890,12 +1893,14 @@ export type Database = {
           data_hub_site_4?: string | null
           data_hub_site_5?: string | null
           id?: string
+          is_archived?: boolean
           load_report_type?: string | null
           owner_contact_id?: string | null
           site_name: string
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           broker_subclient?: string | null
           created_at?: string
           customer_id?: string
@@ -1906,6 +1911,7 @@ export type Database = {
           data_hub_site_4?: string | null
           data_hub_site_5?: string | null
           id?: string
+          is_archived?: boolean
           load_report_type?: string | null
           owner_contact_id?: string | null
           site_name?: string
