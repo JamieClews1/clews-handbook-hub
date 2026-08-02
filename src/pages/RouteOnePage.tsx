@@ -768,12 +768,13 @@ const RouteOnePage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[90px]">Job No</TableHead>
                   <TableHead className="w-[40px]">Status</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Site</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead className="hidden md:table-cell">Container</TableHead>
-                  <TableHead className="hidden lg:table-cell">Size</TableHead>
+                  <TableHead className="hidden lg:table-cell">Net Weight</TableHead>
                   <TableHead className="hidden lg:table-cell">Waste</TableHead>
                   <TableHead>Driver</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
