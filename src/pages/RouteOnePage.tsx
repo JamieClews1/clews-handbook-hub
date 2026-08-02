@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
@@ -137,6 +137,7 @@ const costFields = (form: any) => {
 const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -198,7 +199,7 @@ const RouteOnePage = () => {
   });
 
   // Fetch jobs for selected date/week
-  const { data: jobs = [] } = useQuery({
+  const { data: routeJobs = [] } = useQuery({
     queryKey: ["route-one-jobs", viewMode, dateStr, weekStart],
     queryFn: async () => {
       let query = supabase.from("route_one_jobs").select("*");
@@ -214,7 +215,7 @@ const RouteOnePage = () => {
   });
 
   // Fetch Skiptrak scheduled jobs for the selected date range (from data_hub_jobs)
-  const { data: skiptrakScheduledJobs = [] } = useQuery({
+  const { data: allSkiptrakScheduledJobs = [] } = useQuery({
     queryKey: ["route-one-skiptrak-jobs", viewMode, dateStr, weekStart],
     queryFn: async () => {
       let query = supabase
@@ -231,6 +232,43 @@ const RouteOnePage = () => {
       return data ?? [];
     },
   });
+
+  const search = (searchParams.get("search") ?? "").trim().toLowerCase();
+  const includesSearch = (...values: unknown[]) =>
+    !search || values.some((value) => String(value ?? "").toLowerCase().includes(search));
+
+  const jobs = routeJobs.filter((job: any) => {
+    const driver = drivers.find((item: any) => item.id === job.assigned_driver_id);
+    return includesSearch(
+      job.job_number,
+      job.customer_name,
+      job.site_name,
+      job.site_address,
+      job.site_postcode,
+      job.job_type,
+      job.container_type,
+      job.container_size,
+      job.waste_type,
+      job.po_number,
+      driver?.driver_name,
+      driver?.route_one_vehicles?.registration,
+      driver?.route_one_vehicles?.vehicle_type,
+    );
+  });
+
+  const skiptrakScheduledJobs = allSkiptrakScheduledJobs.filter((job: any) =>
+    includesSearch(
+      job.job_number,
+      job.customer,
+      job.site,
+      job.movement_type,
+      job.container_type,
+      job.waste_description,
+      job.vehicle_registration,
+      job.driver,
+      job.tipping_location,
+    ),
+  );
 
   // Create job mutation
   const createJob = useMutation({

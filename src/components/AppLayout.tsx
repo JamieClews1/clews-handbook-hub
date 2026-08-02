@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { PortalAssistantWidget } from "@/components/PortalAssistantWidget";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Search, Bell, Plus } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,22 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const searchValue = location.pathname === "/route-one" ? searchParams.get("search") ?? "" : "";
+
+  const handleSearch = (value: string) => {
+    if (location.pathname !== "/route-one") {
+      navigate(`/route-one${value.trim() ? `?search=${encodeURIComponent(value)}` : ""}`);
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (value.trim()) nextParams.set("search", value);
+    else nextParams.delete("search");
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -43,9 +59,16 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground" />
               {/* Global Search */}
-              <div className="hidden md:flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-1.5 w-72">
+              <div className="hidden md:flex items-center gap-2 bg-muted/50 rounded-lg px-3 w-72">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Search jobs, customers, vehicles...</span>
+                <Input
+                  type="search"
+                  value={searchValue}
+                  onChange={(event) => handleSearch(event.target.value)}
+                  placeholder="Search jobs, customers, vehicles..."
+                  aria-label="Search jobs, customers, vehicles"
+                  className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                />
               </div>
             </div>
 
