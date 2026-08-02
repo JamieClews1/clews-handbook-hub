@@ -11,10 +11,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Loader2, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
-import { logSyncAttempt } from "@/lib/invoice-service";
+import { logSyncAttempt, fetchCompanyBranding } from "@/lib/invoice-service";
+import { InvoiceDesigner } from "./InvoiceDesigner";
+import type { CompanyBranding } from "@/lib/invoice-pdf";
 
 export function FinanceSettingsTab() {
   const [settings, setSettings] = useState<any>(null);
+  const [company, setCompany] = useState<CompanyBranding>({});
   const [logs, setLogs] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
