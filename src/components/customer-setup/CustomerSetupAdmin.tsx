@@ -726,6 +726,21 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  const setSiteArchived = async (siteId: string, archived: boolean) => {
+    if (!selectedCustomerId) return;
+    try {
+      const { error } = await supabase
+        .from("customer_sites")
+        .update({ is_archived: archived, archived_at: archived ? new Date().toISOString() : null })
+        .eq("id", siteId);
+      if (error) throw error;
+      toast({ title: archived ? "Archived" : "Restored", description: archived ? "Site archived." : "Site restored to active sites." });
+      await loadCustomerDetails(selectedCustomerId);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update site.", variant: "destructive" });
+    }
+  };
+
   const deleteSite = async (siteId: string) => {
     if (!selectedCustomerId) return;
     if (!confirm("Delete this site? This cannot be undone.")) return;
