@@ -392,16 +392,25 @@ export function CustomerSetupAdmin() {
   }, [memberships]);
 
   const loadCustomers = async () => {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_broker,is_active,data_hub_customer,created_at,updated_at")
-      .order("customer_name", { ascending: true });
-    if (error) throw error;
-    setCustomers((data ?? []) as Customer[]);
-    if (!selectedCustomerId && (data?.[0]?.id ?? null)) {
-      setSelectedCustomerId(data![0]!.id);
+    const pageSize = 1000;
+    const all: Customer[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_broker,is_active,data_hub_customer,created_at,updated_at")
+        .order("customer_name", { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as Customer[];
+      all.push(...rows);
+      if (rows.length < pageSize) break;
+    }
+    setCustomers(all);
+    if (!selectedCustomerId && all[0]?.id) {
+      setSelectedCustomerId(all[0].id);
     }
   };
+
 
   const generateCustomerCode = (name: string) => {
     const words = name
