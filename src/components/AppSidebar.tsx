@@ -89,9 +89,13 @@ export function AppSidebar() {
     "oneportal",
     isInSection(["/duty-of-care", "/policies", "/handbook", "/rams", "/toolbox-talks", "/near-miss", "/waste-reporting", "/site-reports", "/load-reports", "/container-loads", "/diary", "/bookings", "/crm", "/pricing", "/finance"]),
   );
+  const [financeOpen, setFinanceOpen] = useSidebarGroupState(
+    "finance",
+    isInSection(["/finance", "/rebate-values"]),
+  );
   const [performanceOpen, setPerformanceOpen] = useSidebarGroupState(
     "performance",
-    isInSection(["/performance-hub", "/staci-reports", "/customer-reporting", "/rebate-values"]),
+    isInSection(["/performance-hub", "/staci-reports", "/customer-reporting"]),
   );
   const [poChecksOpen, setPoChecksOpen] = useSidebarGroupState(
     "po-checks",
