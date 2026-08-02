@@ -846,6 +846,7 @@ const RouteOnePage = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingSkiptrakJob(sj)}
                     >
+                      <TableCell className="text-sm tabular-nums font-medium">{sj.job_number || "—"}</TableCell>
                       <TableCell>
                         <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border border-dashed border-muted-foreground/40" />
                       </TableCell>
