@@ -165,25 +165,29 @@ export function JobFormFields({
         .or(`customer_name.eq.${customer},customer_name.eq.${customerSearch}`)
         .limit(5);
 
-      // Data Hub aliases mapped on this customer's own sites
+      const setupRes = custs?.length
+        ? await supabase
+            .from("customer_sites")
+            .select("site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+            .in("customer_id", custs.map((c) => c.id))
+            .order("site_name")
+        : { data: [] as any[] };
+
+      if (cancelled) return;
+
+      // Data Hub customer names mapped on this customer's own sites
       const aliasNames = new Set<string>([customer.trim(), customerSearch.trim()]);
-      const [setupRes, hubRes] = await Promise.all([
-        custs?.length
-          ? supabase
-              .from("customer_sites")
-              .select("site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-              .in("customer_id", custs.map((c) => c.id))
-              .order("site_name")
-          : Promise.resolve({ data: [] as any[] }),
-        supabase
-          .from("data_hub_jobs")
-          .select("customer, site, raw, job_date")
-          .in("customer", [...aliasNames])
-          .not("site", "is", null)
-          .limit(1000),
+      for (const row of (setupRes.data ?? []) as any[]) {
+        const alias = typeof row.data_hub_customer === "string" ? row.data_hub_customer.trim() : "";
+        if (alias) aliasNames.add(alias);
+      }
 
-      ]);
-
+      const hubRes = await supabase
+        .from("data_hub_jobs")
+        .select("customer, site, raw, job_date")
+        .in("customer", [...aliasNames].filter(Boolean))
+        .not("site", "is", null)
+        .limit(1000);
 
       if (cancelled) return;
       const known = new Map<string, KnownSite>();
@@ -207,6 +211,7 @@ export function JobFormFields({
           .forEach((siteName) => addSite(siteName));
       }
       for (const row of (hubRes.data ?? []) as any[]) addSite(row.site, row.raw);
+
 
       setSetupSites([...known.values()].sort((a, b) => a.name.localeCompare(b.name)));
     };
