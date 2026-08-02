@@ -29,6 +29,8 @@ import { CreditApplicationsManager } from "./CreditApplicationsManager";
 import { Switch } from "@/components/ui/switch";
 import { SitePriceSetScheduleEditor } from "./SitePriceSetScheduleEditor";
 import { selectActivePriceSetLink } from "@/lib/rebate-price-set";
+import { SiteHistoryDialog } from "./SiteHistoryDialog";
+
 
 type Customer = {
   id: string;
@@ -141,7 +143,9 @@ export function CustomerSetupAdmin() {
   );
 
   const [editSiteOpen, setEditSiteOpen] = useState(false);
+  const [historySite, setHistorySite] = useState<CustomerSite | null>(null);
   const [editingSite, setEditingSite] = useState<CustomerSite | null>(null);
+
   const [siteForm, setSiteForm] = useState({
     site_name: "",
     data_hub_customer: "",
@@ -1303,6 +1307,9 @@ export function CustomerSetupAdmin() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => setHistorySite(s)}>
+                                    History
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>
                                     Edit
                                   </Button>
@@ -1311,6 +1318,7 @@ export function CustomerSetupAdmin() {
                                   </Button>
                                 </div>
                               </TableCell>
+
                             </TableRow>
                           );
                         })}
@@ -1727,7 +1735,26 @@ export function CustomerSetupAdmin() {
         </DialogContent>
       </Dialog>
 
+      {/* Site history dialog */}
+      {historySite && (
+        <SiteHistoryDialog
+          open={!!historySite}
+          onOpenChange={(o) => !o && setHistorySite(null)}
+          siteName={historySite.site_name}
+          customerName={selectedCustomer?.customer_name ?? ""}
+          dataHubCustomer={historySite.data_hub_customer}
+          dataHubSites={[
+            historySite.data_hub_site,
+            historySite.data_hub_site_2,
+            historySite.data_hub_site_3,
+            historySite.data_hub_site_4,
+            historySite.data_hub_site_5,
+          ].filter((s): s is string => !!s && !!s.trim())}
+        />
+      )}
+
       {/* Site dialog */}
+
       <Dialog open={editSiteOpen} onOpenChange={setEditSiteOpen}>
         <DialogContent className="max-w-screen-2xl max-h-[90vh]">
           <DialogHeader>
