@@ -156,29 +156,34 @@ export function JobFormFields({
     let cancelled = false;
     const load = async () => {
       if (!customer || customer.length < 2) { setSetupSites([]); return; }
+      const customerSearch = normaliseCustomer(customer);
+      // Exact-match the customer (raw name and normalised name) so we never pull
+      // in sites belonging to other, similarly named accounts.
       const { data: custs } = await supabase
         .from("customers")
         .select("id, customer_name")
-        .ilike("customer_name", `%${customer}%`)
+        .or(`customer_name.eq.${customer},customer_name.eq.${customerSearch}`)
         .limit(5);
 
-      const customerSearch = normaliseCustomer(customer);
+      // Data Hub aliases mapped on this customer's own sites
+      const aliasNames = new Set<string>([customer.trim(), customerSearch.trim()]);
       const [setupRes, hubRes] = await Promise.all([
         custs?.length
           ? supabase
               .from("customer_sites")
-              .select("site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+              .select("site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
               .in("customer_id", custs.map((c) => c.id))
               .order("site_name")
           : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("data_hub_jobs")
           .select("customer, site, raw, job_date")
-          .ilike("customer", `%${customerSearch}%`)
+          .in("customer", [...aliasNames])
           .not("site", "is", null)
           .limit(1000),
 
       ]);
+
 
       if (cancelled) return;
       const known = new Map<string, KnownSite>();
