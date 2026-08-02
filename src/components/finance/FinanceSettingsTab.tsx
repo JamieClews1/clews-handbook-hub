@@ -24,15 +24,17 @@ export function FinanceSettingsTab() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: s }, { data: l }] = await Promise.all([
+    const [{ data: s }, { data: l }, comp] = await Promise.all([
       supabase.from("finance_settings").select("*").limit(1).maybeSingle(),
       supabase
         .from("accounting_sync_log")
         .select("*")
         .order("last_attempt_at", { ascending: false })
         .limit(50),
+      fetchCompanyBranding(),
     ]);
-    setSettings(s ?? null);
+    setSettings(s ?? {});
+    setCompany(comp ?? {});
     setLogs(l ?? []);
     setLoading(false);
   };
