@@ -874,7 +874,7 @@ const RouteOnePage = () => {
                 })}
                 {jobs.length === 0 && skiptrakScheduledJobs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
                       No jobs found for this period
                     </TableCell>
                   </TableRow>
