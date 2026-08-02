@@ -1296,9 +1296,25 @@ export function CustomerSetupAdmin() {
                           {syncingBrokerSites ? "Syncing…" : "Sync Sites from Skiptrak"}
                         </Button>
                       )}
+                      <Button
+                        variant={showArchivedSites ? "default" : "outline"}
+                        onClick={() => setShowArchivedSites((v) => !v)}
+                      >
+                        {showArchivedSites
+                          ? `Showing archived (${sites.filter((s) => s.is_archived).length})`
+                          : `Show archived (${sites.filter((s) => s.is_archived).length})`}
+                      </Button>
                       <Button onClick={openCreateSite}>New site</Button>
                     </div>
                   </div>
+
+                  <Input
+                    placeholder={showArchivedSites ? "Search archived sites…" : "Search sites…"}
+                    value={siteSearch}
+                    onChange={(e) => setSiteSearch(e.target.value)}
+                    className="max-w-sm"
+                  />
+
 
                   <div className="rounded-md border border-border overflow-hidden">
                     <Table>
