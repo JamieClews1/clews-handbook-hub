@@ -1303,6 +1303,9 @@ export function CustomerSetupAdmin() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => setHistorySite(s)}>
+                                    History
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>
                                     Edit
                                   </Button>
@@ -1311,6 +1314,7 @@ export function CustomerSetupAdmin() {
                                   </Button>
                                 </div>
                               </TableCell>
+
                             </TableRow>
                           );
                         })}
