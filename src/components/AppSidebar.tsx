@@ -400,22 +400,53 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  {canAccessFinance && (
-                    <SidebarMenuItem data-sec="finance">
-                      <SidebarMenuButton asChild isActive={isActive("/finance")}>
-                        <Link to="/finance">
-                          <PoundSterling className="h-[18px] w-[18px]" />
-                          {!collapsed && <span>Finance</span>}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
                 </SidebarMenu>
 
               </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
+
+        {/* Finance */}
+        {canAccessFinance && (
+          <SidebarGroup className="mt-5 first:mt-0 gap-1">
+            <Collapsible open={financeOpen} onOpenChange={setFinanceOpen}>
+              <CollapsibleTrigger asChild>
+                <SidebarGroupLabel className={GROUP_LABEL_CLS}>
+                  {!collapsed && (
+                    <>
+                      <span>Finance</span>
+                      <ChevronDown className="ml-auto h-3.5 w-3.5" />
+                    </>
+                  )}
+                </SidebarGroupLabel>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem data-sec="finance">
+                      <SidebarMenuButton asChild isActive={isActive("/finance")}>
+                        <Link to="/finance">
+                          <PoundSterling className="h-[18px] w-[18px]" />
+                          {!collapsed && <span>Invoicing</span>}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem data-sec="rebate-values">
+                      <SidebarMenuButton asChild isActive={isActive("/rebate-values")}>
+                        <Link to="/rebate-values">
+                          <DollarSign className="h-[18px] w-[18px]" />
+                          {!collapsed && <span>Rebates</span>}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
+
 
         {/* Performance & Data */}
         <SidebarGroup className="mt-5 first:mt-0 gap-1">
