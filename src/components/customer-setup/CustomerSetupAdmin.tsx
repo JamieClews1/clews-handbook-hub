@@ -1116,6 +1116,8 @@ export function CustomerSetupAdmin() {
       <TabsList>
         <TabsTrigger value="customers">Customers</TabsTrigger>
         <TabsTrigger value="new-customers">New customers</TabsTrigger>
+        <TabsTrigger value="gdpr">GDPR cleanup</TabsTrigger>
+
       </TabsList>
 
       <TabsContent value="customers" className="mt-4">
