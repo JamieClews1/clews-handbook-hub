@@ -143,7 +143,9 @@ export function CustomerSetupAdmin() {
   );
 
   const [editSiteOpen, setEditSiteOpen] = useState(false);
+  const [historySite, setHistorySite] = useState<CustomerSite | null>(null);
   const [editingSite, setEditingSite] = useState<CustomerSite | null>(null);
+
   const [siteForm, setSiteForm] = useState({
     site_name: "",
     data_hub_customer: "",
