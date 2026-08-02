@@ -1344,7 +1344,12 @@ export function CustomerSetupAdmin() {
                           const loadReportType = (s as any).load_report_type;
                           return (
                             <TableRow key={s.id}>
-                              <TableCell className="font-medium">{s.site_name}</TableCell>
+                              <TableCell className="font-medium">
+                                {s.site_name}
+                                {s.is_archived && (
+                                  <Badge variant="outline" className="ml-2">Archived</Badge>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 {loadReportType ? (
                                   <Badge variant="secondary">{loadReportType.toUpperCase()}</Badge>
@@ -1369,6 +1374,13 @@ export function CustomerSetupAdmin() {
                                   <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>
                                     Edit
                                   </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSiteArchived(s.id, !s.is_archived)}
+                                  >
+                                    {s.is_archived ? "Restore" : "Archive"}
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => deleteSite(s.id)}>
                                     Delete
                                   </Button>
@@ -1378,7 +1390,8 @@ export function CustomerSetupAdmin() {
                             </TableRow>
                           );
                         })}
-                        {sites.length === 0 && (
+                        {sites.filter((s) => !!s.is_archived === showArchivedSites).length === 0 && (
+
                           <TableRow>
                             <TableCell colSpan={6} className="text-muted-foreground">
                               No sites yet.
