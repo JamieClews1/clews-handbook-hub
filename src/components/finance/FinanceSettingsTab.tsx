@@ -11,25 +11,30 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Loader2, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
-import { logSyncAttempt } from "@/lib/invoice-service";
+import { logSyncAttempt, fetchCompanyBranding } from "@/lib/invoice-service";
+import { InvoiceDesigner } from "./InvoiceDesigner";
+import type { CompanyBranding } from "@/lib/invoice-pdf";
 
 export function FinanceSettingsTab() {
   const [settings, setSettings] = useState<any>(null);
+  const [company, setCompany] = useState<CompanyBranding>({});
   const [logs, setLogs] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: s }, { data: l }] = await Promise.all([
+    const [{ data: s }, { data: l }, comp] = await Promise.all([
       supabase.from("finance_settings").select("*").limit(1).maybeSingle(),
       supabase
         .from("accounting_sync_log")
         .select("*")
         .order("last_attempt_at", { ascending: false })
         .limit(50),
+      fetchCompanyBranding(),
     ]);
-    setSettings(s ?? null);
+    setSettings(s ?? {});
+    setCompany(comp ?? {});
     setLogs(l ?? []);
     setLoading(false);
   };
@@ -248,6 +253,10 @@ export function FinanceSettingsTab() {
           </div>
         </CardContent>
       </Card>
+
+      <InvoiceDesigner settings={settings} set={set} company={company} />
+
+
 
       <div className="flex justify-end">
         <Button onClick={save} disabled={saving}>

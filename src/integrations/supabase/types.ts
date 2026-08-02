@@ -2745,10 +2745,23 @@ export type Database = {
           default_payment_terms_days: number
           default_vat_rate: number
           id: string
+          invoice_accent_color: string
+          invoice_document_title: string
           invoice_email_body: string
           invoice_email_subject: string
+          invoice_font: string
+          invoice_footer_text: string | null
+          invoice_header_style: string
+          invoice_logo_url: string | null
+          invoice_logo_width_mm: number
           invoice_number_padding: number
           invoice_prefix: string
+          invoice_show_bank_details: boolean
+          invoice_show_company_address: boolean
+          invoice_show_logo: boolean
+          invoice_show_vat_breakdown: boolean
+          invoice_table_style: string
+          invoice_terms_text: string | null
           next_invoice_number: number
           reminder_days: number[]
           reminder_email_body: string
@@ -2763,10 +2776,23 @@ export type Database = {
           default_payment_terms_days?: number
           default_vat_rate?: number
           id?: string
+          invoice_accent_color?: string
+          invoice_document_title?: string
           invoice_email_body?: string
           invoice_email_subject?: string
+          invoice_font?: string
+          invoice_footer_text?: string | null
+          invoice_header_style?: string
+          invoice_logo_url?: string | null
+          invoice_logo_width_mm?: number
           invoice_number_padding?: number
           invoice_prefix?: string
+          invoice_show_bank_details?: boolean
+          invoice_show_company_address?: boolean
+          invoice_show_logo?: boolean
+          invoice_show_vat_breakdown?: boolean
+          invoice_table_style?: string
+          invoice_terms_text?: string | null
           next_invoice_number?: number
           reminder_days?: number[]
           reminder_email_body?: string
@@ -2781,10 +2807,23 @@ export type Database = {
           default_payment_terms_days?: number
           default_vat_rate?: number
           id?: string
+          invoice_accent_color?: string
+          invoice_document_title?: string
           invoice_email_body?: string
           invoice_email_subject?: string
+          invoice_font?: string
+          invoice_footer_text?: string | null
+          invoice_header_style?: string
+          invoice_logo_url?: string | null
+          invoice_logo_width_mm?: number
           invoice_number_padding?: number
           invoice_prefix?: string
+          invoice_show_bank_details?: boolean
+          invoice_show_company_address?: boolean
+          invoice_show_logo?: boolean
+          invoice_show_vat_breakdown?: boolean
+          invoice_table_style?: string
+          invoice_terms_text?: string | null
           next_invoice_number?: number
           reminder_days?: number[]
           reminder_email_body?: string
