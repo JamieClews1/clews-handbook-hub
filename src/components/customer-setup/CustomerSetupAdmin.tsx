@@ -1619,6 +1619,11 @@ export function CustomerSetupAdmin() {
         </Card>
       </TabsContent>
 
+      <TabsContent value="gdpr" className="mt-4">
+        <GdprCleanup />
+      </TabsContent>
+
+
       {/* Create customer dialog */}
       <Dialog open={createCustomerOpen} onOpenChange={setCreateCustomerOpen}>
         <DialogContent>
