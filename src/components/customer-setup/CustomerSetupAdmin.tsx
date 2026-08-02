@@ -59,6 +59,8 @@ type CustomerSite = {
   data_hub_site_5: string | null;
   broker_subclient: string | null;
   owner_contact_id: string | null;
+  is_archived?: boolean | null;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
 };
