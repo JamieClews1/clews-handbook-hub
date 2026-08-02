@@ -30,6 +30,8 @@ import { Switch } from "@/components/ui/switch";
 import { SitePriceSetScheduleEditor } from "./SitePriceSetScheduleEditor";
 import { selectActivePriceSetLink } from "@/lib/rebate-price-set";
 import { SiteHistoryDialog } from "./SiteHistoryDialog";
+import { GdprCleanup } from "./GdprCleanup";
+
 
 
 type Customer = {
