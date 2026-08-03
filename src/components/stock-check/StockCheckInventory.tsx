@@ -76,14 +76,18 @@ interface InventoryRow {
   last_reported_by: string | null;
 }
 
-const CONDITIONS = ["Good", "Fair", "Poor", "Damaged"];
+const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped"];
 
 const conditionStyle: Record<string, string> = {
   Good: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
   Fair: "bg-amber-500/15 text-amber-700 border-amber-500/30",
   Poor: "bg-orange-500/15 text-orange-700 border-orange-500/30",
   Damaged: "bg-red-500/15 text-red-700 border-red-500/30",
+  Scrapped: "bg-red-600 text-white border-red-700",
 };
+
+const isScrapped = (c?: string | null) => c === "Scrapped";
+
 
 const emptyForm = {
   asset_number: "",
@@ -960,7 +964,7 @@ const InventoryList = () => {
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
-                  <TableRow key={r.id}>
+                  <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
                     <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px] uppercase">
@@ -1039,7 +1043,7 @@ const InventoryList = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
           {filtered.map((r) => (
-            <Card key={r.id} className="overflow-hidden">
+            <Card key={r.id} className={cn("overflow-hidden", isScrapped(r.condition) && "border-red-500 bg-red-500/5")}>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
