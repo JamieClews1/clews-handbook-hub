@@ -79,3 +79,6 @@ verify_jwt = true
 
 [functions.finance-overdue-reminders]
 verify_jwt = false
+
+[functions.pod-lookup]
+verify_jwt = false
