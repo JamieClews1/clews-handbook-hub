@@ -76,7 +76,7 @@ interface InventoryRow {
   last_reported_by: string | null;
 }
 
-const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped"];
+const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
 
 const conditionStyle: Record<string, string> = {
   Good: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
@@ -84,6 +84,7 @@ const conditionStyle: Record<string, string> = {
   Poor: "bg-orange-500/15 text-orange-700 border-orange-500/30",
   Damaged: "bg-red-500/15 text-red-700 border-red-500/30",
   Scrapped: "bg-red-600 text-white border-red-700",
+  "Yard Use": "bg-blue-500/15 text-blue-700 border-blue-500/30",
 };
 
 const isScrapped = (c?: string | null) => c === "Scrapped";
