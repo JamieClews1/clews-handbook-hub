@@ -632,6 +632,8 @@ const InventoryList = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["skip-inventory"],
