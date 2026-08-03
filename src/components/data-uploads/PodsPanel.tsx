@@ -115,11 +115,17 @@ export const PodsPanel = ({ canManage }: Props) => {
         });
         if (upErr) throw upErr;
 
+        const jobNumber = guessJobNumber(file.name);
+        const meta = await lookupJob(jobNumber);
+
         const { error: insErr } = await supabase.from("pod_documents").insert({
           file_name: file.name,
           storage_path: path,
           file_size: file.size,
-          job_number: guessJobNumber(file.name),
+          job_number: jobNumber,
+          customer: meta.customer,
+          site: meta.site,
+          delivery_date: meta.delivery_date,
           uploaded_by: uid,
         });
         if (insErr) throw insErr;
