@@ -307,6 +307,9 @@ const ProfileDialog = ({
                   ))}
               </SelectContent>
             </Select>
+          </div>
+
+
 
 
           <div className="space-y-1.5">
