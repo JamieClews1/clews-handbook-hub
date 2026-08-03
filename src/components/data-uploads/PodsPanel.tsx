@@ -30,10 +30,30 @@ function formatSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Guess a job number from a filename like "POD_12345.pdf" or "45123 - Acme.pdf"
+// Guess a job number from a filename like "JOB50099.pdf", "POD_12345.pdf" or "45123 - Acme.pdf"
 function guessJobNumber(name: string): string | null {
-  const m = name.replace(/\.pdf$/i, "").match(/\b(\d{4,7})\b/);
+  const base = name.replace(/\.pdf$/i, "");
+  const job = base.match(/job[\s_\-#]*0*(\d{3,8})/i);
+  if (job) return job[1];
+  const m = base.match(/\b(\d{4,7})\b/);
   return m ? m[1] : null;
+}
+
+// Look up customer / site for a job number from the Data Hub
+async function lookupJob(jobNumber: string | null) {
+  if (!jobNumber) return { customer: null as string | null, site: null as string | null, delivery_date: null as string | null };
+  const { data } = await supabase
+    .from("data_hub_jobs")
+    .select("customer, site, job_date")
+    .eq("job_number", jobNumber)
+    .order("job_date", { ascending: false })
+    .limit(1);
+  const row = data?.[0];
+  return {
+    customer: row?.customer ?? null,
+    site: row?.site ?? null,
+    delivery_date: row?.job_date ?? null,
+  };
 }
 
 export const PodsPanel = ({ canManage }: Props) => {
@@ -95,11 +115,17 @@ export const PodsPanel = ({ canManage }: Props) => {
         });
         if (upErr) throw upErr;
 
+        const jobNumber = guessJobNumber(file.name);
+        const meta = await lookupJob(jobNumber);
+
         const { error: insErr } = await supabase.from("pod_documents").insert({
           file_name: file.name,
           storage_path: path,
           file_size: file.size,
-          job_number: guessJobNumber(file.name),
+          job_number: jobNumber,
+          customer: meta.customer,
+          site: meta.site,
+          delivery_date: meta.delivery_date,
           uploaded_by: uid,
         });
         if (insErr) throw insErr;
