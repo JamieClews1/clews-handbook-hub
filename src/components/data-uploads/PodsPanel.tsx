@@ -43,6 +43,7 @@ export const PodsPanel = ({ canManage }: Props) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
+  const [dragOver, setDragOver] = useState(false);
   const [viewing, setViewing] = useState<{ pod: Pod; url: string } | null>(null);
 
   const load = useCallback(async () => {
