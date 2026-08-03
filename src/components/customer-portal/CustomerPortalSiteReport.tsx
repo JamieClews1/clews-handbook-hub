@@ -278,6 +278,52 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     setPalletData(result);
   };
 
+  const fetchPodAvailability = async (jobs: JobRecord[]) => {
+    const jobNumbers = Array.from(
+      new Set(jobs.map((j) => j.job_number).filter(Boolean) as string[])
+    );
+    if (!jobNumbers.length) {
+      setPodJobs(new Set());
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("pod-lookup", {
+        body: { job_numbers: jobNumbers },
+      });
+      if (error) throw error;
+      setPodJobs(new Set<string>((data?.available ?? []).map(String)));
+    } catch (e) {
+      console.error("POD lookup failed", e);
+      setPodJobs(new Set());
+    }
+  };
+
+  const downloadPod = async (jobNumber: string) => {
+    setPodDownloading(jobNumber);
+    try {
+      const { data, error } = await supabase.functions.invoke("pod-lookup", {
+        body: { job_number: jobNumber },
+      });
+      if (error) throw error;
+      if (!data?.url) {
+        toast({ title: "No POD found", description: `No proof of delivery for job ${jobNumber}.`, variant: "destructive" });
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.file_name ?? `POD-${jobNumber}.pdf`;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setPodDownloading(null);
+    }
+  };
+
+
+
   const generateReport = async () => {
     if (!selectedSiteId || !dateRange?.from || !dateRange?.to) return;
 
