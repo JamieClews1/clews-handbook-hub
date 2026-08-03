@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Scale, Search, Download, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Scale, Search, Download, Loader2, CheckCircle2, AlertCircle, FileDown } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 
 interface JobWeight {
