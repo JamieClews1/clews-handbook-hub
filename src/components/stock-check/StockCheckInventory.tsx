@@ -964,7 +964,7 @@ const InventoryList = () => {
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
-                  <TableRow key={r.id}>
+                  <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
                     <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px] uppercase">
