@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Scale, Search, Download, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Scale, Search, Download, Loader2, CheckCircle2, AlertCircle, FileDown } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 
 interface JobWeight {
@@ -64,6 +64,33 @@ export default function WeightChecksPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
+  const [podJobs, setPodJobs] = useState<Set<string>>(new Set());
+  const [podLoading, setPodLoading] = useState<string | null>(null);
+
+  const handlePodDownload = async (jobNumber: string) => {
+    setPodLoading(jobNumber);
+    try {
+      const { data, error } = await supabase.functions.invoke("pod-lookup", {
+        body: { job_number: jobNumber },
+      });
+      if (error) throw error;
+      if (!data?.url) {
+        toast({ title: "No POD available", description: `No proof of delivery found for job ${jobNumber}.` });
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.file_name ?? `POD-${jobNumber}.pdf`;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+    } catch (e: any) {
+      toast({ title: "POD download failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setPodLoading(null);
+    }
+  };
+
 
   const handleLookup = async () => {
     const orders = parseOrders(input);
@@ -105,6 +132,19 @@ export default function WeightChecksPage() {
         return { requested: o.po, postcode: o.postcode, matches };
       });
       setResults(mapped);
+
+      // Which of these jobs have a proof of delivery on file
+      const jobNumbers = Array.from(
+        new Set(mapped.flatMap((r) => r.matches.map((m) => m.job_number)).filter(Boolean))
+      );
+      setPodJobs(new Set());
+      if (jobNumbers.length > 0) {
+        const { data: podData } = await supabase.functions.invoke("pod-lookup", {
+          body: { job_numbers: jobNumbers },
+        });
+        if (podData?.available) setPodJobs(new Set(podData.available.map(String)));
+      }
+
     } catch (err) {
       console.error("Weight check failed", err);
       toast({
@@ -254,6 +294,7 @@ export default function WeightChecksPage() {
                       <th className="py-2 pr-4 font-medium">Postcode</th>
                       <th className="py-2 pr-4 font-medium">Waste type</th>
                       <th className="py-2 pr-4 font-medium text-right">Weight</th>
+                      <th className="py-2 font-medium text-right">POD</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -268,6 +309,7 @@ export default function WeightChecksPage() {
                             </span>
                           </td>
                           <td className="py-2 pr-4 text-right">—</td>
+                          <td className="py-2 text-right">—</td>
                         </tr>
                       ) : (
                         r.matches.map((m, i) => (
@@ -291,9 +333,30 @@ export default function WeightChecksPage() {
                                 </span>
                               )}
                             </td>
+                            <td className="py-2 text-right whitespace-nowrap">
+                              {podJobs.has(String(m.job_number)) ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5"
+                                  disabled={podLoading === m.job_number}
+                                  onClick={() => handlePodDownload(m.job_number)}
+                                >
+                                  {podLoading === m.job_number ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <FileDown className="h-3.5 w-3.5" />
+                                  )}
+                                  POD
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))
                       )
+
                     )}
                   </tbody>
                 </table>
