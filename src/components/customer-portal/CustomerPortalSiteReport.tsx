@@ -93,6 +93,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [palletData, setPalletData] = useState<Record<string, { pet: number; cans: number }>>({});
   const [totalPalletsData, setTotalPalletsData] = useState<Record<string, number>>({});
   const [reportGenerated, setReportGenerated] = useState(false);
+  const [podJobs, setPodJobs] = useState<Set<string>>(new Set());
+  const [podDownloading, setPodDownloading] = useState<string | null>(null);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [autoLoaded, setAutoLoaded] = useState(false);
   
