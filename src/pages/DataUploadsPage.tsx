@@ -808,8 +808,13 @@ const DataUploadsPage = () => {
           <Tabs defaultValue="manage" className="space-y-6">
             <TabsList>
               <TabsTrigger value="manage">Upload & manage</TabsTrigger>
+              <TabsTrigger value="pods">PODs</TabsTrigger>
               <TabsTrigger value="live">Live activity</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="pods" className="space-y-6">
+              <PodsPanel canManage={canUpload} />
+            </TabsContent>
 
             <TabsContent value="live" className="space-y-6">
               <LiveUploadsPanel />
