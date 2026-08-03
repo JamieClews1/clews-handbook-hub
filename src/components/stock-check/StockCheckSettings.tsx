@@ -283,7 +283,10 @@ export const StockCheckSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      <InventorySizesSettings />
     </div>
+
   );
 };
 
