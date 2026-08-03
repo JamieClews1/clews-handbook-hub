@@ -25,6 +25,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
+import { PodsPanel } from "@/components/data-uploads/PodsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type DataSource = "skiptrak" | "midweigh";
