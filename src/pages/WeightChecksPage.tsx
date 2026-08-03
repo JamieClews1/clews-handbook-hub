@@ -64,6 +64,33 @@ export default function WeightChecksPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
+  const [podJobs, setPodJobs] = useState<Set<string>>(new Set());
+  const [podLoading, setPodLoading] = useState<string | null>(null);
+
+  const handlePodDownload = async (jobNumber: string) => {
+    setPodLoading(jobNumber);
+    try {
+      const { data, error } = await supabase.functions.invoke("pod-lookup", {
+        body: { job_number: jobNumber },
+      });
+      if (error) throw error;
+      if (!data?.url) {
+        toast({ title: "No POD available", description: `No proof of delivery found for job ${jobNumber}.` });
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.file_name ?? `POD-${jobNumber}.pdf`;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+    } catch (e: any) {
+      toast({ title: "POD download failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setPodLoading(null);
+    }
+  };
+
 
   const handleLookup = async () => {
     const orders = parseOrders(input);
