@@ -63,6 +63,8 @@ interface InventoryRow {
   id: string;
   asset_number: string;
   asset_type: string;
+  size: string | null;
+
   condition: string | null;
   repairs_required: boolean;
   repair_notes: string | null;
@@ -86,6 +88,8 @@ const conditionStyle: Record<string, string> = {
 const emptyForm = {
   asset_number: "",
   asset_type: "skip",
+  size: "",
+
   condition: "Good",
   repairs_required: false,
   repair_notes: "",
@@ -111,6 +115,20 @@ const ProfileDialog = ({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [lookingUp, setLookingUp] = useState(false);
+
+  const { data: sizeOptions = [] } = useQuery({
+    queryKey: ["skip-inventory-sizes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skip_inventory_sizes")
+        .select("id, name, asset_type, display_order, is_active")
+        .eq("is_active", true)
+        .order("display_order");
+      if (error) throw error;
+      return (data || []) as { id: string; name: string; asset_type: string }[];
+    },
+  });
+
 
   const lookupTicketSite = async () => {
     const ticket = form.last_skiptrak_ticket.trim();
@@ -150,6 +168,8 @@ const ProfileDialog = ({
       setForm({
         asset_number: row.asset_number,
         asset_type: row.asset_type,
+        size: row.size || "",
+
         condition: row.condition || "Good",
         repairs_required: row.repairs_required,
         repair_notes: row.repair_notes || "",
@@ -200,6 +220,8 @@ const ProfileDialog = ({
       const payload = {
         asset_number: form.asset_number.trim(),
         asset_type: form.asset_type,
+        size: form.size ? form.size : null,
+
         condition: form.condition,
         repairs_required: form.repairs_required,
         repair_notes: form.repair_notes.trim() || null,
@@ -252,7 +274,7 @@ const ProfileDialog = ({
               <Label>Type</Label>
               <Select
                 value={form.asset_type}
-                onValueChange={(v) => setForm((f) => ({ ...f, asset_type: v }))}
+                onValueChange={(v) => setForm((f) => ({ ...f, asset_type: v, size: "" }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -264,6 +286,31 @@ const ProfileDialog = ({
               </Select>
             </div>
           </div>
+
+          <div className="space-y-1.5">
+            <Label>Size</Label>
+            <Select
+              value={form.size || "none"}
+              onValueChange={(v) => setForm((f) => ({ ...f, size: v === "none" ? "" : v }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Not set</SelectItem>
+                {sizeOptions
+                  .filter((s) => s.asset_type === form.asset_type)
+                  .map((s) => (
+                    <SelectItem key={s.id} value={s.name}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+
+
 
           <div className="space-y-1.5">
             <Label>Condition</Label>
@@ -423,6 +470,12 @@ const ViewDialog = ({ row, trigger }: { row: InventoryRow; trigger: React.ReactN
             <Badge variant="outline" className="text-[10px] uppercase">
               {row.asset_type === "roro" ? "RoRo" : "Skip"}
             </Badge>
+            {row.size && (
+              <Badge variant="secondary" className="text-[10px] uppercase">
+                {row.size}
+              </Badge>
+            )}
+
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -713,6 +766,8 @@ const InventoryList = () => {
       [
         "Number",
         "Type",
+        "Size",
+
         "Condition",
         "Repairs Required",
         "Repair Notes",
@@ -729,6 +784,8 @@ const InventoryList = () => {
         [
           esc(r.asset_number),
           r.asset_type === "roro" ? "RoRo" : "Skip",
+          esc(r.size || ""),
+
           esc(r.condition || ""),
           r.repairs_required ? "Yes" : "No",
           esc(r.repair_notes || ""),
@@ -890,6 +947,8 @@ const InventoryList = () => {
                 <TableRow>
                   <TableHead>Number</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Size</TableHead>
+
                   <TableHead>Condition</TableHead>
                   <TableHead>Repairs</TableHead>
                   <TableHead>Last location</TableHead>
@@ -908,6 +967,8 @@ const InventoryList = () => {
                         {r.asset_type === "roro" ? "RoRo" : "Skip"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">{r.size || "—"}</TableCell>
+
                     <TableCell>
                       {r.condition ? (
                         <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
@@ -989,6 +1050,12 @@ const InventoryList = () => {
                     <Badge variant="outline" className="text-[10px] uppercase shrink-0">
                       {r.asset_type === "roro" ? "RoRo" : "Skip"}
                     </Badge>
+                    {r.size && (
+                      <Badge variant="secondary" className="text-[10px] uppercase shrink-0">
+                        {r.size}
+                      </Badge>
+                    )}
+
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <ViewDialog

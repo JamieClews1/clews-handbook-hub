@@ -6118,6 +6118,7 @@ export type Database = {
           photos: Json
           repair_notes: string | null
           repairs_required: boolean
+          size: string | null
           updated_at: string
         }
         Insert: {
@@ -6134,6 +6135,7 @@ export type Database = {
           photos?: Json
           repair_notes?: string | null
           repairs_required?: boolean
+          size?: string | null
           updated_at?: string
         }
         Update: {
@@ -6150,6 +6152,37 @@ export type Database = {
           photos?: Json
           repair_notes?: string | null
           repairs_required?: boolean
+          size?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skip_inventory_sizes: {
+        Row: {
+          asset_type: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
           updated_at?: string
         }
         Relationships: []
