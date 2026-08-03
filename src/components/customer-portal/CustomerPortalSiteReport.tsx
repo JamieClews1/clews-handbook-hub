@@ -332,6 +332,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       // Fetch PET/Cans pallet counts from load reports
       await fetchPalletData(jobs ?? []);
+
+      // Which of these jobs have a Proof of Delivery on file
+      await fetchPodAvailability(jobs ?? []);
     } catch (error) {
       console.error("Error generating report:", error);
     } finally {
