@@ -1043,7 +1043,7 @@ const InventoryList = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
           {filtered.map((r) => (
-            <Card key={r.id} className="overflow-hidden">
+            <Card key={r.id} className={cn("overflow-hidden", isScrapped(r.condition) && "border-red-500 bg-red-500/5")}>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
