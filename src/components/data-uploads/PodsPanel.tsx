@@ -150,11 +150,19 @@ export const PodsPanel = ({ canManage }: Props) => {
 
   const handleView = async (pod: Pod) => {
     try {
-      setViewing({ pod, url: await signedUrl(pod) });
+      const url = await signedUrl(pod);
+      // Fetch as a blob so the PDF is same-origin — sandboxed/cross-origin PDF
+      // embeds are blocked by Chrome inside the preview iframe.
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Could not download file");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+      setViewing({ pod, url: objectUrl });
     } catch (e: any) {
       toast({ title: "Could not open POD", description: e?.message, variant: "destructive" });
     }
   };
+
 
   const handleDownload = async (pod: Pod) => {
     try {
@@ -340,16 +348,36 @@ export const PodsPanel = ({ canManage }: Props) => {
         </CardContent>
       </Card>
 
-      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+      <Dialog
+        open={!!viewing}
+        onOpenChange={(o) => {
+          if (!o) {
+            if (viewing?.url.startsWith("blob:")) URL.revokeObjectURL(viewing.url);
+            setViewing(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="truncate">{viewing?.pod.file_name}</DialogTitle>
           </DialogHeader>
           {viewing && (
-            <iframe src={viewing.url} title={viewing.pod.file_name} className="flex-1 w-full rounded-md border border-border" />
+            <>
+              <object data={viewing.url} type="application/pdf" className="flex-1 w-full rounded-md border border-border">
+                <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+                  Your browser blocked the inline PDF preview. Use the button below to open it in a new tab.
+                </div>
+              </object>
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => window.open(viewing.url, "_blank", "noopener")}>
+                  Open in new tab
+                </Button>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
+
     </>
   );
 };
