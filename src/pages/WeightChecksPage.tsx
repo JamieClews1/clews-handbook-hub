@@ -132,6 +132,19 @@ export default function WeightChecksPage() {
         return { requested: o.po, postcode: o.postcode, matches };
       });
       setResults(mapped);
+
+      // Which of these jobs have a proof of delivery on file
+      const jobNumbers = Array.from(
+        new Set(mapped.flatMap((r) => r.matches.map((m) => m.job_number)).filter(Boolean))
+      );
+      setPodJobs(new Set());
+      if (jobNumbers.length > 0) {
+        const { data: podData } = await supabase.functions.invoke("pod-lookup", {
+          body: { job_numbers: jobNumbers },
+        });
+        if (podData?.available) setPodJobs(new Set(podData.available.map(String)));
+      }
+
     } catch (err) {
       console.error("Weight check failed", err);
       toast({
