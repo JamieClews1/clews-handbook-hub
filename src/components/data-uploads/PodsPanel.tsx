@@ -150,11 +150,19 @@ export const PodsPanel = ({ canManage }: Props) => {
 
   const handleView = async (pod: Pod) => {
     try {
-      setViewing({ pod, url: await signedUrl(pod) });
+      const url = await signedUrl(pod);
+      // Fetch as a blob so the PDF is same-origin — sandboxed/cross-origin PDF
+      // embeds are blocked by Chrome inside the preview iframe.
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Could not download file");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+      setViewing({ pod, url: objectUrl });
     } catch (e: any) {
       toast({ title: "Could not open POD", description: e?.message, variant: "destructive" });
     }
   };
+
 
   const handleDownload = async (pod: Pod) => {
     try {
