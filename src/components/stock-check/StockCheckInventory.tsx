@@ -76,14 +76,18 @@ interface InventoryRow {
   last_reported_by: string | null;
 }
 
-const CONDITIONS = ["Good", "Fair", "Poor", "Damaged"];
+const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped"];
 
 const conditionStyle: Record<string, string> = {
   Good: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
   Fair: "bg-amber-500/15 text-amber-700 border-amber-500/30",
   Poor: "bg-orange-500/15 text-orange-700 border-orange-500/30",
   Damaged: "bg-red-500/15 text-red-700 border-red-500/30",
+  Scrapped: "bg-red-600 text-white border-red-700",
 };
+
+const isScrapped = (c?: string | null) => c === "Scrapped";
+
 
 const emptyForm = {
   asset_number: "",
