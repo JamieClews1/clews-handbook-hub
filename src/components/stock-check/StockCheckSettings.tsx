@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, X } from "lucide-react";
+import { InventorySizesSettings } from "./InventorySizesSettings";
+
 
 interface ContainerType {
   id: string;
