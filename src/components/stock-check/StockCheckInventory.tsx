@@ -826,14 +826,38 @@ const InventoryList = () => {
             ))}
           </div>
         </div>
-        <ProfileDialog
-          trigger={
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> New profile
-            </Button>
-          }
-          onSaved={refetch}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border p-0.5">
+            <button
+              onClick={() => setViewMode("grid")}
+              title="Grid view"
+              className={cn(
+                "px-3 h-8 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5",
+                viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              title="List view"
+              className={cn(
+                "px-3 h-8 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5",
+                viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+              )}
+            >
+              <List className="h-3.5 w-3.5" /> List
+            </button>
+          </div>
+          <ProfileDialog
+            trigger={
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> New profile
+              </Button>
+            }
+            onSaved={refetch}
+          />
+        </div>
       </div>
 
       {isLoading ? (
@@ -845,8 +869,101 @@ const InventoryList = () => {
           <Boxes className="h-12 w-12 mx-auto opacity-30 mb-3" />
           <p>No skip / RoRo profiles yet.</p>
         </div>
+      ) : viewMode === "list" ? (
+        <Card>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Condition</TableHead>
+                  <TableHead>Repairs</TableHead>
+                  <TableHead>Last location</TableHead>
+                  <TableHead>Skiptrak ticket</TableHead>
+                  <TableHead className="text-center">Photos</TableHead>
+                  <TableHead>Last catalogued</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] uppercase">
+                        {r.asset_type === "roro" ? "RoRo" : "Skip"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {r.condition ? (
+                        <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
+                          {r.condition}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[220px]">
+                      {r.repairs_required ? (
+                        <div className="space-y-1">
+                          <Badge className="text-xs gap-1 bg-red-500 text-white">
+                            <Wrench className="h-3 w-3" /> Required
+                          </Badge>
+                          {r.repair_notes && (
+                            <p className="text-xs text-muted-foreground truncate">{r.repair_notes}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] truncate">{r.last_location || "—"}</TableCell>
+                    <TableCell className="font-mono whitespace-nowrap">
+                      {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <ViewDialog
+                          row={r}
+                          trigger={
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="View">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                        <ProfileDialog
+                          row={r}
+                          trigger={
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                          onSaved={refetch}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => handleDelete(r.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
           {filtered.map((r) => (
             <Card key={r.id} className="overflow-hidden">
               <CardContent className="p-4 space-y-3">
