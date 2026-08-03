@@ -294,6 +294,7 @@ export default function WeightChecksPage() {
                       <th className="py-2 pr-4 font-medium">Postcode</th>
                       <th className="py-2 pr-4 font-medium">Waste type</th>
                       <th className="py-2 pr-4 font-medium text-right">Weight</th>
+                      <th className="py-2 font-medium text-right">POD</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -308,6 +309,7 @@ export default function WeightChecksPage() {
                             </span>
                           </td>
                           <td className="py-2 pr-4 text-right">—</td>
+                          <td className="py-2 text-right">—</td>
                         </tr>
                       ) : (
                         r.matches.map((m, i) => (
@@ -331,9 +333,30 @@ export default function WeightChecksPage() {
                                 </span>
                               )}
                             </td>
+                            <td className="py-2 text-right whitespace-nowrap">
+                              {podJobs.has(String(m.job_number)) ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5"
+                                  disabled={podLoading === m.job_number}
+                                  onClick={() => handlePodDownload(m.job_number)}
+                                >
+                                  {podLoading === m.job_number ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <FileDown className="h-3.5 w-3.5" />
+                                  )}
+                                  POD
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))
                       )
+
                     )}
                   </tbody>
                 </table>
