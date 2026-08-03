@@ -968,6 +968,26 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                           <TableCell className="text-right">
                             {(() => { const hc = getHaulageCost(job); return hc !== null ? `£${hc.toFixed(2)}` : "-"; })()}
                           </TableCell>
+                          <TableCell className="text-center">
+                            {job.job_number && podJobs.has(job.job_number) ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                title="Download Proof of Delivery"
+                                disabled={podDownloading === job.job_number}
+                                onClick={() => downloadPod(job.job_number)}
+                              >
+                                {podDownloading === job.job_number ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FileDown className="h-4 w-4 text-primary" />
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
                           {hasTotalPallets && (
                             <TableCell className="text-right font-medium">
                               {totalPalletsData[job.job_number] || "-"}
