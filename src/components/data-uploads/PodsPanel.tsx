@@ -202,6 +202,38 @@ export const PodsPanel = ({ canManage }: Props) => {
             </Button>
           </div>
 
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (canManage && !uploading) setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              if (!canManage || uploading) return;
+              void handleUpload(e.dataTransfer.files);
+            }}
+            onClick={() => canManage && !uploading && fileRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            aria-label="Drag and drop POD PDFs here or click to browse"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") fileRef.current?.click();
+            }}
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+              dragOver ? "border-primary bg-primary/5" : "border-border bg-muted/20"
+            } ${canManage && !uploading ? "cursor-pointer hover:border-primary/50" : "cursor-not-allowed opacity-60"}`}
+          >
+            <Upload className={`h-6 w-6 text-muted-foreground ${uploading ? "animate-pulse" : ""}`} />
+            <p className="text-sm font-medium">
+              {uploading ? "Uploading…" : dragOver ? "Drop PDFs to upload" : "Drag & drop POD PDFs here"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {canManage ? "or click to browse — multiple PDF files supported" : "You don't have permission to upload PODs"}
+            </p>
+          </div>
+
           <div className="rounded-md border border-border overflow-x-auto">
             <Table>
               <TableHeader>
