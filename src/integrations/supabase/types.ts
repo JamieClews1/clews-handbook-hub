@@ -4319,6 +4319,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pod_documents: {
+        Row: {
+          created_at: string
+          customer: string | null
+          delivery_date: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          job_number: string | null
+          notes: string | null
+          site: string | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer?: string | null
+          delivery_date?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          job_number?: string | null
+          notes?: string | null
+          site?: string | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer?: string | null
+          delivery_date?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          job_number?: string | null
+          notes?: string | null
+          site?: string | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       portal_section_visibility: {
         Row: {
           hidden: boolean

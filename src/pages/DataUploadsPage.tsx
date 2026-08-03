@@ -25,6 +25,7 @@ import clewsLogo from "@/assets/clews-logo.png";
 import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
+import { PodsPanel } from "@/components/data-uploads/PodsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type DataSource = "skiptrak" | "midweigh";
@@ -808,8 +809,13 @@ const DataUploadsPage = () => {
           <Tabs defaultValue="manage" className="space-y-6">
             <TabsList>
               <TabsTrigger value="manage">Upload & manage</TabsTrigger>
+              <TabsTrigger value="pods">PODs</TabsTrigger>
               <TabsTrigger value="live">Live activity</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="pods" className="space-y-6">
+              <PodsPanel canManage={canUpload} />
+            </TabsContent>
 
             <TabsContent value="live" className="space-y-6">
               <LiveUploadsPanel />
