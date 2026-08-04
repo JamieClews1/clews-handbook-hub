@@ -363,20 +363,9 @@ export function MonthlyRebateGenerationV2() {
             customer.data_hub_customer?.trim() ||
             null;
 
-          // Site-level configs first; fall back to customer-level.
-          const { data: siteSkipConfigs } = await supabase
-            .from("customer_site_skip_rebates")
-            .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-            .eq("site_id", site.id);
+          // Configs already resolved above (site-level first, then customer-level).
+          const skipConfigs = configuredSkipConfigs;
 
-          let skipConfigs = siteSkipConfigs ?? [];
-          if (skipConfigs.length === 0) {
-            const { data: custConfigs } = await supabase
-              .from("customer_skip_rebates")
-              .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-              .eq("customer_id", customer.id);
-            skipConfigs = custConfigs ?? [];
-          }
 
           let skipRoroRebate = 0;
           let skipRoroWeight = 0;
