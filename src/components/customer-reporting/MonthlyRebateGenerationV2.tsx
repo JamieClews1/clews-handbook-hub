@@ -227,6 +227,30 @@ export function MonthlyRebateGenerationV2() {
             rebateItems = (data ?? []) as typeof rebateItems;
           }
 
+          // Rebate lines must already be set up (site price set items, or
+          // site/customer level Skip/RoRo rebate lines). If nothing is
+          // configured, do not generate a rebate for this site at all.
+          const { data: siteSkipConfigsEarly } = await supabase
+            .from("customer_site_skip_rebates")
+            .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+            .eq("site_id", site.id);
+
+          let configuredSkipConfigs = siteSkipConfigsEarly ?? [];
+          if (configuredSkipConfigs.length === 0) {
+            const { data: custConfigs } = await supabase
+              .from("customer_skip_rebates")
+              .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
+              .eq("customer_id", customer.id);
+            configuredSkipConfigs = custConfigs ?? [];
+          }
+
+          const hasConfiguredRebateLines =
+            (rebateItems?.length ?? 0) > 0 ||
+            configuredSkipConfigs.some((c) => c.rebate_enabled !== false);
+
+          if (!hasConfiguredRebateLines) continue;
+
+
           const rebateItemIds = (rebateItems ?? [])
             .map((item) => item.value_type_item_id)
             .filter((id): id is string => !!id);
