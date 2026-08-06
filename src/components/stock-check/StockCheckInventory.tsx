@@ -222,6 +222,18 @@ const ProfileDialog = ({
     }
     setSaving(true);
     try {
+      // Record which user logged / updated this entry
+      let loggedBy: string | null = null;
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("id", auth.user.id)
+          .maybeSingle();
+        loggedBy = profile?.full_name || profile?.email || auth.user.email || null;
+      }
+
       const payload = {
         asset_number: form.asset_number.trim(),
         asset_type: form.asset_type,
@@ -234,6 +246,8 @@ const ProfileDialog = ({
         last_skiptrak_ticket: form.last_skiptrak_ticket.trim() || null,
         notes: form.notes.trim() || null,
         photos: form.photos,
+        last_cataloged_at: new Date().toISOString(),
+        ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
       if (row) {
         const { error } = await supabase.from("skip_inventory").update(payload).eq("id", row.id);
