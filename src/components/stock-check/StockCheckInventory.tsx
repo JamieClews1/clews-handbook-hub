@@ -1019,6 +1019,9 @@ const InventoryList = () => {
                     <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
                     </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      {r.last_reported_by || "—"}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <ViewDialog
