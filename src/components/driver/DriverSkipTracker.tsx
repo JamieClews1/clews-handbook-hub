@@ -64,7 +64,7 @@ interface HubData {
   leaderboard: LeaderboardEntry[];
 }
 
-type Tab = "reports" | "points";
+type Tab = "logged" | "reports" | "points";
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged"];
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
