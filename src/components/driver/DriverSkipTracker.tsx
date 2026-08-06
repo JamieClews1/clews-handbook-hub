@@ -46,9 +46,14 @@ interface MyReport {
   asset_number: string;
   asset_type: string;
   condition: string | null;
-  photos: string[] | null;
+  photos: (string | { url: string; label?: string })[] | null;
   points_awarded: number | null;
   created_at: string;
+}
+
+interface PhotoItem {
+  url: string;
+  label?: string;
 }
 
 interface LeaderboardEntry {
