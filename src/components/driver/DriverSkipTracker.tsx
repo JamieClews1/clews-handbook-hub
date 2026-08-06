@@ -214,6 +214,22 @@ const SkipTrackerFlow = ({
           </div>
         )}
 
+        {!recentlyCatalogued && matchingCatalogued.length > 0 && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Already catalogued (don't repeat)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {matchingCatalogued.map((i) => (
+                <Badge key={i.id} variant="secondary" className="font-mono text-xs">
+                  {i.asset_number}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+
         <div className="space-y-2">
           <Label>Condition</Label>
           <div className="grid grid-cols-4 gap-2">
