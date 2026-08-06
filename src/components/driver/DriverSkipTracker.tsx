@@ -64,7 +64,7 @@ interface HubData {
   leaderboard: LeaderboardEntry[];
 }
 
-type Tab = "reports" | "points";
+type Tab = "logged" | "reports" | "points";
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged"];
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
@@ -104,6 +104,18 @@ const SkipTrackerFlow = ({
     if (!match?.last_cataloged_at) return null;
     const ageMs = Date.now() - new Date(match.last_cataloged_at).getTime();
     return ageMs < SIX_MONTHS_MS ? match : null;
+  }, [assetNumber, assetType, inventory]);
+
+  // Bins of this type already catalogued, filtered as the driver types
+  const matchingCatalogued = useMemo(() => {
+    const num = assetNumber.trim().toLowerCase();
+    return inventory
+      .filter(
+        (i) =>
+          i.asset_type === assetType &&
+          (!num || i.asset_number.toLowerCase().includes(num)),
+      )
+      .slice(0, 40);
   }, [assetNumber, assetType, inventory]);
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,6 +225,22 @@ const SkipTrackerFlow = ({
             be reported again until 6 months have passed.
           </div>
         )}
+
+        {!recentlyCatalogued && matchingCatalogued.length > 0 && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Already catalogued (don't repeat)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {matchingCatalogued.map((i) => (
+                <Badge key={i.id} variant="secondary" className="font-mono text-xs">
+                  {i.asset_number}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         <div className="space-y-2">
           <Label>Condition</Label>
@@ -349,7 +377,9 @@ const DriverSkipTracker = ({
   nav?: React.ReactNode;
 }) => {
   const [cataloguing, setCataloguing] = useState(false);
-  const [tab, setTab] = useState<Tab>("reports");
+  const [tab, setTab] = useState<Tab>("logged");
+  const [loggedSearch, setLoggedSearch] = useState("");
+  const [loggedType, setLoggedType] = useState<"all" | "skip" | "roro">("all");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["skip-tracker", reporter.name],
@@ -375,6 +405,17 @@ const DriverSkipTracker = ({
   const myReports = data?.myReports ?? [];
   const leaderboard = data?.leaderboard ?? [];
   const myRank = leaderboard.findIndex((e) => e.reporter_name === reporter.name);
+  const inventory = data?.inventory ?? [];
+  const q = loggedSearch.trim().toLowerCase();
+  const loggedList = inventory
+    .filter((i) => loggedType === "all" || i.asset_type === loggedType)
+    .filter(
+      (i) =>
+        !q ||
+        i.asset_number.toLowerCase().includes(q) ||
+        (i.last_location || "").toLowerCase().includes(q),
+    )
+    .sort((a, b) => a.asset_number.localeCompare(b.asset_number, undefined, { numeric: true }));
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -434,33 +475,101 @@ const DriverSkipTracker = ({
       </div>
 
       <div className="px-4 pt-4">
-        <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-xl">
+        <div className="grid grid-cols-3 gap-2 p-1 bg-muted rounded-xl">
+          <button
+            onClick={() => setTab("logged")}
+            className={cn(
+              "h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
+              tab === "logged" ? "bg-background shadow text-foreground" : "text-muted-foreground",
+            )}
+          >
+            <Boxes className="w-4 h-4" /> Catalogued
+          </button>
           <button
             onClick={() => setTab("reports")}
             className={cn(
-              "h-10 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors",
+              "h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
               tab === "reports" ? "bg-background shadow text-foreground" : "text-muted-foreground",
             )}
           >
-            <ClipboardList className="w-4 h-4" /> My Catalogues
+            <ClipboardList className="w-4 h-4" /> Mine
           </button>
           <button
             onClick={() => setTab("points")}
             className={cn(
-              "h-10 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors",
+              "h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
               tab === "points" ? "bg-background shadow text-foreground" : "text-muted-foreground",
             )}
           >
-            <Trophy className="w-4 h-4" /> Leaderboard
+            <Trophy className="w-4 h-4" /> Leaders
           </button>
         </div>
       </div>
+
 
       <div className="p-4 space-y-3">
         {isLoading && (
           <div className="flex justify-center py-10">
             <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
           </div>
+        )}
+
+        {!isLoading && tab === "logged" && (
+          <>
+            <p className="text-xs text-muted-foreground">
+              These bins are already on the system — you only earn points for ones not listed
+              here.
+            </p>
+            <Input
+              value={loggedSearch}
+              onChange={(e) => setLoggedSearch(e.target.value)}
+              placeholder="Search bin number or location…"
+              className="h-11"
+            />
+            <div className="grid grid-cols-3 gap-2 p-1 bg-muted rounded-xl">
+              {(["all", "skip", "roro"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setLoggedType(t)}
+                  className={cn(
+                    "h-9 rounded-lg text-xs font-semibold transition-colors",
+                    loggedType === t
+                      ? "bg-background shadow text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {t === "all" ? "All" : t === "skip" ? "Skips" : "RoRos"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">{loggedList.length} catalogued</p>
+            {loggedList.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-10">
+                Nothing catalogued yet.
+              </p>
+            ) : (
+              loggedList.map((i) => (
+                <Card key={i.id}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground truncate">
+                        {i.asset_type === "roro" ? "RoRo" : "Skip"} #{i.asset_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+                    {i.last_cataloged_at && (
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {format(new Date(i.last_cataloged_at), "d MMM yy")}
+                      </span>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </>
         )}
 
         {!isLoading && tab === "reports" && (
