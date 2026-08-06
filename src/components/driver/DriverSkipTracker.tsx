@@ -325,7 +325,9 @@ const SkipTrackerFlow = ({
           <Label>Photos</Label>
           <div className="grid grid-cols-2 gap-3">
             {PHOTO_OPTIONS.map((label) => {
-              const labelPhotos = photos.filter((p) => p.label === label);
+              const labelPhotos = photos
+                .map((p, idx) => ({ ...p, idx }))
+                .filter((p) => p.label === label);
               return (
                 <div key={label} className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
                   <div className="flex items-center justify-between">
@@ -336,16 +338,16 @@ const SkipTrackerFlow = ({
                   </div>
                   {labelPhotos.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto pb-1">
-                      {labelPhotos.map((photo, i) => (
-                        <div key={`${label}-${i}`} className="relative shrink-0">
+                      {labelPhotos.map((photo) => (
+                        <div key={photo.idx} className="relative shrink-0">
                           <img
                             src={photo.url}
-                            alt={`${label} photo ${i + 1}`}
+                            alt={`${label} photo`}
                             className="w-16 h-16 object-cover rounded-lg border"
                           />
                           <button
                             onClick={() =>
-                              setPhotos((p) => p.filter((_, idx) => idx !== photos.indexOf(photo)))
+                              setPhotos((p) => p.filter((_, idx) => idx !== photo.idx))
                             }
                             className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
                           >
