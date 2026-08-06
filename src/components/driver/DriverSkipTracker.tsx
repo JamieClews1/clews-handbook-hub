@@ -321,41 +321,69 @@ const SkipTrackerFlow = ({
         </div>
 
         {/* Photos */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label>Photos</Label>
-          {photos.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {photos.map((url, i) => (
-                <div key={url} className="relative shrink-0">
-                  <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg border" />
-                  <button
-                    onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
-                    className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+          <div className="grid grid-cols-2 gap-3">
+            {PHOTO_OPTIONS.map((label) => {
+              const labelPhotos = photos.filter((p) => p.label === label);
+              return (
+                <div key={label} className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">{label}</span>
+                    {labelPhotos.length > 0 && (
+                      <span className="text-xs text-emerald-600 font-medium">{labelPhotos.length}</span>
+                    )}
+                  </div>
+                  {labelPhotos.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {labelPhotos.map((photo, i) => (
+                        <div key={`${label}-${i}`} className="relative shrink-0">
+                          <img
+                            src={photo.url}
+                            alt={`${label} photo ${i + 1}`}
+                            className="w-16 h-16 object-cover rounded-lg border"
+                          />
+                          <button
+                            onClick={() =>
+                              setPhotos((p) => p.filter((_, idx) => idx !== photos.indexOf(photo)))
+                            }
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleCapture}
+                    multiple
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPendingPhotoLabel(label);
+                      setTimeout(() => fileInputRef.current?.click(), 0);
+                    }}
+                    disabled={uploading}
+                    className="w-full h-12 text-sm gap-2 rounded-lg border-dashed border-2"
                   >
-                    <X className="w-3 h-3" />
-                  </button>
+                    {uploading && pendingPhotoLabel === label ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                    {uploading && pendingPhotoLabel === label ? "Uploading…" : "Add"}
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleCapture}
-            multiple
-          />
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="w-full h-14 text-base gap-3 rounded-xl border-dashed border-2"
-          >
-            {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
-            {uploading ? "Uploading…" : "Take Photo"}
-          </Button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
