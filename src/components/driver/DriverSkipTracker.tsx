@@ -377,7 +377,9 @@ const DriverSkipTracker = ({
   nav?: React.ReactNode;
 }) => {
   const [cataloguing, setCataloguing] = useState(false);
-  const [tab, setTab] = useState<Tab>("reports");
+  const [tab, setTab] = useState<Tab>("logged");
+  const [loggedSearch, setLoggedSearch] = useState("");
+  const [loggedType, setLoggedType] = useState<"all" | "skip" | "roro">("all");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["skip-tracker", reporter.name],
