@@ -94,9 +94,12 @@ const SkipTrackerFlow = ({
   const [repairNotes, setRepairNotes] = useState("");
   const [location, setLocation] = useState("");
   const [ticket, setTicket] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [pendingPhotoLabel, setPendingPhotoLabel] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
   // 6-month lock check against the latest catalogue for this exact bin
   const recentlyCatalogued = useMemo(() => {
