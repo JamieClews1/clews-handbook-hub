@@ -560,7 +560,7 @@ const ViewDialog = ({ row, trigger }: { row: InventoryRow; trigger: React.ReactN
           {row.last_cataloged_at && (
             <p className="text-[11px] text-muted-foreground pt-2 border-t">
               Last catalogued {format(new Date(row.last_cataloged_at), "d MMM yyyy")}
-              {row.last_reported_by ? ` · ${row.last_reported_by}` : ""}
+              {row.last_reported_by ? ` · logged by ${row.last_reported_by}` : ""}
             </p>
           )}
         </div>
@@ -1159,7 +1159,7 @@ const InventoryList = () => {
                 {r.last_cataloged_at && (
                   <p className="text-[11px] text-muted-foreground pt-1 border-t">
                     Last catalogued {format(new Date(r.last_cataloged_at), "d MMM yyyy")}
-                    {r.last_reported_by ? ` · ${r.last_reported_by}` : ""}
+                    {r.last_reported_by ? ` · logged by ${r.last_reported_by}` : ""}
                   </p>
                 )}
               </CardContent>
