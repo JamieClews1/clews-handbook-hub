@@ -131,7 +131,7 @@ const SkipTrackerFlow = ({
     if (!files?.length) return;
     setUploading(true);
     try {
-      const urls: string[] = [];
+      const newPhotos: PhotoItem[] = [];
       for (const file of Array.from(files)) {
         const file_base64 = await fileToBase64(file);
         const { url } = await driverAction<{ url: string }>("upload_contamination_photo", {
@@ -140,15 +140,16 @@ const SkipTrackerFlow = ({
           content_type: file.type || "image/jpeg",
           file_base64,
         });
-        if (url) urls.push(url);
+        if (url) newPhotos.push({ url, label: pendingPhotoLabel });
       }
-      setPhotos((p) => [...p, ...urls]);
+      setPhotos((p) => [...p, ...newPhotos]);
       toast.success("Photo added");
     } catch (err) {
       console.error(err);
       toast.error("Failed to upload photo");
     } finally {
       setUploading(false);
+      setPendingPhotoLabel(undefined);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
