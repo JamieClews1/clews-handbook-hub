@@ -464,27 +464,37 @@ const DriverSkipTracker = ({
       </div>
 
       <div className="px-4 pt-4">
-        <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-xl">
+        <div className="grid grid-cols-3 gap-2 p-1 bg-muted rounded-xl">
+          <button
+            onClick={() => setTab("logged")}
+            className={cn(
+              "h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
+              tab === "logged" ? "bg-background shadow text-foreground" : "text-muted-foreground",
+            )}
+          >
+            <Boxes className="w-4 h-4" /> Catalogued
+          </button>
           <button
             onClick={() => setTab("reports")}
             className={cn(
-              "h-10 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors",
+              "h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
               tab === "reports" ? "bg-background shadow text-foreground" : "text-muted-foreground",
             )}
           >
-            <ClipboardList className="w-4 h-4" /> My Catalogues
+            <ClipboardList className="w-4 h-4" /> Mine
           </button>
           <button
             onClick={() => setTab("points")}
             className={cn(
-              "h-10 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors",
+              "h-10 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
               tab === "points" ? "bg-background shadow text-foreground" : "text-muted-foreground",
             )}
           >
-            <Trophy className="w-4 h-4" /> Leaderboard
+            <Trophy className="w-4 h-4" /> Leaders
           </button>
         </div>
       </div>
+
 
       <div className="p-4 space-y-3">
         {isLoading && (
