@@ -267,6 +267,7 @@ export const DriverSettings = () => {
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Driver</TableHead>
+                    <TableHead>Username</TableHead>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Mobile</TableHead>
                     <TableHead className="w-16">Dept</TableHead>
@@ -280,6 +281,13 @@ export const DriverSettings = () => {
                     <TableRow key={d.id} className={!d.is_active ? "opacity-50" : ""}>
                       <TableCell className="font-mono text-xs text-muted-foreground">{d.driver_number ?? "—"}</TableCell>
                       <TableCell className="font-medium">{d.driver_name}</TableCell>
+                      <TableCell>
+                        {d.username ? (
+                          <span className="text-xs font-mono">{d.username}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {d.route_one_vehicles ? (
                           <div className="flex items-center gap-1.5">
@@ -336,7 +344,7 @@ export const DriverSettings = () => {
                   ))}
                   {drivers.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No drivers configured</TableCell>
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No drivers configured</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
