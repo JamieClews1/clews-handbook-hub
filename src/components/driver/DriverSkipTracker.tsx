@@ -106,6 +106,18 @@ const SkipTrackerFlow = ({
     return ageMs < SIX_MONTHS_MS ? match : null;
   }, [assetNumber, assetType, inventory]);
 
+  // Bins of this type already catalogued, filtered as the driver types
+  const matchingCatalogued = useMemo(() => {
+    const num = assetNumber.trim().toLowerCase();
+    return inventory
+      .filter(
+        (i) =>
+          i.asset_type === assetType &&
+          (!num || i.asset_number.toLowerCase().includes(num)),
+      )
+      .slice(0, 40);
+  }, [assetNumber, assetType, inventory]);
+
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
