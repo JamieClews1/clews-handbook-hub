@@ -514,6 +514,64 @@ const DriverSkipTracker = ({
           </div>
         )}
 
+        {!isLoading && tab === "logged" && (
+          <>
+            <p className="text-xs text-muted-foreground">
+              These bins are already on the system — you only earn points for ones not listed
+              here.
+            </p>
+            <Input
+              value={loggedSearch}
+              onChange={(e) => setLoggedSearch(e.target.value)}
+              placeholder="Search bin number or location…"
+              className="h-11"
+            />
+            <div className="grid grid-cols-3 gap-2 p-1 bg-muted rounded-xl">
+              {(["all", "skip", "roro"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setLoggedType(t)}
+                  className={cn(
+                    "h-9 rounded-lg text-xs font-semibold transition-colors",
+                    loggedType === t
+                      ? "bg-background shadow text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {t === "all" ? "All" : t === "skip" ? "Skips" : "RoRos"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">{loggedList.length} catalogued</p>
+            {loggedList.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-10">
+                Nothing catalogued yet.
+              </p>
+            ) : (
+              loggedList.map((i) => (
+                <Card key={i.id}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground truncate">
+                        {i.asset_type === "roro" ? "RoRo" : "Skip"} #{i.asset_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+                    {i.last_cataloged_at && (
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {format(new Date(i.last_cataloged_at), "d MMM yy")}
+                      </span>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </>
+        )}
+
         {!isLoading && tab === "reports" && (
           <>
             {myReports.length === 0 ? (
