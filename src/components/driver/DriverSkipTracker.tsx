@@ -405,6 +405,17 @@ const DriverSkipTracker = ({
   const myReports = data?.myReports ?? [];
   const leaderboard = data?.leaderboard ?? [];
   const myRank = leaderboard.findIndex((e) => e.reporter_name === reporter.name);
+  const inventory = data?.inventory ?? [];
+  const q = loggedSearch.trim().toLowerCase();
+  const loggedList = inventory
+    .filter((i) => loggedType === "all" || i.asset_type === loggedType)
+    .filter(
+      (i) =>
+        !q ||
+        i.asset_number.toLowerCase().includes(q) ||
+        (i.last_location || "").toLowerCase().includes(q),
+    )
+    .sort((a, b) => a.asset_number.localeCompare(b.asset_number, undefined, { numeric: true }));
 
   return (
     <div className="min-h-screen bg-background pb-24">
