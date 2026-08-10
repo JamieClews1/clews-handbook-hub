@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllCustomers } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -109,10 +110,7 @@ export function SiteReportGenerator() {
   }, [selectedCustomerId]);
 
   const loadCustomers = async () => {
-    const { data } = await supabase
-      .from("customers")
-      .select("id, customer_name, customer_code")
-      .order("customer_name");
+    const data = await fetchAllCustomers<Customer>("id, customer_name, customer_code");
     setCustomers(data ?? []);
   };
 
