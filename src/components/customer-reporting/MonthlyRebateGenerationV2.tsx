@@ -129,13 +129,15 @@ export function MonthlyRebateGenerationV2() {
       const periodStart = format(dateRange.from, "yyyy-MM-dd");
       const periodEnd = format(dateRange.to, "yyyy-MM-dd");
 
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, customer_name, customer_code, data_hub_customer")
-        .order("customer_name");
+      const customers = await fetchAllCustomers<{
+        id: string;
+        customer_name: string;
+        customer_code: string | null;
+        data_hub_customer: string | null;
+      }>("id, customer_name, customer_code, data_hub_customer");
 
       // Sites (paginated)
-      const allSites: Site[] = [];
+      const allSitesRaw: Site[] = [];
       {
         const pageSize = 1000;
         let offset = 0;
@@ -149,11 +151,30 @@ export function MonthlyRebateGenerationV2() {
             .range(offset, offset + pageSize - 1);
           if (error) throw error;
           if (!page || page.length === 0) break;
-          allSites.push(...(page as Site[]));
+          allSitesRaw.push(...(page as Site[]));
           if (page.length < pageSize) break;
           offset += pageSize;
         }
       }
+
+      // Only sites/customers with rebate lines configured can ever produce a
+      // rebate. Pre-filter here so we don't fire per-site queries for the
+      // ~20k Data Hub sites that have no rebate setup at all.
+      setProgressLabel("Finding sites with rebate setup...");
+      const [{ data: psRows }, { data: siteSkipRows }, { data: custSkipRows }] = await Promise.all([
+        supabase.from("customer_site_price_sets").select("site_id"),
+        supabase.from("customer_site_skip_rebates").select("site_id"),
+        supabase.from("customer_skip_rebates").select("customer_id"),
+      ]);
+      const eligibleSiteIds = new Set<string>([
+        ...(psRows ?? []).map((r: any) => r.site_id),
+        ...(siteSkipRows ?? []).map((r: any) => r.site_id),
+      ]);
+      const eligibleCustomerIds = new Set<string>((custSkipRows ?? []).map((r: any) => r.customer_id));
+      const allSites = allSitesRaw.filter(
+        (s) => eligibleSiteIds.has(s.id) || eligibleCustomerIds.has(s.customer_id),
+      );
+
 
       const { data: allContacts } = await supabase
         .from("customer_contacts")
