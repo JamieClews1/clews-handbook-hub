@@ -107,6 +107,10 @@ async function syncSingleReport(report: OfflineLoadReport): Promise<void> {
     display_order: item.displayOrder,
     wet_charge_applied: item.wetChargeApplied || false,
     rebate_threshold_applied: item.rebateThresholdApplied || false,
+    rebate_rate_per_tonne:
+      item.rebateRatePerTonne === null || item.rebateRatePerTonne === undefined || Number.isNaN(item.rebateRatePerTonne)
+        ? null
+        : Number(item.rebateRatePerTonne),
   }));
 
   const { error: itemsError } = await supabase

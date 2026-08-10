@@ -609,6 +609,10 @@ const LoadReportsPage = () => {
             pallet_weight_kg: defaultPalletWeight,
             wet_charge_applied: (item as any).wet_charge_applied || false,
             rebate_threshold_applied: (item as any).rebate_threshold_applied || false,
+            rebate_rate_per_tonne:
+              (item as any).rebate_rate_per_tonne === null || (item as any).rebate_rate_per_tonne === undefined
+                ? null
+                : Number((item as any).rebate_rate_per_tonne),
           }))
         );
       } else if (staciEntries.length === 0) {
@@ -717,6 +721,10 @@ const LoadReportsPage = () => {
             pallet_weight_kg: defaultPalletWeight,
             wet_charge_applied: (item as any).wet_charge_applied || false,
             rebate_threshold_applied: (item as any).rebate_threshold_applied || false,
+            rebate_rate_per_tonne:
+              (item as any).rebate_rate_per_tonne === null || (item as any).rebate_rate_per_tonne === undefined
+                ? null
+                : Number((item as any).rebate_rate_per_tonne),
           }))
         );
       } else if (staciEntries.length === 0) {
@@ -794,6 +802,10 @@ const LoadReportsPage = () => {
           displayOrder: item.display_order,
           wetChargeApplied: item.wet_charge_applied || false,
           rebateThresholdApplied: item.rebate_threshold_applied || false,
+          rebateRatePerTonne:
+            item.rebate_rate_per_tonne === null || item.rebate_rate_per_tonne === undefined
+              ? null
+              : Number(item.rebate_rate_per_tonne),
         }));
 
         await saveOfflineReport({
