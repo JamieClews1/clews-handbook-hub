@@ -104,8 +104,14 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
   const [reconciling, setReconciling] = useState(false);
+  const [siteCheckOpen, setSiteCheckOpen] = useState(false);
+  const [siteCheckLoading, setSiteCheckLoading] = useState(false);
+  const [siteCheckRows, setSiteCheckRows] = useState<
+    { id: string; date: string; jobNumber: string; reportSite: string; dataHubSite: string; status: "match" | "mismatch" | "not_found" }[]
+  >([]);
   const isStaci = customerType === "staci";
   const isEvri = customerType === "evri";
+  const isAmazon = customerType === "amazon";
   const { toast } = useToast();
 
   useEffect(() => {
