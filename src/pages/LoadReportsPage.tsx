@@ -903,12 +903,15 @@ const LoadReportsPage = () => {
           : "Saved locally. Will sync when online.",
       });
 
+      // Always force the list to refetch so reconciled weights show immediately,
+      // whether the report was submitted or saved as a draft.
+      setListRefreshKey((k) => k + 1);
+
       if (submit) {
-        // Force the list to refetch so reconciled weights show immediately,
-        // and return to whichever list the user came from ("all" = Logged Load Reports).
-        setListRefreshKey((k) => k + 1);
+        // Return to whichever list the user came from ("all" = Logged Load Reports).
         setViewMode(originView === "all" ? "all" : "list");
       }
+
     } catch (error: any) {
       toast({
         title: "Error saving report",
