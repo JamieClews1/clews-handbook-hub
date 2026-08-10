@@ -485,8 +485,9 @@ export const LoadReviewScreen = ({
                   <TableBody>
                     {reconciledItems.map((item) => {
                       const totalW = Math.round(item.pallet_count * item.avg_weight_kg);
-                      const totalPalletWeight =
-                        item.pallet_count * (item.pallet_weight_kg || 0);
+                      const totalPalletWeight = noPalletsOnLoad
+                        ? 0
+                        : item.pallet_count * (item.pallet_weight_kg || 0);
                       const actualWeight = totalW - totalPalletWeight;
                       return (
                         <TableRow
@@ -525,18 +526,21 @@ export const LoadReviewScreen = ({
                         ).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-xl font-bold text-primary">
-                        {reconciledItems
-                          .reduce(
-                            (sum, i) => sum + i.pallet_count * (i.pallet_weight_kg || 0),
-                            0
-                          )
-                          .toLocaleString()}
+                        {(noPalletsOnLoad
+                          ? 0
+                          : reconciledItems.reduce(
+                              (sum, i) => sum + i.pallet_count * (i.pallet_weight_kg || 0),
+                              0
+                            )
+                        ).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-xl font-bold text-primary">
                         {Math.round(
                           reconciledItems.reduce((sum, i) => {
                             const t = i.pallet_count * i.avg_weight_kg;
-                            const p = i.pallet_count * (i.pallet_weight_kg || 0);
+                            const p = noPalletsOnLoad
+                              ? 0
+                              : i.pallet_count * (i.pallet_weight_kg || 0);
                             return sum + (t - p);
                           }, 0)
                         ).toLocaleString()}
