@@ -35,6 +35,7 @@ interface LoadReport {
   status: string;
   created_at: string;
   notes: string | null;
+  site_id?: string | null;
   weighbridge_weight_kg?: number | null;
   site_name?: string | null;
   waste_types?: string[];
