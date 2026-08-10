@@ -421,7 +421,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
           .from("load_line_items")
-          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied")
+          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied, rebate_rate_per_tonne")
           .in("load_report_id", loadReportIds);
         
         // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
