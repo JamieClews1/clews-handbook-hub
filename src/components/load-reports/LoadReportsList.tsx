@@ -580,7 +580,14 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <Settings className="h-5 w-5" />
           Settings
         </Button>
+        {isAmazon && (
+          <Button variant="outline" onClick={runSiteCheck} className="gap-2 h-12">
+            <MapPinCheck className="h-5 w-5" />
+            Check Sites vs Data Hub
+          </Button>
+        )}
       </div>
+
 
       {/* Missing Reports Alert */}
       <MissingReportsAlert customerType={customerType ?? null} />
