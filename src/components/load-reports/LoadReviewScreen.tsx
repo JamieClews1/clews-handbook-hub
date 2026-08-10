@@ -485,8 +485,9 @@ export const LoadReviewScreen = ({
                   <TableBody>
                     {reconciledItems.map((item) => {
                       const totalW = Math.round(item.pallet_count * item.avg_weight_kg);
-                      const totalPalletWeight =
-                        item.pallet_count * (item.pallet_weight_kg || 0);
+                      const totalPalletWeight = noPalletsOnLoad
+                        ? 0
+                        : item.pallet_count * (item.pallet_weight_kg || 0);
                       const actualWeight = totalW - totalPalletWeight;
                       return (
                         <TableRow
