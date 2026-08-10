@@ -406,6 +406,8 @@ export const TallyScreen = ({
 
       {!isEvri && wetChargeSection}
 
+      {bespokeRatesSection}
+
       {/* Fixed Bottom Summary Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t-2 border-border shadow-lg p-4 z-50">
         <div className="container mx-auto max-w-5xl">
