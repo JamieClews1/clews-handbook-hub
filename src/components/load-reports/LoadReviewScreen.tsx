@@ -526,18 +526,21 @@ export const LoadReviewScreen = ({
                         ).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-xl font-bold text-primary">
-                        {reconciledItems
-                          .reduce(
-                            (sum, i) => sum + i.pallet_count * (i.pallet_weight_kg || 0),
-                            0
-                          )
-                          .toLocaleString()}
+                        {(noPalletsOnLoad
+                          ? 0
+                          : reconciledItems.reduce(
+                              (sum, i) => sum + i.pallet_count * (i.pallet_weight_kg || 0),
+                              0
+                            )
+                        ).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-xl font-bold text-primary">
                         {Math.round(
                           reconciledItems.reduce((sum, i) => {
                             const t = i.pallet_count * i.avg_weight_kg;
-                            const p = i.pallet_count * (i.pallet_weight_kg || 0);
+                            const p = noPalletsOnLoad
+                              ? 0
+                              : i.pallet_count * (i.pallet_weight_kg || 0);
                             return sum + (t - p);
                           }, 0)
                         ).toLocaleString()}
