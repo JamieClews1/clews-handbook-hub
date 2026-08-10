@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AlphabetJumpSelect } from "@/components/ui/alphabet-jump-select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -496,18 +497,12 @@ export function SiteReportGenerator() {
       <div className="grid md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Customer</Label>
-          <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.customer_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AlphabetJumpSelect
+            items={customers.map((c) => ({ value: c.id, label: c.customer_name }))}
+            value={selectedCustomerId}
+            onChange={setSelectedCustomerId}
+            placeholder="Select customer"
+          />
         </div>
 
         <div className="space-y-2">
