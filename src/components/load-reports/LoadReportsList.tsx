@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2, MapPinCheck } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -34,6 +35,7 @@ interface LoadReport {
   status: string;
   created_at: string;
   notes: string | null;
+  site_id?: string | null;
   weighbridge_weight_kg?: number | null;
   site_name?: string | null;
   waste_types?: string[];
@@ -102,8 +104,14 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
   const [reconciling, setReconciling] = useState(false);
+  const [siteCheckOpen, setSiteCheckOpen] = useState(false);
+  const [siteCheckLoading, setSiteCheckLoading] = useState(false);
+  const [siteCheckRows, setSiteCheckRows] = useState<
+    { id: string; date: string; jobNumber: string; reportSite: string; dataHubSite: string; status: "match" | "mismatch" | "not_found" }[]
+  >([]);
   const isStaci = customerType === "staci";
   const isEvri = customerType === "evri";
+  const isAmazon = customerType === "amazon";
   const { toast } = useToast();
 
   useEffect(() => {
@@ -432,6 +440,82 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     }
   };
 
+  const normalizeSite = (s: string) =>
+    (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const runSiteCheck = async () => {
+    setSiteCheckOpen(true);
+    setSiteCheckLoading(true);
+    setSiteCheckRows([]);
+    try {
+      const candidates = filteredReports.filter((r) => r.notes?.trim());
+      const jobNumbers = [...new Set(candidates.map((r) => r.notes!.trim()))];
+      const source = getWeighbridgeSource(customerType);
+
+      let jobSiteMap: Record<string, string> = {};
+      if (jobNumbers.length > 0) {
+        const { data: jobs } = await supabase
+          .from("data_hub_jobs")
+          .select("job_number, site")
+          .eq("source", source)
+          .in("job_number", jobNumbers);
+        (jobs || []).forEach((j: any) => {
+          if (j.site) jobSiteMap[j.job_number] = j.site;
+        });
+      }
+
+      // Aliases for each report site so mapped Data Hub names count as a match
+      const siteIds = [...new Set(candidates.map((r: any) => r.site_id).filter(Boolean))] as string[];
+      const aliasMap: Record<string, string[]> = {};
+      if (siteIds.length > 0) {
+        const { data: sites } = await supabase
+          .from("customer_sites")
+          .select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+          .in("id", siteIds);
+        (sites || []).forEach((s: any) => {
+          aliasMap[s.id] = [
+            s.site_name,
+            s.data_hub_site,
+            s.data_hub_site_2,
+            s.data_hub_site_3,
+            s.data_hub_site_4,
+            s.data_hub_site_5,
+          ]
+            .filter(Boolean)
+            .map((v: string) => normalizeSite(v));
+        });
+      }
+
+      const rows = candidates.map((r: any) => {
+        const job = r.notes.trim();
+        const dhSite = jobSiteMap[job] || "";
+        const aliases = aliasMap[r.site_id] || (r.site_name ? [normalizeSite(r.site_name)] : []);
+        const status: "match" | "mismatch" | "not_found" = !dhSite
+          ? "not_found"
+          : aliases.some((a) => a === normalizeSite(dhSite) || a.includes(normalizeSite(dhSite)) || normalizeSite(dhSite).includes(a))
+            ? "match"
+            : "mismatch";
+        return {
+          id: r.id,
+          date: formatLoadReportDate(r.report_date, "dd/MM/yyyy"),
+          jobNumber: job,
+          reportSite: r.site_name || "Unassigned",
+          dataHubSite: dhSite || "—",
+          status,
+        };
+      });
+
+      // Problems first
+      const order = { mismatch: 0, not_found: 1, match: 2 } as const;
+      rows.sort((a, b) => order[a.status] - order[b.status]);
+      setSiteCheckRows(rows);
+    } catch (error: any) {
+      toast({ title: "Site check failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSiteCheckLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string, report: LoadReport) => {
     const showReconciliation = needsReconciliation(report);
     const palletsOut = report.pallets_out ?? 0;
@@ -496,7 +580,14 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           <Settings className="h-5 w-5" />
           Settings
         </Button>
+        {isAmazon && (
+          <Button variant="outline" onClick={runSiteCheck} className="gap-2 h-12">
+            <MapPinCheck className="h-5 w-5" />
+            Check Sites vs Data Hub
+          </Button>
+        )}
       </div>
+
 
       {/* Missing Reports Alert */}
       <MissingReportsAlert customerType={customerType ?? null} />
@@ -744,6 +835,64 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           }
         }}
       />
+
+      {/* Site check dialog */}
+      <Dialog open={siteCheckOpen} onOpenChange={setSiteCheckOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Site check — load report vs Data Hub</DialogTitle>
+            <DialogDescription>
+              Compares the site on each listed load report with the site on the matching Data Hub job (by job number).
+            </DialogDescription>
+          </DialogHeader>
+          {siteCheckLoading ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Checking…</p>
+          ) : siteCheckRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">No reports with job numbers to check.</p>
+          ) : (
+            <>
+              <div className="flex gap-2 text-sm">
+                <Badge className="bg-green-500">{siteCheckRows.filter((r) => r.status === "match").length} match</Badge>
+                <Badge variant="destructive">{siteCheckRows.filter((r) => r.status === "mismatch").length} mismatch</Badge>
+                <Badge variant="secondary">{siteCheckRows.filter((r) => r.status === "not_found").length} no Data Hub job</Badge>
+              </div>
+              <div className="max-h-[55vh] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Job</TableHead>
+                      <TableHead>Report site</TableHead>
+                      <TableHead>Data Hub site</TableHead>
+                      <TableHead>Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {siteCheckRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell>{r.date}</TableCell>
+                        <TableCell>{r.jobNumber}</TableCell>
+                        <TableCell>{r.reportSite}</TableCell>
+                        <TableCell>{r.dataHubSite}</TableCell>
+                        <TableCell>
+                          {r.status === "match" ? (
+                            <Badge className="bg-green-500">Match</Badge>
+                          ) : r.status === "mismatch" ? (
+                            <Badge variant="destructive">Mismatch</Badge>
+                          ) : (
+                            <Badge variant="secondary">No job found</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
