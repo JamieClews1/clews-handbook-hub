@@ -274,6 +274,70 @@ export const TallyScreen = ({
     </Card>
   ) : null;
 
+  const bespokeRatesSection = (
+    <Card className="border-2 border-violet-500/50 bg-violet-50/30 dark:bg-violet-950/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center">
+            <Scale className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Bespoke Rebate Rates</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Optional — set a £ per tonne rate for this load only. Leave blank to use the customer's standard rate.
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {lineItems.filter((item) => item.pallet_count > 0).length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            Add pallets to materials above to set a bespoke rate
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {lineItems
+              .filter((item) => item.pallet_count > 0)
+              .map((item) => {
+                const originalIndex = lineItems.findIndex((li) => li.waste_type === item.waste_type);
+                return (
+                  <div
+                    key={item.waste_type}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-3"
+                  >
+                    <Label
+                      htmlFor={`bespoke-rate-${item.waste_type}`}
+                      className="text-sm flex-1 cursor-pointer"
+                    >
+                      {item.waste_type}
+                    </Label>
+                    <span className="text-muted-foreground text-sm">£</span>
+                    <Input
+                      id={`bespoke-rate-${item.waste_type}`}
+                      type="number"
+                      step="0.01"
+                      placeholder="Standard"
+                      value={item.rebate_rate_per_tonne ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        onLineItemChange(originalIndex, {
+                          rebate_rate_per_tonne: raw === "" ? null : parseFloat(raw),
+                        });
+                      }}
+                      className="w-28 h-10 text-right"
+                    />
+                    <span className="text-muted-foreground text-xs whitespace-nowrap">/t</span>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+
+
   return (
     <div className="space-y-4 pb-40 sm:pb-32">
       {/* Evri simplified: Pallets In + Pallets Out at top */}
