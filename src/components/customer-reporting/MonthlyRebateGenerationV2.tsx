@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DateRange } from "react-day-picker";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
+import { fetchAllCustomers } from "@/lib/fetch-all";
 import { getCustomerRebateExportBase64, type CustomerExportCategory } from "@/lib/customer-rebate-export";
 import {
   fetchTrackingForPeriod,
