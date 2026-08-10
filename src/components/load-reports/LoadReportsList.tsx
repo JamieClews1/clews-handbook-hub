@@ -412,8 +412,15 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
           failed += 1;
           continue;
         }
+        // Optimistically reflect the reconciled weight in the list right away
+        setReports((prev) =>
+          prev.map((r: any) =>
+            r.id === id ? { ...r, total_weight_kg: reconciledTotalKg } : r,
+          ),
+        );
         success += 1;
       }
+
       toast({
         title: "Auto Reconcile complete",
         description: `${success} reconciled${failed > 0 ? `, ${failed} failed` : ""}.`,
