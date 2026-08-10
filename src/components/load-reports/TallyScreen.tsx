@@ -16,6 +16,8 @@ export interface LineItem {
   pallet_weight_kg: number;
   wet_charge_applied?: boolean;
   rebate_threshold_applied?: boolean;
+  /** Bespoke rebate rate (£ per tonne) for this material on this load. Null = use customer rate. */
+  rebate_rate_per_tonne?: number | null;
 }
 
 interface TallyScreenProps {
