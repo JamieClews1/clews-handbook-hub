@@ -440,6 +440,82 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
     }
   };
 
+  const normalizeSite = (s: string) =>
+    (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const runSiteCheck = async () => {
+    setSiteCheckOpen(true);
+    setSiteCheckLoading(true);
+    setSiteCheckRows([]);
+    try {
+      const candidates = filteredReports.filter((r) => r.notes?.trim());
+      const jobNumbers = [...new Set(candidates.map((r) => r.notes!.trim()))];
+      const source = getWeighbridgeSource(customerType);
+
+      let jobSiteMap: Record<string, string> = {};
+      if (jobNumbers.length > 0) {
+        const { data: jobs } = await supabase
+          .from("data_hub_jobs")
+          .select("job_number, site")
+          .eq("source", source)
+          .in("job_number", jobNumbers);
+        (jobs || []).forEach((j: any) => {
+          if (j.site) jobSiteMap[j.job_number] = j.site;
+        });
+      }
+
+      // Aliases for each report site so mapped Data Hub names count as a match
+      const siteIds = [...new Set(candidates.map((r: any) => r.site_id).filter(Boolean))] as string[];
+      const aliasMap: Record<string, string[]> = {};
+      if (siteIds.length > 0) {
+        const { data: sites } = await supabase
+          .from("customer_sites")
+          .select("id, site_name, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+          .in("id", siteIds);
+        (sites || []).forEach((s: any) => {
+          aliasMap[s.id] = [
+            s.site_name,
+            s.data_hub_site,
+            s.data_hub_site_2,
+            s.data_hub_site_3,
+            s.data_hub_site_4,
+            s.data_hub_site_5,
+          ]
+            .filter(Boolean)
+            .map((v: string) => normalizeSite(v));
+        });
+      }
+
+      const rows = candidates.map((r: any) => {
+        const job = r.notes.trim();
+        const dhSite = jobSiteMap[job] || "";
+        const aliases = aliasMap[r.site_id] || (r.site_name ? [normalizeSite(r.site_name)] : []);
+        const status: "match" | "mismatch" | "not_found" = !dhSite
+          ? "not_found"
+          : aliases.some((a) => a === normalizeSite(dhSite) || a.includes(normalizeSite(dhSite)) || normalizeSite(dhSite).includes(a))
+            ? "match"
+            : "mismatch";
+        return {
+          id: r.id,
+          date: formatLoadReportDate(r.report_date, "dd/MM/yyyy"),
+          jobNumber: job,
+          reportSite: r.site_name || "Unassigned",
+          dataHubSite: dhSite || "—",
+          status,
+        };
+      });
+
+      // Problems first
+      const order = { mismatch: 0, not_found: 1, match: 2 } as const;
+      rows.sort((a, b) => order[a.status] - order[b.status]);
+      setSiteCheckRows(rows);
+    } catch (error: any) {
+      toast({ title: "Site check failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSiteCheckLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string, report: LoadReport) => {
     const showReconciliation = needsReconciliation(report);
     const palletsOut = report.pallets_out ?? 0;
