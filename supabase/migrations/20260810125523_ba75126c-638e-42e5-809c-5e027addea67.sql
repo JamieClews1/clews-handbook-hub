@@ -1,0 +1,1 @@
+ALTER TABLE public.load_line_items ADD COLUMN IF NOT EXISTS rebate_rate_per_tonne numeric;

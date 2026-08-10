@@ -3360,6 +3360,7 @@ export type Database = {
           id: string
           load_report_id: string
           pallet_count: number
+          rebate_rate_per_tonne: number | null
           rebate_threshold_applied: boolean
           total_weight_kg: number
           updated_at: string
@@ -3373,6 +3374,7 @@ export type Database = {
           id?: string
           load_report_id: string
           pallet_count?: number
+          rebate_rate_per_tonne?: number | null
           rebate_threshold_applied?: boolean
           total_weight_kg?: number
           updated_at?: string
@@ -3386,6 +3388,7 @@ export type Database = {
           id?: string
           load_report_id?: string
           pallet_count?: number
+          rebate_rate_per_tonne?: number | null
           rebate_threshold_applied?: boolean
           total_weight_kg?: number
           updated_at?: string
