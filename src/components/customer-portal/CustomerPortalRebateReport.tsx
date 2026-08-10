@@ -421,7 +421,7 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
       if (loadReportIds.length > 0) {
         const { data: lineItems } = await supabase
           .from("load_line_items")
-          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied")
+          .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied, rebate_rate_per_tonne")
           .in("load_report_id", loadReportIds);
         
         // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
@@ -520,7 +520,23 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
             (o) => reportDate && reportDate >= o.start_date && reportDate <= o.end_date
           );
 
-          if (matchedOverride) {
+          const bespokeRate =
+            (item as any).rebate_rate_per_tonne == null
+              ? null
+              : Number((item as any).rebate_rate_per_tonne);
+
+          if (bespokeRate != null && !Number.isNaN(bespokeRate)) {
+            const bespokeId = `bespoke:${wasteType}:${bespokeRate}`;
+            if (!overrideWeights[wasteType]) overrideWeights[wasteType] = {};
+            overrideWeights[wasteType][bespokeId] =
+              (overrideWeights[wasteType][bespokeId] ?? 0) + actualTonnes;
+            overrideMeta[bespokeId] = {
+              rate: bespokeRate,
+              start_date: reportDate ?? "",
+              end_date: reportDate ?? "",
+              notes: "Bespoke load rate",
+            };
+          } else if (matchedOverride) {
             if (!overrideWeights[wasteType]) overrideWeights[wasteType] = {};
             overrideWeights[wasteType][matchedOverride.id] =
               (overrideWeights[wasteType][matchedOverride.id] ?? 0) + actualTonnes;

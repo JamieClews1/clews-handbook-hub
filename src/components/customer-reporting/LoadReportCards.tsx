@@ -28,6 +28,7 @@ export type LoadReportCardData = {
     total_weight_kg: number;
     wet_charge_applied?: boolean;
     rebate_threshold_applied?: boolean;
+    rebate_rate_per_tonne?: number | null;
   }[];
   calculated_rebate: number;
   weighbridge_weight_kg?: number | null;
@@ -185,7 +186,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
 
     let rebate = 0;
     filterLineItems(report.line_items).forEach((item, idx) => {
-      const rate = rateMap[item.waste_type] ?? 0;
+      const rate = item.rebate_rate_per_tonne != null ? Number(item.rebate_rate_per_tonne) : (rateMap[item.waste_type] ?? 0);
       const actualKg = calcLineActualWeightKg(report, item);
       const reductionT = reductions[String(idx)] ?? 0;
       const rebatableTonnes = Math.max(0, actualKg / 1000 - reductionT);
@@ -220,7 +221,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
     let totalValue = 0;
 
     filteredItems.forEach((item, idx) => {
-      const rate = rateMap[item.waste_type] ?? 0;
+      const rate = item.rebate_rate_per_tonne != null ? Number(item.rebate_rate_per_tonne) : (rateMap[item.waste_type] ?? 0);
       const grossKg = Number(item.total_weight_kg) || 0;
       const palletKg = calcLinePalletWeightKg(report, item);
       const actualKg = Math.max(0, grossKg - palletKg);
@@ -451,7 +452,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
                       </TableHeader>
                       <TableBody>
                         {filterLineItems(report.line_items).map((item, idx) => {
-                          const rate = rateMap[item.waste_type] ?? 0;
+                          const rate = item.rebate_rate_per_tonne != null ? Number(item.rebate_rate_per_tonne) : (rateMap[item.waste_type] ?? 0);
                           const grossKg = Number(item.total_weight_kg) || 0;
                           const palletKg = calcLinePalletWeightKg(report, item);
                           const actualKg = Math.max(0, grossKg - palletKg);

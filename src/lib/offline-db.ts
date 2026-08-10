@@ -32,6 +32,7 @@ export interface OfflineLineItem {
   displayOrder: number;
   wetChargeApplied?: boolean;
   rebateThresholdApplied?: boolean;
+  rebateRatePerTonne?: number | null;
 }
 
 interface LoadReportsDB extends DBSchema {

@@ -483,7 +483,7 @@ export function SiteRebateReportGenerator() {
           if (loadReportIds.length > 0) {
             const { data: lineItems } = await supabase
               .from("load_line_items")
-              .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied")
+              .select("load_report_id, waste_type, pallet_count, total_weight_kg, wet_charge_applied, rebate_threshold_applied, rebate_rate_per_tonne")
               .in("load_report_id", loadReportIds);
 
             // Fetch weighbridge weights from data_hub_jobs by matching notes (job number)
@@ -532,6 +532,8 @@ export function SiteRebateReportGenerator() {
                   total_weight_kg: Number(li.total_weight_kg),
                   wet_charge_applied: (li as any).wet_charge_applied ?? false,
                   rebate_threshold_applied: (li as any).rebate_threshold_applied ?? false,
+                  rebate_rate_per_tonne:
+                    (li as any).rebate_rate_per_tonne == null ? null : Number((li as any).rebate_rate_per_tonne),
                 })),
                 rebate_threshold_tonnes: (report as any).rebate_threshold_tonnes ?? 0,
                 calculated_rebate: 0, // Will be calculated by the component
@@ -614,7 +616,24 @@ export function SiteRebateReportGenerator() {
                 (o) => reportDate && reportDate >= o.start_date && reportDate <= o.end_date
               );
 
-              if (matchedOverride) {
+              // Bespoke per-load rate set directly on the line item takes priority
+              const bespokeRate =
+                (item as any).rebate_rate_per_tonne == null
+                  ? null
+                  : Number((item as any).rebate_rate_per_tonne);
+
+              if (bespokeRate != null && !Number.isNaN(bespokeRate)) {
+                const bespokeId = `bespoke:${wasteType}:${bespokeRate}`;
+                if (!overrideWeights[wasteType]) overrideWeights[wasteType] = {};
+                overrideWeights[wasteType][bespokeId] =
+                  (overrideWeights[wasteType][bespokeId] ?? 0) + actualTonnes;
+                overrideMeta[bespokeId] = {
+                  rate: bespokeRate,
+                  start_date: reportDate ?? "",
+                  end_date: reportDate ?? "",
+                  notes: "Bespoke load rate",
+                };
+              } else if (matchedOverride) {
                 // Bucket this weight under the override; subtract from normal weight
                 if (!overrideWeights[wasteType]) overrideWeights[wasteType] = {};
                 overrideWeights[wasteType][matchedOverride.id] =
