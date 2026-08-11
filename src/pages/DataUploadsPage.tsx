@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -65,8 +66,33 @@ type ListedJob = {
   vehicle_registration: string | null;
   driver: string | null;
   tipping_location: string | null;
+  order_number_override?: string | null;
+  job_type?: string | null;
+  manual_edit_note?: string | null;
+  raw?: Record<string, any> | null;
+  created_at?: string;
   updated_at: string;
 };
+
+const RAW_COST_KEYS = ["Cost", "Total Price", "Haulage Cost", "Price", "Charge"];
+
+const parseMoney = (v: any): number | null => {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(/[£,\s]/g, ""));
+  return Number.isFinite(n) ? n : null;
+};
+
+const getJobCost = (j: ListedJob): number | null => {
+  const raw = j.raw ?? {};
+  for (const k of RAW_COST_KEYS) {
+    const n = parseMoney(raw[k]);
+    if (n != null) return n;
+  }
+  return null;
+};
+
+const formatMoney = (n: number | null) =>
+  n == null ? "—" : `£${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 type ExistingJobFields = {
   job_number: string;
@@ -212,6 +238,7 @@ const DataUploadsPage = () => {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [jobs, setJobs] = useState<ListedJob[]>([]);
+  const [detailJob, setDetailJob] = useState<ListedJob | null>(null);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -266,7 +293,7 @@ const DataUploadsPage = () => {
       let q = supabase
         .from("data_hub_jobs")
         .select(
-          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,updated_at",
+          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,order_number_override,job_type,manual_edit_note,raw,created_at,updated_at",
         )
         .order("job_date", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
@@ -1157,18 +1184,22 @@ const DataUploadsPage = () => {
                       <TableHead className="whitespace-nowrap">EWC</TableHead>
                       <TableHead className="whitespace-nowrap">Waste</TableHead>
                       <TableHead className="whitespace-nowrap text-right">Weight (t)</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Haulage</TableHead>
+                      <TableHead className="whitespace-nowrap">Order No</TableHead>
                       <TableHead className="whitespace-nowrap">Vehicle</TableHead>
                       <TableHead className="whitespace-nowrap">Driver</TableHead>
                       <TableHead className="whitespace-nowrap">Tipping Location</TableHead>
                       <TableHead className="whitespace-nowrap">Category</TableHead>
                       <TableHead className="whitespace-nowrap">Movement</TableHead>
                       <TableHead className="whitespace-nowrap">Container</TableHead>
+                      <TableHead className="whitespace-nowrap">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={14} className="py-12">
+                        <TableCell colSpan={18} className="py-12">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             <p className="text-muted-foreground">Loading data...</p>
@@ -1177,7 +1208,7 @@ const DataUploadsPage = () => {
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={14} className="text-muted-foreground">
+                        <TableCell colSpan={18} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
@@ -1200,12 +1231,24 @@ const DataUploadsPage = () => {
                                 ? (j.weight_t / 1000).toFixed(2)
                                 : j.weight_t.toFixed(2)}
                           </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">{formatMoney(getJobCost(j))}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {formatMoney(parseMoney(j.raw?.["Haulage Cost"]))}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {j.order_number_override ?? j.raw?.["Order No"] ?? "—"}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">{j.vehicle_registration ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.driver ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.tipping_location ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.container_type ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Button size="sm" variant="outline" onClick={() => setDetailJob(j)}>
+                              View all
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -1219,6 +1262,77 @@ const DataUploadsPage = () => {
         </div>
       </main>
 
+      <Dialog open={!!detailJob} onOpenChange={(o) => !o && setDetailJob(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Job {detailJob?.job_number} · {detailJob?.source}</DialogTitle>
+            <DialogDescription>All stored information for this job, including costs.</DialogDescription>
+          </DialogHeader>
+          {detailJob && (
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Job details</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  {[
+                    ["Ticket / Job No", detailJob.job_number],
+                    ["Source", detailJob.source],
+                    ["Date", excelValueToISODate(detailJob.job_date) ?? "—"],
+                    ["Customer", detailJob.customer],
+                    ["Site", detailJob.site],
+                    ["EWC", detailJob.ewc],
+                    ["Waste description", detailJob.waste_description],
+                    ["Category", detailJob.category],
+                    ["Movement type", detailJob.movement_type],
+                    ["Job type", detailJob.job_type],
+                    ["Container type", detailJob.container_type],
+                    [
+                      "Weight (t)",
+                      detailJob.weight_t == null
+                        ? "—"
+                        : detailJob.source === "midweigh"
+                          ? (detailJob.weight_t / 1000).toFixed(3)
+                          : detailJob.weight_t.toFixed(3),
+                    ],
+                    ["Cost", formatMoney(getJobCost(detailJob))],
+                    ["Haulage cost", formatMoney(parseMoney(detailJob.raw?.["Haulage Cost"]))],
+                    ["Order no", detailJob.order_number_override ?? detailJob.raw?.["Order No"]],
+                    ["Vehicle", detailJob.vehicle_registration],
+                    ["Driver", detailJob.driver],
+                    ["Tipping location", detailJob.tipping_location],
+                    ["Manual edit note", detailJob.manual_edit_note],
+                    ["Last updated", detailJob.updated_at ? new Date(detailJob.updated_at).toLocaleString() : "—"],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="flex justify-between gap-4 border-b border-border/50 py-1">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="text-right font-medium break-words">
+                        {value == null || value === "" ? "—" : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {detailJob.raw && Object.keys(detailJob.raw).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Original uploaded record</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {Object.entries(detailJob.raw)
+                      .filter(([k]) => !k.startsWith("__EMPTY"))
+                      .map(([k, v]) => (
+                        <div key={k} className="flex justify-between gap-4 border-b border-border/50 py-1">
+                          <span className="text-muted-foreground">{k}</span>
+                          <span className="text-right font-medium break-words">
+                            {v == null || v === "" ? "—" : String(v)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
