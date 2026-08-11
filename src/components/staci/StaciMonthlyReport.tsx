@@ -263,19 +263,10 @@ export function StaciMonthlyReport({
       ["Net Cost (£)", rd.netCost],
       [],
       ["Haulage"],
-      ["Total Loads", rd.haulage?.loads ?? 0],
-      ["Total Haulage Cost (£)", rd.haulage?.totalCost ?? 0],
+      ["Artic Loads", rd.haulage?.artic?.loads ?? 0],
+      ["Artic Rate (£)", rd.haulage?.artic?.rate ?? 0],
+      ["Artic Total (£)", rd.haulage?.artic?.totalCost ?? 0],
     ];
-    if (rd.haulage?.artic?.loads > 0) {
-      summaryData.push(["Artic Loads", rd.haulage.artic.loads]);
-      summaryData.push(["Artic Rate (£)", rd.haulage.artic.rate]);
-      summaryData.push(["Artic Total (£)", rd.haulage.artic.totalCost]);
-    }
-    if (rd.haulage?.pickup?.loads > 0) {
-      summaryData.push(["Pickup/Dolav Loads", rd.haulage.pickup.loads]);
-      summaryData.push(["Pickup/Dolav Rate (£)", rd.haulage.pickup.rate]);
-      summaryData.push(["Pickup/Dolav Total (£)", rd.haulage.pickup.totalCost]);
-    }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Summary");
 
     const palletData = [
