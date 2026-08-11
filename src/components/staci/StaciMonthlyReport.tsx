@@ -379,16 +379,16 @@ export function StaciMonthlyReport({
               ))}
             </div>
 
-            {/* Haulage detail */}
-            {haulageData.totalLoads > 0 && (
+            {/* Haulage detail - artic only */}
+            {haulageData.artic.loads > 0 && (
               <div className="flex items-center gap-3 p-3 border rounded-lg bg-blue-500/5">
                 <Truck className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium text-sm">
-                    Haulage: {haulageData.totalLoads} loads
-                    {haulageData.totalLoads > 0 && ` @ £${(haulageData.totalCost / haulageData.totalLoads).toFixed(2)} avg`}
+                    Haulage: {haulageData.artic.loads} loads
+                    {haulageData.artic.loads > 0 && ` @ £${(haulageData.artic.totalCost / haulageData.artic.loads).toFixed(2)} avg`}
                   </p>
-                  <p className="text-xs text-muted-foreground">Total: £{haulageData.totalCost.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Total: £{haulageData.artic.totalCost.toFixed(2)}</p>
                 </div>
               </div>
             )}
