@@ -237,6 +237,7 @@ const DataUploadsPage = () => {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [jobs, setJobs] = useState<ListedJob[]>([]);
+  const [detailJob, setDetailJob] = useState<ListedJob | null>(null);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
