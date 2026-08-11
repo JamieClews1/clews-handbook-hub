@@ -263,19 +263,10 @@ export function StaciMonthlyReport({
       ["Net Cost (£)", rd.netCost],
       [],
       ["Haulage"],
-      ["Total Loads", rd.haulage?.loads ?? 0],
-      ["Total Haulage Cost (£)", rd.haulage?.totalCost ?? 0],
+      ["Artic Loads", rd.haulage?.artic?.loads ?? 0],
+      ["Artic Rate (£)", rd.haulage?.artic?.rate ?? 0],
+      ["Artic Total (£)", rd.haulage?.artic?.totalCost ?? 0],
     ];
-    if (rd.haulage?.artic?.loads > 0) {
-      summaryData.push(["Artic Loads", rd.haulage.artic.loads]);
-      summaryData.push(["Artic Rate (£)", rd.haulage.artic.rate]);
-      summaryData.push(["Artic Total (£)", rd.haulage.artic.totalCost]);
-    }
-    if (rd.haulage?.pickup?.loads > 0) {
-      summaryData.push(["Pickup/Dolav Loads", rd.haulage.pickup.loads]);
-      summaryData.push(["Pickup/Dolav Rate (£)", rd.haulage.pickup.rate]);
-      summaryData.push(["Pickup/Dolav Total (£)", rd.haulage.pickup.totalCost]);
-    }
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Summary");
 
     const palletData = [
@@ -330,9 +321,9 @@ export function StaciMonthlyReport({
                       Signed by {report.signer_name}{report.signer_position ? ` (${report.signer_position})` : ""} 
                       {report.signed_at && ` on ${format(new Date(report.signed_at), "dd/MM/yyyy")}`}
                     </p>
-                    {report.report_data?.haulage?.loads > 0 && (
+                    {report.report_data?.haulage?.artic?.loads > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Haulage: {report.report_data.haulage.loads} loads @ £{report.report_data.haulage.ratePerLoad} = £{report.report_data.haulage.totalCost}
+                        Haulage: {report.report_data.haulage.artic.loads} loads @ £{report.report_data.haulage.artic.rate} = £{report.report_data.haulage.artic.totalCost}
                       </p>
                     )}
                   </div>
@@ -379,7 +370,7 @@ export function StaciMonthlyReport({
                 { label: "Weight", value: `${((stats.totalWeightKg + balesDolavTotalWeightKg) / 1000).toFixed(2)} t` },
                 { label: "Monthly Net Cost", value: `£${monthlyNetCost.toFixed(2)}` },
                 { label: "Monthly Recycling Invoice", value: `£${monthlyRecyclingInvoice.toFixed(2)}` },
-                { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
+                { label: "Haulage", value: haulageData.artic.loads > 0 ? `${haulageData.artic.loads} loads` : "—" },
               ].map((k) => (
                 <div key={k.label} className="text-center p-3 border rounded-lg">
                   <p className="text-lg font-bold">{k.value}</p>
@@ -388,16 +379,16 @@ export function StaciMonthlyReport({
               ))}
             </div>
 
-            {/* Haulage detail */}
-            {haulageData.totalLoads > 0 && (
+            {/* Haulage detail - artic only */}
+            {haulageData.artic.loads > 0 && (
               <div className="flex items-center gap-3 p-3 border rounded-lg bg-blue-500/5">
                 <Truck className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium text-sm">
-                    Haulage: {haulageData.totalLoads} loads
-                    {haulageData.totalLoads > 0 && ` @ £${(haulageData.totalCost / haulageData.totalLoads).toFixed(2)} avg`}
+                    Haulage: {haulageData.artic.loads} loads
+                    {haulageData.artic.loads > 0 && ` @ £${(haulageData.artic.totalCost / haulageData.artic.loads).toFixed(2)} avg`}
                   </p>
-                  <p className="text-xs text-muted-foreground">Total: £{haulageData.totalCost.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Total: £{haulageData.artic.totalCost.toFixed(2)}</p>
                 </div>
               </div>
             )}

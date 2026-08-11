@@ -541,10 +541,6 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       ["Artic Loads", haulageData.artic.loads],
       ["Artic Rate (£)", haulageData.artic.rate.toFixed(2)],
       ["Artic Total (£)", haulageData.artic.totalCost.toFixed(2)],
-      ["Pickup/Dolav Loads", haulageData.pickup.loads],
-      ["Pickup/Dolav Rate (£)", haulageData.pickup.rate.toFixed(2)],
-      ["Pickup/Dolav Total (£)", haulageData.pickup.totalCost.toFixed(2)],
-      ["Total Haulage Cost (£)", haulageData.totalCost.toFixed(2)],
     ];
     const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, ws1, "Summary");
@@ -764,7 +760,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
               { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + balesDolavData.scrapPalletsCount * TARE_KG) / 1000).toFixed(2)} t` },
               { label: "Monthly Net Cost", value: `£${kpiFinancials.monthlyNetCost.toFixed(2)}`, highlight: true },
               { label: "Monthly Recycling Invoice", value: `£${kpiFinancials.monthlyRecyclingInvoice.toFixed(2)}` },
-              { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
+              { label: "Haulage", value: haulageData.artic.loads > 0 ? `${haulageData.artic.loads} loads` : "—" },
             ].map((kpi) => (
               <Card key={kpi.label}>
                 <CardContent className="py-4 text-center">
@@ -775,8 +771,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
             ))}
           </div>
 
-          {/* Haulage summary table */}
-          {haulageData.totalLoads > 0 && (
+          {/* Haulage summary table - artic only */}
+          {haulageData.artic.loads > 0 && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -796,19 +792,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       </tr>
                     </thead>
                     <tbody>
-                      {haulageData.jobs.map((job, idx) => (
+                      {haulageData.jobs.filter((j) => j.type === 'artic').map((job, idx) => (
                         <tr key={`${job.jobNumber}-${idx}`} className="border-b border-border/50">
                           <td className="py-1.5 px-3">{job.jobDate ? format(new Date(job.jobDate), "dd/MM/yyyy") : "-"}</td>
                           <td className="py-1.5 px-3">{job.jobNumber}</td>
-                          <td className="py-1.5 px-3">{job.type === 'pickup' ? 'Pickup / Dolav' : 'Artic'}</td>
+                          <td className="py-1.5 px-3">Artic</td>
                           <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
-                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.totalLoads} loads)</td>
-                        <td className="py-2 px-3 text-right">£{haulageData.totalCost.toFixed(2)}</td>
+                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.artic.loads} loads)</td>
+                        <td className="py-2 px-3 text-right">£{haulageData.artic.totalCost.toFixed(2)}</td>
                       </tr>
                     </tfoot>
                   </table>
