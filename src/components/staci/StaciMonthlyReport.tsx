@@ -321,9 +321,9 @@ export function StaciMonthlyReport({
                       Signed by {report.signer_name}{report.signer_position ? ` (${report.signer_position})` : ""} 
                       {report.signed_at && ` on ${format(new Date(report.signed_at), "dd/MM/yyyy")}`}
                     </p>
-                    {report.report_data?.haulage?.loads > 0 && (
+                    {report.report_data?.haulage?.artic?.loads > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Haulage: {report.report_data.haulage.loads} loads @ £{report.report_data.haulage.ratePerLoad} = £{report.report_data.haulage.totalCost}
+                        Haulage: {report.report_data.haulage.artic.loads} loads @ £{report.report_data.haulage.artic.rate} = £{report.report_data.haulage.artic.totalCost}
                       </p>
                     )}
                   </div>
