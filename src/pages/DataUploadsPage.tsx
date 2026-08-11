@@ -1182,12 +1182,16 @@ const DataUploadsPage = () => {
                       <TableHead className="whitespace-nowrap">EWC</TableHead>
                       <TableHead className="whitespace-nowrap">Waste</TableHead>
                       <TableHead className="whitespace-nowrap text-right">Weight (t)</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Cost</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Haulage</TableHead>
+                      <TableHead className="whitespace-nowrap">Order No</TableHead>
                       <TableHead className="whitespace-nowrap">Vehicle</TableHead>
                       <TableHead className="whitespace-nowrap">Driver</TableHead>
                       <TableHead className="whitespace-nowrap">Tipping Location</TableHead>
                       <TableHead className="whitespace-nowrap">Category</TableHead>
                       <TableHead className="whitespace-nowrap">Movement</TableHead>
                       <TableHead className="whitespace-nowrap">Container</TableHead>
+                      <TableHead className="whitespace-nowrap">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
