@@ -65,8 +65,33 @@ type ListedJob = {
   vehicle_registration: string | null;
   driver: string | null;
   tipping_location: string | null;
+  order_number_override?: string | null;
+  job_type?: string | null;
+  manual_edit_note?: string | null;
+  raw?: Record<string, any> | null;
+  created_at?: string;
   updated_at: string;
 };
+
+const RAW_COST_KEYS = ["Cost", "Total Price", "Haulage Cost", "Price", "Charge"];
+
+const parseMoney = (v: any): number | null => {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(/[£,\s]/g, ""));
+  return Number.isFinite(n) ? n : null;
+};
+
+const getJobCost = (j: ListedJob): number | null => {
+  const raw = j.raw ?? {};
+  for (const k of RAW_COST_KEYS) {
+    const n = parseMoney(raw[k]);
+    if (n != null) return n;
+  }
+  return null;
+};
+
+const formatMoney = (n: number | null) =>
+  n == null ? "—" : `£${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 type ExistingJobFields = {
   job_number: string;
