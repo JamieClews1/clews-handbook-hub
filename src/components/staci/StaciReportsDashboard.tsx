@@ -832,7 +832,6 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                         <th className="text-left py-2 px-3 font-medium text-muted-foreground">EWC</th>
                         <th className="text-left py-2 px-3 font-medium text-muted-foreground">Waste Description</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (t)</th>
-                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate (£)</th>
                         <th className="text-right py-2 px-3 font-medium text-muted-foreground">Cost (£)</th>
                       </tr>
                     </thead>
@@ -844,18 +843,16 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                           <td className="py-1.5 px-3 font-mono text-xs">{job.ewc || "-"}</td>
                           <td className="py-1.5 px-3">{job.description || job.containerType || "-"}</td>
                           <td className="py-1.5 px-3 text-right">{(job.weightT ?? 0).toFixed(2)}</td>
-                          <td className="py-1.5 px-3 text-right">{job.weightT ? `£${(job.cost / job.weightT).toFixed(2)}/t` : "-"}</td>
                           <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
-                        <td className="py-2 px-3" colSpan={4}>Total ({haulageData.pickup.loads} jobs)</td>
+                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.pickup.loads} jobs)</td>
                         <td className="py-2 px-3 text-right">
                           {haulageData.jobs.filter((j) => j.type === 'pickup').reduce((s, j) => s + (j.weightT ?? 0), 0).toFixed(2)}
                         </td>
-                        <td />
                         <td className="py-2 px-3 text-right">£{haulageData.pickup.totalCost.toFixed(2)}</td>
                       </tr>
                     </tfoot>
