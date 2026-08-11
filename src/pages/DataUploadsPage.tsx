@@ -1197,7 +1197,7 @@ const DataUploadsPage = () => {
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={14} className="py-12">
+                        <TableCell colSpan={18} className="py-12">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             <p className="text-muted-foreground">Loading data...</p>
@@ -1206,7 +1206,7 @@ const DataUploadsPage = () => {
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={14} className="text-muted-foreground">
+                        <TableCell colSpan={18} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
@@ -1229,12 +1229,24 @@ const DataUploadsPage = () => {
                                 ? (j.weight_t / 1000).toFixed(2)
                                 : j.weight_t.toFixed(2)}
                           </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">{formatMoney(getJobCost(j))}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {formatMoney(parseMoney(j.raw?.["Haulage Cost"]))}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {j.order_number_override ?? j.raw?.["Order No"] ?? "—"}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">{j.vehicle_registration ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.driver ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.tipping_location ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.container_type ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Button size="sm" variant="outline" onClick={() => setDetailJob(j)}>
+                              View all
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
