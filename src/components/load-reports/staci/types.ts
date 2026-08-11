@@ -130,20 +130,20 @@ export function getNonRecyclablePercentage(breakdown: StaciWasteBreakdown): numb
 
 /**
  * Auto-calculate pallet colour based on weight and waste breakdown percentages
- * 
+ *
  * Rules:
- * - Green (-£18 rebate): Pure recyclables (≥95%) AND >300KG
- * - Blue (£9): Pure recyclables <300KG OR mixed with majority recyclable <150KG
- * - Yellow (£22): >150KG mixed majority recyclable OR <150KG non-recyclable
- * - Red (£42): >150KG with majority non-recyclable
+ * - Green (rebate): 100% recyclable AND ≥300KG
+ * - Blue: 100% recyclable AND <300KG, or mixed majority recyclable ≤150KG
+ * - Yellow: mixed (any non-recyclable) majority recyclable >150KG, or ≤150KG majority non-recyclable
+ * - Red: >150KG majority non-recyclable
  */
 export function calculatePalletColour(weight_kg: number, breakdown: StaciWasteBreakdown): StaciPalletColour {
   const recyclablePct = getRecyclablePercentage(breakdown);
   const nonRecyclablePct = getNonRecyclablePercentage(breakdown);
-  const woodPct = breakdown.wood;
+
+  // Pure recyclable = zero non-recyclable content (any contamination makes it "mixed")
+  const isPureRecyclable = nonRecyclablePct <= 0;
   
-  // Pure recyclable = 95%+ recyclable, minimal non-recyclable
-  const isPureRecyclable = recyclablePct >= 95 && nonRecyclablePct <= 5;
   
   // Majority recyclable = recyclable > non-recyclable
   const isMajorityRecyclable = recyclablePct > nonRecyclablePct;
