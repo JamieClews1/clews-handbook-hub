@@ -1261,6 +1261,77 @@ const DataUploadsPage = () => {
         </div>
       </main>
 
+      <Dialog open={!!detailJob} onOpenChange={(o) => !o && setDetailJob(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Job {detailJob?.job_number} · {detailJob?.source}</DialogTitle>
+            <DialogDescription>All stored information for this job, including costs.</DialogDescription>
+          </DialogHeader>
+          {detailJob && (
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Job details</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  {[
+                    ["Ticket / Job No", detailJob.job_number],
+                    ["Source", detailJob.source],
+                    ["Date", excelValueToISODate(detailJob.job_date) ?? "—"],
+                    ["Customer", detailJob.customer],
+                    ["Site", detailJob.site],
+                    ["EWC", detailJob.ewc],
+                    ["Waste description", detailJob.waste_description],
+                    ["Category", detailJob.category],
+                    ["Movement type", detailJob.movement_type],
+                    ["Job type", detailJob.job_type],
+                    ["Container type", detailJob.container_type],
+                    [
+                      "Weight (t)",
+                      detailJob.weight_t == null
+                        ? "—"
+                        : detailJob.source === "midweigh"
+                          ? (detailJob.weight_t / 1000).toFixed(3)
+                          : detailJob.weight_t.toFixed(3),
+                    ],
+                    ["Cost", formatMoney(getJobCost(detailJob))],
+                    ["Haulage cost", formatMoney(parseMoney(detailJob.raw?.["Haulage Cost"]))],
+                    ["Order no", detailJob.order_number_override ?? detailJob.raw?.["Order No"]],
+                    ["Vehicle", detailJob.vehicle_registration],
+                    ["Driver", detailJob.driver],
+                    ["Tipping location", detailJob.tipping_location],
+                    ["Manual edit note", detailJob.manual_edit_note],
+                    ["Last updated", detailJob.updated_at ? new Date(detailJob.updated_at).toLocaleString() : "—"],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="flex justify-between gap-4 border-b border-border/50 py-1">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="text-right font-medium break-words">
+                        {value == null || value === "" ? "—" : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {detailJob.raw && Object.keys(detailJob.raw).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Original uploaded record</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {Object.entries(detailJob.raw)
+                      .filter(([k]) => !k.startsWith("__EMPTY"))
+                      .map(([k, v]) => (
+                        <div key={k} className="flex justify-between gap-4 border-b border-border/50 py-1">
+                          <span className="text-muted-foreground">{k}</span>
+                          <span className="text-right font-medium break-words">
+                            {v == null || v === "" ? "—" : String(v)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
