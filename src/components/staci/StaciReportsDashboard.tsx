@@ -771,8 +771,8 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
             ))}
           </div>
 
-          {/* Haulage summary table */}
-          {haulageData.totalLoads > 0 && (
+          {/* Haulage summary table - artic only */}
+          {haulageData.artic.loads > 0 && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -792,19 +792,19 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
                       </tr>
                     </thead>
                     <tbody>
-                      {haulageData.jobs.map((job, idx) => (
+                      {haulageData.jobs.filter((j) => j.type === 'artic').map((job, idx) => (
                         <tr key={`${job.jobNumber}-${idx}`} className="border-b border-border/50">
                           <td className="py-1.5 px-3">{job.jobDate ? format(new Date(job.jobDate), "dd/MM/yyyy") : "-"}</td>
                           <td className="py-1.5 px-3">{job.jobNumber}</td>
-                          <td className="py-1.5 px-3">{job.type === 'pickup' ? 'Pickup / Dolav' : 'Artic'}</td>
+                          <td className="py-1.5 px-3">Artic</td>
                           <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-semibold">
-                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.totalLoads} loads)</td>
-                        <td className="py-2 px-3 text-right">£{haulageData.totalCost.toFixed(2)}</td>
+                        <td className="py-2 px-3" colSpan={3}>Total ({haulageData.artic.loads} loads)</td>
+                        <td className="py-2 px-3 text-right">£{haulageData.artic.totalCost.toFixed(2)}</td>
                       </tr>
                     </tfoot>
                   </table>
