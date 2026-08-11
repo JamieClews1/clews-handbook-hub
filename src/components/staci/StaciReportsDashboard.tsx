@@ -817,6 +817,60 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
             </Card>
           )}
 
+          {/* Pickup jobs */}
+          {haulageData.pickup.loads > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Pickup Jobs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Job #</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">EWC</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Waste Description</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (t)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate (£)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Cost (£)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {haulageData.jobs.filter((j) => j.type === 'pickup').map((job, idx) => (
+                        <tr key={`pickup-${job.jobNumber}-${idx}`} className="border-b border-border/50">
+                          <td className="py-1.5 px-3">{job.jobDate ? format(new Date(job.jobDate), "dd/MM/yyyy") : "-"}</td>
+                          <td className="py-1.5 px-3">{job.jobNumber}</td>
+                          <td className="py-1.5 px-3 font-mono text-xs">{job.ewc || "-"}</td>
+                          <td className="py-1.5 px-3">{job.description || job.containerType || "-"}</td>
+                          <td className="py-1.5 px-3 text-right">{(job.weightT ?? 0).toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">{job.weightT ? `£${(job.cost / job.weightT).toFixed(2)}/t` : "-"}</td>
+                          <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-semibold">
+                        <td className="py-2 px-3" colSpan={4}>Total ({haulageData.pickup.loads} jobs)</td>
+                        <td className="py-2 px-3 text-right">
+                          {haulageData.jobs.filter((j) => j.type === 'pickup').reduce((s, j) => s + (j.weightT ?? 0), 0).toFixed(2)}
+                        </td>
+                        <td />
+                        <td className="py-2 px-3 text-right">£{haulageData.pickup.totalCost.toFixed(2)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+
+
           {/* Pallet colour breakdown table + bar chart */}
           <div className="grid lg:grid-cols-2 gap-6">
             <Card>
