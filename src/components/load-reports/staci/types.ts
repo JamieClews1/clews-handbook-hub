@@ -193,25 +193,25 @@ export const STACI_COLOUR_CONFIG: Record<StaciPalletColour, {
     label: "Red", 
     bgColor: "bg-red-600", 
     textColor: "text-white",
-    description: ">150KG non recyclable waste"
+    description: ">150KG, majority non-recyclable"
   },
   yellow: { 
     label: "Yellow", 
     bgColor: "bg-yellow-400", 
     textColor: "text-black",
-    description: ">150KG mixed majority recyclable"
+    description: ">150KG mixed (any contamination), majority recyclable"
   },
   blue: { 
     label: "Blue", 
     bgColor: "bg-blue-600", 
     textColor: "text-white",
-    description: "Pure recyclables <300KG"
+    description: "100% recyclable <300KG, or mixed ≤150KG"
   },
   green: { 
     label: "Green", 
     bgColor: "bg-green-600", 
     textColor: "text-white",
-    description: "Pure recyclables >300KG (Rebate)"
+    description: "100% recyclable ≥300KG (Rebate)"
   },
   waste_wood: { 
     label: "Pallet Charges", 
