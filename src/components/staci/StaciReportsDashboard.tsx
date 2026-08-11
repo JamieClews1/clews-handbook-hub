@@ -88,7 +88,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
     pickup: { loads: number; totalCost: number; rate: number };
     totalLoads: number;
     totalCost: number;
-    jobs: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }>;
+    jobs: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup'; ewc?: string; description?: string; weightT?: number }>;
   }>({ artic: { loads: 0, totalCost: 0, rate: 145 }, pickup: { loads: 0, totalCost: 0, rate: 15 }, totalLoads: 0, totalCost: 0, jobs: [] });
 
   const [dbPalletRates, setDbPalletRates] = useState<Record<string, number>>({});
@@ -207,7 +207,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const { data: hjData } = customerId
           ? await supabase
               .from("data_hub_jobs")
-              .select("job_number, job_date, raw, container_type")
+              .select("job_number, job_date, raw, container_type, waste_description, weight_t")
               .eq("customer", dataHubCustomerName!)
               .eq("source", "skiptrak")
               .gte("job_date", from)
@@ -215,7 +215,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
               .order("job_date", { ascending: true })
           : await supabase
               .from("data_hub_jobs")
-              .select("job_number, job_date, raw, container_type")
+              .select("job_number, job_date, raw, container_type, waste_description, weight_t")
               .ilike("customer", "%staci%")
               .eq("source", "skiptrak")
               .gte("job_date", from)
@@ -227,14 +227,25 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       if (haulageJobs.length > 0) {
         let articLoads = 0, articCost = 0;
         let pickupLoads = 0, pickupCost = 0;
-        const jobsList: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }> = [];
+        const jobsList: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup'; ewc: string; description: string; weightT: number }> = [];
         haulageJobs.forEach((j: any) => {
           const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
           if (isNaN(cost)) return;
           const ct = (j.container_type ?? j.raw?.["Container Type"] ?? "").toLowerCase();
-          const isPickup = ct.includes("dolav") || ct.includes("pickup") || ct.includes("box");
+          const category = (j.raw?.Category ?? "").toString().toLowerCase();
+          const isPickup =
+            ct.includes("dolav") ||
+            ct.includes("pickup") ||
+            ct.includes("pick up") ||
+            ct.includes("box") ||
+            ct.includes("flat bed") ||
+            category.includes("pick up") ||
+            category.includes("flat bed");
           const type = isPickup ? 'pickup' as const : 'artic' as const;
-          jobsList.push({ jobNumber: j.job_number, jobDate: j.job_date ?? "", containerType: j.container_type ?? "", cost, type });
+          const ewc = (j.raw?.EWC ?? j.raw?.ewc ?? j.raw?.["EWC Code"] ?? "").toString();
+          const description = (j.waste_description ?? j.raw?.Description ?? "").toString();
+          const weightT = Number(j.weight_t ?? j.raw?.["Nett Weight"] ?? 0) || 0;
+          jobsList.push({ jobNumber: j.job_number, jobDate: j.job_date ?? "", containerType: j.container_type ?? "", cost, type, ewc, description, weightT });
           if (isPickup) { pickupLoads++; pickupCost += cost; }
           else { articLoads++; articCost += cost; }
         });
@@ -805,6 +816,60 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
               </CardContent>
             </Card>
           )}
+
+          {/* Pickup jobs */}
+          {haulageData.pickup.loads > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Pickup Jobs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Job #</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">EWC</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Waste Description</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Weight (t)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Rate (£)</th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">Cost (£)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {haulageData.jobs.filter((j) => j.type === 'pickup').map((job, idx) => (
+                        <tr key={`pickup-${job.jobNumber}-${idx}`} className="border-b border-border/50">
+                          <td className="py-1.5 px-3">{job.jobDate ? format(new Date(job.jobDate), "dd/MM/yyyy") : "-"}</td>
+                          <td className="py-1.5 px-3">{job.jobNumber}</td>
+                          <td className="py-1.5 px-3 font-mono text-xs">{job.ewc || "-"}</td>
+                          <td className="py-1.5 px-3">{job.description || job.containerType || "-"}</td>
+                          <td className="py-1.5 px-3 text-right">{(job.weightT ?? 0).toFixed(2)}</td>
+                          <td className="py-1.5 px-3 text-right">{job.weightT ? `£${(job.cost / job.weightT).toFixed(2)}/t` : "-"}</td>
+                          <td className="py-1.5 px-3 text-right font-medium">£{job.cost.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-semibold">
+                        <td className="py-2 px-3" colSpan={4}>Total ({haulageData.pickup.loads} jobs)</td>
+                        <td className="py-2 px-3 text-right">
+                          {haulageData.jobs.filter((j) => j.type === 'pickup').reduce((s, j) => s + (j.weightT ?? 0), 0).toFixed(2)}
+                        </td>
+                        <td />
+                        <td className="py-2 px-3 text-right">£{haulageData.pickup.totalCost.toFixed(2)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+
 
           {/* Pallet colour breakdown table + bar chart */}
           <div className="grid lg:grid-cols-2 gap-6">
