@@ -176,8 +176,10 @@ export function StaciPalletRatesEditor() {
         <CardHeader>
           <CardTitle className="text-base">How pallets are classified</CardTitle>
           <CardDescription>
-            Colour is auto-assigned from the pallet weight and its waste breakdown. Any non-recyclable
-            content (PVC, RDF, landfill) makes a pallet "mixed" — it can no longer be Blue/Green above the weight limits.
+            Colour is auto-assigned from the pallet weight and its waste breakdown. Green and Blue
+            are only available when the pallet is a single recyclable material at 100%. Any mix of
+            materials — even all recyclables like metal and card — makes the pallet "mixed" and
+            rules out Green/Blue.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -190,9 +192,9 @@ export function StaciPalletRatesEditor() {
             </TableHeader>
             <TableBody>
               {([
-                ["green", "100% recyclable AND 300KG or more"],
-                ["blue", "100% recyclable under 300KG, or mixed majority-recyclable at 150KG or less"],
-                ["yellow", "Mixed (any contamination) majority-recyclable over 150KG, or majority non-recyclable at 150KG or less"],
+                ["green", "Single recyclable material at 100%, 300KG or more"],
+                ["blue", "Single recyclable material at 100%, under 300KG"],
+                ["yellow", "Mixed load (more than one material, or any contamination), or majority non-recyclable at 150KG or less"],
                 ["red", "Over 150KG with majority non-recyclable"],
                 ["waste_wood", "Pallet scrap / waste wood, charged per tonne"],
               ] as [StaciPalletColour, string][]).map(([colour, rule]) => (
