@@ -143,37 +143,43 @@ export function calculatePalletColour(weight_kg: number, breakdown: StaciWasteBr
 
   // Pure recyclable = zero non-recyclable content (any contamination makes it "mixed")
   const isPureRecyclable = nonRecyclablePct <= 0;
-
+  
+  
   // Majority recyclable = recyclable > non-recyclable
   const isMajorityRecyclable = recyclablePct > nonRecyclablePct;
-
+  
   // Majority non-recyclable
   const isMajorityNonRecyclable = nonRecyclablePct > recyclablePct;
-
-  // Pure recyclable logic only — mixed waste can never be blue or green
+  
+  // Pure recyclable logic
   if (isPureRecyclable) {
     if (weight_kg >= 300) {
-      return "green"; // Rebate: Pure recyclables ≥300KG
+      return "green"; // Rebate: Pure recyclables >300KG
     } else {
       return "blue"; // Pure recyclables <300KG
     }
   }
-
-  // Mixed waste: any contamination means yellow or red only
+  
+  // Mixed majority recyclable logic
   if (isMajorityRecyclable) {
-    return "yellow"; // Mixed majority recyclable
+    if (weight_kg > 150) {
+      return "yellow"; // >150KG mixed majority recyclable
+    } else {
+      return "blue"; // Mixed recyclables <150KG
+    }
   }
-
+  
+  // Mixed majority non-recyclable or pure non-recyclable logic
   if (isMajorityNonRecyclable || nonRecyclablePct >= 50) {
     if (weight_kg > 150) {
       return "red"; // >150KG with majority non-recyclable
     } else {
-      return "yellow"; // ≤150KG non-recyclable
+      return "yellow"; // <150KG non-recyclable
     }
   }
-
-  // Fallback (e.g., 50/50 split) — treat as mixed
-  return "yellow";
+  
+  // Fallback (e.g., 50/50 split)
+  return weight_kg > 150 ? "yellow" : "blue";
 }
 
 // Colour display configuration
@@ -193,19 +199,19 @@ export const STACI_COLOUR_CONFIG: Record<StaciPalletColour, {
     label: "Yellow", 
     bgColor: "bg-yellow-400", 
     textColor: "text-black",
-    description: "Mixed (any contamination): majority recyclable, or ≤150KG majority non-recyclable"
+    description: ">150KG mixed (any contamination), majority recyclable"
   },
   blue: { 
     label: "Blue", 
     bgColor: "bg-blue-600", 
     textColor: "text-white",
-    description: "100% recyclable <300KG (no contamination)"
+    description: "100% recyclable <300KG, or mixed ≤150KG"
   },
   green: { 
     label: "Green", 
     bgColor: "bg-green-600", 
     textColor: "text-white",
-    description: "100% recyclable ≥300KG (Rebate, no contamination)"
+    description: "100% recyclable ≥300KG (Rebate)"
   },
   waste_wood: { 
     label: "Pallet Charges", 
