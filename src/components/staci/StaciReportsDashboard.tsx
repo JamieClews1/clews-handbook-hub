@@ -541,10 +541,6 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       ["Artic Loads", haulageData.artic.loads],
       ["Artic Rate (£)", haulageData.artic.rate.toFixed(2)],
       ["Artic Total (£)", haulageData.artic.totalCost.toFixed(2)],
-      ["Pickup/Dolav Loads", haulageData.pickup.loads],
-      ["Pickup/Dolav Rate (£)", haulageData.pickup.rate.toFixed(2)],
-      ["Pickup/Dolav Total (£)", haulageData.pickup.totalCost.toFixed(2)],
-      ["Total Haulage Cost (£)", haulageData.totalCost.toFixed(2)],
     ];
     const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, ws1, "Summary");
