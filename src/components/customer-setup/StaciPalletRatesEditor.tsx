@@ -174,6 +174,45 @@ export function StaciPalletRatesEditor() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">How pallets are classified</CardTitle>
+          <CardDescription>
+            Colour is auto-assigned from the pallet weight and its waste breakdown. Any non-recyclable
+            content (PVC, RDF, landfill) makes a pallet "mixed" — it can no longer be Blue/Green above the weight limits.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-32">Colour</TableHead>
+                <TableHead>Rule</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {([
+                ["green", "100% recyclable AND 300KG or more"],
+                ["blue", "100% recyclable under 300KG, or mixed majority-recyclable at 150KG or less"],
+                ["yellow", "Mixed (any contamination) majority-recyclable over 150KG, or majority non-recyclable at 150KG or less"],
+                ["red", "Over 150KG with majority non-recyclable"],
+                ["waste_wood", "Pallet scrap / waste wood, charged per tonne"],
+              ] as [StaciPalletColour, string][]).map(([colour, rule]) => (
+                <TableRow key={colour}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-3 h-3 rounded-full ${STACI_COLOUR_CONFIG[colour].bgColor}`} />
+                      {STACI_COLOUR_CONFIG[colour].label}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{rule}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Staci Pallet Rates</CardTitle>
           <CardDescription>
             Manage pallet colour rates and charges. Each period defines rates from its start date until the next period begins.
