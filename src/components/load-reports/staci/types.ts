@@ -132,54 +132,51 @@ export function getNonRecyclablePercentage(breakdown: StaciWasteBreakdown): numb
  * Auto-calculate pallet colour based on weight and waste breakdown percentages
  *
  * Rules:
- * - Green (rebate): 100% recyclable AND ≥300KG
- * - Blue: 100% recyclable AND <300KG, or mixed majority recyclable ≤150KG
- * - Yellow: mixed (any non-recyclable) majority recyclable >150KG, or ≤150KG majority non-recyclable
+ * - Green (rebate): Single recyclable material at 100% AND ≥300KG
+ * - Blue: Single recyclable material at 100% AND <300KG
+ * - Yellow: Mixed load (more than one material, or any contamination), or majority non-recyclable ≤150KG
  * - Red: >150KG majority non-recyclable
  */
 export function calculatePalletColour(weight_kg: number, breakdown: StaciWasteBreakdown): StaciPalletColour {
   const recyclablePct = getRecyclablePercentage(breakdown);
   const nonRecyclablePct = getNonRecyclablePercentage(breakdown);
 
-  // Pure recyclable = zero non-recyclable content (any contamination makes it "mixed")
-  const isPureRecyclable = nonRecyclablePct <= 0;
-  
-  
+  // Count how many recyclable types are present
+  const recyclableTypesPresent = RECYCLABLE_WASTE_TYPES.filter((key) => breakdown[key] > 0).length;
+
+  // Single recyclable material = exactly one recyclable type makes up 100% of the breakdown
+  // (no other recyclable types and no non-recyclable content)
+  const isSingleRecyclable =
+    recyclableTypesPresent === 1 &&
+    recyclablePct === 100 &&
+    nonRecyclablePct <= 0;
+
   // Majority recyclable = recyclable > non-recyclable
   const isMajorityRecyclable = recyclablePct > nonRecyclablePct;
-  
+
   // Majority non-recyclable
   const isMajorityNonRecyclable = nonRecyclablePct > recyclablePct;
-  
-  // Pure recyclable logic
-  if (isPureRecyclable) {
+
+  // Single recyclable material logic — only path to Green or Blue
+  if (isSingleRecyclable) {
     if (weight_kg >= 300) {
-      return "green"; // Rebate: Pure recyclables >300KG
+      return "green"; // Rebate: single recyclable material ≥300KG
     } else {
-      return "blue"; // Pure recyclables <300KG
+      return "blue"; // Single recyclable material <300KG
     }
   }
-  
-  // Mixed majority recyclable logic
-  if (isMajorityRecyclable) {
-    if (weight_kg > 150) {
-      return "yellow"; // >150KG mixed majority recyclable
-    } else {
-      return "blue"; // Mixed recyclables <150KG
-    }
-  }
-  
-  // Mixed majority non-recyclable or pure non-recyclable logic
+
+  // Mixed load (more than one recyclable type, or any non-recyclable content)
   if (isMajorityNonRecyclable || nonRecyclablePct >= 50) {
     if (weight_kg > 150) {
       return "red"; // >150KG with majority non-recyclable
     } else {
-      return "yellow"; // <150KG non-recyclable
+      return "yellow"; // ≤150KG with majority non-recyclable
     }
   }
-  
-  // Fallback (e.g., 50/50 split)
-  return weight_kg > 150 ? "yellow" : "blue";
+
+  // Mixed majority recyclable or 50/50 split — cannot be Blue/Green
+  return "yellow";
 }
 
 // Colour display configuration
@@ -199,19 +196,19 @@ export const STACI_COLOUR_CONFIG: Record<StaciPalletColour, {
     label: "Yellow", 
     bgColor: "bg-yellow-400", 
     textColor: "text-black",
-    description: ">150KG mixed (any contamination), majority recyclable"
+    description: "Mixed load (more than one material or any contamination)"
   },
   blue: { 
     label: "Blue", 
     bgColor: "bg-blue-600", 
     textColor: "text-white",
-    description: "100% recyclable <300KG, or mixed ≤150KG"
+    description: "Single recyclable material at 100%, under 300KG"
   },
   green: { 
     label: "Green", 
     bgColor: "bg-green-600", 
     textColor: "text-white",
-    description: "100% recyclable ≥300KG (Rebate)"
+    description: "Single recyclable material at 100%, 300KG or more (Rebate)"
   },
   waste_wood: { 
     label: "Pallet Charges", 
