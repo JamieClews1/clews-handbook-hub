@@ -207,7 +207,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
         const { data: hjData } = customerId
           ? await supabase
               .from("data_hub_jobs")
-              .select("job_number, job_date, raw, container_type")
+              .select("job_number, job_date, raw, container_type, waste_description, weight_t")
               .eq("customer", dataHubCustomerName!)
               .eq("source", "skiptrak")
               .gte("job_date", from)
@@ -215,7 +215,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
               .order("job_date", { ascending: true })
           : await supabase
               .from("data_hub_jobs")
-              .select("job_number, job_date, raw, container_type")
+              .select("job_number, job_date, raw, container_type, waste_description, weight_t")
               .ilike("customer", "%staci%")
               .eq("source", "skiptrak")
               .gte("job_date", from)
@@ -227,14 +227,25 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
       if (haulageJobs.length > 0) {
         let articLoads = 0, articCost = 0;
         let pickupLoads = 0, pickupCost = 0;
-        const jobsList: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup' }> = [];
+        const jobsList: Array<{ jobNumber: string; jobDate: string; containerType: string; cost: number; type: 'artic' | 'pickup'; ewc: string; description: string; weightT: number }> = [];
         haulageJobs.forEach((j: any) => {
           const cost = parseFloat(j.raw?.Cost ?? j.raw?.cost ?? "0");
           if (isNaN(cost)) return;
           const ct = (j.container_type ?? j.raw?.["Container Type"] ?? "").toLowerCase();
-          const isPickup = ct.includes("dolav") || ct.includes("pickup") || ct.includes("box");
+          const category = (j.raw?.Category ?? "").toString().toLowerCase();
+          const isPickup =
+            ct.includes("dolav") ||
+            ct.includes("pickup") ||
+            ct.includes("pick up") ||
+            ct.includes("box") ||
+            ct.includes("flat bed") ||
+            category.includes("pick up") ||
+            category.includes("flat bed");
           const type = isPickup ? 'pickup' as const : 'artic' as const;
-          jobsList.push({ jobNumber: j.job_number, jobDate: j.job_date ?? "", containerType: j.container_type ?? "", cost, type });
+          const ewc = (j.raw?.EWC ?? j.raw?.ewc ?? j.raw?.["EWC Code"] ?? "").toString();
+          const description = (j.waste_description ?? j.raw?.Description ?? "").toString();
+          const weightT = Number(j.weight_t ?? j.raw?.["Nett Weight"] ?? 0) || 0;
+          jobsList.push({ jobNumber: j.job_number, jobDate: j.job_date ?? "", containerType: j.container_type ?? "", cost, type, ewc, description, weightT });
           if (isPickup) { pickupLoads++; pickupCost += cost; }
           else { articLoads++; articCost += cost; }
         });
