@@ -760,7 +760,7 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
               { label: "Total Weight", value: `${((stats.totalWeightKg + balesDolavData.cardBalesWeightKg + balesDolavData.filmsBaleWeightKg + balesDolavData.papersDolavWeightKg + balesDolavData.glassDolavWeightKg + balesDolavData.scrapMetalLooseWeightKg + balesDolavData.scrapPalletsCount * TARE_KG) / 1000).toFixed(2)} t` },
               { label: "Monthly Net Cost", value: `£${kpiFinancials.monthlyNetCost.toFixed(2)}`, highlight: true },
               { label: "Monthly Recycling Invoice", value: `£${kpiFinancials.monthlyRecyclingInvoice.toFixed(2)}` },
-              { label: "Haulage", value: haulageData.totalLoads > 0 ? `${haulageData.totalLoads} loads` : "—" },
+              { label: "Haulage", value: haulageData.artic.loads > 0 ? `${haulageData.artic.loads} loads` : "—" },
             ].map((kpi) => (
               <Card key={kpi.label}>
                 <CardContent className="py-4 text-center">
