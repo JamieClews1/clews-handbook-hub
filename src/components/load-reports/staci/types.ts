@@ -143,43 +143,37 @@ export function calculatePalletColour(weight_kg: number, breakdown: StaciWasteBr
 
   // Pure recyclable = zero non-recyclable content (any contamination makes it "mixed")
   const isPureRecyclable = nonRecyclablePct <= 0;
-  
-  
+
   // Majority recyclable = recyclable > non-recyclable
   const isMajorityRecyclable = recyclablePct > nonRecyclablePct;
-  
+
   // Majority non-recyclable
   const isMajorityNonRecyclable = nonRecyclablePct > recyclablePct;
-  
-  // Pure recyclable logic
+
+  // Pure recyclable logic only — mixed waste can never be blue or green
   if (isPureRecyclable) {
     if (weight_kg >= 300) {
-      return "green"; // Rebate: Pure recyclables >300KG
+      return "green"; // Rebate: Pure recyclables ≥300KG
     } else {
       return "blue"; // Pure recyclables <300KG
     }
   }
-  
-  // Mixed majority recyclable logic
+
+  // Mixed waste: any contamination means yellow or red only
   if (isMajorityRecyclable) {
-    if (weight_kg > 150) {
-      return "yellow"; // >150KG mixed majority recyclable
-    } else {
-      return "blue"; // Mixed recyclables <150KG
-    }
+    return "yellow"; // Mixed majority recyclable
   }
-  
-  // Mixed majority non-recyclable or pure non-recyclable logic
+
   if (isMajorityNonRecyclable || nonRecyclablePct >= 50) {
     if (weight_kg > 150) {
       return "red"; // >150KG with majority non-recyclable
     } else {
-      return "yellow"; // <150KG non-recyclable
+      return "yellow"; // ≤150KG non-recyclable
     }
   }
-  
-  // Fallback (e.g., 50/50 split)
-  return weight_kg > 150 ? "yellow" : "blue";
+
+  // Fallback (e.g., 50/50 split) — treat as mixed
+  return "yellow";
 }
 
 // Colour display configuration
