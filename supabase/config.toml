@@ -82,3 +82,6 @@ verify_jwt = false
 
 [functions.pod-lookup]
 verify_jwt = false
+
+[functions.public-inventory]
+verify_jwt = false
