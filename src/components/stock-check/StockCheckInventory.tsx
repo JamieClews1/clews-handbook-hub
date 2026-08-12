@@ -252,6 +252,8 @@ const ProfileDialog = ({
         last_skiptrak_ticket: form.last_skiptrak_ticket.trim() || null,
         notes: form.notes.trim() || null,
         photos: form.photos,
+        value_override:
+          form.value_override.trim() === "" ? null : Number(form.value_override),
         last_cataloged_at: new Date().toISOString(),
         ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
