@@ -740,6 +740,38 @@ const InventoryList = () => {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(COLUMN_PREF_KEY);
+      if (saved) return { ...DEFAULT_COLUMNS, ...JSON.parse(saved) };
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_COLUMNS;
+  });
+
+  const toggleCol = (key: string) =>
+    setVisibleCols((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(COLUMN_PREF_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+
+  const resetCols = () => {
+    setVisibleCols(DEFAULT_COLUMNS);
+    try {
+      localStorage.setItem(COLUMN_PREF_KEY, JSON.stringify(DEFAULT_COLUMNS));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const shownCount = COLUMN_DEFS.filter((c) => visibleCols[c.key]).length;
+
 
 
   const { data: rows = [], isLoading } = useQuery({
