@@ -233,8 +233,29 @@ export const StockCheckTotalStock = () => {
     const other = { skip: 0, roro: 0 };
     const detail: SiteDetailRow[] = [];
 
+    // Clamp each site + container type to its plain delivered−collected balance so a
+    // collection logged under a different EWC clears its delivery (matches Live Jobs).
+    const byTypeGroup: Record<string, Pos[]> = {};
     for (const p of Object.values(positions)) {
-      const count = positionOnSite(p);
+      const k = `${p.site.toLowerCase().trim()}|||${p.containerType.toLowerCase().trim()}`;
+      (byTypeGroup[k] ||= []).push(p);
+    }
+    const allowed = new Map<Pos, number>();
+    for (const group of Object.values(byTypeGroup)) {
+      // Newest activity first — if the type is over its cap, the stalest positions drop.
+      const ordered = [...group].sort((a, b) =>
+        (b.lastKeepDate ?? "").localeCompare(a.lastKeepDate ?? "")
+      );
+      let remaining = containerTypeCap(group);
+      for (const p of ordered) {
+        const take = Math.min(positionOnSite(p), Math.max(remaining, 0));
+        allowed.set(p, take);
+        remaining -= take;
+      }
+    }
+
+    for (const p of Object.values(positions)) {
+      const count = allowed.get(p) ?? 0;
       if (count <= 0) continue;
       // Only match against types in the same category so e.g. a "Skip Compactor"
       // can't leak into the RoRo compactor type.
