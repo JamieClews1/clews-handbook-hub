@@ -69,9 +69,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate a random temporary password
-    const tempPassword = crypto.randomUUID();
-
     const normalizedEmail = String(email).trim().toLowerCase();
 
     // Generate a random temporary password
