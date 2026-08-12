@@ -973,6 +973,7 @@ const InventoryList = () => {
                   <TableHead>Last location</TableHead>
                   <TableHead>Skiptrak ticket</TableHead>
                   <TableHead className="text-center">Photos</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
                  <TableHead>Last catalogued</TableHead>
                  <TableHead>Logged by</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
