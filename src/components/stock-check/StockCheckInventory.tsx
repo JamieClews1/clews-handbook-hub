@@ -1286,7 +1286,7 @@ const InventoryList = () => {
     align = "left",
   }: {
     colKey: string;
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
     align?: "left" | "center" | "right";
   }) => {
