@@ -56,6 +56,48 @@ export function categoriseContainer(
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Shared container-type clamp
+// ---------------------------------------------------------------------------
+// Skiptrak positions are keyed by EWC/waste stream, but the EWC recorded on the
+// collection often differs from the one on the delivery (skip goes out as
+// "20 03 01", comes back tipped as "17 09 04"). Splitting purely by EWC then
+// leaves a phantom uncollected delivery for ever (e.g. Stuart Pollard 45451
+// delivered 15/01, collected 29/01 under a different code).
+//
+// So after counting each position, clamp the container type total to the plain
+// delivered−collected balance for that site+container type. If the type's last
+// movement is a collection and the balance is zero or negative, nothing is out.
+export type ClampPos = {
+  delivered: number;
+  collected: number;
+  exchanged: number;
+  tipReturn: number;
+  lastKeepDate: string | null;
+  lastCollectionDate: string | null;
+};
+
+export function containerTypeCap(positions: ClampPos[]): number {
+  let delivered = 0;
+  let collected = 0;
+  let present = false;
+  let lastKeep: string | null = null;
+  let lastCollection: string | null = null;
+  for (const p of positions) {
+    delivered += p.delivered;
+    collected += p.collected;
+    if (p.exchanged > 0 || p.tipReturn > 0) present = true;
+    if (p.lastKeepDate && (!lastKeep || p.lastKeepDate > lastKeep)) lastKeep = p.lastKeepDate;
+    if (p.lastCollectionDate && (!lastCollection || p.lastCollectionDate > lastCollection)) {
+      lastCollection = p.lastCollectionDate;
+    }
+  }
+  const net = delivered - collected;
+  const cleared = !!(lastCollection && lastKeep && lastCollection >= lastKeep);
+  if (cleared && net <= 0) return 0;
+  return Math.max(net, present ? Math.max(1, net) : 0);
+}
+
 const isDelivery = (m: string | null) => m === "Deliver";
 const isCollection = (m: string | null) => m === "Collect";
 const isExchange = (m: string | null) => m === "Exchange";
