@@ -758,6 +758,9 @@ const InventoryList = () => {
   });
 
   const valueOf = (r: InventoryRow) =>
+    r.value_override !== null && r.value_override !== undefined
+      ? Number(r.value_override)
+      :
     Number(
       conditionValues.find(
         (v) => v.asset_type === r.asset_type && v.condition === (r.condition || ""),
