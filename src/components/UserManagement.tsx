@@ -46,6 +46,8 @@ export const UserManagement = () => {
   const [actionType, setActionType] = useState<"grant" | "revoke" | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [editName, setEditName] = useState("");
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newUserName, setNewUserName] = useState("");
@@ -119,7 +121,7 @@ export const UserManagement = () => {
 
   const handleGrantAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("grant"); };
   const handleRevokeAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("revoke"); };
-  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); };
+  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); setEditName(user.full_name || ""); };
   const handleTypeToggle = (type: string) => {
     setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
@@ -129,18 +131,23 @@ export const UserManagement = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[] })
+        .update({
+          user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[],
+          full_name: editName.trim() || null,
+        })
         .eq("id", editingUser.id);
       if (error) throw error;
-      toast({ title: "Success", description: `User types updated for ${emailToUsername(editingUser.email)}` });
+      toast({ title: "Success", description: `User updated for ${emailToUsername(editingUser.email)}` });
       fetchUsers();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setEditingUser(null);
       setSelectedTypes([]);
+      setEditName("");
     }
   };
+
 
   const handleCreateUser = async () => {
     if (!newUsername.trim()) {
@@ -317,7 +324,7 @@ export const UserManagement = () => {
   const renderStaffActions = (user: UserProfile) => (
     <div className="flex gap-2 flex-wrap">
       <Button variant="outline" size="sm" onClick={() => handleEditTypes(user)} className="gap-1">
-        <UserCog className="h-4 w-4" /> Types
+        <UserCog className="h-4 w-4" /> Edit
       </Button>
       <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
         <Key className="h-4 w-4" /> Password
@@ -492,27 +499,40 @@ export const UserManagement = () => {
         </Tabs>
       </div>
 
-      {/* Edit User Types Dialog */}
+      {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Types</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Assign roles to {editingUser ? emailToUsername(editingUser.email) : ""}. These determine which RAMS and Toolbox Talks are relevant to them.
+              Update the name and roles for {editingUser ? emailToUsername(editingUser.email) : ""}. Roles determine which RAMS and Toolbox Talks are relevant to them.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {USER_TYPES.map(type => (
-              <div key={type.value} className="flex items-center space-x-3">
-                <Checkbox
-                  id={type.value}
-                  checked={selectedTypes.includes(type.value)}
-                  onCheckedChange={() => handleTypeToggle(type.value)}
-                />
-                <Label htmlFor={type.value} className="cursor-pointer">{type.label}</Label>
-              </div>
-            ))}
+            <div className="space-y-2">
+              <Label htmlFor="edit-full-name">Full name</Label>
+              <Input
+                id="edit-full-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Jamie Clews"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label>User types</Label>
+              {USER_TYPES.map(type => (
+                <div key={type.value} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={type.value}
+                    checked={selectedTypes.includes(type.value)}
+                    onCheckedChange={() => handleTypeToggle(type.value)}
+                  />
+                  <Label htmlFor={type.value} className="cursor-pointer">{type.label}</Label>
+                </div>
+              ))}
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button onClick={saveUserTypes}>Save Changes</Button>
