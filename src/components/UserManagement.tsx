@@ -65,7 +65,7 @@ export const UserManagement = () => {
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [bulkText, setBulkText] = useState(DEFAULT_BULK_USERS);
   const [bulkTypes, setBulkTypes] = useState<string[]>(["yard"]);
-  const [bulkPassword, setBulkPassword] = useState("1234");
+  const [bulkPassword, setBulkPassword] = useState("Clews1234");
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkLog, setBulkLog] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -228,7 +228,7 @@ export const UserManagement = () => {
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
 
-        if (bulkPassword && bulkPassword.length >= 4 && data?.user?.id) {
+        if (bulkPassword && bulkPassword.length >= 6 && data?.user?.id) {
           await supabase.functions.invoke("set-user-password", {
             body: { user_id: data.user.id, password: bulkPassword },
           });
