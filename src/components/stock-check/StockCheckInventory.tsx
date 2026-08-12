@@ -721,6 +721,24 @@ const InventoryList = () => {
 
   const refetch = () => queryClient.invalidateQueries({ queryKey: ["skip-inventory"] });
 
+  const { data: conditionValues = [] } = useQuery({
+    queryKey: ["skip-inventory-condition-values"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skip_inventory_condition_values")
+        .select("asset_type, condition, value");
+      if (error) throw error;
+      return (data || []) as { asset_type: string; condition: string; value: number }[];
+    },
+  });
+
+  const valueOf = (r: InventoryRow) =>
+    Number(
+      conditionValues.find(
+        (v) => v.asset_type === r.asset_type && v.condition === (r.condition || ""),
+      )?.value ?? 0,
+    );
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("skip_inventory").delete().eq("id", id);
     if (error) {
