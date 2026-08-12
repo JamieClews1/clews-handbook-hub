@@ -864,6 +864,10 @@ const InventoryList = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  const { data: tagOptions = [] } = useTagOptions();
+  const tagColour = (name: string) =>
+    tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
     try {
