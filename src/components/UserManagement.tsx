@@ -48,7 +48,14 @@ export const UserManagement = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [editName, setEditName] = useState("");
 
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [bulkText, setBulkText] = useState(DEFAULT_BULK_USERS);
+  const [bulkTypes, setBulkTypes] = useState<string[]>(["yard"]);
+  const [bulkPassword, setBulkPassword] = useState("1234");
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkLog, setBulkLog] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
   const [newUsername, setNewUsername] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserTypes, setNewUserTypes] = useState<string[]>([]);
