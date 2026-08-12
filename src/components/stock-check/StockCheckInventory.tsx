@@ -1190,6 +1190,11 @@ const InventoryList = () => {
     });
   }, [rows, search, typeFilter, tagFilter]);
 
+  const sortedRows = useMemo(
+    () => sortRows(filtered),
+    [filtered, sort.key, sort.dir, conditionValues],
+  );
+
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter((r) => r.asset_type === "roro").length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
