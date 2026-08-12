@@ -16,6 +16,8 @@ interface ConditionValue {
   asset_type: string;
   condition: string;
   value: number;
+  size_group: string | null;
+  sizes: string[] | null;
 }
 
 interface ShareLink {
