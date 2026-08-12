@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, ClipboardList, BarChart3, Settings, Boxes, PackageSearch, History } from "lucide-react";
+import { ArrowLeft, ClipboardList, BarChart3, Settings, Boxes, PackageSearch, History, Bell } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { StockCheckDashboard } from "@/components/stock-check/StockCheckDashboard";
 import { StockCheckTotalStock } from "@/components/stock-check/StockCheckTotalStock";
@@ -12,6 +12,7 @@ import { StockCheckInventory } from "@/components/stock-check/StockCheckInventor
 import { StockCheckTally } from "@/components/stock-check/StockCheckTally";
 import { StockCheckSettings } from "@/components/stock-check/StockCheckSettings";
 import { StockCheckHistory } from "@/components/stock-check/StockCheckHistory";
+import { StockCheckNotifications } from "@/components/stock-check/StockCheckNotifications";
 import { supabase } from "@/integrations/supabase/client";
 
 const StockCheckPage = () => {
@@ -91,6 +92,12 @@ const StockCheckPage = () => {
                 <PackageSearch className="h-4 w-4" />
                 Inventory
               </TabsTrigger>
+              {canManageSettings && (
+                <TabsTrigger value="notifications" className="gap-2">
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="live">
@@ -165,6 +172,11 @@ const StockCheckPage = () => {
             <TabsContent value="inventory">
               <StockCheckInventory />
             </TabsContent>
+            {canManageSettings && (
+              <TabsContent value="notifications">
+                <StockCheckNotifications />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </main>
