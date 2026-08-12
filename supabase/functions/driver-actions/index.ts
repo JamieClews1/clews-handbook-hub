@@ -447,12 +447,28 @@ Deno.serve(async (req) => {
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         const { data: existing } = await supabase
           .from("skip_inventory")
-          .select("id, last_cataloged_at, last_reported_by")
+          .select(
+            "id, last_cataloged_at, last_reported_by, photos, tags, size, condition",
+          )
           .eq("asset_type", assetType)
           .eq("asset_number", assetNumber)
           .maybeSingle();
 
+        const existingPhotos = Array.isArray(existing?.photos) ? existing!.photos : [];
+        const existingTags: string[] = Array.isArray(existing?.tags) ? existing!.tags : [];
+        const needsMoreInfo = existing
+          ? existingPhotos.length < 4 ||
+            !existing.size ||
+            !existing.condition ||
+            existingTags.some((t) => String(t).toLowerCase().includes("photo"))
+          : false;
+
+        const newPhotos = Array.isArray(body?.photos) ? body.photos : [];
+        // Top-up mode: bin needs more info and the driver is adding photos
+        const isTopUp = Boolean(existing) && needsMoreInfo && newPhotos.length > 0;
+
         if (
+          !isTopUp &&
           existing?.last_cataloged_at &&
           new Date(existing.last_cataloged_at) > sixMonthsAgo
         ) {
@@ -465,7 +481,7 @@ Deno.serve(async (req) => {
           );
         }
 
-        const photos = Array.isArray(body?.photos) ? body.photos : [];
+        const photos = isTopUp ? [...existingPhotos, ...newPhotos] : newPhotos;
         const condition = body?.condition ? String(body.condition) : null;
         const repairsRequired = Boolean(body?.repairs_required);
         const repairNotes = body?.repair_notes ? String(body.repair_notes) : null;
