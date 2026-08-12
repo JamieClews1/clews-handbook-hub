@@ -747,6 +747,7 @@ const InventoryList = () => {
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter((r) => r.asset_type === "roro").length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
+  const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
 
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
