@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { InventorySizesSettings } from "./InventorySizesSettings";
 import { InventoryValueSettings } from "./InventoryValueSettings";
@@ -61,6 +61,9 @@ import {
   List,
   Columns3,
   ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1022,7 +1025,78 @@ const InventoryList = () => {
 
   const shownCount = COLUMN_DEFS.filter((c) => visibleCols[c.key]).length;
 
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({
+    key: "number",
+    dir: "asc",
+  });
 
+  const handleSort = (key: string) => {
+    setSort((prev) => ({
+      key,
+      dir: prev.key === key && prev.dir === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const sortRows = (data: InventoryRow[]) => {
+    const { key, dir } = sort;
+    const sorted = [...data];
+    const mult = dir === "asc" ? 1 : -1;
+
+    const num = (s?: string | null) => {
+      if (!s) return 0;
+      const m = s.match(/(\d+)/);
+      return m ? Number(m[1]) : 0;
+    };
+    const alpha = (s?: string | null) => (s || "").toLowerCase();
+
+    sorted.sort((a, b) => {
+      switch (key) {
+        case "number": {
+          const aA = alpha(a.asset_number).replace(/\d+/g, "").trim();
+          const bA = alpha(b.asset_number).replace(/\d+/g, "").trim();
+          if (aA !== bA) return aA.localeCompare(bA) * mult;
+          return (num(a.asset_number) - num(b.asset_number)) * mult;
+        }
+        case "type":
+          return (alpha(a.asset_type).localeCompare(alpha(b.asset_type))) * mult;
+        case "size":
+          return (alpha(a.size).localeCompare(alpha(b.size))) * mult;
+        case "condition":
+          return (alpha(a.condition).localeCompare(alpha(b.condition))) * mult;
+        case "tags": {
+          const aT = (a.tags || []).join(", ").toLowerCase();
+          const bT = (b.tags || []).join(", ").toLowerCase();
+          return aT.localeCompare(bT) * mult;
+        }
+        case "verified":
+          return ((a.office_verified ? 1 : 0) - (b.office_verified ? 1 : 0)) * mult;
+        case "repairs": {
+          const aR = a.repairs_required ? 1 : 0;
+          const bR = b.repairs_required ? 1 : 0;
+          if (aR !== bR) return (aR - bR) * mult;
+          return alpha(a.repair_notes).localeCompare(alpha(b.repair_notes)) * mult;
+        }
+        case "location":
+          return alpha(a.last_location).localeCompare(alpha(b.last_location)) * mult;
+        case "ticket":
+          return alpha(a.last_skiptrak_ticket).localeCompare(alpha(b.last_skiptrak_ticket)) * mult;
+        case "photos":
+          return ((a.photos?.length || 0) - (b.photos?.length || 0)) * mult;
+        case "value":
+          return (valueOf(a) - valueOf(b)) * mult;
+        case "cataloged": {
+          const aD = a.last_cataloged_at ? new Date(a.last_cataloged_at).getTime() : 0;
+          const bD = b.last_cataloged_at ? new Date(b.last_cataloged_at).getTime() : 0;
+          return (aD - bD) * mult;
+        }
+        case "loggedBy":
+          return alpha(a.last_reported_by).localeCompare(alpha(b.last_reported_by)) * mult;
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  };
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["skip-inventory"],
@@ -1116,6 +1190,11 @@ const InventoryList = () => {
     });
   }, [rows, search, typeFilter, tagFilter]);
 
+  const sortedRows = useMemo(
+    () => sortRows(filtered),
+    [filtered, sort.key, sort.dir, conditionValues],
+  );
+
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter((r) => r.asset_type === "roro").length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
@@ -1198,6 +1277,37 @@ const InventoryList = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Report downloaded");
+  };
+
+  const SortHeader = ({
+    colKey,
+    children,
+    className,
+    align = "left",
+  }: {
+    colKey: string;
+    children: ReactNode;
+    className?: string;
+    align?: "left" | "center" | "right";
+  }) => {
+    const active = sort.key === colKey;
+    const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+    return (
+      <TableHead
+        className={cn(
+          "cursor-pointer select-none whitespace-nowrap",
+          align === "center" && "text-center",
+          align === "right" && "text-right",
+          className,
+        )}
+        onClick={() => handleSort(colKey)}
+      >
+        <span className="inline-flex items-center gap-1">
+          {children}
+          <Icon className={cn("h-3.5 w-3.5", active ? "text-foreground" : "text-muted-foreground/60")} />
+        </span>
+      </TableHead>
+    );
   };
 
   return (
@@ -1455,24 +1565,30 @@ const InventoryList = () => {
             <Table style={{ minWidth: `${Math.max(600, shownCount * 130)}px` }}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Number</TableHead>
-                  {visibleCols.type && <TableHead>Type</TableHead>}
-                  {visibleCols.size && <TableHead>Size</TableHead>}
-                  {visibleCols.condition && <TableHead>Condition</TableHead>}
-                  {visibleCols.tags && <TableHead>Tags</TableHead>}
-                  {visibleCols.verified && <TableHead className="text-center">Office verified</TableHead>}
-                  {visibleCols.repairs && <TableHead>Repairs</TableHead>}
-                  {visibleCols.location && <TableHead>Last location</TableHead>}
-                  {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
-                  {visibleCols.photos && <TableHead className="text-center">Photos</TableHead>}
-                  {visibleCols.value && <TableHead className="text-right">Value</TableHead>}
-                  {visibleCols.cataloged && <TableHead>Last catalogued</TableHead>}
-                  {visibleCols.loggedBy && <TableHead>Logged by</TableHead>}
+                  <SortHeader colKey="number">Number</SortHeader>
+                  {visibleCols.type && <SortHeader colKey="type">Type</SortHeader>}
+                  {visibleCols.size && <SortHeader colKey="size">Size</SortHeader>}
+                  {visibleCols.condition && <SortHeader colKey="condition">Condition</SortHeader>}
+                  {visibleCols.tags && <SortHeader colKey="tags">Tags</SortHeader>}
+                  {visibleCols.verified && (
+                    <SortHeader colKey="verified" align="center">Office verified</SortHeader>
+                  )}
+                  {visibleCols.repairs && <SortHeader colKey="repairs">Repairs</SortHeader>}
+                  {visibleCols.location && <SortHeader colKey="location">Last location</SortHeader>}
+                  {visibleCols.ticket && <SortHeader colKey="ticket">Skiptrak ticket</SortHeader>}
+                  {visibleCols.photos && (
+                    <SortHeader colKey="photos" align="center">Photos</SortHeader>
+                  )}
+                  {visibleCols.value && (
+                    <SortHeader colKey="value" align="right">Value</SortHeader>
+                  )}
+                  {visibleCols.cataloged && <SortHeader colKey="cataloged">Last catalogued</SortHeader>}
+                  {visibleCols.loggedBy && <SortHeader colKey="loggedBy">Logged by</SortHeader>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
+                {sortedRows.map((r) => (
                   <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
                     <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
                     {visibleCols.type && (
