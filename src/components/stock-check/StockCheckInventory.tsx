@@ -85,7 +85,37 @@ interface InventoryRow {
   last_cataloged_at: string | null;
   last_reported_by: string | null;
   value_override: number | null;
+  tags: string[] | null;
 }
+
+interface TagOption {
+  id: string;
+  name: string;
+  colour: string;
+}
+
+const tagStyle: Record<string, string> = {
+  amber: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  red: "bg-red-500/15 text-red-700 border-red-500/30",
+  blue: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  green: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  purple: "bg-purple-500/15 text-purple-700 border-purple-500/30",
+  grey: "bg-muted text-muted-foreground border-border",
+};
+
+const useTagOptions = () =>
+  useQuery({
+    queryKey: ["skip-inventory-tag-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skip_inventory_tags")
+        .select("id, name, colour, is_active, display_order")
+        .eq("is_active", true)
+        .order("display_order");
+      if (error) throw error;
+      return (data || []) as TagOption[];
+    },
+  });
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
 
@@ -114,6 +144,7 @@ const emptyForm = {
   notes: "",
   photos: [] as string[],
   value_override: "",
+  tags: [] as string[],
 };
 
 /* ─── Profile editor dialog ─── */
@@ -132,6 +163,34 @@ const ProfileDialog = ({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const [newTag, setNewTag] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
+  const { data: tagOptions = [], refetch: refetchTags } = useTagOptions();
+
+  const toggleTag = (name: string) =>
+    setForm((f) => ({
+      ...f,
+      tags: f.tags.includes(name) ? f.tags.filter((t) => t !== name) : [...f.tags, name],
+    }));
+
+  const createTag = async () => {
+    const name = newTag.trim();
+    if (!name) return;
+    setAddingTag(true);
+    try {
+      const { error } = await supabase
+        .from("skip_inventory_tags")
+        .insert({ name, display_order: tagOptions.length + 1 });
+      if (error && !error.message.includes("duplicate")) throw error;
+      await refetchTags();
+      setForm((f) => (f.tags.includes(name) ? f : { ...f, tags: [...f.tags, name] }));
+      setNewTag("");
+    } catch {
+      toast.error("Could not add tag");
+    } finally {
+      setAddingTag(false);
+    }
+  };
 
   const { data: sizeOptions = [] } = useQuery({
     queryKey: ["skip-inventory-sizes"],
@@ -198,6 +257,7 @@ const ProfileDialog = ({
           row.value_override === null || row.value_override === undefined
             ? ""
             : String(row.value_override),
+        tags: row.tags || [],
       });
     } else {
       setForm(emptyForm);
@@ -264,6 +324,7 @@ const ProfileDialog = ({
         photos: form.photos,
         value_override:
           form.value_override.trim() === "" ? null : Number(form.value_override),
+        tags: form.tags,
         last_cataloged_at: new Date().toISOString(),
         ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
@@ -382,6 +443,48 @@ const ProfileDialog = ({
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2">
+              {tagOptions.length === 0 && (
+                <p className="text-xs text-muted-foreground">No tags yet — add one below.</p>
+              )}
+              {tagOptions.map((t) => {
+                const active = form.tags.includes(t.name);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTag(t.name)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full border text-xs font-medium transition-colors",
+                      active
+                        ? tagStyle[t.colour] || tagStyle.amber
+                        : "border-border text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="New tag name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    createTag();
+                  }
+                }}
+              />
+              <Button type="button" variant="outline" onClick={createTag} disabled={addingTag}>
+                {addingTag ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-2">
@@ -544,6 +647,11 @@ const ViewDialog = ({ row, trigger }: { row: InventoryRow; trigger: React.ReactN
                 <Wrench className="h-3 w-3" /> Repairs required
               </Badge>
             )}
+            {(row.tags || []).map((t) => (
+              <Badge key={t} variant="outline" className={cn("text-xs", tagStyle.amber)}>
+                {t}
+              </Badge>
+            ))}
           </div>
 
           {row.repairs_required && row.repair_notes && (
@@ -741,6 +849,7 @@ const COLUMN_DEFS = [
   { key: "type", label: "Type" },
   { key: "size", label: "Size" },
   { key: "condition", label: "Condition" },
+  { key: "tags", label: "Tags" },
   { key: "repairs", label: "Repairs" },
   { key: "location", label: "Last location" },
   { key: "ticket", label: "Skiptrak ticket" },
@@ -760,6 +869,10 @@ const InventoryList = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  const { data: tagOptions = [] } = useTagOptions();
+  const tagColour = (name: string) =>
+    tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
     try {
@@ -854,14 +967,16 @@ const InventoryList = () => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (typeFilter !== "all" && r.asset_type !== typeFilter) return false;
+      if (tagFilter !== "all" && !(r.tags || []).includes(tagFilter)) return false;
       if (!q) return true;
       return (
         r.asset_number.toLowerCase().includes(q) ||
         (r.last_location || "").toLowerCase().includes(q) ||
-        (r.last_skiptrak_ticket || "").toLowerCase().includes(q)
+        (r.last_skiptrak_ticket || "").toLowerCase().includes(q) ||
+        (r.tags || []).some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [rows, search, typeFilter]);
+  }, [rows, search, typeFilter, tagFilter]);
 
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter((r) => r.asset_type === "roro").length;
@@ -1042,6 +1157,21 @@ const InventoryList = () => {
               </button>
             ))}
           </div>
+          {tagOptions.length > 0 && (
+            <Select value={tagFilter} onValueChange={setTagFilter}>
+              <SelectTrigger className="w-[170px]">
+                <SelectValue placeholder="All tags" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                <SelectItem value="all">All tags</SelectItem>
+                {tagOptions.map((t) => (
+                  <SelectItem key={t.id} value={t.name}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {viewMode === "list" && (
@@ -1131,6 +1261,7 @@ const InventoryList = () => {
                   {visibleCols.type && <TableHead>Type</TableHead>}
                   {visibleCols.size && <TableHead>Size</TableHead>}
                   {visibleCols.condition && <TableHead>Condition</TableHead>}
+                  {visibleCols.tags && <TableHead>Tags</TableHead>}
                   {visibleCols.repairs && <TableHead>Repairs</TableHead>}
                   {visibleCols.location && <TableHead>Last location</TableHead>}
                   {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
@@ -1161,6 +1292,21 @@ const InventoryList = () => {
                           <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
                             {r.condition}
                           </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.tags && (
+                      <TableCell className="max-w-[240px]">
+                        {(r.tags || []).length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {(r.tags || []).map((t) => (
+                              <Badge key={t} variant="outline" className={cn("text-[10px]", tagColour(t))}>
+                                {t}
+                              </Badge>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -1309,6 +1455,11 @@ const InventoryList = () => {
                       <Wrench className="h-3 w-3" /> Repairs required
                     </Badge>
                   )}
+                  {(r.tags || []).map((t) => (
+                    <Badge key={t} variant="outline" className={cn("text-xs", tagColour(t))}>
+                      {t}
+                    </Badge>
+                  ))}
                 </div>
 
                 {r.repairs_required && r.repair_notes && (

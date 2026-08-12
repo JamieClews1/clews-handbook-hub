@@ -6212,6 +6212,7 @@ export type Database = {
           repair_notes: string | null
           repairs_required: boolean
           size: string | null
+          tags: string[]
           updated_at: string
           value_override: number | null
         }
@@ -6230,6 +6231,7 @@ export type Database = {
           repair_notes?: string | null
           repairs_required?: boolean
           size?: string | null
+          tags?: string[]
           updated_at?: string
           value_override?: number | null
         }
@@ -6248,6 +6250,7 @@ export type Database = {
           repair_notes?: string | null
           repairs_required?: boolean
           size?: string | null
+          tags?: string[]
           updated_at?: string
           value_override?: number | null
         }
@@ -6307,6 +6310,36 @@ export type Database = {
         }
         Update: {
           asset_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skip_inventory_tags: {
+        Row: {
+          colour: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          colour?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          colour?: string
           created_at?: string
           display_order?: number
           id?: string
