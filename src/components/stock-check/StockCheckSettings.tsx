@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, X } from "lucide-react";
 import { InventorySizesSettings } from "./InventorySizesSettings";
+import { InventoryValueSettings } from "./InventoryValueSettings";
 
 
 interface ContainerType {
