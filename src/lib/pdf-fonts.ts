@@ -11,9 +11,18 @@ export const PDF_UNICODE_FONT = "NotoSans";
 
 let cache: Promise<{ regular: string; bold: string }> | null = null;
 
-const toBase64 = async (url: string) => {
-  const buf = await (await fetch(url)).arrayBuffer();
+const CDN = "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans";
+
+const fetchTtf = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`);
+  const buf = await res.arrayBuffer();
   const bytes = new Uint8Array(buf);
+  // Sanity check the TrueType magic so an HTML fallback page never gets embedded
+  const magic = String.fromCharCode(...bytes.subarray(0, 4));
+  if (magic !== "\u0000\u0001\u0000\u0000" && magic !== "true" && magic !== "ttcf") {
+    throw new Error("Not a TrueType font");
+  }
   let binary = "";
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
@@ -22,9 +31,20 @@ const toBase64 = async (url: string) => {
   return btoa(binary);
 };
 
+const loadOne = async (assetUrl: string, file: string) => {
+  try {
+    return await fetchTtf(assetUrl);
+  } catch {
+    return await fetchTtf(`${CDN}/${file}`);
+  }
+};
+
 const loadFonts = () => {
   if (!cache) {
-    cache = Promise.all([toBase64(regularAsset.url), toBase64(boldAsset.url)])
+    cache = Promise.all([
+      loadOne(regularAsset.url, "NotoSans-Regular.ttf"),
+      loadOne(boldAsset.url, "NotoSans-Bold.ttf"),
+    ])
       .then(([regular, bold]) => ({ regular, bold }))
       .catch((e) => {
         cache = null;
@@ -33,6 +53,7 @@ const loadFonts = () => {
   }
   return cache;
 };
+
 
 /**
  * Registers the Unicode font on a jsPDF instance and makes it the active font.
