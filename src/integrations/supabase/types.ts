@@ -6208,6 +6208,7 @@ export type Database = {
           last_reported_by: string | null
           last_skiptrak_ticket: string | null
           notes: string | null
+          office_verified: boolean
           photos: Json
           repair_notes: string | null
           repairs_required: boolean
@@ -6227,6 +6228,7 @@ export type Database = {
           last_reported_by?: string | null
           last_skiptrak_ticket?: string | null
           notes?: string | null
+          office_verified?: boolean
           photos?: Json
           repair_notes?: string | null
           repairs_required?: boolean
@@ -6246,6 +6248,7 @@ export type Database = {
           last_reported_by?: string | null
           last_skiptrak_ticket?: string | null
           notes?: string | null
+          office_verified?: boolean
           photos?: Json
           repair_notes?: string | null
           repairs_required?: boolean
