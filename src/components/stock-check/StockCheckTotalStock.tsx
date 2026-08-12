@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Truck, Container, Warehouse, MapPin, Calendar, Download } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { categoriseContainer } from "@/lib/overRental";
+import { categoriseContainer, containerTypeCap } from "@/lib/overRental";
 
 interface ContainerType {
   id: string;
