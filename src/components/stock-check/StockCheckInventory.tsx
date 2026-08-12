@@ -1565,24 +1565,30 @@ const InventoryList = () => {
             <Table style={{ minWidth: `${Math.max(600, shownCount * 130)}px` }}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Number</TableHead>
-                  {visibleCols.type && <TableHead>Type</TableHead>}
-                  {visibleCols.size && <TableHead>Size</TableHead>}
-                  {visibleCols.condition && <TableHead>Condition</TableHead>}
-                  {visibleCols.tags && <TableHead>Tags</TableHead>}
-                  {visibleCols.verified && <TableHead className="text-center">Office verified</TableHead>}
-                  {visibleCols.repairs && <TableHead>Repairs</TableHead>}
-                  {visibleCols.location && <TableHead>Last location</TableHead>}
-                  {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
-                  {visibleCols.photos && <TableHead className="text-center">Photos</TableHead>}
-                  {visibleCols.value && <TableHead className="text-right">Value</TableHead>}
-                  {visibleCols.cataloged && <TableHead>Last catalogued</TableHead>}
-                  {visibleCols.loggedBy && <TableHead>Logged by</TableHead>}
+                  <SortHeader colKey="number">Number</SortHeader>
+                  {visibleCols.type && <SortHeader colKey="type">Type</SortHeader>}
+                  {visibleCols.size && <SortHeader colKey="size">Size</SortHeader>}
+                  {visibleCols.condition && <SortHeader colKey="condition">Condition</SortHeader>}
+                  {visibleCols.tags && <SortHeader colKey="tags">Tags</SortHeader>}
+                  {visibleCols.verified && (
+                    <SortHeader colKey="verified" align="center">Office verified</SortHeader>
+                  )}
+                  {visibleCols.repairs && <SortHeader colKey="repairs">Repairs</SortHeader>}
+                  {visibleCols.location && <SortHeader colKey="location">Last location</SortHeader>}
+                  {visibleCols.ticket && <SortHeader colKey="ticket">Skiptrak ticket</SortHeader>}
+                  {visibleCols.photos && (
+                    <SortHeader colKey="photos" align="center">Photos</SortHeader>
+                  )}
+                  {visibleCols.value && (
+                    <SortHeader colKey="value" align="right">Value</SortHeader>
+                  )}
+                  {visibleCols.cataloged && <SortHeader colKey="cataloged">Last catalogued</SortHeader>}
+                  {visibleCols.loggedBy && <SortHeader colKey="loggedBy">Logged by</SortHeader>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
+                {sortedRows.map((r) => (
                   <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
                     <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
                     {visibleCols.type && (
