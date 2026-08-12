@@ -103,6 +103,7 @@ const App = () => (
             <Route path="/book" element={<PublicBookingPage />} />
             <Route path="/weightchecks" element={<WeightChecksPage />} />
             <Route path="/Weightchecks" element={<WeightChecksPage />} />
+            <Route path="/inventory/:token" element={<PublicInventoryPage />} />
 
             {/* Customer portal — accessible to all authenticated users */}
             <Route path="/my-portal" element={<CustomerPortalPage />} />
