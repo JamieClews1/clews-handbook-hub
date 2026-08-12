@@ -647,6 +647,11 @@ const ViewDialog = ({ row, trigger }: { row: InventoryRow; trigger: React.ReactN
                 <Wrench className="h-3 w-3" /> Repairs required
               </Badge>
             )}
+            {(row.tags || []).map((t) => (
+              <Badge key={t} variant="outline" className={cn("text-xs", tagStyle.amber)}>
+                {t}
+              </Badge>
+            ))}
           </div>
 
           {row.repairs_required && row.repair_notes && (
@@ -1450,6 +1455,11 @@ const InventoryList = () => {
                       <Wrench className="h-3 w-3" /> Repairs required
                     </Badge>
                   )}
+                  {(r.tags || []).map((t) => (
+                    <Badge key={t} variant="outline" className={cn("text-xs", tagColour(t))}>
+                      {t}
+                    </Badge>
+                  ))}
                 </div>
 
                 {r.repairs_required && r.repair_notes && (
