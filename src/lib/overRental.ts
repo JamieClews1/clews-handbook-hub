@@ -139,7 +139,9 @@ function positionNetOnSite(p: PosCounts, windowStart?: string): number {
 
 function typeNetOnSite(positions: Record<string, PosCounts> | undefined, windowStart?: string): number {
   if (!positions) return 0;
-  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p, windowStart), 0);
+  const list = Object.values(positions);
+  const raw = list.reduce((sum, p) => sum + positionNetOnSite(p, windowStart), 0);
+  return Math.min(raw, containerTypeCap(list));
 }
 
 type CtbBreakdown = {
