@@ -489,7 +489,10 @@ Deno.serve(async (req) => {
         const ticket = body?.skiptrak_ticket ? String(body.skiptrak_ticket) : null;
         const now = new Date().toISOString();
 
-        const invPayload = {
+        // Points: full award for a new catalogue, smaller award for topping up photos
+        const pointsAwarded = isTopUp ? 5 : POINTS;
+
+        const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
           asset_type: assetType,
           condition,
@@ -502,6 +505,13 @@ Deno.serve(async (req) => {
           // Preserve the person who originally logged/photographed this asset
           last_reported_by: existing?.last_reported_by || reporterName,
         };
+
+        // Clear "more photos needed" style tags once enough photos exist
+        if (photos.length >= 4 && existingTags.length) {
+          invPayload.tags = existingTags.filter(
+            (t) => !String(t).toLowerCase().includes("photo"),
+          );
+        }
 
         let inventoryId = existing?.id ?? null;
         if (inventoryId) {
