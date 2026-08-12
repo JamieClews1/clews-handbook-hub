@@ -170,7 +170,11 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
       // Filter by site mappings and categories (Roll on Roll off, Skips, Midweigh)
-      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
+      // Midweigh weighbridge tickets only count for customers set up for them
+      const midweighAllowed = await isMidweighRebateCustomer({ customerId, dataHubCustomer });
+      const targetCategories = midweighAllowed
+        ? ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"]
+        : ["Roll on Roll off", "Skips", "Flat Bed pick up"];
       
       let allJobs: JobRecord[] = [];
       
