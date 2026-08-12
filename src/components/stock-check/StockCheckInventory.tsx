@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
@@ -1365,6 +1366,7 @@ const InventoryList = () => {
                   {visibleCols.size && <TableHead>Size</TableHead>}
                   {visibleCols.condition && <TableHead>Condition</TableHead>}
                   {visibleCols.tags && <TableHead>Tags</TableHead>}
+                  {visibleCols.verified && <TableHead className="text-center">Office verified</TableHead>}
                   {visibleCols.repairs && <TableHead>Repairs</TableHead>}
                   {visibleCols.location && <TableHead>Last location</TableHead>}
                   {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
@@ -1403,6 +1405,25 @@ const InventoryList = () => {
                     {visibleCols.tags && (
                       <TableCell className="max-w-[240px]">
                         <TagCell row={r} onSaved={refetch} />
+                      </TableCell>
+                    )}
+                    {visibleCols.verified && (
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={!!r.office_verified}
+                          aria-label={`Office verified for ${r.asset_number}`}
+                          onCheckedChange={async (v) => {
+                            const { error } = await supabase
+                              .from("skip_inventory")
+                              .update({ office_verified: !!v })
+                              .eq("id", r.id);
+                            if (error) {
+                              toast.error("Could not update verification");
+                              return;
+                            }
+                            refetch();
+                          }}
+                        />
                       </TableCell>
                     )}
                     {visibleCols.repairs && (
