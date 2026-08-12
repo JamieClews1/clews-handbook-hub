@@ -721,6 +721,24 @@ const InventoryList = () => {
 
   const refetch = () => queryClient.invalidateQueries({ queryKey: ["skip-inventory"] });
 
+  const { data: conditionValues = [] } = useQuery({
+    queryKey: ["skip-inventory-condition-values"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skip_inventory_condition_values")
+        .select("asset_type, condition, value");
+      if (error) throw error;
+      return (data || []) as { asset_type: string; condition: string; value: number }[];
+    },
+  });
+
+  const valueOf = (r: InventoryRow) =>
+    Number(
+      conditionValues.find(
+        (v) => v.asset_type === r.asset_type && v.condition === (r.condition || ""),
+      )?.value ?? 0,
+    );
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("skip_inventory").delete().eq("id", id);
     if (error) {
@@ -747,6 +765,7 @@ const InventoryList = () => {
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter((r) => r.asset_type === "roro").length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
+  const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
 
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
@@ -829,7 +848,7 @@ const InventoryList = () => {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Profiles</CardTitle>
@@ -860,6 +879,14 @@ const InventoryList = () => {
           </CardHeader>
           <CardContent>
             <span className="text-3xl font-bold text-red-600">{needRepair}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-3xl font-bold">£{totalValue.toLocaleString()}</span>
           </CardContent>
         </Card>
       </div>
@@ -973,6 +1000,7 @@ const InventoryList = () => {
                   <TableHead>Last location</TableHead>
                   <TableHead>Skiptrak ticket</TableHead>
                   <TableHead className="text-center">Photos</TableHead>
+                  <TableHead className="text-right">Value</TableHead>
                  <TableHead>Last catalogued</TableHead>
                  <TableHead>Logged by</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -1017,6 +1045,9 @@ const InventoryList = () => {
                       {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
                     </TableCell>
                     <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {valueOf(r) ? `£${valueOf(r).toLocaleString()}` : "—"}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
                     </TableCell>
