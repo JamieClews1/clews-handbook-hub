@@ -103,6 +103,7 @@ const emptyForm = {
   last_skiptrak_ticket: "",
   notes: "",
   photos: [] as string[],
+  value_override: "",
 };
 
 /* ─── Profile editor dialog ─── */
