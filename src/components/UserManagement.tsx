@@ -121,7 +121,7 @@ export const UserManagement = () => {
 
   const handleGrantAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("grant"); };
   const handleRevokeAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("revoke"); };
-  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); };
+  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); setEditName(user.full_name || ""); };
   const handleTypeToggle = (type: string) => {
     setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
@@ -131,18 +131,23 @@ export const UserManagement = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[] })
+        .update({
+          user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[],
+          full_name: editName.trim() || null,
+        })
         .eq("id", editingUser.id);
       if (error) throw error;
-      toast({ title: "Success", description: `User types updated for ${emailToUsername(editingUser.email)}` });
+      toast({ title: "Success", description: `User updated for ${emailToUsername(editingUser.email)}` });
       fetchUsers();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setEditingUser(null);
       setSelectedTypes([]);
+      setEditName("");
     }
   };
+
 
   const handleCreateUser = async () => {
     if (!newUsername.trim()) {
