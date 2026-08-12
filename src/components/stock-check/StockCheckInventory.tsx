@@ -229,6 +229,7 @@ const ProfileDialog = ({
           row.value_override === null || row.value_override === undefined
             ? ""
             : String(row.value_override),
+        tags: row.tags || [],
       });
     } else {
       setForm(emptyForm);
