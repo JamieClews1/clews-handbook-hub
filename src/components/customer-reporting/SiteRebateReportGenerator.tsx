@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
 import { fetchAllCustomers } from "@/lib/fetch-all";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -682,7 +683,14 @@ export function SiteRebateReportGenerator() {
           const midweighCustomer =
             site?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? null;
 
-          if (midweighCustomer && priceSetWasteTypes.length > 0) {
+          const midweighAllowed =
+            !!midweighCustomer &&
+            (await isMidweighRebateCustomer({
+              customerId: selectedCustomer?.id ?? null,
+              dataHubCustomer: midweighCustomer,
+            }));
+
+          if (midweighAllowed && priceSetWasteTypes.length > 0) {
             const { data: midweighJobs } = await supabase
               .from("data_hub_jobs")
               .select("job_number, job_date, waste_description, weight_t, container_type")

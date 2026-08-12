@@ -1,5 +1,6 @@
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
+import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
  import { format, startOfMonth, eachMonthOfInterval } from "date-fns";
  import { DateRange } from "react-day-picker";
  
@@ -155,7 +156,11 @@ export function useSkipRoroRebates(
       const startDate = format(dateRange!.from!, "yyyy-MM-dd");
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
-      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
+      // Midweigh weighbridge tickets only count for customers set up for them
+      const midweighAllowed = await isMidweighRebateCustomer({ customerId, dataHubCustomer });
+      const targetCategories = midweighAllowed
+        ? ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"]
+        : ["Roll on Roll off", "Skips", "Flat Bed pick up"];
       
       let allJobs: JobRecord[] = [];
       
@@ -190,7 +195,7 @@ export function useSkipRoroRebates(
 
       // Also query for Midweigh data where site is blank - match by customer name
       // Only do this when there are no site-specific mappings (i.e. customer-level "no site" report)
-      if (dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
+      if (midweighAllowed && dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
           .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")

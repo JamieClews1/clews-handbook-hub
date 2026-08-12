@@ -2014,6 +2014,7 @@ export type Database = {
           is_active: boolean
           is_broker: boolean
           is_container_load_customer: boolean
+          midweigh_rebates_enabled: boolean
           po_notification_email: string | null
           updated_at: string
         }
@@ -2027,6 +2028,7 @@ export type Database = {
           is_active?: boolean
           is_broker?: boolean
           is_container_load_customer?: boolean
+          midweigh_rebates_enabled?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }
@@ -2040,6 +2042,7 @@ export type Database = {
           is_active?: boolean
           is_broker?: boolean
           is_container_load_customer?: boolean
+          midweigh_rebates_enabled?: boolean
           po_notification_email?: string | null
           updated_at?: string
         }

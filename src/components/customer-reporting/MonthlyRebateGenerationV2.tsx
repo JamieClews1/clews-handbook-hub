@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
 import { convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -427,7 +428,9 @@ export function MonthlyRebateGenerationV2() {
             }
 
             // Midweigh jobs by customer (site is blank on these tickets)
-            if (dataHubCustomer) {
+            // Midweigh jobs by customer (site is blank on these tickets) —
+            // only for customers explicitly set up for Midweigh rebates
+            if (dataHubCustomer && (await isMidweighRebateCustomer({ customerId: customer.id, dataHubCustomer }))) {
               const { data: midweighJobs } = await supabase
                 .from("data_hub_jobs")
                 .select("id, waste_description, weight_t, category, job_type, movement_type")

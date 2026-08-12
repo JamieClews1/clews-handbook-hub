@@ -1,0 +1,2 @@
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS midweigh_rebates_enabled boolean NOT NULL DEFAULT false;
+UPDATE public.customers SET midweigh_rebates_enabled = true WHERE customer_name ~* 'biffa|conectiv|transol';

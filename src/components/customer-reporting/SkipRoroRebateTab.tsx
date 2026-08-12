@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -170,7 +171,11 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
       // Filter by site mappings and categories (Roll on Roll off, Skips, Midweigh)
-      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
+      // Midweigh weighbridge tickets only count for customers set up for them
+      const midweighAllowed = await isMidweighRebateCustomer({ customerId, dataHubCustomer });
+      const targetCategories = midweighAllowed
+        ? ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"]
+        : ["Roll on Roll off", "Skips", "Flat Bed pick up"];
       
       let allJobs: JobRecord[] = [];
       
@@ -207,7 +212,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       // Only do the broad pull in customer-level mode; site-level reports use the
       // explicit waste-description filter below so a shared account (e.g. Biffa
       // Waste) cannot leak unrelated weighbridge tickets into one site.
-      if (dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
+      if (midweighAllowed && dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
           .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
