@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Copy, ExternalLink } from "lucide-react";
 
-const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
+const CONDITIONS = ["New", "Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
 
 interface ConditionValue {
   id: string;
