@@ -207,7 +207,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       // Only do the broad pull in customer-level mode; site-level reports use the
       // explicit waste-description filter below so a shared account (e.g. Biffa
       // Waste) cannot leak unrelated weighbridge tickets into one site.
-      if (dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
+      if (midweighAllowed && dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
           .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
