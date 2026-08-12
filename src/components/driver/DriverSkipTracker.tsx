@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
+  AlertTriangle,
   Award,
   Boxes,
   Camera,
@@ -476,6 +477,9 @@ const DriverSkipTracker = ({
   nav?: React.ReactNode;
 }) => {
   const [cataloguing, setCataloguing] = useState(false);
+  const [presetNumber, setPresetNumber] = useState<{ number: string; type: string } | null>(
+    null,
+  );
   const [tab, setTab] = useState<Tab>("logged");
   const [loggedSearch, setLoggedSearch] = useState("");
   const [loggedType, setLoggedType] = useState<"all" | "skip" | "roro">("all");
