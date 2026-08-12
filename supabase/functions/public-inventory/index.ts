@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const { data: link, error: linkError } = await supabase
       .from("inventory_share_links")
-      .select("id, label, is_active, show_values, show_photos, view_count")
+      .select("id, label, is_active, show_values, show_photos, verified_only, view_count")
       .eq("token", token)
       .maybeSingle();
 
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     const { data: rows, error: rowsError } = await supabase
       .from("skip_inventory")
       .select(
-        "id, asset_number, asset_type, size, condition, repairs_required, repair_notes, photos, last_location, last_cataloged_at, value_override",
+        "id, asset_number, asset_type, size, condition, repairs_required, repair_notes, photos, last_location, last_cataloged_at, value_override, office_verified",
       )
       .order("asset_number", { ascending: true });
     if (rowsError) throw rowsError;
@@ -70,7 +70,14 @@ Deno.serve(async (req) => {
         ? p.map((x: any) => (typeof x === "string" ? x : x?.url)).filter(Boolean)
         : [];
 
-    const items = (rows ?? []).map((r) => ({
+    const HIDDEN_CONDITIONS = ["Yard Use", "Scrapped"];
+    const visibleRows = (rows ?? []).filter(
+      (r: any) =>
+        !HIDDEN_CONDITIONS.includes(r.condition ?? "") &&
+        (!link.verified_only || r.office_verified === true),
+    );
+
+    const items = visibleRows.map((r) => ({
       id: r.id,
       asset_number: r.asset_number,
       asset_type: r.asset_type,
@@ -93,6 +100,7 @@ Deno.serve(async (req) => {
       label: link.label,
       show_values: link.show_values,
       show_photos: link.show_photos,
+      verified_only: link.verified_only,
       items,
     });
   } catch (e) {
