@@ -87,6 +87,7 @@ interface InventoryRow {
   last_reported_by: string | null;
   value_override: number | null;
   tags: string[] | null;
+  office_verified: boolean | null;
 }
 
 interface TagOption {
@@ -230,6 +231,7 @@ const emptyForm = {
   photos: [] as string[],
   value_override: "",
   tags: [] as string[],
+  office_verified: false,
 };
 
 /* ─── Profile editor dialog ─── */
@@ -343,6 +345,7 @@ const ProfileDialog = ({
             ? ""
             : String(row.value_override),
         tags: row.tags || [],
+        office_verified: !!row.office_verified,
       });
     } else {
       setForm(emptyForm);
@@ -410,6 +413,7 @@ const ProfileDialog = ({
         value_override:
           form.value_override.trim() === "" ? null : Number(form.value_override),
         tags: form.tags,
+        office_verified: form.office_verified,
         last_cataloged_at: new Date().toISOString(),
         ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
