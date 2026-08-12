@@ -200,6 +200,55 @@ export const UserManagement = () => {
     }
   };
 
+  const handleBulkCreate = async () => {
+    const rows = bulkText
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(l => {
+        const [username, ...rest] = l.split(/[,\t]/).map(p => p.trim());
+        return { username, full_name: rest.join(" ").trim() };
+      })
+      .filter(r => r.username && /^[a-zA-Z0-9._-]+$/.test(r.username));
+
+    if (rows.length === 0) {
+      toast({ title: "Error", description: "No valid rows found", variant: "destructive" });
+      return;
+    }
+
+    setBulkRunning(true);
+    setBulkLog([]);
+    let created = 0;
+    for (const row of rows) {
+      const email = usernameToEmail(row.username);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-user", {
+          body: { email, full_name: row.full_name || null, user_types: bulkTypes },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        if (bulkPassword && bulkPassword.length >= 4 && data?.user?.id) {
+          await supabase.functions.invoke("set-user-password", {
+            body: { user_id: data.user.id, password: bulkPassword },
+          });
+        }
+        created++;
+        setBulkLog(prev => [...prev, `✅ ${row.username} — created`]);
+      } catch (e: any) {
+        setBulkLog(prev => [...prev, `❌ ${row.username} — ${e.message}`]);
+      }
+    }
+    setBulkRunning(false);
+    toast({ title: "Bulk add complete", description: `${created} of ${rows.length} users created` });
+    fetchUsers();
+  };
+
+  const handleBulkTypeToggle = (type: string) => {
+    setBulkTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  };
+
+
   const handleNewUserTypeToggle = (type: string) => {
     setNewUserTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
