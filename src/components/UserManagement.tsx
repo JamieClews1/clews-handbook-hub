@@ -492,27 +492,40 @@ export const UserManagement = () => {
         </Tabs>
       </div>
 
-      {/* Edit User Types Dialog */}
+      {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Types</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Assign roles to {editingUser ? emailToUsername(editingUser.email) : ""}. These determine which RAMS and Toolbox Talks are relevant to them.
+              Update the name and roles for {editingUser ? emailToUsername(editingUser.email) : ""}. Roles determine which RAMS and Toolbox Talks are relevant to them.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {USER_TYPES.map(type => (
-              <div key={type.value} className="flex items-center space-x-3">
-                <Checkbox
-                  id={type.value}
-                  checked={selectedTypes.includes(type.value)}
-                  onCheckedChange={() => handleTypeToggle(type.value)}
-                />
-                <Label htmlFor={type.value} className="cursor-pointer">{type.label}</Label>
-              </div>
-            ))}
+            <div className="space-y-2">
+              <Label htmlFor="edit-full-name">Full name</Label>
+              <Input
+                id="edit-full-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Jamie Clews"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label>User types</Label>
+              {USER_TYPES.map(type => (
+                <div key={type.value} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={type.value}
+                    checked={selectedTypes.includes(type.value)}
+                    onCheckedChange={() => handleTypeToggle(type.value)}
+                  />
+                  <Label htmlFor={type.value} className="cursor-pointer">{type.label}</Label>
+                </div>
+              ))}
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button onClick={saveUserTypes}>Save Changes</Button>
