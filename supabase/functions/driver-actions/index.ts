@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
         const { data: inventory } = await supabase
           .from("skip_inventory")
           .select(
-            "id, asset_number, asset_type, condition, repairs_required, last_location, last_cataloged_at",
+            "id, asset_number, asset_type, size, condition, repairs_required, last_location, last_cataloged_at, photos, tags",
           )
           .order("last_cataloged_at", { ascending: false, nullsFirst: false })
           .limit(1000);
