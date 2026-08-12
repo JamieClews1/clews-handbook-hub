@@ -1,0 +1,1 @@
+ALTER TABLE public.skip_inventory ADD COLUMN IF NOT EXISTS value_override numeric;
