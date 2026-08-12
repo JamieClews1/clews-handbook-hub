@@ -357,11 +357,13 @@ const SkipTrackerFlow = ({
                       ))}
                     </div>
                   )}
+                  {/* No `capture` attribute: the Android/iOS camera *intent* returns a
+                      downscaled ~1MP image. Letting the OS picker open the full camera
+                      app / gallery keeps the original full-resolution photo. */}
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     className="hidden"
                     onChange={handleCapture}
                     multiple
