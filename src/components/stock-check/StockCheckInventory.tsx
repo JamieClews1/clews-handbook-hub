@@ -1124,21 +1124,20 @@ const InventoryList = () => {
       ) : viewMode === "list" ? (
         <Card className="overflow-hidden">
           <div className="w-full max-w-full overflow-x-auto">
-            <Table className="min-w-[1400px]">
+            <Table style={{ minWidth: `${Math.max(600, shownCount * 130)}px` }}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Number</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Size</TableHead>
-
-                  <TableHead>Condition</TableHead>
-                  <TableHead>Repairs</TableHead>
-                  <TableHead>Last location</TableHead>
-                  <TableHead>Skiptrak ticket</TableHead>
-                  <TableHead className="text-center">Photos</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                 <TableHead>Last catalogued</TableHead>
-                 <TableHead>Logged by</TableHead>
+                  {visibleCols.type && <TableHead>Type</TableHead>}
+                  {visibleCols.size && <TableHead>Size</TableHead>}
+                  {visibleCols.condition && <TableHead>Condition</TableHead>}
+                  {visibleCols.repairs && <TableHead>Repairs</TableHead>}
+                  {visibleCols.location && <TableHead>Last location</TableHead>}
+                  {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
+                  {visibleCols.photos && <TableHead className="text-center">Photos</TableHead>}
+                  {visibleCols.value && <TableHead className="text-right">Value</TableHead>}
+                  {visibleCols.cataloged && <TableHead>Last catalogued</TableHead>}
+                  {visibleCols.loggedBy && <TableHead>Logged by</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1146,50 +1145,70 @@ const InventoryList = () => {
                 {filtered.map((r) => (
                   <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
                     <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px] uppercase">
-                        {r.asset_type === "roro" ? "RoRo" : "Skip"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">{r.size || "—"}</TableCell>
-
-                    <TableCell>
-                      {r.condition ? (
-                        <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
-                          {r.condition}
+                    {visibleCols.type && (
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {r.asset_type === "roro" ? "RoRo" : "Skip"}
                         </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[220px]">
-                      {r.repairs_required ? (
-                        <div className="space-y-1">
-                          <Badge className="text-xs gap-1 bg-red-500 text-white">
-                            <Wrench className="h-3 w-3" /> Required
+                      </TableCell>
+                    )}
+                    {visibleCols.size && (
+                      <TableCell className="whitespace-nowrap text-sm">{r.size || "—"}</TableCell>
+                    )}
+                    {visibleCols.condition && (
+                      <TableCell>
+                        {r.condition ? (
+                          <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
+                            {r.condition}
                           </Badge>
-                          {r.repair_notes && (
-                            <p className="text-xs text-muted-foreground truncate">{r.repair_notes}</p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[220px] truncate">{r.last_location || "—"}</TableCell>
-                    <TableCell className="font-mono whitespace-nowrap">
-                      {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {valueOf(r) ? `£${valueOf(r).toLocaleString()}` : "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                      {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                      {r.last_reported_by || "—"}
-                    </TableCell>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.repairs && (
+                      <TableCell className="max-w-[220px]">
+                        {r.repairs_required ? (
+                          <div className="space-y-1">
+                            <Badge className="text-xs gap-1 bg-red-500 text-white">
+                              <Wrench className="h-3 w-3" /> Required
+                            </Badge>
+                            {r.repair_notes && (
+                              <p className="text-xs text-muted-foreground truncate">{r.repair_notes}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">No</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.location && (
+                      <TableCell className="max-w-[220px] truncate">{r.last_location || "—"}</TableCell>
+                    )}
+                    {visibleCols.ticket && (
+                      <TableCell className="font-mono whitespace-nowrap">
+                        {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
+                      </TableCell>
+                    )}
+                    {visibleCols.photos && (
+                      <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
+                    )}
+                    {visibleCols.value && (
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {valueOf(r) ? `£${valueOf(r).toLocaleString()}` : "—"}
+                      </TableCell>
+                    )}
+                    {visibleCols.cataloged && (
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
+                      </TableCell>
+                    )}
+                    {visibleCols.loggedBy && (
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {r.last_reported_by || "—"}
+                      </TableCell>
+                    )}
+
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <ViewDialog
