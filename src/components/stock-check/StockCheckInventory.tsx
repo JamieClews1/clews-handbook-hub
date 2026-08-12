@@ -952,6 +952,7 @@ const COLUMN_DEFS = [
   { key: "size", label: "Size" },
   { key: "condition", label: "Condition" },
   { key: "tags", label: "Tags" },
+  { key: "verified", label: "Office verified" },
   { key: "repairs", label: "Repairs" },
   { key: "location", label: "Last location" },
   { key: "ticket", label: "Skiptrak ticket" },
