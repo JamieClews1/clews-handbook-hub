@@ -566,47 +566,7 @@ export const ToolboxTalkBuilder = () => {
         toolboxTalk={selectedTalkForPrint}
       />
 
-      <TranslationSaveDialog
-        open={showTranslationDialog}
-        onOpenChange={setShowTranslationDialog}
-        onConfirm={handleSaveWithTranslation}
-        isTranslating={isTranslating}
-        documentType="Toolbox Talk"
-        isNew={!editingTalk}
-      />
-
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Toolbox Talk Saved!</DialogTitle>
-            <DialogDescription>
-              Your Toolbox Talk has been saved successfully. What would you like to do next?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowSuccessDialog(false);
-                resetForm();
-              }}
-            >
-              View Toolbox Talks
-            </Button>
-            <Button
-              onClick={() => {
-                setShowSuccessDialog(false);
-                resetForm();
-                setIsCreating(true);
-              }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create Another
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {saveDialogs}
 
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
         <DialogContent className="sm:max-w-md">
