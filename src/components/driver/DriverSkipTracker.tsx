@@ -35,11 +35,38 @@ interface InventoryRow {
   id: string;
   asset_number: string;
   asset_type: string;
+  size?: string | null;
   condition: string | null;
   repairs_required: boolean;
   last_location: string | null;
   last_cataloged_at: string | null;
+  photos?: (string | { url: string; label?: string })[] | null;
+  tags?: string[] | null;
 }
+
+/** A bin needs more info when it has fewer than 4 photos, is missing size/condition,
+ *  or the office has tagged it as needing more photos. */
+const needsMoreInfo = (i: InventoryRow) => {
+  const photoCount = Array.isArray(i.photos) ? i.photos.length : 0;
+  const tagged = (i.tags || []).some((t) => t.toLowerCase().includes("photo"));
+  return photoCount < 4 || !i.size || !i.condition || tagged;
+};
+
+const missingBits = (i: InventoryRow) => {
+  const photoCount = Array.isArray(i.photos) ? i.photos.length : 0;
+  const bits: string[] = [];
+  if (photoCount < 4) bits.push(`${4 - photoCount} more photo(s)`);
+  if (!i.size) bits.push("size");
+  if (!i.condition) bits.push("condition");
+  for (const t of i.tags || []) if (t.toLowerCase().includes("photo")) bits.push(t);
+  return bits.join(" · ");
+};
+
+const numericSort = (a: InventoryRow, b: InventoryRow) =>
+  a.asset_number.localeCompare(b.asset_number, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 
 interface MyReport {
   id: string;
