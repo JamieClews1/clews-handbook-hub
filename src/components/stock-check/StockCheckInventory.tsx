@@ -74,6 +74,7 @@ interface InventoryRow {
   notes: string | null;
   last_cataloged_at: string | null;
   last_reported_by: string | null;
+  value_override: number | null;
 }
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
@@ -102,6 +103,7 @@ const emptyForm = {
   last_skiptrak_ticket: "",
   notes: "",
   photos: [] as string[],
+  value_override: "",
 };
 
 /* ─── Profile editor dialog ─── */
@@ -182,6 +184,10 @@ const ProfileDialog = ({
         last_skiptrak_ticket: row.last_skiptrak_ticket || "",
         notes: row.notes || "",
         photos: row.photos || [],
+        value_override:
+          row.value_override === null || row.value_override === undefined
+            ? ""
+            : String(row.value_override),
       });
     } else {
       setForm(emptyForm);
@@ -246,6 +252,8 @@ const ProfileDialog = ({
         last_skiptrak_ticket: form.last_skiptrak_ticket.trim() || null,
         notes: form.notes.trim() || null,
         photos: form.photos,
+        value_override:
+          form.value_override.trim() === "" ? null : Number(form.value_override),
         last_cataloged_at: new Date().toISOString(),
         ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
@@ -349,6 +357,21 @@ const ProfileDialog = ({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Value (£)</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="1"
+              value={form.value_override}
+              onChange={(e) => setForm((f) => ({ ...f, value_override: e.target.value }))}
+              placeholder="Leave blank to use condition value"
+            />
+            <p className="text-xs text-muted-foreground">
+              Overrides the default value set for this condition in settings.
+            </p>
+          </div>
+
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-2">
@@ -735,6 +758,9 @@ const InventoryList = () => {
   });
 
   const valueOf = (r: InventoryRow) =>
+    r.value_override !== null && r.value_override !== undefined
+      ? Number(r.value_override)
+      :
     Number(
       conditionValues.find(
         (v) => v.asset_type === r.asset_type && v.condition === (r.condition || ""),

@@ -6213,6 +6213,7 @@ export type Database = {
           repairs_required: boolean
           size: string | null
           updated_at: string
+          value_override: number | null
         }
         Insert: {
           asset_number: string
@@ -6230,6 +6231,7 @@ export type Database = {
           repairs_required?: boolean
           size?: string | null
           updated_at?: string
+          value_override?: number | null
         }
         Update: {
           asset_number?: string
@@ -6247,6 +6249,7 @@ export type Database = {
           repairs_required?: boolean
           size?: string | null
           updated_at?: string
+          value_override?: number | null
         }
         Relationships: []
       }
