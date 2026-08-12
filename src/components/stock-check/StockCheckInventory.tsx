@@ -751,21 +751,31 @@ const InventoryList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("skip_inventory_condition_values")
-        .select("asset_type, condition, value");
+        .select("asset_type, condition, value, size_group, sizes");
       if (error) throw error;
-      return (data || []) as { asset_type: string; condition: string; value: number }[];
+      return (data || []) as {
+        asset_type: string;
+        condition: string;
+        value: number;
+        size_group: string | null;
+        sizes: string[] | null;
+      }[];
     },
   });
 
-  const valueOf = (r: InventoryRow) =>
-    r.value_override !== null && r.value_override !== undefined
-      ? Number(r.value_override)
-      :
-    Number(
-      conditionValues.find(
-        (v) => v.asset_type === r.asset_type && v.condition === (r.condition || ""),
-      )?.value ?? 0,
+  const valueOf = (r: InventoryRow) => {
+    if (r.value_override !== null && r.value_override !== undefined) {
+      return Number(r.value_override);
+    }
+    const matches = conditionValues.filter(
+      (v) => v.asset_type === r.asset_type && v.condition === (r.condition || ""),
     );
+    const bySize = r.size
+      ? matches.find((v) => (v.sizes || []).includes(r.size as string))
+      : undefined;
+    const fallback = matches.find((v) => !v.size_group);
+    return Number((bySize ?? fallback)?.value ?? 0);
+  };
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("skip_inventory").delete().eq("id", id);
