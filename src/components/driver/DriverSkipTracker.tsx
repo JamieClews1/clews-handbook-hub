@@ -499,9 +499,14 @@ const DriverSkipTracker = ({
       <SkipTrackerFlow
         reporter={reporter}
         inventory={data?.inventory ?? []}
-        onBack={() => setCataloguing(false)}
+        preset={presetNumber}
+        onBack={() => {
+          setCataloguing(false);
+          setPresetNumber(null);
+        }}
         onSubmitted={() => {
           setCataloguing(false);
+          setPresetNumber(null);
           refetch();
         }}
       />
