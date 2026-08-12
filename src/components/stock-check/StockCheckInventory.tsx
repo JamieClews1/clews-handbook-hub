@@ -357,6 +357,21 @@ const ProfileDialog = ({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Value (£)</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="1"
+              value={form.value_override}
+              onChange={(e) => setForm((f) => ({ ...f, value_override: e.target.value }))}
+              placeholder="Leave blank to use condition value"
+            />
+            <p className="text-xs text-muted-foreground">
+              Overrides the default value set for this condition in settings.
+            </p>
+          </div>
+
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-2">
