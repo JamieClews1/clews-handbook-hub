@@ -108,15 +108,19 @@ const SkipTrackerFlow = ({
   inventory,
   onBack,
   onSubmitted,
+  preset,
 }: {
   reporter: Reporter;
   inventory: InventoryRow[];
   onBack: () => void;
   onSubmitted: () => void;
+  preset?: { number: string; type: string } | null;
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [assetType, setAssetType] = useState<"skip" | "roro">("skip");
-  const [assetNumber, setAssetNumber] = useState("");
+  const [assetType, setAssetType] = useState<"skip" | "roro">(
+    preset?.type === "roro" ? "roro" : "skip",
+  );
+  const [assetNumber, setAssetNumber] = useState(preset?.number ?? "");
   const [condition, setCondition] = useState<string>("Good");
   const [repairsRequired, setRepairsRequired] = useState(false);
   const [repairNotes, setRepairNotes] = useState("");
@@ -495,9 +499,14 @@ const DriverSkipTracker = ({
       <SkipTrackerFlow
         reporter={reporter}
         inventory={data?.inventory ?? []}
-        onBack={() => setCataloguing(false)}
+        preset={presetNumber}
+        onBack={() => {
+          setCataloguing(false);
+          setPresetNumber(null);
+        }}
         onSubmitted={() => {
           setCataloguing(false);
+          setPresetNumber(null);
           refetch();
         }}
       />
@@ -571,7 +580,10 @@ const DriverSkipTracker = ({
 
       <div className="px-4">
         <Button
-          onClick={() => setCataloguing(true)}
+          onClick={() => {
+            setPresetNumber(null);
+            setCataloguing(true);
+          }}
           className="w-full h-16 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-3"
         >
           <Plus className="w-6 h-6" /> Catalogue Skip / RoRo
