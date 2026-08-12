@@ -287,6 +287,8 @@ export const StockCheckSettings = () => {
       </Card>
 
       <InventorySizesSettings />
+
+      <InventoryValueSettings />
     </div>
 
   );
