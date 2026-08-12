@@ -37,7 +37,21 @@ const USER_TYPES = [
   { value: "management", label: "Management" },
 ];
 
+const DEFAULT_BULK_USERS = `AnastasiiS, Anastasii Sultan
+BartekZ, Bartlomiej Zaremba
+ChristopherM, Christopher Mooney
+DominikG, Dominik Gdowski
+KatarzynaC, Katarzyna Ciesielska
+MarcinM, Marcin Mysaka
+MateuszS, Mateusz Siczek
+MateuszZ, Mateusz Zabiszewski
+PaulH, Paul Holden
+RomanS, Roman Sultan
+VladslavK, Vladslav Kormyltsev
+WojciechS, Wojciech Siczek`;
+
 type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned";
+
 
 export const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -48,7 +62,14 @@ export const UserManagement = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [editName, setEditName] = useState("");
 
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [bulkText, setBulkText] = useState(DEFAULT_BULK_USERS);
+  const [bulkTypes, setBulkTypes] = useState<string[]>(["yard"]);
+  const [bulkPassword, setBulkPassword] = useState("Clews1234");
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkLog, setBulkLog] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
   const [newUsername, setNewUsername] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserTypes, setNewUserTypes] = useState<string[]>([]);
@@ -178,6 +199,55 @@ export const UserManagement = () => {
       setCreating(false);
     }
   };
+
+  const handleBulkCreate = async () => {
+    const rows = bulkText
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(l => {
+        const [username, ...rest] = l.split(/[,\t]/).map(p => p.trim());
+        return { username, full_name: rest.join(" ").trim() };
+      })
+      .filter(r => r.username && /^[a-zA-Z0-9._-]+$/.test(r.username));
+
+    if (rows.length === 0) {
+      toast({ title: "Error", description: "No valid rows found", variant: "destructive" });
+      return;
+    }
+
+    setBulkRunning(true);
+    setBulkLog([]);
+    let created = 0;
+    for (const row of rows) {
+      const email = usernameToEmail(row.username);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-user", {
+          body: { email, full_name: row.full_name || null, user_types: bulkTypes },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        if (bulkPassword && bulkPassword.length >= 6 && data?.user?.id) {
+          await supabase.functions.invoke("set-user-password", {
+            body: { user_id: data.user.id, password: bulkPassword },
+          });
+        }
+        created++;
+        setBulkLog(prev => [...prev, `✅ ${row.username} — created`]);
+      } catch (e: any) {
+        setBulkLog(prev => [...prev, `❌ ${row.username} — ${e.message}`]);
+      }
+    }
+    setBulkRunning(false);
+    toast({ title: "Bulk add complete", description: `${created} of ${rows.length} users created` });
+    fetchUsers();
+  };
+
+  const handleBulkTypeToggle = (type: string) => {
+    setBulkTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  };
+
 
   const handleNewUserTypeToggle = (type: string) => {
     setNewUserTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
@@ -355,6 +425,10 @@ export const UserManagement = () => {
             <Button onClick={() => setShowCreateDialog(true)} size="sm" className="gap-1">
               <UserPlus className="h-4 w-4" /> Create User
             </Button>
+            <Button onClick={() => setShowBulkDialog(true)} variant="secondary" size="sm" className="gap-1">
+              <UserPlus className="h-4 w-4" /> Bulk Add
+            </Button>
+
             <Button onClick={fetchUsers} variant="outline" size="sm">Refresh</Button>
           </div>
         </div>
@@ -560,7 +634,63 @@ export const UserManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Add Users Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={(o) => !bulkRunning && setShowBulkDialog(o)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bulk Add Users</DialogTitle>
+            <DialogDescription>
+              One user per line as: username, Full Name. Existing usernames are re-used, not duplicated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <textarea
+              className="w-full h-56 rounded-md border bg-background p-3 font-mono text-sm"
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              disabled={bulkRunning}
+            />
+            <div className="space-y-2">
+              <Label>User types applied to all</Label>
+              <div className="flex flex-wrap gap-4">
+                {USER_TYPES.map(type => (
+                  <div key={`bulk-${type.value}`} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`bulk-${type.value}`}
+                      checked={bulkTypes.includes(type.value)}
+                      onCheckedChange={() => handleBulkTypeToggle(type.value)}
+                    />
+                    <Label htmlFor={`bulk-${type.value}`} className="cursor-pointer">{type.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bulk-password">Default password</Label>
+              <Input
+                id="bulk-password"
+                value={bulkPassword}
+                onChange={(e) => setBulkPassword(e.target.value)}
+                disabled={bulkRunning}
+              />
+            </div>
+            {bulkLog.length > 0 && (
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 text-sm space-y-1">
+                {bulkLog.map((l, i) => <div key={i}>{l}</div>)}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDialog(false)} disabled={bulkRunning}>Close</Button>
+            <Button onClick={handleBulkCreate} disabled={bulkRunning}>
+              {bulkRunning ? "Creating..." : "Create Users"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create User Dialog */}
+
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
