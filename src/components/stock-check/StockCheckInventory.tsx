@@ -144,6 +144,7 @@ const emptyForm = {
   notes: "",
   photos: [] as string[],
   value_override: "",
+  tags: [] as string[],
 };
 
 /* ─── Profile editor dialog ─── */
