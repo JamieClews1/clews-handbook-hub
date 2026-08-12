@@ -443,6 +443,48 @@ const ProfileDialog = ({
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2">
+              {tagOptions.length === 0 && (
+                <p className="text-xs text-muted-foreground">No tags yet — add one below.</p>
+              )}
+              {tagOptions.map((t) => {
+                const active = form.tags.includes(t.name);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTag(t.name)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full border text-xs font-medium transition-colors",
+                      active
+                        ? tagStyle[t.colour] || tagStyle.amber
+                        : "border-border text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="New tag name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    createTag();
+                  }
+                }}
+              />
+              <Button type="button" variant="outline" onClick={createTag} disabled={addingTag}>
+                {addingTag ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-2">
