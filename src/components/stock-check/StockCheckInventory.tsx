@@ -47,7 +47,16 @@ import {
   Download,
   LayoutGrid,
   List,
+  Columns3,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -56,6 +65,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 
 import { cn } from "@/lib/utils";
 
