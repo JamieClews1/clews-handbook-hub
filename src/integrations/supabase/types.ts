@@ -3102,6 +3102,48 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          last_viewed_at: string | null
+          show_photos: boolean
+          show_values: boolean
+          token: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_viewed_at?: string | null
+          show_photos?: boolean
+          show_values?: boolean
+          token?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_viewed_at?: string | null
+          show_photos?: boolean
+          show_values?: boolean
+          token?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       invoice_line_items: {
         Row: {
           created_at: string
@@ -6205,6 +6247,33 @@ export type Database = {
           repairs_required?: boolean
           size?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      skip_inventory_condition_values: {
+        Row: {
+          asset_type: string
+          condition: string
+          created_at: string
+          id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          asset_type: string
+          condition: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          asset_type?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          value?: number
         }
         Relationships: []
       }
