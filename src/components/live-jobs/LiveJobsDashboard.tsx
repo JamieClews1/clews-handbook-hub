@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { computeOverRentalBins } from "@/lib/overRental";
+import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
 
 type Job = {
   id: string;
@@ -89,7 +89,11 @@ function positionOnSite(p: PosCounts): number {
 
 function typeOnSite(positions: Record<string, PosCounts> | undefined): number {
   if (!positions) return 0;
-  return Object.values(positions).reduce((sum, p) => sum + positionOnSite(p), 0);
+  const list = Object.values(positions);
+  const raw = list.reduce((sum, p) => sum + positionOnSite(p), 0);
+  // Clamp to the plain delivered−collected balance for the container type so a
+  // collection logged under a different EWC still clears its delivery.
+  return Math.min(raw, containerTypeCap(list));
 }
 
 // Genuine uncollected delivery balance for a position. Unlike positionOnSite this
