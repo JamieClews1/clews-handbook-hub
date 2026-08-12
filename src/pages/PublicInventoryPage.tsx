@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const conditionStyle: Record<string, string> = {
+  New: "bg-lime-500/15 text-lime-700 border-lime-500/30",
   Good: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
   Fair: "bg-amber-500/15 text-amber-700 border-amber-500/30",
   Poor: "bg-orange-500/15 text-orange-700 border-orange-500/30",
