@@ -1279,6 +1279,37 @@ const InventoryList = () => {
     toast.success("Report downloaded");
   };
 
+  const SortHeader = ({
+    colKey,
+    children,
+    className,
+    align = "left",
+  }: {
+    colKey: string;
+    children: React.ReactNode;
+    className?: string;
+    align?: "left" | "center" | "right";
+  }) => {
+    const active = sort.key === colKey;
+    const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+    return (
+      <TableHead
+        className={cn(
+          "cursor-pointer select-none whitespace-nowrap",
+          align === "center" && "text-center",
+          align === "right" && "text-right",
+          className,
+        )}
+        onClick={() => handleSort(colKey)}
+      >
+        <span className="inline-flex items-center gap-1">
+          {children}
+          <Icon className={cn("h-3.5 w-3.5", active ? "text-foreground" : "text-muted-foreground/60")} />
+        </span>
+      </TableHead>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
