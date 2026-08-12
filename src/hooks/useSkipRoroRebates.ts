@@ -1,5 +1,6 @@
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
+import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
  import { format, startOfMonth, eachMonthOfInterval } from "date-fns";
  import { DateRange } from "react-day-picker";
  
