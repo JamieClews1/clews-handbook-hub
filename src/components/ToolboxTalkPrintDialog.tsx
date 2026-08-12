@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
+import { useUnicodeFont } from "@/lib/pdf-fonts";
 
 interface ToolboxTalk {
   id: string;
@@ -89,7 +90,8 @@ const renderCompactPage = (
   blocks: ParsedBlock[],
   langLabel: string,
   createdDate: string,
-  userTypes: string[]
+  userTypes: string[],
+  font: string
 ) => {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -102,9 +104,9 @@ const renderCompactPage = (
   pdf.rect(0, 0, pageWidth, 18, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(9);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.text("CLEWS RECYCLING — TOOLBOX TALK", marginL, 7);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setFontSize(8);
   pdf.text(`${langLabel}  |  ${new Date(createdDate).toLocaleDateString("en-GB")}`, marginL, 13);
   const audienceStr = userTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(", ");
@@ -114,7 +116,7 @@ const renderCompactPage = (
   let y = 25;
   pdf.setTextColor(30, 64, 42);
   pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   const titleLines = pdf.splitTextToSize(title, contentWidth);
   pdf.text(titleLines, marginL, y);
   y += titleLines.length * 7 + 3;
@@ -135,7 +137,7 @@ const renderCompactPage = (
       addPageIfNeeded(12);
       if (y > 30) y += 2;
       pdf.setFontSize(block.level === 1 ? 13 : block.level === 2 ? 11 : 10);
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont(font, "bold");
       pdf.setTextColor(30, 64, 42);
       const lines = pdf.splitTextToSize(block.text, contentWidth);
       pdf.text(lines, marginL, y);
@@ -143,7 +145,7 @@ const renderCompactPage = (
     } else if (block.type === "paragraph") {
       addPageIfNeeded(8);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
       const lines = pdf.splitTextToSize(block.text, contentWidth);
       pdf.text(lines, marginL, y);
@@ -151,7 +153,7 @@ const renderCompactPage = (
     } else if (block.type === "list-item") {
       addPageIfNeeded(6);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
       const lines = pdf.splitTextToSize(`•  ${block.text}`, contentWidth - 6);
       pdf.text(lines, marginL + 4, y);
@@ -159,7 +161,7 @@ const renderCompactPage = (
     } else if (block.type === "numbered-item") {
       addPageIfNeeded(6);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
       const lines = pdf.splitTextToSize(`${block.level}.  ${block.text}`, contentWidth - 6);
       pdf.text(lines, marginL + 4, y);
@@ -176,12 +178,12 @@ const renderCompactPage = (
   y += 5;
 
   pdf.setFontSize(9);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.setTextColor(30, 64, 42);
   pdf.text("DECLARATION", marginL, y);
   y += 4;
   pdf.setFontSize(8);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setTextColor(30, 30, 30);
   pdf.text("I have read, understood and will follow the guidelines in this Toolbox Talk.", marginL, y);
   y += 6;
@@ -265,6 +267,7 @@ export const ToolboxTalkPrintDialog = ({
 
     try {
       const pdf = new jsPDF({ unit: "mm", format: "a4" });
+      const font = await useUnicodeFont(pdf);
       let isFirstPage = true;
       const blocks = parseHtmlToBlocks(toolboxTalk.content);
 
@@ -275,7 +278,7 @@ export const ToolboxTalkPrintDialog = ({
         const langLabel = LANGUAGES.find(l => l.code === langCode)?.label || "English";
         const { title, blocks: translatedBlocks } = await translateContent(toolboxTalk.title, blocks, langCode);
 
-        renderCompactPage(pdf, title, translatedBlocks, langLabel, toolboxTalk.created_date, toolboxTalk.user_types);
+        renderCompactPage(pdf, title, translatedBlocks, langLabel, toolboxTalk.created_date, toolboxTalk.user_types, font);
       }
 
       // Add page numbers
@@ -284,6 +287,7 @@ export const ToolboxTalkPrintDialog = ({
       const pageHeight = pdf.internal.pageSize.getHeight();
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
+        pdf.setFont(font, "normal");
         pdf.setFontSize(7);
         pdf.setTextColor(150, 150, 150);
         pdf.text(`Clews Recycling  |  Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: "center" });
