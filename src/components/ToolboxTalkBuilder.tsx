@@ -469,6 +469,8 @@ export const ToolboxTalkBuilder = () => {
             {editingTalk ? "Update" : "Create"} Toolbox Talk
           </Button>
         </div>
+
+        {saveDialogs}
       </div>
     );
   }
