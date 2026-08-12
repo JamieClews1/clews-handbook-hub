@@ -163,6 +163,34 @@ const ProfileDialog = ({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const [newTag, setNewTag] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
+  const { data: tagOptions = [], refetch: refetchTags } = useTagOptions();
+
+  const toggleTag = (name: string) =>
+    setForm((f) => ({
+      ...f,
+      tags: f.tags.includes(name) ? f.tags.filter((t) => t !== name) : [...f.tags, name],
+    }));
+
+  const createTag = async () => {
+    const name = newTag.trim();
+    if (!name) return;
+    setAddingTag(true);
+    try {
+      const { error } = await supabase
+        .from("skip_inventory_tags")
+        .insert({ name, display_order: tagOptions.length + 1 });
+      if (error && !error.message.includes("duplicate")) throw error;
+      await refetchTags();
+      setForm((f) => (f.tags.includes(name) ? f : { ...f, tags: [...f.tags, name] }));
+      setNewTag("");
+    } catch {
+      toast.error("Could not add tag");
+    } finally {
+      setAddingTag(false);
+    }
+  };
 
   const { data: sizeOptions = [] } = useQuery({
     queryKey: ["skip-inventory-sizes"],
@@ -296,6 +324,7 @@ const ProfileDialog = ({
         photos: form.photos,
         value_override:
           form.value_override.trim() === "" ? null : Number(form.value_override),
+        tags: form.tags,
         last_cataloged_at: new Date().toISOString(),
         ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
