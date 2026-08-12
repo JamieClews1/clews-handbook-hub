@@ -275,17 +275,35 @@ const SkipTrackerFlow = ({
           </div>
         )}
 
+        {topUpTarget && (
+          <div className="rounded-lg border border-orange-500 bg-orange-500/10 p-3 text-sm text-orange-700">
+            <p className="font-semibold">More info needed on this one — add it and earn points</p>
+            <p className="text-xs mt-0.5">Still needed: {missingBits(topUpTarget)}</p>
+          </div>
+        )}
+
         {!recentlyCatalogued && matchingCatalogued.length > 0 && (
           <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
             <p className="text-xs font-semibold text-muted-foreground">
-              Already catalogued (don't repeat)
+              Already catalogued — orange ones still need more photos / info
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {matchingCatalogued.map((i) => (
-                <Badge key={i.id} variant="secondary" className="font-mono text-xs">
-                  {i.asset_number}
-                </Badge>
-              ))}
+              {matchingCatalogued.map((i) => {
+                const needs = needsMoreInfo(i);
+                return (
+                  <button key={i.id} type="button" onClick={() => setAssetNumber(i.asset_number)}>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "font-mono text-xs",
+                        needs && "bg-orange-500 text-white hover:bg-orange-600",
+                      )}
+                    >
+                      {i.asset_number}
+                    </Badge>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
