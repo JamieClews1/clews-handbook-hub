@@ -1031,7 +1031,16 @@ const InventoryList = () => {
         .select("*")
         .order("asset_number", { ascending: true });
       if (error) throw error;
-      return (data || []) as InventoryRow[];
+      // Photos can be stored either as plain URL strings (office uploads) or as
+      // { url, label } objects (driver app captures) — normalise to URL strings.
+      return ((data || []) as any[]).map((r) => ({
+        ...r,
+        photos: Array.isArray(r.photos)
+          ? r.photos
+              .map((p: any) => (typeof p === "string" ? p : p?.url))
+              .filter(Boolean)
+          : [],
+      })) as InventoryRow[];
     },
   });
 
