@@ -988,9 +988,9 @@ const InventoryList = () => {
           <p>No skip / RoRo profiles yet.</p>
         </div>
       ) : viewMode === "list" ? (
-        <Card>
-          <div className="overflow-x-auto">
-            <Table>
+        <Card className="overflow-hidden">
+          <div className="w-full max-w-full overflow-x-auto">
+            <Table className="min-w-[1400px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Number</TableHead>
