@@ -642,32 +642,63 @@ const DriverSkipTracker = ({
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">{loggedList.length} catalogued</p>
+            <p className="text-xs text-muted-foreground">
+              {loggedList.length} catalogued
+              {needsInfoCount > 0 && (
+                <span className="text-orange-600 font-semibold">
+                  {" "}
+                  · {needsInfoCount} need more photos / info
+                </span>
+              )}
+            </p>
             {loggedList.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-10">
                 Nothing catalogued yet.
               </p>
             ) : (
-              loggedList.map((i) => (
-                <Card key={i.id}>
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground truncate">
-                        {i.asset_type === "roro" ? "RoRo" : "Skip"} #{i.asset_number}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                    {i.last_cataloged_at && (
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {format(new Date(i.last_cataloged_at), "d MMM yy")}
-                      </span>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
+              loggedList.map((i) => {
+                const needs = needsMoreInfo(i);
+                return (
+                  <Card
+                    key={i.id}
+                    className={cn(needs && "border-orange-500 bg-orange-500/10")}
+                    onClick={
+                      needs
+                        ? () => {
+                            setPresetNumber({ number: i.asset_number, type: i.asset_type });
+                            setCataloguing(true);
+                          }
+                        : undefined
+                    }
+                  >
+                    <CardContent className="p-3 flex items-center gap-3">
+                      {needs ? (
+                        <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />
+                      ) : (
+                        <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-foreground truncate">
+                          {i.asset_type === "roro" ? "RoRo" : "Skip"} #{i.asset_number}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
+                        </p>
+                        {needs && (
+                          <p className="text-xs text-orange-700 font-medium truncate">
+                            Needs: {missingBits(i)} — tap to add & earn points
+                          </p>
+                        )}
+                      </div>
+                      {i.last_cataloged_at && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {format(new Date(i.last_cataloged_at), "d MMM yy")}
+                        </span>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
             )}
           </>
         )}
