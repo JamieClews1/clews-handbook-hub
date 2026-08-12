@@ -1044,6 +1044,41 @@ const InventoryList = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {viewMode === "list" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Columns3 className="h-4 w-4" /> Columns
+                  <Badge variant="secondary" className="text-[10px]">
+                    {shownCount}/{COLUMN_DEFS.length}
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+                <DropdownMenuLabel>Visible columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {COLUMN_DEFS.map((c) => (
+                  <DropdownMenuCheckboxItem
+                    key={c.key}
+                    checked={!!visibleCols[c.key]}
+                    disabled={"locked" in c && c.locked}
+                    onCheckedChange={() => toggleCol(c.key)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {c.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                <DropdownMenuSeparator />
+                <button
+                  onClick={resetCols}
+                  className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent"
+                >
+                  Show all columns
+                </button>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           <div className="flex rounded-lg border p-0.5">
             <button
               onClick={() => setViewMode("grid")}
