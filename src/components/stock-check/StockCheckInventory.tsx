@@ -85,7 +85,37 @@ interface InventoryRow {
   last_cataloged_at: string | null;
   last_reported_by: string | null;
   value_override: number | null;
+  tags: string[] | null;
 }
+
+interface TagOption {
+  id: string;
+  name: string;
+  colour: string;
+}
+
+const tagStyle: Record<string, string> = {
+  amber: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  red: "bg-red-500/15 text-red-700 border-red-500/30",
+  blue: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  green: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  purple: "bg-purple-500/15 text-purple-700 border-purple-500/30",
+  grey: "bg-muted text-muted-foreground border-border",
+};
+
+const useTagOptions = () =>
+  useQuery({
+    queryKey: ["skip-inventory-tag-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skip_inventory_tags")
+        .select("id, name, colour, is_active, display_order")
+        .eq("is_active", true)
+        .order("display_order");
+      if (error) throw error;
+      return (data || []) as TagOption[];
+    },
+  });
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
 
