@@ -91,6 +91,12 @@ const StockCheckPage = () => {
                 <PackageSearch className="h-4 w-4" />
                 Inventory
               </TabsTrigger>
+              {canManageSettings && (
+                <TabsTrigger value="notifications" className="gap-2">
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="live">
