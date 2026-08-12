@@ -155,7 +155,11 @@ export function useSkipRoroRebates(
       const startDate = format(dateRange!.from!, "yyyy-MM-dd");
       const endDate = format(dateRange?.to ?? dateRange!.from!, "yyyy-MM-dd");
 
-      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
+      // Midweigh weighbridge tickets only count for customers set up for them
+      const midweighAllowed = await isMidweighRebateCustomer({ customerId, dataHubCustomer });
+      const targetCategories = midweighAllowed
+        ? ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"]
+        : ["Roll on Roll off", "Skips", "Flat Bed pick up"];
       
       let allJobs: JobRecord[] = [];
       
