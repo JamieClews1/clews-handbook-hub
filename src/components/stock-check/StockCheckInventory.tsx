@@ -1054,6 +1054,19 @@ const InventoryList = () => {
     },
   });
 
+  const { data: shareLinks = [] } = useQuery({
+    queryKey: ["inventory-share-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory_share_links")
+        .select("id, token, label, is_active")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as { id: string; token: string; label: string | null; is_active: boolean }[];
+    },
+  });
+
   const valueOf = (r: InventoryRow) => {
     if (r.value_override !== null && r.value_override !== undefined) {
       return Number(r.value_override);
