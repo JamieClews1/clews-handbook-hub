@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
 import { convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
