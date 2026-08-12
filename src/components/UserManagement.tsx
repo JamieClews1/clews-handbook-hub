@@ -634,7 +634,63 @@ export const UserManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Add Users Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={(o) => !bulkRunning && setShowBulkDialog(o)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bulk Add Users</DialogTitle>
+            <DialogDescription>
+              One user per line as: username, Full Name. Existing usernames are re-used, not duplicated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <textarea
+              className="w-full h-56 rounded-md border bg-background p-3 font-mono text-sm"
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              disabled={bulkRunning}
+            />
+            <div className="space-y-2">
+              <Label>User types applied to all</Label>
+              <div className="flex flex-wrap gap-4">
+                {USER_TYPES.map(type => (
+                  <div key={`bulk-${type.value}`} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`bulk-${type.value}`}
+                      checked={bulkTypes.includes(type.value)}
+                      onCheckedChange={() => handleBulkTypeToggle(type.value)}
+                    />
+                    <Label htmlFor={`bulk-${type.value}`} className="cursor-pointer">{type.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bulk-password">Default password</Label>
+              <Input
+                id="bulk-password"
+                value={bulkPassword}
+                onChange={(e) => setBulkPassword(e.target.value)}
+                disabled={bulkRunning}
+              />
+            </div>
+            {bulkLog.length > 0 && (
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 text-sm space-y-1">
+                {bulkLog.map((l, i) => <div key={i}>{l}</div>)}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDialog(false)} disabled={bulkRunning}>Close</Button>
+            <Button onClick={handleBulkCreate} disabled={bulkRunning}>
+              {bulkRunning ? "Creating..." : "Create Users"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create User Dialog */}
+
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
