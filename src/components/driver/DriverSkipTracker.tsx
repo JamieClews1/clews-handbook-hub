@@ -137,8 +137,20 @@ const SkipTrackerFlow = ({
         i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
     );
     if (!match?.last_cataloged_at) return null;
+    // Bins that still need more info can always be topped up with extra photos
+    if (needsMoreInfo(match)) return null;
     const ageMs = Date.now() - new Date(match.last_cataloged_at).getTime();
     return ageMs < SIX_MONTHS_MS ? match : null;
+  }, [assetNumber, assetType, inventory]);
+
+  // The exact bin being topped up (already logged, still missing info)
+  const topUpTarget = useMemo(() => {
+    const num = assetNumber.trim().toLowerCase();
+    if (!num) return null;
+    const match = inventory.find(
+      (i) => i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
+    );
+    return match && needsMoreInfo(match) ? match : null;
   }, [assetNumber, assetType, inventory]);
 
   // Bins of this type already catalogued, filtered as the driver types
