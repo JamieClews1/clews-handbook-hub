@@ -734,8 +734,29 @@ const SkipTrackerLeaderboard = () => {
   );
 };
 
+/* ─── Column visibility ─── */
+const COLUMN_PREF_KEY = "skip-inventory-visible-columns";
+const COLUMN_DEFS = [
+  { key: "number", label: "Number", locked: true },
+  { key: "type", label: "Type" },
+  { key: "size", label: "Size" },
+  { key: "condition", label: "Condition" },
+  { key: "repairs", label: "Repairs" },
+  { key: "location", label: "Last location" },
+  { key: "ticket", label: "Skiptrak ticket" },
+  { key: "photos", label: "Photos" },
+  { key: "value", label: "Value" },
+  { key: "cataloged", label: "Last catalogued" },
+  { key: "loggedBy", label: "Logged by" },
+  { key: "actions", label: "Actions", locked: true },
+] as const;
+const DEFAULT_COLUMNS: Record<string, boolean> = Object.fromEntries(
+  COLUMN_DEFS.map((c) => [c.key, true]),
+);
+
 /* ─── Inventory list ─── */
 const InventoryList = () => {
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
