@@ -1336,6 +1336,22 @@ const InventoryList = () => {
               <List className="h-3.5 w-3.5" /> List
             </button>
           </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <SettingsIcon className="h-4 w-4" /> Settings
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Inventory Settings</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <InventorySizesSettings />
+                <InventoryValueSettings />
+              </div>
+            </DialogContent>
+          </Dialog>
           <ProfileDialog
             trigger={
               <Button className="gap-2">
@@ -1344,6 +1360,7 @@ const InventoryList = () => {
             }
             onSaved={refetch}
           />
+
         </div>
       </div>
 
