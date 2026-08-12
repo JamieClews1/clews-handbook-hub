@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import jsPDF from "jspdf";
+import { useUnicodeFont } from "@/lib/pdf-fonts";
 
 const LANGUAGES = [
   { code: "EN", label: "English" },
@@ -93,7 +94,7 @@ const parseHtmlToBlocks = (html: string): ParsedBlock[] => {
   return blocks;
 };
 
-const generateCompactPDF = (
+const generateCompactPDF = async (
   title: string,
   content: string,
   refCode: string,
@@ -102,6 +103,7 @@ const generateCompactPDF = (
   langLabel: string
 ) => {
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  const font = await useUnicodeFont(pdf);
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const marginL = 15;
@@ -114,9 +116,9 @@ const generateCompactPDF = (
   pdf.rect(0, 0, pageWidth, 18, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(9);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.text("CLEWS RECYCLING — TOOLBOX TALK", marginL, 7);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setFontSize(8);
   pdf.text(`${refCode}  |  ${langLabel}  |  ${new Date(createdDate).toLocaleDateString("en-GB")}`, marginL, 13);
   const audienceStr = userTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(", ");
@@ -128,7 +130,7 @@ const generateCompactPDF = (
   let y = 25;
   pdf.setTextColor(30, 64, 42);
   pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   const titleLines = pdf.splitTextToSize(title, contentWidth);
   pdf.text(titleLines, marginL, y);
   y += titleLines.length * 7 + 3;
@@ -154,7 +156,7 @@ const generateCompactPDF = (
       addPageIfNeeded(12);
       if (y > 30) y += 2; // small gap before headings (not at top)
       pdf.setFontSize(block.level === 1 ? 13 : block.level === 2 ? 11 : 10);
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont(font, "bold");
       pdf.setTextColor(30, 64, 42);
       const lines = pdf.splitTextToSize(block.text, contentWidth);
       pdf.text(lines, marginL, y);
@@ -162,7 +164,7 @@ const generateCompactPDF = (
     } else if (block.type === "paragraph") {
       addPageIfNeeded(8);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
       const lines = pdf.splitTextToSize(block.text, contentWidth);
       pdf.text(lines, marginL, y);
@@ -170,7 +172,7 @@ const generateCompactPDF = (
     } else if (block.type === "list-item") {
       addPageIfNeeded(6);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
       const bulletText = `•  ${block.text}`;
       const lines = pdf.splitTextToSize(bulletText, contentWidth - 6);
@@ -179,7 +181,7 @@ const generateCompactPDF = (
     } else if (block.type === "numbered-item") {
       addPageIfNeeded(6);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
       const numberedText = `${block.level}.  ${block.text}`;
       const lines = pdf.splitTextToSize(numberedText, contentWidth - 6);
@@ -199,12 +201,12 @@ const generateCompactPDF = (
   y += 5;
 
   pdf.setFontSize(9);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont(font, "bold");
   pdf.setTextColor(30, 64, 42);
   pdf.text("DECLARATION", marginL, y);
   y += 4;
   pdf.setFontSize(8);
-  pdf.setFont("helvetica", "normal");
+  pdf.setFont(font, "normal");
   pdf.setTextColor(30, 30, 30);
   const decl = "I have read, understood and will follow the guidelines in this Toolbox Talk.";
   pdf.text(decl, marginL, y);
@@ -221,7 +223,7 @@ const generateCompactPDF = (
       const x = marginL + col * (colWidth + 4);
       const rowY = y + row * rowH;
       const num = row * 2 + col + 1;
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(font, "normal");
       pdf.text(`${num}.`, x, rowY + 3);
       pdf.setDrawColor(180, 180, 180);
       pdf.line(x + 5, rowY + 4, x + colWidth * 0.5, rowY + 4); // name line
@@ -324,12 +326,12 @@ const ToolboxTalkDetailPage = () => {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!talk) return;
     setIsPrinting(true);
     try {
       const langLabel = LANGUAGES.find(l => l.code === selectedLanguage)?.label || "English";
-      const pdf = generateCompactPDF(displayTitle, displayContent, talk.reference_code, talk.created_date, talk.user_types, langLabel);
+      const pdf = await generateCompactPDF(displayTitle, displayContent, talk.reference_code, talk.created_date, talk.user_types, langLabel);
       pdf.save(`${talk.title.replace(/[^a-z0-9]/gi, "_")}_${selectedLanguage}.pdf`);
       toast({ title: "Success", description: "PDF generated successfully" });
     } catch (error) {
