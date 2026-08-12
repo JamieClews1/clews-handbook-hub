@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { InventorySizesSettings } from "./InventorySizesSettings";
 import { InventoryValueSettings } from "./InventoryValueSettings";
