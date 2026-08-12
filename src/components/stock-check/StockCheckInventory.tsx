@@ -427,7 +427,9 @@ const ProfileDialog = ({
               <div className="flex gap-2 flex-wrap">
                 {form.photos.map((url, i) => (
                   <div key={url} className="relative">
-                    <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg border" />
+                    <a href={url} target="_blank" rel="noreferrer">
+                      <img src={url} alt="" className="w-20 h-20 object-cover rounded-lg border" />
+                    </a>
                     <button
                       type="button"
                       onClick={() =>
