@@ -25,10 +25,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
   Award,
+  CheckCircle2,
   Boxes,
   Eye,
   Camera,
@@ -87,6 +89,7 @@ interface InventoryRow {
   last_reported_by: string | null;
   value_override: number | null;
   tags: string[] | null;
+  office_verified: boolean | null;
 }
 
 interface TagOption {
@@ -230,6 +233,7 @@ const emptyForm = {
   photos: [] as string[],
   value_override: "",
   tags: [] as string[],
+  office_verified: false,
 };
 
 /* ─── Profile editor dialog ─── */
@@ -343,6 +347,7 @@ const ProfileDialog = ({
             ? ""
             : String(row.value_override),
         tags: row.tags || [],
+        office_verified: !!row.office_verified,
       });
     } else {
       setForm(emptyForm);
@@ -410,6 +415,7 @@ const ProfileDialog = ({
         value_override:
           form.value_override.trim() === "" ? null : Number(form.value_override),
         tags: form.tags,
+        office_verified: form.office_verified,
         last_cataloged_at: new Date().toISOString(),
         ...(loggedBy ? { last_reported_by: loggedBy } : {}),
       };
@@ -570,6 +576,18 @@ const ProfileDialog = ({
               </Button>
             </div>
           </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <Label className="cursor-pointer">Office verified</Label>
+            </div>
+            <Switch
+              checked={form.office_verified}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, office_verified: v }))}
+            />
+          </div>
+
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-2">
@@ -935,6 +953,7 @@ const COLUMN_DEFS = [
   { key: "size", label: "Size" },
   { key: "condition", label: "Condition" },
   { key: "tags", label: "Tags" },
+  { key: "verified", label: "Office verified" },
   { key: "repairs", label: "Repairs" },
   { key: "location", label: "Last location" },
   { key: "ticket", label: "Skiptrak ticket" },
@@ -1347,6 +1366,7 @@ const InventoryList = () => {
                   {visibleCols.size && <TableHead>Size</TableHead>}
                   {visibleCols.condition && <TableHead>Condition</TableHead>}
                   {visibleCols.tags && <TableHead>Tags</TableHead>}
+                  {visibleCols.verified && <TableHead className="text-center">Office verified</TableHead>}
                   {visibleCols.repairs && <TableHead>Repairs</TableHead>}
                   {visibleCols.location && <TableHead>Last location</TableHead>}
                   {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
@@ -1385,6 +1405,25 @@ const InventoryList = () => {
                     {visibleCols.tags && (
                       <TableCell className="max-w-[240px]">
                         <TagCell row={r} onSaved={refetch} />
+                      </TableCell>
+                    )}
+                    {visibleCols.verified && (
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={!!r.office_verified}
+                          aria-label={`Office verified for ${r.asset_number}`}
+                          onCheckedChange={async (v) => {
+                            const { error } = await supabase
+                              .from("skip_inventory")
+                              .update({ office_verified: !!v })
+                              .eq("id", r.id);
+                            if (error) {
+                              toast.error("Could not update verification");
+                              return;
+                            }
+                            refetch();
+                          }}
+                        />
                       </TableCell>
                     )}
                     {visibleCols.repairs && (
