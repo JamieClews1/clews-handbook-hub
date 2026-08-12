@@ -1025,7 +1025,78 @@ const InventoryList = () => {
 
   const shownCount = COLUMN_DEFS.filter((c) => visibleCols[c.key]).length;
 
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({
+    key: "number",
+    dir: "asc",
+  });
 
+  const handleSort = (key: string) => {
+    setSort((prev) => ({
+      key,
+      dir: prev.key === key && prev.dir === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const sortRows = (data: InventoryRow[]) => {
+    const { key, dir } = sort;
+    const sorted = [...data];
+    const mult = dir === "asc" ? 1 : -1;
+
+    const num = (s?: string | null) => {
+      if (!s) return 0;
+      const m = s.match(/(\d+)/);
+      return m ? Number(m[1]) : 0;
+    };
+    const alpha = (s?: string | null) => (s || "").toLowerCase();
+
+    sorted.sort((a, b) => {
+      switch (key) {
+        case "number": {
+          const aA = alpha(a.asset_number).replace(/\d+/g, "").trim();
+          const bA = alpha(b.asset_number).replace(/\d+/g, "").trim();
+          if (aA !== bA) return aA.localeCompare(bA) * mult;
+          return (num(a.asset_number) - num(b.asset_number)) * mult;
+        }
+        case "type":
+          return (alpha(a.asset_type).localeCompare(alpha(b.asset_type))) * mult;
+        case "size":
+          return (alpha(a.size).localeCompare(alpha(b.size))) * mult;
+        case "condition":
+          return (alpha(a.condition).localeCompare(alpha(b.condition))) * mult;
+        case "tags": {
+          const aT = (a.tags || []).join(", ").toLowerCase();
+          const bT = (b.tags || []).join(", ").toLowerCase();
+          return aT.localeCompare(bT) * mult;
+        }
+        case "verified":
+          return ((a.office_verified ? 1 : 0) - (b.office_verified ? 1 : 0)) * mult;
+        case "repairs": {
+          const aR = a.repairs_required ? 1 : 0;
+          const bR = b.repairs_required ? 1 : 0;
+          if (aR !== bR) return (aR - bR) * mult;
+          return alpha(a.repair_notes).localeCompare(alpha(b.repair_notes)) * mult;
+        }
+        case "location":
+          return alpha(a.last_location).localeCompare(alpha(b.last_location)) * mult;
+        case "ticket":
+          return alpha(a.last_skiptrak_ticket).localeCompare(alpha(b.last_skiptrak_ticket)) * mult;
+        case "photos":
+          return ((a.photos?.length || 0) - (b.photos?.length || 0)) * mult;
+        case "value":
+          return (valueOf(a) - valueOf(b)) * mult;
+        case "cataloged": {
+          const aD = a.last_cataloged_at ? new Date(a.last_cataloged_at).getTime() : 0;
+          const bD = b.last_cataloged_at ? new Date(b.last_cataloged_at).getTime() : 0;
+          return (aD - bD) * mult;
+        }
+        case "loggedBy":
+          return alpha(a.last_reported_by).localeCompare(alpha(b.last_reported_by)) * mult;
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  };
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["skip-inventory"],
