@@ -514,7 +514,8 @@ const DriverSkipTracker = ({
         i.asset_number.toLowerCase().includes(q) ||
         (i.last_location || "").toLowerCase().includes(q),
     )
-    .sort((a, b) => a.asset_number.localeCompare(b.asset_number, undefined, { numeric: true }));
+    .sort(numericSort);
+  const needsInfoCount = loggedList.filter(needsMoreInfo).length;
 
   return (
     <div className="min-h-screen bg-background pb-24">
