@@ -1,0 +1,1 @@
+ALTER TABLE public.inventory_share_links ADD COLUMN IF NOT EXISTS verified_only boolean NOT NULL DEFAULT false;
