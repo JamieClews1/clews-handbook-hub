@@ -428,7 +428,8 @@ const ProfileDialog = ({
         tags: form.tags,
         office_verified: form.office_verified,
         last_cataloged_at: new Date().toISOString(),
-        ...(loggedBy ? { last_reported_by: loggedBy } : {}),
+        // Keep the original logger — only stamp the name when creating a new record
+        ...(!row && loggedBy ? { last_reported_by: loggedBy } : {}),
       };
       if (row) {
         const { error } = await supabase.from("skip_inventory").update(payload).eq("id", row.id);
