@@ -47,7 +47,16 @@ import {
   Download,
   LayoutGrid,
   List,
+  Columns3,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -56,6 +65,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 
 import { cn } from "@/lib/utils";
 
@@ -724,12 +734,65 @@ const SkipTrackerLeaderboard = () => {
   );
 };
 
+/* ─── Column visibility ─── */
+const COLUMN_PREF_KEY = "skip-inventory-visible-columns";
+const COLUMN_DEFS = [
+  { key: "number", label: "Number", locked: true },
+  { key: "type", label: "Type" },
+  { key: "size", label: "Size" },
+  { key: "condition", label: "Condition" },
+  { key: "repairs", label: "Repairs" },
+  { key: "location", label: "Last location" },
+  { key: "ticket", label: "Skiptrak ticket" },
+  { key: "photos", label: "Photos" },
+  { key: "value", label: "Value" },
+  { key: "cataloged", label: "Last catalogued" },
+  { key: "loggedBy", label: "Logged by" },
+  { key: "actions", label: "Actions", locked: true },
+] as const;
+const DEFAULT_COLUMNS: Record<string, boolean> = Object.fromEntries(
+  COLUMN_DEFS.map((c) => [c.key, true]),
+);
+
 /* ─── Inventory list ─── */
 const InventoryList = () => {
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(COLUMN_PREF_KEY);
+      if (saved) return { ...DEFAULT_COLUMNS, ...JSON.parse(saved) };
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_COLUMNS;
+  });
+
+  const toggleCol = (key: string) =>
+    setVisibleCols((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(COLUMN_PREF_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+
+  const resetCols = () => {
+    setVisibleCols(DEFAULT_COLUMNS);
+    try {
+      localStorage.setItem(COLUMN_PREF_KEY, JSON.stringify(DEFAULT_COLUMNS));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const shownCount = COLUMN_DEFS.filter((c) => visibleCols[c.key]).length;
+
 
 
   const { data: rows = [], isLoading } = useQuery({
@@ -981,6 +1044,41 @@ const InventoryList = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {viewMode === "list" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Columns3 className="h-4 w-4" /> Columns
+                  <Badge variant="secondary" className="text-[10px]">
+                    {shownCount}/{COLUMN_DEFS.length}
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+                <DropdownMenuLabel>Visible columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {COLUMN_DEFS.map((c) => (
+                  <DropdownMenuCheckboxItem
+                    key={c.key}
+                    checked={!!visibleCols[c.key]}
+                    disabled={"locked" in c && c.locked}
+                    onCheckedChange={() => toggleCol(c.key)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {c.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                <DropdownMenuSeparator />
+                <button
+                  onClick={resetCols}
+                  className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent"
+                >
+                  Show all columns
+                </button>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           <div className="flex rounded-lg border p-0.5">
             <button
               onClick={() => setViewMode("grid")}
@@ -1026,21 +1124,20 @@ const InventoryList = () => {
       ) : viewMode === "list" ? (
         <Card className="overflow-hidden">
           <div className="w-full max-w-full overflow-x-auto">
-            <Table className="min-w-[1400px]">
+            <Table style={{ minWidth: `${Math.max(600, shownCount * 130)}px` }}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Number</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Size</TableHead>
-
-                  <TableHead>Condition</TableHead>
-                  <TableHead>Repairs</TableHead>
-                  <TableHead>Last location</TableHead>
-                  <TableHead>Skiptrak ticket</TableHead>
-                  <TableHead className="text-center">Photos</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                 <TableHead>Last catalogued</TableHead>
-                 <TableHead>Logged by</TableHead>
+                  {visibleCols.type && <TableHead>Type</TableHead>}
+                  {visibleCols.size && <TableHead>Size</TableHead>}
+                  {visibleCols.condition && <TableHead>Condition</TableHead>}
+                  {visibleCols.repairs && <TableHead>Repairs</TableHead>}
+                  {visibleCols.location && <TableHead>Last location</TableHead>}
+                  {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
+                  {visibleCols.photos && <TableHead className="text-center">Photos</TableHead>}
+                  {visibleCols.value && <TableHead className="text-right">Value</TableHead>}
+                  {visibleCols.cataloged && <TableHead>Last catalogued</TableHead>}
+                  {visibleCols.loggedBy && <TableHead>Logged by</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1048,50 +1145,70 @@ const InventoryList = () => {
                 {filtered.map((r) => (
                   <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
                     <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px] uppercase">
-                        {r.asset_type === "roro" ? "RoRo" : "Skip"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">{r.size || "—"}</TableCell>
-
-                    <TableCell>
-                      {r.condition ? (
-                        <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
-                          {r.condition}
+                    {visibleCols.type && (
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {r.asset_type === "roro" ? "RoRo" : "Skip"}
                         </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[220px]">
-                      {r.repairs_required ? (
-                        <div className="space-y-1">
-                          <Badge className="text-xs gap-1 bg-red-500 text-white">
-                            <Wrench className="h-3 w-3" /> Required
+                      </TableCell>
+                    )}
+                    {visibleCols.size && (
+                      <TableCell className="whitespace-nowrap text-sm">{r.size || "—"}</TableCell>
+                    )}
+                    {visibleCols.condition && (
+                      <TableCell>
+                        {r.condition ? (
+                          <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
+                            {r.condition}
                           </Badge>
-                          {r.repair_notes && (
-                            <p className="text-xs text-muted-foreground truncate">{r.repair_notes}</p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[220px] truncate">{r.last_location || "—"}</TableCell>
-                    <TableCell className="font-mono whitespace-nowrap">
-                      {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {valueOf(r) ? `£${valueOf(r).toLocaleString()}` : "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                      {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                      {r.last_reported_by || "—"}
-                    </TableCell>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.repairs && (
+                      <TableCell className="max-w-[220px]">
+                        {r.repairs_required ? (
+                          <div className="space-y-1">
+                            <Badge className="text-xs gap-1 bg-red-500 text-white">
+                              <Wrench className="h-3 w-3" /> Required
+                            </Badge>
+                            {r.repair_notes && (
+                              <p className="text-xs text-muted-foreground truncate">{r.repair_notes}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">No</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.location && (
+                      <TableCell className="max-w-[220px] truncate">{r.last_location || "—"}</TableCell>
+                    )}
+                    {visibleCols.ticket && (
+                      <TableCell className="font-mono whitespace-nowrap">
+                        {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
+                      </TableCell>
+                    )}
+                    {visibleCols.photos && (
+                      <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
+                    )}
+                    {visibleCols.value && (
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {valueOf(r) ? `£${valueOf(r).toLocaleString()}` : "—"}
+                      </TableCell>
+                    )}
+                    {visibleCols.cataloged && (
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
+                      </TableCell>
+                    )}
+                    {visibleCols.loggedBy && (
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {r.last_reported_by || "—"}
+                      </TableCell>
+                    )}
+
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <ViewDialog
