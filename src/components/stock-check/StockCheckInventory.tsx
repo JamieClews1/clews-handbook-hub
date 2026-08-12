@@ -1017,6 +1017,9 @@ const InventoryList = () => {
                       {r.last_skiptrak_ticket ? `#${r.last_skiptrak_ticket}` : "—"}
                     </TableCell>
                     <TableCell className="text-center tabular-nums">{r.photos?.length || 0}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {valueOf(r) ? `£${valueOf(r).toLocaleString()}` : "—"}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "d MMM yyyy") : "—"}
                     </TableCell>
