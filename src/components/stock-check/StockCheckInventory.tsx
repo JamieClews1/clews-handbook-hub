@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
@@ -116,6 +117,90 @@ const useTagOptions = () =>
       return (data || []) as TagOption[];
     },
   });
+
+/* ─── Inline tag editor (list view cell) ─── */
+const TagCell = ({
+  row,
+  onSaved,
+}: {
+  row: InventoryRow;
+  onSaved: () => void;
+}) => {
+  const { data: tagOptions = [] } = useTagOptions();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const current = row.tags || [];
+
+  const toggle = async (name: string) => {
+    const next = current.includes(name)
+      ? current.filter((t) => t !== name)
+      : [...current, name];
+    setSaving(true);
+    const { error } = await supabase
+      .from("skip_inventory")
+      .update({ tags: next })
+      .eq("id", row.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Could not update tags");
+      return;
+    }
+    onSaved();
+  };
+
+  const colourFor = (name: string) =>
+    tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="w-full text-left rounded-md px-1 py-0.5 hover:bg-muted transition-colors"
+        >
+          {current.length ? (
+            <div className="flex flex-wrap gap-1">
+              {current.map((t) => (
+                <Badge key={t} variant="outline" className={cn("text-[10px]", colourFor(t))}>
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">+ Tag</span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-60 p-3 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Tags</p>
+        {tagOptions.length === 0 && (
+          <p className="text-xs text-muted-foreground">No tags set up yet.</p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {tagOptions.map((t) => {
+            const active = current.includes(t.name);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                disabled={saving}
+                onClick={() => toggle(t.name)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full border text-xs font-medium transition-colors disabled:opacity-50",
+                  active
+                    ? tagStyle[t.colour] || tagStyle.amber
+                    : "border-border text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {t.name}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
 
@@ -1299,17 +1384,7 @@ const InventoryList = () => {
                     )}
                     {visibleCols.tags && (
                       <TableCell className="max-w-[240px]">
-                        {(r.tags || []).length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {(r.tags || []).map((t) => (
-                              <Badge key={t} variant="outline" className={cn("text-[10px]", tagColour(t))}>
-                                {t}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        <TagCell row={r} onSaved={refetch} />
                       </TableCell>
                     )}
                     {visibleCols.repairs && (
