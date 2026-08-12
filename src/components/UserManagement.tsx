@@ -37,7 +37,21 @@ const USER_TYPES = [
   { value: "management", label: "Management" },
 ];
 
+const DEFAULT_BULK_USERS = `AnastasiiS, Anastasii Sultan
+BartekZ, Bartlomiej Zaremba
+ChristopherM, Christopher Mooney
+DominikG, Dominik Gdowski
+KatarzynaC, Katarzyna Ciesielska
+MarcinM, Marcin Mysaka
+MateuszS, Mateusz Siczek
+MateuszZ, Mateusz Zabiszewski
+PaulH, Paul Holden
+RomanS, Roman Sultan
+VladslavK, Vladslav Kormyltsev
+WojciechS, Wojciech Siczek`;
+
 type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned";
+
 
 export const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
