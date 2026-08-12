@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
+  AlertTriangle,
   Award,
   Boxes,
   Camera,
@@ -35,11 +36,38 @@ interface InventoryRow {
   id: string;
   asset_number: string;
   asset_type: string;
+  size?: string | null;
   condition: string | null;
   repairs_required: boolean;
   last_location: string | null;
   last_cataloged_at: string | null;
+  photos?: (string | { url: string; label?: string })[] | null;
+  tags?: string[] | null;
 }
+
+/** A bin needs more info when it has fewer than 4 photos, is missing size/condition,
+ *  or the office has tagged it as needing more photos. */
+const needsMoreInfo = (i: InventoryRow) => {
+  const photoCount = Array.isArray(i.photos) ? i.photos.length : 0;
+  const tagged = (i.tags || []).some((t) => t.toLowerCase().includes("photo"));
+  return photoCount < 4 || !i.size || !i.condition || tagged;
+};
+
+const missingBits = (i: InventoryRow) => {
+  const photoCount = Array.isArray(i.photos) ? i.photos.length : 0;
+  const bits: string[] = [];
+  if (photoCount < 4) bits.push(`${4 - photoCount} more photo(s)`);
+  if (!i.size) bits.push("size");
+  if (!i.condition) bits.push("condition");
+  for (const t of i.tags || []) if (t.toLowerCase().includes("photo")) bits.push(t);
+  return bits.join(" · ");
+};
+
+const numericSort = (a: InventoryRow, b: InventoryRow) =>
+  a.asset_number.localeCompare(b.asset_number, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 
 interface MyReport {
   id: string;
@@ -110,8 +138,20 @@ const SkipTrackerFlow = ({
         i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
     );
     if (!match?.last_cataloged_at) return null;
+    // Bins that still need more info can always be topped up with extra photos
+    if (needsMoreInfo(match)) return null;
     const ageMs = Date.now() - new Date(match.last_cataloged_at).getTime();
     return ageMs < SIX_MONTHS_MS ? match : null;
+  }, [assetNumber, assetType, inventory]);
+
+  // The exact bin being topped up (already logged, still missing info)
+  const topUpTarget = useMemo(() => {
+    const num = assetNumber.trim().toLowerCase();
+    if (!num) return null;
+    const match = inventory.find(
+      (i) => i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
+    );
+    return match && needsMoreInfo(match) ? match : null;
   }, [assetNumber, assetType, inventory]);
 
   // Bins of this type already catalogued, filtered as the driver types
@@ -123,7 +163,8 @@ const SkipTrackerFlow = ({
           i.asset_type === assetType &&
           (!num || i.asset_number.toLowerCase().includes(num)),
       )
-      .slice(0, 40);
+      .sort(numericSort)
+      .slice(0, 60);
   }, [assetNumber, assetType, inventory]);
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,17 +276,35 @@ const SkipTrackerFlow = ({
           </div>
         )}
 
+        {topUpTarget && (
+          <div className="rounded-lg border border-orange-500 bg-orange-500/10 p-3 text-sm text-orange-700">
+            <p className="font-semibold">More info needed on this one — add it and earn points</p>
+            <p className="text-xs mt-0.5">Still needed: {missingBits(topUpTarget)}</p>
+          </div>
+        )}
+
         {!recentlyCatalogued && matchingCatalogued.length > 0 && (
           <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
             <p className="text-xs font-semibold text-muted-foreground">
-              Already catalogued (don't repeat)
+              Already catalogued — orange ones still need more photos / info
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {matchingCatalogued.map((i) => (
-                <Badge key={i.id} variant="secondary" className="font-mono text-xs">
-                  {i.asset_number}
-                </Badge>
-              ))}
+              {matchingCatalogued.map((i) => {
+                const needs = needsMoreInfo(i);
+                return (
+                  <button key={i.id} type="button" onClick={() => setAssetNumber(i.asset_number)}>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "font-mono text-xs",
+                        needs && "bg-orange-500 text-white hover:bg-orange-600",
+                      )}
+                    >
+                      {i.asset_number}
+                    </Badge>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -418,6 +477,9 @@ const DriverSkipTracker = ({
   nav?: React.ReactNode;
 }) => {
   const [cataloguing, setCataloguing] = useState(false);
+  const [presetNumber, setPresetNumber] = useState<{ number: string; type: string } | null>(
+    null,
+  );
   const [tab, setTab] = useState<Tab>("logged");
   const [loggedSearch, setLoggedSearch] = useState("");
   const [loggedType, setLoggedType] = useState<"all" | "skip" | "roro">("all");
@@ -456,7 +518,8 @@ const DriverSkipTracker = ({
         i.asset_number.toLowerCase().includes(q) ||
         (i.last_location || "").toLowerCase().includes(q),
     )
-    .sort((a, b) => a.asset_number.localeCompare(b.asset_number, undefined, { numeric: true }));
+    .sort(numericSort);
+  const needsInfoCount = loggedList.filter(needsMoreInfo).length;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -583,32 +646,63 @@ const DriverSkipTracker = ({
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">{loggedList.length} catalogued</p>
+            <p className="text-xs text-muted-foreground">
+              {loggedList.length} catalogued
+              {needsInfoCount > 0 && (
+                <span className="text-orange-600 font-semibold">
+                  {" "}
+                  · {needsInfoCount} need more photos / info
+                </span>
+              )}
+            </p>
             {loggedList.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-10">
                 Nothing catalogued yet.
               </p>
             ) : (
-              loggedList.map((i) => (
-                <Card key={i.id}>
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground truncate">
-                        {i.asset_type === "roro" ? "RoRo" : "Skip"} #{i.asset_number}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                    {i.last_cataloged_at && (
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {format(new Date(i.last_cataloged_at), "d MMM yy")}
-                      </span>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
+              loggedList.map((i) => {
+                const needs = needsMoreInfo(i);
+                return (
+                  <Card
+                    key={i.id}
+                    className={cn(needs && "border-orange-500 bg-orange-500/10")}
+                    onClick={
+                      needs
+                        ? () => {
+                            setPresetNumber({ number: i.asset_number, type: i.asset_type });
+                            setCataloguing(true);
+                          }
+                        : undefined
+                    }
+                  >
+                    <CardContent className="p-3 flex items-center gap-3">
+                      {needs ? (
+                        <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />
+                      ) : (
+                        <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-foreground truncate">
+                          {i.asset_type === "roro" ? "RoRo" : "Skip"} #{i.asset_number}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
+                        </p>
+                        {needs && (
+                          <p className="text-xs text-orange-700 font-medium truncate">
+                            Needs: {missingBits(i)} — tap to add & earn points
+                          </p>
+                        )}
+                      </div>
+                      {i.last_cataloged_at && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {format(new Date(i.last_cataloged_at), "d MMM yy")}
+                        </span>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
             )}
           </>
         )}

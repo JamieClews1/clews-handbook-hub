@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
         const { data: inventory } = await supabase
           .from("skip_inventory")
           .select(
-            "id, asset_number, asset_type, condition, repairs_required, last_location, last_cataloged_at",
+            "id, asset_number, asset_type, size, condition, repairs_required, last_location, last_cataloged_at, photos, tags",
           )
           .order("last_cataloged_at", { ascending: false, nullsFirst: false })
           .limit(1000);
@@ -447,12 +447,28 @@ Deno.serve(async (req) => {
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         const { data: existing } = await supabase
           .from("skip_inventory")
-          .select("id, last_cataloged_at, last_reported_by")
+          .select(
+            "id, last_cataloged_at, last_reported_by, photos, tags, size, condition",
+          )
           .eq("asset_type", assetType)
           .eq("asset_number", assetNumber)
           .maybeSingle();
 
+        const existingPhotos = Array.isArray(existing?.photos) ? existing!.photos : [];
+        const existingTags: string[] = Array.isArray(existing?.tags) ? existing!.tags : [];
+        const needsMoreInfo = existing
+          ? existingPhotos.length < 4 ||
+            !existing.size ||
+            !existing.condition ||
+            existingTags.some((t) => String(t).toLowerCase().includes("photo"))
+          : false;
+
+        const newPhotos = Array.isArray(body?.photos) ? body.photos : [];
+        // Top-up mode: bin needs more info and the driver is adding photos
+        const isTopUp = Boolean(existing) && needsMoreInfo && newPhotos.length > 0;
+
         if (
+          !isTopUp &&
           existing?.last_cataloged_at &&
           new Date(existing.last_cataloged_at) > sixMonthsAgo
         ) {
@@ -465,7 +481,7 @@ Deno.serve(async (req) => {
           );
         }
 
-        const photos = Array.isArray(body?.photos) ? body.photos : [];
+        const photos = isTopUp ? [...existingPhotos, ...newPhotos] : newPhotos;
         const condition = body?.condition ? String(body.condition) : null;
         const repairsRequired = Boolean(body?.repairs_required);
         const repairNotes = body?.repair_notes ? String(body.repair_notes) : null;
@@ -473,7 +489,10 @@ Deno.serve(async (req) => {
         const ticket = body?.skiptrak_ticket ? String(body.skiptrak_ticket) : null;
         const now = new Date().toISOString();
 
-        const invPayload = {
+        // Points: full award for a new catalogue, smaller award for topping up photos
+        const pointsAwarded = isTopUp ? 5 : POINTS;
+
+        const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
           asset_type: assetType,
           condition,
@@ -486,6 +505,13 @@ Deno.serve(async (req) => {
           // Preserve the person who originally logged/photographed this asset
           last_reported_by: existing?.last_reported_by || reporterName,
         };
+
+        // Clear "more photos needed" style tags once enough photos exist
+        if (photos.length >= 4 && existingTags.length) {
+          invPayload.tags = existingTags.filter(
+            (t) => !String(t).toLowerCase().includes("photo"),
+          );
+        }
 
         let inventoryId = existing?.id ?? null;
         if (inventoryId) {
@@ -513,13 +539,13 @@ Deno.serve(async (req) => {
             skiptrak_ticket: ticket,
             reporter_driver_id: reporterDriverId,
             reporter_name: reporterName,
-            points_awarded: POINTS,
+            points_awarded: pointsAwarded,
           })
           .select("id")
           .single();
         if (repErr) throw repErr;
 
-        return json({ id: report.id, points: POINTS });
+        return json({ id: report.id, points: pointsAwarded, top_up: isTopUp });
       }
 
       default:
