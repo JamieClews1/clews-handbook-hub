@@ -1356,15 +1356,58 @@ const InventoryList = () => {
                 viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
               )}
             >
-              <List className="h-3.5 w-3.5" /> List
-            </button>
-          </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <SettingsIcon className="h-4 w-4" /> Settings
+            <List className="h-3.5 w-3.5" /> List
+          </button>
+        </div>
+
+        {shareLinks.length === 0 ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" className="gap-2" disabled>
+                <ExternalLink className="h-4 w-4" /> External view
               </Button>
-            </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">Create an active share link in Inventory Settings to enable the external view.</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : shareLinks.length === 1 ? (
+          <Button variant="outline" className="gap-2" asChild>
+            <a href={`/inventory/${shareLinks[0].token}`} target="_blank" rel="noreferrer">
+              <ExternalLink className="h-4 w-4" /> External view
+            </a>
+          </Button>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <ExternalLink className="h-4 w-4" /> External view
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover z-50">
+              <DropdownMenuLabel>Choose external link</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {shareLinks.map((l) => (
+                <a
+                  key={l.id}
+                  href={`/inventory/${l.token}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                >
+                  {l.label || "External inventory view"}
+                </a>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <SettingsIcon className="h-4 w-4" /> Settings
+            </Button>
+          </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Inventory Settings</DialogTitle>
