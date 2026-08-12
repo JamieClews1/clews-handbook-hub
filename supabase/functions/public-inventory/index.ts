@@ -42,18 +42,28 @@ Deno.serve(async (req) => {
     const { data: rows, error: rowsError } = await supabase
       .from("skip_inventory")
       .select(
-        "id, asset_number, asset_type, size, condition, repairs_required, repair_notes, photos, last_location, last_cataloged_at",
+        "id, asset_number, asset_type, size, condition, repairs_required, repair_notes, photos, last_location, last_cataloged_at, value_override",
       )
       .order("asset_number", { ascending: true });
     if (rowsError) throw rowsError;
 
     const { data: values } = await supabase
       .from("skip_inventory_condition_values")
-      .select("asset_type, condition, value");
+      .select("asset_type, condition, value, size_group, sizes");
 
-    const valueMap = new Map(
-      (values ?? []).map((v) => [`${v.asset_type}|${v.condition}`, Number(v.value) || 0]),
-    );
+    const valueFor = (r: any) => {
+      if (r.value_override !== null && r.value_override !== undefined) {
+        return Number(r.value_override) || 0;
+      }
+      const matches = (values ?? []).filter(
+        (v: any) => v.asset_type === r.asset_type && v.condition === (r.condition ?? ""),
+      );
+      const bySize = r.size
+        ? matches.find((v: any) => (v.sizes ?? []).includes(r.size))
+        : undefined;
+      const fallback = matches.find((v: any) => !v.size_group);
+      return Number((bySize ?? fallback)?.value ?? 0);
+    };
 
     const items = (rows ?? []).map((r) => ({
       id: r.id,
@@ -66,9 +76,7 @@ Deno.serve(async (req) => {
       last_location: r.last_location,
       last_cataloged_at: r.last_cataloged_at,
       photos: link.show_photos ? r.photos ?? [] : [],
-      value: link.show_values
-        ? valueMap.get(`${r.asset_type}|${r.condition ?? ""}`) ?? 0
-        : null,
+      value: link.show_values ? valueFor(r) : null,
     }));
 
     await supabase

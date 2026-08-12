@@ -6259,6 +6259,8 @@ export type Database = {
           condition: string
           created_at: string
           id: string
+          size_group: string | null
+          sizes: string[]
           updated_at: string
           value: number
         }
@@ -6267,6 +6269,8 @@ export type Database = {
           condition: string
           created_at?: string
           id?: string
+          size_group?: string | null
+          sizes?: string[]
           updated_at?: string
           value?: number
         }
@@ -6275,6 +6279,8 @@ export type Database = {
           condition?: string
           created_at?: string
           id?: string
+          size_group?: string | null
+          sizes?: string[]
           updated_at?: string
           value?: number
         }

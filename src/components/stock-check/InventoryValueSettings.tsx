@@ -16,6 +16,8 @@ interface ConditionValue {
   asset_type: string;
   condition: string;
   value: number;
+  size_group: string | null;
+  sizes: string[] | null;
 }
 
 interface ShareLink {
@@ -32,21 +34,29 @@ interface ShareLink {
 export const InventoryValueSettings = () => {
   const { toast } = useToast();
   const [values, setValues] = useState<ConditionValue[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<{ name: string; asset_type: string }[]>([]);
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [newLabel, setNewLabel] = useState("");
+  const [newBand, setNewBand] = useState<Record<string, string>>({ skip: "", roro: "" });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [{ data: v }, { data: l }] = await Promise.all([
+    const [{ data: v }, { data: s }, { data: l }] = await Promise.all([
       supabase
         .from("skip_inventory_condition_values")
-        .select("id, asset_type, condition, value"),
+        .select("id, asset_type, condition, value, size_group, sizes"),
+      supabase
+        .from("skip_inventory_sizes")
+        .select("name, asset_type")
+        .order("asset_type")
+        .order("display_order"),
       supabase
         .from("inventory_share_links")
         .select("id, token, label, is_active, show_values, show_photos, view_count, last_viewed_at")
         .order("created_at", { ascending: false }),
     ]);
     setValues((v ?? []) as ConditionValue[]);
+    setSizeOptions((s ?? []) as { name: string; asset_type: string }[]);
     setLinks((l ?? []) as ShareLink[]);
     setLoading(false);
   };
@@ -55,14 +65,40 @@ export const InventoryValueSettings = () => {
     load();
   }, []);
 
-  const saveValue = async (assetType: string, condition: string, raw: string) => {
+  const rowFor = (assetType: string, band: string | null, condition: string) =>
+    values.find(
+      (v) =>
+        v.asset_type === assetType &&
+        v.condition === condition &&
+        (v.size_group ?? null) === band,
+    );
+
+  const bandsFor = (assetType: string) => {
+    const set = new Map<string, string[]>();
+    values
+      .filter((v) => v.asset_type === assetType && v.size_group)
+      .forEach((v) => set.set(v.size_group as string, v.sizes ?? []));
+    return Array.from(set.entries()).map(([name, sizes]) => ({ name, sizes }));
+  };
+
+  const saveValue = async (
+    assetType: string,
+    band: string | null,
+    condition: string,
+    raw: string,
+    sizes: string[],
+  ) => {
     const value = Number(raw) || 0;
-    const existing = values.find((v) => v.asset_type === assetType && v.condition === condition);
+    const existing = rowFor(assetType, band, condition);
     const { error } = existing
       ? await supabase.from("skip_inventory_condition_values").update({ value }).eq("id", existing.id)
-      : await supabase
-          .from("skip_inventory_condition_values")
-          .insert({ asset_type: assetType, condition, value });
+      : await supabase.from("skip_inventory_condition_values").insert({
+          asset_type: assetType,
+          condition,
+          value,
+          size_group: band,
+          sizes,
+        });
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
       return;
@@ -70,8 +106,50 @@ export const InventoryValueSettings = () => {
     load();
   };
 
-  const getValue = (assetType: string, condition: string) =>
-    values.find((v) => v.asset_type === assetType && v.condition === condition)?.value ?? 0;
+  const toggleSize = async (assetType: string, band: string, sizes: string[], size: string) => {
+    const next = sizes.includes(size) ? sizes.filter((s) => s !== size) : [...sizes, size];
+    const { error } = await supabase
+      .from("skip_inventory_condition_values")
+      .update({ sizes: next })
+      .eq("asset_type", assetType)
+      .eq("size_group", band);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    load();
+  };
+
+  const removeBand = async (assetType: string, band: string) => {
+    const { error } = await supabase
+      .from("skip_inventory_condition_values")
+      .delete()
+      .eq("asset_type", assetType)
+      .eq("size_group", band);
+    if (error) toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    load();
+  };
+
+  const addBand = async (assetType: string) => {
+    const name = (newBand[assetType] || "").trim();
+    if (!name) return;
+    const { error } = await supabase.from("skip_inventory_condition_values").insert(
+      CONDITIONS.map((c) => ({
+        asset_type: assetType,
+        condition: c,
+        value: 0,
+        size_group: name,
+        sizes: [],
+      })),
+    );
+    if (error) {
+      toast({ title: "Could not add band", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewBand((p) => ({ ...p, [assetType]: "" }));
+    load();
+  };
+
 
   const addLink = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -105,35 +183,75 @@ export const InventoryValueSettings = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Inventory Values by Condition</CardTitle>
+          <CardTitle>Inventory Values by Size &amp; Condition</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Set the value (£) of a skip or RoRo for each condition. Totals are shown on the inventory list.
+            Values load automatically onto each skip / RoRo from its size band and condition. A value
+            entered directly on an asset overrides these.
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8">
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
             (["skip", "roro"] as const).map((t) => (
-              <div key={t} className="space-y-2">
+              <div key={t} className="space-y-4">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">
                   {t === "roro" ? "RoRo values" : "Skip values"}
                 </Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {CONDITIONS.map((c) => (
-                    <div key={c} className="rounded-lg border border-border p-3 space-y-1">
-                      <p className="text-xs font-medium">{c}</p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground text-sm">£</span>
-                        <Input
-                          type="number"
-                          step="1"
-                          defaultValue={getValue(t, c)}
-                          onBlur={(e) => saveValue(t, c, e.target.value)}
-                        />
-                      </div>
+
+                {bandsFor(t).map((band) => (
+                  <div key={band.name} className="rounded-lg border border-border p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-sm">{band.name}</p>
+                      <Button variant="ghost" size="icon" onClick={() => removeBand(t, band.name)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                  ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      {sizeOptions
+                        .filter((s) => s.asset_type === t)
+                        .map((s) => (
+                          <Badge
+                            key={s.name}
+                            variant={band.sizes.includes(s.name) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => toggleSize(t, band.name, band.sizes, s.name)}
+                          >
+                            {s.name}
+                          </Badge>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {CONDITIONS.map((c) => (
+                        <div key={c} className="space-y-1">
+                          <p className="text-xs font-medium">{c}</p>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground text-sm">£</span>
+                            <Input
+                              type="number"
+                              step="1"
+                              defaultValue={rowFor(t, band.name, c)?.value ?? 0}
+                              onBlur={(e) => saveValue(t, band.name, c, e.target.value, band.sizes)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="flex-1 min-w-[180px]">
+                    <Label className="text-xs">New size band</Label>
+                    <Input
+                      value={newBand[t] || ""}
+                      onChange={(e) => setNewBand((p) => ({ ...p, [t]: e.target.value }))}
+                      placeholder="e.g. 20/25 Yard"
+                    />
+                  </div>
+                  <Button onClick={() => addBand(t)} disabled={!(newBand[t] || "").trim()} className="gap-1">
+                    <Plus className="h-4 w-4" /> Add band
+                  </Button>
                 </div>
               </div>
             ))
