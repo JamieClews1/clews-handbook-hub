@@ -881,6 +881,14 @@ const InventoryList = () => {
             <span className="text-3xl font-bold text-red-600">{needRepair}</span>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-3xl font-bold">£{totalValue.toLocaleString()}</span>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
