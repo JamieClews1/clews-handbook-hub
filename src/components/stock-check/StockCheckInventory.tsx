@@ -1152,6 +1152,21 @@ const InventoryList = () => {
               </button>
             ))}
           </div>
+          {tagOptions.length > 0 && (
+            <Select value={tagFilter} onValueChange={setTagFilter}>
+              <SelectTrigger className="w-[170px]">
+                <SelectValue placeholder="All tags" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                <SelectItem value="all">All tags</SelectItem>
+                {tagOptions.map((t) => (
+                  <SelectItem key={t.id} value={t.name}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {viewMode === "list" && (
@@ -1241,6 +1256,7 @@ const InventoryList = () => {
                   {visibleCols.type && <TableHead>Type</TableHead>}
                   {visibleCols.size && <TableHead>Size</TableHead>}
                   {visibleCols.condition && <TableHead>Condition</TableHead>}
+                  {visibleCols.tags && <TableHead>Tags</TableHead>}
                   {visibleCols.repairs && <TableHead>Repairs</TableHead>}
                   {visibleCols.location && <TableHead>Last location</TableHead>}
                   {visibleCols.ticket && <TableHead>Skiptrak ticket</TableHead>}
@@ -1271,6 +1287,21 @@ const InventoryList = () => {
                           <Badge variant="outline" className={cn("text-xs", conditionStyle[r.condition] || "")}>
                             {r.condition}
                           </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleCols.tags && (
+                      <TableCell className="max-w-[240px]">
+                        {(r.tags || []).length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {(r.tags || []).map((t) => (
+                              <Badge key={t} variant="outline" className={cn("text-[10px]", tagColour(t))}>
+                                {t}
+                              </Badge>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
