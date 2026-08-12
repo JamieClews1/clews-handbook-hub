@@ -46,6 +46,8 @@ export const UserManagement = () => {
   const [actionType, setActionType] = useState<"grant" | "revoke" | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [editName, setEditName] = useState("");
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newUserName, setNewUserName] = useState("");
