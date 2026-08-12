@@ -539,13 +539,13 @@ Deno.serve(async (req) => {
             skiptrak_ticket: ticket,
             reporter_driver_id: reporterDriverId,
             reporter_name: reporterName,
-            points_awarded: POINTS,
+            points_awarded: pointsAwarded,
           })
           .select("id")
           .single();
         if (repErr) throw repErr;
 
-        return json({ id: report.id, points: POINTS });
+        return json({ id: report.id, points: pointsAwarded, top_up: isTopUp });
       }
 
       default:
