@@ -580,7 +580,10 @@ const DriverSkipTracker = ({
 
       <div className="px-4">
         <Button
-          onClick={() => setCataloguing(true)}
+          onClick={() => {
+            setPresetNumber(null);
+            setCataloguing(true);
+          }}
           className="w-full h-16 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-3"
         >
           <Plus className="w-6 h-6" /> Catalogue Skip / RoRo
