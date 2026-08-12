@@ -27,6 +27,7 @@ interface ShareLink {
   is_active: boolean;
   show_values: boolean;
   show_photos: boolean;
+  verified_only: boolean;
   view_count: number;
   last_viewed_at: string | null;
 }
@@ -52,7 +53,7 @@ export const InventoryValueSettings = () => {
         .order("display_order"),
       supabase
         .from("inventory_share_links")
-        .select("id, token, label, is_active, show_values, show_photos, view_count, last_viewed_at")
+        .select("id, token, label, is_active, show_values, show_photos, verified_only, view_count, last_viewed_at")
         .order("created_at", { ascending: false }),
     ]);
     setValues((v ?? []) as ConditionValue[]);
@@ -307,6 +308,13 @@ export const InventoryValueSettings = () => {
                     onCheckedChange={(v) => updateLink(l.id, { show_photos: v })}
                   />
                   Show photos
+                </label>
+                <label className="flex items-center gap-2">
+                  <Switch
+                    checked={l.verified_only}
+                    onCheckedChange={(v) => updateLink(l.id, { verified_only: v })}
+                  />
+                  Office verified only
                 </label>
               </div>
               <div className="flex items-center gap-2">

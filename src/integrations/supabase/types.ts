@@ -3114,6 +3114,7 @@ export type Database = {
           show_values: boolean
           token: string
           updated_at: string
+          verified_only: boolean
           view_count: number
         }
         Insert: {
@@ -3127,6 +3128,7 @@ export type Database = {
           show_values?: boolean
           token?: string
           updated_at?: string
+          verified_only?: boolean
           view_count?: number
         }
         Update: {
@@ -3140,6 +3142,7 @@ export type Database = {
           show_values?: boolean
           token?: string
           updated_at?: string
+          verified_only?: boolean
           view_count?: number
         }
         Relationships: []
