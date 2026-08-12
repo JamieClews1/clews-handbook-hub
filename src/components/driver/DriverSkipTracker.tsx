@@ -71,7 +71,7 @@ interface HubData {
 
 type Tab = "logged" | "reports" | "points";
 
-const CONDITIONS = ["Good", "Fair", "Poor", "Damaged"];
+const CONDITIONS = ["New", "Good", "Fair", "Poor", "Damaged"];
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
 
 /* ─── Catalogue flow ─── */
