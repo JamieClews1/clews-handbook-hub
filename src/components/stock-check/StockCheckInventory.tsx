@@ -184,6 +184,10 @@ const ProfileDialog = ({
         last_skiptrak_ticket: row.last_skiptrak_ticket || "",
         notes: row.notes || "",
         photos: row.photos || [],
+        value_override:
+          row.value_override === null || row.value_override === undefined
+            ? ""
+            : String(row.value_override),
       });
     } else {
       setForm(emptyForm);
