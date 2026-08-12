@@ -162,7 +162,8 @@ const SkipTrackerFlow = ({
           i.asset_type === assetType &&
           (!num || i.asset_number.toLowerCase().includes(num)),
       )
-      .slice(0, 40);
+      .sort(numericSort)
+      .slice(0, 60);
   }, [assetNumber, assetType, inventory]);
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
