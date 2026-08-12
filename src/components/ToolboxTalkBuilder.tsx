@@ -337,6 +337,54 @@ export const ToolboxTalkBuilder = () => {
     setPrintDialogOpen(true);
   };
 
+  // Save dialogs must be mounted in BOTH the list view and the create/edit view,
+  // otherwise clicking "Create Toolbox Talk" in the form does nothing.
+  const saveDialogs = (
+    <>
+      <TranslationSaveDialog
+        open={showTranslationDialog}
+        onOpenChange={setShowTranslationDialog}
+        onConfirm={handleSaveWithTranslation}
+        isTranslating={isTranslating}
+        documentType="Toolbox Talk"
+        isNew={!editingTalk}
+      />
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Toolbox Talk Saved!</DialogTitle>
+            <DialogDescription>
+              Your Toolbox Talk has been saved successfully. What would you like to do next?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                resetForm();
+              }}
+            >
+              View Toolbox Talks
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessDialog(false);
+                resetForm();
+                setIsCreating(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create Another
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
