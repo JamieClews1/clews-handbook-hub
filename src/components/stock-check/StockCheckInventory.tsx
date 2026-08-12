@@ -74,6 +74,7 @@ interface InventoryRow {
   notes: string | null;
   last_cataloged_at: string | null;
   last_reported_by: string | null;
+  value_override: number | null;
 }
 
 const CONDITIONS = ["Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
