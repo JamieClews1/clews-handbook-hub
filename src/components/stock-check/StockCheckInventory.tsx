@@ -844,6 +844,7 @@ const COLUMN_DEFS = [
   { key: "type", label: "Type" },
   { key: "size", label: "Size" },
   { key: "condition", label: "Condition" },
+  { key: "tags", label: "Tags" },
   { key: "repairs", label: "Repairs" },
   { key: "location", label: "Last location" },
   { key: "ticket", label: "Skiptrak ticket" },
@@ -957,14 +958,16 @@ const InventoryList = () => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (typeFilter !== "all" && r.asset_type !== typeFilter) return false;
+      if (tagFilter !== "all" && !(r.tags || []).includes(tagFilter)) return false;
       if (!q) return true;
       return (
         r.asset_number.toLowerCase().includes(q) ||
         (r.last_location || "").toLowerCase().includes(q) ||
-        (r.last_skiptrak_ticket || "").toLowerCase().includes(q)
+        (r.last_skiptrak_ticket || "").toLowerCase().includes(q) ||
+        (r.tags || []).some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [rows, search, typeFilter]);
+  }, [rows, search, typeFilter, tagFilter]);
 
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter((r) => r.asset_type === "roro").length;
