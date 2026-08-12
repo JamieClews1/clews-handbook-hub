@@ -355,6 +355,10 @@ export const UserManagement = () => {
             <Button onClick={() => setShowCreateDialog(true)} size="sm" className="gap-1">
               <UserPlus className="h-4 w-4" /> Create User
             </Button>
+            <Button onClick={() => setShowBulkDialog(true)} variant="secondary" size="sm" className="gap-1">
+              <UserPlus className="h-4 w-4" /> Bulk Add
+            </Button>
+
             <Button onClick={fetchUsers} variant="outline" size="sm">Refresh</Button>
           </div>
         </div>
