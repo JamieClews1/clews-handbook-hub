@@ -183,35 +183,75 @@ export const InventoryValueSettings = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Inventory Values by Condition</CardTitle>
+          <CardTitle>Inventory Values by Size &amp; Condition</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Set the value (£) of a skip or RoRo for each condition. Totals are shown on the inventory list.
+            Values load automatically onto each skip / RoRo from its size band and condition. A value
+            entered directly on an asset overrides these.
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8">
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
             (["skip", "roro"] as const).map((t) => (
-              <div key={t} className="space-y-2">
+              <div key={t} className="space-y-4">
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">
                   {t === "roro" ? "RoRo values" : "Skip values"}
                 </Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {CONDITIONS.map((c) => (
-                    <div key={c} className="rounded-lg border border-border p-3 space-y-1">
-                      <p className="text-xs font-medium">{c}</p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground text-sm">£</span>
-                        <Input
-                          type="number"
-                          step="1"
-                          defaultValue={getValue(t, c)}
-                          onBlur={(e) => saveValue(t, c, e.target.value)}
-                        />
-                      </div>
+
+                {bandsFor(t).map((band) => (
+                  <div key={band.name} className="rounded-lg border border-border p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-sm">{band.name}</p>
+                      <Button variant="ghost" size="icon" onClick={() => removeBand(t, band.name)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                  ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      {sizeOptions
+                        .filter((s) => s.asset_type === t)
+                        .map((s) => (
+                          <Badge
+                            key={s.name}
+                            variant={band.sizes.includes(s.name) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => toggleSize(t, band.name, band.sizes, s.name)}
+                          >
+                            {s.name}
+                          </Badge>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {CONDITIONS.map((c) => (
+                        <div key={c} className="space-y-1">
+                          <p className="text-xs font-medium">{c}</p>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground text-sm">£</span>
+                            <Input
+                              type="number"
+                              step="1"
+                              defaultValue={rowFor(t, band.name, c)?.value ?? 0}
+                              onBlur={(e) => saveValue(t, band.name, c, e.target.value, band.sizes)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="flex-1 min-w-[180px]">
+                    <Label className="text-xs">New size band</Label>
+                    <Input
+                      value={newBand[t] || ""}
+                      onChange={(e) => setNewBand((p) => ({ ...p, [t]: e.target.value }))}
+                      placeholder="e.g. 20/25 Yard"
+                    />
+                  </div>
+                  <Button onClick={() => addBand(t)} disabled={!(newBand[t] || "").trim()} className="gap-1">
+                    <Plus className="h-4 w-4" /> Add band
+                  </Button>
                 </div>
               </div>
             ))
