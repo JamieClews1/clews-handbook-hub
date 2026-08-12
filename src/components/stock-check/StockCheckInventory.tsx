@@ -30,6 +30,11 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
@@ -55,6 +60,7 @@ import {
   LayoutGrid,
   List,
   Columns3,
+  ExternalLink,
 } from "lucide-react";
 import {
   DropdownMenu,
