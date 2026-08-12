@@ -41,6 +41,7 @@ type Customer = {
   po_notification_email: string | null;
   custom_reporting_periods_enabled: boolean;
   is_broker: boolean;
+  midweigh_rebates_enabled: boolean;
   is_active: boolean;
   data_hub_customer: string | null;
   created_at: string;
@@ -135,7 +136,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", custom_reporting_periods_enabled: false, is_broker: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", custom_reporting_periods_enabled: false, is_broker: false, midweigh_rebates_enabled: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -401,7 +402,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_broker,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -862,6 +863,7 @@ export function CustomerSetupAdmin() {
       po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk",
       custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
       is_broker: customer.is_broker ?? false,
+      midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
     });
     setEditCustomerOpen(true);
   };
@@ -888,6 +890,7 @@ export function CustomerSetupAdmin() {
           po_notification_email: editCustomerForm.po_notification_email.trim() || null,
           custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
           is_broker: editCustomerForm.is_broker,
+          midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
         })
         .eq("id", editingCustomer.id);
       if (error) throw error;
@@ -1794,6 +1797,19 @@ export function CustomerSetupAdmin() {
               <Switch
                 checked={editCustomerForm.is_broker}
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_broker: v }))}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Midweigh rebates</Label>
+                <p className="text-xs text-muted-foreground">
+                  Only enable for customers whose standalone Midweigh weighbridge tickets should generate rebates (e.g. Biffa, Conectiv, Transol). When off, Midweigh jobs are excluded from this customer's rebate reports.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.midweigh_rebates_enabled}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, midweigh_rebates_enabled: v }))}
               />
             </div>
           </div>
