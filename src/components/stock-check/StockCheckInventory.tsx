@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import {
   Award,
+  CheckCircle2,
   Boxes,
   Eye,
   Camera,
@@ -574,6 +575,18 @@ const ProfileDialog = ({
               </Button>
             </div>
           </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <Label className="cursor-pointer">Office verified</Label>
+            </div>
+            <Switch
+              checked={form.office_verified}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, office_verified: v }))}
+            />
+          </div>
+
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="flex items-center gap-2">
