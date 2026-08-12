@@ -447,7 +447,7 @@ Deno.serve(async (req) => {
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         const { data: existing } = await supabase
           .from("skip_inventory")
-          .select("id, last_cataloged_at")
+          .select("id, last_cataloged_at, last_reported_by")
           .eq("asset_type", assetType)
           .eq("asset_number", assetNumber)
           .maybeSingle();
@@ -483,7 +483,8 @@ Deno.serve(async (req) => {
           last_location: location,
           last_skiptrak_ticket: ticket,
           last_cataloged_at: now,
-          last_reported_by: reporterName,
+          // Preserve the person who originally logged/photographed this asset
+          last_reported_by: existing?.last_reported_by || reporterName,
         };
 
         let inventoryId = existing?.id ?? null;
