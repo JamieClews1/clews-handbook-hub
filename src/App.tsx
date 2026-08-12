@@ -65,6 +65,7 @@ import DiaryPage from "./pages/DiaryPage";
 import BookingsPage from "./pages/BookingsPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
 import WeightChecksPage from "./pages/WeightChecksPage";
+import PublicInventoryPage from "./pages/PublicInventoryPage";
 import PricingCMSPage from "./pages/PricingCMSPage";
 import CRMPage from "./pages/CRMPage";
 import MailboxCallbackPage from "./pages/MailboxCallbackPage";
