@@ -65,6 +65,11 @@ Deno.serve(async (req) => {
       return Number((bySize ?? fallback)?.value ?? 0);
     };
 
+    const photoUrls = (p: any) =>
+      Array.isArray(p)
+        ? p.map((x: any) => (typeof x === "string" ? x : x?.url)).filter(Boolean)
+        : [];
+
     const items = (rows ?? []).map((r) => ({
       id: r.id,
       asset_number: r.asset_number,
@@ -75,7 +80,7 @@ Deno.serve(async (req) => {
       repair_notes: r.repair_notes,
       last_location: r.last_location,
       last_cataloged_at: r.last_cataloged_at,
-      photos: link.show_photos ? r.photos ?? [] : [],
+      photos: link.show_photos ? photoUrls(r.photos) : [],
       value: link.show_values ? valueFor(r) : null,
     }));
 
