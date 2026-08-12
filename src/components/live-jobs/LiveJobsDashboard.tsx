@@ -110,7 +110,9 @@ function positionNetOnSite(p: PosCounts): number {
 
 function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number {
   if (!positions) return 0;
-  return Object.values(positions).reduce((sum, p) => sum + positionNetOnSite(p), 0);
+  const list = Object.values(positions);
+  const raw = list.reduce((sum, p) => sum + positionNetOnSite(p), 0);
+  return Math.min(raw, containerTypeCap(list));
 }
 
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
