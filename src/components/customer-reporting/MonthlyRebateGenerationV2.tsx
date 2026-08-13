@@ -332,6 +332,8 @@ export function MonthlyRebateGenerationV2() {
         let customerTotalRebate = 0;
         let customerTotalWeight = 0;
         const siteBreakdowns: SiteBreakdown[] = [];
+        const customerUsedJobIds = new Set<string>();
+
 
         for (const site of customerSites) {
           const priceSetLink = await fetchActivePriceSetLink(site.id, periodEnd);
