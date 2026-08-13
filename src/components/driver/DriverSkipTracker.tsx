@@ -31,7 +31,7 @@ import {
   Truck,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, compareAssetNumbers } from "@/lib/utils";
 
 const isRoroType = (n: string) => /ro\s*ro|roll\s*on/i.test(n);
 const isSkipType = (n: string) => /skip|yard|yd/i.test(n);
@@ -65,10 +65,7 @@ const missingBits = (i: InventoryRow) =>
 
 
 const numericSort = (a: InventoryRow, b: InventoryRow) =>
-  a.asset_number.localeCompare(b.asset_number, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
+  compareAssetNumbers(a.asset_number, b.asset_number);
 
 interface MyReport {
   id: string;
@@ -265,6 +262,10 @@ const SkipTrackerFlow = ({
   const handleSubmit = async () => {
     if (!assetNumber.trim()) {
       toast.error("Enter the skip / RoRo number");
+      return;
+    }
+    if (!assetType) {
+      toast.error("Choose Skip or RoRo");
       return;
     }
     if (!containerType) {
@@ -639,7 +640,7 @@ const SkipTrackerFlow = ({
       <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border">
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !containerType}
+          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !assetType || !containerType}
           className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-2"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
