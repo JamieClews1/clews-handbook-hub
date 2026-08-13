@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { driverAction, fileToBase64 } from "@/lib/driver-api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -25,6 +32,10 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const isRoroType = (n: string) => /ro\s*ro|roll\s*on/i.test(n);
+const isSkipType = (n: string) => /skip|yard|yd/i.test(n);
+const containerAssetType = (n: string) => (isRoroType(n) ? "roro" : "skip");
 
 interface Reporter {
   id: string;
@@ -95,6 +106,7 @@ interface HubData {
   myReports: MyReport[];
   myPoints: number;
   leaderboard: LeaderboardEntry[];
+  containerTypes: string[];
 }
 
 type Tab = "logged" | "reports" | "points";
@@ -106,12 +118,14 @@ const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
 const SkipTrackerFlow = ({
   reporter,
   inventory,
+  containerTypes,
   onBack,
   onSubmitted,
   preset,
 }: {
   reporter: Reporter;
   inventory: InventoryRow[];
+  containerTypes: string[];
   onBack: () => void;
   onSubmitted: () => void;
   preset?: { number: string; type: string } | null;
@@ -120,6 +134,7 @@ const SkipTrackerFlow = ({
   const [assetType, setAssetType] = useState<"skip" | "roro">(
     preset?.type === "roro" ? "roro" : "skip",
   );
+  const [containerType, setContainerType] = useState<string>("");
   const [assetNumber, setAssetNumber] = useState(preset?.number ?? "");
   const [condition, setCondition] = useState<string>("Good");
   const [repairsRequired, setRepairsRequired] = useState(false);
@@ -130,6 +145,30 @@ const SkipTrackerFlow = ({
   const [pendingPhotoLabel, setPendingPhotoLabel] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Prefill container type from the tapped bin's size/asset type when available
+  useEffect(() => {
+    if (!containerTypes.length) {
+      setContainerType("");
+      return;
+    }
+    if (preset?.number) {
+      const bin = inventory.find(
+        (i) =>
+          i.asset_number.trim().toLowerCase() === preset.number.trim().toLowerCase() &&
+          i.asset_type === preset.type,
+      );
+      const sizeMatch = bin?.size && containerTypes.some((c) => c.toLowerCase() === bin.size!.toLowerCase());
+      if (sizeMatch) {
+        setContainerType(bin.size!);
+        setAssetType(containerAssetType(bin.size!));
+        return;
+      }
+    }
+    const preferred = containerTypes.find((c) => containerAssetType(c) === (preset?.type ?? "skip"));
+    setContainerType(preferred ?? containerTypes[0] ?? "");
+    if (preferred) setAssetType(containerAssetType(preferred));
+  }, [containerTypes, preset, inventory]);
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
@@ -204,6 +243,10 @@ const SkipTrackerFlow = ({
       toast.error("Enter the skip / RoRo number");
       return;
     }
+    if (!containerType) {
+      toast.error("Choose a container type");
+      return;
+    }
     if (recentlyCatalogued) {
       toast.error("This bin was catalogued in the last 6 months");
       return;
@@ -213,6 +256,7 @@ const SkipTrackerFlow = ({
       const res = await driverAction<{ points: number }>("submit_skip_tracker", {
         asset_number: assetNumber.trim(),
         asset_type: assetType,
+        size: containerType,
         condition,
         repairs_required: repairsRequired,
         repair_notes: repairNotes.trim() || null,
@@ -245,20 +289,27 @@ const SkipTrackerFlow = ({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Type */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-xl">
-          {(["skip", "roro"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setAssetType(t)}
-              className={cn(
-                "h-11 rounded-lg text-sm font-semibold transition-colors",
-                assetType === t ? "bg-emerald-500 text-white" : "text-muted-foreground",
-              )}
-            >
-              {t === "skip" ? "Skip" : "RoRo"}
-            </button>
-          ))}
+        {/* Container type */}
+        <div className="space-y-2">
+          <Label>Container type</Label>
+          <Select
+            value={containerType}
+            onValueChange={(v) => {
+              setContainerType(v);
+              setAssetType(containerAssetType(v));
+            }}
+          >
+            <SelectTrigger className="h-12 text-base">
+              <SelectValue placeholder="Choose skip / RoRo type…" />
+            </SelectTrigger>
+            <SelectContent>
+              {containerTypes.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
@@ -499,6 +550,7 @@ const DriverSkipTracker = ({
       <SkipTrackerFlow
         reporter={reporter}
         inventory={data?.inventory ?? []}
+        containerTypes={data?.containerTypes ?? []}
         preset={presetNumber}
         onBack={() => {
           setCataloguing(false);

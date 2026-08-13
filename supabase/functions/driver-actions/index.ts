@@ -423,11 +423,26 @@ Deno.serve(async (req) => {
         }
         const leaderboard = Array.from(lbMap.values()).sort((a, b) => b.points - a.points);
 
+        // Active skip / RoRo container types for the driver dropdown
+        const { data: containerTypes } = await supabase
+          .from("route_one_container_types")
+          .select("name")
+          .eq("is_active", true)
+          .order("display_order")
+          .order("name");
+
+        const isSkipType = (n: string) => /skip|yard|yd/i.test(n);
+        const isRoroType = (n: string) => /ro\s*ro|roll\s*on/i.test(n);
+        const filteredTypes = (containerTypes ?? [])
+          .map((t) => String(t.name ?? "").trim())
+          .filter((n) => n && (isRoroType(n) || isSkipType(n)));
+
         return json({
           inventory: inventory ?? [],
           myReports: myReports ?? [],
           myPoints,
           leaderboard,
+          containerTypes: filteredTypes,
         });
       }
       case "submit_skip_tracker": {
@@ -483,6 +498,7 @@ Deno.serve(async (req) => {
 
         const photos = isTopUp ? [...existingPhotos, ...newPhotos] : newPhotos;
         const condition = body?.condition ? String(body.condition) : null;
+        const size = body?.size ? String(body.size) : null;
         const repairsRequired = Boolean(body?.repairs_required);
         const repairNotes = body?.repair_notes ? String(body.repair_notes) : null;
         const location = body?.location ? String(body.location) : null;
@@ -495,6 +511,7 @@ Deno.serve(async (req) => {
         const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
           asset_type: assetType,
+          size,
           condition,
           repairs_required: repairsRequired,
           repair_notes: repairNotes,
