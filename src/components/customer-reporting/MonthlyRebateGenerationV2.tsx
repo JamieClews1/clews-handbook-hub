@@ -824,7 +824,7 @@ export function MonthlyRebateGenerationV2() {
 
     await upsertTracking({
       customerId: summary.customer.id,
-      siteId: sb.site.id,
+      siteId: trackSiteId(sb),
       periodStart,
       periodEnd,
       status: "sent",
