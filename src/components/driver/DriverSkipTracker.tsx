@@ -101,7 +101,7 @@ interface HubData {
 
 type Tab = "logged" | "reports" | "points";
 
-const CONDITIONS = ["New", "Good", "Fair", "Poor", "Damaged"];
+const CONDITIONS = ["New", "Good", "Fair", "Poor"];
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
 
 /* ─── Catalogue flow ─── */
@@ -136,12 +136,11 @@ const SkipTrackerFlow = ({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Prefill container type from the tapped bin's size/asset type when available
+  // Prefill container type only from the tapped bin's known size — otherwise the
+  // driver must choose one (mandatory).
   useEffect(() => {
-    if (!containerTypes.length) {
-      setContainerType("");
-      return;
-    }
+    setContainerType("");
+    if (!containerTypes.length) return;
     if (preset?.number) {
       const bin = inventory.find(
         (i) =>
@@ -152,13 +151,10 @@ const SkipTrackerFlow = ({
       if (sizeMatch) {
         setContainerType(bin.size!);
         setAssetType(containerAssetType(bin.size!));
-        return;
       }
     }
-    const preferred = containerTypes.find((c) => containerAssetType(c) === (preset?.type ?? "skip"));
-    setContainerType(preferred ?? containerTypes[0] ?? "");
-    if (preferred) setAssetType(containerAssetType(preferred));
   }, [containerTypes, preset, inventory]);
+
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
@@ -281,7 +277,7 @@ const SkipTrackerFlow = ({
       <div className="p-4 space-y-4">
         {/* Container type */}
         <div className="space-y-2">
-          <Label>Container type</Label>
+          <Label>Container type *</Label>
           <Select
             value={containerType}
             onValueChange={(v) => {
@@ -498,7 +494,7 @@ const SkipTrackerFlow = ({
       <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border">
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim()}
+          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !containerType}
           className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-2"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
