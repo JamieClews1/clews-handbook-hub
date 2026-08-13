@@ -1276,6 +1276,109 @@ export function MonthlyRebateGenerationV2() {
         </div>
       )}
 
+      {/* Customer report dialog */}
+      <Dialog open={!!reportSummary} onOpenChange={(o) => !o && setReportSummary(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{reportSummary?.customer.customer_name} — Rebate Report</DialogTitle>
+            <DialogDescription>{periodLabel}</DialogDescription>
+          </DialogHeader>
+          {reportSummary && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap gap-4">
+                <div className="rounded-lg border p-3 min-w-[140px]">
+                  <p className="text-xs text-muted-foreground">Total weight</p>
+                  <p className="text-lg font-semibold">{reportSummary.totalWeight.toFixed(2)} t</p>
+                </div>
+                <div className="rounded-lg border p-3 min-w-[140px]">
+                  <p className="text-xs text-muted-foreground">Total rebate</p>
+                  <p className={cn("text-lg font-semibold", reportSummary.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                    £{reportSummary.totalRebate.toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3 min-w-[140px]">
+                  <p className="text-xs text-muted-foreground">Sites</p>
+                  <p className="text-lg font-semibold">{reportSummary.siteBreakdowns.length}</p>
+                </div>
+              </div>
+
+              {reportSummary.siteBreakdowns.map((sb) => (
+                <div key={`rep-${sb.site.id}`} className="rounded-lg border">
+                  <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40">
+                    <span className="font-medium text-sm">{sb.site.site_name}</span>
+                    <span className="text-sm">
+                      {sb.totalWeight.toFixed(2)}t •{" "}
+                      <span className={cn("font-semibold", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                        £{sb.totalRebate.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="h-8 text-xs">Material</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Rate (£/t)</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Rebate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sb.materials.map((m, i) => (
+                        <TableRow key={`rep-${sb.site.id}-m-${i}`} className="hover:bg-transparent">
+                          <TableCell className="py-1.5 text-xs">{m.name}</TableCell>
+                          <TableCell className="py-1.5 text-xs text-right">{m.weight.toFixed(2)}</TableCell>
+                          <TableCell className="py-1.5 text-xs text-right">£{m.rate.toFixed(2)}</TableCell>
+                          <TableCell className={cn("py-1.5 text-xs text-right font-medium", m.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{m.rebate.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {sb.loads.length > 0 && (
+                    <div className="border-t">
+                      <p className="px-3 pt-2 text-xs font-medium text-muted-foreground">Loads ({sb.loads.length})</p>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="h-8 text-xs">Date</TableHead>
+                            <TableHead className="h-8 text-xs">Reference</TableHead>
+                            <TableHead className="h-8 text-xs">Source</TableHead>
+                            <TableHead className="h-8 text-xs">Description</TableHead>
+                            <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sb.loads.map((l, i) => (
+                            <TableRow key={`rep-${sb.site.id}-l-${i}`} className="hover:bg-transparent">
+                              <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
+                              <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
+                              <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
+                              <TableCell className="py-1.5 text-xs">{l.description}</TableCell>
+                              <TableCell className="py-1.5 text-xs text-right">{l.weight.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            {reportSummary && (
+              <Button variant="outline" onClick={() => downloadExcel(reportSummary)}>
+                <Download className="h-4 w-4 mr-2" />
+                Download Excel
+              </Button>
+            )}
+            <Button onClick={() => setReportSummary(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Email dialog */}
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent className="max-w-lg">
