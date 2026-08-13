@@ -352,40 +352,18 @@ export function MonthlyRebateGenerationV2() {
           }
 
           // Rebate lines must already be set up (site price set items, or
-          // site/customer level Skip/RoRo rebate lines). If nothing is
-          // configured, do not generate a rebate for this site at all.
-          const { data: siteSkipConfigsEarly } = await supabase
-            .from("customer_site_skip_rebates")
-            .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-            .eq("site_id", site.id);
-
-          let configuredSkipConfigs = siteSkipConfigsEarly ?? [];
-          if (configuredSkipConfigs.length === 0) {
-            const { data: custConfigs } = await supabase
-              .from("customer_skip_rebates")
-              .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-              .eq("customer_id", customer.id);
-            configuredSkipConfigs = custConfigs ?? [];
-          }
+          // SITE-level Skip/RoRo rebate lines). Customer-level lines are
+          // handled once per customer after this loop.
+          const configuredSkipConfigs = siteSkipConfigsBySite.get(site.id) ?? [];
 
           const hasConfiguredRebateLines =
             (rebateItems?.length ?? 0) > 0 ||
-            configuredSkipConfigs.some((c) => c.rebate_enabled !== false);
+            configuredSkipConfigs.some((c: any) => c.rebate_enabled !== false);
 
           if (!hasConfiguredRebateLines) continue;
 
+          const rebateItemNames: Record<string, string> = Object.fromEntries(rebateItemNameById);
 
-          const rebateItemIds = (rebateItems ?? [])
-            .map((item) => item.value_type_item_id)
-            .filter((id): id is string => !!id);
-          let rebateItemNames: Record<string, string> = {};
-          if (rebateItemIds.length > 0) {
-            const { data: rebateItemsData } = await supabase
-              .from("rebate_items")
-              .select("id, name")
-              .in("id", rebateItemIds);
-            for (const ri of rebateItemsData ?? []) rebateItemNames[ri.id] = ri.name;
-          }
 
           const { data: loadReports } = await supabase
             .from("load_reports")
