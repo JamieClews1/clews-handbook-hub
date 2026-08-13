@@ -373,16 +373,48 @@ const SkipTrackerFlow = ({
         )}
 
 
-        <div className="space-y-2">
-          <Label>Skip / RoRo number</Label>
-          <Input
-            value={assetNumber}
-            onChange={(e) => setAssetNumber(e.target.value.toUpperCase())}
-            placeholder="e.g. SK-1042"
-            className="h-12 text-lg"
-            autoCapitalize="characters"
-          />
-        </div>
+        {assetType && (
+          <div className="space-y-2">
+            <Label>Skip / RoRo number</Label>
+            <Input
+              value={assetNumber}
+              onChange={(e) => setAssetNumber(e.target.value.toUpperCase())}
+              placeholder={assetType === "roro" ? "e.g. RO74" : "e.g. SK160"}
+              className="h-12 text-lg"
+              autoCapitalize="characters"
+            />
+          </div>
+        )}
+
+        {/* Step 3 — size (asked for every new entry) */}
+        {assetType && !!assetNumber.trim() && (
+          <div className="space-y-2">
+            <Label>
+              {existingBin ? "Container size" : "What size is it? *"}
+            </Label>
+            <Select
+              value={containerType}
+              onValueChange={(v) => {
+                setContainerType(v);
+                setAssetType(containerAssetType(v));
+              }}
+            >
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue
+                  placeholder={`Choose ${assetType === "roro" ? "RoRo" : "skip"} size…`}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {(sizeOptions.length ? sizeOptions : containerTypes).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
 
         {existingBin && (
           <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
