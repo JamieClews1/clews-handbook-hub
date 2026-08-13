@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import * as XLSX from "xlsx";
 import { ReportDateRangePicker } from "./ReportDateRangePicker";
