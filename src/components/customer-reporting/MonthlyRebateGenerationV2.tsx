@@ -573,7 +573,7 @@ export function MonthlyRebateGenerationV2() {
 
           const { data: customerJobs } = await supabase
             .from("data_hub_jobs")
-            .select("id, site, waste_description, weight_t, category, job_type, movement_type")
+            .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type")
             .eq("customer", customerDataHubName)
             .gte("job_date", periodStart)
             .lte("job_date", periodEnd)
@@ -587,6 +587,8 @@ export function MonthlyRebateGenerationV2() {
               category: j.category,
               job_type: j.job_type,
               movement_type: j.movement_type,
+              job_number: j.job_number,
+              job_date: j.job_date,
               weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
             }));
 
