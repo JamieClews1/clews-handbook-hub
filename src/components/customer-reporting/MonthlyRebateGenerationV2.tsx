@@ -515,7 +515,7 @@ export function MonthlyRebateGenerationV2() {
 
           const { data: customerJobs } = await supabase
             .from("data_hub_jobs")
-            .select("id, waste_description, weight_t, category, job_type, movement_type")
+            .select("id, site, waste_description, weight_t, category, job_type, movement_type")
             .eq("customer", customerDataHubName)
             .gte("job_date", periodStart)
             .lte("job_date", periodEnd)
@@ -524,6 +524,7 @@ export function MonthlyRebateGenerationV2() {
           const jobs = (customerJobs ?? [])
             .filter((j) => !j.id || !customerUsedJobIds.has(j.id))
             .map((j) => ({
+              site: (j.site ?? "").trim(),
               waste_description: j.waste_description,
               category: j.category,
               job_type: j.job_type,
@@ -531,31 +532,61 @@ export function MonthlyRebateGenerationV2() {
               weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
             }));
 
-          const built = buildSkipRoroMaterials(customerSkipConfigs, jobs, "RoRo/Skip");
-          if (built.materials.length > 0) {
-            const customerLevelSite: Site = {
-              id: `cust-${customer.id}`,
-              site_name: `${customer.customer_name} (customer level)`,
-              customer_id: customer.id,
-              data_hub_customer: customerDataHubName,
-              data_hub_site: null,
-              data_hub_site_2: null,
-              data_hub_site_3: null,
-              data_hub_site_4: null,
-              data_hub_site_5: null,
-              load_report_type: null,
-              owner_contact_id: null,
-            };
-            siteBreakdowns.push({
-              site: customerLevelSite,
-              totalRebate: built.rebateTotal,
-              totalWeight: built.weightTotal,
-              materials: built.materials,
-            });
+          // Split customer-level jobs out by their Data Hub site so customers
+          // with multiple site owners (e.g. Biffa) get one line per site.
+          const siteByMapping = new Map<string, Site>();
+          for (const s of customerSites) {
+            for (const m of [s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5, s.site_name]) {
+              const key = (m ?? "").trim().toLowerCase();
+              if (key && !siteByMapping.has(key)) siteByMapping.set(key, s);
+            }
+          }
+
+          const groups = new Map<string, { site: Site; jobs: typeof jobs }>();
+          for (const job of jobs) {
+            const matched = siteByMapping.get(job.site.toLowerCase());
+            const key = matched ? matched.id : job.site ? `unmapped:${job.site}` : `cust-${customer.id}`;
+            if (!groups.has(key)) {
+              const site: Site = matched ?? {
+                id: key,
+                site_name: job.site ? `${job.site}` : `${customer.customer_name} (customer level)`,
+                customer_id: customer.id,
+                data_hub_customer: customerDataHubName,
+                data_hub_site: job.site || null,
+                data_hub_site_2: null,
+                data_hub_site_3: null,
+                data_hub_site_4: null,
+                data_hub_site_5: null,
+                load_report_type: null,
+                owner_contact_id: null,
+              };
+              groups.set(key, { site, jobs: [] });
+            }
+            groups.get(key)!.jobs.push(job);
+          }
+
+          for (const { site, jobs: siteJobs } of groups.values()) {
+            const built = buildSkipRoroMaterials(customerSkipConfigs, siteJobs, "RoRo/Skip");
+            if (built.materials.length === 0) continue;
+
+            const existing = siteBreakdowns.find((b) => b.site.id === site.id);
+            if (existing) {
+              existing.materials.push(...built.materials);
+              existing.totalRebate += built.rebateTotal;
+              existing.totalWeight += built.weightTotal;
+            } else {
+              siteBreakdowns.push({
+                site,
+                totalRebate: built.rebateTotal,
+                totalWeight: built.weightTotal,
+                materials: built.materials,
+              });
+            }
             customerTotalRebate += built.rebateTotal;
             customerTotalWeight += built.weightTotal;
           }
         }
+
 
         if (siteBreakdowns.length > 0) {
           result.push({
