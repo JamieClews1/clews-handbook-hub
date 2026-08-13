@@ -1441,10 +1441,24 @@ export function MonthlyRebateGenerationV2() {
           )}
           <DialogFooter>
             {reportSummary && (
-              <Button variant="outline" onClick={() => downloadExcel(reportSummary)}>
-                <Download className="h-4 w-4 mr-2" />
-                Download Excel
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => downloadExcel(reportSummary)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Summary Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => downloadBrandedReport(reportSummary)}
+                  disabled={downloadingId === reportSummary.customer.id}
+                >
+                  {downloadingId === reportSummary.customer.id ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  )}
+                  Download customer report
+                </Button>
+              </>
             )}
             <Button onClick={() => setReportSummary(null)}>Close</Button>
           </DialogFooter>
