@@ -136,12 +136,11 @@ const SkipTrackerFlow = ({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Prefill container type from the tapped bin's size/asset type when available
+  // Prefill container type only from the tapped bin's known size — otherwise the
+  // driver must choose one (mandatory).
   useEffect(() => {
-    if (!containerTypes.length) {
-      setContainerType("");
-      return;
-    }
+    setContainerType("");
+    if (!containerTypes.length) return;
     if (preset?.number) {
       const bin = inventory.find(
         (i) =>
@@ -152,13 +151,10 @@ const SkipTrackerFlow = ({
       if (sizeMatch) {
         setContainerType(bin.size!);
         setAssetType(containerAssetType(bin.size!));
-        return;
       }
     }
-    const preferred = containerTypes.find((c) => containerAssetType(c) === (preset?.type ?? "skip"));
-    setContainerType(preferred ?? containerTypes[0] ?? "");
-    if (preferred) setAssetType(containerAssetType(preferred));
   }, [containerTypes, preset, inventory]);
+
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
