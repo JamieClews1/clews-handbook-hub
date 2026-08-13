@@ -448,7 +448,7 @@ export function MonthlyRebateGenerationV2() {
             }
           }
 
-          // Skip / RoRo rebates
+          // Skip / RoRo rebates — SITE level only (matched on Data Hub sites).
           const siteDataHubMappings = [
             site.data_hub_site,
             site.data_hub_site_2,
@@ -457,133 +457,33 @@ export function MonthlyRebateGenerationV2() {
             site.data_hub_site_5,
           ].filter((s): s is string => !!s);
 
-          const dataHubCustomer =
-            site.data_hub_customer?.trim() ||
-            customer.data_hub_customer?.trim() ||
-            null;
-
-          // Configs already resolved above (site-level first, then customer-level).
-          const skipConfigs = configuredSkipConfigs;
-
-
           let skipRoroRebate = 0;
           let skipRoroWeight = 0;
 
-          const canQueryJobs = siteDataHubMappings.length > 0 || Boolean(dataHubCustomer);
-          if (skipConfigs.length > 0 && canQueryJobs) {
-            const { data: rebateRules } = await supabase
-              .from("rebate_rules")
-              .select("rule_key, is_enabled");
-            const excludeSkipJobType = rebateRules?.find((r) => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
-            const excludeDeliverMovement = rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+          if (configuredSkipConfigs.length > 0 && siteDataHubMappings.length > 0) {
+            const { data: siteJobs } = await supabase
+              .from("data_hub_jobs")
+              .select("id, waste_description, weight_t, category, job_type, movement_type")
+              .in("site", siteDataHubMappings)
+              .gte("job_date", periodStart)
+              .lte("job_date", periodEnd)
+              .in("category", targetCategories);
 
-            const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
-            const rawJobs: Array<{
-              id?: string;
-              waste_description: string | null;
-              weight_t: number | null;
-              category: string | null;
-              job_type: string | null;
-              movement_type: string | null;
-            }> = [];
-            const seenIds = new Set<string>();
+            const jobs = (siteJobs ?? []).map((j) => {
+              if (j.id) customerUsedJobIds.add(j.id);
+              return {
+                waste_description: j.waste_description,
+                category: j.category,
+                job_type: j.job_type,
+                movement_type: j.movement_type,
+                weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
+              };
+            });
 
-            if (siteDataHubMappings.length > 0) {
-              const { data: siteJobs } = await supabase
-                .from("data_hub_jobs")
-                .select("id, waste_description, weight_t, category, job_type, movement_type")
-                .in("site", siteDataHubMappings)
-                .gte("job_date", periodStart)
-                .lte("job_date", periodEnd)
-                .in("category", targetCategories);
-              for (const j of siteJobs ?? []) {
-                if (j.id && seenIds.has(j.id)) continue;
-                if (j.id) seenIds.add(j.id);
-                rawJobs.push(j);
-              }
-            }
-
-            // Midweigh jobs by customer (site is blank on these tickets)
-            // Midweigh jobs by customer (site is blank on these tickets) —
-            // only for customers explicitly set up for Midweigh rebates
-            if (dataHubCustomer && (await isMidweighRebateCustomer({ customerId: customer.id, dataHubCustomer }))) {
-              const { data: midweighJobs } = await supabase
-                .from("data_hub_jobs")
-                .select("id, waste_description, weight_t, category, job_type, movement_type")
-                .eq("source", "midweigh")
-                .eq("customer", dataHubCustomer)
-                .gte("job_date", periodStart)
-                .lte("job_date", periodEnd)
-                .in("category", targetCategories);
-              for (const j of midweighJobs ?? []) {
-                if (j.id && seenIds.has(j.id)) continue;
-                if (j.id) seenIds.add(j.id);
-                rawJobs.push(j);
-              }
-            }
-
-            let jobs = rawJobs.map((j) => ({
-              ...j,
-              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
-            }));
-            if (excludeSkipJobType) {
-              jobs = jobs.filter((j) => (j.category !== "Midweigh" ? true : (j.job_type ?? "").toUpperCase() !== "SKIP"));
-            }
-            if (excludeDeliverMovement) {
-              jobs = jobs.filter((j) => {
-                if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
-                const mt = (j.movement_type ?? "").toLowerCase();
-                return mt !== "deliver" && mt !== "delivery";
-              });
-            }
-
-            const { data: mappings } = await supabase
-              .from("data_hub_rebate_mappings")
-              .select("waste_description, material_type_id, rebate_item_id");
-
-            const MATERIAL_TYPE_MAP: Record<string, string> = { card_loose: "Card Loose", scrap_metal: "Scrap Metal" };
-            const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
-              card_loose: ["card loose", "cardboard"],
-              scrap_metal: ["scrap ferrous", "scrap non-ferrous", "scrap metal"],
-            };
-
-            for (const config of skipConfigs) {
-              if (config.rebate_enabled === false) continue;
-              let totalWeight = 0;
-              for (const job of jobs ?? []) {
-                const mapping = (mappings ?? []).find((m) => m.waste_description === job.waste_description);
-                if (mapping?.material_type_id) {
-                  const { data: wasteType } = await supabase
-                    .from("load_waste_types")
-                    .select("waste_type")
-                    .eq("id", mapping.material_type_id)
-                    .single();
-                  const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
-                  const wasteTypeLower = wasteType?.waste_type?.toLowerCase() ?? "";
-                  if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
-                }
-              }
-              if (totalWeight === 0) continue;
-              let rate = 0;
-              if (config.value_type === "set" && config.set_value !== null) rate = Number(config.set_value);
-              else if (config.value_type_item_id) {
-                const monthVal = monthlyValueMap[config.value_type_item_id];
-                if (monthVal) rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
-              }
-              rate += config.adjustment ?? 0;
-              const threshold = config.threshold_tonnes ?? 0;
-              const rebatableWeight = Math.max(0, totalWeight - threshold);
-              const rebate = rebatableWeight * rate;
-              skipRoroRebate += rebate;
-              skipRoroWeight += totalWeight;
-              materials.push({
-                name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (RoRo/Skip)`,
-                weight: totalWeight,
-                rate,
-                rebate,
-                source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
-              });
-            }
+            const built = buildSkipRoroMaterials(configuredSkipConfigs, jobs, "RoRo/Skip");
+            skipRoroRebate = built.rebateTotal;
+            skipRoroWeight = built.weightTotal;
+            materials.push(...built.materials);
           }
 
           const siteTotalRebate = loadReportRebate + skipRoroRebate;
@@ -593,6 +493,66 @@ export function MonthlyRebateGenerationV2() {
           }
           customerTotalRebate += siteTotalRebate;
           customerTotalWeight += siteTotalWeight;
+        }
+
+        // Customer-level Skip/RoRo rebate lines: calculated ONCE for the whole
+        // customer (weighbridge tickets and jobs carrying only a customer
+        // name), never repeated per site.
+        const customerSkipConfigs = (custSkipConfigsByCustomer.get(customer.id) ?? []).filter(
+          (c: any) => c.rebate_enabled !== false,
+        );
+        const customerDataHubName = customer.data_hub_customer?.trim() || null;
+        if (customerSkipConfigs.length > 0 && customerDataHubName) {
+          const midweighAllowed = await isMidweighRebateCustomer({
+            customerId: customer.id,
+            dataHubCustomer: customerDataHubName,
+          });
+          const customerCategories = midweighAllowed
+            ? targetCategories
+            : targetCategories.filter((c) => c !== "Midweigh");
+
+          const { data: customerJobs } = await supabase
+            .from("data_hub_jobs")
+            .select("id, waste_description, weight_t, category, job_type, movement_type")
+            .eq("customer", customerDataHubName)
+            .gte("job_date", periodStart)
+            .lte("job_date", periodEnd)
+            .in("category", customerCategories);
+
+          const jobs = (customerJobs ?? [])
+            .filter((j) => !j.id || !customerUsedJobIds.has(j.id))
+            .map((j) => ({
+              waste_description: j.waste_description,
+              category: j.category,
+              job_type: j.job_type,
+              movement_type: j.movement_type,
+              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
+            }));
+
+          const built = buildSkipRoroMaterials(customerSkipConfigs, jobs, "RoRo/Skip");
+          if (built.materials.length > 0) {
+            const customerLevelSite: Site = {
+              id: `cust-${customer.id}`,
+              site_name: `${customer.customer_name} (customer level)`,
+              customer_id: customer.id,
+              data_hub_customer: customerDataHubName,
+              data_hub_site: null,
+              data_hub_site_2: null,
+              data_hub_site_3: null,
+              data_hub_site_4: null,
+              data_hub_site_5: null,
+              load_report_type: null,
+              owner_contact_id: null,
+            };
+            siteBreakdowns.push({
+              site: customerLevelSite,
+              totalRebate: built.rebateTotal,
+              totalWeight: built.weightTotal,
+              materials: built.materials,
+            });
+            customerTotalRebate += built.rebateTotal;
+            customerTotalWeight += built.weightTotal;
+          }
         }
 
         if (siteBreakdowns.length > 0) {
@@ -605,6 +565,7 @@ export function MonthlyRebateGenerationV2() {
           });
         }
       }
+
 
       result.sort((a, b) => b.totalRebate - a.totalRebate);
 
