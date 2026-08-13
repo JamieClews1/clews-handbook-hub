@@ -465,14 +465,16 @@ Deno.serve(async (req) => {
         // 6-month rule: block re-cataloguing a bin uploaded in the last 6 months
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        const { data: existing } = await supabase
+        // Match on the asset number alone (normalised) so a mis-picked
+        // skip/RoRo type can never create a duplicate profile.
+        const { data: matches } = await supabase
           .from("skip_inventory")
           .select(
-            "id, last_cataloged_at, last_reported_by, photos, tags, size, condition",
+            "id, asset_type, last_cataloged_at, last_reported_by, photos, tags, size, condition",
           )
-          .eq("asset_type", assetType)
-          .eq("asset_number", assetNumber)
-          .maybeSingle();
+          .ilike("asset_number", assetNumber)
+          .order("last_cataloged_at", { ascending: false, nullsFirst: false });
+        const existing = matches?.[0] ?? null;
 
         const existingPhotos = Array.isArray(existing?.photos) ? existing!.photos : [];
         const existingTags: string[] = Array.isArray(existing?.tags) ? existing!.tags : [];
@@ -502,8 +504,8 @@ Deno.serve(async (req) => {
         }
 
         const photos = isTopUp ? [...existingPhotos, ...newPhotos] : newPhotos;
-        const condition = body?.condition ? String(body.condition) : null;
-        const size = body?.size ? String(body.size) : null;
+        const condition = body?.condition ? String(body.condition) : existing?.condition ?? null;
+        const size = body?.size ? String(body.size) : existing?.size ?? null;
         const repairsRequired = Boolean(body?.repairs_required);
         const repairNotes = body?.repair_notes ? String(body.repair_notes) : null;
         const location = body?.location ? String(body.location) : null;
@@ -515,7 +517,7 @@ Deno.serve(async (req) => {
 
         const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
-          asset_type: assetType,
+          asset_type: existing?.asset_type || assetType,
           size,
           condition,
           repairs_required: repairsRequired,
