@@ -108,6 +108,11 @@ const PublicInventoryPage = () => {
     });
   }, [items, search, typeFilter, conditionFilter]);
 
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort((a, b) => compareAssetNumbers(a.asset_number, b.asset_number)),
+    [filtered],
+  );
+
   const totalValue = filtered.reduce((s, r) => s + (r.value || 0), 0);
   const portfolioValue = items.reduce((s, r) => s + (r.value || 0), 0);
   const repairsCount = items.filter((i) => i.repairs_required).length;
