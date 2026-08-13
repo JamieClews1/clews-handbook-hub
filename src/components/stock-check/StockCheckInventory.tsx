@@ -85,6 +85,7 @@ import {
 
 
 import { cn, compareAssetNumbers } from "@/lib/utils";
+import { publicUrl } from "@/lib/public-url";
 
 interface InventoryRow {
   id: string;
@@ -1509,7 +1510,7 @@ const InventoryList = () => {
           </Tooltip>
         ) : shareLinks.length === 1 ? (
           <Button variant="outline" className="gap-2" asChild>
-            <a href={`/inventory/${shareLinks[0].token}`} target="_blank" rel="noreferrer">
+            <a href={publicUrl(`/inventory/${shareLinks[0].token}`)} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" /> External view
             </a>
           </Button>
@@ -1526,7 +1527,7 @@ const InventoryList = () => {
               {shareLinks.map((l) => (
                 <a
                   key={l.id}
-                  href={`/inventory/${l.token}`}
+                  href={publicUrl(`/inventory/${l.token}`)}
                   target="_blank"
                   rel="noreferrer"
                   className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
