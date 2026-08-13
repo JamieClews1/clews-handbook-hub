@@ -243,6 +243,10 @@ const SkipTrackerFlow = ({
       toast.error("Enter the skip / RoRo number");
       return;
     }
+    if (!containerType) {
+      toast.error("Choose a container type");
+      return;
+    }
     if (recentlyCatalogued) {
       toast.error("This bin was catalogued in the last 6 months");
       return;
@@ -252,6 +256,7 @@ const SkipTrackerFlow = ({
       const res = await driverAction<{ points: number }>("submit_skip_tracker", {
         asset_number: assetNumber.trim(),
         asset_type: assetType,
+        size: containerType,
         condition,
         repairs_required: repairsRequired,
         repair_notes: repairNotes.trim() || null,
