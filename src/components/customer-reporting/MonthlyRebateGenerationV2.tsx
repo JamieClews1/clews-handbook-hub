@@ -839,6 +839,56 @@ export function MonthlyRebateGenerationV2() {
     toast({ title: "Downloaded", description: `Marked ${summary.customer.customer_name} as generated.` });
   };
 
+  // Download the exact branded customer workbook that gets emailed, so it can
+  // be reviewed before sending. `sb` limits it to a single site.
+  const downloadBrandedReport = async (summary: CustomerRebateSummary, sb?: SiteBreakdown) => {
+    if (!dateRange?.from || !dateRange?.to) return;
+    const breakdowns = sb ? [sb] : summary.siteBreakdowns;
+    if (breakdowns.length === 0) {
+      toast({ title: "Nothing to download", description: "No rebate lines for this customer.", variant: "destructive" });
+      return;
+    }
+    setDownloadingId(sb ? sb.site.id : summary.customer.id);
+    try {
+      const { base64, filename } = await getCustomerRebateExportBase64({
+        customerName: summary.customer.customer_name,
+        siteName: sb ? sb.site.site_name : "All sites",
+        periodLabel,
+        consolidatedData: buildConsolidatedData(breakdowns),
+        totalWeight: breakdowns.reduce((s, b) => s + b.totalWeight, 0),
+        totalRebate: breakdowns.reduce((s, b) => s + b.totalRebate, 0),
+        siteBreakdowns: breakdowns.map((b) => ({
+          siteName: b.site.site_name,
+          totalWeight: b.totalWeight,
+          totalRebate: b.totalRebate,
+          materials: b.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
+        })),
+        loadReportsScope: {
+          siteIds: breakdowns.filter((b) => trackSiteId(b)).map((b) => b.site.id),
+          periodStart: format(dateRange.from, "yyyy-MM-dd"),
+          periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+          palletChargeRate:
+            breakdowns.flatMap((b) => b.materials).find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
+        },
+      });
+
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(
+        new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Downloaded", description: filename });
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message ?? "Could not build the report.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   // Resolve the recipient email for a specific site: prefer the site's owner
   // contact, then fall back to the first customer contact with an email.
   const siteRecipient = (summary: CustomerRebateSummary, sb: SiteBreakdown) => {
