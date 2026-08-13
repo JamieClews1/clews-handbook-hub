@@ -64,6 +64,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  RefreshCw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1098,7 +1099,12 @@ const InventoryList = () => {
     return sorted;
   };
 
-  const { data: rows = [], isLoading } = useQuery({
+  const {
+    data: rows = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ["skip-inventory"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -1118,8 +1124,6 @@ const InventoryList = () => {
       })) as InventoryRow[];
     },
   });
-
-  const refetch = () => queryClient.invalidateQueries({ queryKey: ["skip-inventory"] });
 
   const { data: conditionValues = [] } = useQuery({
     queryKey: ["skip-inventory-condition-values"],
@@ -1456,8 +1460,18 @@ const InventoryList = () => {
                   Show all columns
                 </button>
               </DropdownMenuContent>
-            </DropdownMenu>
+          </DropdownMenu>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /> Refresh
+          </Button>
 
           <div className="flex rounded-lg border p-0.5">
             <button
