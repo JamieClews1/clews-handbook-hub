@@ -1,0 +1,50 @@
+INSERT INTO public.skip_inventory (asset_number, asset_type, size, condition, tags)
+SELECT v.asset_number, v.asset_type, v.size, v.condition, ARRAY['More photos needed']
+FROM (VALUES
+('SK160','skip','12 CU YD ENCLOSED','Good'),
+('SK161','skip','12 CU YD ENCLOSED','Good'),
+('SK162','skip','12 CU YD ENCLOSED','Good'),
+('SK163','skip','8 CU YD','Good'),
+('SK164','skip','12 CU YD ENCLOSED','Good'),
+('SK165','skip','12 CU YD ENCLOSED','Good'),
+('SK166','skip','8 CU YD','Good'),
+('SK167','skip','6 CU YD','Fair'),
+('SK168','skip','6 CU YD','Fair'),
+('SK169','skip','6 CU YD','Fair'),
+('SK170','skip','6 CU YD','Fair'),
+('SK171','skip','6 CU YD','Fair'),
+('SK172','skip','6 CU YD','Fair'),
+('SK173','skip','12 CU YD ENCLOSED','Good'),
+('SK174','skip','12 CU YD','Good'),
+('SK175','skip','12 CU YD','Good'),
+('SK176','skip','12 CU YD','Good'),
+('SK177','skip','12 CU YD','Good'),
+('SK178','skip','12 CU YD','Good'),
+('SK179','skip','12 CU YD','Good'),
+('SK180','skip','12 CU YD','Good'),
+('SK181','skip','12 CU YD','Good'),
+('SK182','skip','12 CU YD','Good'),
+('SK183','skip','12 CU YD','Good'),
+('SK184','skip','12 CU YD','Good'),
+('SK185','skip','12 CU YD','Good'),
+('SK186','skip','14 CU YD','New'),
+('SK187','skip','14 CU YD','New'),
+('SK188','skip','12 CU YD','New'),
+('SK189','skip','12 CU YD','New'),
+('SK190','skip','12 CU YD','New'),
+('SK191','skip','12 CU YD','New'),
+('SK192','skip','12 CU YD ENCLOSED','New'),
+('SK193','skip','12 CU YD','Good'),
+('SK194','skip','12 CU YD','New'),
+('SK195','skip','12 CU YD','New'),
+('SK196','skip','12 CU YD','New'),
+('SK197','skip','12 CU YD','New'),
+('SK198','skip','12 CU YD','New'),
+('SK199','skip','12 CU YD','New'),
+('SK200','skip','12 CU YD','Good'),
+('SK201','skip','12 CU YD','Good')
+) AS v(asset_number, asset_type, size, condition)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.skip_inventory s
+  WHERE upper(replace(s.asset_number,' ','')) = upper(v.asset_number)
+);
