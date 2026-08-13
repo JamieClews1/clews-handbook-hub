@@ -207,6 +207,7 @@ const SkipTrackerFlow = ({
 
   // Bins of this type already catalogued, filtered as the driver types
   const matchingCatalogued = useMemo(() => {
+    if (!assetType) return [];
     const num = assetNumber.trim().toLowerCase();
     return inventory
       .filter(
@@ -214,14 +215,27 @@ const SkipTrackerFlow = ({
           i.asset_type === assetType &&
           (!num || i.asset_number.toLowerCase().includes(num)),
       )
-      .sort(numericSort)
-      .slice(0, 60);
+      .sort((a, b) => compareAssetNumbers(a.asset_number, b.asset_number))
+      .slice(0, 120);
   }, [assetNumber, assetType, inventory]);
 
-  const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Sizes available for the chosen asset type
+  const sizeOptions = useMemo(
+    () =>
+      assetType
+        ? containerTypes.filter((t) => containerAssetType(t) === assetType)
+        : [],
+    [containerTypes, assetType],
+  );
+
+  const handleCapture = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    label: string,
+  ) => {
     const files = e.target.files;
     if (!files?.length) return;
     setUploading(true);
+    setPendingPhotoLabel(label);
     try {
       const newPhotos: PhotoItem[] = [];
       for (const file of Array.from(files)) {
@@ -232,7 +246,7 @@ const SkipTrackerFlow = ({
           content_type: file.type || "image/jpeg",
           file_base64,
         });
-        if (url) newPhotos.push({ url, label: pendingPhotoLabel });
+        if (url) newPhotos.push({ url, label });
       }
       setPhotos((p) => [...p, ...newPhotos]);
       toast.success("Photo added");
@@ -242,9 +256,11 @@ const SkipTrackerFlow = ({
     } finally {
       setUploading(false);
       setPendingPhotoLabel(undefined);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      const input = fileInputRefs.current[label];
+      if (input) input.value = "";
     }
   };
+
 
   const handleSubmit = async () => {
     if (!assetNumber.trim()) {
