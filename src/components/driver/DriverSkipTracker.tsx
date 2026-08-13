@@ -101,7 +101,7 @@ interface HubData {
 
 type Tab = "logged" | "reports" | "points";
 
-const CONDITIONS = ["New", "Good", "Fair", "Poor", "Damaged"];
+const CONDITIONS = ["New", "Good", "Fair", "Poor"];
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
 
 /* ─── Catalogue flow ─── */
@@ -277,7 +277,7 @@ const SkipTrackerFlow = ({
       <div className="p-4 space-y-4">
         {/* Container type */}
         <div className="space-y-2">
-          <Label>Container type</Label>
+          <Label>Container type *</Label>
           <Select
             value={containerType}
             onValueChange={(v) => {
@@ -494,7 +494,7 @@ const SkipTrackerFlow = ({
       <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border">
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim()}
+          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !containerType}
           className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-2"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}

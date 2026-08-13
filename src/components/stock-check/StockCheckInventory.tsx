@@ -218,7 +218,7 @@ const TagCell = ({
   );
 };
 
-const CONDITIONS = ["New", "Good", "Fair", "Poor", "Damaged", "Scrapped", "Yard Use"];
+const CONDITIONS = ["New", "Good", "Fair", "Poor", "Scrapped", "Yard Use"];
 
 const conditionStyle: Record<string, string> = {
   New: "bg-lime-500/15 text-lime-700 border-lime-500/30",
