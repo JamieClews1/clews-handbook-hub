@@ -518,7 +518,7 @@ export function MonthlyRebateGenerationV2() {
           if (configuredSkipConfigs.length > 0 && siteDataHubMappings.length > 0) {
             const { data: siteJobs } = await supabase
               .from("data_hub_jobs")
-              .select("id, waste_description, weight_t, category, job_type, movement_type")
+              .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type")
               .in("site", siteDataHubMappings)
               .gte("job_date", periodStart)
               .lte("job_date", periodEnd)
@@ -531,6 +531,9 @@ export function MonthlyRebateGenerationV2() {
                 category: j.category,
                 job_type: j.job_type,
                 movement_type: j.movement_type,
+                job_number: j.job_number,
+                job_date: j.job_date,
+                site: j.site,
                 weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
               };
             });
@@ -539,12 +542,14 @@ export function MonthlyRebateGenerationV2() {
             skipRoroRebate = built.rebateTotal;
             skipRoroWeight = built.weightTotal;
             materials.push(...built.materials);
+            siteLoads.push(...built.loads);
           }
 
           const siteTotalRebate = loadReportRebate + skipRoroRebate;
           const siteTotalWeight = loadReportWeight + skipRoroWeight;
           if (siteTotalRebate !== 0 || materials.length > 0) {
-            siteBreakdowns.push({ site, totalRebate: siteTotalRebate, totalWeight: siteTotalWeight, materials });
+            siteLoads.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+            siteBreakdowns.push({ site, totalRebate: siteTotalRebate, totalWeight: siteTotalWeight, materials, loads: siteLoads });
           }
           customerTotalRebate += siteTotalRebate;
           customerTotalWeight += siteTotalWeight;
