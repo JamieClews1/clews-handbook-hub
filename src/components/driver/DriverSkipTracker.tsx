@@ -7,6 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -25,6 +32,10 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const isRoroType = (n: string) => /ro\s*ro|roll\s*on/i.test(n);
+const isSkipType = (n: string) => /skip|yard|yd/i.test(n);
+const containerAssetType = (n: string) => (isRoroType(n) ? "roro" : "skip");
 
 interface Reporter {
   id: string;
