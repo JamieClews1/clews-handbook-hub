@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Boxes, Download, ImageIcon, Loader2, Printer, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, compareAssetNumbers } from "@/lib/utils";
 import { format } from "date-fns";
 
 const conditionStyle: Record<string, string> = {
