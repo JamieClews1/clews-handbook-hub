@@ -83,7 +83,7 @@ import {
 } from "@/components/ui/table";
 
 
-import { cn } from "@/lib/utils";
+import { cn, compareAssetNumbers } from "@/lib/utils";
 
 interface InventoryRow {
   id: string;
