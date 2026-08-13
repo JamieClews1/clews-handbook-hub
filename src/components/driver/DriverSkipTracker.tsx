@@ -120,11 +120,12 @@ const SkipTrackerFlow = ({
   onSubmitted: () => void;
   preset?: { number: string; type: string } | null;
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [assetType, setAssetType] = useState<"skip" | "roro">(
-    preset?.type === "roro" ? "roro" : "skip",
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [assetType, setAssetType] = useState<"skip" | "roro" | null>(
+    preset?.type === "roro" ? "roro" : preset?.type === "skip" ? "skip" : null,
   );
   const [containerType, setContainerType] = useState<string>("");
+
   const [assetNumber, setAssetNumber] = useState(preset?.number ?? "");
   const [condition, setCondition] = useState<string>("Good");
   const [repairsRequired, setRepairsRequired] = useState(false);
