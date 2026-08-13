@@ -1529,7 +1529,83 @@ export function MonthlyRebateGenerationV2() {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk review dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review rebate emails</DialogTitle>
+            <DialogDescription>
+              {bulkSummary?.customer.customer_name} — {periodLabel}. Check the recipient and copy for each site before sending.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {bulkDrafts.map((draft, i) => (
+              <div key={draft.sb.site.id} className="rounded-md border p-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 font-medium text-sm">
+                    <input
+                      type="checkbox"
+                      checked={draft.include}
+                      onChange={(e) => updateDraft(i, { include: e.target.checked })}
+                    />
+                    {draft.sb.site.site_name}
+                  </label>
+                  <span className="text-sm text-muted-foreground">£{draft.sb.totalRebate.toFixed(2)}</span>
+                </div>
+                {draft.include && (
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Recipient</Label>
+                      <Input
+                        type="email"
+                        value={draft.recipient}
+                        placeholder="customer@example.com"
+                        onChange={(e) => updateDraft(i, { recipient: e.target.value })}
+                      />
+                      {!draft.recipient && <p className="text-xs text-destructive">No contact email found for this site.</p>}
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Subject</Label>
+                      <Input value={draft.subject} onChange={(e) => updateDraft(i, { subject: e.target.value })} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Message</Label>
+                      <Textarea
+                        value={draft.body}
+                        rows={8}
+                        className="font-mono text-xs"
+                        onChange={(e) => updateDraft(i, { body: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSending}>Cancel</Button>
+            <Button
+              onClick={sendBulk}
+              disabled={bulkSending || bulkDrafts.filter((d) => d.include && d.recipient).length === 0}
+            >
+              {bulkSending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send {bulkDrafts.filter((d) => d.include && d.recipient).length} email(s)
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Email dialog */}
+
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
