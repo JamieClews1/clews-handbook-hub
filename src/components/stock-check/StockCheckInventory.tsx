@@ -1460,8 +1460,18 @@ const InventoryList = () => {
                   Show all columns
                 </button>
               </DropdownMenuContent>
-            </DropdownMenu>
+          </DropdownMenu>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /> Refresh
+          </Button>
 
           <div className="flex rounded-lg border p-0.5">
             <button
