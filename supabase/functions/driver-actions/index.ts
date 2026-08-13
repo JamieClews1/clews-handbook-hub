@@ -465,14 +465,16 @@ Deno.serve(async (req) => {
         // 6-month rule: block re-cataloguing a bin uploaded in the last 6 months
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        const { data: existing } = await supabase
+        // Match on the asset number alone (normalised) so a mis-picked
+        // skip/RoRo type can never create a duplicate profile.
+        const { data: matches } = await supabase
           .from("skip_inventory")
           .select(
-            "id, last_cataloged_at, last_reported_by, photos, tags, size, condition",
+            "id, asset_type, last_cataloged_at, last_reported_by, photos, tags, size, condition",
           )
-          .eq("asset_type", assetType)
-          .eq("asset_number", assetNumber)
-          .maybeSingle();
+          .ilike("asset_number", assetNumber)
+          .order("last_cataloged_at", { ascending: false, nullsFirst: false });
+        const existing = matches?.[0] ?? null;
 
         const existingPhotos = Array.isArray(existing?.photos) ? existing!.photos : [];
         const existingTags: string[] = Array.isArray(existing?.tags) ? existing!.tags : [];
