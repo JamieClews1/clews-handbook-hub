@@ -1182,6 +1182,17 @@ export function MonthlyRebateGenerationV2() {
                                     variant="outline"
                                     size="sm"
                                     className="h-7 gap-1.5 text-xs"
+                                    onClick={() => downloadBrandedReport(summary, sb)}
+                                    disabled={downloadingId === sb.site.id}
+                                    title={`Download the report for ${sb.site.site_name}`}
+                                  >
+                                    {downloadingId === sb.site.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                    Report
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1.5 text-xs"
                                     onClick={() => openEmailDialog(summary, sb)}
                                     title={`Send rebate email for ${sb.site.site_name}`}
                                   >
