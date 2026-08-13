@@ -470,8 +470,11 @@ const ProfileDialog = ({
               <Label>Number</Label>
               <Input
                 value={form.asset_number}
-                onChange={(e) => setForm((f) => ({ ...f, asset_number: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, asset_number: e.target.value.toUpperCase() }))
+                }
                 placeholder="e.g. SK-1042"
+                autoCapitalize="characters"
               />
             </div>
             <div className="space-y-1.5">
