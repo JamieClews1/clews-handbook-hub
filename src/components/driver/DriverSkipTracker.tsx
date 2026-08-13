@@ -134,6 +134,7 @@ const SkipTrackerFlow = ({
   const [assetType, setAssetType] = useState<"skip" | "roro">(
     preset?.type === "roro" ? "roro" : "skip",
   );
+  const [containerType, setContainerType] = useState<string>("");
   const [assetNumber, setAssetNumber] = useState(preset?.number ?? "");
   const [condition, setCondition] = useState<string>("Good");
   const [repairsRequired, setRepairsRequired] = useState(false);
@@ -144,6 +145,30 @@ const SkipTrackerFlow = ({
   const [pendingPhotoLabel, setPendingPhotoLabel] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Prefill container type from the tapped bin's size/asset type when available
+  useEffect(() => {
+    if (!containerTypes.length) {
+      setContainerType("");
+      return;
+    }
+    if (preset?.number) {
+      const bin = inventory.find(
+        (i) =>
+          i.asset_number.trim().toLowerCase() === preset.number.trim().toLowerCase() &&
+          i.asset_type === preset.type,
+      );
+      const sizeMatch = bin?.size && containerTypes.some((c) => c.toLowerCase() === bin.size!.toLowerCase());
+      if (sizeMatch) {
+        setContainerType(bin.size!);
+        setAssetType(containerAssetType(bin.size!));
+        return;
+      }
+    }
+    const preferred = containerTypes.find((c) => containerAssetType(c) === (preset?.type ?? "skip"));
+    setContainerType(preferred ?? containerTypes[0] ?? "");
+    if (preferred) setAssetType(containerAssetType(preferred));
+  }, [containerTypes, preset, inventory]);
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
