@@ -179,7 +179,7 @@ export const InventoryValueSettings = () => {
     load();
   };
 
-  const urlFor = (token: string) => `${window.location.origin}/inventory/${token}`;
+  const urlFor = (token: string) => publicUrl(`/inventory/${token}`);
 
   return (
     <div className="space-y-6">
