@@ -165,17 +165,116 @@ export function MonthlyRebateGenerationV2() {
       setProgressLabel("Finding sites with rebate setup...");
       const [{ data: psRows }, { data: siteSkipRows }, { data: custSkipRows }] = await Promise.all([
         supabase.from("customer_site_price_sets").select("site_id"),
-        supabase.from("customer_site_skip_rebates").select("site_id"),
-        supabase.from("customer_skip_rebates").select("customer_id"),
+        supabase
+          .from("customer_site_skip_rebates")
+          .select("site_id, material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled"),
+        supabase
+          .from("customer_skip_rebates")
+          .select("customer_id, material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled"),
       ]);
       const eligibleSiteIds = new Set<string>([
         ...(psRows ?? []).map((r: any) => r.site_id),
         ...(siteSkipRows ?? []).map((r: any) => r.site_id),
       ]);
       const eligibleCustomerIds = new Set<string>((custSkipRows ?? []).map((r: any) => r.customer_id));
-      const allSites = allSitesRaw.filter(
-        (s) => eligibleSiteIds.has(s.id) || eligibleCustomerIds.has(s.customer_id),
-      );
+      // IMPORTANT: customer-level Skip/RoRo rebate lines are a CUSTOMER total,
+      // not something each of the customer's (often hundreds of) sites should
+      // repeat. Only site-level setup makes a site eligible here; customer
+      // level lines are calculated once per customer further below.
+      const allSites = allSitesRaw.filter((s) => eligibleSiteIds.has(s.id));
+
+      const siteSkipConfigsBySite = new Map<string, any[]>();
+      for (const r of siteSkipRows ?? []) {
+        const list = siteSkipConfigsBySite.get((r as any).site_id) ?? [];
+        list.push(r);
+        siteSkipConfigsBySite.set((r as any).site_id, list);
+      }
+      const custSkipConfigsByCustomer = new Map<string, any[]>();
+      for (const r of custSkipRows ?? []) {
+        const list = custSkipConfigsByCustomer.get((r as any).customer_id) ?? [];
+        list.push(r);
+        custSkipConfigsByCustomer.set((r as any).customer_id, list);
+      }
+
+      // Shared lookups fetched once (previously queried inside nested loops).
+      const [{ data: allWasteTypes }, { data: allMappings }, { data: rebateRules }, { data: allRebateItems }] =
+        await Promise.all([
+          supabase.from("load_waste_types").select("id, waste_type, rebate_category"),
+          supabase.from("data_hub_rebate_mappings").select("waste_description, material_type_id, rebate_item_id"),
+          supabase.from("rebate_rules").select("rule_key, is_enabled"),
+          supabase.from("rebate_items").select("id, name"),
+        ]);
+      const wasteTypeById = new Map<string, { waste_type: string; rebate_category: string | null }>();
+      for (const wt of allWasteTypes ?? []) wasteTypeById.set(wt.id, wt as any);
+      const rebateItemNameById = new Map<string, string>();
+      for (const ri of allRebateItems ?? []) rebateItemNameById.set(ri.id, ri.name);
+      const mappingByWaste = new Map<string, any>();
+      for (const m of allMappings ?? []) mappingByWaste.set(m.waste_description, m);
+      const excludeSkipJobType =
+        rebateRules?.find((r) => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
+      const excludeDeliverMovement =
+        rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+
+      const MATERIAL_TYPE_MAP: Record<string, string> = { card_loose: "Card Loose", scrap_metal: "Scrap Metal" };
+      const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
+        card_loose: ["card loose", "cardboard"],
+        scrap_metal: ["scrap ferrous", "scrap non-ferrous", "scrap metal"],
+      };
+      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
+
+      // Turn a set of Data Hub jobs into rebate material lines for the given configs.
+      const buildSkipRoroMaterials = (
+        configs: any[],
+        jobs: Array<{ waste_description: string | null; weight_t: number; category: string | null; job_type: string | null; movement_type: string | null }>,
+        labelSuffix: string,
+      ) => {
+        const materials: SiteBreakdown["materials"] = [];
+        let rebateTotal = 0;
+        let weightTotal = 0;
+        let filtered = jobs;
+        if (excludeSkipJobType) {
+          filtered = filtered.filter((j) => (j.category !== "Midweigh" ? true : (j.job_type ?? "").toUpperCase() !== "SKIP"));
+        }
+        if (excludeDeliverMovement) {
+          filtered = filtered.filter((j) => {
+            if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
+            const mt = (j.movement_type ?? "").toLowerCase();
+            return mt !== "deliver" && mt !== "delivery";
+          });
+        }
+        for (const config of configs) {
+          if (config.rebate_enabled === false) continue;
+          const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
+          let totalWeight = 0;
+          for (const job of filtered) {
+            const mapping = job.waste_description ? mappingByWaste.get(job.waste_description) : null;
+            if (!mapping?.material_type_id) continue;
+            const wasteTypeLower = (wasteTypeById.get(mapping.material_type_id)?.waste_type ?? "").toLowerCase();
+            if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
+          }
+          if (totalWeight === 0) continue;
+          let rate = 0;
+          if (config.value_type === "set" && config.set_value !== null) rate = Number(config.set_value);
+          else if (config.value_type_item_id) {
+            const monthVal = monthlyValueMap[config.value_type_item_id];
+            if (monthVal) rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
+          }
+          rate += config.adjustment ?? 0;
+          const threshold = config.threshold_tonnes ?? 0;
+          const rebate = Math.max(0, totalWeight - threshold) * rate;
+          rebateTotal += rebate;
+          weightTotal += totalWeight;
+          materials.push({
+            name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (${labelSuffix})`,
+            weight: totalWeight,
+            rate,
+            rebate,
+            source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
+          });
+        }
+        return { materials, rebateTotal, weightTotal };
+      };
+
 
 
       const { data: allContacts } = await supabase
@@ -212,10 +311,12 @@ export function MonthlyRebateGenerationV2() {
         };
       }
 
-      // Only process customers that have at least one site.
-      const customersWithSites = (customers ?? []).filter((c) =>
-        (allSites ?? []).some((s) => s.customer_id === c.id),
+      // Process customers with at least one configured site, plus customers
+      // that only have customer-level Skip/RoRo rebate lines.
+      const customersWithSites = (customers ?? []).filter(
+        (c) => (allSites ?? []).some((s) => s.customer_id === c.id) || eligibleCustomerIds.has(c.id),
       );
+
       const totalToProcess = customersWithSites.length || 1;
 
       const result: CustomerRebateSummary[] = [];
@@ -231,6 +332,8 @@ export function MonthlyRebateGenerationV2() {
         let customerTotalRebate = 0;
         let customerTotalWeight = 0;
         const siteBreakdowns: SiteBreakdown[] = [];
+        const customerUsedJobIds = new Set<string>();
+
 
         for (const site of customerSites) {
           const priceSetLink = await fetchActivePriceSetLink(site.id, periodEnd);
@@ -251,40 +354,18 @@ export function MonthlyRebateGenerationV2() {
           }
 
           // Rebate lines must already be set up (site price set items, or
-          // site/customer level Skip/RoRo rebate lines). If nothing is
-          // configured, do not generate a rebate for this site at all.
-          const { data: siteSkipConfigsEarly } = await supabase
-            .from("customer_site_skip_rebates")
-            .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-            .eq("site_id", site.id);
-
-          let configuredSkipConfigs = siteSkipConfigsEarly ?? [];
-          if (configuredSkipConfigs.length === 0) {
-            const { data: custConfigs } = await supabase
-              .from("customer_skip_rebates")
-              .select("material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled")
-              .eq("customer_id", customer.id);
-            configuredSkipConfigs = custConfigs ?? [];
-          }
+          // SITE-level Skip/RoRo rebate lines). Customer-level lines are
+          // handled once per customer after this loop.
+          const configuredSkipConfigs = siteSkipConfigsBySite.get(site.id) ?? [];
 
           const hasConfiguredRebateLines =
             (rebateItems?.length ?? 0) > 0 ||
-            configuredSkipConfigs.some((c) => c.rebate_enabled !== false);
+            configuredSkipConfigs.some((c: any) => c.rebate_enabled !== false);
 
           if (!hasConfiguredRebateLines) continue;
 
+          const rebateItemNames: Record<string, string> = Object.fromEntries(rebateItemNameById);
 
-          const rebateItemIds = (rebateItems ?? [])
-            .map((item) => item.value_type_item_id)
-            .filter((id): id is string => !!id);
-          let rebateItemNames: Record<string, string> = {};
-          if (rebateItemIds.length > 0) {
-            const { data: rebateItemsData } = await supabase
-              .from("rebate_items")
-              .select("id, name")
-              .in("id", rebateItemIds);
-            for (const ri of rebateItemsData ?? []) rebateItemNames[ri.id] = ri.name;
-          }
 
           const { data: loadReports } = await supabase
             .from("load_reports")
@@ -325,11 +406,8 @@ export function MonthlyRebateGenerationV2() {
           const materials: SiteBreakdown["materials"] = [];
 
           for (const item of rebateItems ?? []) {
-            const { data: material } = await supabase
-              .from("load_waste_types")
-              .select("waste_type, rebate_category")
-              .eq("id", item.rebate_item_id)
-              .single();
+            const material = wasteTypeById.get(item.rebate_item_id) ?? null;
+
 
             const materialName = material?.waste_type ?? "Unknown";
             const isPalletCharge = materialName.toLowerCase().includes("pallet");
@@ -372,7 +450,7 @@ export function MonthlyRebateGenerationV2() {
             }
           }
 
-          // Skip / RoRo rebates
+          // Skip / RoRo rebates — SITE level only (matched on Data Hub sites).
           const siteDataHubMappings = [
             site.data_hub_site,
             site.data_hub_site_2,
@@ -381,133 +459,33 @@ export function MonthlyRebateGenerationV2() {
             site.data_hub_site_5,
           ].filter((s): s is string => !!s);
 
-          const dataHubCustomer =
-            site.data_hub_customer?.trim() ||
-            customer.data_hub_customer?.trim() ||
-            null;
-
-          // Configs already resolved above (site-level first, then customer-level).
-          const skipConfigs = configuredSkipConfigs;
-
-
           let skipRoroRebate = 0;
           let skipRoroWeight = 0;
 
-          const canQueryJobs = siteDataHubMappings.length > 0 || Boolean(dataHubCustomer);
-          if (skipConfigs.length > 0 && canQueryJobs) {
-            const { data: rebateRules } = await supabase
-              .from("rebate_rules")
-              .select("rule_key, is_enabled");
-            const excludeSkipJobType = rebateRules?.find((r) => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
-            const excludeDeliverMovement = rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+          if (configuredSkipConfigs.length > 0 && siteDataHubMappings.length > 0) {
+            const { data: siteJobs } = await supabase
+              .from("data_hub_jobs")
+              .select("id, waste_description, weight_t, category, job_type, movement_type")
+              .in("site", siteDataHubMappings)
+              .gte("job_date", periodStart)
+              .lte("job_date", periodEnd)
+              .in("category", targetCategories);
 
-            const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
-            const rawJobs: Array<{
-              id?: string;
-              waste_description: string | null;
-              weight_t: number | null;
-              category: string | null;
-              job_type: string | null;
-              movement_type: string | null;
-            }> = [];
-            const seenIds = new Set<string>();
+            const jobs = (siteJobs ?? []).map((j) => {
+              if (j.id) customerUsedJobIds.add(j.id);
+              return {
+                waste_description: j.waste_description,
+                category: j.category,
+                job_type: j.job_type,
+                movement_type: j.movement_type,
+                weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
+              };
+            });
 
-            if (siteDataHubMappings.length > 0) {
-              const { data: siteJobs } = await supabase
-                .from("data_hub_jobs")
-                .select("id, waste_description, weight_t, category, job_type, movement_type")
-                .in("site", siteDataHubMappings)
-                .gte("job_date", periodStart)
-                .lte("job_date", periodEnd)
-                .in("category", targetCategories);
-              for (const j of siteJobs ?? []) {
-                if (j.id && seenIds.has(j.id)) continue;
-                if (j.id) seenIds.add(j.id);
-                rawJobs.push(j);
-              }
-            }
-
-            // Midweigh jobs by customer (site is blank on these tickets)
-            // Midweigh jobs by customer (site is blank on these tickets) —
-            // only for customers explicitly set up for Midweigh rebates
-            if (dataHubCustomer && (await isMidweighRebateCustomer({ customerId: customer.id, dataHubCustomer }))) {
-              const { data: midweighJobs } = await supabase
-                .from("data_hub_jobs")
-                .select("id, waste_description, weight_t, category, job_type, movement_type")
-                .eq("source", "midweigh")
-                .eq("customer", dataHubCustomer)
-                .gte("job_date", periodStart)
-                .lte("job_date", periodEnd)
-                .in("category", targetCategories);
-              for (const j of midweighJobs ?? []) {
-                if (j.id && seenIds.has(j.id)) continue;
-                if (j.id) seenIds.add(j.id);
-                rawJobs.push(j);
-              }
-            }
-
-            let jobs = rawJobs.map((j) => ({
-              ...j,
-              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
-            }));
-            if (excludeSkipJobType) {
-              jobs = jobs.filter((j) => (j.category !== "Midweigh" ? true : (j.job_type ?? "").toUpperCase() !== "SKIP"));
-            }
-            if (excludeDeliverMovement) {
-              jobs = jobs.filter((j) => {
-                if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
-                const mt = (j.movement_type ?? "").toLowerCase();
-                return mt !== "deliver" && mt !== "delivery";
-              });
-            }
-
-            const { data: mappings } = await supabase
-              .from("data_hub_rebate_mappings")
-              .select("waste_description, material_type_id, rebate_item_id");
-
-            const MATERIAL_TYPE_MAP: Record<string, string> = { card_loose: "Card Loose", scrap_metal: "Scrap Metal" };
-            const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
-              card_loose: ["card loose", "cardboard"],
-              scrap_metal: ["scrap ferrous", "scrap non-ferrous", "scrap metal"],
-            };
-
-            for (const config of skipConfigs) {
-              if (config.rebate_enabled === false) continue;
-              let totalWeight = 0;
-              for (const job of jobs ?? []) {
-                const mapping = (mappings ?? []).find((m) => m.waste_description === job.waste_description);
-                if (mapping?.material_type_id) {
-                  const { data: wasteType } = await supabase
-                    .from("load_waste_types")
-                    .select("waste_type")
-                    .eq("id", mapping.material_type_id)
-                    .single();
-                  const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
-                  const wasteTypeLower = wasteType?.waste_type?.toLowerCase() ?? "";
-                  if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
-                }
-              }
-              if (totalWeight === 0) continue;
-              let rate = 0;
-              if (config.value_type === "set" && config.set_value !== null) rate = Number(config.set_value);
-              else if (config.value_type_item_id) {
-                const monthVal = monthlyValueMap[config.value_type_item_id];
-                if (monthVal) rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
-              }
-              rate += config.adjustment ?? 0;
-              const threshold = config.threshold_tonnes ?? 0;
-              const rebatableWeight = Math.max(0, totalWeight - threshold);
-              const rebate = rebatableWeight * rate;
-              skipRoroRebate += rebate;
-              skipRoroWeight += totalWeight;
-              materials.push({
-                name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (RoRo/Skip)`,
-                weight: totalWeight,
-                rate,
-                rebate,
-                source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
-              });
-            }
+            const built = buildSkipRoroMaterials(configuredSkipConfigs, jobs, "RoRo/Skip");
+            skipRoroRebate = built.rebateTotal;
+            skipRoroWeight = built.weightTotal;
+            materials.push(...built.materials);
           }
 
           const siteTotalRebate = loadReportRebate + skipRoroRebate;
@@ -517,6 +495,66 @@ export function MonthlyRebateGenerationV2() {
           }
           customerTotalRebate += siteTotalRebate;
           customerTotalWeight += siteTotalWeight;
+        }
+
+        // Customer-level Skip/RoRo rebate lines: calculated ONCE for the whole
+        // customer (weighbridge tickets and jobs carrying only a customer
+        // name), never repeated per site.
+        const customerSkipConfigs = (custSkipConfigsByCustomer.get(customer.id) ?? []).filter(
+          (c: any) => c.rebate_enabled !== false,
+        );
+        const customerDataHubName = customer.data_hub_customer?.trim() || null;
+        if (customerSkipConfigs.length > 0 && customerDataHubName) {
+          const midweighAllowed = await isMidweighRebateCustomer({
+            customerId: customer.id,
+            dataHubCustomer: customerDataHubName,
+          });
+          const customerCategories = midweighAllowed
+            ? targetCategories
+            : targetCategories.filter((c) => c !== "Midweigh");
+
+          const { data: customerJobs } = await supabase
+            .from("data_hub_jobs")
+            .select("id, waste_description, weight_t, category, job_type, movement_type")
+            .eq("customer", customerDataHubName)
+            .gte("job_date", periodStart)
+            .lte("job_date", periodEnd)
+            .in("category", customerCategories);
+
+          const jobs = (customerJobs ?? [])
+            .filter((j) => !j.id || !customerUsedJobIds.has(j.id))
+            .map((j) => ({
+              waste_description: j.waste_description,
+              category: j.category,
+              job_type: j.job_type,
+              movement_type: j.movement_type,
+              weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
+            }));
+
+          const built = buildSkipRoroMaterials(customerSkipConfigs, jobs, "RoRo/Skip");
+          if (built.materials.length > 0) {
+            const customerLevelSite: Site = {
+              id: `cust-${customer.id}`,
+              site_name: `${customer.customer_name} (customer level)`,
+              customer_id: customer.id,
+              data_hub_customer: customerDataHubName,
+              data_hub_site: null,
+              data_hub_site_2: null,
+              data_hub_site_3: null,
+              data_hub_site_4: null,
+              data_hub_site_5: null,
+              load_report_type: null,
+              owner_contact_id: null,
+            };
+            siteBreakdowns.push({
+              site: customerLevelSite,
+              totalRebate: built.rebateTotal,
+              totalWeight: built.weightTotal,
+              materials: built.materials,
+            });
+            customerTotalRebate += built.rebateTotal;
+            customerTotalWeight += built.weightTotal;
+          }
         }
 
         if (siteBreakdowns.length > 0) {
@@ -529,6 +567,7 @@ export function MonthlyRebateGenerationV2() {
           });
         }
       }
+
 
       result.sort((a, b) => b.totalRebate - a.totalRebate);
 
@@ -656,6 +695,10 @@ export function MonthlyRebateGenerationV2() {
     ? `${format(dateRange.from, "MMMM yyyy")}${dateRange.to && dateRange.to.getMonth() !== dateRange.from.getMonth() ? ` - ${format(dateRange.to, "MMMM yyyy")}` : ""}`
     : "Rebate Period";
 
+  // Customer-level breakdowns use a synthetic site id — track them against the
+  // customer (site_id null) instead.
+  const trackSiteId = (sb: SiteBreakdown) => (sb.site.id.startsWith("cust-") ? null : sb.site.id);
+
   const markGenerated = async (summary: CustomerRebateSummary) => {
     if (!dateRange?.from || !dateRange?.to) return;
     const periodStart = format(dateRange.from, "yyyy-MM-dd");
@@ -663,10 +706,11 @@ export function MonthlyRebateGenerationV2() {
     for (const sb of summary.siteBreakdowns) {
       await upsertTracking({
         customerId: summary.customer.id,
-        siteId: sb.site.id,
+        siteId: trackSiteId(sb),
         periodStart,
         periodEnd,
-        status: tracking.get(trackingKey(summary.customer.id, sb.site.id))?.status === "sent" ? "sent" : "generated",
+        status: tracking.get(trackingKey(summary.customer.id, trackSiteId(sb)))?.status === "sent" ? "sent" : "generated",
+
         rebateAmount: sb.totalRebate,
         userId: user?.id,
       });
@@ -747,7 +791,7 @@ export function MonthlyRebateGenerationV2() {
         },
       ],
       loadReportsScope: {
-        siteIds: [sb.site.id],
+        siteIds: trackSiteId(sb) ? [sb.site.id] : [],
         periodStart: format(dateRange.from, "yyyy-MM-dd"),
         periodEnd: format(dateRange.to, "yyyy-MM-dd"),
         palletChargeRate: sb.materials.find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
@@ -780,7 +824,7 @@ export function MonthlyRebateGenerationV2() {
 
     await upsertTracking({
       customerId: summary.customer.id,
-      siteId: sb.site.id,
+      siteId: trackSiteId(sb),
       periodStart,
       periodEnd,
       status: "sent",
@@ -952,7 +996,7 @@ export function MonthlyRebateGenerationV2() {
                     <CollapsibleContent>
                       <div className="border-t px-4 py-3 space-y-3 bg-muted/20">
                         {summary.siteBreakdowns.map((sb) => {
-                          const siteTracking = tracking.get(trackingKey(summary.customer.id, sb.site.id));
+                          const siteTracking = tracking.get(trackingKey(summary.customer.id, trackSiteId(sb)));
                           const isSent = siteTracking?.status === "sent";
                           return (
                             <div key={sb.site.id} className="rounded-md border bg-background/60">
