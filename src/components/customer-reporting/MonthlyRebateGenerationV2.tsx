@@ -634,12 +634,15 @@ export function MonthlyRebateGenerationV2() {
               existing.materials.push(...built.materials);
               existing.totalRebate += built.rebateTotal;
               existing.totalWeight += built.weightTotal;
+              existing.loads.push(...built.loads);
+              existing.loads.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
             } else {
               siteBreakdowns.push({
                 site,
                 totalRebate: built.rebateTotal,
                 totalWeight: built.weightTotal,
                 materials: built.materials,
+                loads: built.loads.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")),
               });
             }
             customerTotalRebate += built.rebateTotal;
