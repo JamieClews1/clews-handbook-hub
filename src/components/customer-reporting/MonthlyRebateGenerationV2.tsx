@@ -1134,7 +1134,17 @@ export function MonthlyRebateGenerationV2() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8"
+                        onClick={() => downloadBrandedReport(summary)}
+                        disabled={downloadingId === summary.customer.id}
+                        title="Download customer report (same file as emailed)"
+                      >
+                        {downloadingId === summary.customer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download summary Excel">
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button
