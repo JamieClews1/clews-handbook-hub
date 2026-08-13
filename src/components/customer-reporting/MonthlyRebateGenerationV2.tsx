@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle, Eye, FileSpreadsheet } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import * as XLSX from "xlsx";
 import { ReportDateRangePicker } from "./ReportDateRangePicker";
@@ -102,6 +102,7 @@ export function MonthlyRebateGenerationV2() {
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [reportSummary, setReportSummary] = useState<CustomerRebateSummary | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRebateSummary | null>(null);
   const [selectedSite, setSelectedSite] = useState<SiteBreakdown | null>(null);
   const [emailRecipient, setEmailRecipient] = useState("");
@@ -839,6 +840,56 @@ export function MonthlyRebateGenerationV2() {
     toast({ title: "Downloaded", description: `Marked ${summary.customer.customer_name} as generated.` });
   };
 
+  // Download the exact branded customer workbook that gets emailed, so it can
+  // be reviewed before sending. `sb` limits it to a single site.
+  const downloadBrandedReport = async (summary: CustomerRebateSummary, sb?: SiteBreakdown) => {
+    if (!dateRange?.from || !dateRange?.to) return;
+    const breakdowns = sb ? [sb] : summary.siteBreakdowns;
+    if (breakdowns.length === 0) {
+      toast({ title: "Nothing to download", description: "No rebate lines for this customer.", variant: "destructive" });
+      return;
+    }
+    setDownloadingId(sb ? sb.site.id : summary.customer.id);
+    try {
+      const { base64, filename } = await getCustomerRebateExportBase64({
+        customerName: summary.customer.customer_name,
+        siteName: sb ? sb.site.site_name : "All sites",
+        periodLabel,
+        consolidatedData: buildConsolidatedData(breakdowns),
+        totalWeight: breakdowns.reduce((s, b) => s + b.totalWeight, 0),
+        totalRebate: breakdowns.reduce((s, b) => s + b.totalRebate, 0),
+        siteBreakdowns: breakdowns.map((b) => ({
+          siteName: b.site.site_name,
+          totalWeight: b.totalWeight,
+          totalRebate: b.totalRebate,
+          materials: b.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
+        })),
+        loadReportsScope: {
+          siteIds: breakdowns.filter((b) => trackSiteId(b)).map((b) => b.site.id),
+          periodStart: format(dateRange.from, "yyyy-MM-dd"),
+          periodEnd: format(dateRange.to, "yyyy-MM-dd"),
+          palletChargeRate:
+            breakdowns.flatMap((b) => b.materials).find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
+        },
+      });
+
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(
+        new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Downloaded", description: filename });
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message ?? "Could not build the report.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   // Resolve the recipient email for a specific site: prefer the site's owner
   // contact, then fall back to the first customer contact with an email.
   const siteRecipient = (summary: CustomerRebateSummary, sb: SiteBreakdown) => {
@@ -1083,7 +1134,17 @@ export function MonthlyRebateGenerationV2() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8"
+                        onClick={() => downloadBrandedReport(summary)}
+                        disabled={downloadingId === summary.customer.id}
+                        title="Download customer report (same file as emailed)"
+                      >
+                        {downloadingId === summary.customer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download summary Excel">
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button
@@ -1117,6 +1178,17 @@ export function MonthlyRebateGenerationV2() {
                                 </span>
                                 <div className="flex items-center gap-2 shrink-0">
                                   <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1.5 text-xs"
+                                    onClick={() => downloadBrandedReport(summary, sb)}
+                                    disabled={downloadingId === sb.site.id}
+                                    title={`Download the report for ${sb.site.site_name}`}
+                                  >
+                                    {downloadingId === sb.site.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                    Report
+                                  </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1369,10 +1441,24 @@ export function MonthlyRebateGenerationV2() {
           )}
           <DialogFooter>
             {reportSummary && (
-              <Button variant="outline" onClick={() => downloadExcel(reportSummary)}>
-                <Download className="h-4 w-4 mr-2" />
-                Download Excel
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => downloadExcel(reportSummary)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Summary Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => downloadBrandedReport(reportSummary)}
+                  disabled={downloadingId === reportSummary.customer.id}
+                >
+                  {downloadingId === reportSummary.customer.id ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  )}
+                  Download customer report
+                </Button>
+              </>
             )}
             <Button onClick={() => setReportSummary(null)}>Close</Button>
           </DialogFooter>
