@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Mail, RefreshCw, Download, Lock, AlertTriangle, Eye } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import * as XLSX from "xlsx";
 import { ReportDateRangePicker } from "./ReportDateRangePicker";
@@ -48,11 +48,20 @@ type Site = {
 };
 type CustomerContact = { id: string; full_name: string; email: string | null; customer_id: string };
 
+type LoadLine = {
+  ref: string;
+  date: string | null;
+  source: string;
+  description: string;
+  weight: number;
+};
+
 type SiteBreakdown = {
   site: Site;
   totalRebate: number;
   totalWeight: number;
   materials: Array<{ name: string; weight: number; rate: number; rebate: number; source: string }>;
+  loads: LoadLine[];
 };
 
 type CustomerRebateSummary = {
@@ -92,6 +101,7 @@ export function MonthlyRebateGenerationV2() {
 
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [reportSummary, setReportSummary] = useState<CustomerRebateSummary | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRebateSummary | null>(null);
   const [selectedSite, setSelectedSite] = useState<SiteBreakdown | null>(null);
   const [emailRecipient, setEmailRecipient] = useState("");
@@ -225,10 +235,21 @@ export function MonthlyRebateGenerationV2() {
       // Turn a set of Data Hub jobs into rebate material lines for the given configs.
       const buildSkipRoroMaterials = (
         configs: any[],
-        jobs: Array<{ waste_description: string | null; weight_t: number; category: string | null; job_type: string | null; movement_type: string | null }>,
+        jobs: Array<{
+          waste_description: string | null;
+          weight_t: number;
+          category: string | null;
+          job_type: string | null;
+          movement_type: string | null;
+          job_number?: string | null;
+          job_date?: string | null;
+          site?: string | null;
+        }>,
         labelSuffix: string,
       ) => {
         const materials: SiteBreakdown["materials"] = [];
+        const loads: LoadLine[] = [];
+        const seenLoads = new Set<string>();
         let rebateTotal = 0;
         let weightTotal = 0;
         let filtered = jobs;
@@ -250,7 +271,21 @@ export function MonthlyRebateGenerationV2() {
             const mapping = job.waste_description ? mappingByWaste.get(job.waste_description) : null;
             if (!mapping?.material_type_id) continue;
             const wasteTypeLower = (wasteTypeById.get(mapping.material_type_id)?.waste_type ?? "").toLowerCase();
-            if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
+            if (patterns.some((p) => wasteTypeLower.includes(p))) {
+              totalWeight += job.weight_t;
+              const ref = job.job_number ?? "—";
+              const key = `${ref}|${job.job_date ?? ""}|${job.waste_description ?? ""}|${job.weight_t}`;
+              if (!seenLoads.has(key)) {
+                seenLoads.add(key);
+                loads.push({
+                  ref,
+                  date: job.job_date ?? null,
+                  source: job.category === "Midweigh" ? "Midweigh" : "Skiptrak",
+                  description: [job.waste_description ?? "—", job.site ? `· ${job.site}` : ""].filter(Boolean).join(" "),
+                  weight: job.weight_t,
+                });
+              }
+            }
           }
           if (totalWeight === 0) continue;
           let rate = 0;
@@ -272,7 +307,7 @@ export function MonthlyRebateGenerationV2() {
             source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
           });
         }
-        return { materials, rebateTotal, weightTotal };
+        return { materials, rebateTotal, weightTotal, loads };
       };
 
 
@@ -369,7 +404,7 @@ export function MonthlyRebateGenerationV2() {
 
           const { data: loadReports } = await supabase
             .from("load_reports")
-            .select("id, total_pallets, no_pallets_on_load")
+            .select("id, total_pallets, no_pallets_on_load, report_date, vehicle_reg")
             .eq("site_id", site.id)
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
@@ -379,6 +414,9 @@ export function MonthlyRebateGenerationV2() {
           const loadReportIds = (loadReports ?? []).map((r) => r.id);
           const noPalletsByReportId: Record<string, boolean> = {};
           for (const r of loadReports ?? []) noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+
+          const siteLoads: LoadLine[] = [];
+          const perReport = new Map<string, { weight: number; wasteTypes: Set<string> }>();
 
           let lineItemWeights: Record<string, number> = {};
           let totalPalletWeightTonnes = 0;
@@ -397,6 +435,22 @@ export function MonthlyRebateGenerationV2() {
               const actualKg = Math.max(0, grossKg - palletKg);
               lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualKg / 1000;
               totalPalletWeightTonnes += palletKg / 1000;
+
+              const agg = perReport.get(item.load_report_id) ?? { weight: 0, wasteTypes: new Set<string>() };
+              agg.weight += actualKg / 1000;
+              agg.wasteTypes.add(wasteType);
+              perReport.set(item.load_report_id, agg);
+            }
+            for (const r of loadReports ?? []) {
+              const agg = perReport.get(r.id);
+              if (!agg) continue;
+              siteLoads.push({
+                ref: (r as any).vehicle_reg || r.id.slice(0, 8).toUpperCase(),
+                date: (r as any).report_date ?? null,
+                source: "Load Report",
+                description: Array.from(agg.wasteTypes).join(", "),
+                weight: agg.weight,
+              });
             }
           }
           const palletWeightTonnes = totalPalletWeightTonnes;
@@ -465,7 +519,7 @@ export function MonthlyRebateGenerationV2() {
           if (configuredSkipConfigs.length > 0 && siteDataHubMappings.length > 0) {
             const { data: siteJobs } = await supabase
               .from("data_hub_jobs")
-              .select("id, waste_description, weight_t, category, job_type, movement_type")
+              .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type")
               .in("site", siteDataHubMappings)
               .gte("job_date", periodStart)
               .lte("job_date", periodEnd)
@@ -478,6 +532,9 @@ export function MonthlyRebateGenerationV2() {
                 category: j.category,
                 job_type: j.job_type,
                 movement_type: j.movement_type,
+                job_number: j.job_number,
+                job_date: j.job_date,
+                site: j.site,
                 weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
               };
             });
@@ -486,12 +543,14 @@ export function MonthlyRebateGenerationV2() {
             skipRoroRebate = built.rebateTotal;
             skipRoroWeight = built.weightTotal;
             materials.push(...built.materials);
+            siteLoads.push(...built.loads);
           }
 
           const siteTotalRebate = loadReportRebate + skipRoroRebate;
           const siteTotalWeight = loadReportWeight + skipRoroWeight;
           if (siteTotalRebate !== 0 || materials.length > 0) {
-            siteBreakdowns.push({ site, totalRebate: siteTotalRebate, totalWeight: siteTotalWeight, materials });
+            siteLoads.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+            siteBreakdowns.push({ site, totalRebate: siteTotalRebate, totalWeight: siteTotalWeight, materials, loads: siteLoads });
           }
           customerTotalRebate += siteTotalRebate;
           customerTotalWeight += siteTotalWeight;
@@ -515,7 +574,7 @@ export function MonthlyRebateGenerationV2() {
 
           const { data: customerJobs } = await supabase
             .from("data_hub_jobs")
-            .select("id, site, waste_description, weight_t, category, job_type, movement_type")
+            .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type")
             .eq("customer", customerDataHubName)
             .gte("job_date", periodStart)
             .lte("job_date", periodEnd)
@@ -529,6 +588,8 @@ export function MonthlyRebateGenerationV2() {
               category: j.category,
               job_type: j.job_type,
               movement_type: j.movement_type,
+              job_number: j.job_number,
+              job_date: j.job_date,
               weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
             }));
 
@@ -574,12 +635,15 @@ export function MonthlyRebateGenerationV2() {
               existing.materials.push(...built.materials);
               existing.totalRebate += built.rebateTotal;
               existing.totalWeight += built.weightTotal;
+              existing.loads.push(...built.loads);
+              existing.loads.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
             } else {
               siteBreakdowns.push({
                 site,
                 totalRebate: built.rebateTotal,
                 totalWeight: built.weightTotal,
                 materials: built.materials,
+                loads: built.loads.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")),
               });
             }
             customerTotalRebate += built.rebateTotal;
@@ -1010,6 +1074,15 @@ export function MonthlyRebateGenerationV2() {
                       <span className={cn("font-semibold w-24 text-right shrink-0", summary.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
                         £{summary.totalRebate.toFixed(2)}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8"
+                        onClick={() => setReportSummary(summary)}
+                        title="View customer report"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
                         <Download className="h-4 w-4" />
                       </Button>
@@ -1084,6 +1157,46 @@ export function MonthlyRebateGenerationV2() {
                                 </Table>
                               ) : (
                                 <p className="px-3 py-2 text-xs text-muted-foreground">No material breakdown available.</p>
+                              )}
+
+                              {/* Load-by-load breakdown */}
+                              {sb.loads.length > 0 && (
+                                <Collapsible>
+                                  <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-2 border-t text-xs font-medium text-muted-foreground hover:text-foreground">
+                                    <ChevronRight className="h-3 w-3" />
+                                    Load breakdown ({sb.loads.length})
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow className="hover:bg-transparent">
+                                          <TableHead className="h-8 text-xs">Date</TableHead>
+                                          <TableHead className="h-8 text-xs">Reference</TableHead>
+                                          <TableHead className="h-8 text-xs">Source</TableHead>
+                                          <TableHead className="h-8 text-xs">Description</TableHead>
+                                          <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {sb.loads.map((l, i) => (
+                                          <TableRow key={`${sb.site.id}-load-${i}`} className="hover:bg-transparent">
+                                            <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
+                                            <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
+                                            <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
+                                            <TableCell className="py-1.5 text-xs">{l.description}</TableCell>
+                                            <TableCell className="py-1.5 text-xs text-right">{l.weight.toFixed(2)}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                        <TableRow className="hover:bg-transparent font-medium">
+                                          <TableCell className="py-1.5 text-xs" colSpan={4}>Total</TableCell>
+                                          <TableCell className="py-1.5 text-xs text-right">
+                                            {sb.loads.reduce((s, l) => s + l.weight, 0).toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      </TableBody>
+                                    </Table>
+                                  </CollapsibleContent>
+                                </Collapsible>
                               )}
 
                               {/* Sent details */}
@@ -1162,6 +1275,109 @@ export function MonthlyRebateGenerationV2() {
           </div>
         </div>
       )}
+
+      {/* Customer report dialog */}
+      <Dialog open={!!reportSummary} onOpenChange={(o) => !o && setReportSummary(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{reportSummary?.customer.customer_name} — Rebate Report</DialogTitle>
+            <DialogDescription>{periodLabel}</DialogDescription>
+          </DialogHeader>
+          {reportSummary && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap gap-4">
+                <div className="rounded-lg border p-3 min-w-[140px]">
+                  <p className="text-xs text-muted-foreground">Total weight</p>
+                  <p className="text-lg font-semibold">{reportSummary.totalWeight.toFixed(2)} t</p>
+                </div>
+                <div className="rounded-lg border p-3 min-w-[140px]">
+                  <p className="text-xs text-muted-foreground">Total rebate</p>
+                  <p className={cn("text-lg font-semibold", reportSummary.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                    £{reportSummary.totalRebate.toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3 min-w-[140px]">
+                  <p className="text-xs text-muted-foreground">Sites</p>
+                  <p className="text-lg font-semibold">{reportSummary.siteBreakdowns.length}</p>
+                </div>
+              </div>
+
+              {reportSummary.siteBreakdowns.map((sb) => (
+                <div key={`rep-${sb.site.id}`} className="rounded-lg border">
+                  <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40">
+                    <span className="font-medium text-sm">{sb.site.site_name}</span>
+                    <span className="text-sm">
+                      {sb.totalWeight.toFixed(2)}t •{" "}
+                      <span className={cn("font-semibold", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
+                        £{sb.totalRebate.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="h-8 text-xs">Material</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Rate (£/t)</TableHead>
+                        <TableHead className="h-8 text-xs text-right">Rebate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sb.materials.map((m, i) => (
+                        <TableRow key={`rep-${sb.site.id}-m-${i}`} className="hover:bg-transparent">
+                          <TableCell className="py-1.5 text-xs">{m.name}</TableCell>
+                          <TableCell className="py-1.5 text-xs text-right">{m.weight.toFixed(2)}</TableCell>
+                          <TableCell className="py-1.5 text-xs text-right">£{m.rate.toFixed(2)}</TableCell>
+                          <TableCell className={cn("py-1.5 text-xs text-right font-medium", m.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                            £{m.rebate.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {sb.loads.length > 0 && (
+                    <div className="border-t">
+                      <p className="px-3 pt-2 text-xs font-medium text-muted-foreground">Loads ({sb.loads.length})</p>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="h-8 text-xs">Date</TableHead>
+                            <TableHead className="h-8 text-xs">Reference</TableHead>
+                            <TableHead className="h-8 text-xs">Source</TableHead>
+                            <TableHead className="h-8 text-xs">Description</TableHead>
+                            <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sb.loads.map((l, i) => (
+                            <TableRow key={`rep-${sb.site.id}-l-${i}`} className="hover:bg-transparent">
+                              <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
+                              <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
+                              <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
+                              <TableCell className="py-1.5 text-xs">{l.description}</TableCell>
+                              <TableCell className="py-1.5 text-xs text-right">{l.weight.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            {reportSummary && (
+              <Button variant="outline" onClick={() => downloadExcel(reportSummary)}>
+                <Download className="h-4 w-4 mr-2" />
+                Download Excel
+              </Button>
+            )}
+            <Button onClick={() => setReportSummary(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Email dialog */}
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
