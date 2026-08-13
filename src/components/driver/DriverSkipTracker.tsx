@@ -330,6 +330,66 @@ const SkipTrackerFlow = ({
           />
         </div>
 
+        {existingBin && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Existing details on record
+            </p>
+            <div className="grid grid-cols-2 gap-y-1 gap-x-3 text-xs">
+              <span className="text-muted-foreground">Container type</span>
+              <span className="font-medium">{existingBin.size || "—"}</span>
+              <span className="text-muted-foreground">Asset type</span>
+              <span className="font-medium">
+                {existingBin.asset_type === "roro" ? "RoRo" : "Skip"}
+              </span>
+              <span className="text-muted-foreground">Condition</span>
+              <span className="font-medium">{existingBin.condition || "—"}</span>
+              <span className="text-muted-foreground">Repairs</span>
+              <span className="font-medium">
+                {existingBin.repairs_required ? "Yes" : "No"}
+              </span>
+              <span className="text-muted-foreground">Last location</span>
+              <span className="font-medium">{existingBin.last_location || "—"}</span>
+              <span className="text-muted-foreground">Last catalogued</span>
+              <span className="font-medium">
+                {existingBin.last_cataloged_at
+                  ? format(new Date(existingBin.last_cataloged_at), "d MMM yyyy")
+                  : "—"}
+              </span>
+              {!!(existingBin.tags || []).length && (
+                <>
+                  <span className="text-muted-foreground">Tags</span>
+                  <span className="font-medium">{existingBin.tags!.join(", ")}</span>
+                </>
+              )}
+            </div>
+            {existingPhotos.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  Existing photos ({existingPhotos.length})
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {existingPhotos.map((p, idx) => (
+                    <div key={idx} className="shrink-0 text-center">
+                      <img
+                        src={p.url}
+                        alt={p.label || `Existing photo ${idx + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg border"
+                      />
+                      {p.label && (
+                        <span className="block text-[10px] text-muted-foreground mt-0.5">
+                          {p.label}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+
         {recentlyCatalogued && (
           <div className="rounded-lg border border-amber-500 bg-amber-500/10 p-3 text-sm text-amber-700">
             This {assetType === "skip" ? "skip" : "RoRo"} was already catalogued on{" "}
