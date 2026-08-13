@@ -48,11 +48,20 @@ type Site = {
 };
 type CustomerContact = { id: string; full_name: string; email: string | null; customer_id: string };
 
+type LoadLine = {
+  ref: string;
+  date: string | null;
+  source: string;
+  description: string;
+  weight: number;
+};
+
 type SiteBreakdown = {
   site: Site;
   totalRebate: number;
   totalWeight: number;
   materials: Array<{ name: string; weight: number; rate: number; rebate: number; source: string }>;
+  loads: LoadLine[];
 };
 
 type CustomerRebateSummary = {
