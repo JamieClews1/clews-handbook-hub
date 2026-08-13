@@ -118,12 +118,14 @@ const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 182;
 const SkipTrackerFlow = ({
   reporter,
   inventory,
+  containerTypes,
   onBack,
   onSubmitted,
   preset,
 }: {
   reporter: Reporter;
   inventory: InventoryRow[];
+  containerTypes: string[];
   onBack: () => void;
   onSubmitted: () => void;
   preset?: { number: string; type: string } | null;
