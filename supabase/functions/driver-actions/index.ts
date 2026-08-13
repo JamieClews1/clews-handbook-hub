@@ -498,6 +498,7 @@ Deno.serve(async (req) => {
 
         const photos = isTopUp ? [...existingPhotos, ...newPhotos] : newPhotos;
         const condition = body?.condition ? String(body.condition) : null;
+        const size = body?.size ? String(body.size) : null;
         const repairsRequired = Boolean(body?.repairs_required);
         const repairNotes = body?.repair_notes ? String(body.repair_notes) : null;
         const location = body?.location ? String(body.location) : null;
@@ -510,6 +511,7 @@ Deno.serve(async (req) => {
         const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
           asset_type: assetType,
+          size,
           condition,
           repairs_required: repairsRequired,
           repair_notes: repairNotes,
