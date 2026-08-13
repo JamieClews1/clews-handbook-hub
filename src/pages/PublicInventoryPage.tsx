@@ -343,7 +343,7 @@ const PublicInventoryPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((r) => (
+                    {sortedFiltered.map((r) => (
                       <TableRow key={r.id}>
                         {showPhotos && (
                           <TableCell>
