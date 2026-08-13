@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { driverAction, fileToBase64 } from "@/lib/driver-api";
 import { Card, CardContent } from "@/components/ui/card";
