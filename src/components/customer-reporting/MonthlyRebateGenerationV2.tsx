@@ -1050,7 +1050,62 @@ export function MonthlyRebateGenerationV2() {
   };
 
 
+  // Open a review dialog listing every site email before anything is sent.
+  const openBulkDialog = (summary: CustomerRebateSummary) => {
+    setBulkSummary(summary);
+    setBulkDrafts(
+      summary.siteBreakdowns.map((sb) => {
+        const contact = siteRecipient(summary, sb);
+        return {
+          sb,
+          include: Boolean(contact?.email),
+          recipient: contact?.email ?? "",
+          subject: `Rebate Invoice Request - ${sb.site.site_name} - ${periodLabel}`,
+          body: buildSiteBody(contact?.full_name, sb),
+        };
+      }),
+    );
+    setBulkOpen(true);
+  };
+
+  const updateDraft = (index: number, patch: Partial<BulkDraft>) =>
+    setBulkDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+
+  const sendBulk = async () => {
+    if (!bulkSummary || !dateRange?.from || !dateRange?.to) return;
+    setBulkSending(true);
+    let sent = 0;
+    const failed: string[] = [];
+    try {
+      for (const draft of bulkDrafts) {
+        if (!draft.include || !draft.recipient) continue;
+        try {
+          await sendSiteRebate(bulkSummary, draft.sb, draft.recipient, draft.subject, draft.body);
+          sent += 1;
+        } catch (e) {
+          console.error("Send failed", draft.sb.site.site_name, e);
+          failed.push(draft.sb.site.site_name);
+        }
+      }
+      const periodStart = format(dateRange.from, "yyyy-MM-dd");
+      const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+      setTracking(await fetchTrackingForPeriod(periodStart, periodEnd));
+      toast({
+        title: sent > 0 ? "Emails Sent" : "Nothing sent",
+        description: [
+          sent > 0 ? `${sent} site email${sent === 1 ? "" : "s"} sent.` : "",
+          failed.length > 0 ? `Failed: ${failed.join(", ")}.` : "",
+        ].filter(Boolean).join(" "),
+        variant: sent === 0 ? "destructive" : undefined,
+      });
+      if (failed.length === 0) setBulkOpen(false);
+    } finally {
+      setBulkSending(false);
+    }
+  };
+
   const grandTotal = summaries.reduce((sum, s) => sum + s.totalRebate, 0);
+
   const sentCount = summaries.filter((s) => customerStatus(s) === "sent").length;
 
   return (
