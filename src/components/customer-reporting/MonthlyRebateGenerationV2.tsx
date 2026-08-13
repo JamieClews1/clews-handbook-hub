@@ -165,17 +165,116 @@ export function MonthlyRebateGenerationV2() {
       setProgressLabel("Finding sites with rebate setup...");
       const [{ data: psRows }, { data: siteSkipRows }, { data: custSkipRows }] = await Promise.all([
         supabase.from("customer_site_price_sets").select("site_id"),
-        supabase.from("customer_site_skip_rebates").select("site_id"),
-        supabase.from("customer_skip_rebates").select("customer_id"),
+        supabase
+          .from("customer_site_skip_rebates")
+          .select("site_id, material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled"),
+        supabase
+          .from("customer_skip_rebates")
+          .select("customer_id, material_type, value_type, value_type_item_id, set_value, adjustment, threshold_tonnes, rebate_enabled"),
       ]);
       const eligibleSiteIds = new Set<string>([
         ...(psRows ?? []).map((r: any) => r.site_id),
         ...(siteSkipRows ?? []).map((r: any) => r.site_id),
       ]);
       const eligibleCustomerIds = new Set<string>((custSkipRows ?? []).map((r: any) => r.customer_id));
-      const allSites = allSitesRaw.filter(
-        (s) => eligibleSiteIds.has(s.id) || eligibleCustomerIds.has(s.customer_id),
-      );
+      // IMPORTANT: customer-level Skip/RoRo rebate lines are a CUSTOMER total,
+      // not something each of the customer's (often hundreds of) sites should
+      // repeat. Only site-level setup makes a site eligible here; customer
+      // level lines are calculated once per customer further below.
+      const allSites = allSitesRaw.filter((s) => eligibleSiteIds.has(s.id));
+
+      const siteSkipConfigsBySite = new Map<string, any[]>();
+      for (const r of siteSkipRows ?? []) {
+        const list = siteSkipConfigsBySite.get((r as any).site_id) ?? [];
+        list.push(r);
+        siteSkipConfigsBySite.set((r as any).site_id, list);
+      }
+      const custSkipConfigsByCustomer = new Map<string, any[]>();
+      for (const r of custSkipRows ?? []) {
+        const list = custSkipConfigsByCustomer.get((r as any).customer_id) ?? [];
+        list.push(r);
+        custSkipConfigsByCustomer.set((r as any).customer_id, list);
+      }
+
+      // Shared lookups fetched once (previously queried inside nested loops).
+      const [{ data: allWasteTypes }, { data: allMappings }, { data: rebateRules }, { data: allRebateItems }] =
+        await Promise.all([
+          supabase.from("load_waste_types").select("id, waste_type, rebate_category"),
+          supabase.from("data_hub_rebate_mappings").select("waste_description, material_type_id, rebate_item_id"),
+          supabase.from("rebate_rules").select("rule_key, is_enabled"),
+          supabase.from("rebate_items").select("id, name"),
+        ]);
+      const wasteTypeById = new Map<string, { waste_type: string; rebate_category: string | null }>();
+      for (const wt of allWasteTypes ?? []) wasteTypeById.set(wt.id, wt as any);
+      const rebateItemNameById = new Map<string, string>();
+      for (const ri of allRebateItems ?? []) rebateItemNameById.set(ri.id, ri.name);
+      const mappingByWaste = new Map<string, any>();
+      for (const m of allMappings ?? []) mappingByWaste.set(m.waste_description, m);
+      const excludeSkipJobType =
+        rebateRules?.find((r) => r.rule_key === "exclude_skip_job_type")?.is_enabled ?? false;
+      const excludeDeliverMovement =
+        rebateRules?.find((r) => r.rule_key === "exclude_deliver_movement")?.is_enabled ?? false;
+
+      const MATERIAL_TYPE_MAP: Record<string, string> = { card_loose: "Card Loose", scrap_metal: "Scrap Metal" };
+      const MATERIAL_TYPE_TO_WASTE_TYPES: Record<string, string[]> = {
+        card_loose: ["card loose", "cardboard"],
+        scrap_metal: ["scrap ferrous", "scrap non-ferrous", "scrap metal"],
+      };
+      const targetCategories = ["Roll on Roll off", "Skips", "Midweigh", "Flat Bed pick up"];
+
+      // Turn a set of Data Hub jobs into rebate material lines for the given configs.
+      const buildSkipRoroMaterials = (
+        configs: any[],
+        jobs: Array<{ waste_description: string | null; weight_t: number; category: string | null; job_type: string | null; movement_type: string | null }>,
+        labelSuffix: string,
+      ) => {
+        const materials: SiteBreakdown["materials"] = [];
+        let rebateTotal = 0;
+        let weightTotal = 0;
+        let filtered = jobs;
+        if (excludeSkipJobType) {
+          filtered = filtered.filter((j) => (j.category !== "Midweigh" ? true : (j.job_type ?? "").toUpperCase() !== "SKIP"));
+        }
+        if (excludeDeliverMovement) {
+          filtered = filtered.filter((j) => {
+            if (j.category !== "Skips" && j.category !== "Roll on Roll off") return true;
+            const mt = (j.movement_type ?? "").toLowerCase();
+            return mt !== "deliver" && mt !== "delivery";
+          });
+        }
+        for (const config of configs) {
+          if (config.rebate_enabled === false) continue;
+          const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
+          let totalWeight = 0;
+          for (const job of filtered) {
+            const mapping = job.waste_description ? mappingByWaste.get(job.waste_description) : null;
+            if (!mapping?.material_type_id) continue;
+            const wasteTypeLower = (wasteTypeById.get(mapping.material_type_id)?.waste_type ?? "").toLowerCase();
+            if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
+          }
+          if (totalWeight === 0) continue;
+          let rate = 0;
+          if (config.value_type === "set" && config.set_value !== null) rate = Number(config.set_value);
+          else if (config.value_type_item_id) {
+            const monthVal = monthlyValueMap[config.value_type_item_id];
+            if (monthVal) rate = config.value_type === "higher" ? monthVal.higher : monthVal.lower;
+          }
+          rate += config.adjustment ?? 0;
+          const threshold = config.threshold_tonnes ?? 0;
+          const rebate = Math.max(0, totalWeight - threshold) * rate;
+          rebateTotal += rebate;
+          weightTotal += totalWeight;
+          materials.push({
+            name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (${labelSuffix})`,
+            weight: totalWeight,
+            rate,
+            rebate,
+            source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
+          });
+        }
+        return { materials, rebateTotal, weightTotal };
+      };
+
 
 
       const { data: allContacts } = await supabase
