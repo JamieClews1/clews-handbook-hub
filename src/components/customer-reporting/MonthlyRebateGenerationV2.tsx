@@ -404,11 +404,8 @@ export function MonthlyRebateGenerationV2() {
           const materials: SiteBreakdown["materials"] = [];
 
           for (const item of rebateItems ?? []) {
-            const { data: material } = await supabase
-              .from("load_waste_types")
-              .select("waste_type, rebate_category")
-              .eq("id", item.rebate_item_id)
-              .single();
+            const material = wasteTypeById.get(item.rebate_item_id) ?? null;
+
 
             const materialName = material?.waste_type ?? "Unknown";
             const isPalletCharge = materialName.toLowerCase().includes("pallet");
