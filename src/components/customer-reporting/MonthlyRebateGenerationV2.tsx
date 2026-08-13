@@ -111,6 +111,14 @@ export function MonthlyRebateGenerationV2() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingSiteId, setSendingSiteId] = useState<string | null>(null);
 
+  // Bulk (per-site) review dialog
+  type BulkDraft = { sb: SiteBreakdown; include: boolean; recipient: string; subject: string; body: string };
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSummary, setBulkSummary] = useState<CustomerRebateSummary | null>(null);
+  const [bulkDrafts, setBulkDrafts] = useState<BulkDraft[]>([]);
+  const [bulkSending, setBulkSending] = useState(false);
+
+
   const toggle = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
