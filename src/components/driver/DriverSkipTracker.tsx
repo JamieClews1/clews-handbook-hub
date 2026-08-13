@@ -284,20 +284,27 @@ const SkipTrackerFlow = ({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Type */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-xl">
-          {(["skip", "roro"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setAssetType(t)}
-              className={cn(
-                "h-11 rounded-lg text-sm font-semibold transition-colors",
-                assetType === t ? "bg-emerald-500 text-white" : "text-muted-foreground",
-              )}
-            >
-              {t === "skip" ? "Skip" : "RoRo"}
-            </button>
-          ))}
+        {/* Container type */}
+        <div className="space-y-2">
+          <Label>Container type</Label>
+          <Select
+            value={containerType}
+            onValueChange={(v) => {
+              setContainerType(v);
+              setAssetType(containerAssetType(v));
+            }}
+          >
+            <SelectTrigger className="h-12 text-base">
+              <SelectValue placeholder="Choose skip / RoRo type…" />
+            </SelectTrigger>
+            <SelectContent>
+              {containerTypes.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
