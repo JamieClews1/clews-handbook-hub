@@ -31,7 +31,7 @@ import {
   Truck,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, compareAssetNumbers } from "@/lib/utils";
 
 const isRoroType = (n: string) => /ro\s*ro|roll\s*on/i.test(n);
 const isSkipType = (n: string) => /skip|yard|yd/i.test(n);
@@ -65,10 +65,7 @@ const missingBits = (i: InventoryRow) =>
 
 
 const numericSort = (a: InventoryRow, b: InventoryRow) =>
-  a.asset_number.localeCompare(b.asset_number, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
+  compareAssetNumbers(a.asset_number, b.asset_number);
 
 interface MyReport {
   id: string;
@@ -120,11 +117,12 @@ const SkipTrackerFlow = ({
   onSubmitted: () => void;
   preset?: { number: string; type: string } | null;
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [assetType, setAssetType] = useState<"skip" | "roro">(
-    preset?.type === "roro" ? "roro" : "skip",
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [assetType, setAssetType] = useState<"skip" | "roro" | null>(
+    preset?.type === "roro" ? "roro" : preset?.type === "skip" ? "skip" : null,
   );
   const [containerType, setContainerType] = useState<string>("");
+
   const [assetNumber, setAssetNumber] = useState(preset?.number ?? "");
   const [condition, setCondition] = useState<string>("Good");
   const [repairsRequired, setRepairsRequired] = useState(false);
@@ -206,6 +204,7 @@ const SkipTrackerFlow = ({
 
   // Bins of this type already catalogued, filtered as the driver types
   const matchingCatalogued = useMemo(() => {
+    if (!assetType) return [];
     const num = assetNumber.trim().toLowerCase();
     return inventory
       .filter(
@@ -213,14 +212,27 @@ const SkipTrackerFlow = ({
           i.asset_type === assetType &&
           (!num || i.asset_number.toLowerCase().includes(num)),
       )
-      .sort(numericSort)
-      .slice(0, 60);
+      .sort((a, b) => compareAssetNumbers(a.asset_number, b.asset_number))
+      .slice(0, 120);
   }, [assetNumber, assetType, inventory]);
 
-  const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Sizes available for the chosen asset type
+  const sizeOptions = useMemo(
+    () =>
+      assetType
+        ? containerTypes.filter((t) => containerAssetType(t) === assetType)
+        : [],
+    [containerTypes, assetType],
+  );
+
+  const handleCapture = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    label: string,
+  ) => {
     const files = e.target.files;
     if (!files?.length) return;
     setUploading(true);
+    setPendingPhotoLabel(label);
     try {
       const newPhotos: PhotoItem[] = [];
       for (const file of Array.from(files)) {
@@ -231,7 +243,7 @@ const SkipTrackerFlow = ({
           content_type: file.type || "image/jpeg",
           file_base64,
         });
-        if (url) newPhotos.push({ url, label: pendingPhotoLabel });
+        if (url) newPhotos.push({ url, label });
       }
       setPhotos((p) => [...p, ...newPhotos]);
       toast.success("Photo added");
@@ -241,13 +253,19 @@ const SkipTrackerFlow = ({
     } finally {
       setUploading(false);
       setPendingPhotoLabel(undefined);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      const input = fileInputRefs.current[label];
+      if (input) input.value = "";
     }
   };
+
 
   const handleSubmit = async () => {
     if (!assetNumber.trim()) {
       toast.error("Enter the skip / RoRo number");
+      return;
+    }
+    if (!assetType) {
+      toast.error("Choose Skip or RoRo");
       return;
     }
     if (!containerType) {
@@ -296,39 +314,108 @@ const SkipTrackerFlow = ({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Container type */}
+        {/* Step 1 — Skip or RoRo */}
         <div className="space-y-2">
-          <Label>Container type *</Label>
-          <Select
-            value={containerType}
-            onValueChange={(v) => {
-              setContainerType(v);
-              setAssetType(containerAssetType(v));
-            }}
-          >
-            <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Choose skip / RoRo type…" />
-            </SelectTrigger>
-            <SelectContent>
-              {containerTypes.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Is it a Skip or a RoRo? *</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["skip", "roro"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  if (assetType !== t) {
+                    setAssetType(t);
+                    setContainerType("");
+                  }
+                }}
+                className={cn(
+                  "h-14 rounded-xl text-base font-semibold border-2 transition-colors",
+                  assetType === t
+                    ? "bg-emerald-500 text-white border-emerald-500"
+                    : "bg-background text-muted-foreground border-border",
+                )}
+              >
+                {t === "skip" ? "Skip" : "RoRo"}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Skip / RoRo number</Label>
-          <Input
-            value={assetNumber}
-            onChange={(e) => setAssetNumber(e.target.value.toUpperCase())}
-            placeholder="e.g. SK-1042"
-            className="h-12 text-lg"
-            autoCapitalize="characters"
-          />
-        </div>
+        {/* Step 2 — what's already catalogued for that type */}
+        {assetType && matchingCatalogued.length > 0 && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Already catalogued {assetType === "skip" ? "skips" : "RoRos"} — orange ones
+              still need more photos / info
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {matchingCatalogued.map((i) => {
+                const needs = needsMoreInfo(i);
+                return (
+                  <button
+                    key={i.id}
+                    type="button"
+                    onClick={() => setAssetNumber(i.asset_number)}
+                  >
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "font-mono text-xs",
+                        needs && "bg-orange-500 text-white hover:bg-orange-600",
+                      )}
+                    >
+                      {i.asset_number}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+
+        {assetType && (
+          <div className="space-y-2">
+            <Label>Skip / RoRo number</Label>
+            <Input
+              value={assetNumber}
+              onChange={(e) => setAssetNumber(e.target.value.toUpperCase())}
+              placeholder={assetType === "roro" ? "e.g. RO74" : "e.g. SK160"}
+              className="h-12 text-lg"
+              autoCapitalize="characters"
+            />
+          </div>
+        )}
+
+        {/* Step 3 — size (asked for every new entry) */}
+        {assetType && !!assetNumber.trim() && (
+          <div className="space-y-2">
+            <Label>
+              {existingBin ? "Container size" : "What size is it? *"}
+            </Label>
+            <Select
+              value={containerType}
+              onValueChange={(v) => {
+                setContainerType(v);
+                setAssetType(containerAssetType(v));
+              }}
+            >
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue
+                  placeholder={`Choose ${assetType === "roro" ? "RoRo" : "skip"} size…`}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {(sizeOptions.length ? sizeOptions : containerTypes).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
 
         {existingBin && (
           <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
@@ -405,31 +492,8 @@ const SkipTrackerFlow = ({
           </div>
         )}
 
-        {!recentlyCatalogued && matchingCatalogued.length > 0 && (
-          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground">
-              Already catalogued — orange ones still need more photos / info
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {matchingCatalogued.map((i) => {
-                const needs = needsMoreInfo(i);
-                return (
-                  <button key={i.id} type="button" onClick={() => setAssetNumber(i.asset_number)}>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "font-mono text-xs",
-                        needs && "bg-orange-500 text-white hover:bg-orange-600",
-                      )}
-                    >
-                      {i.asset_number}
-                    </Badge>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+
+
 
 
         <div className="space-y-2">
@@ -538,33 +602,34 @@ const SkipTrackerFlow = ({
                       ))}
                     </div>
                   )}
-                  {/* No `capture` attribute: the Android/iOS camera *intent* returns a
-                      downscaled ~1MP image. Letting the OS picker open the full camera
-                      app / gallery keeps the original full-resolution photo. */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleCapture}
-                    multiple
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setPendingPhotoLabel(label);
-                      setTimeout(() => fileInputRef.current?.click(), 0);
-                    }}
-                    disabled={uploading}
-                    className="w-full h-12 text-sm gap-2 rounded-lg border-dashed border-2"
+                  {/* Native <label> wrapping the input: Android WebViews block
+                      programmatic .click() on file inputs outside a direct user
+                      gesture, so the tile itself is the label.
+                      No `capture` attribute — the OS picker keeps full resolution. */}
+                  <label
+                    className={cn(
+                      "w-full h-12 flex items-center justify-center gap-2 text-sm font-medium rounded-lg border-2 border-dashed border-border bg-background cursor-pointer active:opacity-70",
+                      uploading && "opacity-60 pointer-events-none",
+                    )}
                   >
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[label] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleCapture(e, label)}
+                      multiple
+                    />
                     {uploading && pendingPhotoLabel === label ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Camera className="w-4 h-4" />
                     )}
                     {uploading && pendingPhotoLabel === label ? "Uploading…" : "Add"}
-                  </Button>
+                  </label>
+
                 </div>
               );
             })}
@@ -575,7 +640,7 @@ const SkipTrackerFlow = ({
       <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border">
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !containerType}
+          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !assetType || !containerType}
           className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-2"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
