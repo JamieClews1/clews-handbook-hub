@@ -136,24 +136,45 @@ const SkipTrackerFlow = ({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Prefill container type only from the tapped bin's known size — otherwise the
-  // driver must choose one (mandatory).
+  // The already-catalogued bin matching the number being entered (if any)
+  const existingBin = useMemo(() => {
+    const num = assetNumber.trim().toLowerCase();
+    if (!num) return null;
+    return (
+      inventory.find((i) => i.asset_number.trim().toLowerCase() === num) ?? null
+    );
+  }, [assetNumber, inventory]);
+
+  const existingPhotos = useMemo(
+    () =>
+      (existingBin?.photos || []).map((p) =>
+        typeof p === "string" ? { url: p, label: undefined } : p,
+      ),
+    [existingBin],
+  );
+
+  // Prefill from the existing record so the driver can see / keep what's already known.
+  const prefilledFor = useRef<string | null>(null);
   useEffect(() => {
-    setContainerType("");
-    if (!containerTypes.length) return;
-    if (preset?.number) {
-      const bin = inventory.find(
-        (i) =>
-          i.asset_number.trim().toLowerCase() === preset.number.trim().toLowerCase() &&
-          i.asset_type === preset.type,
-      );
-      const sizeMatch = bin?.size && containerTypes.some((c) => c.toLowerCase() === bin.size!.toLowerCase());
-      if (sizeMatch) {
-        setContainerType(bin.size!);
-        setAssetType(containerAssetType(bin.size!));
-      }
+    if (!existingBin) {
+      prefilledFor.current = null;
+      return;
     }
-  }, [containerTypes, preset, inventory]);
+    if (prefilledFor.current === existingBin.id) return;
+    prefilledFor.current = existingBin.id;
+    const sizeMatch =
+      existingBin.size &&
+      containerTypes.find((c) => c.toLowerCase() === existingBin.size!.toLowerCase());
+    setContainerType(sizeMatch || "");
+    setAssetType(sizeMatch ? containerAssetType(sizeMatch) : existingBin.asset_type === "roro" ? "roro" : "skip");
+    if (existingBin.condition && CONDITIONS.includes(existingBin.condition)) {
+      setCondition(existingBin.condition);
+    }
+    setRepairsRequired(!!existingBin.repairs_required);
+    setLocation(existingBin.last_location || "");
+  }, [existingBin, containerTypes]);
+
+
 
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
