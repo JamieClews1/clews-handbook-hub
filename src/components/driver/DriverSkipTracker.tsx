@@ -106,6 +106,7 @@ interface HubData {
   myReports: MyReport[];
   myPoints: number;
   leaderboard: LeaderboardEntry[];
+  containerTypes: string[];
 }
 
 type Tab = "logged" | "reports" | "points";
