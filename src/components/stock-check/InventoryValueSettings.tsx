@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Copy, ExternalLink } from "lucide-react";
+import { publicUrl } from "@/lib/public-url";
 
 const CONDITIONS = ["New", "Good", "Fair", "Poor", "Scrapped", "Yard Use"];
 
