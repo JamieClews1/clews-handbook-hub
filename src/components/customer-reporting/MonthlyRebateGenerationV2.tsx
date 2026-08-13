@@ -695,6 +695,10 @@ export function MonthlyRebateGenerationV2() {
     ? `${format(dateRange.from, "MMMM yyyy")}${dateRange.to && dateRange.to.getMonth() !== dateRange.from.getMonth() ? ` - ${format(dateRange.to, "MMMM yyyy")}` : ""}`
     : "Rebate Period";
 
+  // Customer-level breakdowns use a synthetic site id — track them against the
+  // customer (site_id null) instead.
+  const trackSiteId = (sb: SiteBreakdown) => (sb.site.id.startsWith("cust-") ? null : sb.site.id);
+
   const markGenerated = async (summary: CustomerRebateSummary) => {
     if (!dateRange?.from || !dateRange?.to) return;
     const periodStart = format(dateRange.from, "yyyy-MM-dd");
@@ -702,10 +706,11 @@ export function MonthlyRebateGenerationV2() {
     for (const sb of summary.siteBreakdowns) {
       await upsertTracking({
         customerId: summary.customer.id,
-        siteId: sb.site.id,
+        siteId: trackSiteId(sb),
         periodStart,
         periodEnd,
-        status: tracking.get(trackingKey(summary.customer.id, sb.site.id))?.status === "sent" ? "sent" : "generated",
+        status: tracking.get(trackingKey(summary.customer.id, trackSiteId(sb)))?.status === "sent" ? "sent" : "generated",
+
         rebateAmount: sb.totalRebate,
         userId: user?.id,
       });
