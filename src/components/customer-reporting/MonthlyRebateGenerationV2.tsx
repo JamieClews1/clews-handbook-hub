@@ -311,10 +311,12 @@ export function MonthlyRebateGenerationV2() {
         };
       }
 
-      // Only process customers that have at least one site.
-      const customersWithSites = (customers ?? []).filter((c) =>
-        (allSites ?? []).some((s) => s.customer_id === c.id),
+      // Process customers with at least one configured site, plus customers
+      // that only have customer-level Skip/RoRo rebate lines.
+      const customersWithSites = (customers ?? []).filter(
+        (c) => (allSites ?? []).some((s) => s.customer_id === c.id) || eligibleCustomerIds.has(c.id),
       );
+
       const totalToProcess = customersWithSites.length || 1;
 
       const result: CustomerRebateSummary[] = [];
