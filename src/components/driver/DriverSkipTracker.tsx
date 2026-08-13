@@ -555,33 +555,34 @@ const SkipTrackerFlow = ({
                       ))}
                     </div>
                   )}
-                  {/* No `capture` attribute: the Android/iOS camera *intent* returns a
-                      downscaled ~1MP image. Letting the OS picker open the full camera
-                      app / gallery keeps the original full-resolution photo. */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleCapture}
-                    multiple
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setPendingPhotoLabel(label);
-                      setTimeout(() => fileInputRef.current?.click(), 0);
-                    }}
-                    disabled={uploading}
-                    className="w-full h-12 text-sm gap-2 rounded-lg border-dashed border-2"
+                  {/* Native <label> wrapping the input: Android WebViews block
+                      programmatic .click() on file inputs outside a direct user
+                      gesture, so the tile itself is the label.
+                      No `capture` attribute — the OS picker keeps full resolution. */}
+                  <label
+                    className={cn(
+                      "w-full h-12 flex items-center justify-center gap-2 text-sm font-medium rounded-lg border-2 border-dashed border-border bg-background cursor-pointer active:opacity-70",
+                      uploading && "opacity-60 pointer-events-none",
+                    )}
                   >
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[label] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleCapture(e, label)}
+                      multiple
+                    />
                     {uploading && pendingPhotoLabel === label ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Camera className="w-4 h-4" />
                     )}
                     {uploading && pendingPhotoLabel === label ? "Uploading…" : "Add"}
-                  </Button>
+                  </label>
+
                 </div>
               );
             })}
