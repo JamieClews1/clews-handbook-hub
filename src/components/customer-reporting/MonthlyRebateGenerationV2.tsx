@@ -967,14 +967,38 @@ export function MonthlyRebateGenerationV2() {
     const periodStart = format(dateRange.from, "yyyy-MM-dd");
     const periodEnd = format(dateRange.to, "yyyy-MM-dd");
 
-    await supabase.from("rebate_email_logs").insert({
+    // Store a copy of the exact workbook that was emailed so it can be
+    // re-downloaded later from Sent Rebates.
+    let uploadedPath: string | null = null;
+    try {
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const path = `${summary.customer.id}/${periodStart}/${Date.now()}-${filename}`;
+      const { error: upErr } = await supabase.storage
+        .from("rebate-reports")
+        .upload(path, bytes, {
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          upsert: false,
+        });
+      if (upErr) console.error("Failed to store rebate report file", upErr);
+      else uploadedPath = path;
+    } catch (e) {
+      console.error("Failed to prepare rebate report upload", e);
+    }
+
+    const { error: logError } = await supabase.from("rebate_email_logs").insert({
       customer_id: summary.customer.id,
+      site_id: trackSiteId(sb),
       period_start: periodStart,
       period_end: periodEnd,
       rebate_amount: sb.totalRebate,
       recipient_email: recipient,
       sent_by: user?.id,
+      file_path: uploadedPath,
+      file_name: filename,
     });
+    if (logError) console.error("Failed to log rebate email", logError);
 
     await upsertTracking({
       customerId: summary.customer.id,
