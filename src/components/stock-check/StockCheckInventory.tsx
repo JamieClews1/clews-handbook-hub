@@ -85,6 +85,7 @@ import {
 
 
 import { cn, compareAssetNumbers } from "@/lib/utils";
+import { publicUrl } from "@/lib/public-url";
 
 interface InventoryRow {
   id: string;
