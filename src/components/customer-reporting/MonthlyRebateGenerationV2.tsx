@@ -403,7 +403,7 @@ export function MonthlyRebateGenerationV2() {
 
           const { data: loadReports } = await supabase
             .from("load_reports")
-            .select("id, total_pallets, no_pallets_on_load")
+            .select("id, total_pallets, no_pallets_on_load, report_date, vehicle_reg")
             .eq("site_id", site.id)
             .gte("report_date", periodStart)
             .lte("report_date", periodEnd)
@@ -413,6 +413,9 @@ export function MonthlyRebateGenerationV2() {
           const loadReportIds = (loadReports ?? []).map((r) => r.id);
           const noPalletsByReportId: Record<string, boolean> = {};
           for (const r of loadReports ?? []) noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
+
+          const siteLoads: LoadLine[] = [];
+          const perReport = new Map<string, { weight: number; wasteTypes: Set<string> }>();
 
           let lineItemWeights: Record<string, number> = {};
           let totalPalletWeightTonnes = 0;
@@ -431,6 +434,22 @@ export function MonthlyRebateGenerationV2() {
               const actualKg = Math.max(0, grossKg - palletKg);
               lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualKg / 1000;
               totalPalletWeightTonnes += palletKg / 1000;
+
+              const agg = perReport.get(item.load_report_id) ?? { weight: 0, wasteTypes: new Set<string>() };
+              agg.weight += actualKg / 1000;
+              agg.wasteTypes.add(wasteType);
+              perReport.set(item.load_report_id, agg);
+            }
+            for (const r of loadReports ?? []) {
+              const agg = perReport.get(r.id);
+              if (!agg) continue;
+              siteLoads.push({
+                ref: (r as any).vehicle_reg || r.id.slice(0, 8).toUpperCase(),
+                date: (r as any).report_date ?? null,
+                source: "Load Report",
+                description: Array.from(agg.wasteTypes).join(", "),
+                weight: agg.weight,
+              });
             }
           }
           const palletWeightTonnes = totalPalletWeightTonnes;
