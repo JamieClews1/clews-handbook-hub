@@ -550,6 +550,7 @@ const DriverSkipTracker = ({
       <SkipTrackerFlow
         reporter={reporter}
         inventory={data?.inventory ?? []}
+        containerTypes={data?.containerTypes ?? []}
         preset={presetNumber}
         onBack={() => {
           setCataloguing(false);
