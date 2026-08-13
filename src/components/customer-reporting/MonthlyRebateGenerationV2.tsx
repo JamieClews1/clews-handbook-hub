@@ -1214,9 +1214,10 @@ export function MonthlyRebateGenerationV2() {
                         variant="ghost"
                         size="icon"
                         className="shrink-0 h-8 w-8"
-                        onClick={() => sendAllSites(summary)}
+                        onClick={() => openBulkDialog(summary)}
                         disabled={sendingSiteId === summary.customer.id}
-                        title={`Send a separate email to each site owner (${summary.siteBreakdowns.length})`}
+                        title={`Review & send emails to each site owner (${summary.siteBreakdowns.length})`}
+
                       >
                         {sendingSiteId === summary.customer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                       </Button>
