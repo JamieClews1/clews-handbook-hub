@@ -157,7 +157,7 @@ const PublicInventoryPage = () => {
       "Last catalogued",
       ...(showValues ? ["Value (GBP)"] : []),
     ];
-    const rows = filtered.map((r) => [
+    const rows = sortedFiltered.map((r) => [
       r.asset_number,
       r.asset_type === "roro" ? "RoRo" : "Skip",
       r.size || "",
