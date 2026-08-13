@@ -1149,6 +1149,46 @@ export function MonthlyRebateGenerationV2() {
                                 <p className="px-3 py-2 text-xs text-muted-foreground">No material breakdown available.</p>
                               )}
 
+                              {/* Load-by-load breakdown */}
+                              {sb.loads.length > 0 && (
+                                <Collapsible>
+                                  <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-2 border-t text-xs font-medium text-muted-foreground hover:text-foreground">
+                                    <ChevronRight className="h-3 w-3" />
+                                    Load breakdown ({sb.loads.length})
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow className="hover:bg-transparent">
+                                          <TableHead className="h-8 text-xs">Date</TableHead>
+                                          <TableHead className="h-8 text-xs">Reference</TableHead>
+                                          <TableHead className="h-8 text-xs">Source</TableHead>
+                                          <TableHead className="h-8 text-xs">Description</TableHead>
+                                          <TableHead className="h-8 text-xs text-right">Weight (t)</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {sb.loads.map((l, i) => (
+                                          <TableRow key={`${sb.site.id}-load-${i}`} className="hover:bg-transparent">
+                                            <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
+                                            <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
+                                            <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
+                                            <TableCell className="py-1.5 text-xs">{l.description}</TableCell>
+                                            <TableCell className="py-1.5 text-xs text-right">{l.weight.toFixed(2)}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                        <TableRow className="hover:bg-transparent font-medium">
+                                          <TableCell className="py-1.5 text-xs" colSpan={4}>Total</TableCell>
+                                          <TableCell className="py-1.5 text-xs text-right">
+                                            {sb.loads.reduce((s, l) => s + l.weight, 0).toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      </TableBody>
+                                    </Table>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              )}
+
                               {/* Sent details */}
                               {isSent && (
                                 <div className="px-3 py-2 border-t bg-green-50/60 dark:bg-green-950/20 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
