@@ -1509,7 +1509,7 @@ const InventoryList = () => {
           </Tooltip>
         ) : shareLinks.length === 1 ? (
           <Button variant="outline" className="gap-2" asChild>
-            <a href={`/inventory/${shareLinks[0].token}`} target="_blank" rel="noreferrer">
+            <a href={publicUrl(`/inventory/${shareLinks[0].token}`)} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" /> External view
             </a>
           </Button>
