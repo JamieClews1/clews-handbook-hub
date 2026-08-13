@@ -302,7 +302,7 @@ const SkipTrackerFlow = ({
           <Label>Skip / RoRo number</Label>
           <Input
             value={assetNumber}
-            onChange={(e) => setAssetNumber(e.target.value)}
+            onChange={(e) => setAssetNumber(e.target.value.toUpperCase())}
             placeholder="e.g. SK-1042"
             className="h-12 text-lg"
             autoCapitalize="characters"
