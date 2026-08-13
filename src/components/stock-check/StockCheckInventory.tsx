@@ -1526,7 +1526,7 @@ const InventoryList = () => {
               {shareLinks.map((l) => (
                 <a
                   key={l.id}
-                  href={`/inventory/${l.token}`}
+                  href={publicUrl(`/inventory/${l.token}`)}
                   target="_blank"
                   rel="noreferrer"
                   className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
