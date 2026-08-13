@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Boxes, Download, ImageIcon, Loader2, Printer, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, compareAssetNumbers } from "@/lib/utils";
 import { format } from "date-fns";
 
 const conditionStyle: Record<string, string> = {
@@ -108,6 +108,11 @@ const PublicInventoryPage = () => {
     });
   }, [items, search, typeFilter, conditionFilter]);
 
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort((a, b) => compareAssetNumbers(a.asset_number, b.asset_number)),
+    [filtered],
+  );
+
   const totalValue = filtered.reduce((s, r) => s + (r.value || 0), 0);
   const portfolioValue = items.reduce((s, r) => s + (r.value || 0), 0);
   const repairsCount = items.filter((i) => i.repairs_required).length;
@@ -152,7 +157,7 @@ const PublicInventoryPage = () => {
       "Last catalogued",
       ...(showValues ? ["Value (GBP)"] : []),
     ];
-    const rows = filtered.map((r) => [
+    const rows = sortedFiltered.map((r) => [
       r.asset_number,
       r.asset_type === "roro" ? "RoRo" : "Skip",
       r.size || "",
@@ -338,7 +343,7 @@ const PublicInventoryPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((r) => (
+                    {sortedFiltered.map((r) => (
                       <TableRow key={r.id}>
                         {showPhotos && (
                           <TableCell>
