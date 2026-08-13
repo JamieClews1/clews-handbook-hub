@@ -1199,7 +1199,9 @@ const InventoryList = () => {
   );
 
   const skips = rows.filter((r) => r.asset_type === "skip").length;
-  const roros = rows.filter((r) => r.asset_type === "roro").length;
+  const roros = rows.filter(
+    (r) => r.asset_type === "roro" && r.condition !== "Scrapped" && r.condition !== "Yard Use",
+  ).length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
   const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
 
