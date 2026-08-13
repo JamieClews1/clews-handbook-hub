@@ -996,7 +996,7 @@ export function MonthlyRebateGenerationV2() {
                     <CollapsibleContent>
                       <div className="border-t px-4 py-3 space-y-3 bg-muted/20">
                         {summary.siteBreakdowns.map((sb) => {
-                          const siteTracking = tracking.get(trackingKey(summary.customer.id, sb.site.id));
+                          const siteTracking = tracking.get(trackingKey(summary.customer.id, trackSiteId(sb)));
                           const isSent = siteTracking?.status === "sent";
                           return (
                             <div key={sb.site.id} className="rounded-md border bg-background/60">
