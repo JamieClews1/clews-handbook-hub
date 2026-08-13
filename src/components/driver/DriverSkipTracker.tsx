@@ -56,23 +56,13 @@ interface InventoryRow {
   tags?: string[] | null;
 }
 
-/** A bin needs more info when it has fewer than 4 photos, is missing size/condition,
- *  or the office has tagged it as needing more photos. */
-const needsMoreInfo = (i: InventoryRow) => {
-  const photoCount = Array.isArray(i.photos) ? i.photos.length : 0;
-  const tagged = (i.tags || []).some((t) => t.toLowerCase().includes("photo"));
-  return photoCount < 4 || !i.size || !i.condition || tagged;
-};
+/** A bin only needs more info when the office has tagged it (e.g. "More photos needed"). */
+const needsMoreInfo = (i: InventoryRow) =>
+  (i.tags || []).some((t) => t.toLowerCase().includes("photo"));
 
-const missingBits = (i: InventoryRow) => {
-  const photoCount = Array.isArray(i.photos) ? i.photos.length : 0;
-  const bits: string[] = [];
-  if (photoCount < 4) bits.push(`${4 - photoCount} more photo(s)`);
-  if (!i.size) bits.push("size");
-  if (!i.condition) bits.push("condition");
-  for (const t of i.tags || []) if (t.toLowerCase().includes("photo")) bits.push(t);
-  return bits.join(" · ");
-};
+const missingBits = (i: InventoryRow) =>
+  (i.tags || []).filter((t) => t.toLowerCase().includes("photo")).join(" · ");
+
 
 const numericSort = (a: InventoryRow, b: InventoryRow) =>
   a.asset_number.localeCompare(b.asset_number, undefined, {
