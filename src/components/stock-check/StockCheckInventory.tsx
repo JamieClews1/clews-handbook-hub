@@ -1055,10 +1055,7 @@ const InventoryList = () => {
     sorted.sort((a, b) => {
       switch (key) {
         case "number": {
-          const aA = alpha(a.asset_number).replace(/\d+/g, "").trim();
-          const bA = alpha(b.asset_number).replace(/\d+/g, "").trim();
-          if (aA !== bA) return aA.localeCompare(bA) * mult;
-          return (num(a.asset_number) - num(b.asset_number)) * mult;
+          return compareAssetNumbers(a.asset_number || "", b.asset_number || "") * mult;
         }
         case "type":
           return (alpha(a.asset_type).localeCompare(alpha(b.asset_type))) * mult;
