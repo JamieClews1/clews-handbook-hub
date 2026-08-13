@@ -517,7 +517,7 @@ Deno.serve(async (req) => {
 
         const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
-          asset_type: assetType,
+          asset_type: existing?.asset_type || assetType,
           size,
           condition,
           repairs_required: repairsRequired,
