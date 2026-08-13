@@ -313,28 +313,65 @@ const SkipTrackerFlow = ({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Container type */}
+        {/* Step 1 — Skip or RoRo */}
         <div className="space-y-2">
-          <Label>Container type *</Label>
-          <Select
-            value={containerType}
-            onValueChange={(v) => {
-              setContainerType(v);
-              setAssetType(containerAssetType(v));
-            }}
-          >
-            <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Choose skip / RoRo type…" />
-            </SelectTrigger>
-            <SelectContent>
-              {containerTypes.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Is it a Skip or a RoRo? *</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["skip", "roro"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  if (assetType !== t) {
+                    setAssetType(t);
+                    setContainerType("");
+                  }
+                }}
+                className={cn(
+                  "h-14 rounded-xl text-base font-semibold border-2 transition-colors",
+                  assetType === t
+                    ? "bg-emerald-500 text-white border-emerald-500"
+                    : "bg-background text-muted-foreground border-border",
+                )}
+              >
+                {t === "skip" ? "Skip" : "RoRo"}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Step 2 — what's already catalogued for that type */}
+        {assetType && matchingCatalogued.length > 0 && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Already catalogued {assetType === "skip" ? "skips" : "RoRos"} — orange ones
+              still need more photos / info
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {matchingCatalogued.map((i) => {
+                const needs = needsMoreInfo(i);
+                return (
+                  <button
+                    key={i.id}
+                    type="button"
+                    onClick={() => setAssetNumber(i.asset_number)}
+                  >
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "font-mono text-xs",
+                        needs && "bg-orange-500 text-white hover:bg-orange-600",
+                      )}
+                    >
+                      {i.asset_number}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
 
         <div className="space-y-2">
           <Label>Skip / RoRo number</Label>
