@@ -234,10 +234,21 @@ export function MonthlyRebateGenerationV2() {
       // Turn a set of Data Hub jobs into rebate material lines for the given configs.
       const buildSkipRoroMaterials = (
         configs: any[],
-        jobs: Array<{ waste_description: string | null; weight_t: number; category: string | null; job_type: string | null; movement_type: string | null }>,
+        jobs: Array<{
+          waste_description: string | null;
+          weight_t: number;
+          category: string | null;
+          job_type: string | null;
+          movement_type: string | null;
+          job_number?: string | null;
+          job_date?: string | null;
+          site?: string | null;
+        }>,
         labelSuffix: string,
       ) => {
         const materials: SiteBreakdown["materials"] = [];
+        const loads: LoadLine[] = [];
+        const seenLoads = new Set<string>();
         let rebateTotal = 0;
         let weightTotal = 0;
         let filtered = jobs;
@@ -259,7 +270,21 @@ export function MonthlyRebateGenerationV2() {
             const mapping = job.waste_description ? mappingByWaste.get(job.waste_description) : null;
             if (!mapping?.material_type_id) continue;
             const wasteTypeLower = (wasteTypeById.get(mapping.material_type_id)?.waste_type ?? "").toLowerCase();
-            if (patterns.some((p) => wasteTypeLower.includes(p))) totalWeight += job.weight_t;
+            if (patterns.some((p) => wasteTypeLower.includes(p))) {
+              totalWeight += job.weight_t;
+              const ref = job.job_number ?? "—";
+              const key = `${ref}|${job.job_date ?? ""}|${job.waste_description ?? ""}|${job.weight_t}`;
+              if (!seenLoads.has(key)) {
+                seenLoads.add(key);
+                loads.push({
+                  ref,
+                  date: job.job_date ?? null,
+                  source: job.category === "Midweigh" ? "Midweigh" : "Skiptrak",
+                  description: [job.waste_description ?? "—", job.site ? `· ${job.site}` : ""].filter(Boolean).join(" "),
+                  weight: job.weight_t,
+                });
+              }
+            }
           }
           if (totalWeight === 0) continue;
           let rate = 0;
@@ -281,7 +306,7 @@ export function MonthlyRebateGenerationV2() {
             source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
           });
         }
-        return { materials, rebateTotal, weightTotal };
+        return { materials, rebateTotal, weightTotal, loads };
       };
 
 
