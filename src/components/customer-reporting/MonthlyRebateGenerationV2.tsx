@@ -1073,6 +1073,15 @@ export function MonthlyRebateGenerationV2() {
                       <span className={cn("font-semibold w-24 text-right shrink-0", summary.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>
                         £{summary.totalRebate.toFixed(2)}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8"
+                        onClick={() => setReportSummary(summary)}
+                        title="View customer report"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => downloadExcel(summary)} title="Download Excel">
                         <Download className="h-4 w-4" />
                       </Button>
