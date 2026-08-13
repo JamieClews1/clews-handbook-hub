@@ -101,6 +101,7 @@ export function MonthlyRebateGenerationV2() {
 
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [reportSummary, setReportSummary] = useState<CustomerRebateSummary | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRebateSummary | null>(null);
   const [selectedSite, setSelectedSite] = useState<SiteBreakdown | null>(null);
   const [emailRecipient, setEmailRecipient] = useState("");
