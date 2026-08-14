@@ -1361,14 +1361,51 @@ export function MonthlyRebateGenerationV2() {
                                       </TableHeader>
                                       <TableBody>
                                         {sb.loads.map((l, i) => (
-                                          <TableRow key={`${sb.site.id}-load-${i}`} className="hover:bg-transparent">
-                                            <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
-                                            <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
-                                            <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
-                                            <TableCell className="py-1.5 text-xs">{l.description}</TableCell>
-                                            <TableCell className="py-1.5 text-xs text-right">{l.weight.toFixed(2)}</TableCell>
-                                          </TableRow>
+                                          <>
+                                            <TableRow key={`${sb.site.id}-load-${i}`} className="hover:bg-transparent bg-muted/40">
+                                              <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
+                                              <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
+                                              <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
+                                              <TableCell className="py-1.5 text-xs">
+                                                {l.items && l.items.length > 0
+                                                  ? `${l.items.length} line${l.items.length !== 1 ? "s" : ""}${l.totalPallets ? ` · ${l.totalPallets} pallets` : ""}`
+                                                  : l.description}
+                                              </TableCell>
+                                              <TableCell className="py-1.5 text-xs text-right font-medium">{l.weight.toFixed(2)}</TableCell>
+                                            </TableRow>
+                                            {(l.items ?? []).length > 0 && (
+                                              <TableRow key={`${sb.site.id}-load-${i}-detail`} className="hover:bg-transparent">
+                                                <TableCell colSpan={5} className="py-0 px-3">
+                                                  <table className="w-full text-xs my-1">
+                                                    <thead>
+                                                      <tr className="text-muted-foreground">
+                                                        <th className="text-left font-normal py-1">Waste type</th>
+                                                        <th className="text-right font-normal py-1">Gross (kg)</th>
+                                                        <th className="text-right font-normal py-1">Pallets</th>
+                                                        <th className="text-right font-normal py-1">Pallet wt (kg)</th>
+                                                        <th className="text-right font-normal py-1">Net (kg)</th>
+                                                        <th className="text-right font-normal py-1">Net (t)</th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                      {(l.items ?? []).map((it, j) => (
+                                                        <tr key={`${sb.site.id}-load-${i}-item-${j}`} className="border-t border-border/50">
+                                                          <td className="py-1">{it.waste_type}</td>
+                                                          <td className="py-1 text-right">{it.grossKg.toFixed(0)}</td>
+                                                          <td className="py-1 text-right">{it.pallets || "—"}</td>
+                                                          <td className="py-1 text-right text-red-600">{it.palletKg ? `-${it.palletKg.toFixed(0)}` : "—"}</td>
+                                                          <td className="py-1 text-right font-medium">{it.netKg.toFixed(0)}</td>
+                                                          <td className="py-1 text-right">{(it.netKg / 1000).toFixed(2)}</td>
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                </TableCell>
+                                              </TableRow>
+                                            )}
+                                          </>
                                         ))}
+
                                         <TableRow className="hover:bg-transparent font-medium">
                                           <TableCell className="py-1.5 text-xs" colSpan={4}>Total</TableCell>
                                           <TableCell className="py-1.5 text-xs text-right">
