@@ -623,7 +623,7 @@ async function addIndividualLoadReportSheets(
       const l = ws.getCell(`B${r}`);
       l.value = label;
       l.font = { name: "Calibri", size: 10, bold: true, color: { argb: HEADER_GREY } };
-      ws.mergeCells(`C${r}:E${r}`);
+      ws.mergeCells(`C${r}:F${r}`);
       const v = ws.getCell(`C${r}`);
       v.value = value;
       v.font = { name: "Calibri", size: 10, color: { argb: "FF333333" } };
