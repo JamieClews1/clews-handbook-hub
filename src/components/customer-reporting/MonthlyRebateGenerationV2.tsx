@@ -1361,8 +1361,8 @@ export function MonthlyRebateGenerationV2() {
                                       </TableHeader>
                                       <TableBody>
                                         {sb.loads.map((l, i) => (
-                                          <>
-                                            <TableRow key={`${sb.site.id}-load-${i}`} className="hover:bg-transparent bg-muted/40">
+                                          <Fragment key={`${sb.site.id}-load-${i}`}>
+                                            <TableRow className="hover:bg-transparent bg-muted/40">
                                               <TableCell className="py-1.5 text-xs">{l.date ? format(new Date(l.date), "dd/MM/yyyy") : "—"}</TableCell>
                                               <TableCell className="py-1.5 text-xs font-medium">{l.ref}</TableCell>
                                               <TableCell className="py-1.5 text-xs text-muted-foreground">{l.source}</TableCell>
@@ -1374,7 +1374,7 @@ export function MonthlyRebateGenerationV2() {
                                               <TableCell className="py-1.5 text-xs text-right font-medium">{l.weight.toFixed(2)}</TableCell>
                                             </TableRow>
                                             {(l.items ?? []).length > 0 && (
-                                              <TableRow key={`${sb.site.id}-load-${i}-detail`} className="hover:bg-transparent">
+                                              <TableRow className="hover:bg-transparent">
                                                 <TableCell colSpan={5} className="py-0 px-3">
                                                   <table className="w-full text-xs my-1">
                                                     <thead>
@@ -1403,7 +1403,7 @@ export function MonthlyRebateGenerationV2() {
                                                 </TableCell>
                                               </TableRow>
                                             )}
-                                          </>
+                                          </Fragment>
                                         ))}
 
                                         <TableRow className="hover:bg-transparent font-medium">
