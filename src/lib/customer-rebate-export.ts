@@ -763,7 +763,7 @@ async function addIndividualLoadReportSheets(
       nl.value = "Notes";
       nl.font = { name: "Calibri", size: 10, bold: true, color: { argb: HEADER_GREY } };
       r++;
-      ws.mergeCells(`B${r}:E${r + 2}`);
+      ws.mergeCells(`B${r}:F${r + 2}`);
       const nv = ws.getCell(`B${r}`);
       nv.value = rep.notes;
       nv.alignment = { wrapText: true, vertical: "top" };
