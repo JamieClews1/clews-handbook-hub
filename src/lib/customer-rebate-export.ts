@@ -596,7 +596,7 @@ async function addIndividualLoadReportSheets(
       },
     });
 
-    const sizer = new ColumnSizer({ 1: 2, 2: 22, 3: 32, 4: 12, 5: 12 });
+    const sizer = new ColumnSizer({ 1: 2, 2: 24, 3: 13, 4: 10, 5: 15, 6: 15 });
     ws.getColumn(1).width = 2;
 
     addLogoHeader(
