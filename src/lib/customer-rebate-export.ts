@@ -596,7 +596,7 @@ async function addIndividualLoadReportSheets(
       },
     });
 
-    const sizer = new ColumnSizer({ 1: 2, 2: 22, 3: 32, 4: 12, 5: 12 });
+    const sizer = new ColumnSizer({ 1: 2, 2: 24, 3: 13, 4: 10, 5: 15, 6: 15 });
     ws.getColumn(1).width = 2;
 
     addLogoHeader(
@@ -605,7 +605,7 @@ async function addIndividualLoadReportSheets(
       logoBuffer,
       "LOAD REPORT",
       format(new Date(), "d MMM yyyy"),
-      "E",
+      "F",
     );
 
     let r = 5;
@@ -623,7 +623,7 @@ async function addIndividualLoadReportSheets(
       const l = ws.getCell(`B${r}`);
       l.value = label;
       l.font = { name: "Calibri", size: 10, bold: true, color: { argb: HEADER_GREY } };
-      ws.mergeCells(`C${r}:E${r}`);
+      ws.mergeCells(`C${r}:F${r}`);
       const v = ws.getCell(`C${r}`);
       v.value = value;
       v.font = { name: "Calibri", size: 10, color: { argb: "FF333333" } };
@@ -633,65 +633,95 @@ async function addIndividualLoadReportSheets(
     }
     r += 1;
 
-    // Line items table
-    const headers = ["", "Waste Type", "Notes", "Weight (kg)", "Pallets"];
+    // Line items table — pallet weight is deducted line by line
+    const noPallets = Boolean((rep as any).no_pallets_on_load);
+    const headers = ["", "Waste Type", "Gross (kg)", "Pallets", "Pallet Wt (kg)", "Net Weight (kg)"];
     const headerRow = ws.getRow(r);
     headers.forEach((h, i) => {
       const cell = headerRow.getCell(i + 1);
       cell.value = h;
       cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_GREEN } };
-      cell.alignment = { horizontal: i >= 3 ? "right" : "left", vertical: "middle" };
+      cell.alignment = { horizontal: i >= 2 ? "right" : "left", vertical: "middle", wrapText: true };
       sizer.measure(i + 1, h);
     });
-    headerRow.height = 20;
+    headerRow.height = 22;
     r++;
 
     const items = itemsByReport.get(rep.id) ?? [];
     let totalKg = 0;
     let totalPallets = 0;
+    let totalPalletKg = 0;
+    let totalNetKg = 0;
     items.forEach((item, idx) => {
       const row = ws.getRow(r);
       const fill = idx % 2 === 1 ? ZEBRA : "FFFFFFFF";
+      const linePallets = noPallets ? 0 : item.pallet_count;
+      const linePalletKg = linePallets * palletWeightKg;
+      const lineNetKg = Math.max(0, item.total_weight_kg - linePalletKg);
+
       row.getCell(2).value = item.waste_type;
       sizer.measure(2, item.waste_type);
-      row.getCell(3).value = "";
-      const w = row.getCell(4);
-      w.value = item.total_weight_kg;
-      w.numFmt = "#,##0";
-      w.alignment = { horizontal: "right" };
-      sizer.measure(4, item.total_weight_kg.toLocaleString("en-GB"));
-      const p = row.getCell(5);
-      p.value = item.pallet_count;
-      p.numFmt = "#,##0";
-      p.alignment = { horizontal: "right" };
-      sizer.measure(5, String(item.pallet_count));
-      [2, 3, 4, 5].forEach((c) => {
+
+      const numeric: [number, number | string, string][] = [
+        [3, item.total_weight_kg, "#,##0"],
+        [4, item.pallet_count, "#,##0"],
+        [5, linePalletKg ? -linePalletKg : 0, "#,##0"],
+        [6, lineNetKg, "#,##0"],
+      ];
+      numeric.forEach(([col, value, fmt]) => {
+        const cell = row.getCell(col);
+        cell.value = value;
+        cell.numFmt = fmt;
+        cell.alignment = { horizontal: "right" };
+        sizer.measure(col, Number(value).toLocaleString("en-GB"));
+      });
+      row.getCell(5).font = { name: "Calibri", size: 10, color: { argb: linePalletKg ? CHARGE_RED : MUTED } };
+      row.getCell(6).font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF333333" } };
+
+      [2, 3, 4, 5, 6].forEach((c) => {
         row.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
         row.getCell(c).border = { bottom: { style: "hair", color: { argb: BORDER_GREY } } };
       });
+
       totalKg += item.total_weight_kg;
       totalPallets += item.pallet_count;
+      totalPalletKg += linePalletKg;
+      totalNetKg += lineNetKg;
       r++;
     });
 
     // Totals row
     if (items.length > 0) {
       const totRow = ws.getRow(r);
-      totRow.getCell(2).value = "TOTAL";
-      totRow.getCell(4).value = totalKg;
-      totRow.getCell(4).numFmt = "#,##0";
-      totRow.getCell(4).alignment = { horizontal: "right" };
-      totRow.getCell(5).value = totalPallets;
-      totRow.getCell(5).numFmt = "#,##0";
-      totRow.getCell(5).alignment = { horizontal: "right" };
-      [2, 3, 4, 5].forEach((c) => {
+      totRow.getCell(2).value = "TOTAL (net of pallet weight)";
+      const totals: [number, number][] = [
+        [3, totalKg],
+        [4, totalPallets],
+        [5, totalPalletKg ? -totalPalletKg : 0],
+        [6, totalNetKg],
+      ];
+      totals.forEach(([col, value]) => {
+        const cell = totRow.getCell(col);
+        cell.value = value;
+        cell.numFmt = "#,##0";
+        cell.alignment = { horizontal: "right" };
+      });
+      [2, 3, 4, 5, 6].forEach((c) => {
         const cell = totRow.getCell(c);
         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_GREY } };
       });
       totRow.height = 20;
       r++;
+
+      if (totalPalletKg > 0) {
+        const noteCell = ws.getCell(`B${r}`);
+        ws.mergeCells(`B${r}:F${r}`);
+        noteCell.value = `Pallet weight of ${palletWeightKg}kg per pallet has been deducted from each line above (${totalPallets} pallets = ${totalPalletKg.toLocaleString("en-GB")}kg).`;
+        noteCell.font = { name: "Calibri", size: 9, italic: true, color: { argb: MUTED } };
+        r++;
+      }
     } else {
       const cell = ws.getCell(`B${r}`);
       cell.value = "No line items recorded on this load.";
@@ -700,7 +730,6 @@ async function addIndividualLoadReportSheets(
     }
 
     // Pallet Weight Charge line (if pallets on load and a rate configured)
-    const noPallets = Boolean((rep as any).no_pallets_on_load);
     const palletsOnLoad = noPallets ? 0 : totalPallets;
     if (palletsOnLoad > 0 && palletChargeRate !== 0) {
       const palletWeightKgTotal = palletsOnLoad * palletWeightKg;
@@ -708,22 +737,25 @@ async function addIndividualLoadReportSheets(
       const palletCharge = -Math.abs(palletWeightT * palletChargeRate);
       const pwRow = ws.getRow(r);
       pwRow.getCell(2).value = "Pallet Weight Charge";
-      pwRow.getCell(3).value = `${palletsOnLoad} pallets × ${palletWeightKg}kg @ ${fmtCurrency(-Math.abs(palletChargeRate))}/t`;
-      pwRow.getCell(4).value = palletWeightKgTotal;
-      pwRow.getCell(4).numFmt = "#,##0";
-      pwRow.getCell(4).alignment = { horizontal: "right" };
-      pwRow.getCell(5).value = fmtCurrency(palletCharge);
+      const desc = `${palletsOnLoad} pallets × ${palletWeightKg}kg @ ${fmtCurrency(-Math.abs(palletChargeRate))}/t`;
+      pwRow.getCell(3).value = desc;
+      pwRow.getCell(3).alignment = { horizontal: "left" };
+      pwRow.getCell(5).value = palletWeightKgTotal;
+      pwRow.getCell(5).numFmt = "#,##0";
       pwRow.getCell(5).alignment = { horizontal: "right" };
-      [2, 3, 4, 5].forEach((c) => {
+      pwRow.getCell(6).value = fmtCurrency(palletCharge);
+      pwRow.getCell(6).alignment = { horizontal: "right" };
+      [2, 3, 4, 5, 6].forEach((c) => {
         const cell = pwRow.getCell(c);
         cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: CHARGE_RED } };
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CHARGE_RED_LIGHT } };
         cell.border = { top: { style: "thin", color: { argb: BORDER_GREY } }, bottom: { style: "thin", color: { argb: BORDER_GREY } } };
       });
-      sizer.measure(3, `${palletsOnLoad} pallets × ${palletWeightKg}kg @ ${fmtCurrency(-Math.abs(palletChargeRate))}/t`);
-      sizer.measure(5, fmtCurrency(palletCharge));
+      sizer.measure(3, desc);
+      sizer.measure(6, fmtCurrency(palletCharge));
       r++;
     }
+
 
     if (rep.notes) {
       r += 1;
@@ -731,7 +763,7 @@ async function addIndividualLoadReportSheets(
       nl.value = "Notes";
       nl.font = { name: "Calibri", size: 10, bold: true, color: { argb: HEADER_GREY } };
       r++;
-      ws.mergeCells(`B${r}:E${r + 2}`);
+      ws.mergeCells(`B${r}:F${r + 2}`);
       const nv = ws.getCell(`B${r}`);
       nv.value = rep.notes;
       nv.alignment = { wrapText: true, vertical: "top" };
