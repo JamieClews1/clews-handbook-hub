@@ -48,13 +48,24 @@ type Site = {
 };
 type CustomerContact = { id: string; full_name: string; email: string | null; customer_id: string };
 
+type LoadLineItem = {
+  waste_type: string;
+  grossKg: number;
+  pallets: number;
+  palletKg: number;
+  netKg: number;
+};
+
 type LoadLine = {
   ref: string;
   date: string | null;
   source: string;
   description: string;
   weight: number;
+  items?: LoadLineItem[];
+  totalPallets?: number;
 };
+
 
 type SiteBreakdown = {
   site: Site;
