@@ -605,7 +605,7 @@ async function addIndividualLoadReportSheets(
       logoBuffer,
       "LOAD REPORT",
       format(new Date(), "d MMM yyyy"),
-      "E",
+      "F",
     );
 
     let r = 5;
