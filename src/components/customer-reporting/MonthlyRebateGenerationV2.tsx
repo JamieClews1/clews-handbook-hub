@@ -436,7 +436,7 @@ export function MonthlyRebateGenerationV2() {
           for (const r of loadReports ?? []) noPalletsByReportId[r.id] = Boolean((r as any).no_pallets_on_load);
 
           const siteLoads: LoadLine[] = [];
-          const perReport = new Map<string, { weight: number; wasteTypes: Set<string> }>();
+          const perReport = new Map<string, { weight: number; wasteTypes: Set<string>; items: LoadLineItem[]; pallets: number }>();
 
           let lineItemWeights: Record<string, number> = {};
           let totalPalletWeightTonnes = 0;
@@ -456,9 +456,17 @@ export function MonthlyRebateGenerationV2() {
               lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualKg / 1000;
               totalPalletWeightTonnes += palletKg / 1000;
 
-              const agg = perReport.get(item.load_report_id) ?? { weight: 0, wasteTypes: new Set<string>() };
+              const agg = perReport.get(item.load_report_id) ?? { weight: 0, wasteTypes: new Set<string>(), items: [], pallets: 0 };
               agg.weight += actualKg / 1000;
               agg.wasteTypes.add(wasteType);
+              agg.pallets += noPallets ? 0 : palletCount;
+              agg.items.push({
+                waste_type: wasteType,
+                grossKg,
+                pallets: noPallets ? 0 : palletCount,
+                palletKg,
+                netKg: actualKg,
+              });
               perReport.set(item.load_report_id, agg);
             }
             for (const r of loadReports ?? []) {
@@ -470,9 +478,12 @@ export function MonthlyRebateGenerationV2() {
                 source: "Load Report",
                 description: Array.from(agg.wasteTypes).join(", "),
                 weight: agg.weight,
+                items: agg.items,
+                totalPallets: agg.pallets,
               });
             }
           }
+
           const palletWeightTonnes = totalPalletWeightTonnes;
 
           let loadReportRebate = 0;
