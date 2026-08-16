@@ -264,6 +264,7 @@ export function MonthlyRebateGenerationV2() {
           job_number?: string | null;
           job_date?: string | null;
           site?: string | null;
+          linked_skip_job?: string | null;
         }>,
         labelSuffix: string,
       ) => {
@@ -273,6 +274,18 @@ export function MonthlyRebateGenerationV2() {
         let rebateTotal = 0;
         let weightTotal = 0;
         let filtered = jobs;
+        // A Midweigh ticket that references a Skiptrak job ("Skip job") is the same
+        // physical load — drop it when that Skiptrak job is already in this set.
+        {
+          const skiptrakJobNumbers = new Set(
+            jobs.filter((j) => j.category !== "Midweigh").map((j) => String(j.job_number ?? "").trim()),
+          );
+          filtered = filtered.filter((j) => {
+            if (j.category !== "Midweigh") return true;
+            const linked = String(j.linked_skip_job ?? "").trim();
+            return !linked || !skiptrakJobNumbers.has(linked);
+          });
+        }
         if (excludeSkipJobType) {
           filtered = filtered.filter((j) => (j.category !== "Midweigh" ? true : (j.job_type ?? "").toUpperCase() !== "SKIP"));
         }
