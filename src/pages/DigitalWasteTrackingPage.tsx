@@ -505,6 +505,8 @@ const DigitalWasteTrackingPage = () => {
           setEditing(null);
         }}
       />
+
+      <DwtSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 };
