@@ -22,6 +22,7 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import clewsLogo from "@/assets/clews-logo.png";
 import { Json } from "@/integrations/supabase/types";
+import DwtSettingsDialog, { useDwtSettings } from "@/components/dwt/DwtSettingsDialog";
 
 interface Row {
   id: string;
