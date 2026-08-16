@@ -68,6 +68,8 @@ const DigitalWasteTrackingPage = () => {
   const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { data: dwtSettings } = useDwtSettings();
 
   const { data: receiverAuthNumber = "" } = useQuery({
     queryKey: ["dwt-receiver-auth"],
