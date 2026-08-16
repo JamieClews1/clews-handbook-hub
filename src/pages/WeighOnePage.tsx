@@ -235,6 +235,11 @@ const WeighOnePage = () => {
         price_per_tonne: wasteType?.price_per_tonne ?? null,
         operator_name: formData.operator_name || null,
         notes: formData.notes || null,
+        carrier_registration: formData.carrier_registration || null,
+        carrier_name: formData.carrier_name || null,
+        physical_form: formData.physical_form || null,
+        means_of_transport: formData.means_of_transport || "Road",
+
         status: "first_weigh" as WeighbridgeStatus,
       }).select("id").single();
       if (error) throw error;
