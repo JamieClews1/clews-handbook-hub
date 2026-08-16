@@ -1247,13 +1247,19 @@ const DataUploadsPage = () => {
                       <TableHead className="whitespace-nowrap">Category</TableHead>
                       <TableHead className="whitespace-nowrap">Movement</TableHead>
                       <TableHead className="whitespace-nowrap">Container</TableHead>
+                      <TableHead className="whitespace-nowrap">Skip job</TableHead>
+                      <TableHead className="whitespace-nowrap">Account</TableHead>
+                      <TableHead className="whitespace-nowrap">Haulier</TableHead>
+                      <TableHead className="whitespace-nowrap">Carrier no</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Gross (kg)</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Tare (kg)</TableHead>
                       <TableHead className="whitespace-nowrap">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={18} className="py-12">
+                        <TableCell colSpan={24} className="py-12">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             <p className="text-muted-foreground">Loading data...</p>
@@ -1262,7 +1268,7 @@ const DataUploadsPage = () => {
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={18} className="text-muted-foreground">
+                        <TableCell colSpan={24} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
@@ -1298,6 +1304,16 @@ const DataUploadsPage = () => {
                           <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.container_type ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.linked_skip_job ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.account_code ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.haulier ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.carrier_number ?? "—"}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {j.gross_weight == null ? "—" : j.gross_weight.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {j.tare_weight == null ? "—" : j.tare_weight.toLocaleString()}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Button size="sm" variant="outline" onClick={() => setDetailJob(j)}>
                               View all
@@ -1353,6 +1369,12 @@ const DataUploadsPage = () => {
                     ["Vehicle", detailJob.vehicle_registration],
                     ["Driver", detailJob.driver],
                     ["Tipping location", detailJob.tipping_location],
+                    ["Account code", detailJob.account_code],
+                    ["Haulier", detailJob.haulier],
+                    ["Carrier no", detailJob.carrier_number],
+                    ["Gross weight (kg)", detailJob.gross_weight == null ? "—" : detailJob.gross_weight.toLocaleString()],
+                    ["Tare weight (kg)", detailJob.tare_weight == null ? "—" : detailJob.tare_weight.toLocaleString()],
+                    ["Linked skip job", detailJob.linked_skip_job],
                     ["Manual edit note", detailJob.manual_edit_note],
                     ["Last updated", detailJob.updated_at ? new Date(detailJob.updated_at).toLocaleString() : "—"],
                   ].map(([label, value]) => (
