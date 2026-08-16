@@ -96,7 +96,7 @@ const DigitalWasteTrackingPage = () => {
       while (more) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, customer, site, driver, vehicle_registration, waste_description, ewc, container_type, weight_t, movement_type, raw")
+          .select("id, job_number, job_date, customer, site, driver, vehicle_registration, waste_description, ewc, container_type, weight_t, movement_type, carrier_number, raw")
           .eq("source", "midweigh")
           .eq("job_date", date)
           .order("job_number", { ascending: false })
