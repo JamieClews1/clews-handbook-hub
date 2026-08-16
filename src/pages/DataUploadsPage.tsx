@@ -250,6 +250,8 @@ const DataUploadsPage = () => {
   const [sourceFilter, setSourceFilter] = useState<"all" | DataSource>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [ignoreDates, setIgnoreDates] = useState(false);
+
   const [jobs, setJobs] = useState<ListedJob[]>([]);
   const [detailJob, setDetailJob] = useState<ListedJob | null>(null);
   const [loadingJobs, setLoadingJobs] = useState(true);
