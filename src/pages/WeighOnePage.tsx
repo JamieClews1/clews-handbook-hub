@@ -21,6 +21,10 @@ import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 
+const PHYSICAL_FORMS = ["Solid", "Liquid", "Sludge", "Powder", "Gas", "Mixed"];
+const MEANS_OF_TRANSPORT = ["Road", "Rail", "Sea", "Air", "Inland Waterway"];
+
+
 interface WeighbridgeTransaction {
   id: string;
   ticket_number: string;
@@ -45,6 +49,11 @@ interface WeighbridgeTransaction {
   operator_id: string | null;
   operator_name: string | null;
   notes: string | null;
+  carrier_registration: string | null;
+  carrier_name: string | null;
+  physical_form: string | null;
+  means_of_transport: string | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +104,11 @@ const WeighOnePage = () => {
     gross_weight_kg: "",
     operator_name: "",
     notes: "",
+    carrier_registration: "",
+    carrier_name: "",
+    physical_form: "",
+    means_of_transport: "Road",
+
   });
 
   // Additional items for new transaction
@@ -221,6 +235,11 @@ const WeighOnePage = () => {
         price_per_tonne: wasteType?.price_per_tonne ?? null,
         operator_name: formData.operator_name || null,
         notes: formData.notes || null,
+        carrier_registration: formData.carrier_registration || null,
+        carrier_name: formData.carrier_name || null,
+        physical_form: formData.physical_form || null,
+        means_of_transport: formData.means_of_transport || "Road",
+
         status: "first_weigh" as WeighbridgeStatus,
       }).select("id").single();
       if (error) throw error;
@@ -345,7 +364,7 @@ const WeighOnePage = () => {
   });
 
   const resetForm = () => {
-    setFormData({ vehicle_reg: "", customer: "", site: "", driver_name: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "" });
+    setFormData({ vehicle_reg: "", customer: "", site: "", driver_name: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "", carrier_registration: "", carrier_name: "", physical_form: "", means_of_transport: "Road" });
     setNewAdditionalItems([]);
   };
 
@@ -402,6 +421,11 @@ const WeighOnePage = () => {
         <tr><td>Waste:</td><td>${t.waste_description ?? "-"}</td></tr>
         <tr><td>EWC Code:</td><td>${t.ewc_code ?? "-"}</td></tr>
         <tr><td>Container:</td><td>${t.container_type ?? "-"}</td></tr>
+        <tr><td>Physical Form:</td><td>${t.physical_form ?? "-"}</td></tr>
+        <tr><td>Carrier:</td><td>${t.carrier_name ?? "-"}</td></tr>
+        <tr><td>Carrier Reg No:</td><td>${t.carrier_registration ?? "-"}</td></tr>
+        <tr><td>Transport:</td><td>${t.means_of_transport ?? "Road"}</td></tr>
+
       </table>
       <div class="line"></div>
       <table>
@@ -602,6 +626,44 @@ const WeighOnePage = () => {
                     <Input placeholder="Operator name" value={formData.operator_name} onChange={(e) => setFormData((p) => ({ ...p, operator_name: e.target.value }))} />
                   </div>
                 </div>
+
+                {/* Digital Waste Tracking fields */}
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <Label className="text-sm font-semibold">Digital Waste Tracking</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Carrier Registration</Label>
+                      <Input placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Carrier Name</Label>
+                      <Input placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Physical Form</Label>
+                      <Select value={formData.physical_form} onValueChange={(val) => setFormData((p) => ({ ...p, physical_form: val }))}>
+                        <SelectTrigger><SelectValue placeholder="Select form..." /></SelectTrigger>
+                        <SelectContent>
+                          {PHYSICAL_FORMS.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Means of Transport</Label>
+                      <Select value={formData.means_of_transport} onValueChange={(val) => setFormData((p) => ({ ...p, means_of_transport: val }))}>
+                        <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                          {MEANS_OF_TRANSPORT.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>EWC Code (override)</Label>
+                      <Input placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
+                    </div>
+                  </div>
+                </div>
+
 
                 {/* Additional Items */}
                 <div className="space-y-3">
@@ -1002,6 +1064,11 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 <div><span className="text-muted-foreground">EWC:</span> {selectedTransaction.ewc_code ?? "-"}</div>
                 <div><span className="text-muted-foreground">Container:</span> {selectedTransaction.container_type ?? "-"}</div>
+                <div><span className="text-muted-foreground">Physical form:</span> {selectedTransaction.physical_form ?? "-"}</div>
+                <div><span className="text-muted-foreground">Carrier:</span> {selectedTransaction.carrier_name ?? "-"}</div>
+                <div><span className="text-muted-foreground">Carrier reg no:</span> {selectedTransaction.carrier_registration ?? "-"}</div>
+                <div><span className="text-muted-foreground">Transport:</span> {selectedTransaction.means_of_transport ?? "Road"}</div>
+
                 <div><span className="text-muted-foreground">Operator:</span> {selectedTransaction.operator_name ?? "-"}</div>
               </div>
 

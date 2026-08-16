@@ -7058,6 +7058,8 @@ export type Database = {
       weighbridge_transactions: {
         Row: {
           additional_items_total: number | null
+          carrier_name: string | null
+          carrier_registration: string | null
           container_type: string | null
           created_at: string
           customer: string | null
@@ -7066,10 +7068,12 @@ export type Database = {
           first_weigh_at: string | null
           gross_weight_kg: number | null
           id: string
+          means_of_transport: string | null
           net_weight_kg: number | null
           notes: string | null
           operator_id: string | null
           operator_name: string | null
+          physical_form: string | null
           price_per_tonne: number | null
           second_weigh_at: string | null
           site: string | null
@@ -7085,6 +7089,8 @@ export type Database = {
         }
         Insert: {
           additional_items_total?: number | null
+          carrier_name?: string | null
+          carrier_registration?: string | null
           container_type?: string | null
           created_at?: string
           customer?: string | null
@@ -7093,10 +7099,12 @@ export type Database = {
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
           id?: string
+          means_of_transport?: string | null
           net_weight_kg?: number | null
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          physical_form?: string | null
           price_per_tonne?: number | null
           second_weigh_at?: string | null
           site?: string | null
@@ -7112,6 +7120,8 @@ export type Database = {
         }
         Update: {
           additional_items_total?: number | null
+          carrier_name?: string | null
+          carrier_registration?: string | null
           container_type?: string | null
           created_at?: string
           customer?: string | null
@@ -7120,10 +7130,12 @@ export type Database = {
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
           id?: string
+          means_of_transport?: string | null
           net_weight_kg?: number | null
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          physical_form?: string | null
           price_per_tonne?: number | null
           second_weigh_at?: string | null
           site?: string | null
