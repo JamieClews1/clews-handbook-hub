@@ -226,6 +226,8 @@ const DigitalWasteTrackingPage = () => {
   };
 
   const merged = useMemo(() => {
+    const auto = dwtSettings?.autofill_enabled !== false;
+    const fill = (value: string, fallback?: string) => (value || (auto ? (fallback ?? "").trim() : ""));
     return rows.map((r) => {
       const ov = overridesMap[r.id] ?? {};
       return {
@@ -235,17 +237,26 @@ const DigitalWasteTrackingPage = () => {
         customer: ov.customer || r.customer || "",
         site: r.site || "",
         vehicle: ov.vehicle_registration || r.vehicle_registration || "",
-        carrierReg: ov.carrier_registration || (r.carrier_number ?? "").trim() || rawField(r.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
-        carrierName: ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
-        physicalForm: ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
+        carrierReg: fill(
+          ov.carrier_registration || (r.carrier_number ?? "").trim() || rawField(r.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+          dwtSettings?.default_carrier_registration,
+        ),
+        carrierName: fill(
+          ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
+          dwtSettings?.default_carrier_name,
+        ),
+        physicalForm: fill(
+          ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
+          dwtSettings?.default_physical_form ?? "Solid",
+        ),
         ewc: ov.ewc || r.ewc || "",
         waste: ov.waste_description || r.waste_description || "",
-        container: ov.container_type || r.container_type || "",
-        meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || "Road",
+        container: fill(ov.container_type || r.container_type || "", dwtSettings?.default_container_type ?? "Van"),
+        meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || (dwtSettings?.default_means_of_transport || "Road"),
         weightT: r.weight_t != null ? Number(r.weight_t) / 1000 : null,
       };
     });
-  }, [rows, overridesMap]);
+  }, [rows, overridesMap, dwtSettings]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
