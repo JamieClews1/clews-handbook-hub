@@ -49,6 +49,11 @@ interface WeighbridgeTransaction {
   operator_id: string | null;
   operator_name: string | null;
   notes: string | null;
+  carrier_registration: string | null;
+  carrier_name: string | null;
+  physical_form: string | null;
+  means_of_transport: string | null;
+
   created_at: string;
   updated_at: string;
 }
