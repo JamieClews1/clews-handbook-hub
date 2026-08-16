@@ -297,9 +297,15 @@ const DataUploadsPage = () => {
   }, [user]);
 
   const filters = useMemo(
-    () => ({ search: search.trim(), source: sourceFilter, fromDate, toDate }),
-    [search, sourceFilter, fromDate, toDate],
+    () => ({
+      search: search.trim(),
+      source: sourceFilter,
+      fromDate: ignoreDates ? "" : fromDate,
+      toDate: ignoreDates ? "" : toDate,
+    }),
+    [search, sourceFilter, fromDate, toDate, ignoreDates],
   );
+
 
   const loadJobs = async () => {
     if (!user) return;
