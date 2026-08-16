@@ -240,7 +240,7 @@ const DigitalWasteTrackingPage = () => {
       return {
         row: r,
         ticket: r.job_number,
-        time: rawField(r.raw, ["Time In", "TimeIn", "Time", "Weigh In Time", "In Time"]),
+        time: cleanTime(rawField(r.raw, ["Time In", "TimeIn", "Time", "Weigh In Time", "In Time"])),
         customer: ov.customer || r.customer || "",
         site: r.site || "",
         vehicle: ov.vehicle_registration || r.vehicle_registration || "",
