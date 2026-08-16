@@ -2050,22 +2050,28 @@ export type Database = {
       }
       data_hub_jobs: {
         Row: {
+          account_code: string | null
+          carrier_number: string | null
           category: string | null
           container_type: string | null
           created_at: string
           customer: string | null
           driver: string | null
           ewc: string | null
+          gross_weight: number | null
+          haulier: string | null
           id: string
           job_date: string | null
           job_number: string
           job_type: string | null
+          linked_skip_job: string | null
           manual_edit_note: string | null
           movement_type: string | null
           order_number_override: string | null
           raw: Json
           site: string | null
           source: string
+          tare_weight: number | null
           tipping_location: string | null
           updated_at: string
           vehicle_registration: string | null
@@ -2073,22 +2079,28 @@ export type Database = {
           weight_t: number | null
         }
         Insert: {
+          account_code?: string | null
+          carrier_number?: string | null
           category?: string | null
           container_type?: string | null
           created_at?: string
           customer?: string | null
           driver?: string | null
           ewc?: string | null
+          gross_weight?: number | null
+          haulier?: string | null
           id?: string
           job_date?: string | null
           job_number: string
           job_type?: string | null
+          linked_skip_job?: string | null
           manual_edit_note?: string | null
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
           site?: string | null
           source: string
+          tare_weight?: number | null
           tipping_location?: string | null
           updated_at?: string
           vehicle_registration?: string | null
@@ -2096,22 +2108,28 @@ export type Database = {
           weight_t?: number | null
         }
         Update: {
+          account_code?: string | null
+          carrier_number?: string | null
           category?: string | null
           container_type?: string | null
           created_at?: string
           customer?: string | null
           driver?: string | null
           ewc?: string | null
+          gross_weight?: number | null
+          haulier?: string | null
           id?: string
           job_date?: string | null
           job_number?: string
           job_type?: string | null
+          linked_skip_job?: string | null
           manual_edit_note?: string | null
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
           site?: string | null
           source?: string
+          tare_weight?: number | null
           tipping_location?: string | null
           updated_at?: string
           vehicle_registration?: string | null
@@ -3737,6 +3755,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      midweigh_import_staging: {
+        Row: {
+          account_code: string | null
+          carrier_number: string | null
+          container: string | null
+          customer: string | null
+          ewc: string | null
+          ewc_desc: string | null
+          gross_weight: number | null
+          haulier: string | null
+          in_out: string | null
+          job_date: string | null
+          job_type: string | null
+          product: string | null
+          skip_job: string | null
+          tare_weight: number | null
+          ticket: string
+          vehicle: string | null
+          weight: number | null
+        }
+        Insert: {
+          account_code?: string | null
+          carrier_number?: string | null
+          container?: string | null
+          customer?: string | null
+          ewc?: string | null
+          ewc_desc?: string | null
+          gross_weight?: number | null
+          haulier?: string | null
+          in_out?: string | null
+          job_date?: string | null
+          job_type?: string | null
+          product?: string | null
+          skip_job?: string | null
+          tare_weight?: number | null
+          ticket: string
+          vehicle?: string | null
+          weight?: number | null
+        }
+        Update: {
+          account_code?: string | null
+          carrier_number?: string | null
+          container?: string | null
+          customer?: string | null
+          ewc?: string | null
+          ewc_desc?: string | null
+          gross_weight?: number | null
+          haulier?: string | null
+          in_out?: string | null
+          job_date?: string | null
+          job_type?: string | null
+          product?: string | null
+          skip_job?: string | null
+          tare_weight?: number | null
+          ticket?: string
+          vehicle?: string | null
+          weight?: number | null
+        }
+        Relationships: []
       }
       midweigh_product_mappings: {
         Row: {
