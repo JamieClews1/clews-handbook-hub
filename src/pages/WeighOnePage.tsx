@@ -95,6 +95,11 @@ const WeighOnePage = () => {
     gross_weight_kg: "",
     operator_name: "",
     notes: "",
+    carrier_registration: "",
+    carrier_name: "",
+    physical_form: "",
+    means_of_transport: "Road",
+
   });
 
   // Additional items for new transaction
