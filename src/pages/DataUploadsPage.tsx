@@ -1132,9 +1132,37 @@ const DataUploadsPage = () => {
                     </ToggleGroupItem>
                   </ToggleGroup>
                 </div>
-                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={fromDate}
+                  disabled={ignoreDates}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+                <Input
+                  type="date"
+                  value={toDate}
+                  disabled={ignoreDates}
+                  onChange={(e) => setToDate(e.target.value)}
+                />
               </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={ignoreDates}
+                    onChange={(e) => setIgnoreDates(e.target.checked)}
+                  />
+                  Search all dates (ignore date range)
+                </label>
+                {ignoreDates && (
+                  <span className="text-xs text-muted-foreground">
+                    Date filters are off — searching the whole Data Hub for this ticket/customer.
+                  </span>
+                )}
+              </div>
+
 
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
