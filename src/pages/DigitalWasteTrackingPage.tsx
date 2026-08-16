@@ -511,7 +511,7 @@ function EditDialog({
     setForm({
       customer: currentOverride?.customer ?? row.customer ?? "",
       vehicle_registration: currentOverride?.vehicle_registration ?? row.vehicle_registration ?? "",
-      carrier_registration: currentOverride?.carrier_registration ?? rawField(row.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+      carrier_registration: currentOverride?.carrier_registration ?? ((row.carrier_number ?? "").trim() || rawField(row.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"])),
       carrier_name: currentOverride?.carrier_name ?? rawField(row.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
       physical_form: currentOverride?.physical_form ?? rawField(row.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
       ewc: currentOverride?.ewc ?? row.ewc ?? "",
