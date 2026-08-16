@@ -47,6 +47,12 @@ type DataHubJobRow = {
   vehicle_registration?: string | null;
   driver?: string | null;
   tipping_location?: string | null;
+  account_code?: string | null;
+  haulier?: string | null;
+  carrier_number?: string | null;
+  gross_weight?: number | null;
+  tare_weight?: number | null;
+  linked_skip_job?: string | null;
   raw: Record<string, unknown>;
 };
 
@@ -66,6 +72,12 @@ type ListedJob = {
   vehicle_registration: string | null;
   driver: string | null;
   tipping_location: string | null;
+  account_code?: string | null;
+  haulier?: string | null;
+  carrier_number?: string | null;
+  gross_weight?: number | null;
+  tare_weight?: number | null;
+  linked_skip_job?: string | null;
   order_number_override?: string | null;
   job_type?: string | null;
   manual_edit_note?: string | null;
@@ -73,6 +85,7 @@ type ListedJob = {
   created_at?: string;
   updated_at: string;
 };
+
 
 const RAW_COST_KEYS = ["Cost", "Total Price", "Haulage Cost", "Price", "Charge"];
 
@@ -293,7 +306,7 @@ const DataUploadsPage = () => {
       let q = supabase
         .from("data_hub_jobs")
         .select(
-          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,order_number_override,job_type,manual_edit_note,raw,created_at,updated_at",
+          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,order_number_override,job_type,manual_edit_note,raw,created_at,updated_at",
         )
         .order("job_date", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
@@ -562,6 +575,16 @@ const DataUploadsPage = () => {
         tipping_location: toCleanString(
           getFirstMatchingValue(r, ["Location", "Tipping Location", "Tip Location", "tipping_location"]),
         ),
+        account_code: toCleanString(getFirstMatchingValue(r, ["Account", "Account Code", "account_code"])),
+        haulier: toCleanString(getFirstMatchingValue(r, ["Haulier", "Carrier", "haulier"])),
+        carrier_number: toCleanString(
+          getFirstMatchingValue(r, ["Carrier no", "Carrier No", "Carrier Number", "carrier_number"]),
+        ),
+        gross_weight: parseFlexibleNumber(getFirstMatchingValue(r, ["Gross", "Gross Weight", "gross_weight"])),
+        tare_weight: parseFlexibleNumber(getFirstMatchingValue(r, ["Tare", "Tare Weight", "tare_weight"])),
+        linked_skip_job: toCleanString(
+          getFirstMatchingValue(r, ["Skip job", "Skip Job", "Skip job no", "linked_skip_job"]),
+        ),
         raw: r,
       });
     }
@@ -621,7 +644,7 @@ const DataUploadsPage = () => {
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
-          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location")
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job")
           .in("job_number", jobNumbers)
           .eq("source", source);
         
@@ -645,8 +668,39 @@ const DataUploadsPage = () => {
             vehicle_registration: j.vehicle_registration ?? (existingRow?.vehicle_registration as any) ?? null,
             driver: j.driver ?? (existingRow?.driver as any) ?? null,
             tipping_location: j.tipping_location ?? (existingRow?.tipping_location as any) ?? null,
+            account_code: j.account_code ?? (existingRow as any)?.account_code ?? null,
+            haulier: j.haulier ?? (existingRow as any)?.haulier ?? null,
+            carrier_number: j.carrier_number ?? (existingRow as any)?.carrier_number ?? null,
+            gross_weight: j.gross_weight ?? (existingRow as any)?.gross_weight ?? null,
+            tare_weight: j.tare_weight ?? (existingRow as any)?.tare_weight ?? null,
+            linked_skip_job: j.linked_skip_job ?? (existingRow as any)?.linked_skip_job ?? null,
           } satisfies DataHubJobRow;
         });
+
+        // Midweigh tickets carry no site of their own. Where the ticket references a
+        // Skiptrak job ("Skip job"), take that job's site so weighbridge tickets are
+        // attributed correctly instead of inheriting stale/incorrect site names.
+        if (source === "midweigh") {
+          const linkedJobNumbers = Array.from(
+            new Set(mergedBatch.map((j) => j.linked_skip_job).filter((v): v is string => !!v)),
+          );
+          if (linkedJobNumbers.length > 0) {
+            const siteByJob = new Map<string, string | null>();
+            for (const part of chunk(linkedJobNumbers, 200)) {
+              const { data: linked } = await supabase
+                .from("data_hub_jobs")
+                .select("job_number,site")
+                .eq("source", "skiptrak")
+                .in("job_number", part);
+              (linked ?? []).forEach((l: any) => siteByJob.set(String(l.job_number), l.site ?? null));
+            }
+            mergedBatch.forEach((j) => {
+              if (j.linked_skip_job && siteByJob.has(j.linked_skip_job)) {
+                j.site = siteByJob.get(j.linked_skip_job) ?? null;
+              }
+            });
+          }
+        }
 
         // Upsert this batch using composite key (job_number + source)
         const { error: upsertError } = await supabase
@@ -1193,13 +1247,19 @@ const DataUploadsPage = () => {
                       <TableHead className="whitespace-nowrap">Category</TableHead>
                       <TableHead className="whitespace-nowrap">Movement</TableHead>
                       <TableHead className="whitespace-nowrap">Container</TableHead>
+                      <TableHead className="whitespace-nowrap">Skip job</TableHead>
+                      <TableHead className="whitespace-nowrap">Account</TableHead>
+                      <TableHead className="whitespace-nowrap">Haulier</TableHead>
+                      <TableHead className="whitespace-nowrap">Carrier no</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Gross (kg)</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Tare (kg)</TableHead>
                       <TableHead className="whitespace-nowrap">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loadingJobs ? (
                       <TableRow>
-                        <TableCell colSpan={18} className="py-12">
+                        <TableCell colSpan={24} className="py-12">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             <p className="text-muted-foreground">Loading data...</p>
@@ -1208,7 +1268,7 @@ const DataUploadsPage = () => {
                       </TableRow>
                     ) : jobs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={18} className="text-muted-foreground">
+                        <TableCell colSpan={24} className="text-muted-foreground">
                           No results.
                         </TableCell>
                       </TableRow>
@@ -1244,6 +1304,16 @@ const DataUploadsPage = () => {
                           <TableCell className="whitespace-nowrap">{j.category ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.movement_type ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.container_type ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.linked_skip_job ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.account_code ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.haulier ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.carrier_number ?? "—"}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {j.gross_weight == null ? "—" : j.gross_weight.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {j.tare_weight == null ? "—" : j.tare_weight.toLocaleString()}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Button size="sm" variant="outline" onClick={() => setDetailJob(j)}>
                               View all
@@ -1299,6 +1369,12 @@ const DataUploadsPage = () => {
                     ["Vehicle", detailJob.vehicle_registration],
                     ["Driver", detailJob.driver],
                     ["Tipping location", detailJob.tipping_location],
+                    ["Account code", detailJob.account_code],
+                    ["Haulier", detailJob.haulier],
+                    ["Carrier no", detailJob.carrier_number],
+                    ["Gross weight (kg)", detailJob.gross_weight == null ? "—" : detailJob.gross_weight.toLocaleString()],
+                    ["Tare weight (kg)", detailJob.tare_weight == null ? "—" : detailJob.tare_weight.toLocaleString()],
+                    ["Linked skip job", detailJob.linked_skip_job],
                     ["Manual edit note", detailJob.manual_edit_note],
                     ["Last updated", detailJob.updated_at ? new Date(detailJob.updated_at).toLocaleString() : "—"],
                   ].map(([label, value]) => (
