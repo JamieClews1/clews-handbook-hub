@@ -232,7 +232,7 @@ const DigitalWasteTrackingPage = () => {
         customer: ov.customer || r.customer || "",
         site: r.site || "",
         vehicle: ov.vehicle_registration || r.vehicle_registration || "",
-        carrierReg: ov.carrier_registration || rawField(r.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+        carrierReg: ov.carrier_registration || (r.carrier_number ?? "").trim() || rawField(r.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
         carrierName: ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
         physicalForm: ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
         ewc: ov.ewc || r.ewc || "",
