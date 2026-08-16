@@ -306,7 +306,7 @@ const DataUploadsPage = () => {
       let q = supabase
         .from("data_hub_jobs")
         .select(
-          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,order_number_override,job_type,manual_edit_note,raw,created_at,updated_at",
+          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,order_number_override,job_type,manual_edit_note,raw,created_at,updated_at",
         )
         .order("job_date", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
@@ -575,6 +575,16 @@ const DataUploadsPage = () => {
         tipping_location: toCleanString(
           getFirstMatchingValue(r, ["Location", "Tipping Location", "Tip Location", "tipping_location"]),
         ),
+        account_code: toCleanString(getFirstMatchingValue(r, ["Account", "Account Code", "account_code"])),
+        haulier: toCleanString(getFirstMatchingValue(r, ["Haulier", "Carrier", "haulier"])),
+        carrier_number: toCleanString(
+          getFirstMatchingValue(r, ["Carrier no", "Carrier No", "Carrier Number", "carrier_number"]),
+        ),
+        gross_weight: parseFlexibleNumber(getFirstMatchingValue(r, ["Gross", "Gross Weight", "gross_weight"])),
+        tare_weight: parseFlexibleNumber(getFirstMatchingValue(r, ["Tare", "Tare Weight", "tare_weight"])),
+        linked_skip_job: toCleanString(
+          getFirstMatchingValue(r, ["Skip job", "Skip Job", "Skip job no", "linked_skip_job"]),
+        ),
         raw: r,
       });
     }
@@ -634,7 +644,7 @@ const DataUploadsPage = () => {
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
-          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location")
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job")
           .in("job_number", jobNumbers)
           .eq("source", source);
         
@@ -658,8 +668,39 @@ const DataUploadsPage = () => {
             vehicle_registration: j.vehicle_registration ?? (existingRow?.vehicle_registration as any) ?? null,
             driver: j.driver ?? (existingRow?.driver as any) ?? null,
             tipping_location: j.tipping_location ?? (existingRow?.tipping_location as any) ?? null,
+            account_code: j.account_code ?? (existingRow as any)?.account_code ?? null,
+            haulier: j.haulier ?? (existingRow as any)?.haulier ?? null,
+            carrier_number: j.carrier_number ?? (existingRow as any)?.carrier_number ?? null,
+            gross_weight: j.gross_weight ?? (existingRow as any)?.gross_weight ?? null,
+            tare_weight: j.tare_weight ?? (existingRow as any)?.tare_weight ?? null,
+            linked_skip_job: j.linked_skip_job ?? (existingRow as any)?.linked_skip_job ?? null,
           } satisfies DataHubJobRow;
         });
+
+        // Midweigh tickets carry no site of their own. Where the ticket references a
+        // Skiptrak job ("Skip job"), take that job's site so weighbridge tickets are
+        // attributed correctly instead of inheriting stale/incorrect site names.
+        if (source === "midweigh") {
+          const linkedJobNumbers = Array.from(
+            new Set(mergedBatch.map((j) => j.linked_skip_job).filter((v): v is string => !!v)),
+          );
+          if (linkedJobNumbers.length > 0) {
+            const siteByJob = new Map<string, string | null>();
+            for (const part of chunk(linkedJobNumbers, 200)) {
+              const { data: linked } = await supabase
+                .from("data_hub_jobs")
+                .select("job_number,site")
+                .eq("source", "skiptrak")
+                .in("job_number", part);
+              (linked ?? []).forEach((l: any) => siteByJob.set(String(l.job_number), l.site ?? null));
+            }
+            mergedBatch.forEach((j) => {
+              if (j.linked_skip_job && siteByJob.has(j.linked_skip_job)) {
+                j.site = siteByJob.get(j.linked_skip_job) ?? null;
+              }
+            });
+          }
+        }
 
         // Upsert this batch using composite key (job_number + source)
         const { error: upsertError } = await supabase
