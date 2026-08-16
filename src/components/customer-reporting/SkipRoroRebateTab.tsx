@@ -366,6 +366,26 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
         }
       }
 
+      // Authoritative de-dupe: a Midweigh weighbridge ticket that references a
+      // Skiptrak job ("Skip job" column) is the same physical load. When that
+      // Skiptrak job is already in this report, drop the Midweigh duplicate so
+      // tonnage is never counted twice.
+      {
+        const skiptrakJobNumbers = new Set(
+          allJobs
+            .filter((j) => (j.source ?? "") !== "midweigh" && j.category !== "Midweigh")
+            .map((j) => String(j.job_number).trim()),
+        );
+        if (skiptrakJobNumbers.size > 0) {
+          allJobs = allJobs.filter((j) => {
+            const linked = String((j as any).linked_skip_job ?? "").trim();
+            if (!linked) return true;
+            if ((j.source ?? "") !== "midweigh" && j.category !== "Midweigh") return true;
+            return !skiptrakJobNumbers.has(linked);
+          });
+        }
+      }
+
       // Apply exclusion rules to filter out unwanted jobs
       // Rule 1: Exclude Midweigh jobs with Job Type = "SKIP"
       // These are duplicate weighbridge records for Skiptrak jobs
