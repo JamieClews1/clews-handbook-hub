@@ -36,6 +36,7 @@ interface Row {
   container_type: string | null;
   weight_t: number | null;
   movement_type: string | null;
+  carrier_number: string | null;
   raw: Json;
 }
 
