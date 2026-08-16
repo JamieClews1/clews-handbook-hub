@@ -419,8 +419,8 @@ const DigitalWasteTrackingPage = () => {
                         <th className="text-left px-3 py-2 font-medium">Container</th>
                         <th className="text-left px-3 py-2 font-medium">Means of Transport</th>
                         <th className="text-right px-3 py-2 font-medium">Weight (t)</th>
-                        <th className="text-left px-3 py-2 font-medium">DWT</th>
-                        <th />
+                        <th className="text-right px-3 py-2 font-medium">DWT status</th>
+
                       </tr>
                     </thead>
                     <tbody>
@@ -447,37 +447,55 @@ const DigitalWasteTrackingPage = () => {
                           <td className="px-3 py-2">
                             {(() => {
                               const s = submissions[m.row.id];
-                              if (s?.status === "submitted") return (
-                                <Badge className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30" variant="outline">
-                                  <CheckCircle2 className="h-3 w-3" /> {s.wt_id ? s.wt_id.slice(0, 10) : "Submitted"}
-                                </Badge>
+                              const busy = uploadingIds.has(m.row.id);
+                              const complete = isRowComplete(m);
+                              const done = s?.status === "submitted";
+                              const failed = s?.status === "error";
+                              return (
+                                <div className="flex items-center gap-1.5 justify-end">
+                                  {done ? (
+                                    <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30">
+                                      <CheckCircle2 className="h-3 w-3" /> {s.wt_id ? s.wt_id.slice(0, 10) : "Submitted"}
+                                    </Badge>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant={failed ? "destructive" : complete ? "default" : "outline"}
+                                      className="h-7 px-2 text-xs gap-1"
+                                      disabled={!complete || busy}
+                                      onClick={() => uploadRows([m])}
+                                      title={
+                                        failed
+                                          ? s.error_message ?? "Submission failed — retry"
+                                          : !complete
+                                            ? "Complete missing fields first"
+                                            : "Submit to DEFRA DWT"
+                                      }
+                                    >
+                                      {busy ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : failed ? (
+                                        <XCircle className="h-3 w-3" />
+                                      ) : (
+                                        <Upload className="h-3 w-3" />
+                                      )}
+                                      {busy ? "Sending" : failed ? "Retry" : complete ? "Submit" : "Incomplete"}
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => setEditing(m.row)}
+                                    title="Edit fields"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               );
-                              if (s?.status === "error") return (
-                                <Badge className="text-[10px] gap-1" variant="destructive" title={s.error_message ?? ""}>
-                                  <XCircle className="h-3 w-3" /> Failed
-                                </Badge>
-                              );
-                              return <Badge variant="secondary" className="text-[10px]">Not submitted</Badge>;
                             })()}
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1 justify-end">
-                              <Button size="sm" variant="ghost" onClick={() => setEditing(m.row)} title="Edit fields">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={!isRowComplete(m) || uploadingIds.has(m.row.id) || submissions[m.row.id]?.status === "submitted"}
-                                onClick={() => uploadRows([m])}
-                                title={!isRowComplete(m) ? "Complete missing fields first" : "Submit to DEFRA DWT"}
-                              >
-                                {uploadingIds.has(m.row.id)
-                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  : <Upload className="h-3.5 w-3.5" />}
-                              </Button>
-                            </div>
-                          </td>
+
 
                         </tr>
                       ))}
@@ -486,7 +504,7 @@ const DigitalWasteTrackingPage = () => {
                       <tr>
                         <td className="px-3 py-2" colSpan={12}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
-                        <td colSpan={2} />
+                        <td />
                       </tr>
                     </tfoot>
                   </table>
