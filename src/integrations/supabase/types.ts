@@ -2490,6 +2490,42 @@ export type Database = {
           },
         ]
       }
+      dwt_settings: {
+        Row: {
+          autofill_enabled: boolean
+          created_at: string
+          default_carrier_name: string
+          default_carrier_registration: string
+          default_container_type: string
+          default_means_of_transport: string
+          default_physical_form: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          autofill_enabled?: boolean
+          created_at?: string
+          default_carrier_name?: string
+          default_carrier_registration?: string
+          default_container_type?: string
+          default_means_of_transport?: string
+          default_physical_form?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          autofill_enabled?: boolean
+          created_at?: string
+          default_carrier_name?: string
+          default_carrier_registration?: string
+          default_container_type?: string
+          default_means_of_transport?: string
+          default_physical_form?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dwt_submissions: {
         Row: {
           created_at: string
