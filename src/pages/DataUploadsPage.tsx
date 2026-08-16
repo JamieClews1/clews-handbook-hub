@@ -47,6 +47,12 @@ type DataHubJobRow = {
   vehicle_registration?: string | null;
   driver?: string | null;
   tipping_location?: string | null;
+  account_code?: string | null;
+  haulier?: string | null;
+  carrier_number?: string | null;
+  gross_weight?: number | null;
+  tare_weight?: number | null;
+  linked_skip_job?: string | null;
   raw: Record<string, unknown>;
 };
 
@@ -66,6 +72,12 @@ type ListedJob = {
   vehicle_registration: string | null;
   driver: string | null;
   tipping_location: string | null;
+  account_code?: string | null;
+  haulier?: string | null;
+  carrier_number?: string | null;
+  gross_weight?: number | null;
+  tare_weight?: number | null;
+  linked_skip_job?: string | null;
   order_number_override?: string | null;
   job_type?: string | null;
   manual_edit_note?: string | null;
@@ -73,6 +85,7 @@ type ListedJob = {
   created_at?: string;
   updated_at: string;
 };
+
 
 const RAW_COST_KEYS = ["Cost", "Total Price", "Haulage Cost", "Price", "Charge"];
 
