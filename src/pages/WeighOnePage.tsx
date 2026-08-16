@@ -603,6 +603,44 @@ const WeighOnePage = () => {
                   </div>
                 </div>
 
+                {/* Digital Waste Tracking fields */}
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <Label className="text-sm font-semibold">Digital Waste Tracking</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Carrier Registration</Label>
+                      <Input placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Carrier Name</Label>
+                      <Input placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Physical Form</Label>
+                      <Select value={formData.physical_form} onValueChange={(val) => setFormData((p) => ({ ...p, physical_form: val }))}>
+                        <SelectTrigger><SelectValue placeholder="Select form..." /></SelectTrigger>
+                        <SelectContent>
+                          {PHYSICAL_FORMS.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Means of Transport</Label>
+                      <Select value={formData.means_of_transport} onValueChange={(val) => setFormData((p) => ({ ...p, means_of_transport: val }))}>
+                        <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent>
+                          {MEANS_OF_TRANSPORT.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>EWC Code (override)</Label>
+                      <Input placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
+                    </div>
+                  </div>
+                </div>
+
+
                 {/* Additional Items */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
