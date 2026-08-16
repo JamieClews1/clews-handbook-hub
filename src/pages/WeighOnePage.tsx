@@ -421,6 +421,11 @@ const WeighOnePage = () => {
         <tr><td>Waste:</td><td>${t.waste_description ?? "-"}</td></tr>
         <tr><td>EWC Code:</td><td>${t.ewc_code ?? "-"}</td></tr>
         <tr><td>Container:</td><td>${t.container_type ?? "-"}</td></tr>
+        <tr><td>Physical Form:</td><td>${t.physical_form ?? "-"}</td></tr>
+        <tr><td>Carrier:</td><td>${t.carrier_name ?? "-"}</td></tr>
+        <tr><td>Carrier Reg No:</td><td>${t.carrier_registration ?? "-"}</td></tr>
+        <tr><td>Transport:</td><td>${t.means_of_transport ?? "Road"}</td></tr>
+
       </table>
       <div class="line"></div>
       <table>
@@ -1059,6 +1064,11 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 <div><span className="text-muted-foreground">EWC:</span> {selectedTransaction.ewc_code ?? "-"}</div>
                 <div><span className="text-muted-foreground">Container:</span> {selectedTransaction.container_type ?? "-"}</div>
+                <div><span className="text-muted-foreground">Physical form:</span> {selectedTransaction.physical_form ?? "-"}</div>
+                <div><span className="text-muted-foreground">Carrier:</span> {selectedTransaction.carrier_name ?? "-"}</div>
+                <div><span className="text-muted-foreground">Carrier reg no:</span> {selectedTransaction.carrier_registration ?? "-"}</div>
+                <div><span className="text-muted-foreground">Transport:</span> {selectedTransaction.means_of_transport ?? "Road"}</div>
+
                 <div><span className="text-muted-foreground">Operator:</span> {selectedTransaction.operator_name ?? "-"}</div>
               </div>
 
