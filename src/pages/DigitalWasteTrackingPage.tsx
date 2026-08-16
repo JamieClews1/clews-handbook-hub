@@ -309,6 +309,9 @@ const DigitalWasteTrackingPage = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="gap-2">
+                <Settings className="h-3.5 w-3.5" /> Settings
+              </Button>
               <Button variant="outline" size="sm" onClick={testApi} disabled={testingApi} className="gap-2">
                 {testingApi ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
                 Test API
