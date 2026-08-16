@@ -350,7 +350,7 @@ const WeighOnePage = () => {
   });
 
   const resetForm = () => {
-    setFormData({ vehicle_reg: "", customer: "", site: "", driver_name: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "" });
+    setFormData({ vehicle_reg: "", customer: "", site: "", driver_name: "", waste_type_id: "", ewc_code: "", container_type: "", gross_weight_kg: "", operator_name: "", notes: "", carrier_registration: "", carrier_name: "", physical_form: "", means_of_transport: "Road" });
     setNewAdditionalItems([]);
   };
 
