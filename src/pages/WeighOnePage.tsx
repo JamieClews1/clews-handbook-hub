@@ -21,6 +21,10 @@ import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 
+const PHYSICAL_FORMS = ["Solid", "Liquid", "Sludge", "Powder", "Gas", "Mixed"];
+const MEANS_OF_TRANSPORT = ["Road", "Rail", "Sea", "Air", "Inland Waterway"];
+
+
 interface WeighbridgeTransaction {
   id: string;
   ticket_number: string;
