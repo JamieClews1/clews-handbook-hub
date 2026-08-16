@@ -62,6 +62,13 @@ const rawField = (raw: Json, keys: string[]): string => {
   return "";
 };
 
+const datePattern = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b/g;
+
+const cleanTime = (value: string): string => {
+  if (!value) return "";
+  return value.replace(datePattern, "").replace(/\s{2,}/g, " ").trim();
+};
+
 const DigitalWasteTrackingPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
