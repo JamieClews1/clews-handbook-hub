@@ -17,11 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar, Pencil, AlertTriangle, Upload, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar, Pencil, AlertTriangle, Upload, CheckCircle2, Loader2, XCircle, Settings } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import clewsLogo from "@/assets/clews-logo.png";
 import { Json } from "@/integrations/supabase/types";
+import DwtSettingsDialog, { useDwtSettings } from "@/components/dwt/DwtSettingsDialog";
 
 interface Row {
   id: string;
@@ -68,6 +69,8 @@ const DigitalWasteTrackingPage = () => {
   const [date, setDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { data: dwtSettings } = useDwtSettings();
 
   const { data: receiverAuthNumber = "" } = useQuery({
     queryKey: ["dwt-receiver-auth"],
@@ -223,6 +226,8 @@ const DigitalWasteTrackingPage = () => {
   };
 
   const merged = useMemo(() => {
+    const auto = dwtSettings?.autofill_enabled !== false;
+    const fill = (value: string, fallback?: string) => (value || (auto ? (fallback ?? "").trim() : ""));
     return rows.map((r) => {
       const ov = overridesMap[r.id] ?? {};
       return {
@@ -232,17 +237,26 @@ const DigitalWasteTrackingPage = () => {
         customer: ov.customer || r.customer || "",
         site: r.site || "",
         vehicle: ov.vehicle_registration || r.vehicle_registration || "",
-        carrierReg: ov.carrier_registration || (r.carrier_number ?? "").trim() || rawField(r.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
-        carrierName: ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
-        physicalForm: ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
+        carrierReg: fill(
+          ov.carrier_registration || (r.carrier_number ?? "").trim() || rawField(r.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+          dwtSettings?.default_carrier_registration,
+        ),
+        carrierName: fill(
+          ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
+          dwtSettings?.default_carrier_name,
+        ),
+        physicalForm: fill(
+          ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
+          dwtSettings?.default_physical_form ?? "Solid",
+        ),
         ewc: ov.ewc || r.ewc || "",
         waste: ov.waste_description || r.waste_description || "",
-        container: ov.container_type || r.container_type || "",
-        meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || "Road",
+        container: fill(ov.container_type || r.container_type || "", dwtSettings?.default_container_type ?? "Van"),
+        meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || (dwtSettings?.default_means_of_transport || "Road"),
         weightT: r.weight_t != null ? Number(r.weight_t) / 1000 : null,
       };
     });
-  }, [rows, overridesMap]);
+  }, [rows, overridesMap, dwtSettings]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -309,6 +323,9 @@ const DigitalWasteTrackingPage = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="gap-2">
+                <Settings className="h-3.5 w-3.5" /> Settings
+              </Button>
               <Button variant="outline" size="sm" onClick={testApi} disabled={testingApi} className="gap-2">
                 {testingApi ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
                 Test API
@@ -488,6 +505,8 @@ const DigitalWasteTrackingPage = () => {
           setEditing(null);
         }}
       />
+
+      <DwtSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 };
