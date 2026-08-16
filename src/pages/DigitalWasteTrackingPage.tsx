@@ -504,7 +504,7 @@ const DigitalWasteTrackingPage = () => {
                       <tr>
                         <td className="px-3 py-2" colSpan={12}>Total</td>
                         <td className="px-3 py-2 text-right tabular-nums">{totalWeight.toFixed(3)}</td>
-                        <td colSpan={2} />
+                        <td />
                       </tr>
                     </tfoot>
                   </table>
