@@ -170,7 +170,7 @@ export function useSkipRoroRebates(
         
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
+          .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job")
           .eq("site", siteMapping)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -198,7 +198,7 @@ export function useSkipRoroRebates(
       if (midweighAllowed && dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
+          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type, linked_skip_job")
           .ilike("customer", `%${dataHubCustomer}%`)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
@@ -242,7 +242,7 @@ export function useSkipRoroRebates(
         const wasteFilterKeys = new Set(wasteFilterNames.map(normalise));
         let filteredMidweighQuery = supabase
           .from("data_hub_jobs")
-          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type")
+          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type, linked_skip_job")
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -258,7 +258,7 @@ export function useSkipRoroRebates(
           const existingIds = new Set(allJobs.map((j) => j.id));
           let skiptrakCandidatesQuery = supabase
             .from("data_hub_jobs")
-            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
+            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job")
             .in("category", ["Roll on Roll off", "Skips"])
             .gte("job_date", startDate)
             .lte("job_date", endDate);
@@ -395,7 +395,7 @@ export function useSkipRoroRebates(
         const baseCandidateQuery = () =>
           supabase
             .from("data_hub_jobs")
-            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type")
+            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job")
             .in("category", ["Roll on Roll off", "Skips"])
             .gte("job_date", startDate)
             .lte("job_date", endDate);
