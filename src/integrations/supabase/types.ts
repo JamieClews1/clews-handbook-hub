@@ -3756,66 +3756,6 @@ export type Database = {
           },
         ]
       }
-      midweigh_import_staging: {
-        Row: {
-          account_code: string | null
-          carrier_number: string | null
-          container: string | null
-          customer: string | null
-          ewc: string | null
-          ewc_desc: string | null
-          gross_weight: number | null
-          haulier: string | null
-          in_out: string | null
-          job_date: string | null
-          job_type: string | null
-          product: string | null
-          skip_job: string | null
-          tare_weight: number | null
-          ticket: string
-          vehicle: string | null
-          weight: number | null
-        }
-        Insert: {
-          account_code?: string | null
-          carrier_number?: string | null
-          container?: string | null
-          customer?: string | null
-          ewc?: string | null
-          ewc_desc?: string | null
-          gross_weight?: number | null
-          haulier?: string | null
-          in_out?: string | null
-          job_date?: string | null
-          job_type?: string | null
-          product?: string | null
-          skip_job?: string | null
-          tare_weight?: number | null
-          ticket: string
-          vehicle?: string | null
-          weight?: number | null
-        }
-        Update: {
-          account_code?: string | null
-          carrier_number?: string | null
-          container?: string | null
-          customer?: string | null
-          ewc?: string | null
-          ewc_desc?: string | null
-          gross_weight?: number | null
-          haulier?: string | null
-          in_out?: string | null
-          job_date?: string | null
-          job_type?: string | null
-          product?: string | null
-          skip_job?: string | null
-          tare_weight?: number | null
-          ticket?: string
-          vehicle?: string | null
-          weight?: number | null
-        }
-        Relationships: []
-      }
       midweigh_product_mappings: {
         Row: {
           created_at: string
