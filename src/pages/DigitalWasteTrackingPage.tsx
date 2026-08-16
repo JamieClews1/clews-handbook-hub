@@ -36,6 +36,7 @@ interface Row {
   container_type: string | null;
   weight_t: number | null;
   movement_type: string | null;
+  carrier_number: string | null;
   raw: Json;
 }
 
@@ -95,7 +96,7 @@ const DigitalWasteTrackingPage = () => {
       while (more) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, job_date, customer, site, driver, vehicle_registration, waste_description, ewc, container_type, weight_t, movement_type, raw")
+          .select("id, job_number, job_date, customer, site, driver, vehicle_registration, waste_description, ewc, container_type, weight_t, movement_type, carrier_number, raw")
           .eq("source", "midweigh")
           .eq("job_date", date)
           .order("job_number", { ascending: false })
@@ -231,7 +232,7 @@ const DigitalWasteTrackingPage = () => {
         customer: ov.customer || r.customer || "",
         site: r.site || "",
         vehicle: ov.vehicle_registration || r.vehicle_registration || "",
-        carrierReg: ov.carrier_registration || rawField(r.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+        carrierReg: ov.carrier_registration || (r.carrier_number ?? "").trim() || rawField(r.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
         carrierName: ov.carrier_name || rawField(r.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
         physicalForm: ov.physical_form || rawField(r.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
         ewc: ov.ewc || r.ewc || "",
@@ -510,7 +511,7 @@ function EditDialog({
     setForm({
       customer: currentOverride?.customer ?? row.customer ?? "",
       vehicle_registration: currentOverride?.vehicle_registration ?? row.vehicle_registration ?? "",
-      carrier_registration: currentOverride?.carrier_registration ?? rawField(row.raw, ["Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"]),
+      carrier_registration: currentOverride?.carrier_registration ?? ((row.carrier_number ?? "").trim() || rawField(row.raw, ["Carrier No", "Carrier Number", "Carrier Registration", "Carrier Reg", "Haulier Reg", "Carrier Vehicle Reg", "Carrier Reg No"])),
       carrier_name: currentOverride?.carrier_name ?? rawField(row.raw, ["Carrier", "Haulier", "Carrier Name", "Transport"]),
       physical_form: currentOverride?.physical_form ?? rawField(row.raw, ["Physical Form", "Form", "Material Form", "Waste Physical Form", "Physical State"]),
       ewc: currentOverride?.ewc ?? row.ewc ?? "",
