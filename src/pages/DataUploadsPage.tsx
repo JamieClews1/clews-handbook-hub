@@ -899,12 +899,18 @@ const DataUploadsPage = () => {
             <TabsList>
               <TabsTrigger value="manage">Upload & manage</TabsTrigger>
               <TabsTrigger value="pods">PODs</TabsTrigger>
+              <TabsTrigger value="wtn">WTN Documents</TabsTrigger>
               <TabsTrigger value="live">Live activity</TabsTrigger>
             </TabsList>
 
             <TabsContent value="pods" className="space-y-6">
               <PodsPanel canManage={canUpload} />
             </TabsContent>
+
+            <TabsContent value="wtn" className="space-y-6">
+              <WtnDocumentsPanel canManage={canUpload} inboundAddress={WTN_INBOUND_ADDRESS} />
+            </TabsContent>
+
 
             <TabsContent value="live" className="space-y-6">
               <LiveUploadsPanel />
