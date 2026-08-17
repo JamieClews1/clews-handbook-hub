@@ -27,6 +27,8 @@ import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
 import { PodsPanel } from "@/components/data-uploads/PodsPanel";
+import { WtnDocumentsPanel, WTN_INBOUND_ADDRESS, JobWtnDocuments } from "@/components/wtn";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type DataSource = "skiptrak" | "midweigh";
