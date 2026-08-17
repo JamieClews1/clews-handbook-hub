@@ -27,6 +27,8 @@ import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
 import { PodsPanel } from "@/components/data-uploads/PodsPanel";
+import { WtnDocumentsPanel, WTN_INBOUND_ADDRESS, JobWtnDocuments } from "@/components/wtn";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type DataSource = "skiptrak" | "midweigh";
@@ -899,12 +901,18 @@ const DataUploadsPage = () => {
             <TabsList>
               <TabsTrigger value="manage">Upload & manage</TabsTrigger>
               <TabsTrigger value="pods">PODs</TabsTrigger>
+              <TabsTrigger value="wtn">WTN Documents</TabsTrigger>
               <TabsTrigger value="live">Live activity</TabsTrigger>
             </TabsList>
 
             <TabsContent value="pods" className="space-y-6">
               <PodsPanel canManage={canUpload} />
             </TabsContent>
+
+            <TabsContent value="wtn" className="space-y-6">
+              <WtnDocumentsPanel canManage={canUpload} inboundAddress={WTN_INBOUND_ADDRESS} />
+            </TabsContent>
+
 
             <TabsContent value="live" className="space-y-6">
               <LiveUploadsPanel />
@@ -1441,7 +1449,13 @@ const DataUploadsPage = () => {
                   </div>
                 </div>
               )}
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Documents (WTN)</h4>
+                <JobWtnDocuments jobNumber={detailJob.job_number} canManage={canUpload} />
+              </div>
             </div>
+
           )}
         </DialogContent>
       </Dialog>

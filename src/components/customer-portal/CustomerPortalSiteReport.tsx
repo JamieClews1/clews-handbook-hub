@@ -95,6 +95,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [reportGenerated, setReportGenerated] = useState(false);
   const [podJobs, setPodJobs] = useState<Set<string>>(new Set());
   const [podDownloading, setPodDownloading] = useState<string | null>(null);
+  const [wtnJobs, setWtnJobs] = useState<Set<string>>(new Set());
+  const [wtnDownloading, setWtnDownloading] = useState<string | null>(null);
+
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [autoLoaded, setAutoLoaded] = useState(false);
   
@@ -322,6 +325,49 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     }
   };
 
+  const fetchWtnAvailability = async (jobs: JobRecord[]) => {
+    const jobNumbers = Array.from(new Set(jobs.map((j) => j.job_number).filter(Boolean) as string[]));
+    if (!jobNumbers.length) {
+      setWtnJobs(new Set());
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("wtn-lookup", {
+        body: { job_numbers: jobNumbers },
+      });
+      if (error) throw error;
+      setWtnJobs(new Set<string>((data?.available ?? []).map(String)));
+    } catch (e) {
+      console.error("WTN lookup failed", e);
+      setWtnJobs(new Set());
+    }
+  };
+
+  const downloadWtn = async (jobNumber: string) => {
+    setWtnDownloading(jobNumber);
+    try {
+      const { data, error } = await supabase.functions.invoke("wtn-lookup", {
+        body: { job_number: jobNumber },
+      });
+      if (error) throw error;
+      if (!data?.url) {
+        toast({ title: "No WTN found", description: `No waste transfer note for job ${jobNumber}.`, variant: "destructive" });
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.file_name ?? `WTN-${jobNumber}.pdf`;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setWtnDownloading(null);
+    }
+  };
+
+
 
 
   const generateReport = async () => {
@@ -381,6 +427,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       // Which of these jobs have a Proof of Delivery on file
       await fetchPodAvailability(jobs ?? []);
+      await fetchWtnAvailability(jobs ?? []);
+
     } catch (error) {
       console.error("Error generating report:", error);
     } finally {
@@ -885,6 +933,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead className="text-right">Cost (£)</TableHead>
                       <TableHead className="text-right">Haulage (£)</TableHead>
                       <TableHead className="text-center whitespace-nowrap">POD</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">WTN</TableHead>
+
                       {hasTotalPallets && <TableHead className="text-right">Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
@@ -988,6 +1038,27 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          <TableCell className="text-center">
+                            {job.job_number && wtnJobs.has(job.job_number) ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                title="Download Waste Transfer Note"
+                                disabled={wtnDownloading === job.job_number}
+                                onClick={() => downloadWtn(job.job_number)}
+                              >
+                                {wtnDownloading === job.job_number ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FileDown className="h-4 w-4 text-primary" />
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+
                           {hasTotalPallets && (
                             <TableCell className="text-right font-medium">
                               {totalPalletsData[job.job_number] || "-"}

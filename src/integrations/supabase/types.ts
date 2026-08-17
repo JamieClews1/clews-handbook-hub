@@ -7277,6 +7277,128 @@ export type Database = {
         }
         Relationships: []
       }
+      wtn_document_images: {
+        Row: {
+          created_at: string
+          document_id: string
+          height: number | null
+          id: string
+          kind: string
+          page: number | null
+          sort_order: number
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          height?: number | null
+          id?: string
+          kind?: string
+          page?: number | null
+          sort_order?: number
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          height?: number | null
+          id?: string
+          kind?: string
+          page?: number | null
+          sort_order?: number
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wtn_document_images_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "wtn_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wtn_documents: {
+        Row: {
+          created_at: string
+          customer: string | null
+          customer_name: string | null
+          customer_signature_path: string | null
+          driver_name: string | null
+          driver_signature_path: string | null
+          email_from: string | null
+          email_subject: string | null
+          file_name: string
+          file_size: number | null
+          id: string
+          job_date: string | null
+          job_number: string | null
+          parse_error: string | null
+          parse_status: string
+          parsed_at: string | null
+          received_via: string
+          site: string | null
+          source: string
+          storage_path: string
+          text_content: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer?: string | null
+          customer_name?: string | null
+          customer_signature_path?: string | null
+          driver_name?: string | null
+          driver_signature_path?: string | null
+          email_from?: string | null
+          email_subject?: string | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          job_date?: string | null
+          job_number?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          parsed_at?: string | null
+          received_via?: string
+          site?: string | null
+          source?: string
+          storage_path: string
+          text_content?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer?: string | null
+          customer_name?: string | null
+          customer_signature_path?: string | null
+          driver_name?: string | null
+          driver_signature_path?: string | null
+          email_from?: string | null
+          email_subject?: string | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          job_date?: string | null
+          job_number?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          parsed_at?: string | null
+          received_via?: string
+          site?: string | null
+          source?: string
+          storage_path?: string
+          text_content?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       yard_staff: {
         Row: {
           created_at: string

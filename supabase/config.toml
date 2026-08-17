@@ -85,3 +85,12 @@ verify_jwt = false
 
 [functions.public-inventory]
 verify_jwt = false
+
+[functions.wtn-inbound]
+verify_jwt = false
+
+[functions.wtn-lookup]
+verify_jwt = false
+
+[functions.wtn-parse]
+verify_jwt = true
