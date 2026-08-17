@@ -1449,7 +1449,13 @@ const DataUploadsPage = () => {
                   </div>
                 </div>
               )}
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Documents (WTN)</h4>
+                <JobWtnDocuments jobNumber={detailJob.job_number} canManage={canUpload} />
+              </div>
             </div>
+
           )}
         </DialogContent>
       </Dialog>
