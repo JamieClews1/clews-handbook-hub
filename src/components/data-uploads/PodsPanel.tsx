@@ -112,8 +112,31 @@ export const PodsPanel = ({ canManage }: Props) => {
   }, [load]);
 
   const handleUploadClick = async () => {
-    // Browsers can't preselect a network folder, so copy the default path
-    // and let the user paste it straight into the file dialog's address bar.
+    // Chromium can open a folder picker directly. It remembers the last folder
+    // used for this id, so after the first time it lands straight in the
+    // default POD folder on the network drive.
+    const picker = (window as any).showDirectoryPicker;
+    if (typeof picker === "function") {
+      try {
+        const dir = await picker.call(window, { id: "pod-default-folder", mode: "read" });
+        const files: File[] = [];
+        for await (const [, handle] of (dir as any).entries()) {
+          if (handle.kind === "file" && /\.pdf$/i.test(handle.name)) {
+            files.push(await handle.getFile());
+          }
+        }
+        if (files.length === 0) {
+          toast({ title: "No PDFs found", description: "That folder has no PDF files." });
+          return;
+        }
+        await handleUpload(files);
+        return;
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+        // fall through to the classic file dialog
+      }
+    }
+
     if (defaultFolder?.path) {
       try {
         await navigator.clipboard.writeText(defaultFolder.path);
@@ -131,11 +154,12 @@ export const PodsPanel = ({ canManage }: Props) => {
     fileRef.current?.click();
   };
 
-  const handleUpload = async (files: FileList | null) => {
+  const handleUpload = async (files: FileList | File[] | null) => {
 
     if (!files || files.length === 0 || !canManage) return;
     setUploading(true);
     let ok = 0;
+
     try {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id ?? null;
