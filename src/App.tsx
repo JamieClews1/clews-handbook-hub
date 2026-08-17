@@ -41,6 +41,7 @@ import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import CreditApplicationPage from "./pages/CreditApplicationPage";
 import DataUploadsPage from "./pages/DataUploadsPage";
 import PerformanceHubPage from "./pages/PerformanceHubPage";
+import PdaUploadsPage from "./pages/PdaUploadsPage";
 import PerformanceHubReportsPage from "./pages/PerformanceHubReportsPage";
 import WasteKPIsPage from "./pages/WasteKPIsPage";
 import LiveJobsPage from "./pages/LiveJobsPage";
