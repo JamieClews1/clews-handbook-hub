@@ -177,30 +177,19 @@ const SkipTrackerFlow = ({
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
-  // 6-month lock check against the latest catalogue for this exact bin
-  const recentlyCatalogued = useMemo(() => {
-    const num = assetNumber.trim().toLowerCase();
-    if (!num) return null;
-    const match = inventory.find(
-      (i) =>
-        i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
-    );
-    if (!match?.last_cataloged_at) return null;
-    // Bins that still need more info can always be topped up with extra photos
-    if (needsMoreInfo(match)) return null;
-    const ageMs = Date.now() - new Date(match.last_cataloged_at).getTime();
-    return ageMs < SIX_MONTHS_MS ? match : null;
-  }, [assetNumber, assetType, inventory]);
+  // Any profile can be opened and edited. Points are only earned when the bin
+  // is new or still missing info — a satisfactory (green) one earns nothing.
+  const earnsPoints = useMemo(() => {
+    if (!existingBin) return true;
+    return needsMoreInfo(existingBin) || existingPhotos.length < 4;
+  }, [existingBin, existingPhotos]);
 
   // The exact bin being topped up (already logged, still missing info)
-  const topUpTarget = useMemo(() => {
-    const num = assetNumber.trim().toLowerCase();
-    if (!num) return null;
-    const match = inventory.find(
-      (i) => i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
-    );
-    return match && needsMoreInfo(match) ? match : null;
-  }, [assetNumber, assetType, inventory]);
+  const topUpTarget = useMemo(
+    () => (existingBin && needsMoreInfo(existingBin) ? existingBin : null),
+    [existingBin],
+  );
+
 
   // Bins of this type already catalogued, filtered as the driver types
   const matchingCatalogued = useMemo(() => {
@@ -272,10 +261,11 @@ const SkipTrackerFlow = ({
       toast.error("Choose a container type");
       return;
     }
-    if (recentlyCatalogued) {
-      toast.error("This bin was catalogued in the last 6 months");
+    if (!existingBin && photos.length === 0) {
+      toast.error("Add at least one photo before saving a new profile");
       return;
     }
+
     setSubmitting(true);
     try {
       const res = await driverAction<{ points: number }>("submit_skip_tracker", {
@@ -291,7 +281,9 @@ const SkipTrackerFlow = ({
         reporter_name: reporter.name,
         reporter_driver_id: reporter.type === "driver" ? reporter.id : null,
       });
-      toast.success(`Catalogued! +${res.points ?? 10} points`);
+      const pts = res.points ?? 0;
+      toast.success(pts > 0 ? `Saved! +${pts} points` : "Saved — no points (profile already complete)");
+
       onSubmitted();
     } catch (err) {
       toast.error((err as Error).message || "Failed to submit");
@@ -477,13 +469,13 @@ const SkipTrackerFlow = ({
         )}
 
 
-        {recentlyCatalogued && (
-          <div className="rounded-lg border border-amber-500 bg-amber-500/10 p-3 text-sm text-amber-700">
-            This {assetType === "skip" ? "skip" : "RoRo"} was already catalogued on{" "}
-            {format(new Date(recentlyCatalogued.last_cataloged_at!), "d MMM yyyy")}. It can't
-            be reported again until 6 months have passed.
+        {existingBin && !earnsPoints && (
+          <div className="rounded-lg border border-emerald-500 bg-emerald-500/10 p-3 text-sm text-emerald-700">
+            This profile is complete — you can still view and edit it, but no points are
+            awarded for changes.
           </div>
         )}
+
 
         {topUpTarget && (
           <div className="rounded-lg border border-orange-500 bg-orange-500/10 p-3 text-sm text-orange-700">
@@ -637,16 +629,28 @@ const SkipTrackerFlow = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border">
+      <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border space-y-2">
+        {!existingBin && photos.length === 0 && (
+          <p className="text-xs text-center text-orange-600 font-medium">
+            Add at least one photo to save a new profile
+          </p>
+        )}
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !assetType || !containerType}
+          disabled={
+            submitting ||
+            !assetNumber.trim() ||
+            !assetType ||
+            !containerType ||
+            (!existingBin && photos.length === 0)
+          }
           className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-2"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-          Submit Catalogue
+          {existingBin ? "Save Changes" : "Submit Catalogue"}
         </Button>
       </div>
+
     </div>
   );
 };
@@ -861,15 +865,14 @@ const DriverSkipTracker = ({
                 return (
                   <Card
                     key={i.id}
-                    className={cn(needs && "border-orange-500 bg-orange-500/10")}
-                    onClick={
-                      needs
-                        ? () => {
-                            setPresetNumber({ number: i.asset_number, type: i.asset_type });
-                            setCataloguing(true);
-                          }
-                        : undefined
-                    }
+                    className={cn(
+                      "cursor-pointer active:opacity-70",
+                      needs && "border-orange-500 bg-orange-500/10",
+                    )}
+                    onClick={() => {
+                      setPresetNumber({ number: i.asset_number, type: i.asset_type });
+                      setCataloguing(true);
+                    }}
                   >
                     <CardContent className="p-3 flex items-center gap-3">
                       {needs ? (
@@ -884,12 +887,18 @@ const DriverSkipTracker = ({
                         <p className="text-xs text-muted-foreground truncate">
                           {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
                         </p>
-                        {needs && (
-                          <p className="text-xs text-orange-700 font-medium truncate">
-                            Needs: {missingBits(i)} — tap to add & earn points
-                          </p>
-                        )}
+                        <p
+                          className={cn(
+                            "text-xs font-medium truncate",
+                            needs ? "text-orange-700" : "text-muted-foreground",
+                          )}
+                        >
+                          {needs
+                            ? `Needs: ${missingBits(i)} — tap to add & earn points`
+                            : "Tap to view or edit (no points)"}
+                        </p>
                       </div>
+
                       {i.last_cataloged_at && (
                         <span className="text-xs text-muted-foreground shrink-0">
                           {format(new Date(i.last_cataloged_at), "d MMM yy")}
