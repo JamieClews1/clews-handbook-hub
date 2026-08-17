@@ -264,13 +264,14 @@ export const PodsPanel = ({ canManage }: Props) => {
               onChange={(e) => void handleUpload(e.target.files)}
             />
             <Button
-              onClick={() => fileRef.current?.click()}
+              onClick={() => void handleUploadClick()}
               disabled={!canManage || uploading}
               className="gap-2 shrink-0"
             >
               <Upload className={`h-4 w-4 ${uploading ? "animate-pulse" : ""}`} />
               {uploading ? "Uploading…" : "Upload PODs"}
             </Button>
+
           </div>
 
           <div
