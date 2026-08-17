@@ -427,6 +427,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       // Which of these jobs have a Proof of Delivery on file
       await fetchPodAvailability(jobs ?? []);
+      await fetchWtnAvailability(jobs ?? []);
+
     } catch (error) {
       console.error("Error generating report:", error);
     } finally {
