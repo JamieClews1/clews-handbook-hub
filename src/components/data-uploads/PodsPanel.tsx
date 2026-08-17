@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw, Upload, FileText, Trash2, Download, Eye } from "lucide-react";
+import { RefreshCw, Upload, FileText, Trash2, Download, Eye, Settings, Copy } from "lucide-react";
+import { PodsSettingsDialog, type PodFolder } from "./PodsSettingsDialog";
 
 type Pod = {
   id: string;
@@ -65,6 +66,21 @@ export const PodsPanel = ({ canManage }: Props) => {
   const [search, setSearch] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [viewing, setViewing] = useState<{ pod: Pod; url: string } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [defaultFolder, setDefaultFolder] = useState<PodFolder | null>(null);
+
+  const loadDefaultFolder = useCallback(async () => {
+    const { data } = await supabase
+      .from("pod_source_folders")
+      .select("id, label, path, is_default")
+      .eq("is_default", true)
+      .limit(1);
+    setDefaultFolder((data?.[0] as PodFolder) ?? null);
+  }, []);
+
+  useEffect(() => {
+    void loadDefaultFolder();
+  }, [loadDefaultFolder]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -205,13 +221,34 @@ export const PodsPanel = ({ canManage }: Props) => {
                 Upload signed POD PDFs for completed work. Click a row to view the document.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading} className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="gap-2">
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading} className="gap-2">
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {defaultFolder && (
+            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+              <span className="text-muted-foreground shrink-0">Default POD folder:</span>
+              <span className="truncate font-mono text-xs">{defaultFolder.path}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto shrink-0"
+                aria-label="Copy default POD folder path"
+                onClick={() => void navigator.clipboard.writeText(defaultFolder.path)}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-2">
             <Input
               placeholder="Search file, job number, customer, site…"
