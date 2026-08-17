@@ -261,10 +261,11 @@ const SkipTrackerFlow = ({
       toast.error("Choose a container type");
       return;
     }
-    if (recentlyCatalogued) {
-      toast.error("This bin was catalogued in the last 6 months");
+    if (!existingBin && photos.length === 0) {
+      toast.error("Add at least one photo before saving a new profile");
       return;
     }
+
     setSubmitting(true);
     try {
       const res = await driverAction<{ points: number }>("submit_skip_tracker", {
