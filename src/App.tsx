@@ -146,6 +146,8 @@ const App = () => (
             <Route path="/performance-hub/reports" element={<Staff><PerformanceHubReportsPage /></Staff>} />
             <Route path="/performance-hub/waste-kpis" element={<Staff><WasteKPIsPage /></Staff>} />
             <Route path="/performance-hub/data" element={<Staff><DataUploadsPage /></Staff>} />
+            <Route path="/performance-hub/pda-uploads" element={<Staff><PdaUploadsPage /></Staff>} />
+
             <Route path="/performance-hub/live-jobs" element={<Staff><LiveJobsPage /></Staff>} />
             <Route path="/performance-hub/rentals" element={<Staff><RentalsPage /></Staff>} />
             <Route path="/data-hub/uploads" element={<Staff><DataUploadsPage /></Staff>} />
