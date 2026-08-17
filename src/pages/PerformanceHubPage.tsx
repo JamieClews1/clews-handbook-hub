@@ -135,6 +135,22 @@ const PerformanceHubPage = () => {
               </div>
             </Link>
 
+            {/* PDA Uploads */}
+            <Link to="/performance-hub/pda-uploads" className="group">
+              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <FileText className="h-12 w-12 text-primary-foreground" />
+                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
+                    PDA Uploads
+                  </h2>
+                  <p className="text-primary-foreground/80 text-sm">
+                    Waste transfer notes emailed from Skiptrak, matched to job tickets
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+
             {/* Contaminations */}
             <Link to="/performance-hub/contaminations" className="group">
               <div className="h-full p-8 rounded-xl bg-destructive hover:bg-destructive/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
