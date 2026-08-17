@@ -865,15 +865,14 @@ const DriverSkipTracker = ({
                 return (
                   <Card
                     key={i.id}
-                    className={cn(needs && "border-orange-500 bg-orange-500/10")}
-                    onClick={
-                      needs
-                        ? () => {
-                            setPresetNumber({ number: i.asset_number, type: i.asset_type });
-                            setCataloguing(true);
-                          }
-                        : undefined
-                    }
+                    className={cn(
+                      "cursor-pointer active:opacity-70",
+                      needs && "border-orange-500 bg-orange-500/10",
+                    )}
+                    onClick={() => {
+                      setPresetNumber({ number: i.asset_number, type: i.asset_type });
+                      setCataloguing(true);
+                    }}
                   >
                     <CardContent className="p-3 flex items-center gap-3">
                       {needs ? (
@@ -888,12 +887,18 @@ const DriverSkipTracker = ({
                         <p className="text-xs text-muted-foreground truncate">
                           {[i.condition, i.last_location].filter(Boolean).join(" · ") || "—"}
                         </p>
-                        {needs && (
-                          <p className="text-xs text-orange-700 font-medium truncate">
-                            Needs: {missingBits(i)} — tap to add & earn points
-                          </p>
-                        )}
+                        <p
+                          className={cn(
+                            "text-xs font-medium truncate",
+                            needs ? "text-orange-700" : "text-muted-foreground",
+                          )}
+                        >
+                          {needs
+                            ? `Needs: ${missingBits(i)} — tap to add & earn points`
+                            : "Tap to view or edit (no points)"}
+                        </p>
                       </div>
+
                       {i.last_cataloged_at && (
                         <span className="text-xs text-muted-foreground shrink-0">
                           {format(new Date(i.last_cataloged_at), "d MMM yy")}
