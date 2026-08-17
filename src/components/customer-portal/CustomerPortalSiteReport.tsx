@@ -988,6 +988,27 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                               <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
+                          <TableCell className="text-center">
+                            {job.job_number && wtnJobs.has(job.job_number) ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                title="Download Waste Transfer Note"
+                                disabled={wtnDownloading === job.job_number}
+                                onClick={() => downloadWtn(job.job_number)}
+                              >
+                                {wtnDownloading === job.job_number ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FileDown className="h-4 w-4 text-primary" />
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+
                           {hasTotalPallets && (
                             <TableCell className="text-right font-medium">
                               {totalPalletsData[job.job_number] || "-"}
