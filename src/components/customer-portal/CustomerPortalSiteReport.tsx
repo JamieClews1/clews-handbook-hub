@@ -933,6 +933,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead className="text-right">Cost (£)</TableHead>
                       <TableHead className="text-right">Haulage (£)</TableHead>
                       <TableHead className="text-center whitespace-nowrap">POD</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">WTN</TableHead>
+
                       {hasTotalPallets && <TableHead className="text-right">Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">PET Pallets</TableHead>}
                       {hasPalletData && <TableHead className="text-right">Can Pallets</TableHead>}
