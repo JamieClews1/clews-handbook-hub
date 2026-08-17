@@ -385,7 +385,15 @@ export const PodsPanel = ({ canManage }: Props) => {
         </CardContent>
       </Card>
 
+      <PodsSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        canManage={canManage}
+        onSaved={() => void loadDefaultFolder()}
+      />
+
       <Dialog
+
         open={!!viewing}
         onOpenChange={(o) => {
           if (!o) {
