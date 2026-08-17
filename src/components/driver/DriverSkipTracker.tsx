@@ -467,13 +467,13 @@ const SkipTrackerFlow = ({
         )}
 
 
-        {recentlyCatalogued && (
-          <div className="rounded-lg border border-amber-500 bg-amber-500/10 p-3 text-sm text-amber-700">
-            This {assetType === "skip" ? "skip" : "RoRo"} was already catalogued on{" "}
-            {format(new Date(recentlyCatalogued.last_cataloged_at!), "d MMM yyyy")}. It can't
-            be reported again until 6 months have passed.
+        {existingBin && !earnsPoints && (
+          <div className="rounded-lg border border-emerald-500 bg-emerald-500/10 p-3 text-sm text-emerald-700">
+            This profile is complete — you can still view and edit it, but no points are
+            awarded for changes.
           </div>
         )}
+
 
         {topUpTarget && (
           <div className="rounded-lg border border-orange-500 bg-orange-500/10 p-3 text-sm text-orange-700">
