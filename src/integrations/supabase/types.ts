@@ -4469,6 +4469,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pod_source_folders: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string | null
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       portal_section_visibility: {
         Row: {
           hidden: boolean
