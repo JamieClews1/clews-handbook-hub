@@ -177,30 +177,19 @@ const SkipTrackerFlow = ({
 
   const PHOTO_OPTIONS = ["Front", "Back", "Side 1", "Side 2"];
 
-  // 6-month lock check against the latest catalogue for this exact bin
-  const recentlyCatalogued = useMemo(() => {
-    const num = assetNumber.trim().toLowerCase();
-    if (!num) return null;
-    const match = inventory.find(
-      (i) =>
-        i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
-    );
-    if (!match?.last_cataloged_at) return null;
-    // Bins that still need more info can always be topped up with extra photos
-    if (needsMoreInfo(match)) return null;
-    const ageMs = Date.now() - new Date(match.last_cataloged_at).getTime();
-    return ageMs < SIX_MONTHS_MS ? match : null;
-  }, [assetNumber, assetType, inventory]);
+  // Any profile can be opened and edited. Points are only earned when the bin
+  // is new or still missing info — a satisfactory (green) one earns nothing.
+  const earnsPoints = useMemo(() => {
+    if (!existingBin) return true;
+    return needsMoreInfo(existingBin) || existingPhotos.length < 4;
+  }, [existingBin, existingPhotos]);
 
   // The exact bin being topped up (already logged, still missing info)
-  const topUpTarget = useMemo(() => {
-    const num = assetNumber.trim().toLowerCase();
-    if (!num) return null;
-    const match = inventory.find(
-      (i) => i.asset_type === assetType && i.asset_number.trim().toLowerCase() === num,
-    );
-    return match && needsMoreInfo(match) ? match : null;
-  }, [assetNumber, assetType, inventory]);
+  const topUpTarget = useMemo(
+    () => (existingBin && needsMoreInfo(existingBin) ? existingBin : null),
+    [existingBin],
+  );
+
 
   // Bins of this type already catalogued, filtered as the driver types
   const matchingCatalogued = useMemo(() => {
