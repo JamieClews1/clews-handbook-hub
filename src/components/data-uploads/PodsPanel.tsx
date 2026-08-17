@@ -111,7 +111,28 @@ export const PodsPanel = ({ canManage }: Props) => {
     void load();
   }, [load]);
 
+  const handleUploadClick = async () => {
+    // Browsers can't preselect a network folder, so copy the default path
+    // and let the user paste it straight into the file dialog's address bar.
+    if (defaultFolder?.path) {
+      try {
+        await navigator.clipboard.writeText(defaultFolder.path);
+        toast({
+          title: "Default POD folder copied",
+          description: `Paste ${defaultFolder.path} into the file dialog address bar.`,
+        });
+      } catch {
+        toast({
+          title: "Default POD folder",
+          description: defaultFolder.path,
+        });
+      }
+    }
+    fileRef.current?.click();
+  };
+
   const handleUpload = async (files: FileList | null) => {
+
     if (!files || files.length === 0 || !canManage) return;
     setUploading(true);
     let ok = 0;
@@ -264,13 +285,14 @@ export const PodsPanel = ({ canManage }: Props) => {
               onChange={(e) => void handleUpload(e.target.files)}
             />
             <Button
-              onClick={() => fileRef.current?.click()}
+              onClick={() => void handleUploadClick()}
               disabled={!canManage || uploading}
               className="gap-2 shrink-0"
             >
               <Upload className={`h-4 w-4 ${uploading ? "animate-pulse" : ""}`} />
               {uploading ? "Uploading…" : "Upload PODs"}
             </Button>
+
           </div>
 
           <div
