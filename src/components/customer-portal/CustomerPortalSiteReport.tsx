@@ -95,6 +95,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const [reportGenerated, setReportGenerated] = useState(false);
   const [podJobs, setPodJobs] = useState<Set<string>>(new Set());
   const [podDownloading, setPodDownloading] = useState<string | null>(null);
+  const [wtnJobs, setWtnJobs] = useState<Set<string>>(new Set());
+  const [wtnDownloading, setWtnDownloading] = useState<string | null>(null);
+
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [autoLoaded, setAutoLoaded] = useState(false);
   
