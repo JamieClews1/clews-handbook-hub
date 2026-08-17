@@ -325,6 +325,49 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
     }
   };
 
+  const fetchWtnAvailability = async (jobs: JobRecord[]) => {
+    const jobNumbers = Array.from(new Set(jobs.map((j) => j.job_number).filter(Boolean) as string[]));
+    if (!jobNumbers.length) {
+      setWtnJobs(new Set());
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("wtn-lookup", {
+        body: { job_numbers: jobNumbers },
+      });
+      if (error) throw error;
+      setWtnJobs(new Set<string>((data?.available ?? []).map(String)));
+    } catch (e) {
+      console.error("WTN lookup failed", e);
+      setWtnJobs(new Set());
+    }
+  };
+
+  const downloadWtn = async (jobNumber: string) => {
+    setWtnDownloading(jobNumber);
+    try {
+      const { data, error } = await supabase.functions.invoke("wtn-lookup", {
+        body: { job_number: jobNumber },
+      });
+      if (error) throw error;
+      if (!data?.url) {
+        toast({ title: "No WTN found", description: `No waste transfer note for job ${jobNumber}.`, variant: "destructive" });
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.file_name ?? `WTN-${jobNumber}.pdf`;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setWtnDownloading(null);
+    }
+  };
+
+
 
 
   const generateReport = async () => {
