@@ -462,9 +462,9 @@ Deno.serve(async (req) => {
 
         const POINTS = Number.isFinite(Number(body?.points)) ? Number(body.points) : 10;
 
-        // 6-month rule: block re-cataloguing a bin uploaded in the last 6 months
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        // Any profile can be viewed / edited at any time. Points are only
+        // awarded for a brand-new profile or for completing a bin that was
+        // still missing info — a satisfactory (green) bin earns nothing.
         // Match on the asset number alone (normalised) so a mis-picked
         // skip/RoRo type can never create a duplicate profile.
         const { data: matches } = await supabase
@@ -486,24 +486,14 @@ Deno.serve(async (req) => {
           : false;
 
         const newPhotos = Array.isArray(body?.photos) ? body.photos : [];
-        // Top-up mode: bin needs more info and the driver is adding photos
-        const isTopUp = Boolean(existing) && needsMoreInfo && newPhotos.length > 0;
 
-        if (
-          !isTopUp &&
-          existing?.last_cataloged_at &&
-          new Date(existing.last_cataloged_at) > sixMonthsAgo
-        ) {
-          return json(
-            {
-              error:
-                "This skip/RoRo was catalogued within the last 6 months and cannot be reported again yet.",
-            },
-            409,
-          );
+        // A brand-new profile must carry at least one photo
+        if (!existing && newPhotos.length === 0) {
+          return json({ error: "At least one photo is required for a new skip/RoRo profile" }, 400);
         }
 
-        const photos = isTopUp ? [...existingPhotos, ...newPhotos] : newPhotos;
+        // Keep existing photos and append whatever the driver just added
+        const photos = existing ? [...existingPhotos, ...newPhotos] : newPhotos;
         const condition = body?.condition ? String(body.condition) : existing?.condition ?? null;
         const size = body?.size ? String(body.size) : existing?.size ?? null;
         const repairsRequired = Boolean(body?.repairs_required);
@@ -512,8 +502,11 @@ Deno.serve(async (req) => {
         const ticket = body?.skiptrak_ticket ? String(body.skiptrak_ticket) : null;
         const now = new Date().toISOString();
 
-        // Points: full award for a new catalogue, smaller award for topping up photos
-        const pointsAwarded = isTopUp ? 5 : POINTS;
+        // Points: full award for a new profile, smaller award for completing a
+        // bin that still needed info, nothing for editing a satisfactory one.
+        const pointsAwarded = !existing ? POINTS : needsMoreInfo && newPhotos.length > 0 ? 5 : 0;
+        const isTopUp = Boolean(existing) && pointsAwarded > 0;
+
 
         const invPayload: Record<string, unknown> = {
           asset_number: assetNumber,
