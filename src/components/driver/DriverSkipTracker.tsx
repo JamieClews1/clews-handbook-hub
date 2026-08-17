@@ -627,16 +627,28 @@ const SkipTrackerFlow = ({
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border">
+      <div className="fixed bottom-0 inset-x-0 p-4 bg-background border-t border-border space-y-2">
+        {!existingBin && photos.length === 0 && (
+          <p className="text-xs text-center text-orange-600 font-medium">
+            Add at least one photo to save a new profile
+          </p>
+        )}
         <Button
           onClick={handleSubmit}
-          disabled={submitting || !!recentlyCatalogued || !assetNumber.trim() || !assetType || !containerType}
+          disabled={
+            submitting ||
+            !assetNumber.trim() ||
+            !assetType ||
+            !containerType ||
+            (!existingBin && photos.length === 0)
+          }
           className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl gap-2"
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-          Submit Catalogue
+          {existingBin ? "Save Changes" : "Submit Catalogue"}
         </Button>
       </div>
+
     </div>
   );
 };
