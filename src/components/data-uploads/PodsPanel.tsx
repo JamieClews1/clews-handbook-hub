@@ -116,9 +116,15 @@ export const PodsPanel = ({ canManage }: Props) => {
     // used for this id, so after the first time it lands straight in the
     // default POD folder on the network drive.
     const picker = (window as any).showDirectoryPicker;
-    if (typeof picker === "function") {
+    const inIframe = window.self !== window.top;
+
+    if (typeof picker === "function" && !inIframe) {
       try {
-        const dir = await picker.call(window, { id: "pod-default-folder", mode: "read" });
+        const dir = await picker.call(window, {
+          id: "pod-default-folder",
+          mode: "read",
+          startIn: "documents",
+        });
         const files: File[] = [];
         for await (const [, handle] of (dir as any).entries()) {
           if (handle.kind === "file" && /\.pdf$/i.test(handle.name)) {
@@ -137,6 +143,14 @@ export const PodsPanel = ({ canManage }: Props) => {
       }
     }
 
+    if (inIframe) {
+      toast({
+        title: "Open the app in its own tab",
+        description:
+          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the POD folder directly.",
+      });
+    }
+
     if (defaultFolder?.path) {
       try {
         await navigator.clipboard.writeText(defaultFolder.path);
@@ -153,6 +167,7 @@ export const PodsPanel = ({ canManage }: Props) => {
     }
     fileRef.current?.click();
   };
+
 
   const handleUpload = async (files: FileList | File[] | null) => {
 
