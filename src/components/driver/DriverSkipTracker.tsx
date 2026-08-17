@@ -281,7 +281,9 @@ const SkipTrackerFlow = ({
         reporter_name: reporter.name,
         reporter_driver_id: reporter.type === "driver" ? reporter.id : null,
       });
-      toast.success(`Catalogued! +${res.points ?? 10} points`);
+      const pts = res.points ?? 0;
+      toast.success(pts > 0 ? `Saved! +${pts} points` : "Saved — no points (profile already complete)");
+
       onSubmitted();
     } catch (err) {
       toast.error((err as Error).message || "Failed to submit");
