@@ -177,9 +177,20 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
             </Button>
             {canManage && (
               <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    await clearFolderHandle("pda-default-folder");
+                    toast({ title: "Folder cleared", description: "You'll be asked to pick the PDA folder next upload." });
+                  }}
+                >
+                  Change folder
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
                   <Settings className="h-4 w-4 mr-2" /> Settings
                 </Button>
+
                 <input
                   ref={fileRef}
                   type="file"

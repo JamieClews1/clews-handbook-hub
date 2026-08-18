@@ -265,10 +265,21 @@ export const PodsPanel = ({ canManage }: Props) => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  await clearFolderHandle("pod-default-folder");
+                  toast({ title: "Folder cleared", description: "You'll be asked to pick the POD folder next upload." });
+                }}
+              >
+                Change folder
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="gap-2">
                 <Settings className="h-4 w-4" />
                 Settings
               </Button>
+
               <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading} className="gap-2">
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                 Refresh
