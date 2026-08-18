@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
-import { ArrowLeft, ArrowRight, RefreshCw, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
 import { PodsPanel } from "@/components/data-uploads/PodsPanel";
@@ -903,6 +903,12 @@ const DataUploadsPage = () => {
               <TabsTrigger value="pods">PODs</TabsTrigger>
               <TabsTrigger value="wtn">WTN Documents</TabsTrigger>
               <TabsTrigger value="live">Live activity</TabsTrigger>
+              <TabsTrigger value="pda-uploads" asChild>
+                <Link to="/performance-hub/pda-uploads" className="inline-flex items-center gap-1.5">
+                  PDA Uploads
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="pods" className="space-y-6">
