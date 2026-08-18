@@ -65,7 +65,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
         .ilike("file_name", "JOB%")
         .order("job_date", { ascending: jobDateSort === "asc", nullsFirst: false })
         .order("created_at", { ascending: false })
-        .limit(300);
+        .limit(5000);
       const term = search.trim();
       if (term) {
         q = q.or(

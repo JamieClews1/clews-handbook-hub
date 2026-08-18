@@ -1,0 +1,2 @@
+DELETE FROM public.wtn_documents a USING public.wtn_documents b WHERE a.file_name = b.file_name AND (a.created_at < b.created_at OR (a.created_at = b.created_at AND a.id < b.id));
+CREATE UNIQUE INDEX IF NOT EXISTS wtn_documents_file_name_key ON public.wtn_documents (file_name);
