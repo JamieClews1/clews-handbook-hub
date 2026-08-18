@@ -321,6 +321,13 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
           {viewing && <WtnDetails doc={viewing} onRefresh={load} />}
         </DialogContent>
       </Dialog>
+
+      <PodsSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        canManage={canManage}
+        onSaved={loadDefaultFolder}
+      />
     </Card>
   );
 };

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WtnDocumentsPanel, WTN_INBOUND_ADDRESS } from "@/components/wtn";
+import { WtnDocumentsPanel } from "@/components/wtn";
 import { useAuth } from "@/hooks/useAuth";
 
 const PdaUploadsPage = () => {
@@ -21,11 +21,12 @@ const PdaUploadsPage = () => {
         <div>
           <h1 className="text-3xl font-bold">PDA Uploads</h1>
           <p className="text-muted-foreground">
-            Waste transfer notes emailed from Skiptrak, matched to job tickets and searchable in the Data Hub.
+            Upload waste transfer note PDFs straight from the Skiptrak folder — matched to job tickets and searchable in
+            the Data Hub.
           </p>
         </div>
 
-        <WtnDocumentsPanel canManage inboundAddress={WTN_INBOUND_ADDRESS} />
+        <WtnDocumentsPanel canManage />
       </div>
     </div>
   );
