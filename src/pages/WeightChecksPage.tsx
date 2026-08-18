@@ -65,27 +65,31 @@ export default function WeightChecksPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
   const [podJobs, setPodJobs] = useState<Set<string>>(new Set());
+  const [wtnJobs, setWtnJobs] = useState<Set<string>>(new Set());
   const [podLoading, setPodLoading] = useState<string | null>(null);
 
-  const handlePodDownload = async (jobNumber: string) => {
-    setPodLoading(jobNumber);
+  const handlePodDownload = async (jobNumber: string, source?: "wtn") => {
+    setPodLoading(`${source ?? "pod"}-${jobNumber}`);
     try {
       const { data, error } = await supabase.functions.invoke("pod-lookup", {
-        body: { job_number: jobNumber },
+        body: { job_number: jobNumber, source },
       });
       if (error) throw error;
       if (!data?.url) {
-        toast({ title: "No POD available", description: `No proof of delivery found for job ${jobNumber}.` });
+        toast({
+          title: source === "wtn" ? "No ticket available" : "No POD available",
+          description: `No ${source === "wtn" ? "PDA ticket" : "proof of delivery"} found for job ${jobNumber}.`,
+        });
         return;
       }
       const a = document.createElement("a");
       a.href = data.url;
-      a.download = data.file_name ?? `POD-${jobNumber}.pdf`;
+      a.download = data.file_name ?? `${source === "wtn" ? "TICKET" : "POD"}-${jobNumber}.pdf`;
       a.target = "_blank";
       a.rel = "noopener";
       a.click();
     } catch (e: any) {
-      toast({ title: "POD download failed", description: e?.message, variant: "destructive" });
+      toast({ title: "Download failed", description: e?.message, variant: "destructive" });
     } finally {
       setPodLoading(null);
     }
@@ -138,11 +142,13 @@ export default function WeightChecksPage() {
         new Set(mapped.flatMap((r) => r.matches.map((m) => m.job_number)).filter(Boolean))
       );
       setPodJobs(new Set());
+      setWtnJobs(new Set());
       if (jobNumbers.length > 0) {
         const { data: podData } = await supabase.functions.invoke("pod-lookup", {
           body: { job_numbers: jobNumbers },
         });
         if (podData?.available) setPodJobs(new Set(podData.available.map(String)));
+        if (podData?.wtn_available) setWtnJobs(new Set(podData.wtn_available.map(String)));
       }
 
     } catch (err) {
@@ -294,7 +300,8 @@ export default function WeightChecksPage() {
                       <th className="py-2 pr-4 font-medium">Postcode</th>
                       <th className="py-2 pr-4 font-medium">Waste type</th>
                       <th className="py-2 pr-4 font-medium text-right">Weight</th>
-                      <th className="py-2 font-medium text-right">POD</th>
+                      <th className="py-2 pr-4 font-medium text-right">POD</th>
+                      <th className="py-2 font-medium text-right">Ticket (PDA)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -308,6 +315,7 @@ export default function WeightChecksPage() {
                               No matching job found
                             </span>
                           </td>
+                          <td className="py-2 pr-4 text-right">—</td>
                           <td className="py-2 pr-4 text-right">—</td>
                           <td className="py-2 text-right">—</td>
                         </tr>
@@ -333,21 +341,41 @@ export default function WeightChecksPage() {
                                 </span>
                               )}
                             </td>
-                            <td className="py-2 text-right whitespace-nowrap">
+                            <td className="py-2 pr-4 text-right whitespace-nowrap">
                               {podJobs.has(String(m.job_number)) ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   className="gap-1.5"
-                                  disabled={podLoading === m.job_number}
+                                  disabled={podLoading === `pod-${m.job_number}`}
                                   onClick={() => handlePodDownload(m.job_number)}
                                 >
-                                  {podLoading === m.job_number ? (
+                                  {podLoading === `pod-${m.job_number}` ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                   ) : (
                                     <FileDown className="h-3.5 w-3.5" />
                                   )}
                                   POD
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="py-2 text-right whitespace-nowrap">
+                              {wtnJobs.has(String(m.job_number)) ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5"
+                                  disabled={podLoading === `wtn-${m.job_number}`}
+                                  onClick={() => handlePodDownload(m.job_number, "wtn")}
+                                >
+                                  {podLoading === `wtn-${m.job_number}` ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <FileDown className="h-3.5 w-3.5" />
+                                  )}
+                                  Ticket
                                 </Button>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
