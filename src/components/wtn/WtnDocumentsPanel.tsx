@@ -291,7 +291,20 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
                 <TableHead>Job</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Site</TableHead>
-                <TableHead>Job Date</TableHead>
+                <TableHead>
+                  <button
+                    type="button"
+                    onClick={() => setJobDateSort((prev) => (prev === "desc" ? "asc" : "desc"))}
+                    className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
+                  >
+                    Job Date
+                    {jobDateSort === "desc" ? (
+                      <ArrowDown className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <ArrowUp className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Received</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
