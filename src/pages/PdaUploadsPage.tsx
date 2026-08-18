@@ -11,9 +11,9 @@ const PdaUploadsPage = () => {
     <div className="min-h-screen bg-background">
       <div className="mx-auto w-full max-w-screen-2xl px-4 py-8 space-y-6">
         <div className="flex items-center justify-between">
-          <Link to="/performance-hub">
+          <Link to="/performance-hub/data">
             <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" /> Back to Performance Hub
+              <ArrowLeft className="h-4 w-4" /> Back to Data Uploads
             </Button>
           </Link>
         </div>
