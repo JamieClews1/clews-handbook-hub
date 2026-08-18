@@ -4325,6 +4325,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pda_upload_settings: {
+        Row: {
+          created_at: string
+          id: string
+          replace_existing: boolean
+          require_job_prefix: boolean
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          replace_existing?: boolean
+          require_job_prefix?: boolean
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          replace_existing?: boolean
+          require_job_prefix?: boolean
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       po_notification_config: {
         Row: {
           enabled: boolean

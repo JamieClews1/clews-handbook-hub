@@ -59,7 +59,24 @@ export function formatSize(bytes: number | null) {
 }
 
 /** Upload one PDF, match it to a job and kick off parsing. */
-export async function uploadWtnPdf(file: File) {
+export async function uploadWtnPdf(file: File, replaceExisting = false) {
+  if (replaceExisting) {
+    const { data: existing } = await supabase
+      .from("wtn_documents")
+      .select("id, storage_path")
+      .eq("file_name", file.name);
+    if (existing?.length) {
+      const ids = existing.map((d: any) => d.id);
+      const { data: imgs } = await supabase.from("wtn_document_images").select("storage_path").in("document_id", ids);
+      const paths = [
+        ...existing.map((d: any) => d.storage_path).filter(Boolean),
+        ...((imgs ?? []).map((i: any) => i.storage_path).filter(Boolean)),
+      ];
+      if (paths.length) await supabase.storage.from(WTN_BUCKET).remove(paths);
+      await supabase.from("wtn_documents").delete().in("id", ids);
+    }
+  }
+
   const jobNumber = jobNumberFromFileName(file.name);
 
   let job: { customer: string | null; site: string | null; job_date: string | null; source: string | null } = {

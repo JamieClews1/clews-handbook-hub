@@ -12,6 +12,7 @@ import { formatSize, parseWtnDocuments, uploadWtnPdf, WTN_BUCKET, WTN_SELECT, Wt
 import { WtnDetails } from "./WtnDetails";
 import { PodsSettingsDialog, type PodFolder } from "@/components/data-uploads/PodsSettingsDialog";
 import { pickPdfsFromRememberedFolder, clearFolderHandle } from "@/lib/folder-handle";
+import { DEFAULT_PDA_UPLOAD_SETTINGS, fetchPdaUploadSettings, hasJobPrefix, type PdaUploadSettings } from "./pda-upload-settings";
 
 interface Props {
   canManage?: boolean;
@@ -31,6 +32,15 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const [viewing, setViewing] = useState<WtnDocument | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [defaultFolder, setDefaultFolder] = useState<PodFolder | null>(null);
+  const [rules, setRules] = useState<PdaUploadSettings>(DEFAULT_PDA_UPLOAD_SETTINGS);
+
+  const loadRules = useCallback(async () => {
+    setRules(await fetchPdaUploadSettings());
+  }, []);
+
+  useEffect(() => {
+    void loadRules();
+  }, [loadRules]);
 
   const loadDefaultFolder = useCallback(async () => {
     const { data } = await supabase
@@ -107,13 +117,26 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     if (!files || files.length === 0 || !canManage) return;
     setUploading(true);
     const ids: string[] = [];
+    const current = await fetchPdaUploadSettings();
+    setRules(current);
+    let skippedPrefix = 0;
     try {
       for (const file of Array.from(files)) {
         if (!/\.pdf$/i.test(file.name)) {
           toast({ title: "Skipped", description: `${file.name} is not a PDF.`, variant: "destructive" });
           continue;
         }
-        ids.push(await uploadWtnPdf(file));
+        if (current.require_job_prefix && !hasJobPrefix(file.name)) {
+          skippedPrefix += 1;
+          continue;
+        }
+        ids.push(await uploadWtnPdf(file, current.replace_existing));
+      }
+      if (skippedPrefix) {
+        toast({
+          title: `${skippedPrefix} file(s) skipped`,
+          description: 'Only files starting with "JOB" are uploaded (see Settings).',
+        });
       }
       if (ids.length) {
         toast({ title: "Uploaded", description: `${ids.length} WTN document(s) uploaded — parsing…` });
@@ -244,6 +267,8 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
           className={`rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground ${dragOver ? "bg-muted" : ""}`}
         >
           Drag &amp; drop WTN PDFs here — the job number is read from the filename.
+          {rules.require_job_prefix ? ' Only files starting with "JOB" are accepted.' : ""}
+          {rules.replace_existing ? " Files with the same name replace the previous version." : ""}
         </div>
 
         <Input
@@ -328,7 +353,12 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         canManage={canManage}
-        onSaved={loadDefaultFolder}
+        showUploadRules
+        title="PDA Settings"
+        onSaved={() => {
+          void loadDefaultFolder();
+          void loadRules();
+        }}
       />
     </Card>
   );
