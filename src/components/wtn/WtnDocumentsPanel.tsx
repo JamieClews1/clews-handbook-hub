@@ -186,6 +186,9 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
             </Button>
             {canManage && (
               <>
+                <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" /> Settings
+                </Button>
                 <input
                   ref={fileRef}
                   type="file"
@@ -194,9 +197,9 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
                   className="hidden"
                   onChange={(e) => handleUpload(e.target.files)}
                 />
-                <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <Button size="sm" onClick={handleUploadClick} disabled={uploading}>
                   {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                  Upload PDFs
+                  Upload PDAs
                 </Button>
               </>
             )}
@@ -204,13 +207,24 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {inboundAddress && (
+        {defaultFolder?.path && (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm flex items-start gap-2">
-            <Mail className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>
-              Skiptrak should email PDAs to <strong>{inboundAddress}</strong>. PDFs arriving there are filed and parsed
-              automatically.
+            <FileText className="h-4 w-4 mt-0.5 shrink-0" />
+            <span className="flex-1">
+              Default PDA folder: <strong className="font-mono">{defaultFolder.path}</strong>
+              {defaultFolder.label ? ` (${defaultFolder.label})` : ""}. Click Upload PDAs and pick this folder — the
+              browser remembers it next time.
             </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                void navigator.clipboard.writeText(defaultFolder.path);
+                toast({ title: "Path copied" });
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
