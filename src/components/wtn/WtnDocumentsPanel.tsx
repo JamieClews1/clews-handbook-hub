@@ -11,6 +11,7 @@ import { Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } fro
 import { formatSize, parseWtnDocuments, uploadWtnPdf, WTN_BUCKET, WTN_SELECT, WtnDocument } from "./wtn-utils";
 import { WtnDetails } from "./WtnDetails";
 import { PodsSettingsDialog, type PodFolder } from "@/components/data-uploads/PodsSettingsDialog";
+import { pickPdfsFromRememberedFolder, clearFolderHandle } from "@/lib/folder-handle";
 
 interface Props {
   canManage?: boolean;
@@ -69,32 +70,21 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   }, [load]);
 
   const handleUploadClick = async () => {
-    const picker = (window as any).showDirectoryPicker;
-    const inIframe = window.self !== window.top;
-
-    if (typeof picker === "function" && !inIframe) {
-      try {
-        const dir = await picker.call(window, { id: "pda-default-folder", mode: "read", startIn: "documents" });
-        const files: File[] = [];
-        for await (const [, handle] of (dir as any).entries()) {
-          if (handle.kind === "file" && /\.pdf$/i.test(handle.name)) files.push(await handle.getFile());
-        }
-        if (files.length === 0) {
-          toast({ title: "No PDFs found", description: "That folder has no PDF files." });
-          return;
-        }
-        await handleUpload(files);
+    const picked = await pickPdfsFromRememberedFolder("pda-default-folder");
+    if (picked) {
+      if (picked.files.length === 0) {
+        if (picked.folderName) toast({ title: "No PDFs found", description: `${picked.folderName} has no PDF files.` });
         return;
-      } catch (e: any) {
-        if (e?.name === "AbortError") return;
       }
+      await handleUpload(picked.files);
+      return;
     }
 
-    if (inIframe) {
+    if (window.self !== window.top) {
       toast({
         title: "Open the app in its own tab",
         description:
-          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the PDA folder directly.",
+          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the PDA folder once — it is then remembered.",
       });
     }
 
@@ -111,6 +101,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     }
     fileRef.current?.click();
   };
+
 
   const handleUpload = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0 || !canManage) return;
@@ -186,9 +177,20 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
             </Button>
             {canManage && (
               <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    await clearFolderHandle("pda-default-folder");
+                    toast({ title: "Folder cleared", description: "You'll be asked to pick the PDA folder next upload." });
+                  }}
+                >
+                  Change folder
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
                   <Settings className="h-4 w-4 mr-2" /> Settings
                 </Button>
+
                 <input
                   ref={fileRef}
                   type="file"
