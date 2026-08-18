@@ -285,7 +285,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
                 <TableHead>Job</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Site</TableHead>
-                <TableHead>Driver</TableHead>
+                <TableHead>Job Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Received</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -308,7 +308,9 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
                   <TableCell>{d.job_number ?? <span className="text-destructive">unmatched</span>}</TableCell>
                   <TableCell className="max-w-[180px] truncate">{d.customer ?? d.customer_name ?? "—"}</TableCell>
                   <TableCell className="max-w-[180px] truncate">{d.site ?? "—"}</TableCell>
-                  <TableCell>{d.driver_name ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {d.job_date ? new Date(d.job_date).toLocaleDateString("en-GB") : "—"}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
