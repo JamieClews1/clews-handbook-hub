@@ -59,7 +59,12 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase.from("wtn_documents").select(WTN_SELECT).order("created_at", { ascending: false }).limit(300);
+      let q = supabase
+        .from("wtn_documents")
+        .select(WTN_SELECT)
+        .order("job_date", { ascending: jobDateSort === "asc", nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(300);
       const term = search.trim();
       if (term) {
         q = q.or(
@@ -74,7 +79,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     } finally {
       setLoading(false);
     }
-  }, [search, toast]);
+  }, [search, toast, jobDateSort]);
 
   useEffect(() => {
     void load();
