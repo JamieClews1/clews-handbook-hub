@@ -284,8 +284,8 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <div className="rounded-md border">
-          <Table>
+        <div className="rounded-md border overflow-auto max-h-[600px]">
+          <Table className="min-w-max">
             <TableHeader>
               <TableRow>
                 <TableHead>File</TableHead>
