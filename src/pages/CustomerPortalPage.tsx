@@ -480,6 +480,26 @@ const CustomerPortalPage = () => {
               </TabsTrigger>
             </TabsList>
 
+            <TabsContent value="pods">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Proof of Delivery</CardTitle>
+                  <CardDescription>
+                    Download PODs and PDA tickets for your jobs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalPods
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="site-reports">
               <Card>
                 <CardHeader>
