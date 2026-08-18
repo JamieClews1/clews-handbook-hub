@@ -62,6 +62,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
       let q = supabase
         .from("wtn_documents")
         .select(WTN_SELECT)
+        .ilike("file_name", "JOB%")
         .order("job_date", { ascending: jobDateSort === "asc", nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(300);
