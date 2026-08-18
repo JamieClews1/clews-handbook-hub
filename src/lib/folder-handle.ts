@@ -82,20 +82,44 @@ export async function readPdfsFromDirectory(dir: any): Promise<File[]> {
 export async function pickPdfsFromRememberedFolder(
   key: string,
 ): Promise<{ files: File[]; folderName: string } | null> {
-  const picker = (window as any).showDirectoryPicker;
-  if (typeof picker !== "function" || window.self !== window.top) return null;
+  const directoryPicker = (window as any).showDirectoryPicker;
+  const filePicker = (window as any).showOpenFilePicker;
+  if (typeof directoryPicker !== "function" || window.self !== window.top) return null;
 
   const saved = await getFolderHandle(key);
   if (saved && (await ensureReadPermission(saved))) {
     try {
+      // A directory picker intentionally hides files. Once the folder is
+      // remembered, open a PDF file picker inside it so users can see and
+      // choose the actual documents they want to upload.
+      if (typeof filePicker === "function") {
+        const handles = await filePicker.call(window, {
+          id: `${key}-pdfs`,
+          startIn: saved,
+          multiple: true,
+          types: [
+            {
+              description: "PDF documents",
+              accept: { "application/pdf": [".pdf"] },
+            },
+          ],
+          excludeAcceptAllOption: true,
+        });
+        const files = await Promise.all(handles.map((handle: any) => handle.getFile()));
+        return { files, folderName: saved.name };
+      }
       return { files: await readPdfsFromDirectory(saved), folderName: saved.name };
-    } catch {
+    } catch (e: any) {
+      if (e?.name === "AbortError") return { files: [], folderName: "" };
       await clearFolderHandle(key);
     }
   }
 
   try {
-    const dir = await picker.call(window, { id: key, mode: "read" });
+    // First use asks for the folder once. Files are deliberately hidden by
+    // this browser dialog; selecting the folder imports its PDFs and stores
+    // the handle so subsequent clicks show the PDFs individually.
+    const dir = await directoryPicker.call(window, { id: key, mode: "read" });
     await saveFolderHandle(key, dir);
     return { files: await readPdfsFromDirectory(dir), folderName: dir.name };
   } catch (e: any) {
