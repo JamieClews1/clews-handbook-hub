@@ -7,17 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, FileText, Loader2, Mail, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } from "lucide-react";
 import { formatSize, parseWtnDocuments, uploadWtnPdf, WTN_BUCKET, WTN_SELECT, WtnDocument } from "./wtn-utils";
 import { WtnDetails } from "./WtnDetails";
+import { PodsSettingsDialog, type PodFolder } from "@/components/data-uploads/PodsSettingsDialog";
 
 interface Props {
   canManage?: boolean;
-  /** Address that Skiptrak should email the PDAs to. */
+  /** Legacy: address Skiptrak used to email PDAs to. Uploads are now file-based. */
   inboundAddress?: string;
 }
 
-export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) => {
+export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [docs, setDocs] = useState<WtnDocument[]>([]);
@@ -27,6 +28,21 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
   const [processing, setProcessing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [viewing, setViewing] = useState<WtnDocument | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [defaultFolder, setDefaultFolder] = useState<PodFolder | null>(null);
+
+  const loadDefaultFolder = useCallback(async () => {
+    const { data } = await supabase
+      .from("pod_source_folders")
+      .select("id, label, path, is_default")
+      .eq("is_default", true)
+      .limit(1);
+    setDefaultFolder((data?.[0] as PodFolder) ?? null);
+  }, []);
+
+  useEffect(() => {
+    void loadDefaultFolder();
+  }, [loadDefaultFolder]);
 
   const load = useCallback(async () => {
     setLoading(true);
