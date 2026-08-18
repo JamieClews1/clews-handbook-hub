@@ -57,13 +57,24 @@ export function JobPodSection({ jobNumber }: Props) {
   });
 
   const openDoc = async (doc: DocRow) => {
-    const { data, error } = await supabase.storage.from(doc.bucket).createSignedUrl(doc.storage_path, 600);
-    if (error || !data?.signedUrl) {
+    try {
+      // Download as a blob so browser extensions / ad-blockers can't block the storage URL
+      const { data, error } = await supabase.storage.from(doc.bucket).download(doc.storage_path);
+      if (error || !data) throw error ?? new Error("no data");
+      const blobUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+      const win = window.open(blobUrl, "_blank");
+      if (!win) {
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = doc.file_name;
+        a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch {
       toast.error("Could not open document");
-      return;
     }
-    window.open(data.signedUrl, "_blank");
   };
+
 
   if (!jn) return null;
 
