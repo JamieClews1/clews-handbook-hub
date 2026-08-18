@@ -709,6 +709,7 @@ const RouteOnePage = () => {
                     <p className="text-sm bg-muted/50 rounded p-2">{viewingJob.notes}</p>
                   </div>
                 )}
+                <JobPodSection jobNumber={viewingJob.job_number} />
                 <DialogFooter>
                   <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
                     <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
