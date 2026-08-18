@@ -458,6 +458,11 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="pods" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <FileCheck className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">PODs</span>
+                <span className="sm:hidden">PODs</span>
+              </TabsTrigger>
               <TabsTrigger value="fuel-surcharges" className="flex items-center justify-center gap-2 whitespace-nowrap">
                 <Fuel className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline">Fuel Surcharges</span>
