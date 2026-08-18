@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { RefreshCw, Upload, FileText, Trash2, Download, Eye, Settings, Copy } from "lucide-react";
 import { PodsSettingsDialog, type PodFolder } from "./PodsSettingsDialog";
+import { pickPdfsFromRememberedFolder, clearFolderHandle } from "@/lib/folder-handle";
 
 type Pod = {
   id: string;
@@ -112,42 +113,23 @@ export const PodsPanel = ({ canManage }: Props) => {
   }, [load]);
 
   const handleUploadClick = async () => {
-    // Chromium can open a folder picker directly. It remembers the last folder
-    // used for this id, so after the first time it lands straight in the
-    // default POD folder on the network drive.
-    const picker = (window as any).showDirectoryPicker;
-    const inIframe = window.self !== window.top;
-
-    if (typeof picker === "function" && !inIframe) {
-      try {
-        const dir = await picker.call(window, {
-          id: "pod-default-folder",
-          mode: "read",
-          startIn: "documents",
-        });
-        const files: File[] = [];
-        for await (const [, handle] of (dir as any).entries()) {
-          if (handle.kind === "file" && /\.pdf$/i.test(handle.name)) {
-            files.push(await handle.getFile());
-          }
-        }
-        if (files.length === 0) {
-          toast({ title: "No PDFs found", description: "That folder has no PDF files." });
-          return;
-        }
-        await handleUpload(files);
+    // After the folder has been picked once, we reuse the stored handle so the
+    // upload reads straight from the POD folder with no dialog at all.
+    const picked = await pickPdfsFromRememberedFolder("pod-default-folder");
+    if (picked) {
+      if (picked.files.length === 0) {
+        if (picked.folderName) toast({ title: "No PDFs found", description: `${picked.folderName} has no PDF files.` });
         return;
-      } catch (e: any) {
-        if (e?.name === "AbortError") return;
-        // fall through to the classic file dialog
       }
+      await handleUpload(picked.files);
+      return;
     }
 
-    if (inIframe) {
+    if (window.self !== window.top) {
       toast({
         title: "Open the app in its own tab",
         description:
-          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the POD folder directly.",
+          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the POD folder once — it is then remembered.",
       });
     }
 
@@ -167,6 +149,7 @@ export const PodsPanel = ({ canManage }: Props) => {
     }
     fileRef.current?.click();
   };
+
 
 
   const handleUpload = async (files: FileList | File[] | null) => {
