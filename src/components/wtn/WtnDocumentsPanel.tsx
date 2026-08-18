@@ -7,17 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, FileText, Loader2, Mail, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } from "lucide-react";
 import { formatSize, parseWtnDocuments, uploadWtnPdf, WTN_BUCKET, WTN_SELECT, WtnDocument } from "./wtn-utils";
 import { WtnDetails } from "./WtnDetails";
+import { PodsSettingsDialog, type PodFolder } from "@/components/data-uploads/PodsSettingsDialog";
 
 interface Props {
   canManage?: boolean;
-  /** Address that Skiptrak should email the PDAs to. */
+  /** Legacy: address Skiptrak used to email PDAs to. Uploads are now file-based. */
   inboundAddress?: string;
 }
 
-export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) => {
+export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [docs, setDocs] = useState<WtnDocument[]>([]);
@@ -27,6 +28,21 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
   const [processing, setProcessing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [viewing, setViewing] = useState<WtnDocument | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [defaultFolder, setDefaultFolder] = useState<PodFolder | null>(null);
+
+  const loadDefaultFolder = useCallback(async () => {
+    const { data } = await supabase
+      .from("pod_source_folders")
+      .select("id, label, path, is_default")
+      .eq("is_default", true)
+      .limit(1);
+    setDefaultFolder((data?.[0] as PodFolder) ?? null);
+  }, []);
+
+  useEffect(() => {
+    void loadDefaultFolder();
+  }, [loadDefaultFolder]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,8 +68,52 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
     void load();
   }, [load]);
 
-  const handleUpload = async (files: FileList | null) => {
-    if (!files?.length || !canManage) return;
+  const handleUploadClick = async () => {
+    const picker = (window as any).showDirectoryPicker;
+    const inIframe = window.self !== window.top;
+
+    if (typeof picker === "function" && !inIframe) {
+      try {
+        const dir = await picker.call(window, { id: "pda-default-folder", mode: "read", startIn: "documents" });
+        const files: File[] = [];
+        for await (const [, handle] of (dir as any).entries()) {
+          if (handle.kind === "file" && /\.pdf$/i.test(handle.name)) files.push(await handle.getFile());
+        }
+        if (files.length === 0) {
+          toast({ title: "No PDFs found", description: "That folder has no PDF files." });
+          return;
+        }
+        await handleUpload(files);
+        return;
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+      }
+    }
+
+    if (inIframe) {
+      toast({
+        title: "Open the app in its own tab",
+        description:
+          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the PDA folder directly.",
+      });
+    }
+
+    if (defaultFolder?.path) {
+      try {
+        await navigator.clipboard.writeText(defaultFolder.path);
+        toast({
+          title: "Default folder copied",
+          description: `Paste ${defaultFolder.path} into the file dialog address bar.`,
+        });
+      } catch {
+        toast({ title: "Default folder", description: defaultFolder.path });
+      }
+    }
+    fileRef.current?.click();
+  };
+
+  const handleUpload = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0 || !canManage) return;
     setUploading(true);
     const ids: string[] = [];
     try {
@@ -126,6 +186,9 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
             </Button>
             {canManage && (
               <>
+                <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" /> Settings
+                </Button>
                 <input
                   ref={fileRef}
                   type="file"
@@ -134,9 +197,9 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
                   className="hidden"
                   onChange={(e) => handleUpload(e.target.files)}
                 />
-                <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <Button size="sm" onClick={handleUploadClick} disabled={uploading}>
                   {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                  Upload PDFs
+                  Upload PDAs
                 </Button>
               </>
             )}
@@ -144,13 +207,24 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {inboundAddress && (
+        {defaultFolder?.path && (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm flex items-start gap-2">
-            <Mail className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>
-              Skiptrak should email PDAs to <strong>{inboundAddress}</strong>. PDFs arriving there are filed and parsed
-              automatically.
+            <FileText className="h-4 w-4 mt-0.5 shrink-0" />
+            <span className="flex-1">
+              Default PDA folder: <strong className="font-mono">{defaultFolder.path}</strong>
+              {defaultFolder.label ? ` (${defaultFolder.label})` : ""}. Click Upload PDAs and pick this folder — the
+              browser remembers it next time.
             </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                void navigator.clipboard.writeText(defaultFolder.path);
+                toast({ title: "Path copied" });
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
@@ -247,6 +321,13 @@ export const WtnDocumentsPanel = ({ canManage = true, inboundAddress }: Props) =
           {viewing && <WtnDetails doc={viewing} onRefresh={load} />}
         </DialogContent>
       </Dialog>
+
+      <PodsSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        canManage={canManage}
+        onSaved={loadDefaultFolder}
+      />
     </Card>
   );
 };
