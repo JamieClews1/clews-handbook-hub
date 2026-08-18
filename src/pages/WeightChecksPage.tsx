@@ -68,13 +68,24 @@ export default function WeightChecksPage() {
   const [wtnJobs, setWtnJobs] = useState<Set<string>>(new Set());
   const [podLoading, setPodLoading] = useState<string | null>(null);
 
+  const lookupDoc = async (jobNumber: string, source?: "wtn") => {
+    const body = { job_number: jobNumber, source };
+    // Try the neutrally-named function first (some ad blockers block "pod" URLs)
+    try {
+      const { data, error } = await supabase.functions.invoke("job-docs", { body });
+      if (error) throw error;
+      return data;
+    } catch {
+      const { data, error } = await supabase.functions.invoke("pod-lookup", { body });
+      if (error) throw error;
+      return data;
+    }
+  };
+
   const handlePodDownload = async (jobNumber: string, source?: "wtn") => {
     setPodLoading(`${source ?? "pod"}-${jobNumber}`);
     try {
-      const { data, error } = await supabase.functions.invoke("pod-lookup", {
-        body: { job_number: jobNumber, source },
-      });
-      if (error) throw error;
+      const data: any = await lookupDoc(jobNumber, source);
       if (!data?.url) {
         toast({
           title: source === "wtn" ? "No ticket available" : "No POD available",
@@ -82,12 +93,25 @@ export default function WeightChecksPage() {
         });
         return;
       }
+      const fileName = data.file_name ?? `${source === "wtn" ? "TICKET" : "POD"}-${jobNumber}.pdf`;
       const a = document.createElement("a");
-      a.href = data.url;
-      a.download = data.file_name ?? `${source === "wtn" ? "TICKET" : "POD"}-${jobNumber}.pdf`;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.click();
+      try {
+        // Fetch as a blob so browser extensions blocking direct storage URLs can't break it
+        const res = await fetch(data.url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        return;
+      } catch {
+        a.href = data.url;
+        a.download = fileName;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.click();
+      }
     } catch (e: any) {
       toast({ title: "Download failed", description: e?.message, variant: "destructive" });
     } finally {
