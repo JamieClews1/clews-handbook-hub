@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } from "lucide-react";
 import { formatSize, parseWtnDocuments, uploadWtnPdf, WTN_BUCKET, WTN_SELECT, WtnDocument } from "./wtn-utils";
 import { WtnDetails } from "./WtnDetails";
 import { PodsSettingsDialog, type PodFolder } from "@/components/data-uploads/PodsSettingsDialog";
@@ -33,6 +33,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [defaultFolder, setDefaultFolder] = useState<PodFolder | null>(null);
   const [rules, setRules] = useState<PdaUploadSettings>(DEFAULT_PDA_UPLOAD_SETTINGS);
+  const [jobDateSort, setJobDateSort] = useState<"desc" | "asc">("desc");
 
   const loadRules = useCallback(async () => {
     setRules(await fetchPdaUploadSettings());
@@ -58,7 +59,12 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase.from("wtn_documents").select(WTN_SELECT).order("created_at", { ascending: false }).limit(300);
+      let q = supabase
+        .from("wtn_documents")
+        .select(WTN_SELECT)
+        .order("job_date", { ascending: jobDateSort === "asc", nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(300);
       const term = search.trim();
       if (term) {
         q = q.or(
@@ -73,7 +79,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     } finally {
       setLoading(false);
     }
-  }, [search, toast]);
+  }, [search, toast, jobDateSort]);
 
   useEffect(() => {
     void load();
@@ -285,7 +291,20 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
                 <TableHead>Job</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Site</TableHead>
-                <TableHead>Job Date</TableHead>
+                <TableHead>
+                  <button
+                    type="button"
+                    onClick={() => setJobDateSort((prev) => (prev === "desc" ? "asc" : "desc"))}
+                    className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
+                  >
+                    Job Date
+                    {jobDateSort === "desc" ? (
+                      <ArrowDown className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <ArrowUp className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Received</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
