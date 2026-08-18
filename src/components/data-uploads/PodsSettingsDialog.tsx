@@ -11,6 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
+import {
+  DEFAULT_PDA_UPLOAD_SETTINGS,
+  fetchPdaUploadSettings,
+  savePdaUploadSettings,
+  type PdaUploadSettings,
+} from "@/components/wtn/pda-upload-settings";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Copy, FolderCog } from "lucide-react";
 
@@ -33,12 +40,36 @@ interface Props {
   title?: string;
 }
 
-export const PodsSettingsDialog = ({ open, onOpenChange, canManage, onSaved }: Props) => {
+export const PodsSettingsDialog = ({
+  open,
+  onOpenChange,
+  canManage,
+  onSaved,
+  showUploadRules = false,
+  title,
+}: Props) => {
   const { toast } = useToast();
   const [folders, setFolders] = useState<PodFolder[]>([]);
   const [loading, setLoading] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newPath, setNewPath] = useState("");
+  const [rules, setRules] = useState<PdaUploadSettings>(DEFAULT_PDA_UPLOAD_SETTINGS);
+
+  useEffect(() => {
+    if (open && showUploadRules) void fetchPdaUploadSettings().then(setRules);
+  }, [open, showUploadRules]);
+
+  const updateRule = async (patch: Partial<PdaUploadSettings>) => {
+    if (!canManage) return;
+    const next = { ...rules, ...patch };
+    setRules(next);
+    try {
+      await savePdaUploadSettings(patch);
+      onSaved?.();
+    } catch (e: any) {
+      toast({ title: "Could not save setting", description: e?.message, variant: "destructive" });
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -124,7 +155,7 @@ export const PodsSettingsDialog = ({ open, onOpenChange, canManage, onSaved }: P
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FolderCog className="h-5 w-5" /> POD Settings
+            <FolderCog className="h-5 w-5" /> {title ?? "POD Settings"}
           </DialogTitle>
           <DialogDescription>
             Saved drive locations where POD PDFs are stored. The default is offered first when uploading.
@@ -132,6 +163,36 @@ export const PodsSettingsDialog = ({ open, onOpenChange, canManage, onSaved }: P
         </DialogHeader>
 
         <div className="space-y-4">
+          {showUploadRules && (
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <Label>Upload rules</Label>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Only upload files starting with "JOB"</p>
+                  <p className="text-xs text-muted-foreground">Any other file names are skipped during upload.</p>
+                </div>
+                <Switch
+                  checked={rules.require_job_prefix}
+                  disabled={!canManage}
+                  onCheckedChange={(v) => void updateRule({ require_job_prefix: v })}
+                />
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Replace existing files with the same name</p>
+                  <p className="text-xs text-muted-foreground">
+                    Re-uploading a file removes the previous version instead of creating a duplicate.
+                  </p>
+                </div>
+                <Switch
+                  checked={rules.replace_existing}
+                  disabled={!canManage}
+                  onCheckedChange={(v) => void updateRule({ replace_existing: v })}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Drive locations</Label>
             {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
