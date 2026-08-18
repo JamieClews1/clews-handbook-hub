@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel, ClipboardList } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel, ClipboardList, FileCheck } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -17,6 +17,7 @@ import { StaciReportsDashboard } from "@/components/staci/StaciReportsDashboard"
 import { CustomerPortalServices } from "@/components/customer-portal/CustomerPortalServices";
 import { CustomerPortalFuelSurcharges } from "@/components/customer-portal/CustomerPortalFuelSurcharges";
 import { CustomerPortalPORequests } from "@/components/customer-portal/CustomerPortalPORequests";
+import { CustomerPortalPods } from "@/components/customer-portal/CustomerPortalPods";
 
 type PortalMembership = {
   id: string;
@@ -404,7 +405,7 @@ const CustomerPortalPage = () => {
             const fallbackTab = isStaciCustomer ? "staci-reports" : "site-reports";
             const storedTab = sessionStorage.getItem("portal-active-tab");
             const defaultTab = storedTab || fallbackTab;
-            const tabCount = isStaciCustomer ? 4 : 6;
+            const tabCount = isStaciCustomer ? 5 : 7;
 
             // Compute effective site filter for child components.
             // Broker mode: derive from broker dropdowns.
@@ -428,7 +429,7 @@ const CustomerPortalPage = () => {
 
             return (
             <Tabs defaultValue={defaultTab} onValueChange={(v) => sessionStorage.setItem("portal-active-tab", v)} className="space-y-6">
-            <TabsList className={`grid h-auto w-full max-w-3xl gap-1 ${tabCount === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-6"}`}>
+            <TabsList className={`grid h-auto w-full max-w-4xl gap-1 ${tabCount === 5 ? "grid-cols-3 sm:grid-cols-5" : "grid-cols-4 sm:grid-cols-7"}`}>
               {!isStaciCustomer && (
                 <TabsTrigger value="site-reports" className="flex items-center justify-center gap-2 whitespace-nowrap">
                   <FileText className="h-4 w-4 shrink-0" />
@@ -457,6 +458,11 @@ const CustomerPortalPage = () => {
                   <span className="sm:hidden">STACI</span>
                 </TabsTrigger>
               )}
+              <TabsTrigger value="pods" className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <FileCheck className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">PODs</span>
+                <span className="sm:hidden">PODs</span>
+              </TabsTrigger>
               <TabsTrigger value="fuel-surcharges" className="flex items-center justify-center gap-2 whitespace-nowrap">
                 <Fuel className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline">Fuel Surcharges</span>
@@ -473,6 +479,26 @@ const CustomerPortalPage = () => {
                 <span className="sm:hidden">Contact</span>
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="pods">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Proof of Delivery</CardTitle>
+                  <CardDescription>
+                    Download PODs and PDA tickets for your jobs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentCustomerId && currentCustomer && (
+                    <CustomerPortalPods
+                      customerId={currentCustomerId}
+                      customerName={currentCustomer.customer_name}
+                      accessibleSiteIds={effectiveAccessibleSiteIds}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="site-reports">
               <Card>
