@@ -38,6 +38,7 @@ import { DriverAppManagement } from "@/components/route-one/DriverAppManagement"
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
+import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
 import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
@@ -709,6 +710,7 @@ const RouteOnePage = () => {
                     <p className="text-sm bg-muted/50 rounded p-2">{viewingJob.notes}</p>
                   </div>
                 )}
+                <JobPodSection jobNumber={viewingJob.job_number} />
                 <DialogFooter>
                   <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
                     <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
@@ -751,6 +753,7 @@ const RouteOnePage = () => {
                   <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
                   <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
                 </div>
+                <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
             );
           })()}
