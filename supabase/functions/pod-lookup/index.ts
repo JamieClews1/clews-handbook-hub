@@ -9,7 +9,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { job_numbers, job_number } = await req.json();
+    const { job_numbers, job_number, source } = await req.json();
+    const table = source === "wtn" ? "wtn_documents" : "pod_documents";
+    const bucket = source === "wtn" ? "wtn-documents" : "pods";
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -18,9 +20,9 @@ Deno.serve(async (req) => {
     // Single job -> return a short-lived signed download URL
     if (job_number) {
       const { data: pod, error } = await supabase
-        .from("pod_documents")
+        .from(table)
         .select("storage_path, file_name")
-        .eq("job_number", String(job_number))
+        .or(`job_number.eq.${String(job_number)},file_name.ilike.%${String(job_number)}%`)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -31,7 +33,7 @@ Deno.serve(async (req) => {
         });
       }
       const { data: signed, error: sErr } = await supabase.storage
-        .from("pods")
+        .from(bucket)
         .createSignedUrl(pod.storage_path, 600, { download: pod.file_name });
       if (sErr) throw sErr;
       return new Response(JSON.stringify({ url: signed.signedUrl, file_name: pod.file_name }), {
@@ -46,13 +48,16 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data, error } = await supabase
-      .from("pod_documents")
-      .select("job_number")
-      .in("job_number", list.slice(0, 1000));
-    if (error) throw error;
-    const available = Array.from(new Set((data ?? []).map((r: any) => r.job_number).filter(Boolean)));
-    return new Response(JSON.stringify({ available }), {
+    const capped = list.slice(0, 1000);
+    const [podRes, wtnRes] = await Promise.all([
+      supabase.from("pod_documents").select("job_number").in("job_number", capped),
+      supabase.from("wtn_documents").select("job_number").in("job_number", capped),
+    ]);
+    if (podRes.error) throw podRes.error;
+    if (wtnRes.error) throw wtnRes.error;
+    const available = Array.from(new Set((podRes.data ?? []).map((r: any) => r.job_number).filter(Boolean)));
+    const wtn_available = Array.from(new Set((wtnRes.data ?? []).map((r: any) => r.job_number).filter(Boolean)));
+    return new Response(JSON.stringify({ available, wtn_available }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
