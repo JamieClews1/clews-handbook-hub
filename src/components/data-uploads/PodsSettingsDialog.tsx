@@ -28,6 +28,9 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   canManage: boolean;
   onSaved?: () => void;
+  /** Show the PDA upload rules (file name filter / replace existing). */
+  showUploadRules?: boolean;
+  title?: string;
 }
 
 export const PodsSettingsDialog = ({ open, onOpenChange, canManage, onSaved }: Props) => {
