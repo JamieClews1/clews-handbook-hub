@@ -68,8 +68,52 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     void load();
   }, [load]);
 
-  const handleUpload = async (files: FileList | null) => {
-    if (!files?.length || !canManage) return;
+  const handleUploadClick = async () => {
+    const picker = (window as any).showDirectoryPicker;
+    const inIframe = window.self !== window.top;
+
+    if (typeof picker === "function" && !inIframe) {
+      try {
+        const dir = await picker.call(window, { id: "pda-default-folder", mode: "read", startIn: "documents" });
+        const files: File[] = [];
+        for await (const [, handle] of (dir as any).entries()) {
+          if (handle.kind === "file" && /\.pdf$/i.test(handle.name)) files.push(await handle.getFile());
+        }
+        if (files.length === 0) {
+          toast({ title: "No PDFs found", description: "That folder has no PDF files." });
+          return;
+        }
+        await handleUpload(files);
+        return;
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+      }
+    }
+
+    if (inIframe) {
+      toast({
+        title: "Open the app in its own tab",
+        description:
+          "The folder picker is blocked inside the preview frame. Open the portal in a normal browser tab to pick the PDA folder directly.",
+      });
+    }
+
+    if (defaultFolder?.path) {
+      try {
+        await navigator.clipboard.writeText(defaultFolder.path);
+        toast({
+          title: "Default folder copied",
+          description: `Paste ${defaultFolder.path} into the file dialog address bar.`,
+        });
+      } catch {
+        toast({ title: "Default folder", description: defaultFolder.path });
+      }
+    }
+    fileRef.current?.click();
+  };
+
+  const handleUpload = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0 || !canManage) return;
     setUploading(true);
     const ids: string[] = [];
     try {
