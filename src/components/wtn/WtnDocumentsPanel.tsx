@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, FileText, Loader2, RefreshCw, Settings, Trash2, Upload } from "lucide-react";
 import { formatSize, parseWtnDocuments, uploadWtnPdf, WTN_BUCKET, WTN_SELECT, WtnDocument } from "./wtn-utils";
 import { WtnDetails } from "./WtnDetails";
 import { PodsSettingsDialog, type PodFolder } from "@/components/data-uploads/PodsSettingsDialog";
