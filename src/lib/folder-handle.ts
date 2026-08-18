@@ -84,41 +84,50 @@ export async function pickPdfsFromRememberedFolder(
 ): Promise<{ files: File[]; folderName: string } | null> {
   const directoryPicker = (window as any).showDirectoryPicker;
   const filePicker = (window as any).showOpenFilePicker;
-  if (typeof directoryPicker !== "function" || window.self !== window.top) return null;
+  if (window.self !== window.top) return null;
 
   const saved = await getFolderHandle(key);
-  if (saved && (await ensureReadPermission(saved))) {
+  const hasSavedFolder = saved && (await ensureReadPermission(saved));
+
+  // Always use the file picker when available. Unlike showDirectoryPicker,
+  // this displays the PDFs and Chrome remembers the last folder for this id.
+  // A previously authorised directory is used as the starting location.
+  if (typeof filePicker === "function") {
     try {
-      // A directory picker intentionally hides files. Once the folder is
-      // remembered, open a PDF file picker inside it so users can see and
-      // choose the actual documents they want to upload.
-      if (typeof filePicker === "function") {
-        const handles = await filePicker.call(window, {
-          id: `${key}-pdfs`,
-          startIn: saved,
-          multiple: true,
-          types: [
-            {
-              description: "PDF documents",
-              accept: { "application/pdf": [".pdf"] },
-            },
-          ],
-          excludeAcceptAllOption: true,
-        });
-        const files = await Promise.all(handles.map((handle: any) => handle.getFile()));
-        return { files, folderName: saved.name };
-      }
-      return { files: await readPdfsFromDirectory(saved), folderName: saved.name };
+      const handles = await filePicker.call(window, {
+        id: `${key}-pdfs`,
+        ...(hasSavedFolder ? { startIn: saved } : {}),
+        multiple: true,
+        types: [
+          {
+            description: "PDF documents",
+            accept: { "application/pdf": [".pdf"] },
+          },
+        ],
+        excludeAcceptAllOption: true,
+      });
+      const files = await Promise.all(handles.map((handle: any) => handle.getFile()));
+      return { files, folderName: hasSavedFolder ? saved.name : "Selected folder" };
     } catch (e: any) {
       if (e?.name === "AbortError") return { files: [], folderName: "" };
+      // Fall through to directory selection only if the browser rejects the
+      // file picker itself. Folder selection never displays files.
+    }
+  }
+
+  if (typeof directoryPicker !== "function") return null;
+
+  if (hasSavedFolder) {
+    try {
+      return { files: await readPdfsFromDirectory(saved), folderName: saved.name };
+    } catch {
       await clearFolderHandle(key);
     }
   }
 
   try {
-    // First use asks for the folder once. Files are deliberately hidden by
-    // this browser dialog; selecting the folder imports its PDFs and stores
-    // the handle so subsequent clicks show the PDFs individually.
+    // Legacy fallback for browsers that support directory access but not the
+    // PDF file picker. Selecting the folder imports all PDFs within it.
     const dir = await directoryPicker.call(window, { id: key, mode: "read" });
     await saveFolderHandle(key, dir);
     return { files: await readPdfsFromDirectory(dir), folderName: dir.name };
