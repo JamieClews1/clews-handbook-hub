@@ -903,6 +903,12 @@ const DataUploadsPage = () => {
               <TabsTrigger value="pods">PODs</TabsTrigger>
               <TabsTrigger value="wtn">WTN Documents</TabsTrigger>
               <TabsTrigger value="live">Live activity</TabsTrigger>
+              <TabsTrigger value="pda-uploads" asChild>
+                <Link to="/performance-hub/pda-uploads" className="inline-flex items-center gap-1.5">
+                  PDA Uploads
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="pods" className="space-y-6">
