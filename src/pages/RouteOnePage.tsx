@@ -753,6 +753,7 @@ const RouteOnePage = () => {
                   <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
                   <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
                 </div>
+                <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
             );
           })()}
