@@ -33,6 +33,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [defaultFolder, setDefaultFolder] = useState<PodFolder | null>(null);
   const [rules, setRules] = useState<PdaUploadSettings>(DEFAULT_PDA_UPLOAD_SETTINGS);
+  const [jobDateSort, setJobDateSort] = useState<"desc" | "asc">("desc");
 
   const loadRules = useCallback(async () => {
     setRules(await fetchPdaUploadSettings());
