@@ -103,12 +103,17 @@ export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
       };
       window.addEventListener("message", onMessage);
 
-      // If the user closes the popup manually, stop the spinner.
+      // If the user closes the popup manually (or the callback ran on a
+      // different origin so postMessage never arrived), stop the spinner and
+      // re-check whether the mailbox actually got linked.
+      const startedAt = Date.now();
       const poll = window.setInterval(() => {
-        if (popup?.closed) {
+        const timedOut = Date.now() - startedAt > 3 * 60 * 1000;
+        if (popup?.closed || timedOut) {
           window.clearInterval(poll);
           window.removeEventListener("message", onMessage);
           setConnecting(false);
+          onChange();
         }
       }, 800);
     } catch (e: any) {
