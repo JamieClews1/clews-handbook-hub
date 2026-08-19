@@ -73,9 +73,11 @@ const AdminSettingsPage = () => {
 
 
 
-        <TabsContent value="communications">
+        <TabsContent value="communications" className="space-y-6">
+          <AutoReplyExclusionSettings />
           <EmailTemplateSettings />
         </TabsContent>
+
       </Tabs>
     </AdminPageLayout>
   );
