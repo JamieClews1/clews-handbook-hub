@@ -29,7 +29,9 @@ import {
   AlertTriangle,
   Settings,
   Pencil,
+  CalendarClock,
   Smartphone,
+
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
@@ -38,6 +40,8 @@ import { DriverAppManagement } from "@/components/route-one/DriverAppManagement"
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
+import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
+
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
@@ -142,7 +146,7 @@ const RouteOnePage = () => {
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map">("day");
+  const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
   const [newDriverOpen, setNewDriverOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
@@ -493,14 +497,16 @@ const RouteOnePage = () => {
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "day" | "week" | "list" | "map")}>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
             <TabsList className="h-8">
               <TabsTrigger value="day" className="text-xs px-3 h-7">Day</TabsTrigger>
               <TabsTrigger value="week" className="text-xs px-3 h-7">Week</TabsTrigger>
               <TabsTrigger value="list" className="text-xs px-3 h-7"><List className="h-3 w-3 mr-1" />List</TabsTrigger>
               <TabsTrigger value="map" className="text-xs px-3 h-7"><MapPin className="h-3 w-3 mr-1" />Live Map</TabsTrigger>
+              <TabsTrigger value="bookings" className="text-xs px-3 h-7"><CalendarClock className="h-3 w-3 mr-1" />Bookings</TabsTrigger>
             </TabsList>
           </Tabs>
+
 
           {/* Date navigation */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-1">
@@ -761,7 +767,12 @@ const RouteOnePage = () => {
       </Dialog>
 
       {/* Live Map View */}
-      {viewMode === "map" ? (
+      {viewMode === "bookings" ? (
+        <div className="flex-1 overflow-auto">
+          <BookingWindowsPanel />
+        </div>
+      ) : viewMode === "map" ? (
+
         <div className="flex-1 overflow-auto p-4">
           <DriverTrackingMap />
         </div>
