@@ -493,14 +493,16 @@ const RouteOnePage = () => {
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "day" | "week" | "list" | "map")}>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
             <TabsList className="h-8">
               <TabsTrigger value="day" className="text-xs px-3 h-7">Day</TabsTrigger>
               <TabsTrigger value="week" className="text-xs px-3 h-7">Week</TabsTrigger>
               <TabsTrigger value="list" className="text-xs px-3 h-7"><List className="h-3 w-3 mr-1" />List</TabsTrigger>
               <TabsTrigger value="map" className="text-xs px-3 h-7"><MapPin className="h-3 w-3 mr-1" />Live Map</TabsTrigger>
+              <TabsTrigger value="bookings" className="text-xs px-3 h-7"><CalendarClock className="h-3 w-3 mr-1" />Bookings</TabsTrigger>
             </TabsList>
           </Tabs>
+
 
           {/* Date navigation */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-1">
