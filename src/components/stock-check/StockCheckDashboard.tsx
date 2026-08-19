@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight, Pencil } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
+import { applyEwcReclass, type EwcReclassRule } from "@/lib/stock-check-reclass";
 
 interface ContainerType {
   id: string;
@@ -53,6 +54,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
   const [latestCheckDateOnly, setLatestCheckDateOnly] = useState<string | null>(null);
   const [yardAdjustments, setYardAdjustments] = useState<Record<string, number>>({});
   const [outlookDays, setOutlookDays] = useState<number>(5);
+  const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
 
   useEffect(() => {
     loadData();
@@ -66,7 +68,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       setProjections({});
       setYardAdjustments({});
     }
-  }, [containerTypes, excludedSites, outlookDays, latestCheckDateOnly]);
+  }, [containerTypes, excludedSites, outlookDays, latestCheckDateOnly, reclassRules]);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
@@ -77,6 +79,12 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         .order("display_order"),
       supabase.from("stock_check_excluded_sites").select("site_name"),
     ]);
+
+    const { data: rules } = await supabase
+      .from("stock_check_ewc_reclass_rules")
+      .select("id, from_type_id, to_type_id, ewc_codes, is_active")
+      .eq("is_active", true);
+    setReclassRules((rules ?? []) as EwcReclassRule[]);
 
     if (types) setContainerTypes(types as ContainerType[]);
     if (excluded) setExcludedSites(excluded.map((e) => e.site_name));
@@ -120,7 +128,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     // Query data_hub_jobs for upcoming movements (include raw to filter completed jobs)
     const { data: jobs } = await supabase
       .from("data_hub_jobs")
-      .select("container_type, movement_type, site, job_date, customer, raw")
+      .select("container_type, movement_type, site, job_date, customer, ewc, raw")
       .gte("job_date", format(today, "yyyy-MM-dd"))
       .lte("job_date", format(endDate, "yyyy-MM-dd"))
       .in("source", ["skiptrak"]);
@@ -161,7 +169,8 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         }
       }
       if (!bestType) continue;
-      const bucket = projMap[bestType.id];
+      const targetId = applyEwcReclass(bestType.id, (job as any).ewc, reclassRules);
+      const bucket = projMap[targetId] || projMap[bestType.id];
       const mt = (job.movement_type || "").toLowerCase();
       if (mt.includes("exchange")) {
         bucket.toExchange++;
@@ -194,7 +203,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
 
     const { data: jobs } = await supabase
       .from("data_hub_jobs")
-      .select("container_type, movement_type, site, job_date, raw")
+      .select("container_type, movement_type, site, job_date, ewc, raw")
       .gt("job_date", latestCheckDateOnly)
       .lt("job_date", todayStr)
       .in("source", ["skiptrak"]);
@@ -231,13 +240,15 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         }
       }
       if (!bestType) continue;
+      const targetId = applyEwcReclass(bestType.id, (job as any).ewc, reclassRules);
+      const key = targetId in adj ? targetId : bestType.id;
       const mt = (job.movement_type || "").toLowerCase();
       if (mt.includes("exchange")) {
         // net zero
       } else if (mt.includes("collect")) {
-        adj[bestType.id] += 1;
+        adj[key] += 1;
       } else if (mt.includes("deliver")) {
-        adj[bestType.id] -= 1;
+        adj[key] -= 1;
       }
     }
 
