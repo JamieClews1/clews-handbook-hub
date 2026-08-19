@@ -6904,6 +6904,51 @@ export type Database = {
           },
         ]
       }
+      stock_check_ewc_reclass_rules: {
+        Row: {
+          created_at: string
+          ewc_codes: string[]
+          from_type_id: string
+          id: string
+          is_active: boolean
+          to_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ewc_codes?: string[]
+          from_type_id: string
+          id?: string
+          is_active?: boolean
+          to_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ewc_codes?: string[]
+          from_type_id?: string
+          id?: string
+          is_active?: boolean
+          to_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_check_ewc_reclass_rules_from_type_id_fkey"
+            columns: ["from_type_id"]
+            isOneToOne: false
+            referencedRelation: "stock_check_container_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_check_ewc_reclass_rules_to_type_id_fkey"
+            columns: ["to_type_id"]
+            isOneToOne: false
+            referencedRelation: "stock_check_container_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_check_excluded_sites: {
         Row: {
           created_at: string
