@@ -2581,6 +2581,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           sender_email: string
           sender_name: string
           subject_template: string
@@ -2594,6 +2595,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           sender_email?: string
           sender_name?: string
           subject_template: string
@@ -2607,6 +2609,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           sender_email?: string
           sender_name?: string
           subject_template?: string
