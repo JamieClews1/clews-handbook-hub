@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Save, Eye, EyeOff, Info } from "lucide-react";
 import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
@@ -33,6 +34,7 @@ interface EmailTemplate {
   sender_name: string;
   sender_email: string;
   available_variables: string[];
+  is_active: boolean;
 }
 
 export const EmailTemplateSettings = () => {
@@ -69,6 +71,23 @@ export const EmailTemplateSettings = () => {
 
   const getEditedValue = (templateId: string, field: keyof EmailTemplate) => {
     return editedTemplates[templateId]?.[field];
+  };
+
+  const handleToggleActive = async (template: EmailTemplate, next: boolean) => {
+    setTemplates((prev) => prev.map((t) => (t.id === template.id ? { ...t, is_active: next } : t)));
+    const { error } = await supabase
+      .from("email_templates")
+      .update({ is_active: next })
+      .eq("id", template.id);
+    if (error) {
+      setTemplates((prev) => prev.map((t) => (t.id === template.id ? { ...t, is_active: !next } : t)));
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: next ? "Emails enabled" : "Emails paused",
+      description: `"${template.template_name}" will ${next ? "now be sent" : "no longer be sent"}.`,
+    });
   };
 
   const handleFieldChange = (templateId: string, field: keyof EmailTemplate, value: string) => {
@@ -193,6 +212,12 @@ export const EmailTemplateSettings = () => {
                     </p>
                   )}
                 </div>
+                <Badge
+                  variant={template.is_active ? "default" : "secondary"}
+                  className="ml-2"
+                >
+                  {template.is_active ? "Live" : "Paused"}
+                </Badge>
                 {hasChanges(template.id) && (
                   <Badge variant="outline" className="ml-2 text-warning border-warning">
                     Unsaved
@@ -202,6 +227,20 @@ export const EmailTemplateSettings = () => {
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-6">
               <div className="space-y-5">
+                {/* Live toggle */}
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <Label className="text-sm">Send live emails</Label>
+                    <p className="text-xs text-muted-foreground">
+                      When off, this automated email is not sent to anyone.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={template.is_active}
+                    onCheckedChange={(v) => handleToggleActive(template, v)}
+                  />
+                </div>
+
                 {/* Available variables */}
                 {template.available_variables.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2">
