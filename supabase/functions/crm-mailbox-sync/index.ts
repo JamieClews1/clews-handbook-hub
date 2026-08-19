@@ -213,6 +213,24 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
   // Never auto-reply to historic mail pulled in on a first sync.
   const autoReplyCutoff = Date.now() - 2 * 60 * 60 * 1000;
 
+  // Website enquiry exclusion settings (configurable in Admin Settings).
+  const { data: autoRules } = await admin
+    .from('crm_auto_reply_rules')
+    .select('exclude_website_enquiries, exclude_patterns')
+    .limit(1)
+    .maybeSingle();
+  const excludeWebsite = autoRules?.exclude_website_enquiries !== false;
+  const excludePatterns: string[] = (autoRules?.exclude_patterns ?? [])
+    .map((p: string) => (p ?? '').toLowerCase().trim())
+    .filter(Boolean);
+
+  const isWebsiteEnquiry = (email: string, subj: string, body: string) => {
+    if (!excludeWebsite || excludePatterns.length === 0) return false;
+    const hay = `${email} ${subj} ${body}`.toLowerCase();
+    return excludePatterns.some((p) => hay.includes(p));
+  };
+
+
   for (const m of messages) {
     const conversationId: string | null = m.conversationId ?? null;
 
