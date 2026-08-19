@@ -116,8 +116,12 @@ Deno.serve(async (req) => {
     const messages: any[] = data.value ?? [];
     let synced = 0;
 
+    const isOrdersInbox = (conn.ms_email ?? '').toLowerCase().startsWith('orders@');
+
     for (const m of messages) {
+      let isNewTicket = false;
       const conversationId: string | null = m.conversationId ?? null;
+
       const graphMessageId: string = m.id;
       const subject: string = m.subject ?? '(no subject)';
       const fromName: string = m.from?.emailAddress?.name ?? '';
