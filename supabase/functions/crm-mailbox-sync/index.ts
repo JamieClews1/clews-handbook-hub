@@ -255,6 +255,14 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         })
         .eq('id', ticketId);
     } else {
+      // Link the thread to a customer account from the sender's address/domain.
+      let customerId: string | null = null;
+      if (fromEmail) {
+        const { data: match } = await admin.rpc('crm_match_customer_by_email', {
+          _email: fromEmail,
+        });
+        customerId = (match as string | null) ?? null;
+      }
       const { data: newTicket, error: ticketErr } = await admin
         .from('crm_tickets')
         .insert({
@@ -268,6 +276,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
           is_read: false,
           last_message_at: receivedAt,
           mailbox_user_id: userId,
+          customer_id: customerId,
         })
         .select('id')
         .single();
@@ -275,17 +284,36 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
       ticketId = newTicket.id;
     }
 
-    await admin.from('crm_ticket_messages').insert({
-      ticket_id: ticketId,
-      direction: 'inbound',
-      body: bodyHtml,
-      body_preview: snippet,
-      from_name: fromName,
-      from_email: fromEmail,
-      graph_message_id: graphMessageId,
-      sent_at: receivedAt,
-      mailbox_user_id: userId,
-    });
+    const { data: insertedMsg } = await admin
+      .from('crm_ticket_messages')
+      .insert({
+        ticket_id: ticketId,
+        direction: 'inbound',
+        body: bodyHtml,
+        body_preview: snippet,
+        from_name: fromName,
+        from_email: fromEmail,
+        graph_message_id: graphMessageId,
+        sent_at: receivedAt,
+        mailbox_user_id: userId,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (m.hasAttachments) {
+      try {
+        await saveAttachments(
+          admin,
+          accessToken,
+          graphMessageId,
+          ticketId!,
+          insertedMsg?.id ?? null,
+        );
+      } catch (e) {
+        console.error('Attachment sync failed', e);
+      }
+    }
+
 
     // Automatic holding reply for every newly imported external message in the
     // generic orders inbox, including follow-ups in an existing conversation.
