@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     const ticketId: string | undefined = body?.ticketId;
     const replyHtml: string | undefined = body?.body;
-    if (!ticketId || !replyHtml || typeof replyHtml !== 'string') {
+    if (!ticketId || !replyHtml || typeof replyHtml !== 'string' || replyHtml.length > 100_000) {
       return json({ error: 'ticketId and body are required' }, 400);
     }
 
@@ -93,6 +93,17 @@ Deno.serve(async (req) => {
       .single();
     if (ticketErr || !ticket) return json({ error: 'Ticket not found' }, 404);
 
+    const { data: latestInbound } = await supabase
+      .from('crm_ticket_messages')
+      .select('graph_message_id')
+      .eq('ticket_id', ticketId)
+      .eq('direction', 'inbound')
+      .not('graph_message_id', 'is', null)
+      .order('sent_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const replyMessageId = latestInbound?.graph_message_id ?? ticket.graph_message_id;
+
     let graphSent = false;
     let graphError: string | null = null;
     let fromEmail = 'orders@clewsrecycling.co.uk';
@@ -104,23 +115,32 @@ Deno.serve(async (req) => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (conn && ticket.graph_message_id) {
+    if (conn) {
       try {
         const accessToken = await ensureAccessToken(supabase, conn);
         fromEmail = conn.ms_email;
-        const res = await fetch(
-          `https://graph.microsoft.com/v1.0/me/messages/${ticket.graph_message_id}/reply`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: { body: { contentType: 'HTML', content: replyHtml } },
-            }),
+        const canReplyInThread = conn.user_id === ticket.mailbox_user_id && replyMessageId;
+        const graphUrl = canReplyInThread
+          ? `https://graph.microsoft.com/v1.0/me/messages/${replyMessageId}/reply`
+          : 'https://graph.microsoft.com/v1.0/me/sendMail';
+        const graphBody = canReplyInThread
+          ? { message: { body: { contentType: 'HTML', content: replyHtml } } }
+          : {
+              message: {
+                subject: /^re:/i.test(ticket.subject ?? '') ? ticket.subject : `Re: ${ticket.subject ?? ''}`,
+                body: { contentType: 'HTML', content: replyHtml },
+                toRecipients: [{ emailAddress: { address: ticket.sender_email } }],
+              },
+              saveToSentItems: true,
+            };
+        const res = await fetch(graphUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
           },
-        );
+          body: JSON.stringify(graphBody),
+        });
         if (res.ok) {
           graphSent = true;
         } else {
@@ -133,9 +153,9 @@ Deno.serve(async (req) => {
       // Fallback: shared orders@ mailbox via the Lovable connector.
       const lovableKey = Deno.env.get('LOVABLE_API_KEY');
       const connectionKey = Deno.env.get('MICROSOFT_OUTLOOK_API_KEY');
-      if (lovableKey && connectionKey && ticket.graph_message_id) {
+      if (lovableKey && connectionKey && replyMessageId) {
         const res = await fetch(
-          `${GATEWAY_URL}/me/messages/${ticket.graph_message_id}/reply`,
+          `${GATEWAY_URL}/me/messages/${replyMessageId}/reply`,
           {
             method: 'POST',
             headers: {
@@ -158,7 +178,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Record the outbound message regardless, so the conversation stays complete.
+    if (!graphSent) {
+      return json({ error: graphError ?? 'The reply could not be sent.' }, 502);
+    }
+
+    // Record only successfully sent messages so the conversation remains accurate.
     await supabase.from('crm_ticket_messages').insert({
       ticket_id: ticketId,
       direction: 'outbound',

@@ -269,12 +269,15 @@ export default function CRMPage() {
       const { data, error } = await supabase.functions.invoke("crm-send-reply", {
         body: { ticketId: selected.id, body: html },
       });
-      if (error) throw error;
+      if (error) {
+        const details = await error.context?.text?.().catch(() => "");
+        throw new Error(details || error.message);
+      }
       toast({
-        title: data?.sent ? "Reply sent" : "Reply saved",
-        description: data?.sent
-          ? "Your reply was sent from orders@clewsrecycling.co.uk."
-          : data?.error ?? "Saved to the conversation.",
+        title: "Reply sent",
+        description: data?.from
+          ? `Your reply was sent from ${data.from}.`
+          : "Your reply was sent.",
       });
       setReply("");
       const { data: msgs } = await supabase
