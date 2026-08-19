@@ -173,7 +173,6 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
   const autoReplyCutoff = Date.now() - 2 * 60 * 60 * 1000;
 
   for (const m of messages) {
-    let isNewTicket = false;
     const conversationId: string | null = m.conversationId ?? null;
 
     const graphMessageId: string = m.id;
@@ -233,7 +232,6 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         .single();
       if (ticketErr) continue;
       ticketId = newTicket.id;
-      isNewTicket = true;
     }
 
     await admin.from('crm_ticket_messages').insert({
@@ -248,9 +246,9 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
       mailbox_user_id: userId,
     });
 
-    // Automatic holding reply for the generic orders inbox.
+    // Automatic holding reply for every newly imported external message in the
+    // generic orders inbox, including follow-ups in an existing conversation.
     if (
-      isNewTicket &&
       isOrdersInbox &&
       fromEmail &&
       !isInternal(fromEmail) &&
