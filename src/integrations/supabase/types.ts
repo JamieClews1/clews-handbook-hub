@@ -1135,6 +1135,30 @@ export type Database = {
           },
         ]
       }
+      crm_auto_reply_rules: {
+        Row: {
+          created_at: string
+          exclude_patterns: string[]
+          exclude_website_enquiries: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exclude_patterns?: string[]
+          exclude_website_enquiries?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exclude_patterns?: string[]
+          exclude_website_enquiries?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_email_templates: {
         Row: {
           body: string | null
