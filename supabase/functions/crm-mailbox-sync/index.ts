@@ -107,10 +107,10 @@ async function sendAutoReply(
 ): Promise<string | null> {
   const { data: template } = await admin
     .from('email_templates')
-    .select('body_html')
+    .select('body_html, is_active')
     .eq('template_key', 'orders_auto_reply')
     .maybeSingle();
-  if (!template?.body_html) return null;
+  if (!template?.body_html || template.is_active === false) return null;
 
   const { html: windows, vars } = await bookingWindowsHtml(admin);
 
