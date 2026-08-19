@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { HRContactSettings } from "@/components/HRContactSettings";
 import { EmailTemplateSettings } from "@/components/EmailTemplateSettings";
+import { AutoReplyExclusionSettings } from "@/components/AutoReplyExclusionSettings";
+
 import { SectionVisibilitySettings } from "@/components/SectionVisibilitySettings";
 import { BusinessProfileSettings } from "@/components/BusinessProfileSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
