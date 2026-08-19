@@ -1338,6 +1338,60 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_ticket_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          graph_attachment_id: string | null
+          id: string
+          message_id: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          graph_attachment_id?: string | null
+          id?: string
+          message_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          graph_attachment_id?: string | null
+          id?: string
+          message_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_ticket_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "crm_ticket_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_ticket_messages: {
         Row: {
           body: string | null
@@ -1404,48 +1458,66 @@ export type Database = {
       crm_tickets: {
         Row: {
           assigned_to: string | null
+          category: string | null
           created_at: string
+          customer_id: string | null
+          due_at: string | null
           graph_conversation_id: string | null
           graph_message_id: string | null
           id: string
           is_read: boolean
           last_message_at: string
           mailbox_user_id: string | null
+          priority: string
           sender_email: string | null
           sender_name: string | null
+          site_id: string | null
           snippet: string | null
+          snoozed_until: string | null
           status: string
           subject: string | null
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
+          category?: string | null
           created_at?: string
+          customer_id?: string | null
+          due_at?: string | null
           graph_conversation_id?: string | null
           graph_message_id?: string | null
           id?: string
           is_read?: boolean
           last_message_at?: string
           mailbox_user_id?: string | null
+          priority?: string
           sender_email?: string | null
           sender_name?: string | null
+          site_id?: string | null
           snippet?: string | null
+          snoozed_until?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
+          category?: string | null
           created_at?: string
+          customer_id?: string | null
+          due_at?: string | null
           graph_conversation_id?: string | null
           graph_message_id?: string | null
           id?: string
           is_read?: boolean
           last_message_at?: string
           mailbox_user_id?: string | null
+          priority?: string
           sender_email?: string | null
           sender_name?: string | null
+          site_id?: string | null
           snippet?: string | null
+          snoozed_until?: string | null
           status?: string
           subject?: string | null
           updated_at?: string
@@ -1456,6 +1528,20 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "crm_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tickets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tickets_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
             referencedColumns: ["id"]
           },
         ]
@@ -7543,6 +7629,7 @@ export type Database = {
         Args: { _job_customer: string; _job_site: string; _user_id: string }
         Returns: boolean
       }
+      crm_match_customer_by_email: { Args: { _email: string }; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
       get_customer_activity_summary: {
         Args: never
