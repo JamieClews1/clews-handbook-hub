@@ -51,6 +51,99 @@ async function ensureAccessToken(admin: any, conn: any): Promise<string> {
   return accessToken;
 }
 
+const WEIGHT_CHECKS_URL = 'https://portal.clewsrecycling.co.uk/weightchecks';
+
+function isInternal(email: string): boolean {
+  const e = email.toLowerCase();
+  return (
+    e.endsWith('@clewsrecycling.co.uk') ||
+    e.includes('noreply') ||
+    e.startsWith('postmaster@') ||
+    e.startsWith('mailer-daemon@')
+  );
+}
+
+// Builds the "taking bookings for" block from the live Route One booking windows.
+async function bookingWindowsHtml(admin: any) {
+  const { data } = await admin
+    .from('route_one_booking_windows')
+    .select('zone_label, roro_day, skip_day, note, sort_order')
+    .order('sort_order');
+  const rows: any[] = data ?? [];
+  const vars: Record<string, string> = {};
+  const line = (label: string, day: string) =>
+    `<li style="margin:2px 0;">${label}: <strong>${day || 'TBC'}</strong></li>`;
+
+  const roro = rows
+    .map((r) => line(r.zone_label, r.roro_day))
+    .join('');
+  const skip = rows.map((r) => line(r.zone_label, r.skip_day)).join('');
+
+  for (const r of rows) {
+    const key = String(r.zone_label ?? '').replace(/[^0-9]/g, '');
+    vars[`roroZone${key}`] = r.roro_day || 'TBC';
+    vars[`skipZone${key}`] = r.skip_day || 'TBC';
+  }
+  const notes = rows
+    .filter((r) => r.note)
+    .map((r) => `<p style="margin:4px 0; color:#6b7280;">${r.zone_label}: ${r.note}</p>`)
+    .join('');
+
+  const html =
+    `<p style="margin:6px 0;"><strong>RoRos:</strong></p><ul style="margin:0 0 10px 18px; padding:0;">${roro}</ul>` +
+    `<p style="margin:6px 0;"><strong>Skips:</strong></p><ul style="margin:0 0 10px 18px; padding:0;">${skip}</ul>` +
+    notes;
+
+  return { html, vars };
+}
+
+// Sends the configurable holding reply via Graph. Returns the HTML sent, or null.
+async function sendAutoReply(
+  admin: any,
+  accessToken: string,
+  graphMessageId: string,
+  subject: string,
+  fromName: string,
+): Promise<string | null> {
+  const { data: template } = await admin
+    .from('email_templates')
+    .select('body_html')
+    .eq('template_key', 'orders_auto_reply')
+    .maybeSingle();
+  if (!template?.body_html) return null;
+
+  const { html: windows, vars } = await bookingWindowsHtml(admin);
+
+  let body: string = template.body_html
+    .replace(/\{\{bookingWindows\}\}/g, windows)
+    .replace(/\{\{weightChecksUrl\}\}/g, WEIGHT_CHECKS_URL)
+    .replace(/\{\{subject\}\}/g, subject ?? '')
+    .replace(/\{\{senderName\}\}/g, fromName ?? '');
+  for (const [k, v] of Object.entries(vars)) {
+    body = body.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
+  }
+  // Any remaining zone placeholders fall back to TBC.
+  body = body.replace(/\{\{(roro|skip)Zone[0-9]*\}\}/g, 'TBC');
+
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/me/messages/${graphMessageId}/reply`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ comment: body }),
+    },
+  );
+  if (!res.ok) {
+    console.error('Graph auto-reply failed', res.status, await res.text());
+    return null;
+  }
+  return body;
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
