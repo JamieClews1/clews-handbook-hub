@@ -67,6 +67,13 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("template_key", "rebate_notification")
       .single();
 
+    if (templateData && templateData.is_active === false) {
+      return new Response(
+        JSON.stringify({ success: false, skipped: true, reason: "Template disabled" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const htmlBody = body.replace(/\n/g, "<br>");
 
     // Use template from DB or fall back to defaults
