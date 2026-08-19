@@ -29,7 +29,9 @@ import {
   AlertTriangle,
   Settings,
   Pencil,
+  CalendarClock,
   Smartphone,
+
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
@@ -38,6 +40,8 @@ import { DriverAppManagement } from "@/components/route-one/DriverAppManagement"
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
+import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
+
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
@@ -142,7 +146,7 @@ const RouteOnePage = () => {
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map">("day");
+  const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
   const [newDriverOpen, setNewDriverOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
