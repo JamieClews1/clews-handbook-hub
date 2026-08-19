@@ -97,6 +97,20 @@ export const StockCheckSettings = () => {
     }
   };
 
+  const updateType = async (id: string, patch: Partial<ContainerType>) => {
+    const { error } = await supabase
+      .from("stock_check_container_types")
+      .update(patch as any)
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    setContainerTypes((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    toast({ title: "Updated", description: "Container type saved." });
+  };
+
   const updateKeywords = async (id: string, keywords: string) => {
     const keywordArray = keywords.split(",").map((k) => k.trim()).filter(Boolean);
     const { error } = await supabase
@@ -113,6 +127,7 @@ export const StockCheckSettings = () => {
       toast({ title: "Updated", description: "Keywords saved." });
     }
   };
+
 
   const updateDefaultRunner = async (id: string, value: number) => {
     setContainerTypes((prev) =>
@@ -183,11 +198,28 @@ export const StockCheckSettings = () => {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">{type.name}</span>
-                  <span className="text-xs text-muted-foreground capitalize bg-muted px-2 py-0.5 rounded">
-                    {type.category}
-                  </span>
+                  <Input
+                    className="h-8 w-40 font-medium"
+                    defaultValue={type.name}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v && v !== type.name) updateType(type.id, { name: v });
+                    }}
+                  />
+                  <Select
+                    value={type.category}
+                    onValueChange={(v) => updateType(type.id, { category: v })}
+                  >
+                    <SelectTrigger className="h-8 w-24 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="skip">Skip</SelectItem>
+                      <SelectItem value="roro">RoRo</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <KeywordEditor
                   keywords={type.data_hub_keywords}
                   onSave={(kw) => updateKeywords(type.id, kw)}
