@@ -767,7 +767,12 @@ const RouteOnePage = () => {
       </Dialog>
 
       {/* Live Map View */}
-      {viewMode === "map" ? (
+      {viewMode === "bookings" ? (
+        <div className="flex-1 overflow-auto">
+          <BookingWindowsPanel />
+        </div>
+      ) : viewMode === "map" ? (
+
         <div className="flex-1 overflow-auto p-4">
           <DriverTrackingMap />
         </div>
