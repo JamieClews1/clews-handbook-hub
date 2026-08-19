@@ -144,6 +144,148 @@ async function sendAutoReply(
 }
 
 
+// Syncs a single connected mailbox. Returns the number of new messages imported.
+async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; error?: string; reauth?: boolean }> {
+  const userId = conn.user_id;
+  let accessToken: string;
+  try {
+    accessToken = await ensureAccessToken(admin, conn);
+  } catch (e) {
+    return { synced: 0, error: String(e), reauth: true };
+  }
+
+  const select =
+    'id,conversationId,subject,from,bodyPreview,body,receivedDateTime,isRead';
+  const url =
+    `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=40&$orderby=receivedDateTime desc&$select=${select}`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    return { synced: 0, error: `Graph error ${res.status}: ${await res.text()}` };
+  }
+
+  const data = await res.json();
+  const messages: any[] = data.value ?? [];
+  let synced = 0;
+
+  const isOrdersInbox = (conn.ms_email ?? '').toLowerCase().startsWith('orders@');
+  // Never auto-reply to historic mail pulled in on a first sync.
+  const autoReplyCutoff = Date.now() - 2 * 60 * 60 * 1000;
+
+  for (const m of messages) {
+    let isNewTicket = false;
+    const conversationId: string | null = m.conversationId ?? null;
+
+    const graphMessageId: string = m.id;
+    const subject: string = m.subject ?? '(no subject)';
+    const fromName: string = m.from?.emailAddress?.name ?? '';
+    const fromEmail: string = m.from?.emailAddress?.address ?? '';
+    const snippet: string = m.bodyPreview ?? '';
+    const bodyHtml: string = m.body?.content ?? snippet;
+    const receivedAt: string = m.receivedDateTime ?? new Date().toISOString();
+
+    const { data: existingMsg } = await admin
+      .from('crm_ticket_messages')
+      .select('id')
+      .eq('graph_message_id', graphMessageId)
+      .eq('mailbox_user_id', userId)
+      .maybeSingle();
+    if (existingMsg) continue;
+
+    let ticketId: string | null = null;
+    if (conversationId) {
+      const { data: existingTicket } = await admin
+        .from('crm_tickets')
+        .select('id')
+        .eq('graph_conversation_id', conversationId)
+        .eq('mailbox_user_id', userId)
+        .maybeSingle();
+      ticketId = existingTicket?.id ?? null;
+    }
+
+    if (ticketId) {
+      await admin
+        .from('crm_tickets')
+        .update({
+          snippet,
+          sender_name: fromName,
+          sender_email: fromEmail,
+          is_read: false,
+          last_message_at: receivedAt,
+        })
+        .eq('id', ticketId);
+    } else {
+      const { data: newTicket, error: ticketErr } = await admin
+        .from('crm_tickets')
+        .insert({
+          graph_conversation_id: conversationId,
+          graph_message_id: graphMessageId,
+          subject,
+          sender_name: fromName,
+          sender_email: fromEmail,
+          snippet,
+          status: 'new',
+          is_read: false,
+          last_message_at: receivedAt,
+          mailbox_user_id: userId,
+        })
+        .select('id')
+        .single();
+      if (ticketErr) continue;
+      ticketId = newTicket.id;
+      isNewTicket = true;
+    }
+
+    await admin.from('crm_ticket_messages').insert({
+      ticket_id: ticketId,
+      direction: 'inbound',
+      body: bodyHtml,
+      body_preview: snippet,
+      from_name: fromName,
+      from_email: fromEmail,
+      graph_message_id: graphMessageId,
+      sent_at: receivedAt,
+      mailbox_user_id: userId,
+    });
+
+    // Automatic holding reply for the generic orders inbox.
+    if (
+      isNewTicket &&
+      isOrdersInbox &&
+      fromEmail &&
+      !isInternal(fromEmail) &&
+      new Date(receivedAt).getTime() >= autoReplyCutoff
+    ) {
+      try {
+        const sent = await sendAutoReply(admin, accessToken, graphMessageId, subject, fromName);
+        if (sent) {
+          await admin.from('crm_ticket_messages').insert({
+            ticket_id: ticketId,
+            direction: 'outbound',
+            body: sent,
+            body_preview: 'Automatic holding reply sent',
+            from_name: 'Clews Recycling',
+            from_email: conn.ms_email,
+            sent_at: new Date().toISOString(),
+            mailbox_user_id: userId,
+          });
+        }
+      } catch (e) {
+        console.error('Auto-reply failed', e);
+      }
+    }
+
+    synced++;
+  }
+
+  await admin
+    .from('crm_mailbox_connections')
+    .update({ last_synced_at: new Date().toISOString() })
+    .eq('user_id', userId);
+
+  return { synced };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -156,6 +298,23 @@ Deno.serve(async (req) => {
     });
 
   try {
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    // Scheduled mode: poll every connected mailbox (called by pg_cron).
+    const cronSecret = req.headers.get('x-cron-secret');
+    if (cronSecret && cronSecret === Deno.env.get('CRM_SYNC_CRON_SECRET')) {
+      const { data: conns } = await admin.from('crm_mailbox_connections').select('*');
+      const results: any[] = [];
+      for (const c of conns ?? []) {
+        const r = await syncMailbox(admin, c);
+        results.push({ email: c.ms_email, ...r });
+      }
+      return json({ cron: true, mailboxes: results });
+    }
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return json({ error: 'Unauthorized' }, 401);
 
@@ -166,165 +325,19 @@ Deno.serve(async (req) => {
     );
     const { data: userData, error: userErr } = await authedClient.auth.getUser();
     if (userErr || !userData.user) return json({ error: 'Unauthorized' }, 401);
-    const userId = userData.user.id;
-
-    const admin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
 
     const { data: conn } = await admin
       .from('crm_mailbox_connections')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', userData.user.id)
       .maybeSingle();
 
     if (!conn) {
       return json({ connected: false, synced: 0, message: 'No mailbox connected.' });
     }
 
-    let accessToken: string;
-    try {
-      accessToken = await ensureAccessToken(admin, conn);
-    } catch (e) {
-      return json({ connected: true, synced: 0, error: String(e), reauth: true }, 200);
-    }
-
-    const select =
-      'id,conversationId,subject,from,bodyPreview,body,receivedDateTime,isRead';
-    const url =
-      `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=40&$orderby=receivedDateTime desc&$select=${select}`;
-
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) {
-      return json(
-        { connected: true, synced: 0, error: `Graph error ${res.status}: ${await res.text()}` },
-        200,
-      );
-    }
-
-    const data = await res.json();
-    const messages: any[] = data.value ?? [];
-    let synced = 0;
-
-    const isOrdersInbox = (conn.ms_email ?? '').toLowerCase().startsWith('orders@');
-
-    for (const m of messages) {
-      let isNewTicket = false;
-      const conversationId: string | null = m.conversationId ?? null;
-
-      const graphMessageId: string = m.id;
-      const subject: string = m.subject ?? '(no subject)';
-      const fromName: string = m.from?.emailAddress?.name ?? '';
-      const fromEmail: string = m.from?.emailAddress?.address ?? '';
-      const snippet: string = m.bodyPreview ?? '';
-      const bodyHtml: string = m.body?.content ?? snippet;
-      const receivedAt: string = m.receivedDateTime ?? new Date().toISOString();
-
-      // Skip messages already imported for this mailbox.
-      const { data: existingMsg } = await admin
-        .from('crm_ticket_messages')
-        .select('id')
-        .eq('graph_message_id', graphMessageId)
-        .eq('mailbox_user_id', userId)
-        .maybeSingle();
-      if (existingMsg) continue;
-
-      let ticketId: string | null = null;
-      if (conversationId) {
-        const { data: existingTicket } = await admin
-          .from('crm_tickets')
-          .select('id')
-          .eq('graph_conversation_id', conversationId)
-          .eq('mailbox_user_id', userId)
-          .maybeSingle();
-        ticketId = existingTicket?.id ?? null;
-      }
-
-      if (ticketId) {
-        await admin
-          .from('crm_tickets')
-          .update({
-            snippet,
-            sender_name: fromName,
-            sender_email: fromEmail,
-            is_read: false,
-            last_message_at: receivedAt,
-          })
-          .eq('id', ticketId);
-      } else {
-        const { data: newTicket, error: ticketErr } = await admin
-          .from('crm_tickets')
-          .insert({
-            graph_conversation_id: conversationId,
-            graph_message_id: graphMessageId,
-            subject,
-            sender_name: fromName,
-            sender_email: fromEmail,
-            snippet,
-            status: 'new',
-            is_read: false,
-            last_message_at: receivedAt,
-            mailbox_user_id: userId,
-          })
-          .select('id')
-          .single();
-        if (ticketErr) continue;
-        ticketId = newTicket.id;
-        isNewTicket = true;
-      }
-
-      await admin.from('crm_ticket_messages').insert({
-        ticket_id: ticketId,
-        direction: 'inbound',
-        body: bodyHtml,
-        body_preview: snippet,
-        from_name: fromName,
-        from_email: fromEmail,
-        graph_message_id: graphMessageId,
-        sent_at: receivedAt,
-        mailbox_user_id: userId,
-      });
-
-      // Automatic holding reply for the generic orders inbox.
-      if (isNewTicket && isOrdersInbox && fromEmail && !isInternal(fromEmail)) {
-        try {
-          const sent = await sendAutoReply(
-            admin,
-            accessToken,
-            graphMessageId,
-            subject,
-            fromName,
-          );
-          if (sent) {
-            await admin.from('crm_ticket_messages').insert({
-              ticket_id: ticketId,
-              direction: 'outbound',
-              body: sent,
-              body_preview: 'Automatic holding reply sent',
-              from_name: 'Clews Recycling',
-              from_email: conn.ms_email,
-              sent_at: new Date().toISOString(),
-              mailbox_user_id: userId,
-            });
-          }
-        } catch (e) {
-          console.error('Auto-reply failed', e);
-        }
-      }
-
-      synced++;
-    }
-
-
-    await admin
-      .from('crm_mailbox_connections')
-      .update({ last_synced_at: new Date().toISOString() })
-      .eq('user_id', userId);
-
-    return json({ connected: true, synced, email: conn.ms_email });
+    const result = await syncMailbox(admin, conn);
+    return json({ connected: true, email: conn.ms_email, ...result });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
