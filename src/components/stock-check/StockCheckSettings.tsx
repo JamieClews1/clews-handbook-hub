@@ -97,6 +97,20 @@ export const StockCheckSettings = () => {
     }
   };
 
+  const updateType = async (id: string, patch: Partial<ContainerType>) => {
+    const { error } = await supabase
+      .from("stock_check_container_types")
+      .update(patch as any)
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    setContainerTypes((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    toast({ title: "Updated", description: "Container type saved." });
+  };
+
   const updateKeywords = async (id: string, keywords: string) => {
     const keywordArray = keywords.split(",").map((k) => k.trim()).filter(Boolean);
     const { error } = await supabase
@@ -113,6 +127,7 @@ export const StockCheckSettings = () => {
       toast({ title: "Updated", description: "Keywords saved." });
     }
   };
+
 
   const updateDefaultRunner = async (id: string, value: number) => {
     setContainerTypes((prev) =>
