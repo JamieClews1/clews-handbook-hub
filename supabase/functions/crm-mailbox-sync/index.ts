@@ -339,6 +339,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
       isOrdersInbox &&
       fromEmail &&
       !isInternal(fromEmail) &&
+      !isWebsiteEnquiry(fromEmail, subject, bodyHtml ?? '') &&
       new Date(receivedAt).getTime() >= autoReplyCutoff
     ) {
       try {
