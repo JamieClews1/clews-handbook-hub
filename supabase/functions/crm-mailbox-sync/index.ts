@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
           .single();
         if (ticketErr) continue;
         ticketId = newTicket.id;
+        isNewTicket = true;
       }
 
       await admin.from('crm_ticket_messages').insert({
@@ -190,8 +191,36 @@ Deno.serve(async (req) => {
         mailbox_user_id: userId,
       });
 
+      // Automatic holding reply for the generic orders inbox.
+      if (isNewTicket && isOrdersInbox && fromEmail && !isInternal(fromEmail)) {
+        try {
+          const sent = await sendAutoReply(
+            admin,
+            accessToken,
+            graphMessageId,
+            subject,
+            fromName,
+          );
+          if (sent) {
+            await admin.from('crm_ticket_messages').insert({
+              ticket_id: ticketId,
+              direction: 'outbound',
+              body: sent,
+              body_preview: 'Automatic holding reply sent',
+              from_name: 'Clews Recycling',
+              from_email: conn.ms_email,
+              sent_at: new Date().toISOString(),
+              mailbox_user_id: userId,
+            });
+          }
+        } catch (e) {
+          console.error('Auto-reply failed', e);
+        }
+      }
+
       synced++;
     }
+
 
     await admin
       .from('crm_mailbox_connections')
