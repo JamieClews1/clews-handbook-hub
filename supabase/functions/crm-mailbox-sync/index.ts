@@ -143,6 +143,46 @@ async function sendAutoReply(
   return body;
 }
 
+// Saves Outlook attachments for a message into storage + crm_ticket_attachments.
+async function saveAttachments(
+  admin: any,
+  accessToken: string,
+  graphMessageId: string,
+  ticketId: string,
+  messageRowId: string | null,
+) {
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/me/messages/${graphMessageId}/attachments`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!res.ok) {
+    console.error('Attachment fetch failed', res.status, await res.text());
+    return;
+  }
+  const list: any[] = (await res.json()).value ?? [];
+  for (const att of list) {
+    if (att['@odata.type'] !== '#microsoft.graph.fileAttachment' || !att.contentBytes) continue;
+    const bytes = Uint8Array.from(atob(att.contentBytes), (c) => c.charCodeAt(0));
+    const safeName = String(att.name ?? 'attachment').replace(/[^\w.\- ]+/g, '_');
+    const path = `${ticketId}/${att.id}-${safeName}`;
+    const up = await admin.storage
+      .from('crm-attachments')
+      .upload(path, bytes, { contentType: att.contentType ?? 'application/octet-stream', upsert: true });
+    if (up.error) {
+      console.error('Attachment upload failed', up.error.message);
+      continue;
+    }
+    await admin.from('crm_ticket_attachments').insert({
+      ticket_id: ticketId,
+      message_id: messageRowId,
+      graph_attachment_id: att.id,
+      file_name: att.name ?? safeName,
+      content_type: att.contentType ?? null,
+      size_bytes: att.size ?? null,
+      storage_path: path,
+    });
+  }
+}
 
 // Syncs a single connected mailbox. Returns the number of new messages imported.
 async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; error?: string; reauth?: boolean }> {
@@ -155,7 +195,8 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
   }
 
   const select =
-    'id,conversationId,subject,from,bodyPreview,body,receivedDateTime,isRead';
+    'id,conversationId,subject,from,bodyPreview,body,receivedDateTime,isRead,hasAttachments';
+
   const url =
     `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=40&$orderby=receivedDateTime desc&$select=${select}`;
 
