@@ -13,6 +13,17 @@ const SCOPES = [
   'https://graph.microsoft.com/User.Read',
 ].join(' ');
 
+function newReplyMessage(ticket: any, replyHtml: string) {
+  return {
+    message: {
+      subject: /^re:/i.test(ticket.subject ?? '') ? ticket.subject : `Re: ${ticket.subject ?? ''}`,
+      body: { contentType: 'HTML', content: replyHtml },
+      toRecipients: [{ emailAddress: { address: ticket.sender_email } }],
+    },
+    saveToSentItems: true,
+  };
+}
+
 async function ensureAccessToken(admin: any, conn: any): Promise<string> {
   const expiresAt = new Date(conn.token_expires_at).getTime();
   if (expiresAt - Date.now() > 60_000) return conn.access_token;
@@ -125,15 +136,8 @@ Deno.serve(async (req) => {
           : 'https://graph.microsoft.com/v1.0/me/sendMail';
         const graphBody = canReplyInThread
           ? { message: { body: { contentType: 'HTML', content: replyHtml } } }
-          : {
-              message: {
-                subject: /^re:/i.test(ticket.subject ?? '') ? ticket.subject : `Re: ${ticket.subject ?? ''}`,
-                body: { contentType: 'HTML', content: replyHtml },
-                toRecipients: [{ emailAddress: { address: ticket.sender_email } }],
-              },
-              saveToSentItems: true,
-            };
-        const res = await fetch(graphUrl, {
+          : newReplyMessage(ticket, replyHtml);
+        let res = await fetch(graphUrl, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -141,6 +145,20 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify(graphBody),
         });
+
+        // Graph message IDs are mailbox-specific and can become stale after a
+        // move/delete. If the threaded reply target is unavailable, send a new
+        // Re: message from the same mailbox instead of failing the CRM reply.
+        if (!res.ok && canReplyInThread && res.status === 404) {
+          res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newReplyMessage(ticket, replyHtml)),
+          });
+        }
         if (res.ok) {
           graphSent = true;
         } else {
@@ -154,7 +172,7 @@ Deno.serve(async (req) => {
       const lovableKey = Deno.env.get('LOVABLE_API_KEY');
       const connectionKey = Deno.env.get('MICROSOFT_OUTLOOK_API_KEY');
       if (lovableKey && connectionKey && replyMessageId) {
-        const res = await fetch(
+        let res = await fetch(
           `${GATEWAY_URL}/me/messages/${replyMessageId}/reply`,
           {
             method: 'POST',
@@ -168,6 +186,18 @@ Deno.serve(async (req) => {
             }),
           },
         );
+
+        if (!res.ok && res.status === 404) {
+          res = await fetch(`${GATEWAY_URL}/me/sendMail`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${lovableKey}`,
+              'X-Connection-Api-Key': connectionKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newReplyMessage(ticket, replyHtml)),
+          });
+        }
         if (res.ok) {
           graphSent = true;
         } else {
