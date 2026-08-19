@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, X } from "lucide-react";
 import { InventorySizesSettings } from "./InventorySizesSettings";
 import { InventoryValueSettings } from "./InventoryValueSettings";
+import { EwcReclassSettings } from "./EwcReclassSettings";
 
 
 interface ContainerType {
@@ -266,6 +267,8 @@ export const StockCheckSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      <EwcReclassSettings types={containerTypes} />
 
       {/* Excluded Sites */}
       <Card>

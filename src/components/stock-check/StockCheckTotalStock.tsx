@@ -7,6 +7,7 @@ import { Truck, Container, Warehouse, MapPin, Calendar, Download } from "lucide-
 import { format, startOfMonth, subMonths } from "date-fns";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { categoriseContainer, containerTypeCap } from "@/lib/overRental";
+import { applyEwcReclass, type EwcReclassRule } from "@/lib/stock-check-reclass";
 
 interface ContainerType {
   id: string;
@@ -99,6 +100,7 @@ export const StockCheckTotalStock = () => {
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -112,6 +114,12 @@ export const StockCheckTotalStock = () => {
       ]);
       if (types) setContainerTypes(types as ContainerType[]);
       if (excluded) setExcludedSites(excluded.map((e) => e.site_name));
+
+      const { data: rules } = await supabase
+        .from("stock_check_ewc_reclass_rules")
+        .select("id, from_type_id, to_type_id, ewc_codes, is_active")
+        .eq("is_active", true);
+      setReclassRules((rules ?? []) as EwcReclassRule[]);
 
       const { data: latestCheck } = await supabase
         .from("stock_checks")
@@ -175,13 +183,15 @@ export const StockCheckTotalStock = () => {
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
       const type = bestTypeFor(job.container_type, containerTypes);
       if (!type) continue;
+      const targetId = applyEwcReclass(type.id, job.ewc, reclassRules);
+      const key = targetId in map ? targetId : type.id;
       const mt = (job.movement_type || "").toLowerCase();
       if (mt.includes("exchange") || mt.includes("tip")) continue; // net zero
-      if (mt.includes("collect")) map[type.id] += 1;
-      else if (mt.includes("deliver")) map[type.id] -= 1;
+      if (mt.includes("collect")) map[key] += 1;
+      else if (mt.includes("deliver")) map[key] -= 1;
     }
     return map;
-  }, [containerTypes, latestItems, latestCheckDateOnly, jobs, excludedSites]);
+  }, [containerTypes, latestItems, latestCheckDateOnly, jobs, excludedSites, reclassRules]);
 
   // Out-on-site — reconciled with the Live Jobs dashboard. Each container is first
   // categorised (skip / roro) using the SAME live_jobs_settings keyword logic that
