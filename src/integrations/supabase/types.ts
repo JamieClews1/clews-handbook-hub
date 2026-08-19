@@ -5806,6 +5806,42 @@ export type Database = {
         }
         Relationships: []
       }
+      route_one_booking_windows: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          roro_day: string | null
+          skip_day: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          zone_label: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          roro_day?: string | null
+          skip_day?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          zone_label: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          roro_day?: string | null
+          skip_day?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          zone_label?: string
+        }
+        Relationships: []
+      }
       route_one_container_types: {
         Row: {
           created_at: string
