@@ -879,7 +879,40 @@ export function SiteRebateReportGenerator() {
         }
       }
 
+      // Add zero-rate rows for any material that was weighed on the load reports
+      // but has no rebate line configured (e.g. Paper on Furnolic loads).
+      // These carry no value but MUST still appear so their weight is in the totals.
+      {
+        const configuredNames = new Set(
+          rebateConfigs.map((c) => c.material_name.trim().toLowerCase())
+        );
+        const unconfigured: Record<string, number> = {};
+        for (const [name, tonnes] of Object.entries(lineItemWeights)) {
+          if (name.startsWith("__")) continue;
+          if (typeof tonnes !== "number" || tonnes <= 0) continue;
+          if (configuredNames.has(name.trim().toLowerCase())) continue;
+          unconfigured[name] = (unconfigured[name] ?? 0) + tonnes;
+        }
+        // Include any bespoke/override weight bucketed under an unconfigured material
+        for (const [name, buckets] of Object.entries(overrideWeights)) {
+          if (configuredNames.has(name.trim().toLowerCase())) continue;
+          for (const t of Object.values(buckets)) {
+            if (t > 0) unconfigured[name] = (unconfigured[name] ?? 0) + t;
+          }
+        }
+        for (const [name, tonnes] of Object.entries(unconfigured)) {
+          reportRows.push({
+            material_name: name,
+            weight_tonnes: tonnes,
+            rate_per_tonne: 0,
+            rebate_value: 0,
+            rate_source: "No rebate line (weight only)",
+          });
+        }
+      }
+
       setReportData(reportRows);
+
       setIndividualReports(loadReportsWithItems);
       setPalletWeightKgState(palletWeightKg);
       setReportGenerated(true);
