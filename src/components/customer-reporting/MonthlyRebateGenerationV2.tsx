@@ -562,6 +562,35 @@ export function MonthlyRebateGenerationV2() {
             }
           }
 
+          // Bespoke per-load rates set directly on a load report line item.
+          // These override the customer's standard rate for that load only.
+          {
+            const categoryByName = new Map<string, string>();
+            for (const wt of wasteTypeById.values()) {
+              categoryByName.set(wt.waste_type.trim().toLowerCase(), wt.rebate_category ?? "rebate");
+            }
+            for (const [name, byRate] of Object.entries(bespokeWeights)) {
+              const isCostItem = (categoryByName.get(name.trim().toLowerCase()) ?? "rebate") === "cost";
+              for (const [rateKey, tonnes] of Object.entries(byRate)) {
+                if (tonnes <= 0) continue;
+                const rate = Number(rateKey);
+                let rebate = tonnes * rate;
+                if (isCostItem) rebate = -Math.abs(rebate);
+                loadReportRebate += rebate;
+                loadReportWeight += tonnes;
+                materials.push({
+                  name: `${name} (Load Reports)`,
+                  weight: tonnes,
+                  rate,
+                  rebate,
+                  source: `Bespoke load rate (£${rate}/t)`,
+                });
+              }
+            }
+          }
+
+
+
           // Materials weighed on the loads but with no rebate line configured
           // (e.g. Paper on Furnolic loads) — no value, but the weight must still
           // be included in the totals.
