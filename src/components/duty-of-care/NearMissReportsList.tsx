@@ -341,12 +341,25 @@ const NearMissReportsList = () => {
               </Button>
             </div>
 
-            <div className="bg-muted p-4 rounded-lg text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                Generate a QR code using any free QR code generator with this URL:
+            <div className="bg-muted p-4 rounded-lg text-center space-y-3">
+              <img
+                src="/assets/near-miss-qr.png"
+                alt="QR code for near miss report"
+                className="mx-auto h-48 w-48 rounded-lg border bg-white"
+              />
+              <p className="text-sm text-muted-foreground">
+                Scan this code to open the near miss report form.
               </p>
-              <code className="text-xs bg-background p-2 rounded block break-all">{reportUrl}</code>
+              <a
+                href="/assets/near-miss-qr.png"
+                download="near-miss-qr.png"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+              >
+                <Copy className="h-4 w-4" />
+                Download QR code
+              </a>
             </div>
+
 
             <Button className="w-full" onClick={() => window.open(reportUrl, "_blank")}>
               Open Report Form
