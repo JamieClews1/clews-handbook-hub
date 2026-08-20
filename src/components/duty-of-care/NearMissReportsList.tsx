@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { AlertTriangle, Eye, CheckCircle, Clock, XCircle, QrCode, Copy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { publicUrl } from "@/lib/public-url";
+
 
 interface NearMissReport {
   id: string;
