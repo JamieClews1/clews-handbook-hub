@@ -53,7 +53,8 @@ const NearMissReportsList = () => {
     review_notes: "",
   });
 
-  const reportUrl = `${window.location.origin}/nearmissreport`;
+  const reportUrl = publicUrl("/nearmissreport");
+
 
   const fetchReports = async () => {
     try {
