@@ -548,6 +548,32 @@ export function MonthlyRebateGenerationV2() {
             }
           }
 
+          // Materials weighed on the loads but with no rebate line configured
+          // (e.g. Paper on Furnolic loads) — no value, but the weight must still
+          // be included in the totals.
+          {
+            const configuredNames = new Set(
+              (rebateItems ?? [])
+                .map((it) => wasteTypeById.get(it.rebate_item_id)?.waste_type ?? "")
+                .filter(Boolean)
+                .map((n) => n.trim().toLowerCase())
+            );
+            for (const [name, tonnes] of Object.entries(lineItemWeights)) {
+              if (tonnes <= 0) continue;
+              if (configuredNames.has(name.trim().toLowerCase())) continue;
+              loadReportWeight += tonnes;
+              materials.push({
+                name: `${name} (Load Reports)`,
+                weight: tonnes,
+                rate: 0,
+                rebate: 0,
+                source: "No rebate line (weight only)",
+              });
+            }
+          }
+
+
+
           // Skip / RoRo rebates — SITE level only (matched on Data Hub sites).
           const siteDataHubMappings = [
             site.data_hub_site,
