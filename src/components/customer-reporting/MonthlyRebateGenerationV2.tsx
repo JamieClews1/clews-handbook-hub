@@ -452,11 +452,13 @@ export function MonthlyRebateGenerationV2() {
           const perReport = new Map<string, { weight: number; wasteTypes: Set<string>; items: LoadLineItem[]; pallets: number }>();
 
           let lineItemWeights: Record<string, number> = {};
+          // Bespoke per-load rates set on the line item: material -> rate -> tonnes
+          const bespokeWeights: Record<string, Record<string, number>> = {};
           let totalPalletWeightTonnes = 0;
           if (loadReportIds.length > 0) {
             const { data: lineItems } = await supabase
               .from("load_line_items")
-              .select("load_report_id, waste_type, total_weight_kg, pallet_count")
+              .select("load_report_id, waste_type, total_weight_kg, pallet_count, rebate_rate_per_tonne")
               .in("load_report_id", loadReportIds);
             for (const item of lineItems ?? []) {
               const wasteType = item.waste_type;
@@ -466,7 +468,18 @@ export function MonthlyRebateGenerationV2() {
               const noPallets = noPalletsByReportId[item.load_report_id] ?? false;
               const palletKg = noPallets ? 0 : palletCount * palletWeightKg;
               const actualKg = Math.max(0, grossKg - palletKg);
-              lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualKg / 1000;
+              const rawBespoke = (item as any).rebate_rate_per_tonne;
+              const bespokeRate =
+                rawBespoke === null || rawBespoke === undefined || Number.isNaN(Number(rawBespoke))
+                  ? null
+                  : Number(rawBespoke);
+              if (bespokeRate != null) {
+                if (!bespokeWeights[wasteType]) bespokeWeights[wasteType] = {};
+                const key = String(bespokeRate);
+                bespokeWeights[wasteType][key] = (bespokeWeights[wasteType][key] ?? 0) + actualKg / 1000;
+              } else {
+                lineItemWeights[wasteType] = (lineItemWeights[wasteType] ?? 0) + actualKg / 1000;
+              }
               totalPalletWeightTonnes += palletKg / 1000;
 
               const agg = perReport.get(item.load_report_id) ?? { weight: 0, wasteTypes: new Set<string>(), items: [], pallets: 0 };
@@ -482,6 +495,7 @@ export function MonthlyRebateGenerationV2() {
               });
               perReport.set(item.load_report_id, agg);
             }
+
             for (const r of loadReports ?? []) {
               const agg = perReport.get(r.id);
               if (!agg) continue;
@@ -547,6 +561,35 @@ export function MonthlyRebateGenerationV2() {
               });
             }
           }
+
+          // Bespoke per-load rates set directly on a load report line item.
+          // These override the customer's standard rate for that load only.
+          {
+            const categoryByName = new Map<string, string>();
+            for (const wt of wasteTypeById.values()) {
+              categoryByName.set(wt.waste_type.trim().toLowerCase(), wt.rebate_category ?? "rebate");
+            }
+            for (const [name, byRate] of Object.entries(bespokeWeights)) {
+              const isCostItem = (categoryByName.get(name.trim().toLowerCase()) ?? "rebate") === "cost";
+              for (const [rateKey, tonnes] of Object.entries(byRate)) {
+                if (tonnes <= 0) continue;
+                const rate = Number(rateKey);
+                let rebate = tonnes * rate;
+                if (isCostItem) rebate = -Math.abs(rebate);
+                loadReportRebate += rebate;
+                loadReportWeight += tonnes;
+                materials.push({
+                  name: `${name} (Load Reports)`,
+                  weight: tonnes,
+                  rate,
+                  rebate,
+                  source: `Bespoke load rate (£${rate}/t)`,
+                });
+              }
+            }
+          }
+
+
 
           // Materials weighed on the loads but with no rebate line configured
           // (e.g. Paper on Furnolic loads) — no value, but the weight must still
