@@ -213,7 +213,8 @@ export function SiteReportGenerator() {
 
       if (error) throw error;
 
-      setJobRecords(jobs ?? []);
+      // Weighbridge tickets tied to a Skiptrak job are duplicates - never show them
+      setJobRecords(dropLinkedMidweighTickets(jobs ?? []));
       setReportGenerated(true);
     } catch (error) {
       console.error("Error generating report:", error);
