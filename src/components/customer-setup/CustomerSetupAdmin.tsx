@@ -39,6 +39,8 @@ type Customer = {
   customer_code: string;
   customer_name: string;
   po_notification_email: string | null;
+  pod_email: string | null;
+  auto_pod_emails_enabled: boolean;
   custom_reporting_periods_enabled: boolean;
   is_broker: boolean;
   midweigh_rebates_enabled: boolean;
@@ -60,6 +62,7 @@ type CustomerSite = {
   data_hub_site_5: string | null;
   broker_subclient: string | null;
   owner_contact_id: string | null;
+  pod_email: string | null;
   is_archived?: boolean | null;
   archived_at?: string | null;
   created_at: string;
@@ -136,7 +139,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", custom_reporting_periods_enabled: false, is_broker: false, midweigh_rebates_enabled: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, is_broker: false, midweigh_rebates_enabled: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -163,6 +166,7 @@ export function CustomerSetupAdmin() {
     data_hub_site_5: "",
     broker_subclient: "",
     owner_contact_id: "",
+    pod_email: "",
     price_set_id: "",
     load_report_type: "",
   });
@@ -402,7 +406,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,custom_reporting_periods_enabled,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -462,7 +466,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,load_report_type,is_archived,archived_at,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -648,6 +652,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_5: "",
       broker_subclient: "",
       owner_contact_id: "",
+      pod_email: "",
       price_set_id: "",
       load_report_type: "",
     });
@@ -670,6 +675,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_5: site.data_hub_site_5 ?? "",
       broker_subclient: (site as any).broker_subclient ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
+      pod_email: site.pod_email ?? "",
       price_set_id: existingPriceSetId,
       load_report_type: (site as any).load_report_type ?? "",
     });
@@ -699,6 +705,7 @@ export function CustomerSetupAdmin() {
         data_hub_site_5: siteForm.data_hub_site_5.trim() || null,
         broker_subclient: siteForm.broker_subclient.trim() || null,
         owner_contact_id: siteForm.owner_contact_id || null,
+        pod_email: siteForm.pod_email.trim() || null,
         load_report_type: siteForm.load_report_type || null,
       };
 
@@ -861,6 +868,8 @@ export function CustomerSetupAdmin() {
       customer_code: customer.customer_code, 
       customer_name: customer.customer_name,
       po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk",
+      pod_email: customer.pod_email || "",
+      auto_pod_emails_enabled: customer.auto_pod_emails_enabled ?? false,
       custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
       is_broker: customer.is_broker ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
@@ -888,6 +897,8 @@ export function CustomerSetupAdmin() {
           customer_code: parsed.data.customer_code, 
           customer_name: parsed.data.customer_name,
           po_notification_email: editCustomerForm.po_notification_email.trim() || null,
+          pod_email: editCustomerForm.pod_email.trim() || null,
+          auto_pod_emails_enabled: editCustomerForm.auto_pod_emails_enabled,
           custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
           is_broker: editCustomerForm.is_broker,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
@@ -1774,6 +1785,32 @@ export function CustomerSetupAdmin() {
               </p>
             </div>
             <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="edit_pod_email">POD Contact Email</Label>
+              <Input
+                id="edit_pod_email"
+                type="email"
+                value={editCustomerForm.pod_email}
+                onChange={(e) => setEditCustomerForm((p) => ({ ...p, pod_email: e.target.value }))}
+                placeholder="pods@customer.co.uk"
+              />
+              <p className="text-xs text-muted-foreground">
+                Default address for proof of delivery documents. Individual sites can override this.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Auto POD sends</Label>
+                <p className="text-xs text-muted-foreground">
+                  Send a daily digest email with all new PODs (attached as PDFs) to the address above.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.auto_pod_emails_enabled}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, auto_pod_emails_enabled: v }))}
+              />
+            </div>
+            <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Custom Reporting Periods</Label>
@@ -1946,6 +1983,20 @@ export function CustomerSetupAdmin() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="site_pod_email">POD email (optional override)</Label>
+              <Input
+                id="site_pod_email"
+                type="email"
+                value={siteForm.pod_email}
+                onChange={(e) => setSiteForm((p) => ({ ...p, pod_email: e.target.value }))}
+                placeholder="Leave blank to use the customer POD email"
+              />
+              <p className="text-xs text-muted-foreground">
+                PODs for this site are emailed here instead of the customer-level POD address.
+              </p>
             </div>
 
             <Separator />

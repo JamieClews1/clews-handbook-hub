@@ -1988,6 +1988,7 @@ export type Database = {
           is_archived: boolean
           load_report_type: string | null
           owner_contact_id: string | null
+          pod_email: string | null
           site_name: string
           updated_at: string
         }
@@ -2006,6 +2007,7 @@ export type Database = {
           is_archived?: boolean
           load_report_type?: string | null
           owner_contact_id?: string | null
+          pod_email?: string | null
           site_name: string
           updated_at?: string
         }
@@ -2024,6 +2026,7 @@ export type Database = {
           is_archived?: boolean
           load_report_type?: string | null
           owner_contact_id?: string | null
+          pod_email?: string | null
           site_name?: string
           updated_at?: string
         }
@@ -2115,6 +2118,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          auto_pod_emails_enabled: boolean
           created_at: string
           custom_reporting_periods_enabled: boolean
           customer_code: string
@@ -2126,9 +2130,11 @@ export type Database = {
           is_container_load_customer: boolean
           midweigh_rebates_enabled: boolean
           po_notification_email: string | null
+          pod_email: string | null
           updated_at: string
         }
         Insert: {
+          auto_pod_emails_enabled?: boolean
           created_at?: string
           custom_reporting_periods_enabled?: boolean
           customer_code: string
@@ -2140,9 +2146,11 @@ export type Database = {
           is_container_load_customer?: boolean
           midweigh_rebates_enabled?: boolean
           po_notification_email?: string | null
+          pod_email?: string | null
           updated_at?: string
         }
         Update: {
+          auto_pod_emails_enabled?: boolean
           created_at?: string
           custom_reporting_periods_enabled?: boolean
           customer_code?: string
@@ -2154,6 +2162,7 @@ export type Database = {
           is_container_load_customer?: boolean
           midweigh_rebates_enabled?: boolean
           po_notification_email?: string | null
+          pod_email?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -4608,6 +4617,56 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: []
+      }
+      pod_email_logs: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          digest_date: string
+          error_message: string | null
+          id: string
+          pod_count: number
+          pod_ids: string[]
+          recipient_email: string
+          site: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          digest_date: string
+          error_message?: string | null
+          id?: string
+          pod_count?: number
+          pod_ids?: string[]
+          recipient_email: string
+          site?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          digest_date?: string
+          error_message?: string | null
+          id?: string
+          pod_count?: number
+          pod_ids?: string[]
+          recipient_email?: string
+          site?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pod_email_logs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pod_source_folders: {
         Row: {
