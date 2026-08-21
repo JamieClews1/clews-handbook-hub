@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { computeThresholdReductions } from "@/lib/rebate-threshold";
+import { isPalletWeightCharge } from "@/lib/rebate-materials";
 
 export type LoadReportCardData = {
   id: string;
@@ -71,10 +72,7 @@ export function LoadReportCards({ reports, rebateConfigs, palletWeightKg = 20, p
 
   // Look up pallet charge rate from rebate configs if not passed
   useEffect(() => {
-    // Check for a "Pallet" or "Pallet Charge" material in the rebate configs
-    const palletConfig = rebateConfigs.find(
-      (c) => c.material_name.toLowerCase().includes("pallet")
-    );
+    const palletConfig = rebateConfigs.find((c) => isPalletWeightCharge(c.material_name));
     if (palletConfig) {
       setFetchedPalletChargeRate(palletConfig.rate_per_tonne);
     }

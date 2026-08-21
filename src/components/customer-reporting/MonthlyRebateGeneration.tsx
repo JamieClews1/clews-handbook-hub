@@ -1,5 +1,6 @@
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
+import { isPalletWeightCharge } from "@/lib/rebate-materials";
  import { Button } from "@/components/ui/button";
  import { Label } from "@/components/ui/label";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -327,7 +328,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
                .single();
 
              const materialName = material?.waste_type ?? "Unknown";
-             const isPalletCharge = materialName.toLowerCase().includes("pallet");
+             const isPalletCharge = isPalletWeightCharge(materialName);
              
              // For pallet charge, use the aggregated pallet weight; for others use line item weight
              const weight = isPalletCharge ? palletWeightTonnes : (lineItemWeights[materialName] ?? 0);
