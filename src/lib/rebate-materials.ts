@@ -30,3 +30,28 @@ export function getMaterialWeight(
   }
   return weight;
 }
+
+/**
+ * Rebate report grouping for a material name. Keep in sync with the category
+ * buckets used by the rebate report builders.
+ */
+export const REBATE_CATEGORY_NAMES = [
+  "Cardboard",
+  "Paper",
+  "Plastics",
+  "Films",
+  "Scrap Metal",
+  "Cans",
+  "Other",
+] as const;
+
+export function rebateCategoryFor(rawName: string): string {
+  const key = (rawName ?? "").toLowerCase();
+  if (/\bcans?\b/.test(key)) return "Cans";
+  if (key.includes("card") || key.includes("cardboard")) return "Cardboard";
+  if (key.includes("paper")) return "Paper";
+  if (key.includes("plastic")) return "Plastics";
+  if (key.includes("film")) return "Films";
+  if (key.includes("scrap") || key.includes("ferrous") || key.includes("metal")) return "Scrap Metal";
+  return "Other";
+}

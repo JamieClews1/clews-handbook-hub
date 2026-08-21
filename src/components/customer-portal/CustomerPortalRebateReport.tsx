@@ -18,7 +18,7 @@ import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
-import { isPalletWeightCharge, getMaterialWeight } from "@/lib/rebate-materials";
+import { isPalletWeightCharge, getMaterialWeight, rebateCategoryFor } from "@/lib/rebate-materials";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { computeThresholdReductions } from "@/lib/rebate-threshold";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
@@ -683,15 +683,8 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
   const combinedTotalRebate = loadReportsTotalRebate + skipRoroTotalRebate;
   const combinedTotalWeight = loadReportsTotalWeight + skipRoroTotalWeight;
 
-  const getRebateCategory = (name: string, fallbackType?: string) => {
-    const key = `${fallbackType ?? ""} ${name}`.toLowerCase();
-    if (key.includes("card") || key.includes("cardboard")) return "Cardboard";
-    if (key.includes("paper")) return "Paper";
-    if (key.includes("plastic")) return "Plastics";
-    if (key.includes("film")) return "Films";
-    if (key.includes("scrap") || key.includes("ferrous") || key.includes("metal")) return "Scrap Metal";
-    return "Other";
-  };
+  const getRebateCategory = (name: string, fallbackType?: string) =>
+    rebateCategoryFor(`${fallbackType ?? ""} ${name}`);
 
   // Build a flat list of every rebate/charge source line, each tagged with its
   // display category.
