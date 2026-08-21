@@ -18,6 +18,7 @@ import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
+import { isPalletWeightCharge, getMaterialWeight } from "@/lib/rebate-materials";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { computeThresholdReductions } from "@/lib/rebate-threshold";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
@@ -594,10 +595,10 @@ export function CustomerPortalRebateReport({ customerId, customerName, accessibl
           rateSource += ` ${config.adjustment > 0 ? "+" : ""}${config.adjustment}`;
         }
 
-        const isPalletCharge = config.material_name.toLowerCase().includes("pallet");
+        const isPalletCharge = isPalletWeightCharge(config.material_name);
         const weight_tonnes = isPalletCharge
           ? (lineItemWeights["__PALLET_WEIGHT__"] ?? 0)
-          : (lineItemWeights[config.material_name] ?? 0);
+          : getMaterialWeight(lineItemWeights, config.material_name, rebateConfigs.map((c) => c.material_name));
 
         const isCostItem = config.rebate_category === "cost";
         const thresholdReductionT = isPalletCharge ? 0 : (thresholdReductionsByMaterial[config.material_name] ?? 0);
