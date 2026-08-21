@@ -718,7 +718,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
               periodEnd: format(dateRange.to, "yyyy-MM-dd"),
               palletChargeRate: summary.siteBreakdowns
                 .flatMap((sb) => sb.materials)
-                .find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
+                .find((m) => isPalletWeightCharge(m.name))?.rate ?? 0,
             }
           : undefined,
       });
