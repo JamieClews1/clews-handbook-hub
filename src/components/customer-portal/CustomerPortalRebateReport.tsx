@@ -18,6 +18,7 @@ import { DateRange } from "react-day-picker";
 import { LoadReportCards, LoadReportCardData } from "@/components/customer-reporting/LoadReportCards";
 import { ReportingPeriodSelector } from "./ReportingPeriodSelector";
 import { SkipRoroRebateTab } from "@/components/customer-reporting/SkipRoroRebateTab";
+import { isPalletWeightCharge, getMaterialWeight } from "@/lib/rebate-materials";
 import { useSkipRoroRebates } from "@/hooks/useSkipRoroRebates";
 import { computeThresholdReductions } from "@/lib/rebate-threshold";
 import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-source";
