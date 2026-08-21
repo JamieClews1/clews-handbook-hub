@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllCustomers } from "@/lib/fetch-all";
+import { dropLinkedMidweighTickets } from "@/lib/job-dedupe";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -138,7 +139,7 @@ export function SiteReportGenerator() {
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source")
+        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source, linked_skip_job")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -213,7 +214,8 @@ export function SiteReportGenerator() {
 
       if (error) throw error;
 
-      setJobRecords(jobs ?? []);
+      // Weighbridge tickets tied to a Skiptrak job are duplicates - never show them
+      setJobRecords(dropLinkedMidweighTickets(jobs ?? []));
       setReportGenerated(true);
     } catch (error) {
       console.error("Error generating report:", error);

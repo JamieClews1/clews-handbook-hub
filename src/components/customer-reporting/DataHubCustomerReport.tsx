@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { dropLinkedMidweighTickets } from "@/lib/job-dedupe";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -127,7 +128,8 @@ export const DataHubCustomerReport = () => {
         }
       }
 
-      return allJobs;
+      // Weighbridge tickets linked to a Skiptrak job are duplicates of the same movement
+      return dropLinkedMidweighTickets(allJobs);
     },
     enabled: !!selectedCustomer,
   });
