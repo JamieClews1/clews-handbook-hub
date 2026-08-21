@@ -2007,10 +2007,16 @@ export function CustomerSetupAdmin() {
                 PODs for this site are emailed here instead of the customer-level POD address.
               </p>
             </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
 
-            <Separator />
-
+            <TabsContent value="rebates" className="mt-4">
+              <ScrollArea className="h-[calc(92vh-260px)] w-full pr-4">
+                <div className="grid gap-4 min-w-0">
+            <div className="grid sm:grid-cols-2 gap-4">
             <div className="grid gap-2">
+
               <Label>Load Report Type</Label>
               <Select
                 value={siteForm.load_report_type}
