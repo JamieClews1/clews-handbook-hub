@@ -1785,6 +1785,32 @@ export function CustomerSetupAdmin() {
               </p>
             </div>
             <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="edit_pod_email">POD Contact Email</Label>
+              <Input
+                id="edit_pod_email"
+                type="email"
+                value={editCustomerForm.pod_email}
+                onChange={(e) => setEditCustomerForm((p) => ({ ...p, pod_email: e.target.value }))}
+                placeholder="pods@customer.co.uk"
+              />
+              <p className="text-xs text-muted-foreground">
+                Default address for proof of delivery documents. Individual sites can override this.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Auto POD sends</Label>
+                <p className="text-xs text-muted-foreground">
+                  Send a daily digest email with all new PODs (attached as PDFs) to the address above.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.auto_pod_emails_enabled}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, auto_pod_emails_enabled: v }))}
+              />
+            </div>
+            <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Custom Reporting Periods</Label>
@@ -1957,6 +1983,20 @@ export function CustomerSetupAdmin() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="site_pod_email">POD email (optional override)</Label>
+              <Input
+                id="site_pod_email"
+                type="email"
+                value={siteForm.pod_email}
+                onChange={(e) => setSiteForm((p) => ({ ...p, pod_email: e.target.value }))}
+                placeholder="Leave blank to use the customer POD email"
+              />
+              <p className="text-xs text-muted-foreground">
+                PODs for this site are emailed here instead of the customer-level POD address.
+              </p>
             </div>
 
             <Separator />
