@@ -127,7 +127,8 @@ export const DataHubCustomerReport = () => {
         }
       }
 
-      return allJobs;
+      // Weighbridge tickets linked to a Skiptrak job are duplicates of the same movement
+      return dropLinkedMidweighTickets(allJobs);
     },
     enabled: !!selectedCustomer,
   });
