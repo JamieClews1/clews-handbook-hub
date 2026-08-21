@@ -32,6 +32,7 @@ import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-s
 import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
 import { RebateReportLockControls } from "./RebateReportLockControls";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
+import { isPalletWeightCharge } from "@/lib/rebate-materials";
 import { AlphabetJumpSelect } from "@/components/ui/alphabet-jump-select";
 
 type Customer = {
@@ -679,7 +680,7 @@ export function SiteRebateReportGenerator() {
           // type, so they flow into the rebate report automatically.
           const priceSetWasteTypes = rebateConfigs
             .map((c) => c.material_name)
-            .filter((n) => n && !n.toLowerCase().includes("pallet"));
+            .filter((n) => n && !isPalletWeightCharge(n));
           const midweighCustomer =
             site?.data_hub_customer ?? selectedCustomer?.data_hub_customer ?? null;
 
@@ -800,7 +801,7 @@ export function SiteRebateReportGenerator() {
         }
 
         // Check if this is the pallet weight charge config - use the aggregated pallet weight
-        const isPalletCharge = config.material_name.toLowerCase().includes("pallet");
+        const isPalletCharge = isPalletWeightCharge(config.material_name);
         const totalPalletWeight = lineItemWeights["__PALLET_WEIGHT__"] ?? 0;
         
         // Get weight: for pallet charge use the aggregated total, otherwise use material weight
@@ -935,10 +936,10 @@ export function SiteRebateReportGenerator() {
   // Total weight = material net weight + pallet weight (to show gross total)
   // This gives the full weight picture: net material weight + pallet weight = gross weight
   const materialNetWeight = reportData
-    .filter((r) => !r.material_name.toLowerCase().includes("pallet"))
+    .filter((r) => !isPalletWeightCharge(r.material_name))
     .reduce((sum, r) => sum + r.weight_tonnes, 0);
   const palletWeight = reportData
-    .filter((r) => r.material_name.toLowerCase().includes("pallet"))
+    .filter((r) => isPalletWeightCharge(r.material_name))
     .reduce((sum, r) => sum + r.weight_tonnes, 0);
   const loadReportsTotalWeight = materialNetWeight + palletWeight;
 
@@ -1278,7 +1279,7 @@ export function SiteRebateReportGenerator() {
               periodStart: format(dateRange.from, "yyyy-MM-dd"),
               periodEnd: format(dateRange.to ?? dateRange.from, "yyyy-MM-dd"),
               palletWeightKg: palletWeightKgState,
-              palletChargeRate: reportData.find((r) => r.material_name.toLowerCase().includes("pallet"))?.rate_per_tonne ?? 0,
+              palletChargeRate: reportData.find((r) => isPalletWeightCharge(r.material_name))?.rate_per_tonne ?? 0,
             }
           : undefined,
       },

@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 import { fetchAllCustomers } from "@/lib/fetch-all";
 import { getCustomerRebateExportBase64, type CustomerExportCategory } from "@/lib/customer-rebate-export";
+import { isPalletWeightCharge } from "@/lib/rebate-materials";
 import {
   fetchTrackingForPeriod,
   upsertTracking,
@@ -522,7 +523,7 @@ export function MonthlyRebateGenerationV2() {
 
 
             const materialName = material?.waste_type ?? "Unknown";
-            const isPalletCharge = materialName.toLowerCase().includes("pallet");
+            const isPalletCharge = isPalletWeightCharge(materialName);
             const weight = isPalletCharge ? palletWeightTonnes : lineItemWeights[materialName] ?? 0;
 
             let rate = 0;
@@ -983,7 +984,7 @@ export function MonthlyRebateGenerationV2() {
           periodStart: format(dateRange.from, "yyyy-MM-dd"),
           periodEnd: format(dateRange.to, "yyyy-MM-dd"),
           palletChargeRate:
-            breakdowns.flatMap((b) => b.materials).find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
+            breakdowns.flatMap((b) => b.materials).find((m) => isPalletWeightCharge(m.name))?.rate ?? 0,
         },
       });
 
@@ -1054,7 +1055,7 @@ export function MonthlyRebateGenerationV2() {
         siteIds: trackSiteId(sb) ? [sb.site.id] : [],
         periodStart: format(dateRange.from, "yyyy-MM-dd"),
         periodEnd: format(dateRange.to, "yyyy-MM-dd"),
-        palletChargeRate: sb.materials.find((m) => m.name.toLowerCase().includes("pallet"))?.rate ?? 0,
+        palletChargeRate: sb.materials.find((m) => isPalletWeightCharge(m.name))?.rate ?? 0,
       },
     });
 
