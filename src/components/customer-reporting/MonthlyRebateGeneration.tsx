@@ -331,7 +331,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
              const isPalletCharge = isPalletWeightCharge(materialName);
              
              // For pallet charge, use the aggregated pallet weight; for others use line item weight
-             const weight = isPalletCharge ? palletWeightTonnes : (lineItemWeights[materialName] ?? 0);
+             const weight = isPalletCharge ? palletWeightTonnes : getMaterialWeight(lineItemWeights, materialName);
 
               // Determine rate
               let rate = 0;
