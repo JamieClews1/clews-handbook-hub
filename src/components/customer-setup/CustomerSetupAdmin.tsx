@@ -2089,27 +2089,6 @@ export function CustomerSetupAdmin() {
             </div>
             </div>
 
-            <div className="hidden">
-
-              <Label>Or create new rebate set</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newRebateSetInline}
-                  onChange={(e) => setNewRebateSetInline(e.target.value)}
-                  placeholder="e.g. Merchant Price Card"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={createRebateSetInline}
-                  disabled={!newRebateSetInline.trim()}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-
             {/* Effective-dated rebate charging periods (only when editing an existing site) */}
             {editingSite && (
               <>
@@ -2164,24 +2143,30 @@ export function CustomerSetupAdmin() {
                 Select a Load Report Type above to configure rebate values for materials.
               </p>
             )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
 
-            {/* Skip/RoRo Rebates - show when editing a site, or placeholder when creating */}
-            <Separator />
-            {editingSite ? (
-              <SiteSkipRebatesEditor
-                siteId={editingSite.id}
-                siteName={siteForm.site_name || editingSite.site_name}
-              />
-            ) : (
-              <div className="space-y-2">
-                <Label className="text-base font-medium">Skip / RoRo Rebates</Label>
-                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                  Save this site first to configure Skip/RoRo rebates.
-                </p>
-              </div>
-            )}
-          </div>
-          </ScrollArea>
+            <TabsContent value="skips" className="mt-4">
+              <ScrollArea className="h-[calc(92vh-260px)] w-full pr-4">
+                <div className="grid gap-4 min-w-0">
+                  {editingSite ? (
+                    <SiteSkipRebatesEditor
+                      siteId={editingSite.id}
+                      siteName={siteForm.site_name || editingSite.site_name}
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Skip / RoRo Rebates</Label>
+                      <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                        Save this site first to configure Skip/RoRo rebates.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditSiteOpen(false)} disabled={savingSite}>
               Cancel
@@ -2191,6 +2176,7 @@ export function CustomerSetupAdmin() {
             </Button>
           </DialogFooter>
         </DialogContent>
+
       </Dialog>
 
       {/* Contact dialog */}
