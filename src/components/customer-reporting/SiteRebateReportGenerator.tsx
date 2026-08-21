@@ -32,7 +32,7 @@ import { getWeighbridgeSource, convertWeightToTonnes } from "@/lib/weighbridge-s
 import { useLockedRebateReport } from "@/hooks/useLockedRebateReport";
 import { RebateReportLockControls } from "./RebateReportLockControls";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
-import { isPalletWeightCharge, getMaterialWeight } from "@/lib/rebate-materials";
+import { isPalletWeightCharge, getMaterialWeight, rebateCategoryFor } from "@/lib/rebate-materials";
 import { AlphabetJumpSelect } from "@/components/ui/alphabet-jump-select";
 
 type Customer = {
