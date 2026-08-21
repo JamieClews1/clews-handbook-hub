@@ -39,6 +39,8 @@ type Customer = {
   customer_code: string;
   customer_name: string;
   po_notification_email: string | null;
+  pod_email: string | null;
+  auto_pod_emails_enabled: boolean;
   custom_reporting_periods_enabled: boolean;
   is_broker: boolean;
   midweigh_rebates_enabled: boolean;
