@@ -651,6 +651,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
         Paper: { category: "Paper", weight: 0, rebate: 0, sources: [] },
         Films: { category: "Films", weight: 0, rebate: 0, sources: [] },
         "Scrap Metal": { category: "Scrap Metal", weight: 0, rebate: 0, sources: [] },
+        Cans: { category: "Cans", weight: 0, rebate: 0, sources: [] },
         Other: { category: "Other", weight: 0, rebate: 0, sources: [] },
       };
 
@@ -658,11 +659,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
         for (const mat of sb.materials) {
           const name = mat.name.toLowerCase();
           const isPalletWeightCharge = name.includes("pallet weight charge");
-          let category = "Other";
-          if (name.includes("card") || name.includes("cardboard")) category = "Cardboard";
-          else if (name.includes("paper")) category = "Paper";
-          else if (name.includes("film")) category = "Films";
-          else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) category = "Scrap Metal";
+          const category = rebateCategoryFor(mat.name);
 
           // Pallet Weight Charge: include rebate value but NOT weight in totals
           if (!isPalletWeightCharge) categories[category].weight += mat.weight;
