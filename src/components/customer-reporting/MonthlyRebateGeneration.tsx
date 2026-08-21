@@ -949,17 +949,7 @@ import { ReportDateRangePicker } from "./ReportDateRangePicker";
                                 for (const mat of siteBreakdown.materials) {
                                   const name = mat.name.toLowerCase();
                                   const isPalletWeightCharge = name.includes("pallet weight");
-                                  let category = "Other";
-                                  
-                                  if (name.includes("card") || name.includes("cardboard")) {
-                                    category = "Cardboard";
-                                  } else if (name.includes("paper")) {
-                                    category = "Paper";
-                                  } else if (name.includes("film")) {
-                                    category = "Films";
-                                  } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
-                                    category = "Scrap Metal";
-                                  }
+                                  const category = rebateCategoryFor(mat.name);
 
                                   if (!categories[category]) {
                                     categories[category] = { weight: 0, rebate: 0, sources: [] };
