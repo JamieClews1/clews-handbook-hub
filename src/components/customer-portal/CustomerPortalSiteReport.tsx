@@ -263,7 +263,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       .from("load_line_items")
       .select("load_report_id, waste_type, pallet_count")
       .in("load_report_id", reportIds)
-      .in("waste_type", ["Pallets of PET", "Pallets of Cans"]);
+      .in("waste_type", ["Pallets of PET", "Cans"]);
 
     const reportIdToJobNumber = new Map<string, string>();
     for (const [note, reportId] of noteToReportId) {
@@ -276,7 +276,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       if (!jobNum) continue;
       if (!result[jobNum]) result[jobNum] = { pet: 0, cans: 0 };
       if (li.waste_type === "Pallets of PET") result[jobNum].pet += li.pallet_count;
-      if (li.waste_type === "Pallets of Cans") result[jobNum].cans += li.pallet_count;
+      if (li.waste_type === "Cans") result[jobNum].cans += li.pallet_count;
     }
     setPalletData(result);
   };
