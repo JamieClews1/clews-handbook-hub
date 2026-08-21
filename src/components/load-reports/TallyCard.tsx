@@ -45,7 +45,7 @@ export const TallyCard = ({
       "Waste": "from-red-500 to-red-600",
       "Wood": "from-amber-600 to-amber-700",
       "Pallets of PET": "from-indigo-500 to-indigo-600",
-      "Pallets of Cans": "from-violet-500 to-violet-600",
+      "Cans": "from-violet-500 to-violet-600",
     };
     return colors[type] || "from-gray-500 to-gray-600";
   };
