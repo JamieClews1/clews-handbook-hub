@@ -2087,6 +2087,28 @@ export function CustomerSetupAdmin() {
                 </Button>
               </div>
             </div>
+            </div>
+
+            <div className="hidden">
+
+              <Label>Or create new rebate set</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newRebateSetInline}
+                  onChange={(e) => setNewRebateSetInline(e.target.value)}
+                  placeholder="e.g. Merchant Price Card"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={createRebateSetInline}
+                  disabled={!newRebateSetInline.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
 
             {/* Effective-dated rebate charging periods (only when editing an existing site) */}
             {editingSite && (
