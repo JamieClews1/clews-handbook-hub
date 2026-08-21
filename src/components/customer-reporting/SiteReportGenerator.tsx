@@ -138,7 +138,7 @@ export function SiteReportGenerator() {
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source")
+        .select("job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source, linked_skip_job")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
