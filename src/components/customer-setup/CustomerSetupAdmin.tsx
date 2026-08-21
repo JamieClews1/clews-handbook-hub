@@ -675,6 +675,7 @@ export function CustomerSetupAdmin() {
       data_hub_site_5: site.data_hub_site_5 ?? "",
       broker_subclient: (site as any).broker_subclient ?? "",
       owner_contact_id: site.owner_contact_id ?? "",
+      pod_email: site.pod_email ?? "",
       price_set_id: existingPriceSetId,
       load_report_type: (site as any).load_report_type ?? "",
     });
