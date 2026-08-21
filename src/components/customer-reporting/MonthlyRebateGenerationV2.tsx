@@ -524,7 +524,13 @@ export function MonthlyRebateGenerationV2() {
 
             const materialName = material?.waste_type ?? "Unknown";
             const isPalletCharge = isPalletWeightCharge(materialName);
-            const weight = isPalletCharge ? palletWeightTonnes : lineItemWeights[materialName] ?? 0;
+            const weight = isPalletCharge
+              ? palletWeightTonnes
+              : getMaterialWeight(
+                  lineItemWeights,
+                  materialName,
+                  (rebateItems ?? []).map((ri) => wasteTypeById.get(ri.rebate_item_id)?.waste_type ?? ""),
+                );
 
             let rate = 0;
             let rateSource = "Not configured";
