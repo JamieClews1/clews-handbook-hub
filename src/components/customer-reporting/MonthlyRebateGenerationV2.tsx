@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 import { fetchAllCustomers } from "@/lib/fetch-all";
 import { getCustomerRebateExportBase64, type CustomerExportCategory } from "@/lib/customer-rebate-export";
-import { isPalletWeightCharge, getMaterialWeight } from "@/lib/rebate-materials";
+import { isPalletWeightCharge, getMaterialWeight, rebateCategoryFor } from "@/lib/rebate-materials";
 import {
   fetchTrackingForPeriod,
   upsertTracking,
