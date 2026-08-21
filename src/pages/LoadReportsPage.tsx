@@ -268,20 +268,28 @@ const LoadReportsPage = () => {
     if (selectedCustomer && selectedCustomer !== "other") {
       query = query.eq("load_report_type", reportTypeMap[selectedCustomer]);
     } else if (selectedCustomer === "other") {
-      // Standard reports: only show sites that have rebate setup (a price set assigned)
-      // and are not tied to a specific customer-type report (britvic/staci/vantiva/amazon/evri)
-      const { data: priceSetSites } = await supabase
-        .from("customer_site_price_sets")
-        .select("site_id");
-      const priceSetSiteIds = (priceSetSites || []).map((p: any) => p.site_id);
-      if (priceSetSiteIds.length === 0) {
+      // Standard reports: show sites with any rebate setup — either a price set
+      // assigned or skip/RoRo rebate lines — and not tied to a specific
+      // customer-type report (britvic/staci/vantiva/amazon/evri)
+      const [{ data: priceSetSites }, { data: skipRebateSites }] = await Promise.all([
+        supabase.from("customer_site_price_sets").select("site_id"),
+        supabase.from("customer_site_skip_rebates").select("site_id"),
+      ]);
+      const rebateSiteIds = Array.from(
+        new Set([
+          ...(priceSetSites || []).map((p: any) => p.site_id),
+          ...(skipRebateSites || []).map((p: any) => p.site_id),
+        ])
+      ).filter(Boolean);
+      if (rebateSiteIds.length === 0) {
         setSites([]);
         return;
       }
       query = query
-        .in("id", priceSetSiteIds)
+        .in("id", rebateSiteIds)
         .or("load_report_type.is.null,load_report_type.eq.other");
     }
+
 
     const { data, error } = await query;
 
