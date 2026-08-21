@@ -889,17 +889,12 @@ export function MonthlyRebateGenerationV2() {
       Plastics: { category: "Plastics", weight: 0, rebate: 0, sources: [] },
       Films: { category: "Films", weight: 0, rebate: 0, sources: [] },
       "Scrap Metal": { category: "Scrap Metal", weight: 0, rebate: 0, sources: [] },
+      Cans: { category: "Cans", weight: 0, rebate: 0, sources: [] },
       Other: { category: "Other", weight: 0, rebate: 0, sources: [] },
     };
     for (const sb of siteBreakdowns) {
       for (const mat of sb.materials) {
-        const name = mat.name.toLowerCase();
-        let category = "Other";
-        if (name.includes("card") || name.includes("cardboard")) category = "Cardboard";
-        else if (name.includes("paper")) category = "Paper";
-        else if (name.includes("plastic")) category = "Plastics";
-        else if (name.includes("film")) category = "Films";
-        else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) category = "Scrap Metal";
+        const category = rebateCategoryFor(mat.name);
         categories[category].weight += mat.weight;
         categories[category].rebate += mat.rebate;
         categories[category].sources.push({ name: mat.name, weight: mat.weight, rate: mat.rate, rebate: mat.rebate, source: mat.source });
