@@ -805,7 +805,9 @@ export function SiteRebateReportGenerator() {
         const totalPalletWeight = lineItemWeights["__PALLET_WEIGHT__"] ?? 0;
         
         // Get weight: for pallet charge use the aggregated total, otherwise use material weight
-        const weight_tonnes = isPalletCharge ? totalPalletWeight : (lineItemWeights[config.material_name] ?? 0);
+        const weight_tonnes = isPalletCharge
+          ? totalPalletWeight
+          : getMaterialWeight(lineItemWeights, config.material_name, rebateConfigs.map((c) => c.material_name));
 
         // Calculate rebate value with wet charge discount and weight threshold applied
         // For cost items (rebate_category === "cost"), negate the value
