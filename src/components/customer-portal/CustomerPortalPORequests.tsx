@@ -212,7 +212,7 @@ export function CustomerPortalPORequests({
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_date, job_number, waste_description, container_type, ewc, weight_t, site, raw, order_number_override")
+        .select("id, job_date, job_number, waste_description, container_type, ewc, weight_t, site, raw, order_number_override, source, linked_skip_job")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
