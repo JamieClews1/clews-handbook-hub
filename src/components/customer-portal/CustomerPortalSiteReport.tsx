@@ -404,7 +404,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override")
+        .select("id, job_date, job_number, container_type, ewc, waste_description, weight_t, vehicle_registration, category, movement_type, site, raw, order_number_override, source, linked_skip_job")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -419,15 +419,22 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
       if (error) throw error;
 
-      setJobRecords(jobs ?? []);
+      // Drop Midweigh weighbridge tickets that are linked to a Skiptrak job —
+      // they are the same movement, so showing both duplicates the record.
+      const deduped = (jobs ?? []).filter((j: any) => {
+        if (j.source !== "midweigh") return true;
+        return !String(j.linked_skip_job ?? "").trim();
+      });
+
+      setJobRecords(deduped);
       setReportGenerated(true);
 
       // Fetch PET/Cans pallet counts from load reports
-      await fetchPalletData(jobs ?? []);
+      await fetchPalletData(deduped);
 
       // Which of these jobs have a Proof of Delivery on file
-      await fetchPodAvailability(jobs ?? []);
-      await fetchWtnAvailability(jobs ?? []);
+      await fetchPodAvailability(deduped);
+      await fetchWtnAvailability(deduped);
 
     } catch (error) {
       console.error("Error generating report:", error);
