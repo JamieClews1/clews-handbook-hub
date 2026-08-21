@@ -223,7 +223,15 @@ export function CustomerPortalPORequests({
       const { data, error } = await query;
       if (error) throw error;
 
-      setJobRecords((data ?? []).filter(isMissingPO));
+      // Midweigh weighbridge tickets that are linked to a Skiptrak job are the same
+      // physical movement — the Skiptrak job carries the PO, so asking for one here
+      // would be duplication.
+      const deduped = (data ?? []).filter((j: any) => {
+        if (j.source !== "midweigh") return true;
+        return !String(j.linked_skip_job ?? "").trim();
+      });
+
+      setJobRecords(deduped.filter(isMissingPO));
     } catch (error) {
       console.error("Error loading PO requests:", error);
       toast({ title: "Error", description: "Failed to load jobs.", variant: "destructive" });
