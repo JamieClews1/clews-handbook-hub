@@ -963,25 +963,13 @@ export function SiteRebateReportGenerator() {
       "Plastics": { weight: 0, rebate: 0, sources: [] },
       "Films": { weight: 0, rebate: 0, sources: [] },
       "Scrap Metal": { weight: 0, rebate: 0, sources: [] },
+      "Cans": { weight: 0, rebate: 0, sources: [] },
       "Other": { weight: 0, rebate: 0, sources: [] },
     };
 
     // Categorize Load Reports materials
     for (const row of reportData) {
-      const name = row.material_name.toLowerCase();
-      let category = "Other";
-      
-      if (name.includes("card") || name.includes("cardboard")) {
-        category = "Cardboard";
-      } else if (name.includes("paper")) {
-        category = "Paper";
-      } else if (name.includes("plastic")) {
-        category = "Plastics";
-      } else if (name.includes("film")) {
-        category = "Films";
-      } else if (name.includes("scrap") || name.includes("ferrous") || name.includes("metal")) {
-        category = "Scrap Metal";
-      }
+      const category = rebateCategoryFor(row.material_name);
 
       // Include all weights (including pallet weight) in category totals
       categories[category].weight += row.weight_tonnes;
@@ -997,20 +985,10 @@ export function SiteRebateReportGenerator() {
 
     // Categorize Skip/RoRo materials
     for (const summary of skipRoroSummaries) {
-      const materialKey = `${summary.material_type} ${summary.material_label}`.toLowerCase();
-      let category = "Other";
-      
-      if (summary.material_type === "card_loose" || materialKey.includes("card") || materialKey.includes("cardboard")) {
-        category = "Cardboard";
-      } else if (materialKey.includes("paper")) {
-        category = "Paper";
-      } else if (materialKey.includes("plastic")) {
-        category = "Plastics";
-      } else if (materialKey.includes("film")) {
-        category = "Films";
-      } else if (summary.material_type === "scrap_metal" || materialKey.includes("scrap") || materialKey.includes("ferrous") || materialKey.includes("metal")) {
-        category = "Scrap Metal";
-      }
+      const materialKey = `${summary.material_type} ${summary.material_label}`;
+      let category = rebateCategoryFor(materialKey);
+      if (summary.material_type === "card_loose") category = "Cardboard";
+      else if (summary.material_type === "scrap_metal") category = "Scrap Metal";
 
       categories[category].weight += summary.total_weight_tonnes;
       categories[category].rebate += summary.rebate_value;
