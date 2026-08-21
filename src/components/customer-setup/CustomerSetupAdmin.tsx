@@ -705,6 +705,7 @@ export function CustomerSetupAdmin() {
         data_hub_site_5: siteForm.data_hub_site_5.trim() || null,
         broker_subclient: siteForm.broker_subclient.trim() || null,
         owner_contact_id: siteForm.owner_contact_id || null,
+        pod_email: siteForm.pod_email.trim() || null,
         load_report_type: siteForm.load_report_type || null,
       };
 
