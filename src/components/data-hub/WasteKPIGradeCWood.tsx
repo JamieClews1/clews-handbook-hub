@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,8 +6,51 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Bar, XAxis, YAxis, CartesianGrid, Legend, Line, ComposedChart } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TreePine } from "lucide-react";
-import { format, subMonths, startOfMonth, eachMonthOfInterval } from "date-fns";
+import {
+  format,
+  subMonths,
+  startOfMonth,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  eachQuarterOfInterval,
+  eachYearOfInterval,
+  startOfWeek,
+  startOfQuarter,
+  startOfYear,
+  parseISO,
+} from "date-fns";
+
+type Granularity = "week" | "month" | "quarter" | "year";
+
+const GRANULARITIES: { value: Granularity; label: string }[] = [
+  { value: "week", label: "Weekly" },
+  { value: "month", label: "Monthly" },
+  { value: "quarter", label: "Quarterly" },
+  { value: "year", label: "Annual" },
+];
+
+const bucketStart = (d: Date, g: Granularity) =>
+  g === "week" ? startOfWeek(d, { weekStartsOn: 1 })
+  : g === "month" ? startOfMonth(d)
+  : g === "quarter" ? startOfQuarter(d)
+  : startOfYear(d);
+
+const bucketKey = (d: Date, g: Granularity) => format(bucketStart(d, g), "yyyy-MM-dd");
+
+const bucketLabel = (d: Date, g: Granularity) =>
+  g === "week" ? `w/c ${format(d, "dd MMM")}`
+  : g === "month" ? format(d, "MMM yy")
+  : g === "quarter" ? `Q${format(d, "Q yyyy")}`
+  : format(d, "yyyy");
+
+const bucketDates = (start: Date, end: Date, g: Granularity) =>
+  g === "week" ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 })
+  : g === "month" ? eachMonthOfInterval({ start, end })
+  : g === "quarter" ? eachQuarterOfInterval({ start, end })
+  : eachYearOfInterval({ start, end });
+
 
 const WOOD_A_PRODUCTS = ["WOOD A", "WOOD A OUT"];
 const WOOD_C_PRODUCTS = ["WOOD-C", "WOOD-C OUT"];
@@ -37,6 +80,7 @@ interface WasteKPIGradeCWoodProps {
 }
 
 const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGradeCWoodProps = {}) => {
+  const [granularity, setGranularity] = useState<Granularity>("month");
   const defaultStart = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
   const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
   const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
@@ -99,15 +143,14 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const chartData = useMemo(() => {
     if (!woodData || !mixedWasteData) return [];
 
-    const months: Record<string, MonthData> = {};
+    const buckets: Record<string, MonthData> = {};
     const rangeStart = externalStartDate || subMonths(new Date(), 11);
     const rangeEnd = externalEndDate || new Date();
-    const monthDates = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
-    monthDates.forEach((d) => {
-      const key = format(d, "yyyy-MM");
-      months[key] = {
+    bucketDates(rangeStart, rangeEnd, granularity).forEach((d) => {
+      const key = bucketKey(d, granularity);
+      buckets[key] = {
         month: key,
-        label: format(d, "MMM yy"),
+        label: bucketLabel(bucketStart(d, granularity), granularity),
         woodAInward: 0, woodAOutward: 0,
         woodCInward: 0, woodCOutward: 0,
         mixedWasteInward: 0,
@@ -115,33 +158,35 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       };
     });
 
+    const keyFor = (jobDate: string) => bucketKey(parseISO(jobDate.substring(0, 10)), granularity);
+
     // Process wood data (midweigh = KG, convert to tonnes)
     woodData.forEach((row: any) => {
       if (!row.job_date) return;
-      const key = row.job_date.substring(0, 7);
-      if (!months[key]) return;
+      const key = keyFor(row.job_date);
+      if (!buckets[key]) return;
       const product = (row.raw as any)?.Product;
       const tonnes = (row.weight_t || 0) / 1000;
       const isA = WOOD_A_PRODUCTS.includes(product);
       if (row.movement_type === "INWARD") {
-        if (isA) months[key].woodAInward += tonnes;
-        else months[key].woodCInward += tonnes;
+        if (isA) buckets[key].woodAInward += tonnes;
+        else buckets[key].woodCInward += tonnes;
       } else if (row.movement_type === "OUTWARD") {
-        if (isA) months[key].woodAOutward += tonnes;
-        else months[key].woodCOutward += tonnes;
+        if (isA) buckets[key].woodAOutward += tonnes;
+        else buckets[key].woodCOutward += tonnes;
       }
     });
 
     // Process mixed waste inward
     mixedWasteData.forEach((row: any) => {
       if (!row.job_date) return;
-      const key = row.job_date.substring(0, 7);
-      if (!months[key]) return;
-      months[key].mixedWasteInward += (row.weight_t || 0) / 1000;
+      const key = keyFor(row.job_date);
+      if (!buckets[key]) return;
+      buckets[key].mixedWasteInward += (row.weight_t || 0) / 1000;
     });
 
     // Extracted = outward - direct inward
-    Object.values(months).forEach((m) => {
+    Object.values(buckets).forEach((m) => {
       m.extractedA = Math.max(0, m.woodAOutward - m.woodAInward);
       m.extractedC = Math.max(0, m.woodCOutward - m.woodCInward);
       // Round all
@@ -154,8 +199,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       m.extractedC = Math.round(m.extractedC * 100) / 100;
     });
 
-    return Object.values(months);
-  }, [woodData, mixedWasteData]);
+    return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month));
+  }, [woodData, mixedWasteData, granularity, externalStartDate, externalEndDate]);
+
 
   const totals = useMemo(() => {
     if (!chartData.length) return { aIn: 0, aOut: 0, cIn: 0, cOut: 0, extA: 0, extC: 0, mixed: 0, pctA: 0, pctC: 0 };
@@ -303,7 +349,22 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
 
             {/* Chart */}
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Monthly wood out, by where it came from</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">Wood out, by where it came from</p>
+                <div className="flex gap-1.5">
+                  {GRANULARITIES.map((g) => (
+                    <Button
+                      key={g.value}
+                      variant={granularity === g.value ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      onClick={() => setGranularity(g.value)}
+                    >
+                      {g.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <ChartContainer config={chartConfig} className="h-[340px] w-full">
                 <ComposedChart data={enrichedChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
@@ -342,7 +403,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
             {/* Data table */}
             <details className="rounded-lg border">
               <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-foreground">
-                Monthly detail
+                {GRANULARITIES.find((g) => g.value === granularity)?.label} detail
               </summary>
               <div className="overflow-x-auto border-t">
                 <Table>
