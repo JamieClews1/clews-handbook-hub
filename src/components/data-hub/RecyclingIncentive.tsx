@@ -204,33 +204,35 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
 
   return (
     <Card>
-      <CardHeader className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center">
-            <Recycle className="h-5 w-5 text-primary-foreground" />
+      {!hideHeader && (
+        <CardHeader className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center">
+              <Recycle className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Recycling Incentive</CardTitle>
+              <CardDescription>
+                Based purely on the share of outgoing waste that does not go to landfill or RDF
+              </CardDescription>
+            </div>
+            <div className="ml-auto w-48">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...months].reverse().map((m) => (
+                    <SelectItem key={m.key} value={m.key}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-lg">Recycling Incentive</CardTitle>
-            <CardDescription>
-              Based purely on the share of outgoing waste that does not go to landfill or RDF
-            </CardDescription>
-          </div>
-          <div className="ml-auto w-48">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                {[...months].reverse().map((m) => (
-                  <SelectItem key={m.key} value={m.key}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
+      )}
 
       <CardContent className="space-y-6">
         {isLoading || !stats ? (
