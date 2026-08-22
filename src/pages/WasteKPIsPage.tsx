@@ -18,7 +18,8 @@ import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs"
 import WasteRecoverySavings from "@/components/data-hub/WasteRecoverySavings";
 import WasteValueSettings from "@/components/data-hub/WasteValueSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings2, Trophy } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Settings2, Trophy, Recycle, ChevronDown } from "lucide-react";
 import YardIncentives from "@/components/data-hub/YardIncentives";
 import RecyclingIncentive from "@/components/data-hub/RecyclingIncentive";
 
