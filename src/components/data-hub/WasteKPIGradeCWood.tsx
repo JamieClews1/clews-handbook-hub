@@ -210,11 +210,12 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const totals = useMemo(() => {
     let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0, extA = 0, extC = 0;
     chartData.forEach((m) => {
-      aIn += m.gradeAIn || 0;
-      aOut += m.gradeAOut || 0;
-      cIn += m.gradeCIn || 0;
-      cOut += m.gradeCOut || 0;
-      mixed += m.mixedWaste || 0;
+      aIn += m.woodAInward || 0;
+      aOut += m.woodAOutward || 0;
+      cIn += m.woodCInward || 0;
+      cOut += m.woodCOutward || 0;
+      mixed += m.mixedWasteInward || 0;
+
       extA += m.extractedA || 0;
       extC += m.extractedC || 0;
     });
