@@ -20,6 +20,8 @@ import WasteValueSettings from "@/components/data-hub/WasteValueSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings2, Trophy } from "lucide-react";
 import YardIncentives from "@/components/data-hub/YardIncentives";
+import RecyclingIncentive from "@/components/data-hub/RecyclingIncentive";
+
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -140,9 +142,11 @@ const WasteKPIsPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="incentives">
+            <TabsContent value="incentives" className="space-y-8">
               <YardIncentives />
+              <RecyclingIncentive />
             </TabsContent>
+
 
             <TabsContent value="settings">
               <WasteValueSettings />
