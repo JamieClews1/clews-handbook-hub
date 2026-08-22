@@ -230,7 +230,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       pctA: mixed > 0 ? r((extA / mixed) * 100) : 0,
       pctC: mixed > 0 ? r((extC / mixed) * 100) : 0,
     };
-  }, [chartData]);
+  }, [woodData, mixedWasteData]);
 
   const isLoading = loadingWood || loadingMixed;
 
