@@ -372,7 +372,7 @@ const HSDocumentDetailPage = () => {
       )}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit document</DialogTitle>
           </DialogHeader>
@@ -382,14 +382,18 @@ const HSDocumentDetailPage = () => {
               <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Content (HTML)</Label>
-              <Textarea rows={14} value={editContent} onChange={(e) => setEditContent(e.target.value)} />
+              <Label>Content</Label>
+              <p className="text-xs text-muted-foreground">
+                Use Heading 1 for section titles and Heading 2 for sub-headings so the document keeps its branded layout.
+              </p>
+              <RichTextEditor content={editContent} onChange={setEditContent} />
             </div>
             <div className="space-y-1.5">
               <Label>Acknowledgement statements (one per line)</Label>
               <Textarea rows={6} value={editAcks} onChange={(e) => setEditAcks(e.target.value)} />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               Cancel
