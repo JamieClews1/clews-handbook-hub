@@ -34,7 +34,11 @@ interface MonthRow {
   extC: number;
 }
 
-const YardIncentives = () => {
+interface YardIncentivesProps {
+  hideHeader?: boolean;
+}
+
+const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
   const { streams, rates } = useWasteValueSettings();
   const { settings, saveSetting } = useYardIncentiveSettings();
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -188,32 +192,34 @@ const YardIncentives = () => {
   const teamSize = Number(settings.team_size || 0);
 
   return (
-    <Card>
-      <CardHeader className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-            <Trophy className="h-5 w-5 text-primary-foreground" />
+    <Card className={hideHeader ? "border-0 shadow-none bg-transparent" : undefined}>
+      {!hideHeader && (
+        <CardHeader className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+              <Trophy className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Yard Team Incentives</CardTitle>
+              <CardDescription>
+                Monthly bonus pool = a share of the extra savings the yard creates above the baseline recovery rate
+              </CardDescription>
+            </div>
+            <div className="ml-auto w-48">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...months].reverse().map((m) => (
+                    <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-lg">Yard Team Incentives</CardTitle>
-            <CardDescription>
-              Monthly bonus pool = a share of the extra savings the yard creates above the baseline recovery rate
-            </CardDescription>
-          </div>
-          <div className="ml-auto w-48">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                {[...months].reverse().map((m) => (
-                  <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
+      )}
 
       <CardContent className="space-y-6">
         {isLoading || !monthStats ? (
