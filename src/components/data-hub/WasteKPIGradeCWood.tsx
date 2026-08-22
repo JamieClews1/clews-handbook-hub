@@ -18,10 +18,14 @@ import {
   eachQuarterOfInterval,
   eachYearOfInterval,
   startOfWeek,
+  endOfWeek,
+  endOfMonth,
+  subWeeks,
   startOfQuarter,
   startOfYear,
   parseISO,
 } from "date-fns";
+
 
 type Granularity = "week" | "month" | "quarter" | "year";
 
@@ -82,7 +86,9 @@ interface WasteKPIGradeCWoodProps {
 
 const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGradeCWoodProps = {}) => {
   const [granularity, setGranularity] = useState<Granularity>("month");
+  const [scorePeriod, setScorePeriod] = useState<"this-week" | "last-week" | "this-month" | "last-month">("last-week");
   const { streams, rates } = useWasteValueSettings();
+
   const defaultStart = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
   const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
   const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
@@ -115,6 +121,40 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       return allRows;
     },
   });
+
+  // Independent recent-window fetch so the scoreboard always has last week / last month
+  // regardless of the dashboard date range above.
+  const scoreFrom = format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd");
+  const { data: scoreData } = useQuery({
+    queryKey: ["waste-kpi-wood-scoreboard", scoreFrom],
+    queryFn: async () => {
+      const allRows: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("job_date, movement_type, weight_t, waste_description, raw")
+          .eq("source", "midweigh")
+          .in("movement_type", ["INWARD", "OUTWARD"])
+          .gte("job_date", scoreFrom)
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRows.push(
+          ...data.filter(
+            (r: any) =>
+              ALL_WOOD_PRODUCTS.includes((r.raw as any)?.Product) ||
+              (r.movement_type === "INWARD" && MIXED_WASTE_DESCRIPTIONS.includes(r.waste_description))
+          )
+        );
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allRows;
+    },
+  });
+
 
   const { data: mixedWasteData, isLoading: loadingMixed } = useQuery({
     queryKey: ["waste-kpi-mixed-waste", startDate, endDateStr],
@@ -286,8 +326,53 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const avoidedLandfill = totalRecovery * landfillCostPerTonne;
   const actualCost = totals.extA * woodACost + totals.extC * woodCCost;
 
+  // ---- Team scoreboard: simple "what did we save last week / last month" figure ----
+  const scoreWindow = useMemo(() => {
+    const now = new Date();
+    if (scorePeriod === "this-week")
+      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: now, label: "This week so far" };
+    if (scorePeriod === "last-week") {
+      const s = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      return { start: s, end: endOfWeek(s, { weekStartsOn: 1 }), label: "Last week" };
+    }
+    if (scorePeriod === "this-month")
+      return { start: startOfMonth(now), end: now, label: "This month so far" };
+    const s = startOfMonth(subMonths(now, 1));
+    return { start: s, end: endOfMonth(s), label: "Last month" };
+  }, [scorePeriod]);
+
+  const scoreboard = useMemo(() => {
+    const rows = scoreData || [];
+    const from = format(scoreWindow.start, "yyyy-MM-dd");
+    const to = format(scoreWindow.end, "yyyy-MM-dd");
+    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0;
+    rows.forEach((row: any) => {
+      const d = (row.job_date || "").substring(0, 10);
+      if (!d || d < from || d > to) return;
+      const t = (row.weight_t || 0) / 1000;
+      const product = (row.raw as any)?.Product;
+      if (ALL_WOOD_PRODUCTS.includes(product)) {
+        const isA = WOOD_A_PRODUCTS.includes(product);
+        if (row.movement_type === "INWARD") isA ? (aIn += t) : (cIn += t);
+        else if (row.movement_type === "OUTWARD") isA ? (aOut += t) : (cOut += t);
+      } else if (
+        row.movement_type === "INWARD" &&
+        MIXED_WASTE_DESCRIPTIONS.includes(row.waste_description)
+      ) {
+        mixed += t;
+      }
+    });
+    const extA = Math.max(0, aOut - aIn);
+    const extC = Math.max(0, cOut - cIn);
+    return { extA, extC, total: extA + extC, mixed };
+  }, [scoreData, scoreWindow]);
+
+  const scoreSaving =
+    scoreboard.extA * netA + scoreboard.extC * netC;
+
   return (
     <Card>
+
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center">
@@ -302,12 +387,64 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Team scoreboard — independent of the dashboard date range */}
+        <div className="rounded-lg border-2 p-4 space-y-3" style={{ borderColor: COLOR_RATE }}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">Tell the team what they saved</p>
+            <div className="flex flex-wrap gap-1">
+              {([
+                { v: "this-week", l: "This week" },
+                { v: "last-week", l: "Last week" },
+                { v: "this-month", l: "This month" },
+                { v: "last-month", l: "Last month" },
+              ] as const).map((p) => (
+                <Button
+                  key={p.v}
+                  size="sm"
+                  variant={scorePeriod === p.v ? "default" : "outline"}
+                  onClick={() => setScorePeriod(p.v)}
+                >
+                  {p.l}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <p className="text-lg text-foreground leading-relaxed">
+            {scoreWindow.label} ({format(scoreWindow.start, "dd MMM")} – {format(scoreWindow.end, "dd MMM")}) the
+            team pulled{" "}
+            <span className="font-bold" style={{ color: COLOR_RATE }}>{fmt(scoreboard.total)}t</span> of wood out of{" "}
+            <span className="font-semibold">{fmt(scoreboard.mixed)}t</span> of mixed waste, saving{" "}
+            <span className="font-bold" style={{ color: COLOR_RATE }}>{money(scoreSaving)}</span> versus sending it
+            to landfill.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Grade A recovered</p>
+              <p className="text-xl font-bold" style={{ color: COLOR_A }}>{fmt(scoreboard.extA)}t</p>
+              <p className="text-[11px] text-muted-foreground">{money(scoreboard.extA * netA)} saved</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Grade C recovered</p>
+              <p className="text-xl font-bold" style={{ color: COLOR_C }}>{fmt(scoreboard.extC)}t</p>
+              <p className="text-[11px] text-muted-foreground">{money(scoreboard.extC * netC)} saved</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Recovery rate</p>
+              <p className="text-xl font-bold text-foreground">
+                {scoreboard.mixed > 0 ? ((scoreboard.total / scoreboard.mixed) * 100).toFixed(1) : "0.0"}%
+              </p>
+              <p className="text-[11px] text-muted-foreground">of mixed waste taken in</p>
+            </div>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
           <>
+
             {/* Headline */}
             <div className="rounded-lg border bg-muted/30 p-4 flex flex-wrap items-center gap-x-8 gap-y-4">
               <div>
