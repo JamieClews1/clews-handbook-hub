@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import clewsLogo from "@/assets/clews-logo.png";
+import FireSafetyPeopleCard from "@/components/fire-safety/FireSafetyPeopleCard";
+
 
 
 const LANGUAGES = [
@@ -301,6 +303,10 @@ const HSDocumentDetailPage = () => {
           Clews Recycling Ltd · Unit 17 Waste Transfer Station · Health &amp; Safety controlled document
         </div>
       </Card>
+
+      <FireSafetyPeopleCard />
+
+
 
 
       {doc.requires_signature && !signature && (
