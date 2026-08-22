@@ -127,17 +127,19 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
   const { data: midweighYardIntake, isLoading: loadingMidweigh } = useQuery({
     queryKey: ["twh-midweigh-yard", startStr, endStr],
     queryFn: async () => fetchAllPaged(
-      supabase.from("data_hub_jobs").select("job_date, weight_t, site, job_type")
+      supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, job_type")
         .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
         .gte("job_date", startStr).lte("job_date", endStr)
+        .order("id", { ascending: true })
     ),
   });
 
   const { data: skiptrakJobs, isLoading: loadingSkiptrak } = useQuery({
     queryKey: ["twh-skiptrak-nonyard", startStr, endStr],
     queryFn: async () => fetchAllPaged(
-      supabase.from("data_hub_jobs").select("job_date, weight_t, site, tipping_location")
+      supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, tipping_location")
         .eq("source", "skiptrak").gte("job_date", startStr).lte("job_date", endStr)
+        .order("id", { ascending: true })
     ),
   });
 
