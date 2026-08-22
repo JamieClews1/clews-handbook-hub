@@ -205,15 +205,24 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   }, [woodData, mixedWasteData, granularity, externalStartDate, externalEndDate]);
 
 
+  // Totals are computed from the raw rows over the whole date range so they stay
+  // identical whichever granularity is selected (per-bucket max(0, out - in) would
+  // otherwise sum differently for weeks vs months vs years).
   const totals = useMemo(() => {
-    if (!chartData.length) return { aIn: 0, aOut: 0, cIn: 0, cOut: 0, extA: 0, extC: 0, mixed: 0, pctA: 0, pctC: 0 };
-    const aIn = chartData.reduce((s, d) => s + d.woodAInward, 0);
-    const aOut = chartData.reduce((s, d) => s + d.woodAOutward, 0);
-    const cIn = chartData.reduce((s, d) => s + d.woodCInward, 0);
-    const cOut = chartData.reduce((s, d) => s + d.woodCOutward, 0);
-    const extA = chartData.reduce((s, d) => s + d.extractedA, 0);
-    const extC = chartData.reduce((s, d) => s + d.extractedC, 0);
-    const mixed = chartData.reduce((s, d) => s + d.mixedWasteInward, 0);
+    if (!woodData || !mixedWasteData) return { aIn: 0, aOut: 0, cIn: 0, cOut: 0, extA: 0, extC: 0, mixed: 0, pctA: 0, pctC: 0 };
+    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0;
+    woodData.forEach((row: any) => {
+      const product = (row.raw as any)?.Product;
+      const tonnes = (row.weight_t || 0) / 1000;
+      const isA = WOOD_A_PRODUCTS.includes(product);
+      if (row.movement_type === "INWARD") isA ? (aIn += tonnes) : (cIn += tonnes);
+      else if (row.movement_type === "OUTWARD") isA ? (aOut += tonnes) : (cOut += tonnes);
+    });
+    mixedWasteData.forEach((row: any) => {
+      mixed += (row.weight_t || 0) / 1000;
+    });
+    const extA = Math.max(0, aOut - aIn);
+    const extC = Math.max(0, cOut - cIn);
     const r = (v: number) => Math.round(v * 100) / 100;
     return {
       aIn: r(aIn), aOut: r(aOut), cIn: r(cIn), cOut: r(cOut),
@@ -221,7 +230,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       pctA: mixed > 0 ? r((extA / mixed) * 100) : 0,
       pctC: mixed > 0 ? r((extC / mixed) * 100) : 0,
     };
-  }, [chartData]);
+  }, [woodData, mixedWasteData]);
 
   const isLoading = loadingWood || loadingMixed;
 
