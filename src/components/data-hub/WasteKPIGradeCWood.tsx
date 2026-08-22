@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TreePine } from "lucide-react";
+import { useWasteValueSettings, streamCostPerTonne } from "@/hooks/useWasteValueSettings";
 import {
   format,
   subMonths,
@@ -81,6 +82,7 @@ interface WasteKPIGradeCWoodProps {
 
 const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGradeCWoodProps = {}) => {
   const [granularity, setGranularity] = useState<Granularity>("month");
+  const { streams, rates } = useWasteValueSettings();
   const defaultStart = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
   const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
   const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
@@ -250,6 +252,33 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const totalRecovery = totals.extA + totals.extC;
   const totalRate = totals.mixed > 0 ? (totalRecovery / totals.mixed) * 100 : 0;
   const fmt = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const money = (v: number) =>
+    `£${Math.round(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+  // Value vs landfill: what recovered wood would have cost had it gone to landfill,
+  // less what it actually costs us to handle it as wood.
+  const landfillCostPerTonne =
+    Number(rates.landfill_gate_rate || 0) + Number(rates.landfill_haulage_rate || 0);
+
+  const findStream = (needle: string) =>
+    streams.find((s) => s.stream?.toLowerCase().includes(needle));
+
+  const woodACost = (() => {
+    const s = findStream("wood a");
+    return s ? streamCostPerTonne(s) : 0;
+  })();
+  const woodCCost = (() => {
+    const s = findStream("wood c") ?? findStream("wood-c");
+    return s ? streamCostPerTonne(s) : 0;
+  })();
+
+  const netA = landfillCostPerTonne - woodACost;
+  const netC = landfillCostPerTonne - woodCCost;
+  const valueA = totals.extA * netA;
+  const valueC = totals.extC * netC;
+  const totalValue = valueA + valueC;
+  const avoidedLandfill = totalRecovery * landfillCostPerTonne;
+  const actualCost = totals.extA * woodACost + totals.extC * woodCCost;
 
   return (
     <Card>
@@ -293,6 +322,56 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                 Recovery = wood sent out minus wood that arrived already graded. Anything extra must have been
                 picked out of the mixed waste stream.
               </p>
+            </div>
+
+            {/* Value vs landfill */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">Value to the business vs waste to landfill</p>
+                <p className="text-xs text-muted-foreground">
+                  Landfill baseline {money(landfillCostPerTonne)}/t (gate + haulage)
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-md bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">Landfill cost avoided</p>
+                  <p className="text-2xl font-bold text-foreground">{money(avoidedLandfill)}</p>
+                  <p className="text-[11px] text-muted-foreground">{fmt(totalRecovery)}t × {money(landfillCostPerTonne)}/t</p>
+                </div>
+                <div className="rounded-md bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">Cost of handling as wood</p>
+                  <p className="text-2xl font-bold text-foreground">{money(actualCost)}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Grade A {money(woodACost)}/t · Grade C {money(woodCCost)}/t
+                  </p>
+                </div>
+                <div className="rounded-md border p-3" style={{ borderColor: COLOR_RATE }}>
+                  <p className="text-xs text-muted-foreground">Net value of wood recovery</p>
+                  <p className="text-2xl font-bold" style={{ color: COLOR_RATE }}>{money(totalValue)}</p>
+                  <p className="text-[11px] text-muted-foreground">Avoided landfill less actual handling cost</p>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { grade: "A", color: COLOR_A, t: totals.extA, net: netA, value: valueA },
+                  { grade: "C", color: COLOR_C, t: totals.extC, net: netC, value: valueC },
+                ].map((g) => (
+                  <div key={g.grade} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <span className="text-sm text-foreground">
+                      <span className="h-2 w-2 mr-2 inline-block rounded-sm align-middle" style={{ background: g.color }} />
+                      Grade {g.grade} · {fmt(g.t)}t recovered
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: g.color }}>
+                      {money(g.value)} <span className="text-[11px] font-normal text-muted-foreground">({money(g.net)}/t)</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {streams.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Set wood stream costs in the Settings tab for an accurate net value.
+                </p>
+              )}
             </div>
 
             {/* Grade breakdown */}
