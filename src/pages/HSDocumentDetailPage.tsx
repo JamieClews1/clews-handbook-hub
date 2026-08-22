@@ -15,6 +15,9 @@ import { ArrowLeft, CheckCircle, Languages, Loader2, Pencil, Printer } from "luc
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import clewsLogo from "@/assets/clews-logo.png";
+
 
 const LANGUAGES = [
   { code: "EN", label: "English" },
