@@ -304,6 +304,10 @@ const HSDocumentDetailPage = () => {
         </div>
       </Card>
 
+      <FireSafetyPeopleCard />
+
+
+
 
       {doc.requires_signature && !signature && (
         <Card className="print:hidden">
