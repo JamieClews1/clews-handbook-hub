@@ -203,7 +203,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
   );
 
   return (
-    <Card>
+    <Card className={hideHeader ? "border-0 shadow-none bg-transparent" : undefined}>
       {!hideHeader && (
         <CardHeader className="space-y-4">
           <div className="flex items-center gap-3">
