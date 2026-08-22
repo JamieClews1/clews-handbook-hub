@@ -38,7 +38,7 @@ interface StaffRow {
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 
-const HSDocumentsPage = ({ category, heading, description }: Props) => {
+const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) => {
   const navigate = useNavigate();
   const { user, loading, isAdmin } = useAuth();
   const [docs, setDocs] = useState<HSDocument[]>([]);
