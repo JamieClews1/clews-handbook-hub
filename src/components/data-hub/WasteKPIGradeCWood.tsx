@@ -12,50 +12,85 @@ import { useWasteValueSettings, streamCostPerTonne } from "@/hooks/useWasteValue
 import {
   format,
   subMonths,
+  subWeeks,
   startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  startOfQuarter,
+  startOfYear,
+  startOfDay,
+  eachDayOfInterval,
   eachMonthOfInterval,
   eachWeekOfInterval,
   eachQuarterOfInterval,
   eachYearOfInterval,
-  startOfWeek,
-  endOfWeek,
-  endOfMonth,
-  subWeeks,
-  startOfQuarter,
-  startOfYear,
   parseISO,
 } from "date-fns";
 
+type PeriodKey =
+  | "this-week"
+  | "last-week"
+  | "this-month"
+  | "last-month"
+  | "last-3-months"
+  | "last-12-months";
 
-type Granularity = "week" | "month" | "quarter" | "year";
+type Bucket = "day" | "week" | "month" | "quarter" | "year";
 
-const GRANULARITIES: { value: Granularity; label: string }[] = [
-  { value: "week", label: "Weekly" },
-  { value: "month", label: "Monthly" },
-  { value: "quarter", label: "Quarterly" },
-  { value: "year", label: "Annual" },
+const PERIODS: { value: PeriodKey; label: string }[] = [
+  { value: "this-week", label: "This week" },
+  { value: "last-week", label: "Last week" },
+  { value: "this-month", label: "This month" },
+  { value: "last-month", label: "Last month" },
+  { value: "last-3-months", label: "Last 3 months" },
+  { value: "last-12-months", label: "Last 12 months" },
 ];
 
-const bucketStart = (d: Date, g: Granularity) =>
-  g === "week" ? startOfWeek(d, { weekStartsOn: 1 })
+const periodWindow = (p: PeriodKey) => {
+  const now = new Date();
+  switch (p) {
+    case "this-week":
+      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: now, bucket: "day" as Bucket };
+    case "last-week": {
+      const s = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      return { start: s, end: endOfWeek(s, { weekStartsOn: 1 }), bucket: "day" as Bucket };
+    }
+    case "this-month":
+      return { start: startOfMonth(now), end: now, bucket: "week" as Bucket };
+    case "last-month": {
+      const s = startOfMonth(subMonths(now, 1));
+      return { start: s, end: endOfMonth(s), bucket: "week" as Bucket };
+    }
+    case "last-3-months":
+      return { start: startOfMonth(subMonths(now, 2)), end: now, bucket: "week" as Bucket };
+    default:
+      return { start: startOfMonth(subMonths(now, 11)), end: now, bucket: "month" as Bucket };
+  }
+};
+
+const bucketStart = (d: Date, g: Bucket) =>
+  g === "day" ? startOfDay(d)
+  : g === "week" ? startOfWeek(d, { weekStartsOn: 1 })
   : g === "month" ? startOfMonth(d)
   : g === "quarter" ? startOfQuarter(d)
   : startOfYear(d);
 
-const bucketKey = (d: Date, g: Granularity) => format(bucketStart(d, g), "yyyy-MM-dd");
+const bucketKey = (d: Date, g: Bucket) => format(bucketStart(d, g), "yyyy-MM-dd");
 
-const bucketLabel = (d: Date, g: Granularity) =>
-  g === "week" ? `w/c ${format(d, "dd MMM")}`
+const bucketLabel = (d: Date, g: Bucket) =>
+  g === "day" ? format(d, "EEE dd")
+  : g === "week" ? `w/c ${format(d, "dd MMM")}`
   : g === "month" ? format(d, "MMM yy")
   : g === "quarter" ? `Q${format(d, "Q yyyy")}`
   : format(d, "yyyy");
 
-const bucketDates = (start: Date, end: Date, g: Granularity) =>
-  g === "week" ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 })
+const bucketDates = (start: Date, end: Date, g: Bucket) =>
+  g === "day" ? eachDayOfInterval({ start, end })
+  : g === "week" ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 })
   : g === "month" ? eachMonthOfInterval({ start, end })
   : g === "quarter" ? eachQuarterOfInterval({ start, end })
   : eachYearOfInterval({ start, end });
-
 
 const WOOD_A_PRODUCTS = ["WOOD A", "WOOD A OUT"];
 const WOOD_C_PRODUCTS = ["WOOD-C", "WOOD-C OUT"];
@@ -67,8 +102,8 @@ const MIXED_WASTE_DESCRIPTIONS = [
   "mixed construction and demolition wastes other than those mentioned in 17 09 01 17 09 02 and 17 09 0",
 ];
 
-interface MonthData {
-  month: string;
+interface BucketData {
+  key: string;
   label: string;
   woodAInward: number;
   woodAOutward: number;
@@ -79,56 +114,17 @@ interface MonthData {
   extractedC: number;
 }
 
-interface WasteKPIGradeCWoodProps {
-  externalStartDate?: Date;
-  externalEndDate?: Date;
-}
-
-const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGradeCWoodProps = {}) => {
-  const [granularity, setGranularity] = useState<Granularity>("month");
-  const [scorePeriod, setScorePeriod] = useState<"this-week" | "last-week" | "this-month" | "last-month">("last-week");
+const WasteKPIGradeCWood = () => {
+  const [period, setPeriod] = useState<PeriodKey>("last-month");
   const { streams, rates } = useWasteValueSettings();
 
-  const defaultStart = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
-  const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
-  const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
+  // Always fetch a rolling 13-month window once; every period is computed from it.
+  const fetchFrom = format(startOfMonth(subMonths(new Date(), 12)), "yyyy-MM-dd");
 
-  const { data: woodData, isLoading: loadingWood } = useQuery({
-    queryKey: ["waste-kpi-wood-all", startDate, endDateStr],
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["waste-kpi-wood-rows", fetchFrom],
     queryFn: async () => {
-      const allRows: any[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      while (true) {
-        let query = supabase
-          .from("data_hub_jobs")
-          .select("job_date, movement_type, weight_t, raw")
-          .eq("source", "midweigh")
-          .in("movement_type", ["INWARD", "OUTWARD"])
-          .gte("job_date", startDate);
-        if (endDateStr) query = query.lte("job_date", endDateStr);
-        const { data, error } = await query.range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        const filtered = data.filter((r: any) => {
-          const product = (r.raw as any)?.Product;
-          return ALL_WOOD_PRODUCTS.includes(product);
-        });
-        allRows.push(...filtered);
-        if (data.length < pageSize) break;
-        from += pageSize;
-      }
-      return allRows;
-    },
-  });
-
-  // Independent recent-window fetch so the scoreboard always has last week / last month
-  // regardless of the dashboard date range above.
-  const scoreFrom = format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd");
-  const { data: scoreData } = useQuery({
-    queryKey: ["waste-kpi-wood-scoreboard", scoreFrom],
-    queryFn: async () => {
-      const allRows: any[] = [];
+      const all: any[] = [];
       let from = 0;
       const pageSize = 1000;
       while (true) {
@@ -137,11 +133,11 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
           .select("job_date, movement_type, weight_t, waste_description, raw")
           .eq("source", "midweigh")
           .in("movement_type", ["INWARD", "OUTWARD"])
-          .gte("job_date", scoreFrom)
+          .gte("job_date", fetchFrom)
           .range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
-        allRows.push(
+        all.push(
           ...data.filter(
             (r: any) =>
               ALL_WOOD_PRODUCTS.includes((r.raw as any)?.Product) ||
@@ -151,48 +147,20 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
         if (data.length < pageSize) break;
         from += pageSize;
       }
-      return allRows;
+      return all;
     },
   });
 
+  const window_ = useMemo(() => periodWindow(period), [period]);
 
-  const { data: mixedWasteData, isLoading: loadingMixed } = useQuery({
-    queryKey: ["waste-kpi-mixed-waste", startDate, endDateStr],
-    queryFn: async () => {
-      const allRows: any[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      while (true) {
-        let query = supabase
-          .from("data_hub_jobs")
-          .select("job_date, movement_type, weight_t, waste_description")
-          .eq("source", "midweigh")
-          .eq("movement_type", "INWARD")
-          .in("waste_description", MIXED_WASTE_DESCRIPTIONS)
-          .gte("job_date", startDate);
-        if (endDateStr) query = query.lte("job_date", endDateStr);
-        const { data, error } = await query.range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allRows.push(...data);
-        if (data.length < pageSize) break;
-        from += pageSize;
-      }
-      return allRows;
-    },
-  });
-
-  const chartData = useMemo(() => {
-    if (!woodData || !mixedWasteData) return [];
-
-    const buckets: Record<string, MonthData> = {};
-    const rangeStart = externalStartDate || subMonths(new Date(), 11);
-    const rangeEnd = externalEndDate || new Date();
-    bucketDates(rangeStart, rangeEnd, granularity).forEach((d) => {
-      const key = bucketKey(d, granularity);
+  const chartData = useMemo<BucketData[]>(() => {
+    if (!rows) return [];
+    const buckets: Record<string, BucketData> = {};
+    bucketDates(window_.start, window_.end, window_.bucket).forEach((d) => {
+      const key = bucketKey(d, window_.bucket);
       buckets[key] = {
-        month: key,
-        label: bucketLabel(bucketStart(d, granularity), granularity),
+        key,
+        label: bucketLabel(bucketStart(d, window_.bucket), window_.bucket),
         woodAInward: 0, woodAOutward: 0,
         woodCInward: 0, woodCOutward: 0,
         mixedWasteInward: 0,
@@ -200,76 +168,61 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       };
     });
 
-    const keyFor = (jobDate: string) => bucketKey(parseISO(jobDate.substring(0, 10)), granularity);
+    const from = format(window_.start, "yyyy-MM-dd");
+    const to = format(window_.end, "yyyy-MM-dd");
 
-    // Process wood data (midweigh = KG, convert to tonnes)
-    woodData.forEach((row: any) => {
-      if (!row.job_date) return;
-      const key = keyFor(row.job_date);
-      if (!buckets[key]) return;
+    rows.forEach((row: any) => {
+      const d = (row.job_date || "").substring(0, 10);
+      if (!d || d < from || d > to) return;
+      const key = bucketKey(parseISO(d), window_.bucket);
+      const b = buckets[key];
+      if (!b) return;
+      const tonnes = (row.weight_t || 0) / 1000; // midweigh = KG
       const product = (row.raw as any)?.Product;
-      const tonnes = (row.weight_t || 0) / 1000;
-      const isA = WOOD_A_PRODUCTS.includes(product);
-      if (row.movement_type === "INWARD") {
-        if (isA) buckets[key].woodAInward += tonnes;
-        else buckets[key].woodCInward += tonnes;
-      } else if (row.movement_type === "OUTWARD") {
-        if (isA) buckets[key].woodAOutward += tonnes;
-        else buckets[key].woodCOutward += tonnes;
+      if (ALL_WOOD_PRODUCTS.includes(product)) {
+        const isA = WOOD_A_PRODUCTS.includes(product);
+        if (row.movement_type === "INWARD") isA ? (b.woodAInward += tonnes) : (b.woodCInward += tonnes);
+        else if (row.movement_type === "OUTWARD") isA ? (b.woodAOutward += tonnes) : (b.woodCOutward += tonnes);
+      } else if (row.movement_type === "INWARD") {
+        b.mixedWasteInward += tonnes;
       }
     });
 
-    // Process mixed waste inward
-    mixedWasteData.forEach((row: any) => {
-      if (!row.job_date) return;
-      const key = keyFor(row.job_date);
-      if (!buckets[key]) return;
-      buckets[key].mixedWasteInward += (row.weight_t || 0) / 1000;
+    const r = (v: number) => Math.round(v * 100) / 100;
+    Object.values(buckets).forEach((b) => {
+      b.extractedA = r(Math.max(0, b.woodAOutward - b.woodAInward));
+      b.extractedC = r(Math.max(0, b.woodCOutward - b.woodCInward));
+      b.woodAInward = r(b.woodAInward);
+      b.woodAOutward = r(b.woodAOutward);
+      b.woodCInward = r(b.woodCInward);
+      b.woodCOutward = r(b.woodCOutward);
+      b.mixedWasteInward = r(b.mixedWasteInward);
     });
 
-    // Extracted = outward - direct inward
-    Object.values(buckets).forEach((m) => {
-      m.extractedA = Math.max(0, m.woodAOutward - m.woodAInward);
-      m.extractedC = Math.max(0, m.woodCOutward - m.woodCInward);
-      // Round all
-      m.woodAInward = Math.round(m.woodAInward * 100) / 100;
-      m.woodAOutward = Math.round(m.woodAOutward * 100) / 100;
-      m.woodCInward = Math.round(m.woodCInward * 100) / 100;
-      m.woodCOutward = Math.round(m.woodCOutward * 100) / 100;
-      m.mixedWasteInward = Math.round(m.mixedWasteInward * 100) / 100;
-      m.extractedA = Math.round(m.extractedA * 100) / 100;
-      m.extractedC = Math.round(m.extractedC * 100) / 100;
-    });
+    return Object.values(buckets).sort((a, b) => a.key.localeCompare(b.key));
+  }, [rows, window_]);
 
-    return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month));
-  }, [woodData, mixedWasteData, granularity, externalStartDate, externalEndDate]);
-
-
-  // Totals follow whatever is currently displayed: they sum the buckets built for
-  // the selected date range and granularity, so the figures move with the selection.
+  // Period totals come straight from the raw rows in the window, so the headline
+  // never drifts from what the chart buckets add up to.
   const totals = useMemo(() => {
-    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0, extA = 0, extC = 0;
-    chartData.forEach((m) => {
-      aIn += m.woodAInward || 0;
-      aOut += m.woodAOutward || 0;
-      cIn += m.woodCInward || 0;
-      cOut += m.woodCOutward || 0;
-      mixed += m.mixedWasteInward || 0;
-
-      extA += m.extractedA || 0;
-      extC += m.extractedC || 0;
+    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0;
+    chartData.forEach((b) => {
+      aIn += b.woodAInward;
+      aOut += b.woodAOutward;
+      cIn += b.woodCInward;
+      cOut += b.woodCOutward;
+      mixed += b.mixedWasteInward;
     });
     const r = (v: number) => Math.round(v * 100) / 100;
+    const extA = chartData.reduce((s, b) => s + b.extractedA, 0);
+    const extC = chartData.reduce((s, b) => s + b.extractedC, 0);
     return {
-      aIn: r(aIn), aOut: r(aOut), cIn: r(cIn), cOut: r(cOut),
-      extA: r(extA), extC: r(extC), mixed: r(mixed),
+      aIn: r(aIn), aOut: r(aOut), cIn: r(cIn), cOut: r(cOut), mixed: r(mixed),
+      extA: r(extA), extC: r(extC),
       pctA: mixed > 0 ? r((extA / mixed) * 100) : 0,
       pctC: mixed > 0 ? r((extC / mixed) * 100) : 0,
     };
   }, [chartData]);
-
-
-  const isLoading = loadingWood || loadingMixed;
 
   const COLOR_A = "hsl(260, 70%, 55%)";
   const COLOR_C = "hsl(200, 80%, 50%)";
@@ -295,20 +248,14 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
     [chartData]
   );
 
-  const totalRecovery = totals.extA + totals.extC;
+  const totalRecovery = Math.round((totals.extA + totals.extC) * 100) / 100;
   const totalRate = totals.mixed > 0 ? (totalRecovery / totals.mixed) * 100 : 0;
   const fmt = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
-  const money = (v: number) =>
-    `£${Math.round(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const money = (v: number) => `£${Math.round(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
-  // Value vs landfill: what recovered wood would have cost had it gone to landfill,
-  // less what it actually costs us to handle it as wood.
   const landfillCostPerTonne =
     Number(rates.landfill_gate_rate || 0) + Number(rates.landfill_haulage_rate || 0);
-
-  const findStream = (needle: string) =>
-    streams.find((s) => s.stream?.toLowerCase().includes(needle));
-
+  const findStream = (needle: string) => streams.find((s) => s.stream?.toLowerCase().includes(needle));
   const woodACost = (() => {
     const s = findStream("wood a");
     return s ? streamCostPerTonne(s) : 0;
@@ -326,54 +273,12 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const avoidedLandfill = totalRecovery * landfillCostPerTonne;
   const actualCost = totals.extA * woodACost + totals.extC * woodCCost;
 
-  // ---- Team scoreboard: simple "what did we save last week / last month" figure ----
-  const scoreWindow = useMemo(() => {
-    const now = new Date();
-    if (scorePeriod === "this-week")
-      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: now, label: "This week so far" };
-    if (scorePeriod === "last-week") {
-      const s = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-      return { start: s, end: endOfWeek(s, { weekStartsOn: 1 }), label: "Last week" };
-    }
-    if (scorePeriod === "this-month")
-      return { start: startOfMonth(now), end: now, label: "This month so far" };
-    const s = startOfMonth(subMonths(now, 1));
-    return { start: s, end: endOfMonth(s), label: "Last month" };
-  }, [scorePeriod]);
-
-  const scoreboard = useMemo(() => {
-    const rows = scoreData || [];
-    const from = format(scoreWindow.start, "yyyy-MM-dd");
-    const to = format(scoreWindow.end, "yyyy-MM-dd");
-    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0;
-    rows.forEach((row: any) => {
-      const d = (row.job_date || "").substring(0, 10);
-      if (!d || d < from || d > to) return;
-      const t = (row.weight_t || 0) / 1000;
-      const product = (row.raw as any)?.Product;
-      if (ALL_WOOD_PRODUCTS.includes(product)) {
-        const isA = WOOD_A_PRODUCTS.includes(product);
-        if (row.movement_type === "INWARD") isA ? (aIn += t) : (cIn += t);
-        else if (row.movement_type === "OUTWARD") isA ? (aOut += t) : (cOut += t);
-      } else if (
-        row.movement_type === "INWARD" &&
-        MIXED_WASTE_DESCRIPTIONS.includes(row.waste_description)
-      ) {
-        mixed += t;
-      }
-    });
-    const extA = Math.max(0, aOut - aIn);
-    const extC = Math.max(0, cOut - cIn);
-    return { extA, extC, total: extA + extC, mixed };
-  }, [scoreData, scoreWindow]);
-
-  const scoreSaving =
-    scoreboard.extA * netA + scoreboard.extC * netC;
+  const periodLabel = PERIODS.find((p) => p.value === period)?.label ?? "";
+  const rangeLabel = `${format(window_.start, "dd MMM")} – ${format(window_.end, "dd MMM yyyy")}`;
 
   return (
     <Card>
-
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center">
             <TreePine className="h-5 w-5 text-primary-foreground" />
@@ -381,105 +286,48 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
           <div>
             <CardTitle className="text-lg">Wood Recovery</CardTitle>
             <CardDescription>
-              How much wood we pull back out of mixed waste, on top of the wood that arrives already segregated
+              What the team saved by pulling wood out of mixed waste — every figure below follows the period you pick
             </CardDescription>
           </div>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {PERIODS.map((p) => (
+            <Button
+              key={p.value}
+              size="sm"
+              variant={period === p.value ? "default" : "outline"}
+              onClick={() => setPeriod(p.value)}
+            >
+              {p.label}
+            </Button>
+          ))}
+          <Badge variant="secondary" className="ml-auto">{rangeLabel}</Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Team scoreboard — independent of the dashboard date range */}
-        <div className="rounded-lg border-2 p-4 space-y-3" style={{ borderColor: COLOR_RATE }}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-foreground">Tell the team what they saved</p>
-            <div className="flex flex-wrap gap-1">
-              {([
-                { v: "this-week", l: "This week" },
-                { v: "last-week", l: "Last week" },
-                { v: "this-month", l: "This month" },
-                { v: "last-month", l: "Last month" },
-              ] as const).map((p) => (
-                <Button
-                  key={p.v}
-                  size="sm"
-                  variant={scorePeriod === p.v ? "default" : "outline"}
-                  onClick={() => setScorePeriod(p.v)}
-                >
-                  {p.l}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <p className="text-lg text-foreground leading-relaxed">
-            {scoreWindow.label} ({format(scoreWindow.start, "dd MMM")} – {format(scoreWindow.end, "dd MMM")}) the
-            team pulled{" "}
-            <span className="font-bold" style={{ color: COLOR_RATE }}>{fmt(scoreboard.total)}t</span> of wood out of{" "}
-            <span className="font-semibold">{fmt(scoreboard.mixed)}t</span> of mixed waste, saving{" "}
-            <span className="font-bold" style={{ color: COLOR_RATE }}>{money(scoreSaving)}</span> versus sending it
-            to landfill.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-md bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground">Grade A recovered</p>
-              <p className="text-xl font-bold" style={{ color: COLOR_A }}>{fmt(scoreboard.extA)}t</p>
-              <p className="text-[11px] text-muted-foreground">{money(scoreboard.extA * netA)} saved</p>
-            </div>
-            <div className="rounded-md bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground">Grade C recovered</p>
-              <p className="text-xl font-bold" style={{ color: COLOR_C }}>{fmt(scoreboard.extC)}t</p>
-              <p className="text-[11px] text-muted-foreground">{money(scoreboard.extC * netC)} saved</p>
-            </div>
-            <div className="rounded-md bg-muted/40 p-3">
-              <p className="text-xs text-muted-foreground">Recovery rate</p>
-              <p className="text-xl font-bold text-foreground">
-                {scoreboard.mixed > 0 ? ((scoreboard.total / scoreboard.mixed) * 100).toFixed(1) : "0.0"}%
-              </p>
-              <p className="text-[11px] text-muted-foreground">of mixed waste taken in</p>
-            </div>
-          </div>
-        </div>
-
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
           <>
-
-            {/* Headline */}
-            <div className="rounded-lg border bg-muted/30 p-4 flex flex-wrap items-center gap-x-8 gap-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Wood recovered from mixed waste</p>
-                <p className="text-3xl font-bold text-foreground">{fmt(totalRecovery)}t</p>
-              </div>
-              <div className="text-muted-foreground text-2xl leading-none hidden sm:block">/</div>
-              <div>
-                <p className="text-xs text-muted-foreground">Mixed waste received</p>
-                <p className="text-3xl font-bold text-foreground">{fmt(totals.mixed)}t</p>
-              </div>
-              <div className="text-muted-foreground text-2xl leading-none hidden sm:block">=</div>
-              <div>
-                <p className="text-xs text-muted-foreground">Recovery rate</p>
-                <p className="text-3xl font-bold" style={{ color: COLOR_RATE }}>{totalRate.toFixed(1)}%</p>
-              </div>
-              <p className="text-xs text-muted-foreground max-w-sm ml-auto">
-                Recovery = wood sent out minus wood that arrived already graded. Anything extra must have been
-                picked out of the mixed waste stream.
+            {/* Headline sentence + saving */}
+            <div className="rounded-lg border-2 p-4 space-y-4" style={{ borderColor: COLOR_RATE }}>
+              <p className="text-lg text-foreground leading-relaxed">
+                {periodLabel} the team pulled{" "}
+                <span className="font-bold" style={{ color: COLOR_RATE }}>{fmt(totalRecovery)}t</span> of wood out of{" "}
+                <span className="font-semibold">{fmt(totals.mixed)}t</span> of mixed waste
+                {" "}({totalRate.toFixed(1)}% recovery), saving{" "}
+                <span className="font-bold" style={{ color: COLOR_RATE }}>{money(totalValue)}</span> versus sending it
+                to landfill.
               </p>
-            </div>
-
-            {/* Value vs landfill */}
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">Value to the business vs waste to landfill</p>
-                <p className="text-xs text-muted-foreground">
-                  Landfill baseline {money(landfillCostPerTonne)}/t (gate + haulage)
-                </p>
-              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-md bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Landfill cost avoided</p>
                   <p className="text-2xl font-bold text-foreground">{money(avoidedLandfill)}</p>
-                  <p className="text-[11px] text-muted-foreground">{fmt(totalRecovery)}t × {money(landfillCostPerTonne)}/t</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {fmt(totalRecovery)}t × {money(landfillCostPerTonne)}/t
+                  </p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Cost of handling as wood</p>
@@ -489,26 +337,10 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                   </p>
                 </div>
                 <div className="rounded-md border p-3" style={{ borderColor: COLOR_RATE }}>
-                  <p className="text-xs text-muted-foreground">Net value of wood recovery</p>
+                  <p className="text-xs text-muted-foreground">Net saving</p>
                   <p className="text-2xl font-bold" style={{ color: COLOR_RATE }}>{money(totalValue)}</p>
-                  <p className="text-[11px] text-muted-foreground">Avoided landfill less actual handling cost</p>
+                  <p className="text-[11px] text-muted-foreground">Avoided landfill less handling cost</p>
                 </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  { grade: "A", color: COLOR_A, t: totals.extA, net: netA, value: valueA },
-                  { grade: "C", color: COLOR_C, t: totals.extC, net: netC, value: valueC },
-                ].map((g) => (
-                  <div key={g.grade} className="flex items-center justify-between rounded-md border px-3 py-2">
-                    <span className="text-sm text-foreground">
-                      <span className="h-2 w-2 mr-2 inline-block rounded-sm align-middle" style={{ background: g.color }} />
-                      Grade {g.grade} · {fmt(g.t)}t recovered
-                    </span>
-                    <span className="text-sm font-semibold" style={{ color: g.color }}>
-                      {money(g.value)} <span className="text-[11px] font-normal text-muted-foreground">({money(g.net)}/t)</span>
-                    </span>
-                  </div>
-                ))}
               </div>
               {streams.length === 0 && (
                 <p className="text-[11px] text-muted-foreground">
@@ -520,8 +352,8 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
             {/* Grade breakdown */}
             <div className="grid gap-3 md:grid-cols-2">
               {[
-                { grade: "A", color: COLOR_A, inT: totals.aIn, outT: totals.aOut, rec: totals.extA, pct: totals.pctA },
-                { grade: "C", color: COLOR_C, inT: totals.cIn, outT: totals.cOut, rec: totals.extC, pct: totals.pctC },
+                { grade: "A", color: COLOR_A, inT: totals.aIn, outT: totals.aOut, rec: totals.extA, pct: totals.pctA, net: netA, value: valueA },
+                { grade: "C", color: COLOR_C, inT: totals.cIn, outT: totals.cOut, rec: totals.extC, pct: totals.pctC, net: netC, value: valueC },
               ].map((g) => (
                 <div key={g.grade} className="rounded-lg border p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -531,7 +363,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                     </div>
                     <Badge variant="outline">{g.pct.toFixed(1)}% of mixed</Badge>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-4 gap-2 text-center">
                     <div>
                       <p className="text-[11px] text-muted-foreground">Arrived as wood</p>
                       <p className="text-lg font-semibold text-foreground">{fmt(g.inT)}t</p>
@@ -543,6 +375,10 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                     <div>
                       <p className="text-[11px] text-muted-foreground">Recovered</p>
                       <p className="text-lg font-semibold" style={{ color: g.color }}>{fmt(g.rec)}t</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Saved</p>
+                      <p className="text-lg font-semibold" style={{ color: g.color }}>{money(g.value)}</p>
                     </div>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
@@ -563,7 +399,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Faded = arrived already graded · Solid = recovered from mixed waste
+                    Faded = arrived already graded · Solid = recovered from mixed waste · {money(g.net)}/t saved
                   </p>
                 </div>
               ))}
@@ -571,22 +407,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
 
             {/* Chart */}
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">Wood out, by where it came from</p>
-                <div className="flex gap-1.5">
-                  {GRANULARITIES.map((g) => (
-                    <Button
-                      key={g.value}
-                      variant={granularity === g.value ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 px-2.5 text-xs"
-                      onClick={() => setGranularity(g.value)}
-                    >
-                      {g.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-sm font-medium text-foreground">
+                Wood out, by where it came from — {periodLabel.toLowerCase()}
+              </p>
               <ChartContainer config={chartConfig} className="h-[340px] w-full">
                 <ComposedChart data={enrichedChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
@@ -606,7 +429,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Legend />
-                  <Bar yAxisId="t" dataKey="directIn" name="Arrived as wood" fill="hsl(35, 85%, 55%)" stackId="w" radius={[0, 0, 0, 0]} />
+                  <Bar yAxisId="t" dataKey="directIn" name="Arrived as wood" fill="hsl(35, 85%, 55%)" stackId="w" />
                   <Bar yAxisId="t" dataKey="extractedA" name="Grade A recovered" fill={COLOR_A} stackId="w" />
                   <Bar yAxisId="t" dataKey="extractedC" name="Grade C recovered" fill={COLOR_C} stackId="w" radius={[2, 2, 0, 0]} />
                   <Line
@@ -625,13 +448,13 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
             {/* Data table */}
             <details className="rounded-lg border">
               <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-foreground">
-                {GRANULARITIES.find((g) => g.value === granularity)?.label} detail
+                {periodLabel} detail
               </summary>
               <div className="overflow-x-auto border-t">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Month</TableHead>
+                      <TableHead>Period</TableHead>
                       <TableHead className="text-right">Mixed waste in</TableHead>
                       <TableHead className="text-right">A arrived</TableHead>
                       <TableHead className="text-right">A out</TableHead>
@@ -639,6 +462,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                       <TableHead className="text-right">C arrived</TableHead>
                       <TableHead className="text-right">C out</TableHead>
                       <TableHead className="text-right">C recovered</TableHead>
+                      <TableHead className="text-right">Saved</TableHead>
                       <TableHead className="text-right">Recovery rate</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -646,8 +470,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                     {chartData.map((row) => {
                       const totalExt = row.extractedA + row.extractedC;
                       const pct = row.mixedWasteInward > 0 ? ((totalExt / row.mixedWasteInward) * 100).toFixed(1) : "0.0";
+                      const saved = row.extractedA * netA + row.extractedC * netC;
                       return (
-                        <TableRow key={row.month}>
+                        <TableRow key={row.key}>
                           <TableCell className="font-medium">{row.label}</TableCell>
                           <TableCell className="text-right">{fmt(row.mixedWasteInward)}</TableCell>
                           <TableCell className="text-right">{fmt(row.woodAInward)}</TableCell>
@@ -656,6 +481,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                           <TableCell className="text-right">{fmt(row.woodCInward)}</TableCell>
                           <TableCell className="text-right">{fmt(row.woodCOutward)}</TableCell>
                           <TableCell className="text-right font-medium" style={{ color: COLOR_C }}>{fmt(row.extractedC)}</TableCell>
+                          <TableCell className="text-right">{money(saved)}</TableCell>
                           <TableCell className="text-right">
                             <Badge variant="outline">{pct}%</Badge>
                           </TableCell>
@@ -671,6 +497,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
                       <TableCell className="text-right">{fmt(totals.cIn)}</TableCell>
                       <TableCell className="text-right">{fmt(totals.cOut)}</TableCell>
                       <TableCell className="text-right" style={{ color: COLOR_C }}>{fmt(totals.extC)}</TableCell>
+                      <TableCell className="text-right">{money(totalValue)}</TableCell>
                       <TableCell className="text-right">
                         <Badge>{totalRate.toFixed(1)}%</Badge>
                       </TableCell>
