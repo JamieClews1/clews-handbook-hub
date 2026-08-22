@@ -143,9 +143,46 @@ const WasteKPIsPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="incentives" className="space-y-8">
-              <YardIncentives />
-              <RecyclingIncentive />
+            <TabsContent value="incentives" className="space-y-4">
+              <Accordion type="multiple" defaultValue={["wood", "recycling"]} className="space-y-4">
+                <AccordionItem value="wood" className="border rounded-lg bg-card">
+                  <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+                        <Trophy className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-foreground">Yard Team Incentives</p>
+                        <p className="text-sm text-muted-foreground">
+                          Monthly bonus pool from wood recovery above the baseline rate
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-6">
+                    <YardIncentives hideHeader />
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="recycling" className="border rounded-lg bg-card">
+                  <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center">
+                        <Recycle className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-foreground">Recycling Incentive</p>
+                        <p className="text-sm text-muted-foreground">
+                          Bonus based on the share of outgoing waste not going to landfill or RDF
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-6">
+                    <RecyclingIncentive hideHeader />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </TabsContent>
 
 
