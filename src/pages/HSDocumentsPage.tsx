@@ -25,7 +25,9 @@ interface Props {
   category: "site_induction" | "fire_safety";
   heading: string;
   description: string;
+  hideHeader?: boolean;
 }
+
 
 interface StaffRow {
   id: string;
