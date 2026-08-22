@@ -15,6 +15,10 @@ import TotalRevenue from "@/components/data-hub/TotalRevenue";
 import { MonthPicker } from "@/components/MonthPicker";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs";
+import WasteRecoverySavings from "@/components/data-hub/WasteRecoverySavings";
+import WasteValueSettings from "@/components/data-hub/WasteValueSettings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings2 } from "lucide-react";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -119,6 +123,23 @@ const WasteKPIsPage = () => {
             </div>
           </div>
 
+          <Tabs defaultValue="kpis" className="space-y-8">
+            <TabsList>
+              <TabsTrigger value="kpis" className="gap-2">
+                <Gauge className="h-4 w-4" />
+                KPIs
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="settings">
+              <WasteValueSettings />
+            </TabsContent>
+
+            <TabsContent value="kpis" className="space-y-8">
           {/* Annual Totals KPIs */}
           <PerformanceHubKPIs />
 
@@ -191,11 +212,14 @@ const WasteKPIsPage = () => {
             </div>
           )}
 
+          <WasteRecoverySavings externalStartDate={startDate} externalEndDate={endDate} />
           <TotalRevenue externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <TotalWasteHandled externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <WasteNotOnMidweigh externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <WasteOnsiteOffsite externalStartDate={startDate} externalEndDate={endDate} comparisonRanges={previousYearRanges} />
           <WasteKPIGradeCWood externalStartDate={startDate} externalEndDate={endDate} />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
