@@ -142,15 +142,14 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const chartData = useMemo(() => {
     if (!woodData || !mixedWasteData) return [];
 
-    const months: Record<string, MonthData> = {};
+    const buckets: Record<string, MonthData> = {};
     const rangeStart = externalStartDate || subMonths(new Date(), 11);
     const rangeEnd = externalEndDate || new Date();
-    const monthDates = eachMonthOfInterval({ start: rangeStart, end: rangeEnd });
-    monthDates.forEach((d) => {
-      const key = format(d, "yyyy-MM");
-      months[key] = {
+    bucketDates(rangeStart, rangeEnd, granularity).forEach((d) => {
+      const key = bucketKey(d, granularity);
+      buckets[key] = {
         month: key,
-        label: format(d, "MMM yy"),
+        label: bucketLabel(bucketStart(d, granularity), granularity),
         woodAInward: 0, woodAOutward: 0,
         woodCInward: 0, woodCOutward: 0,
         mixedWasteInward: 0,
@@ -158,33 +157,35 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       };
     });
 
+    const keyFor = (jobDate: string) => bucketKey(parseISO(jobDate.substring(0, 10)), granularity);
+
     // Process wood data (midweigh = KG, convert to tonnes)
     woodData.forEach((row: any) => {
       if (!row.job_date) return;
-      const key = row.job_date.substring(0, 7);
-      if (!months[key]) return;
+      const key = keyFor(row.job_date);
+      if (!buckets[key]) return;
       const product = (row.raw as any)?.Product;
       const tonnes = (row.weight_t || 0) / 1000;
       const isA = WOOD_A_PRODUCTS.includes(product);
       if (row.movement_type === "INWARD") {
-        if (isA) months[key].woodAInward += tonnes;
-        else months[key].woodCInward += tonnes;
+        if (isA) buckets[key].woodAInward += tonnes;
+        else buckets[key].woodCInward += tonnes;
       } else if (row.movement_type === "OUTWARD") {
-        if (isA) months[key].woodAOutward += tonnes;
-        else months[key].woodCOutward += tonnes;
+        if (isA) buckets[key].woodAOutward += tonnes;
+        else buckets[key].woodCOutward += tonnes;
       }
     });
 
     // Process mixed waste inward
     mixedWasteData.forEach((row: any) => {
       if (!row.job_date) return;
-      const key = row.job_date.substring(0, 7);
-      if (!months[key]) return;
-      months[key].mixedWasteInward += (row.weight_t || 0) / 1000;
+      const key = keyFor(row.job_date);
+      if (!buckets[key]) return;
+      buckets[key].mixedWasteInward += (row.weight_t || 0) / 1000;
     });
 
     // Extracted = outward - direct inward
-    Object.values(months).forEach((m) => {
+    Object.values(buckets).forEach((m) => {
       m.extractedA = Math.max(0, m.woodAOutward - m.woodAInward);
       m.extractedC = Math.max(0, m.woodCOutward - m.woodCInward);
       // Round all
@@ -197,8 +198,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       m.extractedC = Math.round(m.extractedC * 100) / 100;
     });
 
-    return Object.values(months);
-  }, [woodData, mixedWasteData]);
+    return Object.values(buckets).sort((a, b) => a.month.localeCompare(b.month));
+  }, [woodData, mixedWasteData, granularity, externalStartDate, externalEndDate]);
+
 
   const totals = useMemo(() => {
     if (!chartData.length) return { aIn: 0, aOut: 0, cIn: 0, cOut: 0, extA: 0, extC: 0, mixed: 0, pctA: 0, pctC: 0 };
