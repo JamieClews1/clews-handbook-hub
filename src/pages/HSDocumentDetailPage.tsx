@@ -236,29 +236,66 @@ const HSDocumentDetailPage = () => {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <CardTitle className="text-xl">{title}</CardTitle>
+      <Card className="overflow-hidden border-primary/20 shadow-sm">
+        {/* Branded document header */}
+        <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 text-primary-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-md bg-white/95 p-2">
+                <img src={clewsLogo} alt="Clews Recycling" className="h-9 w-auto" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/80">
+                  {doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}
+                </p>
+                <h1 className="text-lg font-bold leading-tight md:text-xl">{title}</h1>
+              </div>
+            </div>
             {signature && (
-              <Badge className="gap-1">
+              <Badge variant="secondary" className="gap-1">
                 <CheckCircle className="h-3 w-3" /> Signed {new Date(signature.signed_at).toLocaleDateString("en-GB")}
               </Badge>
             )}
           </div>
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {doc.reference_code && <span>{doc.reference_code}</span>}
-            {doc.site && <span>• {doc.site}</span>}
-            {doc.version && <span>• Version {doc.version}</span>}
-          </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        {/* Document meta strip */}
+        <div className="grid grid-cols-2 gap-px border-b bg-border md:grid-cols-4">
+          {[
+            { label: "Reference", value: doc.reference_code || "—" },
+            { label: "Site", value: doc.site || "All sites" },
+            { label: "Version", value: doc.version || "—" },
+            { label: "Language", value: LANGUAGES.find((l) => l.code === language)?.label || "English" },
+          ].map((m) => (
+            <div key={m.label} className="bg-card px-4 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{m.label}</p>
+              <p className="truncate text-sm font-medium">{m.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <CardContent className="pt-6">
           <div
-            className="max-w-none space-y-3 text-sm leading-relaxed [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6 [&_strong]:font-semibold"
+            className="hs-doc max-w-none text-sm leading-relaxed
+              [&>h2]:mt-8 [&>h2]:mb-3 [&>h2]:border-l-4 [&>h2]:border-primary [&>h2]:bg-primary/5 [&>h2]:px-3 [&>h2]:py-2 [&>h2]:text-base [&>h2]:font-bold [&>h2]:tracking-tight [&>h2]:first:mt-0
+              [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:text-primary
+              [&_p]:my-3
+              [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-6 [&_ul]:marker:text-primary
+              [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-6 [&_ol]:marker:text-primary
+              [&_strong]:font-semibold [&_strong]:text-foreground
+              [&_a]:text-primary [&_a]:underline
+              [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-md [&_table]:border
+              [&_th]:border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold
+              [&_td]:border [&_td]:px-3 [&_td]:py-2"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(content || "") }}
           />
         </CardContent>
+
+        <div className="border-t bg-muted/30 px-6 py-3 text-xs text-muted-foreground">
+          Clews Recycling Ltd · Unit 17 Waste Transfer Station · Health &amp; Safety controlled document
+        </div>
       </Card>
+
 
       {doc.requires_signature && !signature && (
         <Card className="print:hidden">
