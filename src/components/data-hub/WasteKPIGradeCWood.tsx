@@ -250,6 +250,33 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const totalRecovery = totals.extA + totals.extC;
   const totalRate = totals.mixed > 0 ? (totalRecovery / totals.mixed) * 100 : 0;
   const fmt = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  const money = (v: number) =>
+    `£${Math.round(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+  // Value vs landfill: what recovered wood would have cost had it gone to landfill,
+  // less what it actually costs us to handle it as wood.
+  const landfillCostPerTonne =
+    Number(rates.landfill_gate_rate || 0) + Number(rates.landfill_haulage_rate || 0);
+
+  const findStream = (needle: string) =>
+    streams.find((s) => s.stream?.toLowerCase().includes(needle));
+
+  const woodACost = (() => {
+    const s = findStream("wood a");
+    return s ? streamCostPerTonne(s) : 0;
+  })();
+  const woodCCost = (() => {
+    const s = findStream("wood c") ?? findStream("wood-c");
+    return s ? streamCostPerTonne(s) : 0;
+  })();
+
+  const netA = landfillCostPerTonne - woodACost;
+  const netC = landfillCostPerTonne - woodCCost;
+  const valueA = totals.extA * netA;
+  const valueC = totals.extC * netC;
+  const totalValue = valueA + valueC;
+  const avoidedLandfill = totalRecovery * landfillCostPerTonne;
+  const actualCost = totals.extA * woodACost + totals.extC * woodCCost;
 
   return (
     <Card>
