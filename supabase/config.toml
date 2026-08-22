@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.translate-rams]
 verify_jwt = true
 
+[functions.translate-hs-document]
+verify_jwt = true
+
 [functions.translate-toolbox-talk]
 verify_jwt = true
 

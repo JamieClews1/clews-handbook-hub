@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CheckCircle, AlertCircle, FileText, User, Clock, BookOpen, MessageSquare } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, FileText, User, Clock, BookOpen, MessageSquare, HardHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
 
@@ -63,6 +63,8 @@ const MyProfilePage = () => {
   const [allToolboxTalks, setAllToolboxTalks] = useState<ToolboxTalk[]>([]);
   const [signedToolboxTalks, setSignedToolboxTalks] = useState<Signature[]>([]);
   const [handbookSignature, setHandbookSignature] = useState<HandbookSignature | null>(null);
+  const [hsDocuments, setHsDocuments] = useState<any[]>([]);
+  const [hsSignatures, setHsSignatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,7 +90,9 @@ const MyProfilePage = () => {
         ramsSignaturesResult,
         toolboxResult,
         toolboxSignaturesResult,
-        handbookSignatureResult
+        handbookSignatureResult,
+        hsDocsResult,
+        hsSignaturesResult
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -116,7 +120,16 @@ const MyProfilePage = () => {
           .from("handbook_signatures")
           .select("signed_at, employee_name")
           .eq("user_id", user!.id)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from("hs_documents")
+          .select("id, category, title, reference_code, requires_signature")
+          .eq("is_published", true)
+          .order("category"),
+        supabase
+          .from("hs_document_signatures")
+          .select("document_id, signature_image, signed_at, job_title, inducted_by")
+          .eq("user_id", user!.id)
       ]);
 
       if (profileResult.error) throw profileResult.error;
@@ -138,6 +151,8 @@ const MyProfilePage = () => {
         throw handbookSignatureResult.error;
       }
       setHandbookSignature(handbookSignatureResult.data);
+      setHsDocuments(hsDocsResult.data || []);
+      setHsSignatures(hsSignaturesResult.data || []);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -416,6 +431,62 @@ const MyProfilePage = () => {
                   )}
                 </TabsContent>
               </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Health & Safety Signatures */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardHat className="h-5 w-5 text-primary" />
+                Site Inductions & Fire Safety
+              </CardTitle>
+              <CardDescription>
+                Your signed site induction and fire safety records
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {hsDocuments.length === 0 ? (
+                <p className="text-center text-muted-foreground py-6">No documents published yet.</p>
+              ) : (
+                hsDocuments.map((doc) => {
+                  const sig = hsSignatures.find((s) => s.document_id === doc.id);
+                  return (
+                    <div
+                      key={doc.id}
+                      className={`rounded-lg border p-4 ${sig ? "border-primary/50 bg-primary/5" : "border-destructive/50 bg-destructive/5"}`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          {sig ? (
+                            <CheckCircle className="h-5 w-5 text-primary" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-destructive" />
+                          )}
+                          <div>
+                            <p className="font-medium">{doc.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}
+                              {sig ? ` • Signed ${new Date(sig.signed_at).toLocaleDateString("en-GB")}` : " • Not yet signed"}
+                              {sig?.inducted_by ? ` • Inducted by ${sig.inducted_by}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant={sig ? "outline" : "destructive"} size="sm" asChild>
+                          <Link to={`/health-safety/documents/${doc.id}`}>{sig ? "View" : "Read & sign"}</Link>
+                        </Button>
+                      </div>
+                      {sig?.signature_image && (
+                        <img
+                          src={sig.signature_image}
+                          alt="Your signature"
+                          className="mt-3 h-20 rounded border bg-white p-1"
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
 

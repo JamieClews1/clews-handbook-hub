@@ -3278,6 +3278,137 @@ export type Database = {
         }
         Relationships: []
       }
+      hs_document_signatures: {
+        Row: {
+          acknowledgements: Json
+          date_of_birth: string | null
+          document_id: string
+          employee_name: string | null
+          id: string
+          inducted_by: string | null
+          job_title: string | null
+          language: string
+          signature_image: string
+          signed_at: string
+          site: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledgements?: Json
+          date_of_birth?: string | null
+          document_id: string
+          employee_name?: string | null
+          id?: string
+          inducted_by?: string | null
+          job_title?: string | null
+          language?: string
+          signature_image: string
+          signed_at?: string
+          site?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledgements?: Json
+          date_of_birth?: string | null
+          document_id?: string
+          employee_name?: string | null
+          id?: string
+          inducted_by?: string | null
+          job_title?: string | null
+          language?: string
+          signature_image?: string
+          signed_at?: string
+          site?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hs_document_signatures_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "hs_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hs_documents: {
+        Row: {
+          acknowledgements: Json
+          acknowledgements_pl: Json | null
+          acknowledgements_ro: Json | null
+          acknowledgements_uk: Json | null
+          category: string
+          content: string
+          content_pl: string | null
+          content_ro: string | null
+          content_uk: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_published: boolean
+          reference_code: string | null
+          requires_signature: boolean
+          site: string | null
+          title: string
+          title_pl: string | null
+          title_ro: string | null
+          title_uk: string | null
+          updated_at: string
+          user_types: string[]
+          version: string | null
+        }
+        Insert: {
+          acknowledgements?: Json
+          acknowledgements_pl?: Json | null
+          acknowledgements_ro?: Json | null
+          acknowledgements_uk?: Json | null
+          category: string
+          content?: string
+          content_pl?: string | null
+          content_ro?: string | null
+          content_uk?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          reference_code?: string | null
+          requires_signature?: boolean
+          site?: string | null
+          title: string
+          title_pl?: string | null
+          title_ro?: string | null
+          title_uk?: string | null
+          updated_at?: string
+          user_types?: string[]
+          version?: string | null
+        }
+        Update: {
+          acknowledgements?: Json
+          acknowledgements_pl?: Json | null
+          acknowledgements_ro?: Json | null
+          acknowledgements_uk?: Json | null
+          category?: string
+          content?: string
+          content_pl?: string | null
+          content_ro?: string | null
+          content_uk?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          reference_code?: string | null
+          requires_signature?: boolean
+          site?: string | null
+          title?: string
+          title_pl?: string | null
+          title_ro?: string | null
+          title_uk?: string | null
+          updated_at?: string
+          user_types?: string[]
+          version?: string | null
+        }
+        Relationships: []
+      }
       inventory_share_links: {
         Row: {
           created_at: string

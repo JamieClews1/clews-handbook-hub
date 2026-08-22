@@ -10,6 +10,9 @@ import LandingPage from "./pages/LandingPage";
 import Index from "./pages/Index";
 import HandbookPage from "./pages/HandbookPage";
 import RAMSPage from "./pages/RAMSPage";
+import SiteInductionsPage from "./pages/SiteInductionsPage";
+import FireSafetyPage from "./pages/FireSafetyPage";
+import HSDocumentDetailPage from "./pages/HSDocumentDetailPage";
 import RAMSDetailPage from "./pages/RAMSDetailPage";
 import ToolboxTalksPage from "./pages/ToolboxTalksPage";
 import ToolboxTalkDetailPage from "./pages/ToolboxTalkDetailPage";
@@ -138,6 +141,9 @@ const App = () => (
             <Route path="/mass-sign-off" element={<Staff><MassSignOffPage /></Staff>} />
             <Route path="/duty-of-care" element={<Staff><DutyOfCarePage /></Staff>} />
             <Route path="/near-miss" element={<Staff><NearMissPage /></Staff>} />
+            <Route path="/site-inductions" element={<Staff><SiteInductionsPage /></Staff>} />
+            <Route path="/fire-safety" element={<Staff><FireSafetyPage /></Staff>} />
+            <Route path="/health-safety/documents/:id" element={<Staff><HSDocumentDetailPage /></Staff>} />
             <Route path="/waste-reporting" element={<Staff><WasteReportingPage /></Staff>} />
             <Route path="/policies" element={<Staff><PoliciesPage /></Staff>} />
             <Route path="/site-reports" element={<Staff><SiteReportsPage /></Staff>} />

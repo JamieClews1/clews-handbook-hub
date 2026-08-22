@@ -38,6 +38,8 @@ import {
   
   Inbox,
   Sparkles,
+  HardHat,
+  Flame,
 } from "lucide-react";
 import {
   Sidebar,
@@ -84,6 +86,10 @@ export function AppSidebar() {
   const [wasteOneOpen, setWasteOneOpen] = useSidebarGroupState(
     "wasteone",
     isInSection(["/route-one", "/weigh-one", "/digital-waste-tracking", "/load-reports", "/performance-hub/stock-check", "/performance-hub/contaminations", "/performance-hub/rentals", "/performance-hub/live-jobs"]),
+  );
+  const [healthSafetyOpen, setHealthSafetyOpen] = useSidebarGroupState(
+    "healthsafety",
+    isInSection(["/rams", "/toolbox-talks", "/near-miss", "/site-inductions", "/fire-safety", "/health-safety"]),
   );
   const [onePortalOpen, setOnePortalOpen] = useSidebarGroupState(
     "oneportal",
@@ -259,6 +265,69 @@ export function AppSidebar() {
         </SidebarGroup>
 
 
+        {/* Health & Safety */}
+        <SidebarGroup className={`${GROUP_SPACING_CLS} gap-1`}>
+          <Collapsible open={healthSafetyOpen} onOpenChange={setHealthSafetyOpen}>
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className={GROUP_LABEL_CLS}>
+                {!collapsed && (
+                  <>
+                    <span>Health &amp; Safety</span>
+                    <ChevronDown className="ml-auto h-3.5 w-3.5" />
+                  </>
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem data-sec="hs-rams">
+                    <SidebarMenuButton asChild isActive={isActive("/rams")}>
+                      <Link to="/rams">
+                        <FileText className={ICON_CLS} />
+                        {!collapsed && <span>RAMS</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="hs-toolbox-talks">
+                    <SidebarMenuButton asChild isActive={isActive("/toolbox-talks")}>
+                      <Link to="/toolbox-talks">
+                        <MessageSquare className={ICON_CLS} />
+                        {!collapsed && <span>Toolbox Talks</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="hs-near-miss">
+                    <SidebarMenuButton asChild isActive={isActive("/near-miss")}>
+                      <Link to="/near-miss">
+                        <AlertTriangle className={ICON_CLS} />
+                        {!collapsed && <span>Near Misses</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="hs-site-inductions">
+                    <SidebarMenuButton asChild isActive={isActive("/site-inductions")}>
+                      <Link to="/site-inductions">
+                        <HardHat className={ICON_CLS} />
+                        {!collapsed && <span>Site Inductions</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="hs-fire-safety">
+                    <SidebarMenuButton asChild isActive={isActive("/fire-safety")}>
+                      <Link to="/fire-safety">
+                        <Flame className={ICON_CLS} />
+                        {!collapsed && <span>Fire Safety</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+
         {/* OnePortal */}
         <SidebarGroup className="mt-5 first:mt-0 gap-1">
           <Collapsible open={onePortalOpen} onOpenChange={setOnePortalOpen}>
@@ -275,7 +344,7 @@ export function AppSidebar() {
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <Collapsible defaultOpen={isInSection(["/duty-of-care", "/near-miss", "/site-reports"])}>
+                  <Collapsible defaultOpen={isInSection(["/duty-of-care", "/site-reports"])}>
                     <SidebarMenuItem data-sec="duty-of-care">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
@@ -289,11 +358,6 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton asChild isActive={isActive("/duty-of-care")}>
                               <Link to="/duty-of-care"><FileCheck className="h-3.5 w-3.5" /><span>Duty of Care</span></Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild isActive={isActive("/near-miss")}>
-                              <Link to="/near-miss"><ClipboardList className="h-3.5 w-3.5" /><span>Near Miss</span></Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
@@ -315,7 +379,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <Collapsible defaultOpen={isInSection(["/handbook", "/rams", "/toolbox-talks"])}>
+                  <Collapsible defaultOpen={isInSection(["/handbook"])}>
                     <SidebarMenuItem data-sec="handbook">
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton>
@@ -329,16 +393,6 @@ export function AppSidebar() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton asChild isActive={isActive("/handbook")}>
                               <Link to="/handbook"><BookOpen className="h-3.5 w-3.5" /><span>Handbook</span></Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild isActive={isActive("/rams")}>
-                              <Link to="/rams"><FileText className="h-3.5 w-3.5" /><span>RAMS</span></Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild isActive={isActive("/toolbox-talks")}>
-                              <Link to="/toolbox-talks"><MessageSquare className="h-3.5 w-3.5" /><span>Toolbox Talks</span></Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         </SidebarMenuSub>
