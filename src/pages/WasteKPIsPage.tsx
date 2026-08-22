@@ -15,6 +15,10 @@ import TotalRevenue from "@/components/data-hub/TotalRevenue";
 import { MonthPicker } from "@/components/MonthPicker";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs";
+import WasteRecoverySavings from "@/components/data-hub/WasteRecoverySavings";
+import WasteValueSettings from "@/components/data-hub/WasteValueSettings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings2 } from "lucide-react";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
