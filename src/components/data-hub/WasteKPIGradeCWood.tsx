@@ -290,8 +290,53 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   const avoidedLandfill = totalRecovery * landfillCostPerTonne;
   const actualCost = totals.extA * woodACost + totals.extC * woodCCost;
 
+  // ---- Team scoreboard: simple "what did we save last week / last month" figure ----
+  const scoreWindow = useMemo(() => {
+    const now = new Date();
+    if (scorePeriod === "this-week")
+      return { start: startOfWeek(now, { weekStartsOn: 1 }), end: now, label: "This week so far" };
+    if (scorePeriod === "last-week") {
+      const s = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      return { start: s, end: endOfWeek(s, { weekStartsOn: 1 }), label: "Last week" };
+    }
+    if (scorePeriod === "this-month")
+      return { start: startOfMonth(now), end: now, label: "This month so far" };
+    const s = startOfMonth(subMonths(now, 1));
+    return { start: s, end: endOfMonth(s), label: "Last month" };
+  }, [scorePeriod]);
+
+  const scoreboard = useMemo(() => {
+    const rows = scoreData || [];
+    const from = format(scoreWindow.start, "yyyy-MM-dd");
+    const to = format(scoreWindow.end, "yyyy-MM-dd");
+    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0;
+    rows.forEach((row: any) => {
+      const d = (row.job_date || "").substring(0, 10);
+      if (!d || d < from || d > to) return;
+      const t = (row.weight_t || 0) / 1000;
+      const product = (row.raw as any)?.Product;
+      if (ALL_WOOD_PRODUCTS.includes(product)) {
+        const isA = WOOD_A_PRODUCTS.includes(product);
+        if (row.movement_type === "INWARD") isA ? (aIn += t) : (cIn += t);
+        else if (row.movement_type === "OUTWARD") isA ? (aOut += t) : (cOut += t);
+      } else if (
+        row.movement_type === "INWARD" &&
+        MIXED_WASTE_DESCRIPTIONS.includes(row.waste_description)
+      ) {
+        mixed += t;
+      }
+    });
+    const extA = Math.max(0, aOut - aIn);
+    const extC = Math.max(0, cOut - cIn);
+    return { extA, extC, total: extA + extC, mixed };
+  }, [scoreData, scoreWindow]);
+
+  const scoreSaving =
+    scoreboard.extA * netA + scoreboard.extC * netC;
+
   return (
     <Card>
+
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center">
