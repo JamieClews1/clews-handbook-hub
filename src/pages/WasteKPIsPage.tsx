@@ -123,6 +123,23 @@ const WasteKPIsPage = () => {
             </div>
           </div>
 
+          <Tabs defaultValue="kpis" className="space-y-8">
+            <TabsList>
+              <TabsTrigger value="kpis" className="gap-2">
+                <Gauge className="h-4 w-4" />
+                KPIs
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="settings">
+              <WasteValueSettings />
+            </TabsContent>
+
+            <TabsContent value="kpis" className="space-y-8">
           {/* Annual Totals KPIs */}
           <PerformanceHubKPIs />
 
