@@ -205,24 +205,19 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
   }, [woodData, mixedWasteData, granularity, externalStartDate, externalEndDate]);
 
 
-  // Totals are computed from the raw rows over the whole date range so they stay
-  // identical whichever granularity is selected (per-bucket max(0, out - in) would
-  // otherwise sum differently for weeks vs months vs years).
+  // Totals follow whatever is currently displayed: they sum the buckets built for
+  // the selected date range and granularity, so the figures move with the selection.
   const totals = useMemo(() => {
-    if (!woodData || !mixedWasteData) return { aIn: 0, aOut: 0, cIn: 0, cOut: 0, extA: 0, extC: 0, mixed: 0, pctA: 0, pctC: 0 };
-    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0;
-    woodData.forEach((row: any) => {
-      const product = (row.raw as any)?.Product;
-      const tonnes = (row.weight_t || 0) / 1000;
-      const isA = WOOD_A_PRODUCTS.includes(product);
-      if (row.movement_type === "INWARD") isA ? (aIn += tonnes) : (cIn += tonnes);
-      else if (row.movement_type === "OUTWARD") isA ? (aOut += tonnes) : (cOut += tonnes);
+    let aIn = 0, aOut = 0, cIn = 0, cOut = 0, mixed = 0, extA = 0, extC = 0;
+    chartData.forEach((m) => {
+      aIn += m.gradeAIn || 0;
+      aOut += m.gradeAOut || 0;
+      cIn += m.gradeCIn || 0;
+      cOut += m.gradeCOut || 0;
+      mixed += m.mixedWaste || 0;
+      extA += m.extractedA || 0;
+      extC += m.extractedC || 0;
     });
-    mixedWasteData.forEach((row: any) => {
-      mixed += (row.weight_t || 0) / 1000;
-    });
-    const extA = Math.max(0, aOut - aIn);
-    const extC = Math.max(0, cOut - cIn);
     const r = (v: number) => Math.round(v * 100) / 100;
     return {
       aIn: r(aIn), aOut: r(aOut), cIn: r(cIn), cOut: r(cOut),
@@ -230,7 +225,8 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
       pctA: mixed > 0 ? r((extA / mixed) * 100) : 0,
       pctC: mixed > 0 ? r((extC / mixed) * 100) : 0,
     };
-  }, [woodData, mixedWasteData]);
+  }, [chartData]);
+
 
   const isLoading = loadingWood || loadingMixed;
 
