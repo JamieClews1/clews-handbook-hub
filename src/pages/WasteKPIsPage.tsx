@@ -18,7 +18,8 @@ import PerformanceHubKPIs from "@/components/performance-hub/PerformanceHubKPIs"
 import WasteRecoverySavings from "@/components/data-hub/WasteRecoverySavings";
 import WasteValueSettings from "@/components/data-hub/WasteValueSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings2 } from "lucide-react";
+import { Settings2, Trophy } from "lucide-react";
+import YardIncentives from "@/components/data-hub/YardIncentives";
 
 const WasteKPIsPage = () => {
   const navigate = useNavigate();
@@ -129,11 +130,19 @@ const WasteKPIsPage = () => {
                 <Gauge className="h-4 w-4" />
                 KPIs
               </TabsTrigger>
+              <TabsTrigger value="incentives" className="gap-2">
+                <Trophy className="h-4 w-4" />
+                Yard Incentives
+              </TabsTrigger>
               <TabsTrigger value="settings" className="gap-2">
                 <Settings2 className="h-4 w-4" />
                 Settings
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="incentives">
+              <YardIncentives />
+            </TabsContent>
 
             <TabsContent value="settings">
               <WasteValueSettings />
