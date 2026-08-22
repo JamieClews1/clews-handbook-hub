@@ -41,7 +41,11 @@ interface MonthRow {
 
 const monthsBack = 13;
 
-const RecyclingIncentive = () => {
+interface RecyclingIncentiveProps {
+  hideHeader?: boolean;
+}
+
+const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
   const groupMap = useMemo(() => loadGroupMap(), []);
   const { streams, rates } = useWasteValueSettings();
   const { settings, saveSetting } = useYardIncentiveSettings();
