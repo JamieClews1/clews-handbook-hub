@@ -7,6 +7,13 @@ export type YardIncentiveSettings = {
   target_recovery_pct: number;
   team_size: number;
   monthly_bonus_cap: number;
+  // Recycling incentive (% of outgoing waste not going to landfill or RDF)
+  recycling_bonus_share_pct: number;
+  recycling_baseline_pct: number;
+  recycling_target_pct: number;
+  recycling_team_size: number;
+  recycling_monthly_bonus_cap: number;
+  recycling_value_per_tonne: number;
 };
 
 const DEFAULTS: YardIncentiveSettings = {
@@ -15,7 +22,14 @@ const DEFAULTS: YardIncentiveSettings = {
   target_recovery_pct: 0,
   team_size: 0,
   monthly_bonus_cap: 0,
+  recycling_bonus_share_pct: 20,
+  recycling_baseline_pct: 0,
+  recycling_target_pct: 0,
+  recycling_team_size: 0,
+  recycling_monthly_bonus_cap: 0,
+  recycling_value_per_tonne: 0,
 };
+
 
 export function useYardIncentiveSettings() {
   const [settings, setSettings] = useState<YardIncentiveSettings>(DEFAULTS);
