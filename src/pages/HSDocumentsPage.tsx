@@ -170,7 +170,94 @@ const HSDocumentsPage = ({ category, heading, description }: Props) => {
         </div>
 
       )}
+
+      {isAdmin && docs.some((d) => d.requires_signature) && staff.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="h-5 w-5 text-primary" /> Signature tracker
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Who has signed each document, and who is still outstanding.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="multiple" className="w-full">
+              {docs
+                .filter((d) => d.requires_signature)
+                .map((doc) => {
+                  const byUser = new Map(
+                    allSigs.filter((s) => s.document_id === doc.id).map((s) => [s.user_id, s.signed_at])
+                  );
+                  const signedStaff = staff.filter((s) => byUser.has(s.id));
+                  const pendingStaff = staff.filter((s) => !byUser.has(s.id));
+                  return (
+                    <AccordionItem key={doc.id} value={doc.id}>
+                      <AccordionTrigger>
+                        <div className="flex flex-1 flex-wrap items-center justify-between gap-2 pr-3 text-left">
+                          <span className="text-sm font-medium">{doc.title}</span>
+                          <span className="flex items-center gap-2">
+                            <Badge variant="secondary">{signedStaff.length} signed</Badge>
+                            {pendingStaff.length > 0 && (
+                              <Badge variant="destructive">{pendingStaff.length} outstanding</Badge>
+                            )}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-destructive">
+                              Yet to sign ({pendingStaff.length})
+                            </p>
+                            {pendingStaff.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">Everyone has signed.</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {pendingStaff.map((s) => (
+                                  <li
+                                    key={s.id}
+                                    className="rounded border border-destructive/40 bg-destructive/5 px-3 py-1.5 text-sm"
+                                  >
+                                    {s.full_name || s.email || "Unnamed user"}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <div>
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Signed ({signedStaff.length})
+                            </p>
+                            {signedStaff.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">No signatures yet.</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {signedStaff.map((s) => (
+                                  <li
+                                    key={s.id}
+                                    className="flex flex-wrap items-center justify-between gap-2 rounded border px-3 py-1.5 text-sm"
+                                  >
+                                    <span>{s.full_name || s.email || "Unnamed user"}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatDate(byUser.get(s.id)!)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+            </Accordion>
+          </CardContent>
+        </Card>
+      )}
     </div>
+
   );
 };
 
