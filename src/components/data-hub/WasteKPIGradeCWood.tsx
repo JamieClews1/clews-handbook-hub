@@ -122,6 +122,40 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
     },
   });
 
+  // Independent recent-window fetch so the scoreboard always has last week / last month
+  // regardless of the dashboard date range above.
+  const scoreFrom = format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd");
+  const { data: scoreData } = useQuery({
+    queryKey: ["waste-kpi-wood-scoreboard", scoreFrom],
+    queryFn: async () => {
+      const allRows: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("data_hub_jobs")
+          .select("job_date, movement_type, weight_t, waste_description, raw")
+          .eq("source", "midweigh")
+          .in("movement_type", ["INWARD", "OUTWARD"])
+          .gte("job_date", scoreFrom)
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRows.push(
+          ...data.filter(
+            (r: any) =>
+              ALL_WOOD_PRODUCTS.includes((r.raw as any)?.Product) ||
+              (r.movement_type === "INWARD" && MIXED_WASTE_DESCRIPTIONS.includes(r.waste_description))
+          )
+        );
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allRows;
+    },
+  });
+
+
   const { data: mixedWasteData, isLoading: loadingMixed } = useQuery({
     queryKey: ["waste-kpi-mixed-waste", startDate, endDateStr],
     queryFn: async () => {
