@@ -387,12 +387,64 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Team scoreboard — independent of the dashboard date range */}
+        <div className="rounded-lg border-2 p-4 space-y-3" style={{ borderColor: COLOR_RATE }}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">Tell the team what they saved</p>
+            <div className="flex flex-wrap gap-1">
+              {([
+                { v: "this-week", l: "This week" },
+                { v: "last-week", l: "Last week" },
+                { v: "this-month", l: "This month" },
+                { v: "last-month", l: "Last month" },
+              ] as const).map((p) => (
+                <Button
+                  key={p.v}
+                  size="sm"
+                  variant={scorePeriod === p.v ? "default" : "outline"}
+                  onClick={() => setScorePeriod(p.v)}
+                >
+                  {p.l}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <p className="text-lg text-foreground leading-relaxed">
+            {scoreWindow.label} ({format(scoreWindow.start, "dd MMM")} – {format(scoreWindow.end, "dd MMM")}) the
+            team pulled{" "}
+            <span className="font-bold" style={{ color: COLOR_RATE }}>{fmt(scoreboard.total)}t</span> of wood out of{" "}
+            <span className="font-semibold">{fmt(scoreboard.mixed)}t</span> of mixed waste, saving{" "}
+            <span className="font-bold" style={{ color: COLOR_RATE }}>{money(scoreSaving)}</span> versus sending it
+            to landfill.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Grade A recovered</p>
+              <p className="text-xl font-bold" style={{ color: COLOR_A }}>{fmt(scoreboard.extA)}t</p>
+              <p className="text-[11px] text-muted-foreground">{money(scoreboard.extA * netA)} saved</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Grade C recovered</p>
+              <p className="text-xl font-bold" style={{ color: COLOR_C }}>{fmt(scoreboard.extC)}t</p>
+              <p className="text-[11px] text-muted-foreground">{money(scoreboard.extC * netC)} saved</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Recovery rate</p>
+              <p className="text-xl font-bold text-foreground">
+                {scoreboard.mixed > 0 ? ((scoreboard.total / scoreboard.mixed) * 100).toFixed(1) : "0.0"}%
+              </p>
+              <p className="text-[11px] text-muted-foreground">of mixed waste taken in</p>
+            </div>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
           <>
+
             {/* Headline */}
             <div className="rounded-lg border bg-muted/30 p-4 flex flex-wrap items-center gap-x-8 gap-y-4">
               <div>
