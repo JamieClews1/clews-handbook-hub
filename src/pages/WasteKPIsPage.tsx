@@ -140,9 +140,11 @@ const WasteKPIsPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="incentives">
+            <TabsContent value="incentives" className="space-y-8">
               <YardIncentives />
+              <RecyclingIncentive />
             </TabsContent>
+
 
             <TabsContent value="settings">
               <WasteValueSettings />
