@@ -7766,6 +7766,30 @@ export type Database = {
         }
         Relationships: []
       }
+      yard_incentive_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       yard_staff: {
         Row: {
           created_at: string
