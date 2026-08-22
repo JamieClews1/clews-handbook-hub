@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,8 +6,51 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Bar, XAxis, YAxis, CartesianGrid, Legend, Line, ComposedChart } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TreePine } from "lucide-react";
-import { format, subMonths, startOfMonth, eachMonthOfInterval } from "date-fns";
+import {
+  format,
+  subMonths,
+  startOfMonth,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  eachQuarterOfInterval,
+  eachYearOfInterval,
+  startOfWeek,
+  startOfQuarter,
+  startOfYear,
+  parseISO,
+} from "date-fns";
+
+type Granularity = "week" | "month" | "quarter" | "year";
+
+const GRANULARITIES: { value: Granularity; label: string }[] = [
+  { value: "week", label: "Weekly" },
+  { value: "month", label: "Monthly" },
+  { value: "quarter", label: "Quarterly" },
+  { value: "year", label: "Annual" },
+];
+
+const bucketStart = (d: Date, g: Granularity) =>
+  g === "week" ? startOfWeek(d, { weekStartsOn: 1 })
+  : g === "month" ? startOfMonth(d)
+  : g === "quarter" ? startOfQuarter(d)
+  : startOfYear(d);
+
+const bucketKey = (d: Date, g: Granularity) => format(bucketStart(d, g), "yyyy-MM-dd");
+
+const bucketLabel = (d: Date, g: Granularity) =>
+  g === "week" ? `w/c ${format(d, "dd MMM")}`
+  : g === "month" ? format(d, "MMM yy")
+  : g === "quarter" ? `Q${format(d, "Q yyyy")}`
+  : format(d, "yyyy");
+
+const bucketDates = (start: Date, end: Date, g: Granularity) =>
+  g === "week" ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 })
+  : g === "month" ? eachMonthOfInterval({ start, end })
+  : g === "quarter" ? eachQuarterOfInterval({ start, end })
+  : eachYearOfInterval({ start, end });
+
 
 const WOOD_A_PRODUCTS = ["WOOD A", "WOOD A OUT"];
 const WOOD_C_PRODUCTS = ["WOOD-C", "WOOD-C OUT"];
