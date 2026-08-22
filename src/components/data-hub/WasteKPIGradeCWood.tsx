@@ -177,14 +177,33 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
 
   const isLoading = loadingWood || loadingMixed;
 
+  const COLOR_A = "hsl(260, 70%, 55%)";
+  const COLOR_C = "hsl(200, 80%, 50%)";
+  const COLOR_RATE = "hsl(142, 70%, 40%)";
+
   const chartConfig = {
-    woodAInward: { label: "Grade A In", color: "hsl(260, 70%, 55%)" },
-    woodAOutward: { label: "Grade A Out", color: "hsl(280, 65%, 50%)" },
-    woodCInward: { label: "Grade C In", color: "hsl(35, 85%, 55%)" },
-    woodCOutward: { label: "Grade C Out", color: "hsl(142, 70%, 45%)" },
-    extractedA: { label: "Grade A Recovery", color: "hsl(260, 80%, 65%)" },
-    extractedC: { label: "Grade C Recovery", color: "hsl(200, 80%, 50%)" },
+    directIn: { label: "Wood received as wood", color: "hsl(35, 85%, 55%)" },
+    extractedA: { label: "Grade A recovered from mixed", color: COLOR_A },
+    extractedC: { label: "Grade C recovered from mixed", color: COLOR_C },
+    recoveryRate: { label: "Recovery rate (% of mixed)", color: COLOR_RATE },
   };
+
+  const enrichedChartData = useMemo(
+    () =>
+      chartData.map((m) => ({
+        ...m,
+        directIn: Math.round((m.woodAInward + m.woodCInward) * 100) / 100,
+        recoveryRate:
+          m.mixedWasteInward > 0
+            ? Math.round(((m.extractedA + m.extractedC) / m.mixedWasteInward) * 1000) / 10
+            : 0,
+      })),
+    [chartData]
+  );
+
+  const totalRecovery = totals.extA + totals.extC;
+  const totalRate = totals.mixed > 0 ? (totalRecovery / totals.mixed) * 100 : 0;
+  const fmt = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 
   return (
     <Card>
@@ -194,9 +213,9 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
             <TreePine className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-lg">Wood Recovery — Grade A &amp; Grade C</CardTitle>
+            <CardTitle className="text-lg">Wood Recovery</CardTitle>
             <CardDescription>
-              Direct inward vs outward, with likely recovery extracted from mixed waste streams
+              How much wood we pull back out of mixed waste, on top of the wood that arrives already segregated
             </CardDescription>
           </div>
         </div>
@@ -208,116 +227,175 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
           </div>
         ) : (
           <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Grade A — Direct In</p>
-                <p className="text-xl font-bold text-foreground">{totals.aIn.toFixed(1)}t</p>
+            {/* Headline */}
+            <div className="rounded-lg border bg-muted/30 p-4 flex flex-wrap items-center gap-x-8 gap-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Wood recovered from mixed waste</p>
+                <p className="text-3xl font-bold text-foreground">{fmt(totalRecovery)}t</p>
               </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Grade A — Total Out</p>
-                <p className="text-xl font-bold text-foreground">{totals.aOut.toFixed(1)}t</p>
+              <div className="text-muted-foreground text-2xl leading-none hidden sm:block">/</div>
+              <div>
+                <p className="text-xs text-muted-foreground">Mixed waste received</p>
+                <p className="text-3xl font-bold text-foreground">{fmt(totals.mixed)}t</p>
               </div>
-              <div className="rounded-lg border p-3 text-center bg-purple-50 dark:bg-purple-950/20">
-                <p className="text-xs text-muted-foreground">Grade A — Recovery</p>
-                <p className="text-xl font-bold" style={{ color: "hsl(260, 70%, 55%)" }}>{totals.extA.toFixed(1)}t</p>
-                <p className="text-xs text-muted-foreground">{totals.pctA.toFixed(1)}% of mixed</p>
+              <div className="text-muted-foreground text-2xl leading-none hidden sm:block">=</div>
+              <div>
+                <p className="text-xs text-muted-foreground">Recovery rate</p>
+                <p className="text-3xl font-bold" style={{ color: COLOR_RATE }}>{totalRate.toFixed(1)}%</p>
               </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Mixed Waste In</p>
-                <p className="text-xl font-bold text-foreground">{totals.mixed.toFixed(1)}t</p>
-              </div>
+              <p className="text-xs text-muted-foreground max-w-sm ml-auto">
+                Recovery = wood sent out minus wood that arrived already graded. Anything extra must have been
+                picked out of the mixed waste stream.
+              </p>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Grade C — Direct In</p>
-                <p className="text-xl font-bold text-foreground">{totals.cIn.toFixed(1)}t</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-xs text-muted-foreground">Grade C — Total Out</p>
-                <p className="text-xl font-bold text-foreground">{totals.cOut.toFixed(1)}t</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center bg-blue-50 dark:bg-blue-950/20">
-                <p className="text-xs text-muted-foreground">Grade C — Recovery</p>
-                <p className="text-xl font-bold text-primary">{totals.extC.toFixed(1)}t</p>
-                <p className="text-xs text-muted-foreground">{totals.pctC.toFixed(1)}% of mixed</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center bg-muted/30">
-                <p className="text-xs text-muted-foreground">Total Wood Recovery</p>
-                <p className="text-xl font-bold text-foreground">{(totals.extA + totals.extC).toFixed(1)}t</p>
-                <p className="text-xs text-muted-foreground">{totals.mixed > 0 ? (((totals.extA + totals.extC) / totals.mixed) * 100).toFixed(1) : "0.0"}% of mixed</p>
-              </div>
+
+            {/* Grade breakdown */}
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                { grade: "A", color: COLOR_A, inT: totals.aIn, outT: totals.aOut, rec: totals.extA, pct: totals.pctA },
+                { grade: "C", color: COLOR_C, inT: totals.cIn, outT: totals.cOut, rec: totals.extC, pct: totals.pctC },
+              ].map((g) => (
+                <div key={g.grade} className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-sm" style={{ background: g.color }} />
+                      <span className="font-semibold text-foreground">Grade {g.grade} wood</span>
+                    </div>
+                    <Badge variant="outline">{g.pct.toFixed(1)}% of mixed</Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Arrived as wood</p>
+                      <p className="text-lg font-semibold text-foreground">{fmt(g.inT)}t</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Sent out</p>
+                      <p className="text-lg font-semibold text-foreground">{fmt(g.outT)}t</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Recovered</p>
+                      <p className="text-lg font-semibold" style={{ color: g.color }}>{fmt(g.rec)}t</p>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
+                    <div
+                      className="h-full"
+                      style={{
+                        background: g.color,
+                        opacity: 0.35,
+                        width: `${g.outT > 0 ? Math.min(100, (g.inT / g.outT) * 100) : 0}%`,
+                      }}
+                    />
+                    <div
+                      className="h-full"
+                      style={{
+                        background: g.color,
+                        width: `${g.outT > 0 ? Math.min(100, (g.rec / g.outT) * 100) : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Faded = arrived already graded · Solid = recovered from mixed waste
+                  </p>
+                </div>
+              ))}
             </div>
 
             {/* Chart */}
-            <ChartContainer config={chartConfig} className="h-[380px] w-full">
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="label" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} label={{ value: "Tonnes", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))" }} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend />
-                <Bar dataKey="woodAInward" name="Grade A In" fill="hsl(260, 70%, 55%)" radius={[2, 2, 0, 0]} stackId="in" />
-                <Bar dataKey="woodCInward" name="Grade C In" fill="hsl(35, 85%, 55%)" radius={[2, 2, 0, 0]} stackId="in" />
-                <Bar dataKey="extractedA" name="Grade A Recovery" fill="hsl(260, 80%, 65%)" radius={[2, 2, 0, 0]} stackId="recovery" />
-                <Bar dataKey="extractedC" name="Grade C Recovery" fill="hsl(200, 80%, 50%)" radius={[2, 2, 0, 0]} stackId="recovery" />
-                <Line dataKey="woodAOutward" name="Grade A Out" stroke="hsl(280, 65%, 50%)" strokeWidth={2} dot={{ r: 3 }} type="monotone" strokeDasharray="5 5" />
-                <Line dataKey="woodCOutward" name="Grade C Out" stroke="hsl(142, 70%, 45%)" strokeWidth={2} dot={{ r: 3 }} type="monotone" />
-              </ComposedChart>
-            </ChartContainer>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Monthly wood out, by where it came from</p>
+              <ChartContainer config={chartConfig} className="h-[340px] w-full">
+                <ComposedChart data={enrichedChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                  <XAxis dataKey="label" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis
+                    yAxisId="t"
+                    className="text-xs"
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    label={{ value: "Tonnes", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="pct"
+                    orientation="right"
+                    unit="%"
+                    className="text-xs"
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Bar yAxisId="t" dataKey="directIn" name="Arrived as wood" fill="hsl(35, 85%, 55%)" stackId="w" radius={[0, 0, 0, 0]} />
+                  <Bar yAxisId="t" dataKey="extractedA" name="Grade A recovered" fill={COLOR_A} stackId="w" />
+                  <Bar yAxisId="t" dataKey="extractedC" name="Grade C recovered" fill={COLOR_C} stackId="w" radius={[2, 2, 0, 0]} />
+                  <Line
+                    yAxisId="pct"
+                    dataKey="recoveryRate"
+                    name="Recovery rate %"
+                    stroke={COLOR_RATE}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    type="monotone"
+                  />
+                </ComposedChart>
+              </ChartContainer>
+            </div>
 
             {/* Data table */}
-            <div className="rounded-lg border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead className="text-right">Mixed In (t)</TableHead>
-                    <TableHead className="text-right">A In (t)</TableHead>
-                    <TableHead className="text-right">A Out (t)</TableHead>
-                    <TableHead className="text-right text-purple-600 dark:text-purple-400">A Recovery (t)</TableHead>
-                    <TableHead className="text-right">C In (t)</TableHead>
-                    <TableHead className="text-right">C Out (t)</TableHead>
-                    <TableHead className="text-right text-primary">C Recovery (t)</TableHead>
-                    <TableHead className="text-right">% Mixed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {chartData.map((row) => {
-                    const totalExt = row.extractedA + row.extractedC;
-                    const pct = row.mixedWasteInward > 0 ? ((totalExt / row.mixedWasteInward) * 100).toFixed(1) : "0.0";
-                    return (
-                      <TableRow key={row.month}>
-                        <TableCell className="font-medium">{row.label}</TableCell>
-                        <TableCell className="text-right">{row.mixedWasteInward.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">{row.woodAInward.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">{row.woodAOutward.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-medium text-purple-600 dark:text-purple-400">{row.extractedA.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">{row.woodCInward.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">{row.woodCOutward.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-medium text-primary">{row.extractedC.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline">{pct}%</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  <TableRow className="font-bold bg-muted/50">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-right">{totals.mixed.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{totals.aIn.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{totals.aOut.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-purple-600 dark:text-purple-400">{totals.extA.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{totals.cIn.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{totals.cOut.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-primary">{totals.extC.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge>{totals.mixed > 0 ? (((totals.extA + totals.extC) / totals.mixed) * 100).toFixed(1) : "0.0"}%</Badge>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+            <details className="rounded-lg border">
+              <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-foreground">
+                Monthly detail
+              </summary>
+              <div className="overflow-x-auto border-t">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Month</TableHead>
+                      <TableHead className="text-right">Mixed waste in</TableHead>
+                      <TableHead className="text-right">A arrived</TableHead>
+                      <TableHead className="text-right">A out</TableHead>
+                      <TableHead className="text-right">A recovered</TableHead>
+                      <TableHead className="text-right">C arrived</TableHead>
+                      <TableHead className="text-right">C out</TableHead>
+                      <TableHead className="text-right">C recovered</TableHead>
+                      <TableHead className="text-right">Recovery rate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chartData.map((row) => {
+                      const totalExt = row.extractedA + row.extractedC;
+                      const pct = row.mixedWasteInward > 0 ? ((totalExt / row.mixedWasteInward) * 100).toFixed(1) : "0.0";
+                      return (
+                        <TableRow key={row.month}>
+                          <TableCell className="font-medium">{row.label}</TableCell>
+                          <TableCell className="text-right">{fmt(row.mixedWasteInward)}</TableCell>
+                          <TableCell className="text-right">{fmt(row.woodAInward)}</TableCell>
+                          <TableCell className="text-right">{fmt(row.woodAOutward)}</TableCell>
+                          <TableCell className="text-right font-medium" style={{ color: COLOR_A }}>{fmt(row.extractedA)}</TableCell>
+                          <TableCell className="text-right">{fmt(row.woodCInward)}</TableCell>
+                          <TableCell className="text-right">{fmt(row.woodCOutward)}</TableCell>
+                          <TableCell className="text-right font-medium" style={{ color: COLOR_C }}>{fmt(row.extractedC)}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant="outline">{pct}%</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="font-bold bg-muted/50">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-right">{fmt(totals.mixed)}</TableCell>
+                      <TableCell className="text-right">{fmt(totals.aIn)}</TableCell>
+                      <TableCell className="text-right">{fmt(totals.aOut)}</TableCell>
+                      <TableCell className="text-right" style={{ color: COLOR_A }}>{fmt(totals.extA)}</TableCell>
+                      <TableCell className="text-right">{fmt(totals.cIn)}</TableCell>
+                      <TableCell className="text-right">{fmt(totals.cOut)}</TableCell>
+                      <TableCell className="text-right" style={{ color: COLOR_C }}>{fmt(totals.extC)}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge>{totalRate.toFixed(1)}%</Badge>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </details>
           </>
         )}
       </CardContent>
