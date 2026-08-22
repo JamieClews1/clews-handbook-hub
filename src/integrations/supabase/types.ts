@@ -3012,6 +3012,275 @@ export type Database = {
         }
         Relationships: []
       }
+      fire_drills: {
+        Row: {
+          actions: string | null
+          actual_headcount: number | null
+          conducted_by: string | null
+          created_at: string
+          drill_date: string
+          drill_time: string | null
+          evacuation_seconds: number | null
+          expected_headcount: number | null
+          id: string
+          issues: string | null
+          scenario: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions?: string | null
+          actual_headcount?: number | null
+          conducted_by?: string | null
+          created_at?: string
+          drill_date?: string
+          drill_time?: string | null
+          evacuation_seconds?: number | null
+          expected_headcount?: number | null
+          id?: string
+          issues?: string | null
+          scenario?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions?: string | null
+          actual_headcount?: number | null
+          conducted_by?: string | null
+          created_at?: string
+          drill_date?: string
+          drill_time?: string | null
+          evacuation_seconds?: number | null
+          expected_headcount?: number | null
+          id?: string
+          issues?: string | null
+          scenario?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fire_equipment_checks: {
+        Row: {
+          checked_by: string | null
+          created_at: string
+          defects: string | null
+          frequency_days: number
+          id: string
+          is_active: boolean
+          item_ref: string | null
+          item_type: string
+          last_checked_on: string | null
+          location: string | null
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          checked_by?: string | null
+          created_at?: string
+          defects?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean
+          item_ref?: string | null
+          item_type: string
+          last_checked_on?: string | null
+          location?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          checked_by?: string | null
+          created_at?: string
+          defects?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean
+          item_ref?: string | null
+          item_type?: string
+          last_checked_on?: string | null
+          location?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fire_risk_actions: {
+        Row: {
+          action: string | null
+          assessment_id: string | null
+          completed_on: string | null
+          created_at: string
+          due_date: string | null
+          finding: string
+          id: string
+          owner: string | null
+          priority: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string | null
+          assessment_id?: string | null
+          completed_on?: string | null
+          created_at?: string
+          due_date?: string | null
+          finding: string
+          id?: string
+          owner?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string | null
+          assessment_id?: string | null
+          completed_on?: string | null
+          created_at?: string
+          due_date?: string | null
+          finding?: string
+          id?: string
+          owner?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fire_risk_actions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fire_risk_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fire_risk_assessments: {
+        Row: {
+          assessment_date: string
+          assessor: string | null
+          created_at: string
+          id: string
+          is_current: boolean
+          review_due: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_date?: string
+          assessor?: string | null
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          review_due?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_date?: string
+          assessor?: string | null
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          review_due?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fire_safety_people: {
+        Row: {
+          appointed_on: string | null
+          area: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          phone: string | null
+          role: string
+          sort_order: number
+          training_expiry: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointed_on?: string | null
+          area?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          phone?: string | null
+          role: string
+          sort_order?: number
+          training_expiry?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointed_on?: string | null
+          area?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          sort_order?: number
+          training_expiry?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fire_weekly_tests: {
+        Row: {
+          audible_everywhere: boolean
+          call_point: string | null
+          created_at: string
+          created_by: string | null
+          defects: string | null
+          id: string
+          notes: string | null
+          result: string
+          test_date: string
+          tested_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          audible_everywhere?: boolean
+          call_point?: string | null
+          created_at?: string
+          created_by?: string | null
+          defects?: string | null
+          id?: string
+          notes?: string | null
+          result?: string
+          test_date?: string
+          tested_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audible_everywhere?: boolean
+          call_point?: string | null
+          created_at?: string
+          created_by?: string | null
+          defects?: string | null
+          id?: string
+          notes?: string | null
+          result?: string
+          test_date?: string
+          tested_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fuel_surcharge_rates: {
         Row: {
           active: boolean
