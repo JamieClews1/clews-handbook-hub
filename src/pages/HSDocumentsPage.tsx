@@ -98,16 +98,19 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
 
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto">
-      <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-primary/10 p-2.5">
-          <Icon className="h-6 w-6 text-primary" />
+    <div className={hideHeader ? "space-y-6" : "p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto"}>
+      {!hideHeader && (
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-primary/10 p-2.5">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{heading}</h1>
+            <p className="text-muted-foreground">{description}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{heading}</h1>
-          <p className="text-muted-foreground">{description}</p>
-        </div>
-      </div>
+      )}
+
 
       {outstanding > 0 && (
         <Card className="border-destructive/40 bg-destructive/5">
