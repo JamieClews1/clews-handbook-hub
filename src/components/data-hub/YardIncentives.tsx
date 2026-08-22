@@ -34,7 +34,11 @@ interface MonthRow {
   extC: number;
 }
 
-const YardIncentives = () => {
+interface YardIncentivesProps {
+  hideHeader?: boolean;
+}
+
+const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
   const { streams, rates } = useWasteValueSettings();
   const { settings, saveSetting } = useYardIncentiveSettings();
   const [draft, setDraft] = useState<Record<string, string>>({});
