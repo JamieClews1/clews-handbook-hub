@@ -280,8 +280,11 @@ const HSDocumentDetailPage = () => {
         <CardContent className="pt-6">
           <div
             className="hs-doc max-w-none text-sm leading-relaxed
+              [&>h1]:mt-8 [&>h1]:mb-3 [&>h1]:border-l-4 [&>h1]:border-primary [&>h1]:bg-primary/5 [&>h1]:px-3 [&>h1]:py-2 [&>h1]:text-base [&>h1]:font-bold [&>h1]:tracking-tight [&>h1]:first:mt-0
               [&>h2]:mt-8 [&>h2]:mb-3 [&>h2]:border-l-4 [&>h2]:border-primary [&>h2]:bg-primary/5 [&>h2]:px-3 [&>h2]:py-2 [&>h2]:text-base [&>h2]:font-bold [&>h2]:tracking-tight [&>h2]:first:mt-0
+              [&_h4]:mt-5 [&_h4]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:uppercase [&_h4]:tracking-wide [&_h4]:text-primary
               [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:text-primary
+
               [&_p]:my-3
               [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-6 [&_ul]:marker:text-primary
               [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-6 [&_ol]:marker:text-primary
