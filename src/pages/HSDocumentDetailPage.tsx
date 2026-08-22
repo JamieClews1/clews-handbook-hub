@@ -254,7 +254,7 @@ const HSDocumentDetailPage = () => {
         </CardHeader>
         <CardContent>
           <div
-            className="prose prose-sm max-w-none dark:prose-invert"
+            className="max-w-none space-y-3 text-sm leading-relaxed [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6 [&_strong]:font-semibold"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(content || "") }}
           />
         </CardContent>
