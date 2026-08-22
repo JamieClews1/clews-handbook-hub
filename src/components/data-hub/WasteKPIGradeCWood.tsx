@@ -324,6 +324,56 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
               </p>
             </div>
 
+            {/* Value vs landfill */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">Value to the business vs waste to landfill</p>
+                <p className="text-xs text-muted-foreground">
+                  Landfill baseline {money(landfillCostPerTonne)}/t (gate + haulage)
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-md bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">Landfill cost avoided</p>
+                  <p className="text-2xl font-bold text-foreground">{money(avoidedLandfill)}</p>
+                  <p className="text-[11px] text-muted-foreground">{fmt(totalRecovery)}t × {money(landfillCostPerTonne)}/t</p>
+                </div>
+                <div className="rounded-md bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">Cost of handling as wood</p>
+                  <p className="text-2xl font-bold text-foreground">{money(actualCost)}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Grade A {money(woodACost)}/t · Grade C {money(woodCCost)}/t
+                  </p>
+                </div>
+                <div className="rounded-md border p-3" style={{ borderColor: COLOR_RATE }}>
+                  <p className="text-xs text-muted-foreground">Net value of wood recovery</p>
+                  <p className="text-2xl font-bold" style={{ color: COLOR_RATE }}>{money(totalValue)}</p>
+                  <p className="text-[11px] text-muted-foreground">Avoided landfill less actual handling cost</p>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { grade: "A", color: COLOR_A, t: totals.extA, net: netA, value: valueA },
+                  { grade: "C", color: COLOR_C, t: totals.extC, net: netC, value: valueC },
+                ].map((g) => (
+                  <div key={g.grade} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <span className="text-sm text-foreground">
+                      <span className="h-2 w-2 mr-2 inline-block rounded-sm align-middle" style={{ background: g.color }} />
+                      Grade {g.grade} · {fmt(g.t)}t recovered
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: g.color }}>
+                      {money(g.value)} <span className="text-[11px] font-normal text-muted-foreground">({money(g.net)}/t)</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {streams.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Set wood stream costs in the Settings tab for an accurate net value.
+                </p>
+              )}
+            </div>
+
             {/* Grade breakdown */}
             <div className="grid gap-3 md:grid-cols-2">
               {[
