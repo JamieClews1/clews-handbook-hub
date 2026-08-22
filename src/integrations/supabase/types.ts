@@ -7357,6 +7357,66 @@ export type Database = {
         }
         Relationships: []
       }
+      waste_stream_values: {
+        Row: {
+          additional_processing: number
+          created_at: string
+          haulage: number
+          id: string
+          is_recovery: boolean
+          processes: string | null
+          share: number
+          sort_order: number
+          stream: string
+          updated_at: string
+          waste_cost: number
+        }
+        Insert: {
+          additional_processing?: number
+          created_at?: string
+          haulage?: number
+          id?: string
+          is_recovery?: boolean
+          processes?: string | null
+          share?: number
+          sort_order?: number
+          stream: string
+          updated_at?: string
+          waste_cost?: number
+        }
+        Update: {
+          additional_processing?: number
+          created_at?: string
+          haulage?: number
+          id?: string
+          is_recovery?: boolean
+          processes?: string | null
+          share?: number
+          sort_order?: number
+          stream?: string
+          updated_at?: string
+          waste_cost?: number
+        }
+        Relationships: []
+      }
+      waste_value_settings: {
+        Row: {
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       weighbridge_additional_items: {
         Row: {
           cost: number
