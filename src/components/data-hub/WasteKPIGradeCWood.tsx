@@ -80,6 +80,7 @@ interface WasteKPIGradeCWoodProps {
 }
 
 const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGradeCWoodProps = {}) => {
+  const [granularity, setGranularity] = useState<Granularity>("month");
   const defaultStart = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
   const startDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : defaultStart;
   const endDateStr = externalEndDate ? format(externalEndDate, "yyyy-MM-dd") : undefined;
