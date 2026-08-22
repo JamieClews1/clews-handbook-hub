@@ -40,7 +40,6 @@ import {
   Sparkles,
   HardHat,
   Flame,
-  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
