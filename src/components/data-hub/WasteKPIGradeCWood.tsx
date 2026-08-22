@@ -403,7 +403,7 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
             {/* Data table */}
             <details className="rounded-lg border">
               <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-foreground">
-                Monthly detail
+                {GRANULARITIES.find((g) => g.value === granularity)?.label} detail
               </summary>
               <div className="overflow-x-auto border-t">
                 <Table>
