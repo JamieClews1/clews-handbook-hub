@@ -349,7 +349,22 @@ const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: WasteKPIGrad
 
             {/* Chart */}
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Monthly wood out, by where it came from</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">Wood out, by where it came from</p>
+                <div className="flex gap-1.5">
+                  {GRANULARITIES.map((g) => (
+                    <Button
+                      key={g.value}
+                      variant={granularity === g.value ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 px-2.5 text-xs"
+                      onClick={() => setGranularity(g.value)}
+                    >
+                      {g.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <ChartContainer config={chartConfig} className="h-[340px] w-full">
                 <ComposedChart data={enrichedChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
