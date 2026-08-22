@@ -126,7 +126,7 @@ const FireEquipmentChecksPanel = () => {
               <TableHead>Frequency</TableHead>
               <TableHead>Last done</TableHead>
               <TableHead>Next due</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Last result</TableHead>
               <TableHead className="w-40" />
             </TableRow>
           </TableHeader>
