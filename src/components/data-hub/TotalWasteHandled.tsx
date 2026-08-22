@@ -154,13 +154,15 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
         const cEndStr = format(range.end, "yyyy-MM-dd");
         const [midweigh, skiptrak] = await Promise.all([
           fetchAllPaged(
-            supabase.from("data_hub_jobs").select("job_date, weight_t, site, job_type")
+            supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, job_type")
               .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
               .gte("job_date", cStartStr).lte("job_date", cEndStr)
+              .order("id", { ascending: true })
           ),
           fetchAllPaged(
-            supabase.from("data_hub_jobs").select("job_date, weight_t, site, tipping_location")
+            supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, tipping_location")
               .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+              .order("id", { ascending: true })
           ),
         ]);
         results[range.year] = { midweigh, skiptrak };
