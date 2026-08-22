@@ -151,6 +151,11 @@ const HSDocumentsPage = ({ category, heading, description }: Props) => {
                     {doc.site && <span>• {doc.site}</span>}
                     {doc.version && <span>• Version {doc.version}</span>}
                   </div>
+                  {signed && mySignedAt[doc.id] && (
+                    <p className="pt-1 text-xs text-muted-foreground">
+                      You signed on {formatDate(mySignedAt[doc.id])}
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="mt-auto">
                   <Button asChild size="sm" className="gap-2">
@@ -163,6 +168,7 @@ const HSDocumentsPage = ({ category, heading, description }: Props) => {
             );
           })}
         </div>
+
       )}
     </div>
   );
