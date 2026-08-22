@@ -157,12 +157,15 @@ const FireEquipmentChecksPanel = () => {
                     <Badge variant={info.tone}>{info.label}</Badge>
                   </TableCell>
                   <TableCell className="max-w-[220px] text-sm">
-                    {c.defects ? (
+                    {!c.last_checked_on ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : c.defects ? (
                       <span className="text-destructive">{c.defects}</span>
                     ) : (
-                      <span className="text-muted-foreground">OK</span>
+                      <span className="text-muted-foreground">No defects</span>
                     )}
                   </TableCell>
+
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="sm" variant="outline" onClick={() => openComplete(c)}>
