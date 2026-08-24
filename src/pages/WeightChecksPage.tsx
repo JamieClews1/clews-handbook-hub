@@ -36,8 +36,9 @@ interface ResultRow {
 
 const MAX_ORDERS = 500;
 
-// Each line is "PO number, postcode" (also accepts space/tab/semicolon between).
-// The first token is the PO number; everything after it is treated as the postcode.
+// Each line is "PO number, postcode".
+// Everything before the first comma/semicolon/tab is the PO number (spaces and
+// slashes kept intact); everything after it is treated as the postcode.
 function parseOrders(raw: string): OrderInput[] {
   const seen = new Set<string>();
   const out: OrderInput[] = [];
@@ -46,10 +47,19 @@ function parseOrders(raw: string): OrderInput[] {
     .map((s) => s.trim())
     .filter(Boolean)
     .forEach((line) => {
-      const parts = line.split(/[,;\t]+|\s{2,}|\s+/).filter(Boolean);
-      const po = parts[0];
+      const idx = line.search(/[,;\t]/);
+      let po: string;
+      let postcode: string;
+      if (idx >= 0) {
+        po = line.slice(0, idx).trim();
+        postcode = line.slice(idx + 1).replace(/[,;\t]+/g, " ").trim();
+      } else {
+        // No delimiter: fall back to splitting on whitespace runs
+        const parts = line.split(/\s+/).filter(Boolean);
+        po = parts[0] ?? "";
+        postcode = parts.slice(1).join(" ").trim();
+      }
       if (!po) return;
-      const postcode = parts.slice(1).join(" ").trim();
       const key = `${po.toUpperCase()}|${postcode.replace(/\s+/g, "").toUpperCase()}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -58,6 +68,7 @@ function parseOrders(raw: string): OrderInput[] {
     });
   return out;
 }
+
 
 export default function WeightChecksPage() {
   const { toast } = useToast();
