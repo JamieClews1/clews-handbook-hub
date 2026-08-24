@@ -798,7 +798,74 @@ const WeighOnePage = () => {
                 <DialogTitle>First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-2">
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <div className="space-y-2">
+                    <Label>Job Type *</Label>
+                    <Select
+                      value={formData.job_type}
+                      onValueChange={(val) => {
+                        setFormData((p) => ({
+                          ...p,
+                          job_type: val,
+                          ...(val === "skip"
+                            ? {
+                                carrier_name: p.carrier_name || OWN_CARRIER_NAME,
+                                carrier_registration: p.carrier_registration || ownCarrierLicence,
+                              }
+                            : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
+                        }));
+                        if (val !== "skip") setSkipDriver("");
+                      }}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {JOB_TYPES.map((j) => (
+                          <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.job_type === "skip" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Clews Driver</Label>
+                        <Select value={skipDriver} onValueChange={setSkipDriver}>
+                          <SelectTrigger><SelectValue placeholder="Select driver..." /></SelectTrigger>
+                          <SelectContent>
+                            {skipDrivers.map((d) => (
+                              <SelectItem key={d} value={d}>{d}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Skiptrak Job (today)</Label>
+                        <Select value={formData.linked_job_number} onValueChange={applySkiptrakJob}>
+                          <SelectTrigger><SelectValue placeholder="Select job..." /></SelectTrigger>
+                          <SelectContent>
+                            {driverJobs.map((j) => (
+                              <SelectItem key={j.job_number} value={j.job_number}>
+                                {j.job_number} — {j.customer || "?"} / {j.site || "?"}
+                                {j.container_type ? ` (${j.container_type})` : ""}
+                              </SelectItem>
+                            ))}
+                            {driverJobs.length === 0 && (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">No Skiptrak jobs today</div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {formData.linked_job_number && (
+                        <p className="col-span-2 text-xs text-muted-foreground">
+                          Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
+
                   <div className="space-y-2">
                     <Label>Vehicle Reg *</Label>
                     <div className="relative">
