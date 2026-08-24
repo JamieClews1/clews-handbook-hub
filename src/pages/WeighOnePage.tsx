@@ -1476,6 +1476,112 @@ const WeighOnePage = () => {
           <WeighOneCMS />
         </DialogContent>
       </Dialog>
+
+      {/* Prices & Rates settings */}
+      <Dialog open={ratesDialogOpen} onOpenChange={setRatesDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Prices & Rates</DialogTitle>
+          </DialogHeader>
+          <WeighbridgeRatesSettings />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit transaction */}
+      <Dialog open={editDialogOpen} onOpenChange={(o) => { setEditDialogOpen(o); if (!o) setSelectedTransaction(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Ticket {selectedTransaction?.ticket_number}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Vehicle Reg</Label>
+                <Input value={editForm.vehicle_reg} onChange={(e) => setEditForm((p) => ({ ...p, vehicle_reg: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Customer</Label>
+                <Input value={editForm.customer} onChange={(e) => setEditForm((p) => ({ ...p, customer: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Site</Label>
+                <Input value={editForm.site} onChange={(e) => setEditForm((p) => ({ ...p, site: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Driver</Label>
+                <Input value={editForm.driver_name} onChange={(e) => setEditForm((p) => ({ ...p, driver_name: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Waste Type</Label>
+                <Select value={editForm.waste_type_id} onValueChange={(val) => setEditForm((p) => ({ ...p, waste_type_id: val }))}>
+                  <SelectTrigger><SelectValue placeholder="Select waste type..." /></SelectTrigger>
+                  <SelectContent>
+                    {activeWasteTypes.map((wt) => (
+                      <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Rate Group</Label>
+                <Select
+                  value={editForm.rate_group_id || defaultRateGroup?.id || ""}
+                  onValueChange={(val) => setEditForm((p) => ({ ...p, rate_group_id: val }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Trade Rates" /></SelectTrigger>
+                  <SelectContent>
+                    {rateGroups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Gross Weight (kg)</Label>
+                <Input type="number" value={editForm.gross_weight_kg} onChange={(e) => setEditForm((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tare Weight (kg)</Label>
+                <Input type="number" value={editForm.tare_weight_kg} onChange={(e) => setEditForm((p) => ({ ...p, tare_weight_kg: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Carrier Name</Label>
+                <Input value={editForm.carrier_name} onChange={(e) => setEditForm((p) => ({ ...p, carrier_name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Carrier Registration</Label>
+                <Input value={editForm.carrier_registration} onChange={(e) => setEditForm((p) => ({ ...p, carrier_registration: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Physical Form</Label>
+                <Input value={editForm.physical_form} onChange={(e) => setEditForm((p) => ({ ...p, physical_form: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Container Type</Label>
+                <Input value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Input value={editForm.notes} onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending}>Save changes</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
