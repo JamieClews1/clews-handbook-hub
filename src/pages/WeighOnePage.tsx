@@ -530,6 +530,11 @@ const WeighOnePage = () => {
           carrier_name: editForm.carrier_name || null,
           physical_form: editForm.physical_form || null,
           means_of_transport: editForm.means_of_transport || "Road",
+          job_type: editForm.job_type || null,
+          linked_job_number: editForm.linked_job_number || null,
+          linked_job_source: editForm.linked_job_number ? (editForm.linked_job_source || "skiptrak") : null,
+          linked_job_date: editForm.linked_job_date || null,
+
           status: netKg != null && selectedTransaction.status !== "voided"
             ? ("completed" as WeighbridgeStatus)
             : selectedTransaction.status,
