@@ -7130,6 +7130,30 @@ export type Database = {
           },
         ]
       }
+      skip_tracker_settings: {
+        Row: {
+          auto_clear_photo_tag: boolean
+          created_at: string
+          id: string
+          photos_required: number
+          updated_at: string
+        }
+        Insert: {
+          auto_clear_photo_tag?: boolean
+          created_at?: string
+          id?: string
+          photos_required?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_clear_photo_tag?: boolean
+          created_at?: string
+          id?: string
+          photos_required?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       staci_monthly_reports: {
         Row: {
           created_at: string
