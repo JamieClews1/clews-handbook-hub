@@ -325,6 +325,9 @@ export const StockCheckSettings = () => {
       <InventorySizesSettings />
 
       <InventoryValueSettings />
+
+      <SkipTrackerSettings />
+
     </div>
 
   );
