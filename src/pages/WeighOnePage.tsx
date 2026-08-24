@@ -207,6 +207,19 @@ const WeighOnePage = () => {
     },
   });
 
+  // Our own waste carriers licence (used for Clews vehicles on Skip jobs)
+  const { data: ownCarrierLicence = "" } = useQuery({
+    queryKey: ["weighone-own-carrier-licence"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_profile")
+        .select("waste_carriers_licence_number")
+        .limit(1)
+        .maybeSingle();
+      return data?.waste_carriers_licence_number ?? "";
+    },
+  });
+
   // Today's Skiptrak jobs (our own vehicles) for linking Skip tickets
   const todayIso = new Date().toISOString().slice(0, 10);
   const { data: skiptrakJobs = [] } = useQuery({
