@@ -133,7 +133,12 @@ const WeighOnePage = () => {
     physical_form: "Solid",
     means_of_transport: "Road",
     rate_group_id: "",
+    job_type: "waste_in",
+    linked_job_number: "",
+    linked_job_source: "",
+    linked_job_date: "",
   };
+
 
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
