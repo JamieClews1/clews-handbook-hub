@@ -1740,7 +1740,29 @@ const WeighOnePage = () => {
                 <Input value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Job Type</Label>
+                <Select value={editForm.job_type} onValueChange={(val) => setEditForm((p) => ({ ...p, job_type: val }))}>
+                  <SelectTrigger><SelectValue placeholder="Select job type..." /></SelectTrigger>
+                  <SelectContent>
+                    {JOB_TYPES.map((j) => (
+                      <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Linked Skiptrak Job</Label>
+                <Input
+                  placeholder="Job number"
+                  value={editForm.linked_job_number}
+                  onChange={(e) => setEditForm((p) => ({ ...p, linked_job_number: e.target.value, linked_job_source: "skiptrak" }))}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
+
               <Label>Notes</Label>
               <Input value={editForm.notes} onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))} />
             </div>
