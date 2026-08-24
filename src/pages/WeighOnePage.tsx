@@ -1338,6 +1338,8 @@ const WeighOnePage = () => {
                         <TableHead>Ticket</TableHead>
                         <TableHead>Vehicle</TableHead>
                         <TableHead>Customer</TableHead>
+                        <TableHead>Job Type</TableHead>
+
                         <TableHead>Waste</TableHead>
                         <TableHead className="text-right">Gross (t)</TableHead>
                         <TableHead className="text-right">Tare (t)</TableHead>
