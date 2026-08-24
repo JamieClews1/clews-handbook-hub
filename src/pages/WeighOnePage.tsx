@@ -205,7 +205,55 @@ const WeighOnePage = () => {
     },
   });
 
+  // Today's Skiptrak jobs (our own vehicles) for linking Skip tickets
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const { data: skiptrakJobs = [] } = useQuery({
+    queryKey: ["weighone-skiptrak-jobs", todayIso],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number, job_date, customer, site, driver, vehicle_registration, container_type, waste_description, movement_type")
+        .eq("source", "skiptrak")
+        .eq("job_date", todayIso)
+        .order("job_number", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as {
+        job_number: string; job_date: string; customer: string | null; site: string | null;
+        driver: string | null; vehicle_registration: string | null; container_type: string | null;
+        waste_description: string | null; movement_type: string | null;
+      }[];
+    },
+  });
+
+  const skipDrivers = Array.from(
+    new Set(skiptrakJobs.map((j) => (j.driver || "").trim()).filter(Boolean)),
+  ).sort();
+
+  const driverJobs = skiptrakJobs.filter(
+    (j) => !skipDriver || (j.driver || "").trim() === skipDriver,
+  );
+
+  /** Prefill the weigh-in form from a Skiptrak job */
+  const applySkiptrakJob = (jobNumber: string) => {
+    const job = skiptrakJobs.find((j) => j.job_number === jobNumber);
+    if (!job) return;
+    setFormData((p) => ({
+      ...p,
+      linked_job_number: job.job_number,
+      linked_job_source: "skiptrak",
+      linked_job_date: job.job_date,
+      customer: job.customer || p.customer,
+      site: job.site || p.site,
+      driver_name: job.driver || p.driver_name,
+      vehicle_reg: (job.vehicle_registration || p.vehicle_reg || "").toUpperCase(),
+      container_type: job.container_type || p.container_type,
+      carrier_name: p.carrier_name || OWN_CARRIER_NAME,
+      carrier_registration: p.carrier_registration || ownCarrierLicence,
+    }));
+  };
+
   // Fetch Midweigh vehicles
+
   const { data: midweighVehicles = [] } = useQuery({
     queryKey: ["weighbridge-vehicles"],
     queryFn: async () => {
