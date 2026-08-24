@@ -908,7 +908,7 @@ const WeighOnePage = () => {
                       onValueChange={(id) => {
                         const tpl = itemTemplates.find((t) => t.id === id);
                         if (!tpl) return;
-                        setNewAdditionalItems((prev) => [...prev, { description: tpl.name, cost: String(tpl.default_charge) }]);
+                        setNewAdditionalItems((prev) => [...prev, { description: tpl.name, cost: String(tpl.cost) }]);
                       }}
                     >
                       <SelectTrigger className="h-8 text-xs">
@@ -916,7 +916,7 @@ const WeighOnePage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {itemTemplates.filter((t) => t.is_active).map((t) => (
-                          <SelectItem key={t.id} value={t.id}>{t.name} — £{t.default_charge.toFixed(2)}</SelectItem>
+                          <SelectItem key={t.id} value={t.id}>{t.name} — £{t.cost.toFixed(2)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
