@@ -442,12 +442,23 @@ Deno.serve(async (req) => {
           return a.localeCompare(b);
         });
 
+        // Authoritative skip/RoRo classification per configured size
+        const { data: sizeRows } = await supabase
+          .from("skip_inventory_sizes")
+          .select("name, asset_type");
+        const sizeTypes: Record<string, string> = {};
+        for (const s of sizeRows ?? []) {
+          const n = String(s.name ?? "").trim().toUpperCase();
+          if (n) sizeTypes[n] = s.asset_type === "roro" ? "roro" : "skip";
+        }
+
         return json({
           inventory: inventory ?? [],
           myReports: myReports ?? [],
           myPoints,
           leaderboard,
           containerTypes: filteredTypes,
+          sizeTypes,
         });
       }
       case "submit_skip_tracker": {
