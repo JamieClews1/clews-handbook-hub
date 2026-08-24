@@ -362,6 +362,11 @@ const WeighOnePage = () => {
         carrier_name: formData.carrier_name || null,
         physical_form: formData.physical_form || null,
         means_of_transport: formData.means_of_transport || "Road",
+        job_type: formData.job_type || null,
+        linked_job_number: formData.linked_job_number || null,
+        linked_job_source: formData.linked_job_number ? (formData.linked_job_source || "skiptrak") : null,
+        linked_job_date: formData.linked_job_date || null,
+
 
         status: "first_weigh" as WeighbridgeStatus,
       }).select("id").single();
