@@ -1359,6 +1359,13 @@ const WeighOnePage = () => {
                             <TableCell className="font-mono font-medium">{t.ticket_number}</TableCell>
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {jobTypeLabel(t.job_type)}
+                              {t.linked_job_number && (
+                                <span className="ml-1 text-muted-foreground font-mono">#{t.linked_job_number}</span>
+                              )}
+                            </TableCell>
+
                             <TableCell className="max-w-[120px] truncate">{t.waste_description ?? "-"}</TableCell>
                             <TableCell className="text-right tabular-nums">{fmtWeight(t.gross_weight_kg)}</TableCell>
                             <TableCell className="text-right tabular-nums">{fmtWeight(t.tare_weight_kg)}</TableCell>
