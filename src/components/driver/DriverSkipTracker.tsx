@@ -35,7 +35,14 @@ import { cn, compareAssetNumbers } from "@/lib/utils";
 
 const isRoroType = (n: string) => /ro\s*ro|roll\s*on/i.test(n);
 const isSkipType = (n: string) => /skip|yard|yd/i.test(n);
-const containerAssetType = (n: string) => (isRoroType(n) ? "roro" : "skip");
+const containerAssetType = (
+  n: string,
+  sizeTypes?: Record<string, string>,
+) => {
+  const configured = sizeTypes?.[n.trim().toUpperCase()];
+  if (configured === "roro" || configured === "skip") return configured;
+  return isRoroType(n) ? "roro" : "skip";
+};
 
 interface Reporter {
   id: string;
@@ -94,6 +101,7 @@ interface HubData {
   myPoints: number;
   leaderboard: LeaderboardEntry[];
   containerTypes: string[];
+  sizeTypes?: Record<string, string>;
 }
 
 type Tab = "logged" | "reports" | "points";
@@ -106,6 +114,7 @@ const SkipTrackerFlow = ({
   reporter,
   inventory,
   containerTypes,
+  sizeTypes,
   onBack,
   onSubmitted,
   preset,
@@ -113,6 +122,7 @@ const SkipTrackerFlow = ({
   reporter: Reporter;
   inventory: InventoryRow[];
   containerTypes: string[];
+  sizeTypes?: Record<string, string>;
   onBack: () => void;
   onSubmitted: () => void;
   preset?: { number: string; type: string } | null;
@@ -164,13 +174,13 @@ const SkipTrackerFlow = ({
       existingBin.size &&
       containerTypes.find((c) => c.toLowerCase() === existingBin.size!.toLowerCase());
     setContainerType(sizeMatch || "");
-    setAssetType(sizeMatch ? containerAssetType(sizeMatch) : existingBin.asset_type === "roro" ? "roro" : "skip");
+    setAssetType(sizeMatch ? containerAssetType(sizeMatch, sizeTypes) : existingBin.asset_type === "roro" ? "roro" : "skip");
     if (existingBin.condition && CONDITIONS.includes(existingBin.condition)) {
       setCondition(existingBin.condition);
     }
     setRepairsRequired(!!existingBin.repairs_required);
     setLocation(existingBin.last_location || "");
-  }, [existingBin, containerTypes]);
+  }, [existingBin, containerTypes, sizeTypes]);
 
 
 
@@ -209,9 +219,9 @@ const SkipTrackerFlow = ({
   const sizeOptions = useMemo(
     () =>
       assetType
-        ? containerTypes.filter((t) => containerAssetType(t) === assetType)
+        ? containerTypes.filter((t) => containerAssetType(t, sizeTypes) === assetType)
         : [],
-    [containerTypes, assetType],
+    [containerTypes, assetType, sizeTypes],
   );
 
   const handleCapture = async (
@@ -389,7 +399,7 @@ const SkipTrackerFlow = ({
               value={containerType}
               onValueChange={(v) => {
                 setContainerType(v);
-                setAssetType(containerAssetType(v));
+                setAssetType(containerAssetType(v, sizeTypes));
               }}
             >
               <SelectTrigger className="h-12 text-base">
@@ -687,6 +697,7 @@ const DriverSkipTracker = ({
         reporter={reporter}
         inventory={data?.inventory ?? []}
         containerTypes={data?.containerTypes ?? []}
+        sizeTypes={data?.sizeTypes}
         preset={presetNumber}
         onBack={() => {
           setCataloguing(false);
