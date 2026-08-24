@@ -70,6 +70,11 @@ interface WeighbridgeTransaction {
   means_of_transport: string | null;
   rate_group_id: string | null;
   min_charge: number | null;
+  job_type: string | null;
+  linked_job_number: string | null;
+  linked_job_source: string | null;
+  linked_job_date: string | null;
+
 
   created_at: string;
   updated_at: string;
