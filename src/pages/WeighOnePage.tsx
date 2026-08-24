@@ -1250,6 +1250,28 @@ const WeighOnePage = () => {
                                 >
                                   <FileText className="h-3.5 w-3.5" />
                                 </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title="Edit"
+                                  onClick={() => openEdit(t)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive"
+                                  title="Delete"
+                                  onClick={() => {
+                                    if (confirm(`Delete ticket ${t.ticket_number}? This cannot be undone.`)) {
+                                      deleteMutation.mutate(t.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
