@@ -476,7 +476,12 @@ const WeighOnePage = () => {
       physical_form: t.physical_form ?? "Solid",
       means_of_transport: t.means_of_transport ?? "Road",
       rate_group_id: t.rate_group_id ?? "",
+      job_type: t.job_type ?? "waste_in",
+      linked_job_number: t.linked_job_number ?? "",
+      linked_job_source: t.linked_job_source ?? "",
+      linked_job_date: t.linked_job_date ?? "",
       tare_weight_kg: t.tare_weight_kg != null ? String(t.tare_weight_kg) : "",
+
     });
     setEditDialogOpen(true);
   };
