@@ -754,7 +754,10 @@ const WeighOnePage = () => {
                           setCustomerSearch(e.target.value);
                         }}
                         onFocus={() => setCustomerSearch(formData.customer)}
-                        onBlur={() => setTimeout(() => setCustomerSearch(""), 200)}
+                        onBlur={(e) => {
+                          setTimeout(() => setCustomerSearch(""), 200);
+                          applyCustomerDefaults(e.target.value);
+                        }}
                       />
                       {customerSearch && formData.customer && (
                         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
@@ -770,6 +773,7 @@ const WeighOnePage = () => {
                                   e.preventDefault();
                                   setFormData(p => ({ ...p, customer: c.customer_name }));
                                   setCustomerSearch("");
+                                  applyCustomerDefaults(c.customer_name);
                                 }}
                               >
                                 {c.customer_name}
