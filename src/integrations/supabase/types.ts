@@ -8017,6 +8017,10 @@ export type Database = {
           first_weigh_at: string | null
           gross_weight_kg: number | null
           id: string
+          job_type: string | null
+          linked_job_date: string | null
+          linked_job_number: string | null
+          linked_job_source: string | null
           means_of_transport: string | null
           min_charge: number | null
           net_weight_kg: number | null
@@ -8050,6 +8054,10 @@ export type Database = {
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
           id?: string
+          job_type?: string | null
+          linked_job_date?: string | null
+          linked_job_number?: string | null
+          linked_job_source?: string | null
           means_of_transport?: string | null
           min_charge?: number | null
           net_weight_kg?: number | null
@@ -8083,6 +8091,10 @@ export type Database = {
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
           id?: string
+          job_type?: string | null
+          linked_job_date?: string | null
+          linked_job_number?: string | null
+          linked_job_source?: string | null
           means_of_transport?: string | null
           min_charge?: number | null
           net_weight_kg?: number | null
