@@ -902,6 +902,25 @@ const WeighOnePage = () => {
                       <Plus className="h-3 w-3" /> Add Item
                     </Button>
                   </div>
+                  {itemTemplates.filter((t) => t.is_active).length > 0 && (
+                    <Select
+                      value=""
+                      onValueChange={(id) => {
+                        const tpl = itemTemplates.find((t) => t.id === id);
+                        if (!tpl) return;
+                        setNewAdditionalItems((prev) => [...prev, { description: tpl.name, cost: String(tpl.default_charge) }]);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Add from templates..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {itemTemplates.filter((t) => t.is_active).map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.name} — £{t.default_charge.toFixed(2)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   {newAdditionalItems.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <Input
