@@ -543,12 +543,18 @@ Deno.serve(async (req) => {
           last_reported_by: existing?.last_reported_by || reporterName,
         };
 
-        // Clear "more photos needed" style tags once enough photos exist
-        if (photos.length >= 4 && existingTags.length) {
+        // Clear "more photos needed" style tags once new photos have been added
+        // (or the bin now meets the required photo count).
+        if (
+          autoClearPhotoTag &&
+          existingTags.length &&
+          (newPhotos.length > 0 || photos.length >= photosRequired)
+        ) {
           invPayload.tags = existingTags.filter(
             (t) => !String(t).toLowerCase().includes("photo"),
           );
         }
+
 
         let inventoryId = existing?.id ?? null;
         if (inventoryId) {
