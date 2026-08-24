@@ -793,32 +793,51 @@ const WeighOnePage = () => {
                   <Input placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
                 </div>
 
-                {/* Waste Type Selection with Price */}
-                <div className="space-y-2">
-                  <Label>Waste Type</Label>
-                  <Select value={formData.waste_type_id} onValueChange={(val) => setFormData((p) => ({ ...p, waste_type_id: val }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select waste type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeWasteTypes.map((wt) => (
-                        <SelectItem key={wt.id} value={wt.id}>
-                          {wt.waste_type} — £{wt.price_per_tonne.toFixed(2)}/t
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedWasteType && (
-                    <div className="flex items-center gap-2 text-sm p-2 rounded bg-muted/50">
-                      <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-muted-foreground">Price per tonne:</span>
-                      <span className="font-bold">£{selectedWasteType.price_per_tonne.toFixed(2)}</span>
-                      {selectedWasteType.ewc_code && (
-                        <span className="text-muted-foreground ml-2">EWC: {selectedWasteType.ewc_code}</span>
-                      )}
-                    </div>
-                  )}
+                {/* Waste Type + Rate Group */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Waste Type</Label>
+                    <Select value={formData.waste_type_id} onValueChange={(val) => setFormData((p) => ({ ...p, waste_type_id: val }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select waste type..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeWasteTypes.map((wt) => (
+                          <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rate Group</Label>
+                    <Select
+                      value={formData.rate_group_id || defaultRateGroup?.id || ""}
+                      onValueChange={(val) => setFormData((p) => ({ ...p, rate_group_id: val }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Trade Rates" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rateGroups.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                {selectedWasteType && selectedRate && (
+                  <div className="flex flex-wrap items-center gap-2 text-sm p-2 rounded bg-muted/50">
+                    <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">Price per tonne:</span>
+                    <span className="font-bold">£{selectedRate.price_per_tonne.toFixed(2)}</span>
+                    {selectedRate.min_charge > 0 && (
+                      <span className="text-muted-foreground">· Min charge £{selectedRate.min_charge.toFixed(2)}</span>
+                    )}
+                    {selectedWasteType.ewc_code && (
+                      <span className="text-muted-foreground ml-2">EWC: {selectedWasteType.ewc_code}</span>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
