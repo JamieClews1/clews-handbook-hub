@@ -25,6 +25,20 @@ type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 const PHYSICAL_FORMS = ["Solid", "Liquid", "Sludge", "Powder", "Gas", "Mixed"];
 const MEANS_OF_TRANSPORT = ["Road", "Rail", "Sea", "Air", "Inland Waterway"];
 
+/** Job types as set up in Skiptrak */
+const JOB_TYPES = [
+  { value: "waste_in", label: "Waste IN" },
+  { value: "waste_out", label: "Waste OUT" },
+  { value: "skip", label: "Skip" },
+] as const;
+
+const jobTypeLabel = (v: string | null | undefined) =>
+  JOB_TYPES.find((j) => j.value === v)?.label ?? "-";
+
+/** Our own vehicles are Clews Recycling — carrier defaults for Skip jobs */
+const OWN_CARRIER_NAME = "Clews Recycling Limited";
+
+
 
 interface WeighbridgeTransaction {
   id: string;
