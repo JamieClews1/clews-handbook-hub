@@ -25,6 +25,20 @@ type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 const PHYSICAL_FORMS = ["Solid", "Liquid", "Sludge", "Powder", "Gas", "Mixed"];
 const MEANS_OF_TRANSPORT = ["Road", "Rail", "Sea", "Air", "Inland Waterway"];
 
+/** Job types as set up in Skiptrak */
+const JOB_TYPES = [
+  { value: "waste_in", label: "Waste IN" },
+  { value: "waste_out", label: "Waste OUT" },
+  { value: "skip", label: "Skip" },
+] as const;
+
+const jobTypeLabel = (v: string | null | undefined) =>
+  JOB_TYPES.find((j) => j.value === v)?.label ?? "-";
+
+/** Our own vehicles are Clews Recycling — carrier defaults for Skip jobs */
+const OWN_CARRIER_NAME = "Clews Recycling Limited";
+
+
 
 interface WeighbridgeTransaction {
   id: string;
@@ -56,6 +70,11 @@ interface WeighbridgeTransaction {
   means_of_transport: string | null;
   rate_group_id: string | null;
   min_charge: number | null;
+  job_type: string | null;
+  linked_job_number: string | null;
+  linked_job_source: string | null;
+  linked_job_date: string | null;
+
 
   created_at: string;
   updated_at: string;
@@ -97,6 +116,8 @@ const WeighOnePage = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [skipDriver, setSkipDriver] = useState<string>("");
+
 
   const emptyForm = {
     vehicle_reg: "",
@@ -114,7 +135,12 @@ const WeighOnePage = () => {
     physical_form: "Solid",
     means_of_transport: "Road",
     rate_group_id: "",
+    job_type: "waste_in",
+    linked_job_number: "",
+    linked_job_source: "",
+    linked_job_date: "",
   };
+
 
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
@@ -181,7 +207,68 @@ const WeighOnePage = () => {
     },
   });
 
+  // Our own waste carriers licence (used for Clews vehicles on Skip jobs)
+  const { data: ownCarrierLicence = "" } = useQuery({
+    queryKey: ["weighone-own-carrier-licence"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_profile")
+        .select("waste_carriers_licence_number")
+        .limit(1)
+        .maybeSingle();
+      return data?.waste_carriers_licence_number ?? "";
+    },
+  });
+
+  // Today's Skiptrak jobs (our own vehicles) for linking Skip tickets
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const { data: skiptrakJobs = [] } = useQuery({
+    queryKey: ["weighone-skiptrak-jobs", todayIso],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number, job_date, customer, site, driver, vehicle_registration, container_type, waste_description, movement_type")
+        .eq("source", "skiptrak")
+        .eq("job_date", todayIso)
+        .order("job_number", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as {
+        job_number: string; job_date: string; customer: string | null; site: string | null;
+        driver: string | null; vehicle_registration: string | null; container_type: string | null;
+        waste_description: string | null; movement_type: string | null;
+      }[];
+    },
+  });
+
+  const skipDrivers = Array.from(
+    new Set(skiptrakJobs.map((j) => (j.driver || "").trim()).filter(Boolean)),
+  ).sort();
+
+  const driverJobs = skiptrakJobs.filter(
+    (j) => !skipDriver || (j.driver || "").trim() === skipDriver,
+  );
+
+  /** Prefill the weigh-in form from a Skiptrak job */
+  const applySkiptrakJob = (jobNumber: string) => {
+    const job = skiptrakJobs.find((j) => j.job_number === jobNumber);
+    if (!job) return;
+    setFormData((p) => ({
+      ...p,
+      linked_job_number: job.job_number,
+      linked_job_source: "skiptrak",
+      linked_job_date: job.job_date,
+      customer: job.customer || p.customer,
+      site: job.site || p.site,
+      driver_name: job.driver || p.driver_name,
+      vehicle_reg: (job.vehicle_registration || p.vehicle_reg || "").toUpperCase(),
+      container_type: job.container_type || p.container_type,
+      carrier_name: p.carrier_name || OWN_CARRIER_NAME,
+      carrier_registration: p.carrier_registration || ownCarrierLicence,
+    }));
+  };
+
   // Fetch Midweigh vehicles
+
   const { data: midweighVehicles = [] } = useQuery({
     queryKey: ["weighbridge-vehicles"],
     queryFn: async () => {
@@ -338,6 +425,11 @@ const WeighOnePage = () => {
         carrier_name: formData.carrier_name || null,
         physical_form: formData.physical_form || null,
         means_of_transport: formData.means_of_transport || "Road",
+        job_type: formData.job_type || null,
+        linked_job_number: formData.linked_job_number || null,
+        linked_job_source: formData.linked_job_number ? (formData.linked_job_source || "skiptrak") : null,
+        linked_job_date: formData.linked_job_date || null,
+
 
         status: "first_weigh" as WeighbridgeStatus,
       }).select("id").single();
@@ -452,7 +544,12 @@ const WeighOnePage = () => {
       physical_form: t.physical_form ?? "Solid",
       means_of_transport: t.means_of_transport ?? "Road",
       rate_group_id: t.rate_group_id ?? "",
+      job_type: t.job_type ?? "waste_in",
+      linked_job_number: t.linked_job_number ?? "",
+      linked_job_source: t.linked_job_source ?? "",
+      linked_job_date: t.linked_job_date ?? "",
       tare_weight_kg: t.tare_weight_kg != null ? String(t.tare_weight_kg) : "",
+
     });
     setEditDialogOpen(true);
   };
@@ -496,6 +593,11 @@ const WeighOnePage = () => {
           carrier_name: editForm.carrier_name || null,
           physical_form: editForm.physical_form || null,
           means_of_transport: editForm.means_of_transport || "Road",
+          job_type: editForm.job_type || null,
+          linked_job_number: editForm.linked_job_number || null,
+          linked_job_source: editForm.linked_job_number ? (editForm.linked_job_source || "skiptrak") : null,
+          linked_job_date: editForm.linked_job_date || null,
+
           status: netKg != null && selectedTransaction.status !== "voided"
             ? ("completed" as WeighbridgeStatus)
             : selectedTransaction.status,
@@ -558,6 +660,8 @@ const WeighOnePage = () => {
 
   const resetForm = () => {
     setFormData({ ...emptyForm });
+    setSkipDriver("");
+
     setNewAdditionalItems([]);
   };
 
@@ -696,7 +800,74 @@ const WeighOnePage = () => {
                 <DialogTitle>First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-2">
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <div className="space-y-2">
+                    <Label>Job Type *</Label>
+                    <Select
+                      value={formData.job_type}
+                      onValueChange={(val) => {
+                        setFormData((p) => ({
+                          ...p,
+                          job_type: val,
+                          ...(val === "skip"
+                            ? {
+                                carrier_name: p.carrier_name || OWN_CARRIER_NAME,
+                                carrier_registration: p.carrier_registration || ownCarrierLicence,
+                              }
+                            : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
+                        }));
+                        if (val !== "skip") setSkipDriver("");
+                      }}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {JOB_TYPES.map((j) => (
+                          <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.job_type === "skip" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Clews Driver</Label>
+                        <Select value={skipDriver} onValueChange={setSkipDriver}>
+                          <SelectTrigger><SelectValue placeholder="Select driver..." /></SelectTrigger>
+                          <SelectContent>
+                            {skipDrivers.map((d) => (
+                              <SelectItem key={d} value={d}>{d}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Skiptrak Job (today)</Label>
+                        <Select value={formData.linked_job_number} onValueChange={applySkiptrakJob}>
+                          <SelectTrigger><SelectValue placeholder="Select job..." /></SelectTrigger>
+                          <SelectContent>
+                            {driverJobs.map((j) => (
+                              <SelectItem key={j.job_number} value={j.job_number}>
+                                {j.job_number} — {j.customer || "?"} / {j.site || "?"}
+                                {j.container_type ? ` (${j.container_type})` : ""}
+                              </SelectItem>
+                            ))}
+                            {driverJobs.length === 0 && (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">No Skiptrak jobs today</div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {formData.linked_job_number && (
+                        <p className="col-span-2 text-xs text-muted-foreground">
+                          Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
+
                   <div className="space-y-2">
                     <Label>Vehicle Reg *</Label>
                     <div className="relative">
@@ -1169,6 +1340,8 @@ const WeighOnePage = () => {
                         <TableHead>Ticket</TableHead>
                         <TableHead>Vehicle</TableHead>
                         <TableHead>Customer</TableHead>
+                        <TableHead>Job Type</TableHead>
+
                         <TableHead>Waste</TableHead>
                         <TableHead className="text-right">Gross (t)</TableHead>
                         <TableHead className="text-right">Tare (t)</TableHead>
@@ -1188,6 +1361,13 @@ const WeighOnePage = () => {
                             <TableCell className="font-mono font-medium">{t.ticket_number}</TableCell>
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {jobTypeLabel(t.job_type)}
+                              {t.linked_job_number && (
+                                <span className="ml-1 text-muted-foreground font-mono">#{t.linked_job_number}</span>
+                              )}
+                            </TableCell>
+
                             <TableCell className="max-w-[120px] truncate">{t.waste_description ?? "-"}</TableCell>
                             <TableCell className="text-right tabular-nums">{fmtWeight(t.gross_weight_kg)}</TableCell>
                             <TableCell className="text-right tabular-nums">{fmtWeight(t.tare_weight_kg)}</TableCell>
@@ -1571,7 +1751,29 @@ const WeighOnePage = () => {
                 <Input value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Job Type</Label>
+                <Select value={editForm.job_type} onValueChange={(val) => setEditForm((p) => ({ ...p, job_type: val }))}>
+                  <SelectTrigger><SelectValue placeholder="Select job type..." /></SelectTrigger>
+                  <SelectContent>
+                    {JOB_TYPES.map((j) => (
+                      <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Linked Skiptrak Job</Label>
+                <Input
+                  placeholder="Job number"
+                  value={editForm.linked_job_number}
+                  onChange={(e) => setEditForm((p) => ({ ...p, linked_job_number: e.target.value, linked_job_source: "skiptrak" }))}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
+
               <Label>Notes</Label>
               <Input value={editForm.notes} onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))} />
             </div>
