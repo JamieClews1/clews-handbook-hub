@@ -660,6 +660,8 @@ const WeighOnePage = () => {
 
   const resetForm = () => {
     setFormData({ ...emptyForm });
+    setSkipDriver("");
+
     setNewAdditionalItems([]);
   };
 
