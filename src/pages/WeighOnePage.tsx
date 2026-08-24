@@ -116,6 +116,8 @@ const WeighOnePage = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [skipDriver, setSkipDriver] = useState<string>("");
+
 
   const emptyForm = {
     vehicle_reg: "",
