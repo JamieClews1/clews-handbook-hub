@@ -487,14 +487,23 @@ Deno.serve(async (req) => {
           .order("last_cataloged_at", { ascending: false, nullsFirst: false });
         const existing = matches?.[0] ?? null;
 
+        const { data: trackerSettings } = await supabase
+          .from("skip_tracker_settings")
+          .select("auto_clear_photo_tag, photos_required")
+          .limit(1)
+          .maybeSingle();
+        const autoClearPhotoTag = trackerSettings?.auto_clear_photo_tag ?? true;
+        const photosRequired = Number(trackerSettings?.photos_required ?? 4);
+
         const existingPhotos = Array.isArray(existing?.photos) ? existing!.photos : [];
         const existingTags: string[] = Array.isArray(existing?.tags) ? existing!.tags : [];
         const needsMoreInfo = existing
-          ? existingPhotos.length < 4 ||
+          ? existingPhotos.length < photosRequired ||
             !existing.size ||
             !existing.condition ||
             existingTags.some((t) => String(t).toLowerCase().includes("photo"))
           : false;
+
 
         const newPhotos = Array.isArray(body?.photos) ? body.photos : [];
 
