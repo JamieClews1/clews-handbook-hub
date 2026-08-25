@@ -1439,9 +1439,12 @@ const WeighOnePage = () => {
                 </div>
               )}
 
+              <WeighbridgeAttachments transactionId={selectedTransaction.id} />
+
               <Button onClick={() => secondWeighMutation.mutate()} disabled={!secondWeighKg || secondWeighMutation.isPending} className="w-full">
                 {secondWeighMutation.isPending ? "Recording..." : "Complete Transaction"}
               </Button>
+
             </div>
           )}
         </DialogContent>
