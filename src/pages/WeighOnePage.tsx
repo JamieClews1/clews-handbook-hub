@@ -439,21 +439,27 @@ const WeighOnePage = () => {
       }).select("id").single();
       if (error) throw error;
 
-      // Insert additional items
+      // Insert additional items (quantity aware)
       const validItems = newAdditionalItems.filter(item => item.description && item.cost);
       if (validItems.length > 0 && txData) {
         const { error: itemsError } = await supabase.from("weighbridge_additional_items").insert(
-          validItems.map((item, idx) => ({
-            transaction_id: txData.id,
-            description: item.description,
-            cost: parseFloat(item.cost) || 0,
-            display_order: idx,
-          }))
+          validItems.map((item, idx) => {
+            const qty = Math.max(1, parseInt(item.qty || "1", 10) || 1);
+            return {
+              transaction_id: txData.id,
+              description: qty > 1 ? `${qty} × ${item.description}` : item.description,
+              cost: (parseFloat(item.cost) || 0) * qty,
+              display_order: idx,
+            };
+          })
         );
         if (itemsError) throw itemsError;
 
         // Update additional items total on transaction
-        const additionalTotal = validItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+        const additionalTotal = validItems.reduce(
+          (sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1),
+          0,
+        );
         await supabase.from("weighbridge_transactions")
           .update({ additional_items_total: additionalTotal })
           .eq("id", txData.id);
