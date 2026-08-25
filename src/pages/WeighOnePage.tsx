@@ -143,6 +143,7 @@ const WeighOnePage = () => {
     linked_job_number: "",
     linked_job_source: "",
     linked_job_date: "",
+    tare_weight_kg: "",
   };
 
 
@@ -344,6 +345,14 @@ const WeighOnePage = () => {
     ? rateFor(formData.waste_type_id, formData.rate_group_id)
     : null;
 
+  /** Net weight preview when an optional second (tare) weight is entered on the new weigh-in */
+  const netPreviewKg = (() => {
+    const g = parseFloat(formData.gross_weight_kg);
+    const t = parseFloat(formData.tare_weight_kg);
+    return isNaN(g) || isNaN(t) ? null : Math.abs(g - t);
+  })();
+
+
   /** Auto-recognise customer/carrier details from the Data Hub + saved customer record */
   const applyCustomerDefaults = async (customerName: string) => {
     if (!customerName) return;
@@ -409,6 +418,18 @@ const WeighOnePage = () => {
 
       const rate = formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
 
+      // Optional second (tare) weight captured at the same time
+      const tareRaw = (formData.tare_weight_kg ?? "").trim();
+      const tareKg = tareRaw === "" ? NaN : parseFloat(tareRaw);
+      const hasTare = !isNaN(tareKg) && !isNaN(grossKg);
+      const netKg = hasTare ? Math.abs(grossKg - tareKg) : null;
+      const itemsTotal = newAdditionalItems
+        .filter((i) => i.description && i.cost)
+        .reduce((sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0);
+      const weightCharge = hasTare
+        ? chargeFor(netKg as number, rate?.price_per_tonne ?? 0, rate?.min_charge ?? 0)
+        : null;
+
       const { data: txData, error } = await supabase.from("weighbridge_transactions").insert({
         ticket_number: ticket,
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
@@ -434,8 +455,12 @@ const WeighOnePage = () => {
         linked_job_source: formData.linked_job_number ? (formData.linked_job_source || "skiptrak") : null,
         linked_job_date: formData.linked_job_date || null,
 
-
-        status: "first_weigh" as WeighbridgeStatus,
+        tare_weight_kg: hasTare ? tareKg : null,
+        net_weight_kg: netKg,
+        weight_charge: weightCharge,
+        total_price: hasTare ? (weightCharge ?? 0) + itemsTotal : null,
+        second_weigh_at: hasTare ? new Date().toISOString() : null,
+        status: (hasTare ? "completed" : "first_weigh") as WeighbridgeStatus,
       }).select("id").single();
       if (error) throw error;
 
@@ -466,7 +491,7 @@ const WeighOnePage = () => {
       }
     },
     onSuccess: () => {
-      toast.success("First weigh recorded");
+      toast.success(formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
       setNewDialogOpen(false);
       resetForm();
     },
@@ -918,6 +943,25 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Operator</Label>
                           <Input className="h-9" placeholder="Operator name" value={formData.operator_name} onChange={(e) => setFormData((p) => ({ ...p, operator_name: e.target.value }))} />
                         </div>
+                        <div className="space-y-1.5 col-span-2 rounded-md bg-muted/40 p-2">
+                          <Label className="text-xs">Second Weight / Tare (kg) — optional</Label>
+                          <Input
+                            className="h-9"
+                            type="number"
+                            placeholder="Leave blank to weigh out later"
+                            value={formData.tare_weight_kg}
+                            onChange={(e) => setFormData((p) => ({ ...p, tare_weight_kg: e.target.value }))}
+                          />
+                          {netPreviewKg !== null && (
+                            <p className="text-xs text-muted-foreground">
+                              Net <span className="font-semibold text-foreground">{(netPreviewKg / 1000).toFixed(2)} t</span>
+                              {selectedRate && (
+                                <> · Weight charge <span className="font-semibold text-foreground">£{chargeFor(netPreviewKg, selectedRate.price_per_tonne, selectedRate.min_charge).toFixed(2)}</span></>
+                              )}
+                              {" "}— ticket will complete immediately.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1194,7 +1238,11 @@ const WeighOnePage = () => {
                 )}
                 <Button variant="outline" onClick={() => setNewDialogOpen(false)}>Cancel</Button>
                 <Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>
-                  {createMutation.isPending ? "Recording..." : "Record First Weigh"}
+                  {createMutation.isPending
+                    ? "Recording..."
+                    : netPreviewKg !== null
+                      ? "Record & Complete"
+                      : "Record First Weigh"}
                 </Button>
               </div>
             </DialogContent>
