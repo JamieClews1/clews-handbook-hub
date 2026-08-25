@@ -1,4 +1,5 @@
 import { Fragment, useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
 import { convertWeightToTonnes } from "@/lib/weighbridge-source";
@@ -1066,6 +1067,23 @@ export function MonthlyRebateGenerationV2() {
     body: string,
   ): Promise<boolean> => {
     if (!recipient || !dateRange?.from || !dateRange?.to) return false;
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    let activeSession = sessionData.session;
+    const expiresSoon = !activeSession?.expires_at || activeSession.expires_at * 1000 <= Date.now() + 60_000;
+
+    if (expiresSoon) {
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshed.session) {
+        throw new Error("Your session has expired. Please sign in again, then resend the email.");
+      }
+      activeSession = refreshed.session;
+    }
+
+    if (!activeSession?.access_token) {
+      throw new Error("You must be signed in to send rebate emails.");
+    }
+
     const { base64, filename } = await getCustomerRebateExportBase64({
       customerName: summary.customer.customer_name,
       siteName: sb.site.site_name,
@@ -1090,7 +1108,8 @@ export function MonthlyRebateGenerationV2() {
     });
 
 
-    const { error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+    const { data: emailData, error: emailError } = await supabase.functions.invoke("send-rebate-notification", {
+      headers: { Authorization: `Bearer ${activeSession.access_token}` },
       body: {
         to: recipient,
         subject,
@@ -1099,7 +1118,19 @@ export function MonthlyRebateGenerationV2() {
         attachment: { base64, filename },
       },
     });
-    if (emailError) throw emailError;
+    if (emailError) {
+      if (emailError instanceof FunctionsHttpError) {
+        const details = await emailError.context.json().catch(() => null) as { error?: string } | null;
+        if (emailError.context.status === 401) {
+          throw new Error("Your session has expired. Please sign in again, then resend the email.");
+        }
+        throw new Error(details?.error || "The rebate email service could not send this message.");
+      }
+      throw emailError;
+    }
+    if (emailData?.success !== true) {
+      throw new Error(emailData?.error || "The rebate email was not accepted for sending.");
+    }
 
     const periodStart = format(dateRange.from, "yyyy-MM-dd");
     const periodEnd = format(dateRange.to, "yyyy-MM-dd");
