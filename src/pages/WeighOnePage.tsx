@@ -18,6 +18,8 @@ import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/components/weighone/WeighbridgeRatesSettings";
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
+import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
+import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
