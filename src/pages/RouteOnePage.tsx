@@ -885,7 +885,12 @@ const RouteOnePage = () => {
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{sj.container_type || "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm tabular-nums">{sj.weight_t != null ? `${sj.weight_t}t` : "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{sj.waste_description || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">
+                        <span>{sj.waste_description || "—"}</span>
+                        {sj.rebate_rate_per_tonne != null && (
+                          <Badge variant="outline" className="ml-1.5 text-[10px]">£{Number(sj.rebate_rate_per_tonne).toFixed(2)}/t</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm">{sj.driver || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{sj.job_date ? format(new Date(sj.job_date), "dd/MM/yy") : ""}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">—</TableCell>
