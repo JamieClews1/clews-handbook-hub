@@ -143,6 +143,7 @@ const WeighOnePage = () => {
     linked_job_number: "",
     linked_job_source: "",
     linked_job_date: "",
+    tare_weight_kg: "",
   };
 
 
