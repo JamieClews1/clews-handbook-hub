@@ -1080,11 +1080,16 @@ const WeighOnePage = () => {
                           )}
                         </div>
                       )}
+                      </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Notes</Label>
-                      <Textarea className="min-h-[70px]" placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notes</span>
+                      </div>
+                      <div className="p-3 space-y-1.5">
+                        <Textarea className="min-h-[70px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 resize-none" placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                      </div>
                     </div>
                   </div>
 
