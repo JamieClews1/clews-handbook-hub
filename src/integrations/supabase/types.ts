@@ -2191,6 +2191,7 @@ export type Database = {
           movement_type: string | null
           order_number_override: string | null
           raw: Json
+          rebate_rate_per_tonne: number | null
           site: string | null
           source: string
           tare_weight: number | null
@@ -2220,6 +2221,7 @@ export type Database = {
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
+          rebate_rate_per_tonne?: number | null
           site?: string | null
           source: string
           tare_weight?: number | null
@@ -2249,6 +2251,7 @@ export type Database = {
           movement_type?: string | null
           order_number_override?: string | null
           raw?: Json
+          rebate_rate_per_tonne?: number | null
           site?: string | null
           source?: string
           tare_weight?: number | null
@@ -2281,6 +2284,7 @@ export type Database = {
           original_id: string | null
           original_updated_at: string | null
           raw: Json
+          rebate_rate_per_tonne: number | null
           site: string | null
           source: string
           tipping_location: string | null
@@ -2308,6 +2312,7 @@ export type Database = {
           original_id?: string | null
           original_updated_at?: string | null
           raw?: Json
+          rebate_rate_per_tonne?: number | null
           site?: string | null
           source: string
           tipping_location?: string | null
@@ -2335,6 +2340,7 @@ export type Database = {
           original_id?: string | null
           original_updated_at?: string | null
           raw?: Json
+          rebate_rate_per_tonne?: number | null
           site?: string | null
           source?: string
           tipping_location?: string | null

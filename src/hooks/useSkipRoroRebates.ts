@@ -19,6 +19,10 @@ type JobRecord = {
   job_type?: string | null;
   rebatable_weight?: number;
   job_rebate_value?: number;
+  /** Bespoke £/tonne set on the job in the Data Hub; overrides the configured rate */
+  rebate_rate_per_tonne?: number | null;
+  /** Rate actually used for this job (bespoke or configured) */
+  applied_rate_per_tonne?: number;
   // For Artic Curtain Side loads - weight from specific load report line item
   material_weight_t?: number;
   explicit_waste_filter_match?: boolean;
@@ -170,7 +174,7 @@ export function useSkipRoroRebates(
         
         const { data: jobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job")
+          .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job, rebate_rate_per_tonne")
           .eq("site", siteMapping)
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -198,7 +202,7 @@ export function useSkipRoroRebates(
       if (midweighAllowed && dataHubCustomer && siteDataHubMappings.filter(Boolean).length === 0) {
         const { data: midweighJobs } = await supabase
           .from("data_hub_jobs")
-          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type, linked_skip_job")
+          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type, linked_skip_job, rebate_rate_per_tonne")
           .ilike("customer", `%${dataHubCustomer}%`)
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
@@ -242,7 +246,7 @@ export function useSkipRoroRebates(
         const wasteFilterKeys = new Set(wasteFilterNames.map(normalise));
         let filteredMidweighQuery = supabase
           .from("data_hub_jobs")
-          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type, linked_skip_job")
+          .select("id, job_number, source, job_date, category, waste_description, weight_t, site, customer, container_type, movement_type, job_type, linked_skip_job, rebate_rate_per_tonne")
           .or("site.is.null,site.eq.")
           .gte("job_date", startDate)
           .lte("job_date", endDate)
@@ -258,7 +262,7 @@ export function useSkipRoroRebates(
           const existingIds = new Set(allJobs.map((j) => j.id));
           let skiptrakCandidatesQuery = supabase
             .from("data_hub_jobs")
-            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job")
+            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job, rebate_rate_per_tonne")
             .in("category", ["Roll on Roll off", "Skips"])
             .gte("job_date", startDate)
             .lte("job_date", endDate);
@@ -415,7 +419,7 @@ export function useSkipRoroRebates(
         const baseCandidateQuery = () =>
           supabase
             .from("data_hub_jobs")
-            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job")
+            .select("id, job_number, source, customer, job_date, category, waste_description, weight_t, site, container_type, movement_type, job_type, linked_skip_job, rebate_rate_per_tonne")
             .in("category", ["Roll on Roll off", "Skips"])
             .gte("job_date", startDate)
             .lte("job_date", endDate);
@@ -776,19 +780,29 @@ export function useSkipRoroRebates(
             }
             
             const rebatableWeight = Math.max(0, materialWeight - threshold);
-            const jobRebateValue = rebatableWeight * adjustedRate;
-            
+            // Bespoke per-job rate set in the Data Hub overrides the configured rate
+            const bespoke = (job as any).rebate_rate_per_tonne;
+            const bespokeRate =
+              bespoke == null || bespoke === "" || Number.isNaN(Number(bespoke))
+                ? null
+                : Number(bespoke);
+            const appliedRate = bespokeRate ?? adjustedRate;
+            const jobRebateValue = rebatableWeight * appliedRate;
+
             return {
               ...job,
               material_weight_t: materialWeight,
               weight_t: job.weight_t, // Keep original total weight for display
               rebatable_weight: rebatableWeight,
               job_rebate_value: jobRebateValue,
+              rebate_rate_per_tonne: bespokeRate,
+              applied_rate_per_tonne: appliedRate,
             };
           });
 
           const totalRebatableWeight = jobsWithRebates.reduce((sum, j) => sum + (j.rebatable_weight ?? 0), 0);
           const rebateValue = jobsWithRebates.reduce((sum, j) => sum + (j.job_rebate_value ?? 0), 0);
+          const bespokeCount = jobsWithRebates.filter((j) => j.rebate_rate_per_tonne != null).length;
 
           materialSummaries.push({
             material_type: config.material_type,
@@ -797,7 +811,7 @@ export function useSkipRoroRebates(
             rate_per_tonne: adjustedRate,
             adjustment,
             rebate_value: rebateValue,
-            rate_source: rateSource,
+            rate_source: bespokeCount > 0 ? `${rateSource} · ${bespokeCount} bespoke job rate${bespokeCount > 1 ? "s" : ""}` : rateSource,
             jobs: jobsWithRebates.sort((a, b) => 
               new Date(b.job_date).getTime() - new Date(a.job_date).getTime()
             ),

@@ -83,6 +83,7 @@ type ListedJob = {
   order_number_override?: string | null;
   job_type?: string | null;
   manual_edit_note?: string | null;
+  rebate_rate_per_tonne?: number | null;
   raw?: Record<string, any> | null;
   created_at?: string;
   updated_at: string;
@@ -256,6 +257,8 @@ const DataUploadsPage = () => {
 
   const [jobs, setJobs] = useState<ListedJob[]>([]);
   const [detailJob, setDetailJob] = useState<ListedJob | null>(null);
+  const [bespokeRate, setBespokeRate] = useState<string>("");
+  const [savingRate, setSavingRate] = useState(false);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -273,6 +276,46 @@ const DataUploadsPage = () => {
         rows: Record<string, unknown>[];
       }
   >(null);
+
+  useEffect(() => {
+    setBespokeRate(
+      detailJob?.rebate_rate_per_tonne == null ? "" : String(detailJob.rebate_rate_per_tonne),
+    );
+  }, [detailJob?.id]);
+
+  const saveBespokeRate = async (raw?: string) => {
+    if (!detailJob) return;
+    const trimmed = (raw ?? bespokeRate).trim();
+    const value = trimmed === "" ? null : Number(trimmed);
+    if (value != null && !Number.isFinite(value)) {
+      toast({ title: "Enter a valid number", variant: "destructive" });
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const { error } = await supabase
+        .from("data_hub_jobs")
+        .update({ rebate_rate_per_tonne: value } as any)
+        .eq("id", detailJob.id);
+      if (error) throw error;
+      setDetailJob({ ...detailJob, rebate_rate_per_tonne: value });
+      setJobs((prev) =>
+        prev.map((j) => (j.id === detailJob.id ? { ...j, rebate_rate_per_tonne: value } : j)),
+      );
+      toast({
+        title: value == null ? "Bespoke rate cleared" : "Bespoke rate saved",
+        description:
+          value == null
+            ? "This job will use the standard rebate rate."
+            : `Job ${detailJob.job_number} will rebate at £${value.toFixed(2)}/tonne.`,
+      });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Could not save rate", description: e?.message, variant: "destructive" });
+    } finally {
+      setSavingRate(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -316,7 +359,7 @@ const DataUploadsPage = () => {
       let q = supabase
         .from("data_hub_jobs")
         .select(
-          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,order_number_override,job_type,manual_edit_note,raw,created_at,updated_at",
+          "id,job_number,source,job_date,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,order_number_override,job_type,manual_edit_note,rebate_rate_per_tonne,raw,created_at,updated_at",
         )
         .order("job_date", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
@@ -1420,6 +1463,12 @@ const DataUploadsPage = () => {
                     ["Tare weight (kg)", detailJob.tare_weight == null ? "—" : detailJob.tare_weight.toLocaleString()],
                     ["Linked skip job", detailJob.linked_skip_job],
                     ["Manual edit note", detailJob.manual_edit_note],
+                    [
+                      "Bespoke rebate rate (£/t)",
+                      detailJob.rebate_rate_per_tonne == null
+                        ? "—"
+                        : `£${Number(detailJob.rebate_rate_per_tonne).toFixed(2)}`,
+                    ],
                     ["Last updated", detailJob.updated_at ? new Date(detailJob.updated_at).toLocaleString() : "—"],
                   ].map(([label, value]) => (
                     <div key={String(label)} className="flex justify-between gap-4 border-b border-border/50 py-1">
@@ -1449,6 +1498,44 @@ const DataUploadsPage = () => {
                   </div>
                 </div>
               )}
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Bespoke rebate rate</h4>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Set a £ per tonne rate for this job only. It overrides the customer/site rebate
+                  rate for this job in rebate reports. Leave blank to use the standard rate.
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">£</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="e.g. 95.00"
+                    className="h-9 max-w-[10rem]"
+                    value={bespokeRate}
+                    onChange={(e) => setBespokeRate(e.target.value)}
+                    disabled={!canUpload || savingRate}
+                  />
+                  <span className="text-sm text-muted-foreground">/ tonne</span>
+                  <Button size="sm" onClick={() => void saveBespokeRate()} disabled={!canUpload || savingRate}>
+                    Save
+                  </Button>
+                  {detailJob.rebate_rate_per_tonne != null && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!canUpload || savingRate}
+                      onClick={() => {
+                        setBespokeRate("");
+                        void saveBespokeRate("");
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
 
               <div>
                 <h4 className="text-sm font-semibold mb-2">Documents (WTN)</h4>
