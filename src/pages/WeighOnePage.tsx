@@ -1238,7 +1238,11 @@ const WeighOnePage = () => {
                 )}
                 <Button variant="outline" onClick={() => setNewDialogOpen(false)}>Cancel</Button>
                 <Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>
-                  {createMutation.isPending ? "Recording..." : "Record First Weigh"}
+                  {createMutation.isPending
+                    ? "Recording..."
+                    : netPreviewKg !== null
+                      ? "Record & Complete"
+                      : "Record First Weigh"}
                 </Button>
               </div>
             </DialogContent>
