@@ -266,6 +266,7 @@ export function MonthlyRebateGenerationV2() {
           job_date?: string | null;
           site?: string | null;
           linked_skip_job?: string | null;
+          rebate_rate_per_tonne?: number | null;
         }>,
         labelSuffix: string,
       ) => {
@@ -301,12 +302,19 @@ export function MonthlyRebateGenerationV2() {
           if (config.rebate_enabled === false) continue;
           const patterns = MATERIAL_TYPE_TO_WASTE_TYPES[config.material_type] ?? [];
           let totalWeight = 0;
+          let totalRebate = 0;
+          let bespokeJobCount = 0;
           for (const job of filtered) {
             const mapping = job.waste_description ? mappingByWaste.get(job.waste_description) : null;
             if (!mapping?.material_type_id) continue;
             const wasteTypeLower = (wasteTypeById.get(mapping.material_type_id)?.waste_type ?? "").toLowerCase();
             if (patterns.some((p) => wasteTypeLower.includes(p))) {
               totalWeight += job.weight_t;
+              const rawBespokeRate = job.rebate_rate_per_tonne;
+              const bespokeRate = rawBespokeRate == null || Number.isNaN(Number(rawBespokeRate))
+                ? null
+                : Number(rawBespokeRate);
+              if (bespokeRate != null) bespokeJobCount += 1;
               const ref = job.job_number ?? "—";
               const key = `${ref}|${job.job_date ?? ""}|${job.waste_description ?? ""}|${job.weight_t}`;
               if (!seenLoads.has(key)) {
@@ -330,15 +338,27 @@ export function MonthlyRebateGenerationV2() {
           }
           rate += config.adjustment ?? 0;
           const threshold = config.threshold_tonnes ?? 0;
-          const rebate = Math.max(0, totalWeight - threshold) * rate;
-          rebateTotal += rebate;
+          for (const job of filtered) {
+            const mapping = job.waste_description ? mappingByWaste.get(job.waste_description) : null;
+            if (!mapping?.material_type_id) continue;
+            const wasteTypeLower = (wasteTypeById.get(mapping.material_type_id)?.waste_type ?? "").toLowerCase();
+            if (!patterns.some((p) => wasteTypeLower.includes(p))) continue;
+            const rawBespokeRate = job.rebate_rate_per_tonne;
+            const bespokeRate = rawBespokeRate == null || Number.isNaN(Number(rawBespokeRate))
+              ? null
+              : Number(rawBespokeRate);
+            totalRebate += Math.max(0, job.weight_t - threshold) * (bespokeRate ?? rate);
+          }
+          rebateTotal += totalRebate;
           weightTotal += totalWeight;
           materials.push({
             name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (${labelSuffix})`,
             weight: totalWeight,
             rate,
-            rebate,
-            source: threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
+            rebate: totalRebate,
+            source: bespokeJobCount > 0
+              ? `${bespokeJobCount} bespoke job rate${bespokeJobCount > 1 ? "s" : ""}`
+              : threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
           });
         }
         return { materials, rebateTotal, weightTotal, loads };
@@ -639,7 +659,7 @@ export function MonthlyRebateGenerationV2() {
           if (configuredSkipConfigs.length > 0 && siteDataHubMappings.length > 0) {
             const { data: siteJobs } = await supabase
               .from("data_hub_jobs")
-              .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type, linked_skip_job")
+              .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type, linked_skip_job, rebate_rate_per_tonne")
               .in("site", siteDataHubMappings)
               .gte("job_date", periodStart)
               .lte("job_date", periodEnd)
@@ -656,6 +676,7 @@ export function MonthlyRebateGenerationV2() {
                 job_number: j.job_number,
                 job_date: j.job_date,
                 site: j.site,
+                rebate_rate_per_tonne: j.rebate_rate_per_tonne,
                 weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
               };
             });
@@ -695,7 +716,7 @@ export function MonthlyRebateGenerationV2() {
 
           const { data: customerJobs } = await supabase
             .from("data_hub_jobs")
-            .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type, linked_skip_job")
+            .select("id, job_number, job_date, site, waste_description, weight_t, category, job_type, movement_type, linked_skip_job, rebate_rate_per_tonne")
             .eq("customer", customerDataHubName)
             .gte("job_date", periodStart)
             .lte("job_date", periodEnd)
@@ -712,6 +733,7 @@ export function MonthlyRebateGenerationV2() {
               movement_type: j.movement_type,
               job_number: j.job_number,
               job_date: j.job_date,
+              rebate_rate_per_tonne: j.rebate_rate_per_tonne,
               weight_t: (j.category ?? "") === "Midweigh" ? (j.weight_t ?? 0) / 1000 : j.weight_t ?? 0,
             }));
 
