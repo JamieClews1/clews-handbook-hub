@@ -811,17 +811,20 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New Weigh-In
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden">
-              <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
-                <DialogTitle>First Weigh — New Transaction</DialogTitle>
+            <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
+              <DialogHeader className="px-6 py-4 border-b border-foreground/20 shrink-0 bg-card">
+                <DialogTitle className="text-lg font-semibold">First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
               <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
                 <div className="grid gap-4 xl:grid-cols-3 lg:grid-cols-2 items-start">
 
                   {/* Column 1 — Job & vehicle */}
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-border p-3 space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Job</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-xs">Job Type *</Label>
                         <Select
