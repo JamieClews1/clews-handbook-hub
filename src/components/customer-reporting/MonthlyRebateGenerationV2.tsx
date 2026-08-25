@@ -1381,8 +1381,9 @@ export function MonthlyRebateGenerationV2() {
                         {summary.siteBreakdowns.map((sb) => {
                           const siteTracking = tracking.get(trackingKey(summary.customer.id, trackSiteId(sb)));
                           const isSent = siteTracking?.status === "sent";
+                          const unpricedCount = sb.materials.filter((m) => m.weight > 0 && m.rate === 0 && m.rebate === 0).length;
                           return (
-                            <div key={sb.site.id} className="rounded-md border bg-background/60">
+                            <div key={sb.site.id} className={cn("rounded-md border bg-background/60", unpricedCount > 0 && "border-red-400")}>
                               <div className="flex items-center justify-between text-sm px-3 py-2 border-b">
                                 <span className="flex items-center gap-2 font-medium">
                                   {sb.site.site_name}
@@ -1392,8 +1393,14 @@ export function MonthlyRebateGenerationV2() {
                                       Locked
                                     </Badge>
                                   )}
+                                  {unpricedCount > 0 && (
+                                    <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-300 dark:bg-red-950/50 dark:text-red-300">
+                                      {unpricedCount} unpriced material{unpricedCount > 1 ? "s" : ""}
+                                    </Badge>
+                                  )}
                                   <span className="text-muted-foreground font-normal">({sb.totalWeight.toFixed(2)}t)</span>
                                 </span>
+
                                 <div className="flex items-center gap-2 shrink-0">
                                   <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
                                   <Button
@@ -1432,17 +1439,22 @@ export function MonthlyRebateGenerationV2() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {sb.materials.map((m, i) => (
-                                      <TableRow key={`${sb.site.id}-${m.name}-${i}`} className="hover:bg-transparent">
-                                        <TableCell className="py-1.5 text-xs">
+                                    {sb.materials.map((m, i) => {
+                                      const unpriced = m.weight > 0 && m.rate === 0 && m.rebate === 0;
+                                      return (
+                                      <TableRow key={`${sb.site.id}-${m.name}-${i}`} className={cn("hover:bg-transparent", unpriced && "bg-red-50 dark:bg-red-950/30")}>
+                                        <TableCell className={cn("py-1.5 text-xs", unpriced && "text-red-600 font-medium")}>
                                           {m.name}
-                                          <span className="text-muted-foreground ml-1 capitalize">· {m.source}</span>
+                                          <span className={cn("ml-1 capitalize", unpriced ? "text-red-600" : "text-muted-foreground")}>· {m.source}</span>
+                                          {unpriced && <span className="ml-1 font-semibold text-red-600">· No £ value assigned</span>}
                                         </TableCell>
-                                        <TableCell className="py-1.5 text-xs text-right">{m.weight.toFixed(2)}</TableCell>
-                                        <TableCell className="py-1.5 text-xs text-right">£{m.rate.toFixed(2)}</TableCell>
-                                        <TableCell className={cn("py-1.5 text-xs text-right font-medium", m.rebate >= 0 ? "text-green-600" : "text-red-600")}>£{m.rebate.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right", unpriced && "text-red-600")}>{m.weight.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right", unpriced && "text-red-600 font-semibold")}>£{m.rate.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right font-medium", unpriced ? "text-red-600" : m.rebate >= 0 ? "text-green-600" : "text-red-600")}>£{m.rebate.toFixed(2)}</TableCell>
                                       </TableRow>
-                                    ))}
+                                      );
+                                    })}
+
                                   </TableBody>
                                 </Table>
                               ) : (
@@ -1650,16 +1662,23 @@ export function MonthlyRebateGenerationV2() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sb.materials.map((m, i) => (
-                        <TableRow key={`rep-${sb.site.id}-m-${i}`} className="hover:bg-transparent">
-                          <TableCell className="py-1.5 text-xs">{m.name}</TableCell>
-                          <TableCell className="py-1.5 text-xs text-right">{m.weight.toFixed(2)}</TableCell>
-                          <TableCell className="py-1.5 text-xs text-right">£{m.rate.toFixed(2)}</TableCell>
-                          <TableCell className={cn("py-1.5 text-xs text-right font-medium", m.rebate >= 0 ? "text-green-600" : "text-red-600")}>
+                      {sb.materials.map((m, i) => {
+                        const unpriced = m.weight > 0 && m.rate === 0 && m.rebate === 0;
+                        return (
+                        <TableRow key={`rep-${sb.site.id}-m-${i}`} className={cn("hover:bg-transparent", unpriced && "bg-red-50 dark:bg-red-950/30")}>
+                          <TableCell className={cn("py-1.5 text-xs", unpriced && "text-red-600 font-medium")}>
+                            {m.name}
+                            {unpriced && <span className="ml-1 font-semibold">· No £ value assigned</span>}
+                          </TableCell>
+                          <TableCell className={cn("py-1.5 text-xs text-right", unpriced && "text-red-600")}>{m.weight.toFixed(2)}</TableCell>
+                          <TableCell className={cn("py-1.5 text-xs text-right", unpriced && "text-red-600 font-semibold")}>£{m.rate.toFixed(2)}</TableCell>
+                          <TableCell className={cn("py-1.5 text-xs text-right font-medium", unpriced ? "text-red-600" : m.rebate >= 0 ? "text-green-600" : "text-red-600")}>
                             £{m.rebate.toFixed(2)}
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
+
                     </TableBody>
                   </Table>
 
