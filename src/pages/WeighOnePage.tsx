@@ -19,6 +19,7 @@ import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/co
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
+import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { format } from "date-fns";
 
@@ -118,6 +119,7 @@ const WeighOnePage = () => {
   const { data: wtnTemplate } = useWtnTemplate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
+  const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [skipDriver, setSkipDriver] = useState<string>("");
@@ -695,6 +697,7 @@ const WeighOnePage = () => {
 
   const resetForm = () => {
     setFormData({ ...emptyForm });
+    setStagedAttachments([]);
     setSkipDriver("");
 
     setNewAdditionalItems([]);
