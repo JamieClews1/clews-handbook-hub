@@ -786,353 +786,413 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New Weigh-In
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden">
+              <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
                 <DialogTitle>First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-2 lg:grid-cols-2 items-start w-full max-w-screen-xl mx-auto [&>button]:lg:col-span-2">
-                <div className="rounded-lg border border-border p-3 space-y-3">
-                  <div className="space-y-2">
-                    <Label>Job Type *</Label>
-                    <Select
-                      value={formData.job_type}
-                      onValueChange={(val) => {
-                        setFormData((p) => ({
-                          ...p,
-                          job_type: val,
-                          ...(val === "skip"
-                            ? {
-                                carrier_name: p.carrier_name || OWN_CARRIER_NAME,
-                                carrier_registration: p.carrier_registration || ownCarrierLicence,
-                              }
-                            : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
-                        }));
-                        if (val !== "skip") setSkipDriver("");
-                      }}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {JOB_TYPES.map((j) => (
-                          <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+                <div className="grid gap-4 xl:grid-cols-3 lg:grid-cols-2 items-start">
 
-                  {formData.job_type === "skip" && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Clews Driver</Label>
-                        <Select value={skipDriver} onValueChange={setSkipDriver}>
-                          <SelectTrigger><SelectValue placeholder="Select driver..." /></SelectTrigger>
-                          <SelectContent>
-                            {skipDrivers.map((d) => (
-                              <SelectItem key={d} value={d}>{d}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Skiptrak Job (today)</Label>
-                        <Select value={formData.linked_job_number} onValueChange={applySkiptrakJob}>
-                          <SelectTrigger><SelectValue placeholder="Select job..." /></SelectTrigger>
-                          <SelectContent>
-                            {driverJobs.map((j) => (
-                              <SelectItem key={j.job_number} value={j.job_number}>
-                                {j.job_number} — {j.customer || "?"} / {j.site || "?"}
-                                {j.container_type ? ` (${j.container_type})` : ""}
-                              </SelectItem>
-                            ))}
-                            {driverJobs.length === 0 && (
-                              <div className="px-3 py-2 text-sm text-muted-foreground">No Skiptrak jobs today</div>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {formData.linked_job_number && (
-                        <p className="col-span-2 text-xs text-muted-foreground">
-                          Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-
-                  <div className="space-y-2">
-                    <Label>Vehicle Reg *</Label>
-                    <div className="relative">
-                      <Input
-                        placeholder="Search or type reg..."
-                        value={formData.vehicle_reg}
-                        onChange={(e) => {
-                          setFormData((p) => ({ ...p, vehicle_reg: e.target.value }));
-                          setVehicleSearch(e.target.value);
-                        }}
-                        onFocus={() => setVehicleSearch(formData.vehicle_reg)}
-                        onBlur={(e) => {
-                          setTimeout(() => setVehicleSearch(""), 200);
-                          autoRecogniseVehicle(e.target.value);
-                        }}
-                      />
-                      {vehicleSearch && formData.vehicle_reg && (
-                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {midweighVehicles
-                            .filter(v => v.vehicle_reg.toLowerCase().includes(formData.vehicle_reg.toLowerCase()))
-                            .slice(0, 20)
-                            .map(v => (
-                              <button
-                                key={v.id}
-                                type="button"
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setFormData(p => ({ ...p, vehicle_reg: v.vehicle_reg }));
-                                  setVehicleSearch("");
-                                  autoRecogniseVehicle(v.vehicle_reg);
-                                }}
-                              >
-                                {v.vehicle_reg}
-                              </button>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Gross Weight (kg) *</Label>
-                    <Input type="number" placeholder="0.00" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Customer</Label>
-                    <div className="relative">
-                      <Input
-                        placeholder="Search customer..."
-                        value={formData.customer}
-                        onChange={(e) => {
-                          setFormData((p) => ({ ...p, customer: e.target.value }));
-                          setCustomerSearch(e.target.value);
-                        }}
-                        onFocus={() => setCustomerSearch(formData.customer)}
-                        onBlur={(e) => {
-                          setTimeout(() => setCustomerSearch(""), 200);
-                          applyCustomerDefaults(e.target.value);
-                        }}
-                      />
-                      {customerSearch && formData.customer && (
-                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {midweighCustomers
-                            .filter(c => c.customer_name.toLowerCase().includes(formData.customer.toLowerCase()))
-                            .slice(0, 20)
-                            .map(c => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setFormData(p => ({ ...p, customer: c.customer_name }));
-                                  setCustomerSearch("");
-                                  applyCustomerDefaults(c.customer_name);
-                                }}
-                              >
-                                {c.customer_name}
-                              </button>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Site</Label>
-                    <Input placeholder="Site name" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Driver Name</Label>
-                  <Input placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
-                </div>
-
-                {/* Waste Type + Rate Group */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Waste Type</Label>
-                    <Select value={formData.waste_type_id} onValueChange={(val) => setFormData((p) => ({ ...p, waste_type_id: val }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select waste type..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeWasteTypes.map((wt) => (
-                          <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Rate Group</Label>
-                    <Select
-                      value={formData.rate_group_id || defaultRateGroup?.id || ""}
-                      onValueChange={(val) => setFormData((p) => ({ ...p, rate_group_id: val }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Trade Rates" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rateGroups.map((g) => (
-                          <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {selectedWasteType && selectedRate && (
-                  <div className="flex flex-wrap items-center gap-2 text-sm p-2 rounded bg-muted/50">
-                    <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-muted-foreground">Price per tonne:</span>
-                    <span className="font-bold">£{selectedRate.price_per_tonne.toFixed(2)}</span>
-                    {selectedRate.min_charge > 0 && (
-                      <span className="text-muted-foreground">· Min charge £{selectedRate.min_charge.toFixed(2)}</span>
-                    )}
-                    {selectedWasteType.ewc_code && (
-                      <span className="text-muted-foreground ml-2">EWC: {selectedWasteType.ewc_code}</span>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Container Type</Label>
-                    <Input placeholder="Skip, RoRo, etc." value={formData.container_type} onChange={(e) => setFormData((p) => ({ ...p, container_type: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Operator</Label>
-                    <Input placeholder="Operator name" value={formData.operator_name} onChange={(e) => setFormData((p) => ({ ...p, operator_name: e.target.value }))} />
-                  </div>
-                </div>
-
-                {/* Digital Waste Tracking fields */}
-                <div className="space-y-3 rounded-lg border border-border p-3">
-                  <Label className="text-sm font-semibold">Digital Waste Tracking</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Carrier Registration</Label>
-                      <Input placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Carrier Name</Label>
-                      <Input placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Physical Form</Label>
-                      <Select value={formData.physical_form} onValueChange={(val) => setFormData((p) => ({ ...p, physical_form: val }))}>
-                        <SelectTrigger><SelectValue placeholder="Select form..." /></SelectTrigger>
-                        <SelectContent>
-                          {PHYSICAL_FORMS.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Means of Transport</Label>
-                      <Select value={formData.means_of_transport} onValueChange={(val) => setFormData((p) => ({ ...p, means_of_transport: val }))}>
-                        <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                        <SelectContent>
-                          {MEANS_OF_TRANSPORT.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label>EWC Code (override)</Label>
-                      <Input placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
-                    </div>
-                  </div>
-                </div>
-
-
-                {/* Additional Items */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">Additional Items</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 h-7 text-xs"
-                      onClick={() => setNewAdditionalItems([...newAdditionalItems, { description: "", cost: "" }])}
-                    >
-                      <Plus className="h-3 w-3" /> Add Item
-                    </Button>
-                  </div>
-                  {itemTemplates.filter((t) => t.is_active).length > 0 && (
-                    <Select
-                      value=""
-                      onValueChange={(id) => {
-                        const tpl = itemTemplates.find((t) => t.id === id);
-                        if (!tpl) return;
-                        setNewAdditionalItems((prev) => [...prev, { description: tpl.name, cost: String(tpl.cost) }]);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Add from templates..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {itemTemplates.filter((t) => t.is_active).map((t) => (
-                          <SelectItem key={t.id} value={t.id}>{t.name} — £{t.cost.toFixed(2)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {newAdditionalItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <Input
-                        placeholder="Description"
-                        value={item.description}
-                        onChange={(e) => {
-                          const updated = [...newAdditionalItems];
-                          updated[idx] = { ...updated[idx], description: e.target.value };
-                          setNewAdditionalItems(updated);
-                        }}
-                        className="flex-1"
-                      />
-                      <div className="relative w-28">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">£</span>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          value={item.cost}
-                          onChange={(e) => {
-                            const updated = [...newAdditionalItems];
-                            updated[idx] = { ...updated[idx], cost: e.target.value };
-                            setNewAdditionalItems(updated);
+                  {/* Column 1 — Job & vehicle */}
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job</Label>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Job Type *</Label>
+                        <Select
+                          value={formData.job_type}
+                          onValueChange={(val) => {
+                            setFormData((p) => ({
+                              ...p,
+                              job_type: val,
+                              ...(val === "skip"
+                                ? {
+                                    carrier_name: p.carrier_name || OWN_CARRIER_NAME,
+                                    carrier_registration: p.carrier_registration || ownCarrierLicence,
+                                  }
+                                : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
+                            }));
+                            if (val !== "skip") setSkipDriver("");
                           }}
-                          className="pl-7"
-                        />
+                        >
+                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {JOB_TYPES.map((j) => (
+                              <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-destructive shrink-0"
-                        onClick={() => setNewAdditionalItems(newAdditionalItems.filter((_, i) => i !== idx))}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  {newAdditionalItems.length > 0 && (
-                    <div className="text-sm text-right text-muted-foreground">
-                      Additional total: <span className="font-bold text-foreground">
-                        £{newAdditionalItems.reduce((sum, i) => sum + (parseFloat(i.cost) || 0), 0).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <Textarea placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                      {formData.job_type === "skip" && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Clews Driver</Label>
+                            <Select value={skipDriver} onValueChange={setSkipDriver}>
+                              <SelectTrigger className="h-9"><SelectValue placeholder="Select driver..." /></SelectTrigger>
+                              <SelectContent>
+                                {skipDrivers.map((d) => (
+                                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Skiptrak Job (today)</Label>
+                            <Select value={formData.linked_job_number} onValueChange={applySkiptrakJob}>
+                              <SelectTrigger className="h-9"><SelectValue placeholder="Select job..." /></SelectTrigger>
+                              <SelectContent>
+                                {driverJobs.map((j) => (
+                                  <SelectItem key={j.job_number} value={j.job_number}>
+                                    {j.job_number} — {j.customer || "?"} / {j.site || "?"}
+                                  </SelectItem>
+                                ))}
+                                {driverJobs.length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-muted-foreground">No Skiptrak jobs today</div>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {formData.linked_job_number && (
+                            <p className="col-span-2 text-xs text-muted-foreground">
+                              Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vehicle & Weight</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Vehicle Reg *</Label>
+                          <div className="relative">
+                            <Input
+                              className="h-9 uppercase font-mono"
+                              placeholder="Search or type reg..."
+                              value={formData.vehicle_reg}
+                              onChange={(e) => {
+                                setFormData((p) => ({ ...p, vehicle_reg: e.target.value }));
+                                setVehicleSearch(e.target.value);
+                              }}
+                              onFocus={() => setVehicleSearch(formData.vehicle_reg)}
+                              onBlur={(e) => {
+                                setTimeout(() => setVehicleSearch(""), 200);
+                                autoRecogniseVehicle(e.target.value);
+                              }}
+                            />
+                            {vehicleSearch && formData.vehicle_reg && (
+                              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                {midweighVehicles
+                                  .filter(v => v.vehicle_reg.toLowerCase().includes(formData.vehicle_reg.toLowerCase()))
+                                  .slice(0, 20)
+                                  .map(v => (
+                                    <button
+                                      key={v.id}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setFormData(p => ({ ...p, vehicle_reg: v.vehicle_reg }));
+                                        setVehicleSearch("");
+                                        autoRecogniseVehicle(v.vehicle_reg);
+                                      }}
+                                    >
+                                      {v.vehicle_reg}
+                                    </button>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Gross Weight (kg) *</Label>
+                          <Input className="h-9 text-lg font-semibold" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Container Type</Label>
+                          <Input className="h-9" placeholder="Skip, RoRo, etc." value={formData.container_type} onChange={(e) => setFormData((p) => ({ ...p, container_type: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Operator</Label>
+                          <Input className="h-9" placeholder="Operator name" value={formData.operator_name} onChange={(e) => setFormData((p) => ({ ...p, operator_name: e.target.value }))} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Column 2 — Customer & waste */}
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Customer</Label>
+                          <div className="relative">
+                            <Input
+                              className="h-9"
+                              placeholder="Search customer..."
+                              value={formData.customer}
+                              onChange={(e) => {
+                                setFormData((p) => ({ ...p, customer: e.target.value }));
+                                setCustomerSearch(e.target.value);
+                              }}
+                              onFocus={() => setCustomerSearch(formData.customer)}
+                              onBlur={(e) => {
+                                setTimeout(() => setCustomerSearch(""), 200);
+                                applyCustomerDefaults(e.target.value);
+                              }}
+                            />
+                            {customerSearch && formData.customer && (
+                              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                {midweighCustomers
+                                  .filter(c => c.customer_name.toLowerCase().includes(formData.customer.toLowerCase()))
+                                  .slice(0, 20)
+                                  .map(c => (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setFormData(p => ({ ...p, customer: c.customer_name }));
+                                        setCustomerSearch("");
+                                        applyCustomerDefaults(c.customer_name);
+                                      }}
+                                    >
+                                      {c.customer_name}
+                                    </button>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Site</Label>
+                          <Input className="h-9" placeholder="Site name" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1.5 col-span-2">
+                          <Label className="text-xs">Driver Name</Label>
+                          <Input className="h-9" placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-border p-3 space-y-3">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Waste & Rate</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Waste Type</Label>
+                          <Select value={formData.waste_type_id} onValueChange={(val) => setFormData((p) => ({ ...p, waste_type_id: val }))}>
+                            <SelectTrigger className="h-9"><SelectValue placeholder="Select waste type..." /></SelectTrigger>
+                            <SelectContent>
+                              {activeWasteTypes.map((wt) => (
+                                <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Rate Group</Label>
+                          <Select
+                            value={formData.rate_group_id || defaultRateGroup?.id || ""}
+                            onValueChange={(val) => setFormData((p) => ({ ...p, rate_group_id: val }))}
+                          >
+                            <SelectTrigger className="h-9"><SelectValue placeholder="Trade Rates" /></SelectTrigger>
+                            <SelectContent>
+                              {rateGroups.map((g) => (
+                                <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      {selectedWasteType && selectedRate && (
+                        <div className="flex flex-wrap items-center gap-2 text-xs p-2 rounded bg-muted/50">
+                          <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-muted-foreground">Per tonne:</span>
+                          <span className="font-bold text-sm">£{selectedRate.price_per_tonne.toFixed(2)}</span>
+                          {selectedRate.min_charge > 0 && (
+                            <span className="text-muted-foreground">· Min £{selectedRate.min_charge.toFixed(2)}</span>
+                          )}
+                          {selectedWasteType.ewc_code && (
+                            <span className="text-muted-foreground ml-auto">EWC: {selectedWasteType.ewc_code}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Notes</Label>
+                      <Textarea className="min-h-[70px]" placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                    </div>
+                  </div>
+
+                  {/* Column 3 — DWT + additional items */}
+                  <div className="space-y-4">
+                    <div className="space-y-3 rounded-lg border border-border p-3">
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Digital Waste Tracking</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Carrier Registration</Label>
+                          <Input className="h-9 font-mono" placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Carrier Name</Label>
+                          <Input className="h-9" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Physical Form</Label>
+                          <Select value={formData.physical_form} onValueChange={(val) => setFormData((p) => ({ ...p, physical_form: val }))}>
+                            <SelectTrigger className="h-9"><SelectValue placeholder="Select form..." /></SelectTrigger>
+                            <SelectContent>
+                              {PHYSICAL_FORMS.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Means of Transport</Label>
+                          <Select value={formData.means_of_transport} onValueChange={(val) => setFormData((p) => ({ ...p, means_of_transport: val }))}>
+                            <SelectTrigger className="h-9"><SelectValue placeholder="Select..." /></SelectTrigger>
+                            <SelectContent>
+                              {MEANS_OF_TRANSPORT.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5 col-span-2">
+                          <Label className="text-xs">EWC Code (override)</Label>
+                          <Input className="h-9 font-mono" placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Items */}
+                    <div className="space-y-3 rounded-lg border border-border p-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Additional Items</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 h-7 text-xs"
+                          onClick={() => setNewAdditionalItems([...newAdditionalItems, { description: "", cost: "", qty: "1" }])}
+                        >
+                          <Plus className="h-3 w-3" /> Add Item
+                        </Button>
+                      </div>
+                      {itemTemplates.filter((t) => t.is_active).length > 0 && (
+                        <Select
+                          value=""
+                          onValueChange={(id) => {
+                            const tpl = itemTemplates.find((t) => t.id === id);
+                            if (!tpl) return;
+                            setNewAdditionalItems((prev) => {
+                              const existing = prev.findIndex((i) => i.description === tpl.name);
+                              if (existing >= 0) {
+                                const next = [...prev];
+                                const q = Math.max(1, parseInt(next[existing].qty || "1", 10) || 1) + 1;
+                                next[existing] = { ...next[existing], qty: String(q) };
+                                return next;
+                              }
+                              return [...prev, { description: tpl.name, cost: String(tpl.cost), qty: "1" }];
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Add from templates..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {itemTemplates.filter((t) => t.is_active).map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.name} — £{t.cost.toFixed(2)}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {newAdditionalItems.length > 0 && (
+                        <div className="grid grid-cols-[1fr_4.5rem_5.5rem_5rem_2rem] items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          <span>Item</span><span className="text-center">Qty</span><span className="text-right">Unit £</span><span className="text-right">Line £</span><span />
+                        </div>
+                      )}
+                      {newAdditionalItems.map((item, idx) => {
+                        const qty = Math.max(1, parseInt(item.qty || "1", 10) || 1);
+                        const line = (parseFloat(item.cost) || 0) * qty;
+                        const patch = (p: Partial<typeof item>) =>
+                          setNewAdditionalItems(newAdditionalItems.map((it, i) => (i === idx ? { ...it, ...p } : it)));
+                        return (
+                          <div key={idx} className="grid grid-cols-[1fr_4.5rem_5.5rem_5rem_2rem] items-center gap-2">
+                            <Input
+                              className="h-9"
+                              placeholder="Description"
+                              value={item.description}
+                              onChange={(e) => patch({ description: e.target.value })}
+                            />
+                            <div className="flex items-center rounded-md border border-input h-9">
+                              <button
+                                type="button"
+                                className="px-2 text-muted-foreground hover:text-foreground"
+                                onClick={() => patch({ qty: String(Math.max(1, qty - 1)) })}
+                              >
+                                −
+                              </button>
+                              <input
+                                className="w-full min-w-0 bg-transparent text-center text-sm outline-none"
+                                inputMode="numeric"
+                                value={item.qty}
+                                onChange={(e) => patch({ qty: e.target.value.replace(/\D/g, "") })}
+                                onBlur={() => patch({ qty: String(qty) })}
+                              />
+                              <button
+                                type="button"
+                                className="px-2 text-muted-foreground hover:text-foreground"
+                                onClick={() => patch({ qty: String(qty + 1) })}
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">£</span>
+                              <Input
+                                type="number"
+                                placeholder="0.00"
+                                value={item.cost}
+                                onChange={(e) => patch({ cost: e.target.value })}
+                                className="pl-5 h-9 text-right"
+                              />
+                            </div>
+                            <span className="text-sm text-right font-medium tabular-nums">£{line.toFixed(2)}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive shrink-0"
+                              onClick={() => setNewAdditionalItems(newAdditionalItems.filter((_, i) => i !== idx))}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                      {newAdditionalItems.length > 0 && (
+                        <div className="text-sm text-right text-muted-foreground">
+                          Additional total: <span className="font-bold text-foreground">
+                            £{newAdditionalItems.reduce((sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+              </div>
+              <div className="shrink-0 border-t border-border px-6 py-3 flex items-center justify-end gap-3 bg-background">
+                {newAdditionalItems.length > 0 && (
+                  <span className="text-sm text-muted-foreground mr-auto">
+                    Items: <span className="font-semibold text-foreground">
+                      £{newAdditionalItems.reduce((sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0).toFixed(2)}
+                    </span>
+                  </span>
+                )}
+                <Button variant="outline" onClick={() => setNewDialogOpen(false)}>Cancel</Button>
                 <Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>
                   {createMutation.isPending ? "Recording..." : "Record First Weigh"}
                 </Button>
