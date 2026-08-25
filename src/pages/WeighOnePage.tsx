@@ -1149,6 +1149,7 @@ const WeighOnePage = () => {
                           <Plus className="h-3 w-3" /> Add Item
                         </Button>
                       </div>
+                      <div className="p-3 space-y-3">
                       {itemTemplates.filter((t) => t.is_active).length > 0 && (
                         <Select
                           value=""
