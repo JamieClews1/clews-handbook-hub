@@ -795,7 +795,7 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New Weigh-In
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
