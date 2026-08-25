@@ -759,6 +759,15 @@ const RouteOnePage = () => {
                   <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
                   <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
                 </div>
+                <BespokeRateEditor
+                  jobId={viewingSkiptrakJob.id}
+                  jobNumber={viewingSkiptrakJob.job_number}
+                  value={viewingSkiptrakJob.rebate_rate_per_tonne}
+                  onSaved={(next) => {
+                    setViewingSkiptrakJob({ ...viewingSkiptrakJob, rebate_rate_per_tonne: next });
+                    queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
+                  }}
+                />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
             );
