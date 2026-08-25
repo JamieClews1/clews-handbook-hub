@@ -771,6 +771,9 @@ const WeighOnePage = () => {
           <Button variant="outline" className="gap-2" onClick={() => setRatesDialogOpen(true)}>
             <PoundSterling className="h-4 w-4" /> Prices & Rates
           </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setWtnDialogOpen(true)}>
+            <FileText className="h-4 w-4" /> WTN Design
+          </Button>
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
