@@ -883,15 +883,19 @@ const WeighOnePage = () => {
                           </div>
                           {formData.linked_job_number && (
                             <p className="col-span-2 text-xs text-muted-foreground">
-                              Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
+                          Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
                             </p>
                           )}
                         </div>
                       )}
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-border p-3 space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vehicle & Weight</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Vehicle & Weight</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Vehicle Reg *</Label>
