@@ -18,6 +18,8 @@ import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/components/weighone/WeighbridgeRatesSettings";
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
+import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
+import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { format } from "date-fns";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -112,6 +114,8 @@ const WeighOnePage = () => {
   const [wasteTypesDialogOpen, setWasteTypesDialogOpen] = useState(false);
   const [cmsDialogOpen, setCmsDialogOpen] = useState(false);
   const [ratesDialogOpen, setRatesDialogOpen] = useState(false);
+  const [wtnDialogOpen, setWtnDialogOpen] = useState(false);
+  const { data: wtnTemplate } = useWtnTemplate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -686,71 +690,49 @@ const WeighOnePage = () => {
   const fmtWeight = (kg: number | null) => kg != null ? (kg / 1000).toFixed(3) : "-";
   const fmtPrice = (val: number | null) => val != null ? `£${val.toFixed(2)}` : "-";
 
+  /** Print the A4 waste transfer note (customer copy top, Clews copy bottom). */
   const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = []) => {
-    const additionalItemsHtml = additionalItems.length > 0
-      ? `<div class="line"></div><table>${additionalItems.map(i => `<tr><td>${i.description}</td><td>£${i.cost.toFixed(2)}</td></tr>`).join("")}</table>`
-      : "";
+    const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
+    const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
+    const vars = {
+      ticket_number: t.ticket_number,
+      date: when ? format(when, "dd/MM/yyyy") : "",
+      time: when ? format(when, "HH:mm") : "",
+      customer_order_no: t.linked_job_number ?? "",
+      account: t.linked_job_source ?? "",
+      direction: t.job_type === "waste_out" ? "OUTWARD" : "INWARD",
+      vehicle_reg: t.vehicle_reg ?? "",
+      driver_name: t.driver_name ?? "",
+      carrier_name: t.carrier_name ?? "",
+      carrier_registration: t.carrier_registration ?? "",
+      customer: t.customer ?? "",
+      site: t.site ?? "",
+      waste_description: t.waste_description ?? "",
+      ewc_code: t.ewc_code ?? "",
+      container_type: t.container_type ?? "",
+      physical_form: t.physical_form ?? "",
+      means_of_transport: t.means_of_transport ?? "Road",
+      gross_weight: kg(t.gross_weight_kg),
+      gross_time: t.first_weigh_at ? format(new Date(t.first_weigh_at), "HH:mm:ss") : "",
+      tare_weight: kg(t.tare_weight_kg),
+      tare_time: t.second_weigh_at ? format(new Date(t.second_weigh_at), "HH:mm:ss") : "",
+      net_weight: kg(t.net_weight_kg),
+      net_tonnes: t.net_weight_kg != null ? (t.net_weight_kg / 1000).toFixed(2) : "",
+      price_per_tonne: t.price_per_tonne != null ? `£${t.price_per_tonne.toFixed(2)}` : "",
+      total_price: fmtPrice(t.total_price),
+      additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
+      operator_name: t.operator_name ?? "",
+      notes: t.notes ?? "",
+      ...WTN_COMPANY_DETAILS,
+    };
 
-    const win = window.open("", "_blank", "width=400,height=700");
+    const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) return;
-    win.document.write(`
-      <html><head><title>Weighbridge Ticket ${t.ticket_number}</title>
-      <style>
-        body { font-family: monospace; padding: 20px; font-size: 12px; }
-        h1 { font-size: 16px; text-align: center; margin-bottom: 4px; }
-        h2 { font-size: 13px; text-align: center; margin-top: 0; }
-        .line { border-top: 1px dashed #000; margin: 8px 0; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 3px 0; }
-        td:last-child { text-align: right; font-weight: bold; }
-        .footer { text-align: center; margin-top: 16px; font-size: 10px; }
-        .total { font-size: 14px; font-weight: bold; }
-      </style></head><body>
-      <h1>WEIGHBRIDGE TICKET</h1>
-      <h2>${t.ticket_number}</h2>
-      <div class="line"></div>
-      <table>
-        <tr><td>Date:</td><td>${t.first_weigh_at ? format(new Date(t.first_weigh_at), "dd/MM/yyyy HH:mm") : "-"}</td></tr>
-        <tr><td>Vehicle:</td><td>${t.vehicle_reg}</td></tr>
-        <tr><td>Customer:</td><td>${t.customer ?? "-"}</td></tr>
-        <tr><td>Driver:</td><td>${t.driver_name ?? "-"}</td></tr>
-        <tr><td>Site:</td><td>${t.site ?? "-"}</td></tr>
-        <tr><td>Waste:</td><td>${t.waste_description ?? "-"}</td></tr>
-        <tr><td>EWC Code:</td><td>${t.ewc_code ?? "-"}</td></tr>
-        <tr><td>Container:</td><td>${t.container_type ?? "-"}</td></tr>
-        <tr><td>Physical Form:</td><td>${t.physical_form ?? "-"}</td></tr>
-        <tr><td>Carrier:</td><td>${t.carrier_name ?? "-"}</td></tr>
-        <tr><td>Carrier Reg No:</td><td>${t.carrier_registration ?? "-"}</td></tr>
-        <tr><td>Transport:</td><td>${t.means_of_transport ?? "Road"}</td></tr>
-
-      </table>
-      <div class="line"></div>
-      <table>
-        <tr><td>Gross Weight:</td><td>${fmtWeight(t.gross_weight_kg)} t</td></tr>
-        <tr><td>Tare Weight:</td><td>${fmtWeight(t.tare_weight_kg)} t</td></tr>
-        <tr><td style="font-size:14px">Net Weight:</td><td style="font-size:14px">${fmtWeight(t.net_weight_kg)} t</td></tr>
-      </table>
-      <div class="line"></div>
-      <table>
-        <tr><td>Price/Tonne:</td><td>${t.price_per_tonne != null ? `£${t.price_per_tonne.toFixed(2)}` : "-"}</td></tr>
-        <tr><td>Weight Charge:</td><td>${fmtPrice(t.weight_charge)}</td></tr>
-      </table>
-      ${additionalItemsHtml}
-      ${t.additional_items_total ? `<table><tr><td>Additional Items:</td><td>£${t.additional_items_total.toFixed(2)}</td></tr></table>` : ""}
-      <div class="line"></div>
-      <table><tr><td class="total">TOTAL:</td><td class="total">${fmtPrice(t.total_price)}</td></tr></table>
-      <div class="line"></div>
-      <table>
-        <tr><td>1st Weigh:</td><td>${t.first_weigh_at ? format(new Date(t.first_weigh_at), "HH:mm:ss") : "-"}</td></tr>
-        <tr><td>2nd Weigh:</td><td>${t.second_weigh_at ? format(new Date(t.second_weigh_at), "HH:mm:ss") : "-"}</td></tr>
-        <tr><td>Operator:</td><td>${t.operator_name ?? "-"}</td></tr>
-      </table>
-      ${t.notes ? `<div class="line"></div><p>Notes: ${t.notes}</p>` : ""}
-      <div class="line"></div>
-      <div class="footer">Clews Group Ltd</div>
-      </body></html>
-    `);
+    win.document.write(
+      renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`),
+    );
     win.document.close();
+    win.focus();
     win.print();
   };
 
@@ -789,17 +771,20 @@ const WeighOnePage = () => {
           <Button variant="outline" className="gap-2" onClick={() => setRatesDialogOpen(true)}>
             <PoundSterling className="h-4 w-4" /> Prices & Rates
           </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setWtnDialogOpen(true)}>
+            <FileText className="h-4 w-4" /> WTN Design
+          </Button>
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" /> New Weigh-In
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-2">
+              <div className="grid gap-4 py-2 lg:grid-cols-2 items-start w-full max-w-screen-xl mx-auto [&>button]:lg:col-span-2">
                 <div className="rounded-lg border border-border p-3 space-y-3">
                   <div className="space-y-2">
                     <Label>Job Type *</Label>
@@ -1490,6 +1475,16 @@ const WeighOnePage = () => {
           </Tabs>
         </TabsContent>
       </Tabs>
+
+      {/* Waste Transfer Note designer */}
+      <Dialog open={wtnDialogOpen} onOpenChange={setWtnDialogOpen}>
+        <DialogContent className="max-w-none w-screen h-screen sm:rounded-none overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Waste Transfer Note design</DialogTitle>
+          </DialogHeader>
+          <WtnTemplateEditor />
+        </DialogContent>
+      </Dialog>
 
       {/* Ticket Detail Dialog */}
       <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
