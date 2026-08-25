@@ -43,6 +43,7 @@ import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormF
 import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
+import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
 import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
