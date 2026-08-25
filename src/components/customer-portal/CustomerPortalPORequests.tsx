@@ -133,16 +133,21 @@ export function CustomerPortalPORequests({
 
   // Biffa customers must supply a separate PO per reporting period (per month),
   // so a PO for May jobs cannot be reused for June jobs.
+  // When the customer setting "PO can span billing periods" is on, one PO covers
+  // jobs across months, so we don't split groups per reporting period.
+  const [poSpansPeriods, setPoSpansPeriods] = useState(false);
   const isBiffa = customerName.toLowerCase().includes("biffa");
+  const perPeriodPO = isBiffa && !poSpansPeriods;
 
   useEffect(() => {
     const loadNotificationEmail = async () => {
       const { data } = await supabase
         .from("customers")
-        .select("po_notification_email")
+        .select("po_notification_email, po_spans_periods")
         .eq("id", customerId)
         .maybeSingle();
       if (data?.po_notification_email) setNotificationEmail(data.po_notification_email);
+      setPoSpansPeriods(!!data?.po_spans_periods);
     };
     loadNotificationEmail();
   }, [customerId]);
@@ -250,8 +255,8 @@ export function CustomerPortalPORequests({
     for (const job of jobRecords) {
       const wasteType = job.waste_description?.trim() || "Unspecified waste";
       const monthKey = job.job_date ? job.job_date.slice(0, 7) : "unknown"; // YYYY-MM
-      const periodLabel = isBiffa && job.job_date ? format(new Date(job.job_date + "T00:00:00"), "MMMM yyyy") : null;
-      const key = isBiffa ? `${monthKey}__${wasteType}` : wasteType;
+      const periodLabel = perPeriodPO && job.job_date ? format(new Date(job.job_date + "T00:00:00"), "MMMM yyyy") : null;
+      const key = perPeriodPO ? `${monthKey}__${wasteType}` : wasteType;
       let g = map.get(key);
       if (!g) {
         g = { key, wasteType, periodLabel, jobs: [] };
@@ -261,14 +266,14 @@ export function CustomerPortalPORequests({
     }
     return Array.from(map.values()).sort((a, b) => {
       // Newest period first, then waste type
-      if (isBiffa) {
+      if (perPeriodPO) {
         const am = a.jobs[0]?.job_date ?? "";
         const bm = b.jobs[0]?.job_date ?? "";
         if (am !== bm) return bm.localeCompare(am);
       }
       return a.wasteType.localeCompare(b.wasteType);
     });
-  }, [jobRecords, isBiffa]);
+  }, [jobRecords, perPeriodPO]);
 
   const totalMissing = jobRecords.length;
 
@@ -425,7 +430,8 @@ export function CustomerPortalPORequests({
         <ul className="list-disc pl-5 space-y-0.5">
           <li>One PO number per waste type.</li>
           <li>A single PO can cover multiple jobs, as long as they are the same waste type.</li>
-          {isBiffa && <li>POs must be provided per reporting period — a PO for one month cannot be reused for another.</li>}
+          {perPeriodPO && <li>POs must be provided per reporting period — a PO for one month cannot be reused for another.</li>}
+          {isBiffa && poSpansPeriods && <li>A PO number can cover jobs beyond a single billing period.</li>}
         </ul>
       </div>
 
