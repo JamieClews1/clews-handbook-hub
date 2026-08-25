@@ -196,3 +196,12 @@ export const SAMPLE_WTN_VARS: WtnVars = {
   company_contact: "clewsrecycling.co.uk | 01788 541549",
   company_licences: "Site Licence EAWML48106 | Waste Carrier CBDU203180 | Company Reg 3856771 | VAT 747316619",
 };
+
+/** Fixed company details printed on every note. */
+export const WTN_COMPANY_DETAILS = {
+  company_name: "Clews Recycling Ltd",
+  company_address: "Unit 17 Hunters Lane, Rugby, CV21 1EA",
+  company_contact: "clewsrecycling.co.uk | 01788 541549",
+  company_licences:
+    "Site Licence EAWML48106 | Waste Carrier CBDU203180 | Company Reg 3856771 | VAT 747316619",
+};
