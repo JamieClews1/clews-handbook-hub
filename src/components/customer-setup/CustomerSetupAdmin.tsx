@@ -42,6 +42,7 @@ type Customer = {
   pod_email: string | null;
   auto_pod_emails_enabled: boolean;
   custom_reporting_periods_enabled: boolean;
+  po_spans_periods: boolean;
   is_broker: boolean;
   midweigh_rebates_enabled: boolean;
   is_active: boolean;
@@ -139,7 +140,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, is_broker: false, midweigh_rebates_enabled: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, midweigh_rebates_enabled: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -406,7 +407,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -871,6 +872,7 @@ export function CustomerSetupAdmin() {
       pod_email: customer.pod_email || "",
       auto_pod_emails_enabled: customer.auto_pod_emails_enabled ?? false,
       custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
+      po_spans_periods: customer.po_spans_periods ?? false,
       is_broker: customer.is_broker ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
     });
@@ -900,6 +902,7 @@ export function CustomerSetupAdmin() {
           pod_email: editCustomerForm.pod_email.trim() || null,
           auto_pod_emails_enabled: editCustomerForm.auto_pod_emails_enabled,
           custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
+          po_spans_periods: editCustomerForm.po_spans_periods,
           is_broker: editCustomerForm.is_broker,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
         })
@@ -1821,6 +1824,19 @@ export function CustomerSetupAdmin() {
               <Switch
                 checked={editCustomerForm.custom_reporting_periods_enabled}
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, custom_reporting_periods_enabled: v }))}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>PO can span billing periods</Label>
+                <p className="text-xs text-muted-foreground">
+                  For customers with per-period POs (e.g. Biffa), allow one PO number to cover jobs across more than one month instead of requiring a new PO each period.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.po_spans_periods}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, po_spans_periods: v }))}
               />
             </div>
             <Separator />

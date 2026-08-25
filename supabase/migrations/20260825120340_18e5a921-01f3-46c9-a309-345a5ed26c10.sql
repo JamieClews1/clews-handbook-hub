@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS po_spans_periods boolean NOT NULL DEFAULT false;
