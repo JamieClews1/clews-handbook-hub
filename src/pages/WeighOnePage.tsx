@@ -1132,12 +1132,13 @@ const WeighOnePage = () => {
                           <Input className="h-9 font-mono" placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
                         </div>
                       </div>
+                      </div>
                     </div>
 
                     {/* Additional Items */}
-                    <div className="space-y-3 rounded-lg border border-border p-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Additional Items</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Additional Items</span>
                         <Button
                           type="button"
                           variant="outline"
