@@ -1476,6 +1476,16 @@ const WeighOnePage = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Waste Transfer Note designer */}
+      <Dialog open={wtnDialogOpen} onOpenChange={setWtnDialogOpen}>
+        <DialogContent className="max-w-none w-screen h-screen sm:rounded-none overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Waste Transfer Note design</DialogTitle>
+          </DialogHeader>
+          <WtnTemplateEditor />
+        </DialogContent>
+      </Dialog>
+
       {/* Ticket Detail Dialog */}
       <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
         <DialogContent>
