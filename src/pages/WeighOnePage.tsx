@@ -345,6 +345,14 @@ const WeighOnePage = () => {
     ? rateFor(formData.waste_type_id, formData.rate_group_id)
     : null;
 
+  /** Net weight preview when an optional second (tare) weight is entered on the new weigh-in */
+  const netPreviewKg = (() => {
+    const g = parseFloat(formData.gross_weight_kg);
+    const t = parseFloat(formData.tare_weight_kg);
+    return isNaN(g) || isNaN(t) ? null : Math.abs(g - t);
+  })();
+
+
   /** Auto-recognise customer/carrier details from the Data Hub + saved customer record */
   const applyCustomerDefaults = async (customerName: string) => {
     if (!customerName) return;
