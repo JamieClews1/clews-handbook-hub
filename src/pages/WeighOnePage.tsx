@@ -156,7 +156,7 @@ const WeighOnePage = () => {
   });
 
   // Additional items for new transaction
-  const [newAdditionalItems, setNewAdditionalItems] = useState<{ description: string; cost: string }[]>([]);
+  const [newAdditionalItems, setNewAdditionalItems] = useState<{ description: string; cost: string; qty: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [vehicleSearch, setVehicleSearch] = useState("");
   // Second weigh form
