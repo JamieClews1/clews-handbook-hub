@@ -19,6 +19,7 @@ import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/co
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
+import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { format } from "date-fns";
 
@@ -118,6 +119,7 @@ const WeighOnePage = () => {
   const { data: wtnTemplate } = useWtnTemplate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
+  const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [skipDriver, setSkipDriver] = useState<string>("");
@@ -489,7 +491,16 @@ const WeighOnePage = () => {
           .update({ additional_items_total: additionalTotal })
           .eq("id", txData.id);
       }
+
+      if (stagedAttachments.length > 0 && txData) {
+        try {
+          await uploadWeighbridgeAttachments(txData.id, stagedAttachments, formData.operator_name || null);
+        } catch (e) {
+          toast.error("Transaction saved but attachments failed: " + (e as Error).message);
+        }
+      }
     },
+
     onSuccess: () => {
       toast.success(formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
       setNewDialogOpen(false);
@@ -695,6 +706,7 @@ const WeighOnePage = () => {
 
   const resetForm = () => {
     setFormData({ ...emptyForm });
+    setStagedAttachments([]);
     setSkipDriver("");
 
     setNewAdditionalItems([]);
@@ -1251,7 +1263,18 @@ const WeighOnePage = () => {
                       )}
                       </div>
                     </div>
+
+                    {/* Documents & Photos */}
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Documents & Photos</span>
+                      </div>
+                      <div className="p-3">
+                        <StagedAttachmentPicker value={stagedAttachments} onChange={setStagedAttachments} />
+                      </div>
+                    </div>
                   </div>
+
                 </div>
               </div>
               <div className="shrink-0 border-t border-foreground/20 px-6 py-3 flex items-center justify-end gap-3 bg-card">
@@ -1358,7 +1381,7 @@ const WeighOnePage = () => {
 
       {/* Second Weigh Dialog */}
       <Dialog open={secondWeighDialogOpen} onOpenChange={setSecondWeighDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Second Weigh — {selectedTransaction?.ticket_number}</DialogTitle>
           </DialogHeader>
@@ -1416,9 +1439,12 @@ const WeighOnePage = () => {
                 </div>
               )}
 
+              <WeighbridgeAttachments transactionId={selectedTransaction.id} />
+
               <Button onClick={() => secondWeighMutation.mutate()} disabled={!secondWeighKg || secondWeighMutation.isPending} className="w-full">
                 {secondWeighMutation.isPending ? "Recording..." : "Complete Transaction"}
               </Button>
+
             </div>
           )}
         </DialogContent>
@@ -1628,7 +1654,7 @@ const WeighOnePage = () => {
 
       {/* Ticket Detail Dialog */}
       <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ticket {selectedTransaction?.ticket_number}</DialogTitle>
           </DialogHeader>
@@ -1701,6 +1727,7 @@ const WeighOnePage = () => {
                 <div>2nd Weigh: {selectedTransaction.second_weigh_at ? format(new Date(selectedTransaction.second_weigh_at), "dd/MM/yyyy HH:mm:ss") : "-"}</div>
               </div>
               {selectedTransaction.notes && <div className="text-sm"><span className="text-muted-foreground">Notes:</span> {selectedTransaction.notes}</div>}
+              <WeighbridgeAttachments transactionId={selectedTransaction.id} />
               {selectedTransaction.status === "completed" && (
                 <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems)}>
                   <Printer className="h-4 w-4" /> Print Ticket
