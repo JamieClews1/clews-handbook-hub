@@ -249,17 +249,29 @@ export function CustomerPortalPORequests({
     loadJobs();
   }, [loadJobs]);
 
-  // Group missing-PO jobs by waste type (and by month for Biffa)
+  // Group missing-PO jobs by waste type (and by billing period for Biffa)
   const groups = useMemo<PORequestGroup[]>(() => {
+    // Biffa's billing period runs to the 21st of the month, so jobs dated
+    // 22nd onwards belong to the following period.
+    const BILLING_CUTOFF_DAY = 21;
+    const billingPeriod = (jobDate: string) => {
+      const d = new Date(jobDate + "T00:00:00");
+      const shifted = d.getDate() > BILLING_CUTOFF_DAY ? addMonths(d, 1) : d;
+      return {
+        key: format(shifted, "yyyy-MM"),
+        label: `${format(shifted, "MMMM yyyy")} (22 ${format(subMonths(shifted, 1), "MMM")} – 21 ${format(shifted, "MMM")})`,
+      };
+    };
+
     const map = new Map<string, PORequestGroup>();
     for (const job of jobRecords) {
       const wasteType = job.waste_description?.trim() || "Unspecified waste";
-      const monthKey = job.job_date ? job.job_date.slice(0, 7) : "unknown"; // YYYY-MM
-      const periodLabel = perPeriodPO && job.job_date ? format(new Date(job.job_date + "T00:00:00"), "MMMM yyyy") : null;
-      const key = perPeriodPO ? `${monthKey}__${wasteType}` : wasteType;
+      const period = perPeriodPO && job.job_date ? billingPeriod(job.job_date) : null;
+      const periodKey = period?.key ?? (job.job_date ? job.job_date.slice(0, 7) : "unknown");
+      const key = perPeriodPO ? `${periodKey}__${wasteType}` : wasteType;
       let g = map.get(key);
       if (!g) {
-        g = { key, wasteType, periodLabel, jobs: [] };
+        g = { key, wasteType, periodLabel: period?.label ?? null, jobs: [] };
         map.set(key, g);
       }
       g.jobs.push(job);
@@ -267,13 +279,14 @@ export function CustomerPortalPORequests({
     return Array.from(map.values()).sort((a, b) => {
       // Newest period first, then waste type
       if (perPeriodPO) {
-        const am = a.jobs[0]?.job_date ?? "";
-        const bm = b.jobs[0]?.job_date ?? "";
+        const am = a.key.split("__")[0];
+        const bm = b.key.split("__")[0];
         if (am !== bm) return bm.localeCompare(am);
       }
       return a.wasteType.localeCompare(b.wasteType);
     });
   }, [jobRecords, perPeriodPO]);
+
 
   const totalMissing = jobRecords.length;
 
