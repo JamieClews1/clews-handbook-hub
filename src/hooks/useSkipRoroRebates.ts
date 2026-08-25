@@ -802,6 +802,7 @@ export function useSkipRoroRebates(
 
           const totalRebatableWeight = jobsWithRebates.reduce((sum, j) => sum + (j.rebatable_weight ?? 0), 0);
           const rebateValue = jobsWithRebates.reduce((sum, j) => sum + (j.job_rebate_value ?? 0), 0);
+          const bespokeCount = jobsWithRebates.filter((j) => j.rebate_rate_per_tonne != null).length;
 
           materialSummaries.push({
             material_type: config.material_type,
@@ -810,7 +811,7 @@ export function useSkipRoroRebates(
             rate_per_tonne: adjustedRate,
             adjustment,
             rebate_value: rebateValue,
-            rate_source: rateSource,
+            rate_source: bespokeCount > 0 ? `${rateSource} · ${bespokeCount} bespoke job rate${bespokeCount > 1 ? "s" : ""}` : rateSource,
             jobs: jobsWithRebates.sort((a, b) => 
               new Date(b.job_date).getTime() - new Date(a.job_date).getTime()
             ),
