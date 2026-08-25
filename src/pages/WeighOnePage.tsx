@@ -491,7 +491,7 @@ const WeighOnePage = () => {
       }
     },
     onSuccess: () => {
-      toast.success("First weigh recorded");
+      toast.success(formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
       setNewDialogOpen(false);
       resetForm();
     },
