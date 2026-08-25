@@ -1381,7 +1381,7 @@ const WeighOnePage = () => {
 
       {/* Second Weigh Dialog */}
       <Dialog open={secondWeighDialogOpen} onOpenChange={setSecondWeighDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Second Weigh — {selectedTransaction?.ticket_number}</DialogTitle>
           </DialogHeader>
@@ -1654,7 +1654,7 @@ const WeighOnePage = () => {
 
       {/* Ticket Detail Dialog */}
       <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ticket {selectedTransaction?.ticket_number}</DialogTitle>
           </DialogHeader>
