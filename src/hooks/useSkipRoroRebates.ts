@@ -780,14 +780,23 @@ export function useSkipRoroRebates(
             }
             
             const rebatableWeight = Math.max(0, materialWeight - threshold);
-            const jobRebateValue = rebatableWeight * adjustedRate;
-            
+            // Bespoke per-job rate set in the Data Hub overrides the configured rate
+            const bespoke = (job as any).rebate_rate_per_tonne;
+            const bespokeRate =
+              bespoke == null || bespoke === "" || Number.isNaN(Number(bespoke))
+                ? null
+                : Number(bespoke);
+            const appliedRate = bespokeRate ?? adjustedRate;
+            const jobRebateValue = rebatableWeight * appliedRate;
+
             return {
               ...job,
               material_weight_t: materialWeight,
               weight_t: job.weight_t, // Keep original total weight for display
               rebatable_weight: rebatableWeight,
               job_rebate_value: jobRebateValue,
+              rebate_rate_per_tonne: bespokeRate,
+              applied_rate_per_tonne: appliedRate,
             };
           });
 
