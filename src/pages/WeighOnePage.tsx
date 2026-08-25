@@ -409,6 +409,18 @@ const WeighOnePage = () => {
 
       const rate = formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
 
+      // Optional second (tare) weight captured at the same time
+      const tareRaw = (formData.tare_weight_kg ?? "").trim();
+      const tareKg = tareRaw === "" ? NaN : parseFloat(tareRaw);
+      const hasTare = !isNaN(tareKg) && !isNaN(grossKg);
+      const netKg = hasTare ? Math.abs(grossKg - tareKg) : null;
+      const itemsTotal = newAdditionalItems
+        .filter((i) => i.description && i.cost)
+        .reduce((sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0);
+      const weightCharge = hasTare
+        ? chargeFor(netKg as number, rate?.price_per_tonne ?? 0, rate?.min_charge ?? 0)
+        : null;
+
       const { data: txData, error } = await supabase.from("weighbridge_transactions").insert({
         ticket_number: ticket,
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
@@ -434,8 +446,12 @@ const WeighOnePage = () => {
         linked_job_source: formData.linked_job_number ? (formData.linked_job_source || "skiptrak") : null,
         linked_job_date: formData.linked_job_date || null,
 
-
-        status: "first_weigh" as WeighbridgeStatus,
+        tare_weight_kg: hasTare ? tareKg : null,
+        net_weight_kg: netKg,
+        weight_charge: weightCharge,
+        total_price: hasTare ? (weightCharge ?? 0) + itemsTotal : null,
+        second_weigh_at: hasTare ? new Date().toISOString() : null,
+        status: (hasTare ? "completed" : "first_weigh") as WeighbridgeStatus,
       }).select("id").single();
       if (error) throw error;
 
