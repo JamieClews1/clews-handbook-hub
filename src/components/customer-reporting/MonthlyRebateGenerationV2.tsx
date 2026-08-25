@@ -351,15 +351,22 @@ export function MonthlyRebateGenerationV2() {
           }
           rebateTotal += totalRebate;
           weightTotal += totalWeight;
+          // Show the rate actually applied: with bespoke per-job rates the
+          // configured market rate is meaningless, so display the effective
+          // (weight-weighted) rate that produced the rebate.
+          const effectiveRate = bespokeJobCount > 0 && totalWeight > 0
+            ? totalRebate / totalWeight
+            : rate;
           materials.push({
             name: `${MATERIAL_TYPE_MAP[config.material_type] ?? config.material_type} (${labelSuffix})`,
             weight: totalWeight,
-            rate,
+            rate: effectiveRate,
             rebate: totalRebate,
             source: bespokeJobCount > 0
               ? `${bespokeJobCount} bespoke job rate${bespokeJobCount > 1 ? "s" : ""}`
               : threshold > 0 ? `After ${threshold}t threshold` : "Market rate",
           });
+
         }
         return { materials, rebateTotal, weightTotal, loads };
       };
