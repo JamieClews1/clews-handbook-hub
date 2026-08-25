@@ -19,6 +19,10 @@ type JobRecord = {
   job_type?: string | null;
   rebatable_weight?: number;
   job_rebate_value?: number;
+  /** Bespoke £/tonne set on the job in the Data Hub; overrides the configured rate */
+  rebate_rate_per_tonne?: number | null;
+  /** Rate actually used for this job (bespoke or configured) */
+  applied_rate_per_tonne?: number;
   // For Artic Curtain Side loads - weight from specific load report line item
   material_weight_t?: number;
   explicit_waste_filter_match?: boolean;
