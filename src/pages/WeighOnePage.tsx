@@ -799,7 +799,7 @@ const WeighOnePage = () => {
               <DialogHeader>
                 <DialogTitle>First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-2">
+              <div className="grid gap-4 py-2 lg:grid-cols-2 items-start w-full max-w-screen-xl mx-auto [&>button]:lg:col-span-2">
                 <div className="rounded-lg border border-border p-3 space-y-3">
                   <div className="space-y-2">
                     <Label>Job Type *</Label>
