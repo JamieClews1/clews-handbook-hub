@@ -43,6 +43,7 @@ import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormF
 import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
+import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
 import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
@@ -225,7 +226,7 @@ const RouteOnePage = () => {
     queryFn: async () => {
       let query = supabase
         .from("data_hub_jobs")
-        .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location")
+        .select("id, job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location, rebate_rate_per_tonne")
         .eq("source", "skiptrak");
       if (viewMode === "day") {
         query = query.eq("job_date", dateStr);
@@ -759,6 +760,15 @@ const RouteOnePage = () => {
                   <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
                   <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
                 </div>
+                <BespokeRateEditor
+                  jobId={viewingSkiptrakJob.id}
+                  jobNumber={viewingSkiptrakJob.job_number}
+                  value={viewingSkiptrakJob.rebate_rate_per_tonne}
+                  onSaved={(next) => {
+                    setViewingSkiptrakJob({ ...viewingSkiptrakJob, rebate_rate_per_tonne: next });
+                    queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
+                  }}
+                />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
             );
@@ -875,7 +885,12 @@ const RouteOnePage = () => {
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{sj.container_type || "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm tabular-nums">{sj.weight_t != null ? `${sj.weight_t}t` : "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{sj.waste_description || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">
+                        <span>{sj.waste_description || "—"}</span>
+                        {sj.rebate_rate_per_tonne != null && (
+                          <Badge variant="outline" className="ml-1.5 text-[10px]">£{Number(sj.rebate_rate_per_tonne).toFixed(2)}/t</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm">{sj.driver || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell text-sm">{sj.job_date ? format(new Date(sj.job_date), "dd/MM/yy") : ""}</TableCell>
                       <TableCell className="hidden lg:table-cell text-sm">—</TableCell>
