@@ -935,6 +935,25 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Operator</Label>
                           <Input className="h-9" placeholder="Operator name" value={formData.operator_name} onChange={(e) => setFormData((p) => ({ ...p, operator_name: e.target.value }))} />
                         </div>
+                        <div className="space-y-1.5 col-span-2 rounded-md bg-muted/40 p-2">
+                          <Label className="text-xs">Second Weight / Tare (kg) — optional</Label>
+                          <Input
+                            className="h-9"
+                            type="number"
+                            placeholder="Leave blank to weigh out later"
+                            value={formData.tare_weight_kg}
+                            onChange={(e) => setFormData((p) => ({ ...p, tare_weight_kg: e.target.value }))}
+                          />
+                          {netPreviewKg !== null && (
+                            <p className="text-xs text-muted-foreground">
+                              Net <span className="font-semibold text-foreground">{(netPreviewKg / 1000).toFixed(2)} t</span>
+                              {selectedRate && (
+                                <> · Weight charge <span className="font-semibold text-foreground">£{chargeFor(netPreviewKg, selectedRate.price_per_tonne, selectedRate.min_charge).toFixed(2)}</span></>
+                              )}
+                              {" "}— ticket will complete immediately.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
