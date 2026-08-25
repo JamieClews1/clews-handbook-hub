@@ -1432,17 +1432,22 @@ export function MonthlyRebateGenerationV2() {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {sb.materials.map((m, i) => (
-                                      <TableRow key={`${sb.site.id}-${m.name}-${i}`} className="hover:bg-transparent">
-                                        <TableCell className="py-1.5 text-xs">
+                                    {sb.materials.map((m, i) => {
+                                      const unpriced = m.weight > 0 && m.rate === 0 && m.rebate === 0;
+                                      return (
+                                      <TableRow key={`${sb.site.id}-${m.name}-${i}`} className={cn("hover:bg-transparent", unpriced && "bg-red-50 dark:bg-red-950/30")}>
+                                        <TableCell className={cn("py-1.5 text-xs", unpriced && "text-red-600 font-medium")}>
                                           {m.name}
-                                          <span className="text-muted-foreground ml-1 capitalize">· {m.source}</span>
+                                          <span className={cn("ml-1 capitalize", unpriced ? "text-red-600" : "text-muted-foreground")}>· {m.source}</span>
+                                          {unpriced && <span className="ml-1 font-semibold text-red-600">· No £ value assigned</span>}
                                         </TableCell>
-                                        <TableCell className="py-1.5 text-xs text-right">{m.weight.toFixed(2)}</TableCell>
-                                        <TableCell className="py-1.5 text-xs text-right">£{m.rate.toFixed(2)}</TableCell>
-                                        <TableCell className={cn("py-1.5 text-xs text-right font-medium", m.rebate >= 0 ? "text-green-600" : "text-red-600")}>£{m.rebate.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right", unpriced && "text-red-600")}>{m.weight.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right", unpriced && "text-red-600 font-semibold")}>£{m.rate.toFixed(2)}</TableCell>
+                                        <TableCell className={cn("py-1.5 text-xs text-right font-medium", unpriced ? "text-red-600" : m.rebate >= 0 ? "text-green-600" : "text-red-600")}>£{m.rebate.toFixed(2)}</TableCell>
                                       </TableRow>
-                                    ))}
+                                      );
+                                    })}
+
                                   </TableBody>
                                 </Table>
                               ) : (
