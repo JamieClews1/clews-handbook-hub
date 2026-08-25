@@ -1724,6 +1724,7 @@ const WeighOnePage = () => {
                 <div>2nd Weigh: {selectedTransaction.second_weigh_at ? format(new Date(selectedTransaction.second_weigh_at), "dd/MM/yyyy HH:mm:ss") : "-"}</div>
               </div>
               {selectedTransaction.notes && <div className="text-sm"><span className="text-muted-foreground">Notes:</span> {selectedTransaction.notes}</div>}
+              <WeighbridgeAttachments transactionId={selectedTransaction.id} />
               {selectedTransaction.status === "completed" && (
                 <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems)}>
                   <Printer className="h-4 w-4" /> Print Ticket
