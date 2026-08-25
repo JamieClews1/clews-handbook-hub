@@ -114,6 +114,8 @@ const WeighOnePage = () => {
   const [wasteTypesDialogOpen, setWasteTypesDialogOpen] = useState(false);
   const [cmsDialogOpen, setCmsDialogOpen] = useState(false);
   const [ratesDialogOpen, setRatesDialogOpen] = useState(false);
+  const [wtnDialogOpen, setWtnDialogOpen] = useState(false);
+  const { data: wtnTemplate } = useWtnTemplate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
