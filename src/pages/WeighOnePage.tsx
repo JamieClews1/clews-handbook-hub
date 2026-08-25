@@ -1095,8 +1095,11 @@ const WeighOnePage = () => {
 
                   {/* Column 3 — DWT + additional items */}
                   <div className="space-y-4">
-                    <div className="space-y-3 rounded-lg border border-border p-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Digital Waste Tracking</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Digital Waste Tracking</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Carrier Registration</Label>
