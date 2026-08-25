@@ -811,17 +811,20 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New Weigh-In
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden">
-              <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
-                <DialogTitle>First Weigh — New Transaction</DialogTitle>
+            <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
+              <DialogHeader className="px-6 py-4 border-b border-foreground/20 shrink-0 bg-card">
+                <DialogTitle className="text-lg font-semibold">First Weigh — New Transaction</DialogTitle>
               </DialogHeader>
               <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
                 <div className="grid gap-4 xl:grid-cols-3 lg:grid-cols-2 items-start">
 
                   {/* Column 1 — Job & vehicle */}
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-border p-3 space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Job</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-xs">Job Type *</Label>
                         <Select
@@ -880,15 +883,19 @@ const WeighOnePage = () => {
                           </div>
                           {formData.linked_job_number && (
                             <p className="col-span-2 text-xs text-muted-foreground">
-                              Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
+                          Linked to Skiptrak job {formData.linked_job_number} — Clews Recycling vehicle, carrier details auto-filled.
                             </p>
                           )}
                         </div>
                       )}
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-border p-3 space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vehicle & Weight</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Vehicle & Weight</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Vehicle Reg *</Label>
@@ -963,13 +970,17 @@ const WeighOnePage = () => {
                           )}
                         </div>
                       </div>
+                      </div>
                     </div>
                   </div>
 
                   {/* Column 2 — Customer & waste */}
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-border p-3 space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Customer</Label>
@@ -1021,10 +1032,14 @@ const WeighOnePage = () => {
                           <Input className="h-9" placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
                         </div>
                       </div>
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-border p-3 space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Waste & Rate</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Waste & Rate</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Waste Type</Label>
@@ -1065,18 +1080,26 @@ const WeighOnePage = () => {
                           )}
                         </div>
                       )}
+                      </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Notes</Label>
-                      <Textarea className="min-h-[70px]" placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notes</span>
+                      </div>
+                      <div className="p-3 space-y-1.5">
+                        <Textarea className="min-h-[70px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 resize-none" placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                      </div>
                     </div>
                   </div>
 
                   {/* Column 3 — DWT + additional items */}
                   <div className="space-y-4">
-                    <div className="space-y-3 rounded-lg border border-border p-3">
-                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Digital Waste Tracking</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Digital Waste Tracking</span>
+                      </div>
+                      <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Carrier Registration</Label>
@@ -1109,12 +1132,13 @@ const WeighOnePage = () => {
                           <Input className="h-9 font-mono" placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
                         </div>
                       </div>
+                      </div>
                     </div>
 
                     {/* Additional Items */}
-                    <div className="space-y-3 rounded-lg border border-border p-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Additional Items</Label>
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Additional Items</span>
                         <Button
                           type="button"
                           variant="outline"
@@ -1125,6 +1149,7 @@ const WeighOnePage = () => {
                           <Plus className="h-3 w-3" /> Add Item
                         </Button>
                       </div>
+                      <div className="p-3 space-y-3">
                       {itemTemplates.filter((t) => t.is_active).length > 0 && (
                         <Select
                           value=""
@@ -1224,11 +1249,12 @@ const WeighOnePage = () => {
                           </span>
                         </div>
                       )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="shrink-0 border-t border-border px-6 py-3 flex items-center justify-end gap-3 bg-background">
+              <div className="shrink-0 border-t border-foreground/20 px-6 py-3 flex items-center justify-end gap-3 bg-card">
                 {newAdditionalItems.length > 0 && (
                   <span className="text-sm text-muted-foreground mr-auto">
                     Items: <span className="font-semibold text-foreground">
