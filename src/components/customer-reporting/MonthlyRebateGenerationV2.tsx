@@ -1381,8 +1381,9 @@ export function MonthlyRebateGenerationV2() {
                         {summary.siteBreakdowns.map((sb) => {
                           const siteTracking = tracking.get(trackingKey(summary.customer.id, trackSiteId(sb)));
                           const isSent = siteTracking?.status === "sent";
+                          const unpricedCount = sb.materials.filter((m) => m.weight > 0 && m.rate === 0 && m.rebate === 0).length;
                           return (
-                            <div key={sb.site.id} className="rounded-md border bg-background/60">
+                            <div key={sb.site.id} className={cn("rounded-md border bg-background/60", unpricedCount > 0 && "border-red-400")}>
                               <div className="flex items-center justify-between text-sm px-3 py-2 border-b">
                                 <span className="flex items-center gap-2 font-medium">
                                   {sb.site.site_name}
@@ -1392,8 +1393,14 @@ export function MonthlyRebateGenerationV2() {
                                       Locked
                                     </Badge>
                                   )}
+                                  {unpricedCount > 0 && (
+                                    <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-300 dark:bg-red-950/50 dark:text-red-300">
+                                      {unpricedCount} unpriced material{unpricedCount > 1 ? "s" : ""}
+                                    </Badge>
+                                  )}
                                   <span className="text-muted-foreground font-normal">({sb.totalWeight.toFixed(2)}t)</span>
                                 </span>
+
                                 <div className="flex items-center gap-2 shrink-0">
                                   <span className={cn("font-medium", sb.totalRebate >= 0 ? "text-green-600" : "text-red-600")}>£{sb.totalRebate.toFixed(2)}</span>
                                   <Button
