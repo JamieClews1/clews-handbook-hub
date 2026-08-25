@@ -283,9 +283,9 @@ const DataUploadsPage = () => {
     );
   }, [detailJob?.id]);
 
-  const saveBespokeRate = async () => {
+  const saveBespokeRate = async (raw?: string) => {
     if (!detailJob) return;
-    const trimmed = bespokeRate.trim();
+    const trimmed = (raw ?? bespokeRate).trim();
     const value = trimmed === "" ? null : Number(trimmed);
     if (value != null && !Number.isFinite(value)) {
       toast({ title: "Enter a valid number", variant: "destructive" });
@@ -1528,7 +1528,7 @@ const DataUploadsPage = () => {
                       disabled={!canUpload || savingRate}
                       onClick={() => {
                         setBespokeRate("");
-                        void saveBespokeRate();
+                        void saveBespokeRate("");
                       }}
                     >
                       Clear
