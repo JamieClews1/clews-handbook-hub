@@ -7885,6 +7885,56 @@ export type Database = {
           },
         ]
       }
+      weighbridge_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          file_size: number | null
+          id: string
+          kind: string
+          notes: string | null
+          storage_path: string
+          transaction_id: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          storage_path: string
+          transaction_id: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          storage_path?: string
+          transaction_id?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weighbridge_attachments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weighbridge_customers: {
         Row: {
           carrier_name: string | null
