@@ -1249,11 +1249,12 @@ const WeighOnePage = () => {
                           </span>
                         </div>
                       )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="shrink-0 border-t border-border px-6 py-3 flex items-center justify-end gap-3 bg-background">
+              <div className="shrink-0 border-t border-foreground/20 px-6 py-3 flex items-center justify-end gap-3 bg-card">
                 {newAdditionalItems.length > 0 && (
                   <span className="text-sm text-muted-foreground mr-auto">
                     Items: <span className="font-semibold text-foreground">
