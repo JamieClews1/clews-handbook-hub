@@ -491,7 +491,16 @@ const WeighOnePage = () => {
           .update({ additional_items_total: additionalTotal })
           .eq("id", txData.id);
       }
+
+      if (stagedAttachments.length > 0 && txData) {
+        try {
+          await uploadWeighbridgeAttachments(txData.id, stagedAttachments, formData.operator_name || null);
+        } catch (e) {
+          toast.error("Transaction saved but attachments failed: " + (e as Error).message);
+        }
+      }
     },
+
     onSuccess: () => {
       toast.success(formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
       setNewDialogOpen(false);
