@@ -1251,7 +1251,18 @@ const WeighOnePage = () => {
                       )}
                       </div>
                     </div>
+
+                    {/* Documents & Photos */}
+                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
+                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Documents & Photos</span>
+                      </div>
+                      <div className="p-3">
+                        <StagedAttachmentPicker value={stagedAttachments} onChange={setStagedAttachments} />
+                      </div>
+                    </div>
                   </div>
+
                 </div>
               </div>
               <div className="shrink-0 border-t border-foreground/20 px-6 py-3 flex items-center justify-end gap-3 bg-card">
