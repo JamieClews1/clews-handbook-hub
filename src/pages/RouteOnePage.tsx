@@ -45,6 +45,7 @@ import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
 import { FileDown, Printer } from "lucide-react";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
+import { SkiptrakSiteDetails } from "@/components/route-one/SkiptrakSiteDetails";
 import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
@@ -829,7 +830,7 @@ const RouteOnePage = () => {
 
       {/* View Skiptrak Job Dialog */}
       <Dialog open={!!viewingSkiptrakJob} onOpenChange={(open) => { if (!open) setViewingSkiptrakJob(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Truck className="h-4 w-4" />
@@ -867,6 +868,7 @@ const RouteOnePage = () => {
                     queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
                   }}
                 />
+                <SkiptrakSiteDetails job={viewingSkiptrakJob} />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
             );
