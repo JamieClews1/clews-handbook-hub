@@ -865,13 +865,14 @@ export async function buildWtnDoc(job: WtnJob, design?: WtnDesign, options?: Wtn
 export const wtnFileName = (job: WtnJob) =>
   `WTN-${(job.job_number || "job").replace(/[^\w-]+/g, "")}.pdf`;
 
-export async function downloadWtnPdf(job: WtnJob, design?: WtnDesign) {
-  (await buildWtnDoc(job, design)).save(wtnFileName(job));
+export async function downloadWtnPdf(job: WtnJob, design?: WtnDesign, options?: WtnOptions) {
+  (await buildWtnDoc(job, design, options)).save(wtnFileName(job));
 }
 
 /** Opens the note in a new tab and triggers the browser print dialog. */
-export async function printWtnPdf(job: WtnJob, design?: WtnDesign) {
-  const doc = await buildWtnDoc(job, design);
+export async function printWtnPdf(job: WtnJob, design?: WtnDesign, options?: WtnOptions) {
+  const doc = await buildWtnDoc(job, design, options);
+
   const url = URL.createObjectURL(doc.output("blob"));
   const win = window.open(url, "_blank");
   if (win) {
