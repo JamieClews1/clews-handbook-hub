@@ -50,6 +50,7 @@ import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
 import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
+import { WtnDesignSettings } from "@/components/route-one/WtnDesignSettings";
 import { useJobTypes, jobTypeLabel, jobTypeSolidClass, jobTypeAccentClass } from "@/components/route-one/jobTypes";
 import {
   DropdownMenu,
