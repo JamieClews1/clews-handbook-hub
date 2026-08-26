@@ -162,12 +162,19 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
                     </p>
                   )}
                 </CardHeader>
-                <CardContent className="mt-auto">
+                <CardContent className="mt-auto flex flex-wrap gap-2">
                   <Button asChild size="sm" className="gap-2">
                     <Link to={`/health-safety/documents/${doc.id}`}>
                       {signed ? "View" : "Read & sign"} <ArrowRight className="h-4 w-4" />
                     </Link>
                   </Button>
+                  {isAdmin && doc.requires_signature && (
+                    <Button asChild size="sm" variant="outline" className="gap-2">
+                      <Link to={`/mass-sign-off?type=induction&id=${doc.id}`}>
+                        <Users className="h-4 w-4" /> Mass sign-off
+                      </Link>
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
