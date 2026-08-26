@@ -13,7 +13,9 @@ const json = (payload: unknown, status = 200) =>
 // Fields a job-status update is allowed to set (driver app)
 const JOB_UPDATE_FIELDS = new Set([
   "status", "started_at", "completed_at", "driver_notes",
-  "contamination_type", "query_reason",
+  "contamination_type", "query_reason", "vehicle_reg",
+  "customer_signature", "customer_signoff_name", "customer_signoff_at",
+  "driver_signature", "driver_signoff_name",
 ]);
 
 // Columns a driver may write on a contamination report
