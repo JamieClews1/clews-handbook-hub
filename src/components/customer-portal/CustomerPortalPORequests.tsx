@@ -37,6 +37,7 @@ type JobRecord = {
   ewc: string | null;
   weight_t: number | null;
   site: string | null;
+  vehicle_registration: string | null;
   raw: unknown;
   order_number_override: string | null;
 };
@@ -217,7 +218,7 @@ export function CustomerPortalPORequests({
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_date, job_number, waste_description, container_type, ewc, weight_t, site, raw, order_number_override, source, linked_skip_job")
+        .select("id, job_date, job_number, waste_description, container_type, ewc, weight_t, site, vehicle_registration, raw, order_number_override, source, linked_skip_job")
         .gte("job_date", startDate)
         .lte("job_date", endDate)
         .order("job_date", { ascending: true });
@@ -566,6 +567,7 @@ export function CustomerPortalPORequests({
                           <TableHead>Site</TableHead>
                           <TableHead>Container</TableHead>
                           <TableHead>EWC</TableHead>
+                          <TableHead>Vehicle</TableHead>
                           <TableHead className="text-right">Weight (t)</TableHead>
                           <TableHead className="text-right">Cost</TableHead>
                         </TableRow>
@@ -580,6 +582,7 @@ export function CustomerPortalPORequests({
                             <TableCell>{(job.site && siteNameLookup.get(job.site)) || job.site || "-"}</TableCell>
                             <TableCell>{job.container_type || "-"}</TableCell>
                             <TableCell>{job.ewc || "-"}</TableCell>
+                            <TableCell className="font-mono text-sm">{job.vehicle_registration || "-"}</TableCell>
                             <TableCell className="text-right">
                               {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
                             </TableCell>
