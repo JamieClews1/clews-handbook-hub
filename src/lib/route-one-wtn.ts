@@ -494,98 +494,302 @@ function drawModernCopy(
 
   /* ── Producer / contact / invoice ── */
   const rowH = 27;
-  const cw = (W - 3) / 3;
-  panel(L, y, cw, rowH);
-  panel(L + cw + 1.5, y, cw, rowH);
-  panel(L + (cw + 1.5) * 2, y, cw, rowH);
-
-  heading("Waste Producer / Site", L + 2, y + 4);
+  const boxes = [true, opts.showSiteContact, opts.showInvoiceAddress].filter(Boolean).length;
+  const cw = (W - (boxes - 1) * 1.5) / boxes;
+  let bx = L;
+  panel(bx, y, cw, rowH);
+  heading("Waste Producer / Site", bx + 2, y + 4);
   [job.customer_name || "", ...addressLines(job)].slice(0, 6).forEach((line, i) =>
-    value(String(line).slice(0, 42), L + 2, y + 8.5 + i * 3.2, 7.5),
+    value(String(line).slice(0, 42), bx + 2, y + 8.5 + i * 3.2, 7.5),
   );
+  bx += cw + 1.5;
 
-  heading("Site Contact", L + cw + 3.5, y + 4);
-  value(job.site_contact_name || "—", L + cw + 3.5, y + 9, 7.5);
-  value(job.site_contact_phone || "", L + cw + 3.5, y + 13, 7.5);
-  value(job.sic_code ? `SIC: ${job.sic_code}` : "SIC: —", L + cw + 3.5, y + 17, 7.5);
-  value(`Office: ${COMPANY.phone}`, L + cw + 3.5, y + 21, 7.5);
-  value(COMPANY.orders, L + cw + 3.5, y + 25, 6);
+  if (opts.showSiteContact) {
+    panel(bx, y, cw, rowH);
+    heading("Site Contact", bx + 2, y + 4);
+    value(job.site_contact_name || "—", bx + 2, y + 9, 7.5);
+    value(job.site_contact_phone || "", bx + 2, y + 13, 7.5);
+    value(job.sic_code ? `SIC: ${job.sic_code}` : "SIC: —", bx + 2, y + 17, 7.5);
+    value(`Office: ${COMPANY.phone}`, bx + 2, y + 21, 7.5);
+    value(COMPANY.orders, bx + 2, y + 25, 6);
+    bx += cw + 1.5;
+  }
 
-  heading("Invoice Address", L + (cw + 1.5) * 2 + 2, y + 4);
-  (job.invoice_address || "")
-    .split("\n")
-    .slice(0, 5)
-    .forEach((line, i) => value(line.trim(), L + (cw + 1.5) * 2 + 2, y + 9 + i * 3.2, 7.5));
+  if (opts.showInvoiceAddress) {
+    panel(bx, y, cw, rowH);
+    heading("Invoice Address", bx + 2, y + 4);
+    (job.invoice_address || "")
+      .split("\n")
+      .slice(0, 5)
+      .forEach((line, i) => value(line.trim(), bx + 2, y + 9 + i * 3.2, 7.5));
+  }
   y += rowH + 2;
 
   /* ── Waste description ── */
   const wasteH = 16;
-  panel(L, y, W * 0.62 - 1.5, wasteH, true);
+  const wasteW = opts.showDisposalSite ? W * 0.62 - 1.5 : W;
+  panel(L, y, wasteW, wasteH, true);
   heading("EWC Code & Waste Description", L + 2, y + 4);
-  value([job.ewc_code, job.waste_type].filter(Boolean).join("  —  ") || "—", L + 2, y + 9, 8.5, true, W * 0.62 - 6);
+  value([job.ewc_code, job.waste_type].filter(Boolean).join("  —  ") || "—", L + 2, y + 9, 8.5, true, wasteW - 4);
   value(`Carrier: ${job.carrier_name || COMPANY.name}`, L + 2, y + 13.5, 7);
 
-  panel(L + W * 0.62, y, W * 0.38, wasteH);
-  heading("Disposal Site", L + W * 0.62 + 2, y + 4);
-  (job.disposal_site || "Clews Recycling Ltd\nUnit 17 Hunters Lane\nRugby CV21 1EA")
-    .split("\n")
-    .slice(0, 3)
-    .forEach((line, i) => value(line.trim(), L + W * 0.62 + 2, y + 8.5 + i * 3.2, 7.5));
+  if (opts.showDisposalSite) {
+    panel(L + W * 0.62, y, W * 0.38, wasteH);
+    heading("Disposal Site", L + W * 0.62 + 2, y + 4);
+    (job.disposal_site || "Clews Recycling Ltd\nUnit 17 Hunters Lane\nRugby CV21 1EA")
+      .split("\n")
+      .slice(0, 3)
+      .forEach((line, i) => value(line.trim(), L + W * 0.62 + 2, y + 8.5 + i * 3.2, 7.5));
+  }
   y += wasteH + 2;
 
   /* ── Comments / directions ── */
-  const cmtH = 14;
-  panel(L, y, W / 2 - 1, cmtH);
-  heading("Comments", L + 2, y + 4);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(doc.splitTextToSize(job.notes || "—", W / 2 - 5), L + 2, y + 8);
-  panel(L + W / 2 + 1, y, W / 2 - 1, cmtH);
-  heading("Directions", L + W / 2 + 3, y + 4);
-  doc.text(doc.splitTextToSize(job.directions || "—", W / 2 - 5), L + W / 2 + 3, y + 8);
-  y += cmtH + 2;
+  if (opts.showComments || opts.showDirections) {
+    const cmtH = 14;
+    const both = opts.showComments && opts.showDirections;
+    const cWidth = both ? W / 2 - 1 : W;
+    let cx = L;
+    doc.setFont("helvetica", "normal");
+    if (opts.showComments) {
+      panel(cx, y, cWidth, cmtH);
+      heading("Comments", cx + 2, y + 4);
+      doc.setFontSize(7);
+      doc.text(doc.splitTextToSize(job.notes || "—", cWidth - 4), cx + 2, y + 8);
+      cx += cWidth + 2;
+    }
+    if (opts.showDirections) {
+      panel(cx, y, cWidth, cmtH);
+      heading("Directions", cx + 2, y + 4);
+      doc.setFontSize(7);
+      doc.text(doc.splitTextToSize(job.directions || "—", cWidth - 4), cx + 2, y + 8);
+    }
+    y += cmtH + 2;
+  }
 
   /* ── Signatures ── */
-  const sigH = 22;
-  panel(L, y, W / 2 - 1, sigH);
-  heading("Waste Producer Signature", L + 2, y + 4);
-  if (job.customer_signature) {
-    try {
-      doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + 2, y + 5, 40, 11);
-    } catch {
-      /* ignore */
+  if (opts.showSignatures) {
+    const sigH = 22;
+    panel(L, y, W / 2 - 1, sigH);
+    heading("Waste Producer Signature", L + 2, y + 4);
+    if (job.customer_signature) {
+      try {
+        doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + 2, y + 5, 40, 11);
+      } catch {
+        /* ignore */
+      }
     }
-  }
-  value(`Print: ${job.customer_signoff_name || ""}`, L + 2, y + 19, 7.5);
-  value(job.customer_signoff_at ? `Signed ${fmtDate(job.customer_signoff_at)}` : "", W / 2 - 4, y + 19, 6.5);
+    value(`Print: ${job.customer_signoff_name || ""}`, L + 2, y + 19, 7.5);
+    value(job.customer_signoff_at ? `Signed ${fmtDate(job.customer_signoff_at)}` : "", W / 2 - 4, y + 19, 6.5);
 
-  panel(L + W / 2 + 1, y, W / 2 - 1, sigH);
-  heading("Driver Signature", L + W / 2 + 3, y + 4);
-  if (job.driver_signature) {
-    try {
-      doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + W / 2 + 3, y + 5, 40, 11);
-    } catch {
-      /* ignore */
+    panel(L + W / 2 + 1, y, W / 2 - 1, sigH);
+    heading("Driver Signature", L + W / 2 + 3, y + 4);
+    if (job.driver_signature) {
+      try {
+        doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + W / 2 + 3, y + 5, 40, 11);
+      } catch {
+        /* ignore */
+      }
     }
+    value(`Print: ${job.driver_signoff_name || job.driver_name || ""}`, L + W / 2 + 3, y + 19, 7.5);
+    y += sigH + 1.5;
   }
-  value(`Print: ${job.driver_signoff_name || job.driver_name || ""}`, L + W / 2 + 3, y + 19, 7.5);
-  y += sigH + 1.5;
 
   /* ── Terms & footer ── */
   doc.setFontSize(5.6);
   doc.setTextColor(90);
-  doc.text(
-    doc.splitTextToSize(
-      "I acknowledge that in signing this waste transfer note, I am confirming that the waste is as described above, and that we accept responsibility for any non-conforming waste subsequently found in the container; I have read or will read the terms and conditions and agree to accept them in their entirety. By signing above, I confirm that I have fulfilled my duty to apply the Waste Hierarchy as required by Regulation 12 of the Waste (England & Wales) Regulations 2011. Skip hire period is for 2 weeks from the date of hire; Roll on Roll off hire period is 30 days from the date of hire. All skips booked through a third party broker must contact the broker directly for all service requirements.",
-      W,
-    ),
-    L,
-    y + 3,
-  );
-  doc.setFontSize(5.8);
-  doc.text(`${COMPANY.footer1}  ·  ${COMPANY.footer2}  ·  ${COMPANY.web}`, L + W / 2, y + 20, { align: "center" });
+  const termsText = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
+    .filter(Boolean)
+    .join(" ");
+  doc.text(doc.splitTextToSize(termsText, W), L, y + 3);
+  if (opts.showFooter) {
+    doc.setFontSize(5.8);
+    doc.text(opts.footerText, L + W / 2, y + 20, { align: "center" });
+  }
   doc.setTextColor(0, 0, 0);
 }
+
+/* ────────────────────────────────────────────────────────────
+   Design C — "Field ticket". Recommended layout: one large,
+   high-contrast ticket per copy, big type for yard/driver use,
+   signature strip along the bottom, logo top-left.
+   ──────────────────────────────────────────────────────────── */
+
+function drawFieldCopy(
+  doc: jsPDF,
+  job: WtnJob,
+  top: number,
+  copyLabel: string,
+  logo?: string | null,
+  opts: WtnOptions = DEFAULT_WTN_OPTIONS,
+) {
+  const L = 10;
+  const R = 200;
+  const W = R - L;
+  let y = top;
+  const ACCENT = hexToRgb(opts.accent);
+  const TINT = tintOf(ACCENT);
+
+  const label = (t: string, x: number, yy: number, size = 6) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(size);
+    doc.setTextColor(110);
+    doc.text(t.toUpperCase(), x, yy);
+    doc.setTextColor(0);
+  };
+  const val = (t: string, x: number, yy: number, size = 9, bold = true, maxWidth?: number) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.text(t || "—", x, yy, maxWidth ? { maxWidth } : undefined);
+  };
+  const rule = (yy: number) => {
+    doc.setDrawColor(215);
+    doc.setLineWidth(0.2);
+    doc.line(L, yy, R, yy);
+  };
+
+  /* Header: logo left, big ticket number right */
+  if (opts.showLogo && logo) {
+    try {
+      doc.addImage(logo, imgFormat(logo), L, y, opts.logoSize, opts.logoSize * 0.4);
+    } catch {
+      /* ignore */
+    }
+  }
+  const hx = opts.showLogo && logo ? L + opts.logoSize + 5 : L;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...ACCENT);
+  doc.text(opts.title, hx, y + 5);
+  doc.setTextColor(0);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(`${opts.subtitle}  ·  ${COMPANY.name}  ·  ${COMPANY.carrier}`, hx, y + 9.5);
+  doc.text(`${COMPANY.phone}  ·  ${COMPANY.web}`, hx, y + 13);
+
+  doc.setFillColor(...ACCENT);
+  doc.roundedRect(R - 46, y, 46, 15, 1.5, 1.5, "F");
+  doc.setTextColor(255);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  doc.text(copyLabel, R - 44, y + 4.5);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(job.job_number || "—", R - 44, y + 12);
+  doc.setTextColor(0);
+  y += 18;
+  rule(y);
+  y += 1;
+
+  /* Big facts row */
+  const facts: [string, string][] = [
+    ["Date", fmtDate(job.completed_at || job.scheduled_date)],
+    ["Transaction", TYPE_LABELS[String(job.job_type)] || String(job.job_type || "")],
+    ["Container", [job.container_size, job.container_type].filter(Boolean).join(" ")],
+    ["Vehicle Reg", job.vehicle_reg || ""],
+    ["Customer O/N", job.po_number || "TBC"],
+    ["Account", job.account_code || ""],
+  ];
+  const fw = W / facts.length;
+  doc.setFillColor(...TINT);
+  doc.roundedRect(L, y + 1, W, 13, 1.5, 1.5, "F");
+  facts.forEach(([t, v], i) => {
+    label(t, L + 2 + i * fw, y + 5.5);
+    val(String(v).slice(0, 22), L + 2 + i * fw, y + 11, 9, true, fw - 3);
+  });
+  y += 17;
+
+  /* Producer + waste */
+  label("Waste Producer / Collection Site", L, y);
+  const prod = [job.customer_name || "", ...addressLines(job)];
+  prod.slice(0, 6).forEach((line, i) => val(String(line), L, y + 5 + i * 4, 9, i === 0, W / 2 - 6));
+  const rx = L + W / 2 + 4;
+  label("EWC Code & Waste Description", rx, y);
+  val([job.ewc_code, job.waste_type].filter(Boolean).join("  —  "), rx, y + 5, 10, true, W / 2 - 6);
+  if (opts.showDisposalSite) {
+    label("Disposal Site", rx, y + 12);
+    (job.disposal_site || "Clews Recycling Ltd, Unit 17 Hunters Lane, Rugby CV21 1EA")
+      .split("\n")
+      .slice(0, 3)
+      .forEach((line, i) => val(line.trim(), rx, y + 17 + i * 4, 8, false, W / 2 - 6));
+  }
+  y += 30;
+  rule(y);
+  y += 5;
+
+  /* Contact / invoice / comments row */
+  const colW = W / 3;
+  if (opts.showSiteContact) {
+    label("Site Contact", L, y);
+    val(job.site_contact_name || "", L, y + 5, 8);
+    val(job.site_contact_phone || "", L, y + 9, 8, false);
+    val(job.sic_code ? `SIC ${job.sic_code}` : "", L, y + 13, 8, false);
+  }
+  if (opts.showInvoiceAddress) {
+    label("Invoice Address", L + colW, y);
+    (job.invoice_address || "")
+      .split("\n")
+      .slice(0, 3)
+      .forEach((line, i) => val(line.trim(), L + colW, y + 5 + i * 4, 8, false, colW - 4));
+  }
+  if (opts.showComments || opts.showDirections) {
+    label("Comments / Directions", L + colW * 2, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text(
+      doc.splitTextToSize(
+        [opts.showComments ? job.notes : "", opts.showDirections ? job.directions : ""].filter(Boolean).join(" — ") || "—",
+        colW - 4,
+      ),
+      L + colW * 2,
+      y + 5,
+    );
+  }
+  y += 20;
+
+  /* Signature strip */
+  if (opts.showSignatures) {
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(L, y, W, 24, 1.5, 1.5);
+    doc.setLineWidth(0.2);
+    doc.setDrawColor(215);
+    doc.line(L + W / 2, y + 2, L + W / 2, y + 22);
+    label("Waste Producer Signature", L + 2, y + 4.5);
+    if (job.customer_signature) {
+      try {
+        doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + 2, y + 5.5, 45, 12);
+      } catch {
+        /* ignore */
+      }
+    }
+    val(`${job.customer_signoff_name || ""}  ${job.customer_signoff_at ? fmtDate(job.customer_signoff_at) : ""}`, L + 2, y + 22, 8, false);
+    label("Driver Signature", L + W / 2 + 2, y + 4.5);
+    if (job.driver_signature) {
+      try {
+        doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + W / 2 + 2, y + 5.5, 45, 12);
+      } catch {
+        /* ignore */
+      }
+    }
+    val(job.driver_signoff_name || job.driver_name || "", L + W / 2 + 2, y + 22, 8, false);
+    y += 26;
+  }
+
+  /* Terms + footer */
+  doc.setTextColor(110);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.4);
+  const terms = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
+    .filter(Boolean)
+    .join(" ");
+  doc.text(doc.splitTextToSize(terms, W), L, y);
+  if (opts.showFooter) {
+    doc.setFontSize(5.8);
+    doc.text(opts.footerText, L + W / 2, y + 16, { align: "center" });
+  }
+  doc.setTextColor(0);
+}
+
 
 export type WtnDesign = "classic" | "modern";
 
