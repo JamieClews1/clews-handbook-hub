@@ -89,6 +89,8 @@ export const UserManagement = () => {
   const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
   const [staffTab, setStaffTab] = useState<StaffTab>("all");
   const [search, setSearch] = useState("");
+  const [deleteUser, setDeleteUser] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
