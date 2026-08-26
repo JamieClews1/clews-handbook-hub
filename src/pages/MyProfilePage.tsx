@@ -68,6 +68,7 @@ const MyProfilePage = () => {
   const [hsDocuments, setHsDocuments] = useState<any[]>([]);
   const [hsSignatures, setHsSignatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mySignature, setMySignature] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -136,6 +137,7 @@ const MyProfilePage = () => {
 
       if (profileResult.error) throw profileResult.error;
       setProfile(profileResult.data);
+      setMySignature((profileResult.data as any)?.signature_image ?? null);
 
       if (ramsResult.error) throw ramsResult.error;
       setAllRAMS(ramsResult.data || []);
