@@ -128,12 +128,13 @@ export const UserManagement = () => {
         customerMap.set(m.user_id, list);
       });
 
-      const usersWithRoles: UserProfile[] = (profilesRes.data || []).map(profile => ({
+      const usersWithRoles: UserProfile[] = (profilesRes.data || []).map((profile: any) => ({
         ...profile,
         user_types: profile.user_types || [],
         isAdmin: adminUserIds.has(profile.id),
         isCustomer: customerMap.has(profile.id),
         customerNames: customerMap.get(profile.id) || [],
+        is_archived: !!profile.is_archived,
       }));
 
       setUsers(usersWithRoles);
