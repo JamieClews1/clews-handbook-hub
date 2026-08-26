@@ -830,6 +830,25 @@ const DriverJobDetail = ({
                   )}
                 </div>
               )}
+              {job.customer_signature && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">
+                    Customer sign-off{job.customer_signoff_name ? ` — ${job.customer_signoff_name}` : ""}
+                  </p>
+                  <img
+                    src={job.customer_signature}
+                    alt="Customer signature"
+                    className="h-16 rounded border bg-white object-contain"
+                  />
+                </div>
+              )}
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl gap-2 mt-2"
+                onClick={() => downloadWtnPdf({ ...job, driver_name: driverName })}
+              >
+                Download Waste Transfer Note
+              </Button>
             </CardContent>
           </Card>
         )}
