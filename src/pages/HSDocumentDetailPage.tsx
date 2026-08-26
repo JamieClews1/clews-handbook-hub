@@ -253,28 +253,58 @@ const HSDocumentDetailPage = () => {
 
   const openEdit = () => {
     if (!doc) return;
-    setEditTitle(doc.title);
-    setEditContent(doc.content);
-    setEditAcks(asArray(doc.acknowledgements).join("\n"));
+    const data: Record<string, { title: string; content: string; acks: string }> = {
+      EN: {
+        title: doc.title,
+        content: doc.content,
+        acks: asArray(doc.acknowledgements).join("\n"),
+      },
+    };
+    for (const code of ["PL", "UK", "RO"]) {
+      const sfx = code.toLowerCase();
+      data[code] = {
+        title: (doc as any)[`title_${sfx}`] || "",
+        content: (doc as any)[`content_${sfx}`] || "",
+        acks: asArray((doc as any)[`acknowledgements_${sfx}`]).join("\n"),
+      };
+    }
+    setEditData(data);
+    setEditLang("EN");
     setEditOpen(true);
   };
 
+  const updateEditField = (field: "title" | "content" | "acks", value: string) =>
+    setEditData((prev) => ({ ...prev, [editLang]: { ...prev[editLang], [field]: value } }));
+
   const saveEdit = async () => {
     if (!doc) return;
-    const { error } = await supabase
-      .from("hs_documents")
-      .update({
-        title: editTitle,
-        content: editContent,
-        acknowledgements: editAcks.split("\n").map((l) => l.trim()).filter(Boolean),
-      })
-      .eq("id", doc.id);
+    const update: Record<string, unknown> = {};
+    for (const [code, d] of Object.entries(editData)) {
+      const acks = d.acks.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (code === "EN") {
+        update.title = d.title;
+        update.content = d.content;
+        update.acknowledgements = acks;
+      } else {
+        const sfx = code.toLowerCase();
+        update[`title_${sfx}`] = d.title || null;
+        update[`content_${sfx}`] = d.content || null;
+        update[`acknowledgements_${sfx}`] = acks;
+      }
+    }
+    const { error } = await supabase.from("hs_documents").update(update).eq("id", doc.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
     setEditOpen(false);
-    toast({ title: "Saved", description: "Re-run translation to update other languages." });
+    toast({
+      title: "Saved",
+      description:
+        editLang === "EN"
+          ? "Re-run translation to update other languages."
+          : "Translation updated. Note: re-running Translate will overwrite manual edits.",
+    });
     load();
   };
 
