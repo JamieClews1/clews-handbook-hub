@@ -791,18 +791,20 @@ function drawFieldCopy(
 }
 
 
-export type WtnDesign = "classic" | "modern";
+export type WtnDesign = "classic" | "modern" | "field";
 
 const DESIGN_KEY = "route_one_wtn_design";
 
 export function getWtnDesign(): WtnDesign {
   if (typeof localStorage === "undefined") return "classic";
-  return localStorage.getItem(DESIGN_KEY) === "modern" ? "modern" : "classic";
+  const v = localStorage.getItem(DESIGN_KEY);
+  return v === "modern" || v === "field" ? v : "classic";
 }
 
 export function setWtnDesign(design: WtnDesign) {
   localStorage.setItem(DESIGN_KEY, design);
 }
+
 
 /** Loads the Clews logo as a data URL so jsPDF can embed it. */
 let logoCache: string | null | undefined;
