@@ -6857,7 +6857,7 @@ export type Database = {
           submitted_at: string | null
           todo_items: Json | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           welfare_comments: string | null
           welfare_drinking_water: string | null
           welfare_rest_areas: string | null
@@ -6906,7 +6906,7 @@ export type Database = {
           submitted_at?: string | null
           todo_items?: Json | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           welfare_comments?: string | null
           welfare_drinking_water?: string | null
           welfare_rest_areas?: string | null
@@ -6955,7 +6955,7 @@ export type Database = {
           submitted_at?: string | null
           todo_items?: Json | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           welfare_comments?: string | null
           welfare_drinking_water?: string | null
           welfare_rest_areas?: string | null
