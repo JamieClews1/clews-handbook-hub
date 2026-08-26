@@ -590,6 +590,12 @@ const DriverJobDetail = ({
     updateJobStatus("completed", {
       completed_at: new Date().toISOString(),
       driver_notes: driverNotes.trim() || null,
+      vehicle_reg: vehicleReg.trim() || null,
+      customer_signature: customerSig,
+      customer_signoff_name: customerSigName.trim() || null,
+      customer_signoff_at: customerSig ? new Date().toISOString() : null,
+      driver_signature: driverSig,
+      driver_signoff_name: driverName || null,
     });
   };
 
