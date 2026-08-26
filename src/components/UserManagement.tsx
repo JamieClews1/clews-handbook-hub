@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SignatureField } from "@/components/SignatureField";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ interface UserProfile {
   driver_pin: string | null;
   isAdmin: boolean;
   isCustomer: boolean;
+  signature_image: string | null;
   customerNames: string[];
 }
 
@@ -59,6 +61,7 @@ export const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [actionType, setActionType] = useState<"grant" | "revoke" | null>(null);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editSignature, setEditSignature] = useState<string | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [editName, setEditName] = useState("");
 
@@ -142,7 +145,7 @@ export const UserManagement = () => {
 
   const handleGrantAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("grant"); };
   const handleRevokeAdmin = (user: UserProfile) => { setSelectedUser(user); setActionType("revoke"); };
-  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); setEditName(user.full_name || ""); };
+  const handleEditTypes = (user: UserProfile) => { setEditingUser(user); setSelectedTypes(user.user_types || []); setEditName(user.full_name || ""); setEditSignature(user.signature_image ?? null); };
   const handleTypeToggle = (type: string) => {
     setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
@@ -155,6 +158,7 @@ export const UserManagement = () => {
         .update({
           user_types: selectedTypes as ("driver" | "yard" | "office" | "management")[],
           full_name: editName.trim() || null,
+          signature_image: editSignature,
         })
         .eq("id", editingUser.id);
       if (error) throw error;
@@ -166,6 +170,7 @@ export const UserManagement = () => {
       setEditingUser(null);
       setSelectedTypes([]);
       setEditName("");
+      setEditSignature(null);
     }
   };
 
@@ -590,6 +595,14 @@ export const UserManagement = () => {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="e.g. Jamie Clews"
+              />
+            </div>
+            <div className="max-w-xs">
+              <SignatureField
+                label="Signature"
+                value={editSignature}
+                onChange={setEditSignature}
+                hint="Used on weighbridge tickets and signed paperwork."
               />
             </div>
             <div className="space-y-3">

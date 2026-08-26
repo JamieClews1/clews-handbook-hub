@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SignatureField } from "@/components/SignatureField";
+import { toast as sonnerToast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, FileText, User, Clock, BookOpen, MessageSquare, HardHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -66,6 +68,7 @@ const MyProfilePage = () => {
   const [hsDocuments, setHsDocuments] = useState<any[]>([]);
   const [hsSignatures, setHsSignatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mySignature, setMySignature] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -96,7 +99,7 @@ const MyProfilePage = () => {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, email, full_name, user_types")
+          .select("id, email, full_name, user_types, signature_image")
           .eq("id", user!.id)
           .maybeSingle(),
         supabase
@@ -134,6 +137,7 @@ const MyProfilePage = () => {
 
       if (profileResult.error) throw profileResult.error;
       setProfile(profileResult.data);
+      setMySignature((profileResult.data as any)?.signature_image ?? null);
 
       if (ramsResult.error) throw ramsResult.error;
       setAllRAMS(ramsResult.data || []);
@@ -293,6 +297,36 @@ const MyProfilePage = () => {
                     <span className="text-muted-foreground text-sm">No roles assigned yet</span>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Saved Signature */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                My Signature
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Used to sign weighbridge tickets and paperwork on your behalf.
+              </p>
+              <div className="max-w-sm">
+                <SignatureField
+                  label="Saved signature"
+                  value={mySignature}
+                  onChange={async (data) => {
+                    setMySignature(data);
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ signature_image: data })
+                      .eq("id", user!.id);
+                    if (error) sonnerToast.error(error.message);
+                    else sonnerToast.success(data ? "Signature saved" : "Signature removed");
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
