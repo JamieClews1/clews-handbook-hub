@@ -1,0 +1,12 @@
+ALTER TABLE public.site_inspection_reports ALTER COLUMN user_id DROP NOT NULL;
+
+ALTER TABLE public.facility_recycling_forms DROP CONSTRAINT facility_recycling_forms_created_by_fkey, ADD CONSTRAINT facility_recycling_forms_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.site_inspection_reports DROP CONSTRAINT site_inspection_reports_user_id_fkey, ADD CONSTRAINT site_inspection_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.rebate_email_logs DROP CONSTRAINT rebate_email_logs_sent_by_fkey, ADD CONSTRAINT rebate_email_logs_sent_by_fkey FOREIGN KEY (sent_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.staci_monthly_reports DROP CONSTRAINT staci_monthly_reports_signed_by_fkey, ADD CONSTRAINT staci_monthly_reports_signed_by_fkey FOREIGN KEY (signed_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.credit_account_applications DROP CONSTRAINT credit_account_applications_created_by_fkey, ADD CONSTRAINT credit_account_applications_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.stock_reports DROP CONSTRAINT stock_reports_operator_id_fkey, ADD CONSTRAINT stock_reports_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.fuel_surcharge_rates DROP CONSTRAINT fuel_surcharge_rates_created_by_fkey, ADD CONSTRAINT fuel_surcharge_rates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.rebate_report_tracking DROP CONSTRAINT rebate_report_tracking_generated_by_fkey, ADD CONSTRAINT rebate_report_tracking_generated_by_fkey FOREIGN KEY (generated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.rebate_report_tracking DROP CONSTRAINT rebate_report_tracking_sent_by_fkey, ADD CONSTRAINT rebate_report_tracking_sent_by_fkey FOREIGN KEY (sent_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.portal_section_visibility DROP CONSTRAINT portal_section_visibility_updated_by_fkey, ADD CONSTRAINT portal_section_visibility_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
