@@ -537,6 +537,10 @@ const DriverJobDetail = ({
   const [driverNotes, setDriverNotes] = useState(job.driver_notes || "");
   const [showContamination, setShowContamination] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [customerSig, setCustomerSig] = useState<string | null>(job.customer_signature || null);
+  const [customerSigName, setCustomerSigName] = useState(job.customer_signoff_name || "");
+  const [driverSig, setDriverSig] = useState<string | null>(job.driver_signature || null);
+  const [vehicleReg, setVehicleReg] = useState(job.vehicle_reg || "");
 
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
   const isAssigned = job.status === "assigned";
