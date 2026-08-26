@@ -22,6 +22,8 @@ import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemp
 import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { SignatureField } from "@/components/SignatureField";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 
@@ -53,6 +55,9 @@ interface WeighbridgeTransaction {
   waste_description: string | null;
   ewc_code: string | null;
   container_type: string | null;
+  vehicle_type: string | null;
+  operator_signature: string | null;
+  driver_signature: string | null;
   gross_weight_kg: number | null;
   tare_weight_kg: number | null;
   net_weight_kg: number | null;
@@ -123,6 +128,11 @@ const WeighOnePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [skipDriver, setSkipDriver] = useState<string>("");
+  const { user } = useAuth();
+  const [operatorSignature, setOperatorSignature] = useState<string | null>(null);
+  const [driverSignature, setDriverSignature] = useState<string | null>(null);
+  const [editOperatorSignature, setEditOperatorSignature] = useState<string | null>(null);
+  const [editDriverSignature, setEditDriverSignature] = useState<string | null>(null);
 
 
   const emptyForm = {
@@ -133,6 +143,7 @@ const WeighOnePage = () => {
     waste_type_id: "",
     ewc_code: "",
     container_type: "",
+    vehicle_type: "",
     gross_weight_kg: "",
     operator_name: "",
     notes: "",
@@ -289,6 +300,46 @@ const WeighOnePage = () => {
     },
   });
 
+  // Logged-in user — always the operator on the ticket
+  const { data: myProfile } = useQuery({
+    queryKey: ["weighone-my-profile", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, signature_image")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; full_name: string | null; email: string; signature_image: string | null } | null;
+    },
+  });
+
+  const operatorName = myProfile?.full_name || myProfile?.email || user?.email || "";
+
+  // Vehicle / container types seen in the Midweigh Data Hub
+  const { data: midweighTypes = [] } = useQuery({
+    queryKey: ["midweigh-container-types"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_midweigh_container_types");
+      if (error) throw error;
+      return (data ?? []) as { container_type: string; vehicle_type: string }[];
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+
+  const containerTypeOptions = Array.from(
+    new Set(midweighTypes.map((t) => t.container_type).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const vehicleTypeOptions = Array.from(
+    new Set(midweighTypes.map((t) => t.vehicle_type).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b));
+
+  /** Suggest the vehicle type that goes with a container type from Midweigh */
+  const vehicleTypeForContainer = (container: string) =>
+    midweighTypes.find((t) => t.container_type === container)?.vehicle_type ?? "";
+
   // Fetch additional items for selected transaction
   const { data: selectedAdditionalItems = [] } = useQuery({
     queryKey: ["weighbridge-additional-items", selectedTransaction?.id],
@@ -441,12 +492,16 @@ const WeighOnePage = () => {
         waste_description: wasteType?.waste_type || null,
         ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
         container_type: formData.container_type || null,
+        vehicle_type: formData.vehicle_type || null,
+        operator_signature: operatorSignature,
+        driver_signature: driverSignature,
+        operator_id: user?.id ?? null,
         gross_weight_kg: isNaN(grossKg) ? null : grossKg,
         waste_type_id: formData.waste_type_id || null,
         price_per_tonne: rate?.price_per_tonne ?? null,
         min_charge: rate?.min_charge ?? null,
         rate_group_id: effectiveRateGroupId(formData.rate_group_id),
-        operator_name: formData.operator_name || null,
+        operator_name: operatorName || formData.operator_name || null,
         notes: formData.notes || null,
         carrier_registration: formData.carrier_registration || null,
         carrier_name: formData.carrier_name || null,
@@ -494,7 +549,7 @@ const WeighOnePage = () => {
 
       if (stagedAttachments.length > 0 && txData) {
         try {
-          await uploadWeighbridgeAttachments(txData.id, stagedAttachments, formData.operator_name || null);
+          await uploadWeighbridgeAttachments(txData.id, stagedAttachments, operatorName || formData.operator_name || null);
         } catch (e) {
           toast.error("Transaction saved but attachments failed: " + (e as Error).message);
         }
@@ -582,6 +637,7 @@ const WeighOnePage = () => {
       waste_type_id: t.waste_type_id ?? "",
       ewc_code: t.ewc_code ?? "",
       container_type: t.container_type ?? "",
+      vehicle_type: t.vehicle_type ?? "",
       gross_weight_kg: t.gross_weight_kg != null ? String(t.gross_weight_kg) : "",
       operator_name: t.operator_name ?? "",
       notes: t.notes ?? "",
@@ -597,6 +653,8 @@ const WeighOnePage = () => {
       tare_weight_kg: t.tare_weight_kg != null ? String(t.tare_weight_kg) : "",
 
     });
+    setEditOperatorSignature(t.operator_signature ?? null);
+    setEditDriverSignature(t.driver_signature ?? null);
     setEditDialogOpen(true);
   };
 
@@ -625,6 +683,9 @@ const WeighOnePage = () => {
           waste_description: wasteType?.waste_type ?? selectedTransaction.waste_description,
           ewc_code: editForm.ewc_code || wasteType?.ewc_code || null,
           container_type: editForm.container_type || null,
+          vehicle_type: editForm.vehicle_type || null,
+          operator_signature: editOperatorSignature,
+          driver_signature: editDriverSignature,
           gross_weight_kg: grossKg,
           tare_weight_kg: tareKg,
           net_weight_kg: netKg,
@@ -706,6 +767,8 @@ const WeighOnePage = () => {
 
   const resetForm = () => {
     setFormData({ ...emptyForm });
+    setOperatorSignature(null);
+    setDriverSignature(null);
     setStagedAttachments([]);
     setSkipDriver("");
 
