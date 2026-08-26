@@ -709,9 +709,27 @@ const RouteOnePage = () => {
                   <DetailRow label="Container" value={viewingJob.container_type || "—"} />
                   <DetailRow label="Size" value={viewingJob.container_size || "—"} />
                   <DetailRow label="Waste Type" value={viewingJob.waste_type || "—"} />
+                  <DetailRow label="EWC" value={viewingJob.ewc_code || "—"} />
                   <DetailRow label="PO Number" value={viewingJob.po_number || "—"} />
-                  <DetailRow label="Address" value={viewingJob.site_address || "—"} />
-                  <DetailRow label="Postcode" value={viewingJob.site_postcode || "—"} />
+                  <DetailRow label="Account" value={viewingJob.account_code || "—"} />
+                  <DetailRow label="Vehicle Reg" value={viewingJob.vehicle_reg || "—"} />
+                  <DetailRow label="SIC Code" value={viewingJob.sic_code || "—"} />
+                  <DetailRow label="Site Contact" value={viewingJob.site_contact_name || "—"} />
+                  <DetailRow label="Contact Phone" value={viewingJob.site_contact_phone || "—"} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Full Address</p>
+                  <p className="text-sm bg-muted/50 rounded p-2 whitespace-pre-line">
+                    {[
+                      viewingJob.site_name,
+                      viewingJob.site_address,
+                      viewingJob.site_address_2,
+                      viewingJob.site_area,
+                      viewingJob.site_postcode,
+                    ]
+                      .filter(Boolean)
+                      .join("\n") || "—"}
+                  </p>
                 </div>
                 {viewingJob.notes && (
                   <div>
@@ -719,8 +737,34 @@ const RouteOnePage = () => {
                     <p className="text-sm bg-muted/50 rounded p-2">{viewingJob.notes}</p>
                   </div>
                 )}
+                {(viewingJob.customer_signature || viewingJob.driver_signature) && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {viewingJob.customer_signature && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Customer{viewingJob.customer_signoff_name ? ` — ${viewingJob.customer_signoff_name}` : ""}
+                        </p>
+                        <img src={viewingJob.customer_signature} alt="Customer signature" className="h-14 w-full rounded border bg-white object-contain" />
+                      </div>
+                    )}
+                    {viewingJob.driver_signature && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Driver{viewingJob.driver_signoff_name ? ` — ${viewingJob.driver_signoff_name}` : ""}
+                        </p>
+                        <img src={viewingJob.driver_signature} alt="Driver signature" className="h-14 w-full rounded border bg-white object-contain" />
+                      </div>
+                    )}
+                  </div>
+                )}
                 <JobPodSection jobNumber={viewingJob.job_number} />
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-2">
+                  <Button variant="outline" size="sm" onClick={() => printWtnPdf(viewingJob)}>
+                    <Printer className="h-3 w-3 mr-1.5" /> Print WTN
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(viewingJob)}>
+                    <FileDown className="h-3 w-3 mr-1.5" /> Download WTN
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
                     <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
                   </Button>
