@@ -2060,6 +2060,39 @@ export function CustomerSetupAdmin() {
               </Select>
             </div>
 
+            <div className="rounded-lg border border-border p-4 grid gap-3">
+              <div>
+                <h4 className="text-sm font-semibold">Site address &amp; SIC code</h4>
+                <p className="text-xs text-muted-foreground">
+                  Used on RouteOne jobs, waste transfer notes and paperwork.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {([
+                  ["address_1", "Address line 1"],
+                  ["address_2", "Address line 2"],
+                  ["address_3", "Address line 3"],
+                  ["address_4", "Town / City"],
+                  ["address_5", "County"],
+                  ["postcode", "Postcode"],
+                  ["area", "Area code"],
+                  ["sic_code", "SIC code"],
+                  ["site_contact_name", "Site contact name"],
+                  ["site_contact_phone", "Site contact phone"],
+                ] as const).map(([field, label]) => (
+                  <div className="grid gap-2" key={field}>
+                    <Label htmlFor={`site_${field}`}>{label}</Label>
+                    <Input
+                      id={`site_${field}`}
+                      value={siteForm[field]}
+                      onChange={(e) => setSiteForm((p) => ({ ...p, [field]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+
             <div className="grid gap-2">
               <Label htmlFor="site_pod_email">POD email (optional override)</Label>
               <Input
