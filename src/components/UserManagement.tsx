@@ -639,9 +639,12 @@ export const UserManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
-                          <Key className="h-4 w-4" /> Password
-                        </Button>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
+                            <Key className="h-4 w-4" /> Password
+                          </Button>
+                          {renderArchiveDeleteActions(user)}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
