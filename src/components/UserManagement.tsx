@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff, UserCog, UserPlus, Key, Search, Hash } from "lucide-react";
+import { Shield, ShieldOff, UserCog, UserPlus, Key, Search, Hash, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,7 @@ interface UserProfile {
   isCustomer: boolean;
   signature_image: string | null;
   customerNames: string[];
+  is_archived: boolean;
 }
 
 const USER_TYPES = [
@@ -52,7 +53,7 @@ RomanS, Roman Sultan
 VladslavK, Vladslav Kormyltsev
 WojciechS, Wojciech Siczek`;
 
-type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned";
+type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned" | "archived";
 
 
 export const UserManagement = () => {
@@ -88,6 +89,8 @@ export const UserManagement = () => {
   const [topTab, setTopTab] = useState<"staff" | "customers">("staff");
   const [staffTab, setStaffTab] = useState<StaffTab>("all");
   const [search, setSearch] = useState("");
+  const [deleteUser, setDeleteUser] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -127,12 +130,13 @@ export const UserManagement = () => {
         customerMap.set(m.user_id, list);
       });
 
-      const usersWithRoles: UserProfile[] = (profilesRes.data || []).map(profile => ({
+      const usersWithRoles: UserProfile[] = (profilesRes.data || []).map((profile: any) => ({
         ...profile,
         user_types: profile.user_types || [],
         isAdmin: adminUserIds.has(profile.id),
         isCustomer: customerMap.has(profile.id),
         customerNames: customerMap.get(profile.id) || [],
+        is_archived: !!profile.is_archived,
       }));
 
       setUsers(usersWithRoles);
@@ -345,6 +349,43 @@ export const UserManagement = () => {
     }
   };
 
+  const toggleArchive = async (user: UserProfile) => {
+    const archiving = !user.is_archived;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_archived: archiving, archived_at: archiving ? new Date().toISOString() : null } as any)
+        .eq("id", user.id);
+      if (error) throw error;
+      toast({
+        title: archiving ? "User archived" : "User restored",
+        description: `${emailToUsername(user.email)} has been ${archiving ? "archived" : "restored"}.`,
+      });
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteUser) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: deleteUser.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "User deleted", description: `${emailToUsername(deleteUser.email)} has been permanently deleted.` });
+      setDeleteUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Could not delete user", description: error.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Partition users
   const { staffUsers, customerUsers } = useMemo(() => {
     const staff: UserProfile[] = [];
@@ -368,25 +409,34 @@ export const UserManagement = () => {
 
   const filteredStaff = useMemo(() => {
     let list = staffUsers;
-    if (staffTab === "unassigned") {
-      list = list.filter(u => !u.user_types || u.user_types.length === 0);
-    } else if (staffTab !== "all") {
-      list = list.filter(u => u.user_types?.includes(staffTab));
+    if (staffTab === "archived") {
+      list = list.filter(u => u.is_archived);
+    } else {
+      list = list.filter(u => !u.is_archived);
+      if (staffTab === "unassigned") {
+        list = list.filter(u => !u.user_types || u.user_types.length === 0);
+      } else if (staffTab !== "all") {
+        list = list.filter(u => u.user_types?.includes(staffTab));
+      }
     }
     return filterBySearch(list);
   }, [staffUsers, staffTab, search]);
 
   const filteredCustomers = useMemo(() => filterBySearch(customerUsers), [customerUsers, search]);
 
-  const counts = useMemo(() => ({
-    all: staffUsers.length,
-    office: staffUsers.filter(u => u.user_types?.includes("office")).length,
-    yard: staffUsers.filter(u => u.user_types?.includes("yard")).length,
-    driver: staffUsers.filter(u => u.user_types?.includes("driver")).length,
-    management: staffUsers.filter(u => u.user_types?.includes("management")).length,
-    unassigned: staffUsers.filter(u => !u.user_types || u.user_types.length === 0).length,
-    customers: customerUsers.length,
-  }), [staffUsers, customerUsers]);
+  const counts = useMemo(() => {
+    const active = staffUsers.filter(u => !u.is_archived);
+    return {
+      all: active.length,
+      office: active.filter(u => u.user_types?.includes("office")).length,
+      yard: active.filter(u => u.user_types?.includes("yard")).length,
+      driver: active.filter(u => u.user_types?.includes("driver")).length,
+      management: active.filter(u => u.user_types?.includes("management")).length,
+      unassigned: active.filter(u => !u.user_types || u.user_types.length === 0).length,
+      archived: staffUsers.filter(u => u.is_archived).length,
+      customers: customerUsers.length,
+    };
+  }, [staffUsers, customerUsers]);
 
   if (loading) {
     return (
@@ -395,6 +445,23 @@ export const UserManagement = () => {
       </div>
     );
   }
+
+  const renderArchiveDeleteActions = (user: UserProfile) => (
+    <>
+      <Button variant="outline" size="sm" onClick={() => toggleArchive(user)} className="gap-1">
+        {user.is_archived ? (
+          <><ArchiveRestore className="h-4 w-4" /> Restore</>
+        ) : (
+          <><Archive className="h-4 w-4" /> Archive</>
+        )}
+      </Button>
+      {!isSuperAdminEmail(user.email) && (
+        <Button variant="destructive" size="sm" onClick={() => setDeleteUser(user)} className="gap-1">
+          <Trash2 className="h-4 w-4" /> Delete
+        </Button>
+      )}
+    </>
+  );
 
   const renderStaffActions = (user: UserProfile) => (
     <div className="flex gap-2 flex-wrap">
@@ -418,6 +485,7 @@ export const UserManagement = () => {
           <Shield className="h-4 w-4" /> Admin
         </Button>
       )}
+      {renderArchiveDeleteActions(user)}
     </div>
   );
 
@@ -463,6 +531,7 @@ export const UserManagement = () => {
                 <TabsTrigger value="driver">Drivers ({counts.driver})</TabsTrigger>
                 <TabsTrigger value="management">Management ({counts.management})</TabsTrigger>
                 <TabsTrigger value="unassigned">Unassigned ({counts.unassigned})</TabsTrigger>
+                <TabsTrigger value="archived">Archived ({counts.archived})</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -487,8 +556,13 @@ export const UserManagement = () => {
                       </TableCell>
                     </TableRow>
                   ) : filteredStaff.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{emailToUsername(user.email)}</TableCell>
+                    <TableRow key={user.id} className={user.is_archived ? "opacity-60" : undefined}>
+                      <TableCell className="font-medium">
+                        {emailToUsername(user.email)}
+                        {user.is_archived && (
+                          <Badge variant="outline" className="ml-2 text-xs">Archived</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{user.full_name || "-"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -565,9 +639,12 @@ export const UserManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
-                          <Key className="h-4 w-4" /> Password
-                        </Button>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
+                            <Key className="h-4 w-4" /> Password
+                          </Button>
+                          {renderArchiveDeleteActions(user)}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -643,6 +720,29 @@ export const UserManagement = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmAction}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteUser ? emailToUsername(deleteUser.email) : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the account, its login, roles and portal access. This cannot be undone —
+              if you only want to stop them signing in, archive them instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete permanently"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
