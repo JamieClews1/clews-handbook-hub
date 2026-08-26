@@ -6651,7 +6651,9 @@ export type Database = {
       }
       route_one_jobs: {
         Row: {
+          account_code: string | null
           assigned_driver_id: string | null
+          carrier_name: string | null
           charge_per_tonne: number | null
           completed_at: string | null
           container_size: string | null
@@ -6664,12 +6666,20 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_name: string
+          customer_signature: string | null
+          customer_signoff_at: string | null
+          customer_signoff_name: string | null
+          directions: string | null
           display_order: number
+          disposal_site: string | null
           driver_notes: string | null
+          driver_signature: string | null
+          driver_signoff_name: string | null
           estimated_duration_mins: number | null
           ewc_code: string | null
           haulage_cost: number | null
           id: string
+          invoice_address: string | null
           job_number: string
           job_type: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge: number | null
@@ -6678,7 +6688,12 @@ export type Database = {
           query_reason: string | null
           scheduled_date: string
           scheduled_time: string | null
+          sic_code: string | null
           site_address: string | null
+          site_address_2: string | null
+          site_area: string | null
+          site_contact_name: string | null
+          site_contact_phone: string | null
           site_name: string | null
           site_postcode: string | null
           started_at: string | null
@@ -6687,11 +6702,14 @@ export type Database = {
           total_net: number | null
           updated_at: string
           vat_rate: number
+          vehicle_reg: string | null
           waste_type: string | null
           weight_included_t: number | null
         }
         Insert: {
+          account_code?: string | null
           assigned_driver_id?: string | null
+          carrier_name?: string | null
           charge_per_tonne?: number | null
           completed_at?: string | null
           container_size?: string | null
@@ -6704,12 +6722,20 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_name: string
+          customer_signature?: string | null
+          customer_signoff_at?: string | null
+          customer_signoff_name?: string | null
+          directions?: string | null
           display_order?: number
+          disposal_site?: string | null
           driver_notes?: string | null
+          driver_signature?: string | null
+          driver_signoff_name?: string | null
           estimated_duration_mins?: number | null
           ewc_code?: string | null
           haulage_cost?: number | null
           id?: string
+          invoice_address?: string | null
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
@@ -6718,7 +6744,12 @@ export type Database = {
           query_reason?: string | null
           scheduled_date?: string
           scheduled_time?: string | null
+          sic_code?: string | null
           site_address?: string | null
+          site_address_2?: string | null
+          site_area?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
           site_name?: string | null
           site_postcode?: string | null
           started_at?: string | null
@@ -6727,11 +6758,14 @@ export type Database = {
           total_net?: number | null
           updated_at?: string
           vat_rate?: number
+          vehicle_reg?: string | null
           waste_type?: string | null
           weight_included_t?: number | null
         }
         Update: {
+          account_code?: string | null
           assigned_driver_id?: string | null
+          carrier_name?: string | null
           charge_per_tonne?: number | null
           completed_at?: string | null
           container_size?: string | null
@@ -6744,12 +6778,20 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_name?: string
+          customer_signature?: string | null
+          customer_signoff_at?: string | null
+          customer_signoff_name?: string | null
+          directions?: string | null
           display_order?: number
+          disposal_site?: string | null
           driver_notes?: string | null
+          driver_signature?: string | null
+          driver_signoff_name?: string | null
           estimated_duration_mins?: number | null
           ewc_code?: string | null
           haulage_cost?: number | null
           id?: string
+          invoice_address?: string | null
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
@@ -6758,7 +6800,12 @@ export type Database = {
           query_reason?: string | null
           scheduled_date?: string
           scheduled_time?: string | null
+          sic_code?: string | null
           site_address?: string | null
+          site_address_2?: string | null
+          site_area?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
           site_name?: string | null
           site_postcode?: string | null
           started_at?: string | null
@@ -6767,6 +6814,7 @@ export type Database = {
           total_net?: number | null
           updated_at?: string
           vat_rate?: number
+          vehicle_reg?: string | null
           waste_type?: string | null
           weight_included_t?: number | null
         }
