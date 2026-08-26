@@ -556,8 +556,13 @@ export const UserManagement = () => {
                       </TableCell>
                     </TableRow>
                   ) : filteredStaff.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{emailToUsername(user.email)}</TableCell>
+                    <TableRow key={user.id} className={user.is_archived ? "opacity-60" : undefined}>
+                      <TableCell className="font-medium">
+                        {emailToUsername(user.email)}
+                        {user.is_archived && (
+                          <Badge variant="outline" className="ml-2 text-xs">Archived</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>{user.full_name || "-"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
