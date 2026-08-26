@@ -761,6 +761,42 @@ const DriverJobDetail = ({
                 </CardContent>
               </Card>
             )}
+
+            {/* Waste Transfer Note sign-off */}
+            {!isCompleted && (
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">
+                    Transfer Note Sign-off
+                  </h2>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Vehicle registration</p>
+                    <Input
+                      value={vehicleReg}
+                      onChange={(e) => setVehicleReg(e.target.value.toUpperCase())}
+                      placeholder="e.g. FJ18 FDM"
+                      className="h-12 rounded-xl text-base font-mono"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Customer print name</p>
+                    <Input
+                      value={customerSigName}
+                      onChange={(e) => setCustomerSigName(e.target.value)}
+                      placeholder="Who signed on site"
+                      className="h-12 rounded-xl text-base"
+                    />
+                  </div>
+                  <SignatureField
+                    label="Customer signature"
+                    value={customerSig}
+                    onChange={setCustomerSig}
+                    hint="Signed on site — added to the waste transfer note."
+                  />
+                  <SignatureField label="Driver signature" value={driverSig} onChange={setDriverSig} />
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 
