@@ -709,6 +709,16 @@ export function CustomerSetupAdmin() {
       pod_email: site.pod_email ?? "",
       price_set_id: existingPriceSetId,
       load_report_type: (site as any).load_report_type ?? "",
+      address_1: site.address_1 ?? "",
+      address_2: site.address_2 ?? "",
+      address_3: site.address_3 ?? "",
+      address_4: site.address_4 ?? "",
+      address_5: site.address_5 ?? "",
+      area: site.area ?? "",
+      postcode: site.postcode ?? "",
+      sic_code: site.sic_code ?? "",
+      site_contact_name: site.site_contact_name ?? "",
+      site_contact_phone: site.site_contact_phone ?? "",
     });
     setNewRebateSetInline("");
     setSelectedPeriodLabel(null);
