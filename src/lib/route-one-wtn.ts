@@ -188,7 +188,14 @@ const imgFormat = (src: string): "PNG" | "JPEG" =>
   /^data:image\/jpe?g/i.test(src) ? "JPEG" : "PNG";
 
 /** Draws one copy of the note into the given vertical band. */
-function drawCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string) {
+function drawCopy(
+  doc: jsPDF,
+  job: WtnJob,
+  top: number,
+  copyLabel: string,
+  opts: WtnOptions = DEFAULT_WTN_OPTIONS,
+  logo?: string | null,
+) {
   const L = 10;
   const R = 200;
   const W = R - L;
@@ -218,22 +225,29 @@ function drawCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("CONTROLLED WASTE", R, y + 4, { align: "right" });
-  doc.text("TRANSFER NOTE", R, y + 8, { align: "right" });
+  const titleWords = doc.splitTextToSize(opts.title, 58) as string[];
+  titleWords.slice(0, 2).forEach((t, i) => doc.text(t, R, y + 4 + i * 4, { align: "right" }));
   doc.setFontSize(8);
-  doc.text("DELIVERY/COLLECTION TICKET", R, y + 12, { align: "right" });
+  doc.text(opts.subtitle.toUpperCase(), R, y + 12, { align: "right" });
   doc.text(copyLabel, R, y + 16, { align: "right" });
 
+  if (opts.showLogo && logo) {
+    try {
+      doc.addImage(logo, imgFormat(logo), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, opts.logoSize * 0.36);
+    } catch {
+      /* ignore bad logo data */
+    }
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text(COMPANY.name, L + W / 2, y + 6, { align: "center" });
+  doc.text(COMPANY.name, L + W / 2, y + (opts.showLogo && logo ? opts.logoSize * 0.36 + 4 : 6), { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text(COMPANY.web, L + W / 2, y + 10, { align: "center" });
-  doc.text(COMPANY.phone, L + W / 2, y + 13.5, { align: "center" });
+  doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
   doc.text(COMPANY.orders, L, y + 22);
 
   y += 24;
+
 
   /* ── Summary strip ── */
   const cols = [
