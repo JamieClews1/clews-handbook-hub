@@ -410,14 +410,20 @@ function drawCopy(
    Carries exactly the same information as the classic ticket.
    ──────────────────────────────────────────────────────────── */
 
-const GREEN: [number, number, number] = [22, 101, 52];
-const LIGHT: [number, number, number] = [240, 245, 240];
-
-function drawModernCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string, logo?: string | null) {
+function drawModernCopy(
+  doc: jsPDF,
+  job: WtnJob,
+  top: number,
+  copyLabel: string,
+  logo?: string | null,
+  opts: WtnOptions = DEFAULT_WTN_OPTIONS,
+) {
   const L = 10;
   const R = 200;
   const W = R - L;
   let y = top;
+  const GREEN = hexToRgb(opts.accent);
+  const LIGHT = tintOf(GREEN);
 
   const heading = (text: string, x: number, yy: number) => {
     doc.setFont("helvetica", "bold");
@@ -444,9 +450,10 @@ function drawModernCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string,
   /* ── Header band ── */
   doc.setFillColor(...GREEN);
   doc.rect(L, y, W, 16, "F");
-  if (logo) {
+  const textX = opts.showLogo && logo ? L + opts.logoSize + 5 : L + 3;
+  if (opts.showLogo && logo) {
     try {
-      doc.addImage(logo, imgFormat(logo), L + 2, y + 2, 30, 12);
+      doc.addImage(logo, imgFormat(logo), L + 2, y + 2, opts.logoSize, opts.logoSize * 0.4);
     } catch {
       /* ignore bad logo data */
     }
@@ -454,10 +461,10 @@ function drawModernCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string,
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("CONTROLLED WASTE TRANSFER NOTE", L + 35, y + 7);
+  doc.text(opts.title, textX, y + 7);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text(`Delivery / Collection Ticket  ·  ${COMPANY.carrier}`, L + 35, y + 11.5);
+  doc.text(`${opts.subtitle}  ·  ${COMPANY.carrier}`, textX, y + 11.5);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text(copyLabel, R - 2, y + 6, { align: "right" });
@@ -467,6 +474,7 @@ function drawModernCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string,
   doc.text(fmtDate(job.completed_at || job.scheduled_date), R - 2, y + 13.5, { align: "right" });
   doc.setTextColor(0, 0, 0);
   y += 18;
+
 
   /* ── Key facts strip ── */
   const facts = [
