@@ -5539,6 +5539,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          signature_image: string | null
           updated_at: string
           user_types: Database["public"]["Enums"]["user_type"][] | null
         }
@@ -5549,6 +5550,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          signature_image?: string | null
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null
         }
@@ -5559,6 +5561,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          signature_image?: string | null
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null
         }
@@ -8126,6 +8129,7 @@ export type Database = {
           created_at: string
           customer: string | null
           driver_name: string | null
+          driver_signature: string | null
           ewc_code: string | null
           first_weigh_at: string | null
           gross_weight_kg: number | null
@@ -8140,6 +8144,7 @@ export type Database = {
           notes: string | null
           operator_id: string | null
           operator_name: string | null
+          operator_signature: string | null
           physical_form: string | null
           price_per_tonne: number | null
           rate_group_id: string | null
@@ -8151,6 +8156,7 @@ export type Database = {
           total_price: number | null
           updated_at: string
           vehicle_reg: string
+          vehicle_type: string | null
           waste_description: string | null
           waste_type_id: string | null
           weight_charge: number | null
@@ -8163,6 +8169,7 @@ export type Database = {
           created_at?: string
           customer?: string | null
           driver_name?: string | null
+          driver_signature?: string | null
           ewc_code?: string | null
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
@@ -8177,6 +8184,7 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          operator_signature?: string | null
           physical_form?: string | null
           price_per_tonne?: number | null
           rate_group_id?: string | null
@@ -8188,6 +8196,7 @@ export type Database = {
           total_price?: number | null
           updated_at?: string
           vehicle_reg: string
+          vehicle_type?: string | null
           waste_description?: string | null
           waste_type_id?: string | null
           weight_charge?: number | null
@@ -8200,6 +8209,7 @@ export type Database = {
           created_at?: string
           customer?: string | null
           driver_name?: string | null
+          driver_signature?: string | null
           ewc_code?: string | null
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
@@ -8214,6 +8224,7 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           operator_name?: string | null
+          operator_signature?: string | null
           physical_form?: string | null
           price_per_tonne?: number | null
           rate_group_id?: string | null
@@ -8225,6 +8236,7 @@ export type Database = {
           total_price?: number | null
           updated_at?: string
           vehicle_reg?: string
+          vehicle_type?: string | null
           waste_description?: string | null
           waste_type_id?: string | null
           weight_charge?: number | null
@@ -8550,6 +8562,13 @@ export type Database = {
           job_count: number
           last_activity_date: string
           site_count: number
+        }[]
+      }
+      get_midweigh_container_types: {
+        Args: never
+        Returns: {
+          container_type: string
+          vehicle_type: string
         }[]
       }
       get_skiptrak_customer_sites: {
