@@ -417,9 +417,65 @@ export function JobFormFields({
             />
             <p className="text-[11px] text-muted-foreground mt-1">One line per address line.</p>
           </div>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Postcode</Label>
+              <Input value={form.site_postcode || ""} onChange={(e) => setForm({ ...form, site_postcode: e.target.value })} placeholder="e.g. CV21 1EA" />
+            </div>
+            <div>
+              <Label className="text-xs">Area / County</Label>
+              <Input value={form.site_area || ""} onChange={(e) => setForm({ ...form, site_area: e.target.value })} placeholder="e.g. Warwickshire" />
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <Label className="text-xs">Postcode</Label>
-            <Input value={form.site_postcode || ""} onChange={(e) => setForm({ ...form, site_postcode: e.target.value })} placeholder="e.g. CV21 1EA" />
+            <Label className="text-xs">SIC Code</Label>
+            <Input value={form.sic_code || ""} onChange={(e) => setForm({ ...form, sic_code: e.target.value })} placeholder="e.g. 41201" />
+          </div>
+          <div>
+            <Label className="text-xs">Site Contact</Label>
+            <Input value={form.site_contact_name || ""} onChange={(e) => setForm({ ...form, site_contact_name: e.target.value })} placeholder="Name on site" />
+          </div>
+          <div>
+            <Label className="text-xs">Contact Phone</Label>
+            <Input value={form.site_contact_phone || ""} onChange={(e) => setForm({ ...form, site_contact_phone: e.target.value })} placeholder="e.g. 01788 541549" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs">Account Code</Label>
+            <Input value={form.account_code || ""} onChange={(e) => setForm({ ...form, account_code: e.target.value })} placeholder="e.g. ZZWIL004" />
+          </div>
+          <div>
+            <Label className="text-xs">EWC Code</Label>
+            <Input value={form.ewc_code || ""} onChange={(e) => setForm({ ...form, ewc_code: e.target.value })} placeholder="e.g. 17 09 04" />
+          </div>
+          <div>
+            <Label className="text-xs">Vehicle Registration</Label>
+            <Input value={form.vehicle_reg || ""} onChange={(e) => setForm({ ...form, vehicle_reg: e.target.value.toUpperCase() })} placeholder="e.g. FJ18 FDM" className="font-mono" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Invoice Address</Label>
+            <Textarea
+              value={form.invoice_address || ""}
+              onChange={(e) => setForm({ ...form, invoice_address: e.target.value })}
+              rows={3}
+              placeholder="Billing address for this job"
+              className="font-mono text-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Directions / Access notes</Label>
+            <Textarea
+              value={form.directions || ""}
+              onChange={(e) => setForm({ ...form, directions: e.target.value })}
+              rows={3}
+              placeholder="Gate codes, access restrictions…"
+              className="text-xs"
+            />
           </div>
         </div>
       </div>

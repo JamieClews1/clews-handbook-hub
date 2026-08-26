@@ -1,0 +1,17 @@
+ALTER TABLE public.route_one_jobs
+  ADD COLUMN IF NOT EXISTS site_address_2 text,
+  ADD COLUMN IF NOT EXISTS site_area text,
+  ADD COLUMN IF NOT EXISTS sic_code text,
+  ADD COLUMN IF NOT EXISTS site_contact_name text,
+  ADD COLUMN IF NOT EXISTS site_contact_phone text,
+  ADD COLUMN IF NOT EXISTS vehicle_reg text,
+  ADD COLUMN IF NOT EXISTS carrier_name text,
+  ADD COLUMN IF NOT EXISTS account_code text,
+  ADD COLUMN IF NOT EXISTS invoice_address text,
+  ADD COLUMN IF NOT EXISTS directions text,
+  ADD COLUMN IF NOT EXISTS disposal_site text,
+  ADD COLUMN IF NOT EXISTS customer_signature text,
+  ADD COLUMN IF NOT EXISTS customer_signoff_name text,
+  ADD COLUMN IF NOT EXISTS customer_signoff_at timestamptz,
+  ADD COLUMN IF NOT EXISTS driver_signature text,
+  ADD COLUMN IF NOT EXISTS driver_signoff_name text;

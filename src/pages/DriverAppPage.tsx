@@ -35,6 +35,8 @@ import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub
 import DriverSkipTracker from "@/components/driver/DriverSkipTracker";
 import { Boxes } from "lucide-react";
 import { useDriverLocationTracking } from "@/lib/use-driver-location";
+import { SignatureField } from "@/components/SignatureField";
+import { downloadWtnPdf } from "@/lib/route-one-wtn";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
@@ -104,6 +106,12 @@ interface Job {
   driver_notes: string | null;
   contamination_type: string | null;
   contamination_notes: string | null;
+  vehicle_reg?: string | null;
+  customer_signature?: string | null;
+  customer_signoff_name?: string | null;
+  customer_signoff_at?: string | null;
+  driver_signature?: string | null;
+  driver_signoff_name?: string | null;
 }
 
 interface JobPhoto {
@@ -529,6 +537,10 @@ const DriverJobDetail = ({
   const [driverNotes, setDriverNotes] = useState(job.driver_notes || "");
   const [showContamination, setShowContamination] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [customerSig, setCustomerSig] = useState<string | null>(job.customer_signature || null);
+  const [customerSigName, setCustomerSigName] = useState(job.customer_signoff_name || "");
+  const [driverSig, setDriverSig] = useState<string | null>(job.driver_signature || null);
+  const [vehicleReg, setVehicleReg] = useState(job.vehicle_reg || "");
 
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
   const isAssigned = job.status === "assigned";
@@ -578,6 +590,12 @@ const DriverJobDetail = ({
     updateJobStatus("completed", {
       completed_at: new Date().toISOString(),
       driver_notes: driverNotes.trim() || null,
+      vehicle_reg: vehicleReg.trim() || null,
+      customer_signature: customerSig,
+      customer_signoff_name: customerSigName.trim() || null,
+      customer_signoff_at: customerSig ? new Date().toISOString() : null,
+      driver_signature: driverSig,
+      driver_signoff_name: driverName || null,
     });
   };
 
@@ -743,6 +761,42 @@ const DriverJobDetail = ({
                 </CardContent>
               </Card>
             )}
+
+            {/* Waste Transfer Note sign-off */}
+            {!isCompleted && (
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">
+                    Transfer Note Sign-off
+                  </h2>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Vehicle registration</p>
+                    <Input
+                      value={vehicleReg}
+                      onChange={(e) => setVehicleReg(e.target.value.toUpperCase())}
+                      placeholder="e.g. FJ18 FDM"
+                      className="h-12 rounded-xl text-base font-mono"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Customer print name</p>
+                    <Input
+                      value={customerSigName}
+                      onChange={(e) => setCustomerSigName(e.target.value)}
+                      placeholder="Who signed on site"
+                      className="h-12 rounded-xl text-base"
+                    />
+                  </div>
+                  <SignatureField
+                    label="Customer signature"
+                    value={customerSig}
+                    onChange={setCustomerSig}
+                    hint="Signed on site — added to the waste transfer note."
+                  />
+                  <SignatureField label="Driver signature" value={driverSig} onChange={setDriverSig} />
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 
@@ -776,6 +830,25 @@ const DriverJobDetail = ({
                   )}
                 </div>
               )}
+              {job.customer_signature && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">
+                    Customer sign-off{job.customer_signoff_name ? ` — ${job.customer_signoff_name}` : ""}
+                  </p>
+                  <img
+                    src={job.customer_signature}
+                    alt="Customer signature"
+                    className="h-16 rounded border bg-white object-contain"
+                  />
+                </div>
+              )}
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl gap-2 mt-2"
+                onClick={() => downloadWtnPdf({ ...job, driver_name: driverName })}
+              >
+                Download Waste Transfer Note
+              </Button>
             </CardContent>
           </Card>
         )}

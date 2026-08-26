@@ -41,6 +41,8 @@ import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
 import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
+import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
+import { FileDown, Printer } from "lucide-react";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
@@ -161,7 +163,19 @@ const RouteOnePage = () => {
     customer_name: "",
     site_name: "",
     site_address: "",
+    site_address_2: "",
+    site_area: "",
     site_postcode: "",
+    sic_code: "",
+    site_contact_name: "",
+    site_contact_phone: "",
+    account_code: "",
+    invoice_address: "",
+    directions: "",
+    disposal_site: "",
+    vehicle_reg: "",
+    carrier_name: "",
+    ewc_code: "",
     job_type: "delivery" as JobType,
     container_type: "",
     container_size: "",
@@ -283,7 +297,19 @@ const RouteOnePage = () => {
         customer_name: form.customer_name,
         site_name: form.site_name || null,
         site_address: form.site_address || null,
+        site_address_2: form.site_address_2 || null,
+        site_area: form.site_area || null,
         site_postcode: form.site_postcode || null,
+        sic_code: form.sic_code || null,
+        site_contact_name: form.site_contact_name || null,
+        site_contact_phone: form.site_contact_phone || null,
+        account_code: form.account_code || null,
+        invoice_address: form.invoice_address || null,
+        directions: form.directions || null,
+        disposal_site: form.disposal_site || null,
+        vehicle_reg: form.vehicle_reg || null,
+        carrier_name: form.carrier_name || null,
+        ewc_code: form.ewc_code || null,
         job_type: form.job_type,
         container_type: form.container_type || null,
         container_size: form.container_size || null,
@@ -354,7 +380,19 @@ const RouteOnePage = () => {
       customer_name: editForm.customer_name,
       site_name: editForm.site_name || null,
       site_address: editForm.site_address || null,
+      site_address_2: editForm.site_address_2 || null,
+      site_area: editForm.site_area || null,
       site_postcode: editForm.site_postcode || null,
+      sic_code: editForm.sic_code || null,
+      site_contact_name: editForm.site_contact_name || null,
+      site_contact_phone: editForm.site_contact_phone || null,
+      account_code: editForm.account_code || null,
+      invoice_address: editForm.invoice_address || null,
+      directions: editForm.directions || null,
+      disposal_site: editForm.disposal_site || null,
+      vehicle_reg: editForm.vehicle_reg || null,
+      carrier_name: editForm.carrier_name || null,
+      ewc_code: editForm.ewc_code || null,
       job_type: editForm.job_type,
       container_type: editForm.container_type || null,
       container_size: editForm.container_size || null,
@@ -382,7 +420,19 @@ const RouteOnePage = () => {
       customer_name: job.customer_name || "",
       site_name: job.site_name || "",
       site_address: job.site_address || "",
+      site_address_2: job.site_address_2 || "",
+      site_area: job.site_area || "",
       site_postcode: job.site_postcode || "",
+      sic_code: job.sic_code || "",
+      site_contact_name: job.site_contact_name || "",
+      site_contact_phone: job.site_contact_phone || "",
+      account_code: job.account_code || "",
+      invoice_address: job.invoice_address || "",
+      directions: job.directions || "",
+      disposal_site: job.disposal_site || "",
+      vehicle_reg: job.vehicle_reg || "",
+      carrier_name: job.carrier_name || "",
+      ewc_code: job.ewc_code || "",
       job_type: job.job_type || "delivery",
       container_type: job.container_type || "",
       container_size: job.container_size || "",
@@ -405,7 +455,10 @@ const RouteOnePage = () => {
 
   const resetJobForm = () => {
     setJobForm({
-      customer_name: "", site_name: "", site_address: "", site_postcode: "",
+      customer_name: "", site_name: "", site_address: "", site_address_2: "", site_area: "",
+      site_postcode: "", sic_code: "", site_contact_name: "", site_contact_phone: "",
+      account_code: "", invoice_address: "", directions: "", disposal_site: "",
+      vehicle_reg: "", carrier_name: "", ewc_code: "",
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
       notes: "", po_number: "", scheduled_date: format(selectedDate, "yyyy-MM-dd"),
       assigned_driver_id: "",
@@ -684,7 +737,8 @@ const RouteOnePage = () => {
 
       {/* View Native Job Dialog (read-only) */}
       <Dialog open={!!viewingJob} onOpenChange={(open) => { if (!open) setViewingJob(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Truck className="h-4 w-4" />
@@ -707,9 +761,27 @@ const RouteOnePage = () => {
                   <DetailRow label="Container" value={viewingJob.container_type || "—"} />
                   <DetailRow label="Size" value={viewingJob.container_size || "—"} />
                   <DetailRow label="Waste Type" value={viewingJob.waste_type || "—"} />
+                  <DetailRow label="EWC" value={viewingJob.ewc_code || "—"} />
                   <DetailRow label="PO Number" value={viewingJob.po_number || "—"} />
-                  <DetailRow label="Address" value={viewingJob.site_address || "—"} />
-                  <DetailRow label="Postcode" value={viewingJob.site_postcode || "—"} />
+                  <DetailRow label="Account" value={viewingJob.account_code || "—"} />
+                  <DetailRow label="Vehicle Reg" value={viewingJob.vehicle_reg || "—"} />
+                  <DetailRow label="SIC Code" value={viewingJob.sic_code || "—"} />
+                  <DetailRow label="Site Contact" value={viewingJob.site_contact_name || "—"} />
+                  <DetailRow label="Contact Phone" value={viewingJob.site_contact_phone || "—"} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Full Address</p>
+                  <p className="text-sm bg-muted/50 rounded p-2 whitespace-pre-line">
+                    {[
+                      viewingJob.site_name,
+                      viewingJob.site_address,
+                      viewingJob.site_address_2,
+                      viewingJob.site_area,
+                      viewingJob.site_postcode,
+                    ]
+                      .filter(Boolean)
+                      .join("\n") || "—"}
+                  </p>
                 </div>
                 {viewingJob.notes && (
                   <div>
@@ -717,8 +789,34 @@ const RouteOnePage = () => {
                     <p className="text-sm bg-muted/50 rounded p-2">{viewingJob.notes}</p>
                   </div>
                 )}
+                {(viewingJob.customer_signature || viewingJob.driver_signature) && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {viewingJob.customer_signature && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Customer{viewingJob.customer_signoff_name ? ` — ${viewingJob.customer_signoff_name}` : ""}
+                        </p>
+                        <img src={viewingJob.customer_signature} alt="Customer signature" className="h-14 w-full rounded border bg-white object-contain" />
+                      </div>
+                    )}
+                    {viewingJob.driver_signature && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Driver{viewingJob.driver_signoff_name ? ` — ${viewingJob.driver_signoff_name}` : ""}
+                        </p>
+                        <img src={viewingJob.driver_signature} alt="Driver signature" className="h-14 w-full rounded border bg-white object-contain" />
+                      </div>
+                    )}
+                  </div>
+                )}
                 <JobPodSection jobNumber={viewingJob.job_number} />
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-2">
+                  <Button variant="outline" size="sm" onClick={() => printWtnPdf(viewingJob)}>
+                    <Printer className="h-3 w-3 mr-1.5" /> Print WTN
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(viewingJob)}>
+                    <FileDown className="h-3 w-3 mr-1.5" /> Download WTN
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
                     <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
                   </Button>
@@ -850,8 +948,10 @@ const RouteOnePage = () => {
                               <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(job); }}><Pencil className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}><FileDown className="h-3 w-3 mr-2" /> Download WTN</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}><Printer className="h-3 w-3 mr-2" /> Print WTN</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "completed" } }); }}>Mark Complete</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "query" } }); }}>Flag as Query</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteJob.mutate(job.id); }} className="text-destructive">Delete</DropdownMenuItem>
@@ -1100,9 +1200,15 @@ function JobCard({
                 <MoreVertical className="h-3 w-3 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                 <Pencil className="h-3 w-3 mr-2" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}>
+                <FileDown className="h-3 w-3 mr-2" /> Download WTN
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}>
+                <Printer className="h-3 w-3 mr-2" /> Print WTN
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
