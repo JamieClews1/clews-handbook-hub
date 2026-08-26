@@ -53,7 +53,7 @@ RomanS, Roman Sultan
 VladslavK, Vladslav Kormyltsev
 WojciechS, Wojciech Siczek`;
 
-type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned";
+type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned" | "archived";
 
 
 export const UserManagement = () => {
