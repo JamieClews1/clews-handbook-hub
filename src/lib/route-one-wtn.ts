@@ -772,7 +772,7 @@ function drawFieldCopy(
       }
     }
     val(job.driver_signoff_name || job.driver_name || "", L + W / 2 + 2, y + 22, 8, false);
-    y += 26;
+    y += 29;
   }
 
   /* Terms + footer */
