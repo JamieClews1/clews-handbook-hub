@@ -724,6 +724,29 @@ export const UserManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteUser ? emailToUsername(deleteUser.email) : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the account, its login, roles and portal access. This cannot be undone —
+              if you only want to stop them signing in, archive them instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Bulk Add Users Dialog */}
       <Dialog open={showBulkDialog} onOpenChange={(o) => !bulkRunning && setShowBulkDialog(o)}>
         <DialogContent className="max-w-2xl">
