@@ -59,7 +59,10 @@ Deno.serve(async (req) => {
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
       console.error("Delete user failed:", deleteError.message);
-      return json({ error: deleteError.message }, 400);
+      const msg = /foreign key|violates/i.test(deleteError.message)
+        ? "This user has historical records (e.g. weighbridge tickets or load reports) and cannot be deleted. Archive them instead."
+        : deleteError.message;
+      return json({ error: msg }, 400);
     }
 
     return json({ success: true });
