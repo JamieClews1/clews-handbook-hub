@@ -64,6 +64,16 @@ type CustomerSite = {
   broker_subclient: string | null;
   owner_contact_id: string | null;
   pod_email: string | null;
+  address_1?: string | null;
+  address_2?: string | null;
+  address_3?: string | null;
+  address_4?: string | null;
+  address_5?: string | null;
+  area?: string | null;
+  postcode?: string | null;
+  sic_code?: string | null;
+  site_contact_name?: string | null;
+  site_contact_phone?: string | null;
   is_archived?: boolean | null;
   archived_at?: string | null;
   created_at: string;
@@ -170,6 +180,16 @@ export function CustomerSetupAdmin() {
     pod_email: "",
     price_set_id: "",
     load_report_type: "",
+    address_1: "",
+    address_2: "",
+    address_3: "",
+    address_4: "",
+    address_5: "",
+    area: "",
+    postcode: "",
+    sic_code: "",
+    site_contact_name: "",
+    site_contact_phone: "",
   });
   const [savingSite, setSavingSite] = useState(false);
   // Human-readable window (e.g. "01/05/2026 → ongoing") of the period whose rebate values are shown below.
@@ -467,7 +487,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at,address_1,address_2,address_3,address_4,address_5,area,postcode,sic_code,site_contact_name,site_contact_phone")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -656,6 +676,16 @@ export function CustomerSetupAdmin() {
       pod_email: "",
       price_set_id: "",
       load_report_type: "",
+      address_1: "",
+      address_2: "",
+      address_3: "",
+      address_4: "",
+      address_5: "",
+      area: "",
+      postcode: "",
+      sic_code: "",
+      site_contact_name: "",
+      site_contact_phone: "",
     });
     setNewRebateSetInline("");
     setSelectedPeriodLabel(null);
@@ -679,6 +709,16 @@ export function CustomerSetupAdmin() {
       pod_email: site.pod_email ?? "",
       price_set_id: existingPriceSetId,
       load_report_type: (site as any).load_report_type ?? "",
+      address_1: site.address_1 ?? "",
+      address_2: site.address_2 ?? "",
+      address_3: site.address_3 ?? "",
+      address_4: site.address_4 ?? "",
+      address_5: site.address_5 ?? "",
+      area: site.area ?? "",
+      postcode: site.postcode ?? "",
+      sic_code: site.sic_code ?? "",
+      site_contact_name: site.site_contact_name ?? "",
+      site_contact_phone: site.site_contact_phone ?? "",
     });
     setNewRebateSetInline("");
     setSelectedPeriodLabel(null);
@@ -708,6 +748,16 @@ export function CustomerSetupAdmin() {
         owner_contact_id: siteForm.owner_contact_id || null,
         pod_email: siteForm.pod_email.trim() || null,
         load_report_type: siteForm.load_report_type || null,
+        address_1: siteForm.address_1.trim() || null,
+        address_2: siteForm.address_2.trim() || null,
+        address_3: siteForm.address_3.trim() || null,
+        address_4: siteForm.address_4.trim() || null,
+        address_5: siteForm.address_5.trim() || null,
+        area: siteForm.area.trim() || null,
+        postcode: siteForm.postcode.trim().toUpperCase() || null,
+        sic_code: siteForm.sic_code.trim() || null,
+        site_contact_name: siteForm.site_contact_name.trim() || null,
+        site_contact_phone: siteForm.site_contact_phone.trim() || null,
       };
 
       let siteId: string;
@@ -2009,6 +2059,39 @@ export function CustomerSetupAdmin() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="rounded-lg border border-border p-4 grid gap-3">
+              <div>
+                <h4 className="text-sm font-semibold">Site address &amp; SIC code</h4>
+                <p className="text-xs text-muted-foreground">
+                  Used on RouteOne jobs, waste transfer notes and paperwork.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {([
+                  ["address_1", "Address line 1"],
+                  ["address_2", "Address line 2"],
+                  ["address_3", "Address line 3"],
+                  ["address_4", "Town / City"],
+                  ["address_5", "County"],
+                  ["postcode", "Postcode"],
+                  ["area", "Area code"],
+                  ["sic_code", "SIC code"],
+                  ["site_contact_name", "Site contact name"],
+                  ["site_contact_phone", "Site contact phone"],
+                ] as const).map(([field, label]) => (
+                  <div className="grid gap-2" key={field}>
+                    <Label htmlFor={`site_${field}`}>{label}</Label>
+                    <Input
+                      id={`site_${field}`}
+                      value={siteForm[field]}
+                      onChange={(e) => setSiteForm((p) => ({ ...p, [field]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
 
             <div className="grid gap-2">
               <Label htmlFor="site_pod_email">POD email (optional override)</Label>
