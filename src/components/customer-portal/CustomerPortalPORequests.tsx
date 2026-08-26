@@ -567,6 +567,7 @@ export function CustomerPortalPORequests({
                           <TableHead>Site</TableHead>
                           <TableHead>Container</TableHead>
                           <TableHead>EWC</TableHead>
+                          <TableHead>Vehicle</TableHead>
                           <TableHead className="text-right">Weight (t)</TableHead>
                           <TableHead className="text-right">Cost</TableHead>
                         </TableRow>
@@ -581,6 +582,7 @@ export function CustomerPortalPORequests({
                             <TableCell>{(job.site && siteNameLookup.get(job.site)) || job.site || "-"}</TableCell>
                             <TableCell>{job.container_type || "-"}</TableCell>
                             <TableCell>{job.ewc || "-"}</TableCell>
+                            <TableCell className="font-mono text-sm">{job.vehicle_registration || "-"}</TableCell>
                             <TableCell className="text-right">
                               {job.weight_t != null ? job.weight_t.toFixed(2) : "-"}
                             </TableCell>
