@@ -89,9 +89,8 @@ const HSDocumentDetailPage = () => {
   const [checked, setChecked] = useState<Record<number, boolean>>({});
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [editAcks, setEditAcks] = useState("");
+  const [editLang, setEditLang] = useState("EN");
+  const [editData, setEditData] = useState<Record<string, { title: string; content: string; acks: string }>>({});
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
