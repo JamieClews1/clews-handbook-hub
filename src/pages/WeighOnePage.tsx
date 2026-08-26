@@ -640,6 +640,9 @@ const WeighOnePage = () => {
       vehicle_type: t.vehicle_type ?? "",
       gross_weight_kg: t.gross_weight_kg != null ? String(t.gross_weight_kg) : "",
       operator_name: t.operator_name ?? "",
+      vehicle_type: t.vehicle_type ?? "",
+      operator_signature: t.operator_signature ? `<img src="${t.operator_signature}" style="height:40px" />` : "",
+      driver_signature: t.driver_signature ? `<img src="${t.driver_signature}" style="height:40px" />` : "",
       notes: t.notes ?? "",
       carrier_registration: t.carrier_registration ?? "",
       carrier_name: t.carrier_name ?? "",
@@ -2027,11 +2030,13 @@ const WeighOnePage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Container Type</Label>
-                <Input list="midweigh-container-types" value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
+                <datalist id="edit-container-types">{containerTypeOptions.map((c) => <option key={c} value={c} />)}</datalist>
+                <datalist id="edit-vehicle-types">{vehicleTypeOptions.map((v) => <option key={v} value={v} />)}</datalist>
+                <Input list="edit-container-types" value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Vehicle Type</Label>
-                <Input list="midweigh-vehicle-types" value={editForm.vehicle_type} onChange={(e) => setEditForm((p) => ({ ...p, vehicle_type: e.target.value }))} />
+                <Input list="edit-vehicle-types" value={editForm.vehicle_type} onChange={(e) => setEditForm((p) => ({ ...p, vehicle_type: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <SignatureField label="Operator signature" value={editOperatorSignature} onChange={setEditOperatorSignature} />
