@@ -180,6 +180,16 @@ export function CustomerSetupAdmin() {
     pod_email: "",
     price_set_id: "",
     load_report_type: "",
+    address_1: "",
+    address_2: "",
+    address_3: "",
+    address_4: "",
+    address_5: "",
+    area: "",
+    postcode: "",
+    sic_code: "",
+    site_contact_name: "",
+    site_contact_phone: "",
   });
   const [savingSite, setSavingSite] = useState(false);
   // Human-readable window (e.g. "01/05/2026 → ongoing") of the period whose rebate values are shown below.
