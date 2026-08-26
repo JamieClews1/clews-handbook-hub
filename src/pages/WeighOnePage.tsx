@@ -828,6 +828,9 @@ const WeighOnePage = () => {
       total_price: fmtPrice(t.total_price),
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
+      vehicle_type: t.vehicle_type ?? "",
+      operator_signature: t.operator_signature ? `<img src="${t.operator_signature}" style="height:40px" />` : "",
+      driver_signature: t.driver_signature ? `<img src="${t.driver_signature}" style="height:40px" />` : "",
       notes: t.notes ?? "",
       ...WTN_COMPANY_DETAILS,
     };
