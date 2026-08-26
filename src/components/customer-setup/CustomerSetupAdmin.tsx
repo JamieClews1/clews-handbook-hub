@@ -64,6 +64,16 @@ type CustomerSite = {
   broker_subclient: string | null;
   owner_contact_id: string | null;
   pod_email: string | null;
+  address_1?: string | null;
+  address_2?: string | null;
+  address_3?: string | null;
+  address_4?: string | null;
+  address_5?: string | null;
+  area?: string | null;
+  postcode?: string | null;
+  sic_code?: string | null;
+  site_contact_name?: string | null;
+  site_contact_phone?: string | null;
   is_archived?: boolean | null;
   archived_at?: string | null;
   created_at: string;
