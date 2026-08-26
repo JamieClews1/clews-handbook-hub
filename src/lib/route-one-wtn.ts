@@ -328,7 +328,7 @@ function drawCopy(
   doc.setFontSize(6.5);
   doc.text(
     doc.splitTextToSize(
-      "All Skips booked through a Third party broker, Must contact the Broker directly for all service requirements",
+      opts.showBrokerNote ? opts.brokerNote : "",
       leftW / 2 - 4,
     ),
     L + leftW / 4,
@@ -340,7 +340,7 @@ function drawCopy(
   doc.setFontSize(6.5);
   doc.text(
     doc.splitTextToSize(
-      "Skip hire period is for 2 weeks from the date of hire. Roll on Roll off Hire period is for 30 days from the date of hire",
+      opts.showHireNote ? opts.hireNote : "",
       leftW / 2 - 4,
     ),
     L + leftW / 2 + leftW / 4,
@@ -390,7 +390,7 @@ function drawCopy(
   doc.setFontSize(6);
   doc.text(
     doc.splitTextToSize(
-      "I acknowledge that in signing this waste transfer note, I am confirming that the waste is as described above, and that we accept responsibility for any non-conforming waste subsequently found in the container; I have read or will read the terms and conditions and agree to accept them in their entirety. By signing above, I confirm that I have fulfilled my duty to apply the Waste Hierarchy as required by Regulation 12 of the Waste (England & Wales) Regulations 2011.",
+      opts.terms,
       rightW - 4,
     ),
     L + leftW + 2,
@@ -399,9 +399,10 @@ function drawCopy(
   y += drvH;
 
   /* ── Footer ── */
-  doc.setFontSize(6.5);
-  doc.text(COMPANY.footer1, L + W / 2, y + 4, { align: "center" });
-  doc.text(COMPANY.footer2, L + W / 2, y + 7.5, { align: "center" });
+  if (opts.showFooter) {
+    doc.setFontSize(6.5);
+    doc.text(doc.splitTextToSize(opts.footerText, W), L + W / 2, y + 4, { align: "center" });
+  }
 }
 
 /* ────────────────────────────────────────────────────────────
