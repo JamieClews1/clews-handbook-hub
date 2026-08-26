@@ -419,7 +419,10 @@ const RouteOnePage = () => {
 
   const resetJobForm = () => {
     setJobForm({
-      customer_name: "", site_name: "", site_address: "", site_postcode: "",
+      customer_name: "", site_name: "", site_address: "", site_address_2: "", site_area: "",
+      site_postcode: "", sic_code: "", site_contact_name: "", site_contact_phone: "",
+      account_code: "", invoice_address: "", directions: "", disposal_site: "",
+      vehicle_reg: "", carrier_name: "", ewc_code: "",
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
       notes: "", po_number: "", scheduled_date: format(selectedDate, "yyyy-MM-dd"),
       assigned_driver_id: "",
