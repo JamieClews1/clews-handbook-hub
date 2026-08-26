@@ -30,6 +30,7 @@ interface UserProfile {
   isCustomer: boolean;
   signature_image: string | null;
   customerNames: string[];
+  is_archived: boolean;
 }
 
 const USER_TYPES = [
