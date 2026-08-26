@@ -1974,7 +1974,13 @@ export type Database = {
       }
       customer_sites: {
         Row: {
+          address_1: string | null
+          address_2: string | null
+          address_3: string | null
+          address_4: string | null
+          address_5: string | null
           archived_at: string | null
+          area: string | null
           broker_subclient: string | null
           created_at: string
           customer_id: string
@@ -1989,11 +1995,21 @@ export type Database = {
           load_report_type: string | null
           owner_contact_id: string | null
           pod_email: string | null
+          postcode: string | null
+          sic_code: string | null
+          site_contact_name: string | null
+          site_contact_phone: string | null
           site_name: string
           updated_at: string
         }
         Insert: {
+          address_1?: string | null
+          address_2?: string | null
+          address_3?: string | null
+          address_4?: string | null
+          address_5?: string | null
           archived_at?: string | null
+          area?: string | null
           broker_subclient?: string | null
           created_at?: string
           customer_id: string
@@ -2008,11 +2024,21 @@ export type Database = {
           load_report_type?: string | null
           owner_contact_id?: string | null
           pod_email?: string | null
+          postcode?: string | null
+          sic_code?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
           site_name: string
           updated_at?: string
         }
         Update: {
+          address_1?: string | null
+          address_2?: string | null
+          address_3?: string | null
+          address_4?: string | null
+          address_5?: string | null
           archived_at?: string | null
+          area?: string | null
           broker_subclient?: string | null
           created_at?: string
           customer_id?: string
@@ -2027,6 +2053,10 @@ export type Database = {
           load_report_type?: string | null
           owner_contact_id?: string | null
           pod_email?: string | null
+          postcode?: string | null
+          sic_code?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
           site_name?: string
           updated_at?: string
         }
