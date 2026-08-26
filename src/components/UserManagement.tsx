@@ -531,6 +531,7 @@ export const UserManagement = () => {
                 <TabsTrigger value="driver">Drivers ({counts.driver})</TabsTrigger>
                 <TabsTrigger value="management">Management ({counts.management})</TabsTrigger>
                 <TabsTrigger value="unassigned">Unassigned ({counts.unassigned})</TabsTrigger>
+                <TabsTrigger value="archived">Archived ({counts.archived})</TabsTrigger>
               </TabsList>
             </Tabs>
 
