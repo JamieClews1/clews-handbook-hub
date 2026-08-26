@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignatureField } from "@/components/SignatureField";
-import { toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, FileText, User, Clock, BookOpen, MessageSquare, HardHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -323,8 +323,8 @@ const MyProfilePage = () => {
                       .from("profiles")
                       .update({ signature_image: data })
                       .eq("id", user!.id);
-                    if (error) toast.error(error.message);
-                    else toast.success(data ? "Signature saved" : "Signature removed");
+                    if (error) sonnerToast.error(error.message);
+                    else sonnerToast.success(data ? "Signature saved" : "Signature removed");
                   }}
                 />
               </div>
