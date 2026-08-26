@@ -446,6 +446,23 @@ export const UserManagement = () => {
     );
   }
 
+  const renderArchiveDeleteActions = (user: UserProfile) => (
+    <>
+      <Button variant="outline" size="sm" onClick={() => toggleArchive(user)} className="gap-1">
+        {user.is_archived ? (
+          <><ArchiveRestore className="h-4 w-4" /> Restore</>
+        ) : (
+          <><Archive className="h-4 w-4" /> Archive</>
+        )}
+      </Button>
+      {!isSuperAdminEmail(user.email) && (
+        <Button variant="destructive" size="sm" onClick={() => setDeleteUser(user)} className="gap-1">
+          <Trash2 className="h-4 w-4" /> Delete
+        </Button>
+      )}
+    </>
+  );
+
   const renderStaffActions = (user: UserProfile) => (
     <div className="flex gap-2 flex-wrap">
       <Button variant="outline" size="sm" onClick={() => handleEditTypes(user)} className="gap-1">
