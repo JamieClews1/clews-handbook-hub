@@ -826,33 +826,41 @@ export async function loadLogoDataUrl(): Promise<string | null> {
   return logoCache;
 }
 
-export function buildWtnPdf(job: WtnJob, design: WtnDesign = "classic", logo?: string | null): jsPDF {
+export function buildWtnPdf(
+  job: WtnJob,
+  design: WtnDesign = "classic",
+  logo?: string | null,
+  options?: WtnOptions,
+): jsPDF {
+  const opts = options ?? getWtnOptions();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  if (design === "modern") {
-    drawModernCopy(doc, job, 8, "CUSTOMER COPY", logo);
+  const draw = (top: number, label: string) => {
+    if (design === "modern") drawModernCopy(doc, job, top, label, logo, opts);
+    else if (design === "field") drawFieldCopy(doc, job, top, label, logo, opts);
+    else drawCopy(doc, job, top, label, opts, logo);
+  };
+
+  draw(8, opts.customerCopyLabel);
+  if (opts.twoCopies) {
+    const split = design === "classic" ? 152 : 150;
     doc.setDrawColor(0);
     doc.setLineWidth(0.1);
     doc.setLineDashPattern([1.5, 1.5], 0);
-    doc.line(10, 150, 200, 150);
+    doc.line(10, split, 200, split);
     doc.setLineDashPattern([], 0);
-    drawModernCopy(doc, job, 156, "OFFICE COPY", logo);
-    return doc;
+    draw(156, opts.officeCopyLabel);
   }
-  drawCopy(doc, job, 8, "CUSTOMER COPY");
-  doc.setLineWidth(0.1);
-  doc.setLineDashPattern([1.5, 1.5], 0);
-  doc.line(10, 152, 200, 152);
-  doc.setLineDashPattern([], 0);
-  drawCopy(doc, job, 156, "OFFICE COPY");
   return doc;
 }
 
-/** Builds the note using the design chosen in RouteOne setup. */
-export async function buildWtnDoc(job: WtnJob, design?: WtnDesign): Promise<jsPDF> {
+/** Builds the note using the design + builder options chosen in RouteOne setup. */
+export async function buildWtnDoc(job: WtnJob, design?: WtnDesign, options?: WtnOptions): Promise<jsPDF> {
   const chosen = design ?? getWtnDesign();
-  const logo = chosen === "modern" ? await loadLogoDataUrl() : null;
-  return buildWtnPdf(job, chosen, logo);
+  const opts = options ?? getWtnOptions();
+  const logo = opts.showLogo ? await loadLogoDataUrl() : null;
+  return buildWtnPdf(job, chosen, logo, opts);
 }
+
 
 export const wtnFileName = (job: WtnJob) =>
   `WTN-${(job.job_number || "job").replace(/[^\w-]+/g, "")}.pdf`;
