@@ -52,6 +52,98 @@ const COMPANY = {
   footer2: "Company Reg. No. 3856771. VAT Registration Number 747 3166 19",
 };
 
+export const DEFAULT_TERMS =
+  "I acknowledge that in signing this waste transfer note, I am confirming that the waste is as described above, and that we accept responsibility for any non-conforming waste subsequently found in the container; I have read or will read the terms and conditions and agree to accept them in their entirety. By signing above, I confirm that I have fulfilled my duty to apply the Waste Hierarchy as required by Regulation 12 of the Waste (England & Wales) Regulations 2011.";
+
+export const DEFAULT_HIRE_NOTE =
+  "Skip hire period is for 2 weeks from the date of hire. Roll on Roll off Hire period is for 30 days from the date of hire";
+
+export const DEFAULT_BROKER_NOTE =
+  "All Skips booked through a Third party broker, Must contact the Broker directly for all service requirements";
+
+/** Plain-English ticket builder options (no coding required). */
+export type WtnOptions = {
+  title: string;
+  subtitle: string;
+  accent: string; // hex
+  showLogo: boolean;
+  logoSize: number; // mm width
+  customerCopyLabel: string;
+  officeCopyLabel: string;
+  twoCopies: boolean;
+  showSiteContact: boolean;
+  showInvoiceAddress: boolean;
+  showComments: boolean;
+  showDirections: boolean;
+  showDisposalSite: boolean;
+  showSignatures: boolean;
+  showBrokerNote: boolean;
+  showHireNote: boolean;
+  showFooter: boolean;
+  terms: string;
+  hireNote: string;
+  brokerNote: string;
+  footerText: string;
+};
+
+export const DEFAULT_WTN_OPTIONS: WtnOptions = {
+  title: "CONTROLLED WASTE TRANSFER NOTE",
+  subtitle: "Delivery / Collection Ticket",
+  accent: "#166534",
+  showLogo: true,
+  logoSize: 30,
+  customerCopyLabel: "CUSTOMER COPY",
+  officeCopyLabel: "OFFICE COPY",
+  twoCopies: true,
+  showSiteContact: true,
+  showInvoiceAddress: true,
+  showComments: true,
+  showDirections: true,
+  showDisposalSite: true,
+  showSignatures: true,
+  showBrokerNote: true,
+  showHireNote: true,
+  showFooter: true,
+  terms: DEFAULT_TERMS,
+  hireNote: DEFAULT_HIRE_NOTE,
+  brokerNote: DEFAULT_BROKER_NOTE,
+  footerText: `${COMPANY.footer1}  ·  ${COMPANY.footer2}  ·  ${COMPANY.web}`,
+};
+
+const OPTIONS_KEY = "route_one_wtn_options";
+
+export function getWtnOptions(): WtnOptions {
+  if (typeof localStorage === "undefined") return DEFAULT_WTN_OPTIONS;
+  try {
+    const raw = localStorage.getItem(OPTIONS_KEY);
+    return raw ? { ...DEFAULT_WTN_OPTIONS, ...JSON.parse(raw) } : DEFAULT_WTN_OPTIONS;
+  } catch {
+    return DEFAULT_WTN_OPTIONS;
+  }
+}
+
+export function setWtnOptions(opts: WtnOptions) {
+  localStorage.setItem(OPTIONS_KEY, JSON.stringify(opts));
+}
+
+export function resetWtnOptions() {
+  localStorage.removeItem(OPTIONS_KEY);
+}
+
+/** #rrggbb → jsPDF rgb triple. */
+export function hexToRgb(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return [22, 101, 52];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const tintOf = (rgb: [number, number, number]): [number, number, number] => [
+  Math.round(255 - (255 - rgb[0]) * 0.12),
+  Math.round(255 - (255 - rgb[1]) * 0.12),
+  Math.round(255 - (255 - rgb[2]) * 0.12),
+];
+
 const TYPE_LABELS: Record<string, string> = {
   delivery: "Deliver",
   exchange: "Exchange",
@@ -59,6 +151,7 @@ const TYPE_LABELS: Record<string, string> = {
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
 };
+
 
 const fmtDate = (v?: string | null) => {
   if (!v) return "";
