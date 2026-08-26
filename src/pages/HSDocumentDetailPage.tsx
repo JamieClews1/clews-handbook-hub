@@ -11,7 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle, Languages, Loader2, Pencil, Printer } from "lucide-react";
+import { ArrowLeft, CheckCircle, ChevronDown, Languages, Loader2, Pencil, Printer } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -127,6 +135,84 @@ const HSDocumentDetailPage = () => {
 
   const allChecked = acks.length > 0 && acks.every((_, i) => checked[i]);
 
+  /** Build a standalone printable sheet for one or more languages. */
+  const printInLanguages = (codes: string[]) => {
+    if (!doc) return;
+    const sections = codes
+      .map((code) => {
+        const sfx = code.toLowerCase();
+        const t = code === "EN" ? doc.title : (doc as any)[`title_${sfx}`] || doc.title;
+        const c = code === "EN" ? doc.content : (doc as any)[`content_${sfx}`] || doc.content;
+        const baseAcks = asArray(doc.acknowledgements);
+        const translatedAcks = code === "EN" ? baseAcks : asArray((doc as any)[`acknowledgements_${sfx}`]);
+        const list = translatedAcks.length === baseAcks.length ? translatedAcks : baseAcks;
+        const langLabel = LANGUAGES.find((l) => l.code === code)?.label || code;
+        return `
+          <section class="doc">
+            <header class="hdr">
+              <img src="${clewsLogo}" alt="Clews Recycling" />
+              <div>
+                <p class="kicker">${doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}</p>
+                <h1>${t ?? ""}</h1>
+              </div>
+            </header>
+            <div class="meta">
+              <span><b>Reference:</b> ${doc.reference_code || "—"}</span>
+              <span><b>Site:</b> ${doc.site || "All sites"}</span>
+              <span><b>Version:</b> ${doc.version || "—"}</span>
+              <span><b>Language:</b> ${langLabel}</span>
+            </div>
+            <div class="body">${sanitizeHtml(c || "")}</div>
+            ${list.length ? `<div class="acks"><h3>Acknowledgements</h3><ul>${list
+              .map((a) => `<li>${sanitizeHtml(a)}</li>`)
+              .join("")}</ul></div>` : ""}
+            <div class="sign">
+              <div><span></span><label>Name</label></div>
+              <div><span></span><label>Signature</label></div>
+              <div><span></span><label>Date</label></div>
+            </div>
+            <footer>Clews Recycling Ltd · Unit 17 Waste Transfer Station · Health &amp; Safety controlled document</footer>
+          </section>`;
+      })
+      .join("");
+
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (!win) {
+      toast({ title: "Pop-up blocked", description: "Allow pop-ups to print this document.", variant: "destructive" });
+      return;
+    }
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8" /><title>${doc.title}</title>
+      <style>
+        @page { size: A4; margin: 14mm; }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 11pt; line-height: 1.45; margin: 0; }
+        .doc { page-break-after: always; }
+        .doc:last-child { page-break-after: auto; }
+        .hdr { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1f9d55; padding-bottom: 10px; }
+        .hdr img { height: 42px; }
+        .kicker { margin: 0; font-size: 8pt; letter-spacing: .18em; text-transform: uppercase; color: #555; }
+        h1 { margin: 2px 0 0; font-size: 15pt; }
+        .meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 9pt; padding: 8px 0; border-bottom: 1px solid #ddd; margin-bottom: 12px; }
+        .body h1, .body h2 { font-size: 12pt; border-left: 3px solid #1f9d55; padding: 4px 8px; background: #f2faf5; margin: 16px 0 8px; }
+        .body h3, .body h4 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: .04em; color: #1f7a45; margin: 12px 0 6px; }
+        .body ul, .body ol { padding-left: 18px; margin: 8px 0; }
+        .body table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .body th, .body td { border: 1px solid #bbb; padding: 5px 7px; text-align: left; font-size: 10pt; }
+        .body th { background: #f1f1f1; }
+        .acks { margin-top: 16px; border: 1px solid #ccc; padding: 10px 12px; page-break-inside: avoid; }
+        .acks h3 { margin: 0 0 6px; font-size: 10.5pt; }
+        .acks ul { margin: 0; padding-left: 18px; }
+        .sign { display: flex; gap: 20px; margin-top: 22px; page-break-inside: avoid; }
+        .sign div { flex: 1; }
+        .sign span { display: block; height: 34px; border-bottom: 1px solid #333; }
+        .sign label { font-size: 8.5pt; color: #555; }
+        footer { margin-top: 18px; border-top: 1px solid #ddd; padding-top: 6px; font-size: 8pt; color: #666; }
+      </style></head><body>${sections}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  };
+
   const handleTranslate = async () => {
     if (!doc) return;
     setTranslating(true);
@@ -224,9 +310,25 @@ const HSDocumentDetailPage = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Print
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Printer className="h-4 w-4" /> Print <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Print in language</DropdownMenuLabel>
+              {LANGUAGES.map((l) => (
+                <DropdownMenuItem key={l.code} onSelect={() => printInLanguages([l.code])}>
+                  {l.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => printInLanguages(LANGUAGES.map((l) => l.code))}>
+                All languages
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {isAdmin && (
             <>
               <Button variant="outline" size="sm" className="gap-2" onClick={openEdit}>
