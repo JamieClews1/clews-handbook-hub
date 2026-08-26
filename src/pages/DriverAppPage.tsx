@@ -35,6 +35,8 @@ import DriverContaminationsHub from "@/components/driver/DriverContaminationsHub
 import DriverSkipTracker from "@/components/driver/DriverSkipTracker";
 import { Boxes } from "lucide-react";
 import { useDriverLocationTracking } from "@/lib/use-driver-location";
+import { SignatureField } from "@/components/SignatureField";
+import { downloadWtnPdf } from "@/lib/route-one-wtn";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
@@ -104,6 +106,12 @@ interface Job {
   driver_notes: string | null;
   contamination_type: string | null;
   contamination_notes: string | null;
+  vehicle_reg?: string | null;
+  customer_signature?: string | null;
+  customer_signoff_name?: string | null;
+  customer_signoff_at?: string | null;
+  driver_signature?: string | null;
+  driver_signoff_name?: string | null;
 }
 
 interface JobPhoto {
