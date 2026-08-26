@@ -896,8 +896,10 @@ const RouteOnePage = () => {
                               <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(job); }}><Pencil className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}><FileDown className="h-3 w-3 mr-2" /> Download WTN</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}><Printer className="h-3 w-3 mr-2" /> Print WTN</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "completed" } }); }}>Mark Complete</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "query" } }); }}>Flag as Query</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteJob.mutate(job.id); }} className="text-destructive">Delete</DropdownMenuItem>
@@ -1146,9 +1148,15 @@ function JobCard({
                 <MoreVertical className="h-3 w-3 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                 <Pencil className="h-3 w-3 mr-2" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}>
+                <FileDown className="h-3 w-3 mr-2" /> Download WTN
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}>
+                <Printer className="h-3 w-3 mr-2" /> Print WTN
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
