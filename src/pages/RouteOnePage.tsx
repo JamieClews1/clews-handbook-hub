@@ -867,6 +867,7 @@ const RouteOnePage = () => {
                     queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
                   }}
                 />
+                <SkiptrakSiteDetails job={viewingSkiptrakJob} />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
             );
