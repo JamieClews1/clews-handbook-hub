@@ -347,6 +347,43 @@ export const UserManagement = () => {
     }
   };
 
+  const toggleArchive = async (user: UserProfile) => {
+    const archiving = !user.is_archived;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_archived: archiving, archived_at: archiving ? new Date().toISOString() : null } as any)
+        .eq("id", user.id);
+      if (error) throw error;
+      toast({
+        title: archiving ? "User archived" : "User restored",
+        description: `${emailToUsername(user.email)} has been ${archiving ? "archived" : "restored"}.`,
+      });
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteUser) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: deleteUser.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "User deleted", description: `${emailToUsername(deleteUser.email)} has been permanently deleted.` });
+      setDeleteUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Could not delete user", description: error.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Partition users
   const { staffUsers, customerUsers } = useMemo(() => {
     const staff: UserProfile[] = [];
@@ -370,25 +407,34 @@ export const UserManagement = () => {
 
   const filteredStaff = useMemo(() => {
     let list = staffUsers;
-    if (staffTab === "unassigned") {
-      list = list.filter(u => !u.user_types || u.user_types.length === 0);
-    } else if (staffTab !== "all") {
-      list = list.filter(u => u.user_types?.includes(staffTab));
+    if (staffTab === "archived") {
+      list = list.filter(u => u.is_archived);
+    } else {
+      list = list.filter(u => !u.is_archived);
+      if (staffTab === "unassigned") {
+        list = list.filter(u => !u.user_types || u.user_types.length === 0);
+      } else if (staffTab !== "all") {
+        list = list.filter(u => u.user_types?.includes(staffTab));
+      }
     }
     return filterBySearch(list);
   }, [staffUsers, staffTab, search]);
 
   const filteredCustomers = useMemo(() => filterBySearch(customerUsers), [customerUsers, search]);
 
-  const counts = useMemo(() => ({
-    all: staffUsers.length,
-    office: staffUsers.filter(u => u.user_types?.includes("office")).length,
-    yard: staffUsers.filter(u => u.user_types?.includes("yard")).length,
-    driver: staffUsers.filter(u => u.user_types?.includes("driver")).length,
-    management: staffUsers.filter(u => u.user_types?.includes("management")).length,
-    unassigned: staffUsers.filter(u => !u.user_types || u.user_types.length === 0).length,
-    customers: customerUsers.length,
-  }), [staffUsers, customerUsers]);
+  const counts = useMemo(() => {
+    const active = staffUsers.filter(u => !u.is_archived);
+    return {
+      all: active.length,
+      office: active.filter(u => u.user_types?.includes("office")).length,
+      yard: active.filter(u => u.user_types?.includes("yard")).length,
+      driver: active.filter(u => u.user_types?.includes("driver")).length,
+      management: active.filter(u => u.user_types?.includes("management")).length,
+      unassigned: active.filter(u => !u.user_types || u.user_types.length === 0).length,
+      archived: staffUsers.filter(u => u.is_archived).length,
+      customers: customerUsers.length,
+    };
+  }, [staffUsers, customerUsers]);
 
   if (loading) {
     return (
