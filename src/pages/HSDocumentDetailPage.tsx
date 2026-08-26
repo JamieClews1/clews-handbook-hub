@@ -518,19 +518,52 @@ const HSDocumentDetailPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
+              <Label>Language</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {LANGUAGES.map((l) => (
+                  <Button
+                    key={l.code}
+                    type="button"
+                    size="sm"
+                    variant={editLang === l.code ? "default" : "outline"}
+                    onClick={() => setEditLang(l.code)}
+                  >
+                    {l.label}
+                  </Button>
+                ))}
+              </div>
+              {editLang !== "EN" && (
+                <p className="text-xs text-muted-foreground">
+                  Editing the {LANGUAGES.find((l) => l.code === editLang)?.label} translation. Re-running Translate will
+                  overwrite these manual edits.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
               <Label>Title</Label>
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              <Input
+                value={editData[editLang]?.title ?? ""}
+                onChange={(e) => updateEditField("title", e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Content</Label>
               <p className="text-xs text-muted-foreground">
                 Use Heading 1 for section titles and Heading 2 for sub-headings so the document keeps its branded layout.
               </p>
-              <RichTextEditor content={editContent} onChange={setEditContent} />
+              <RichTextEditor
+                key={editLang}
+                content={editData[editLang]?.content ?? ""}
+                onChange={(v) => updateEditField("content", v)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Acknowledgement statements (one per line)</Label>
-              <Textarea rows={6} value={editAcks} onChange={(e) => setEditAcks(e.target.value)} />
+              <Textarea
+                rows={6}
+                value={editData[editLang]?.acks ?? ""}
+                onChange={(e) => updateEditField("acks", e.target.value)}
+              />
             </div>
           </div>
 
