@@ -608,7 +608,7 @@ const RouteOnePage = () => {
                 <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
               <Tabs defaultValue="drivers" className="mt-4">
-                <TabsList className="w-full grid grid-cols-4 lg:grid-cols-7">
+                <TabsList className="w-full grid grid-cols-4 lg:grid-cols-8">
                   <TabsTrigger value="drivers">Drivers</TabsTrigger>
                   <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                   <TabsTrigger value="yard-staff">Yard Staff</TabsTrigger>
@@ -616,6 +616,7 @@ const RouteOnePage = () => {
                   <TabsTrigger value="cost-items">Cost Items</TabsTrigger>
                   <TabsTrigger value="job-types">Job Types</TabsTrigger>
                   <TabsTrigger value="container-types">Containers</TabsTrigger>
+                  <TabsTrigger value="wtn-design">WTN Design</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="drivers">
