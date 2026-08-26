@@ -748,6 +748,16 @@ export function CustomerSetupAdmin() {
         owner_contact_id: siteForm.owner_contact_id || null,
         pod_email: siteForm.pod_email.trim() || null,
         load_report_type: siteForm.load_report_type || null,
+        address_1: siteForm.address_1.trim() || null,
+        address_2: siteForm.address_2.trim() || null,
+        address_3: siteForm.address_3.trim() || null,
+        address_4: siteForm.address_4.trim() || null,
+        address_5: siteForm.address_5.trim() || null,
+        area: siteForm.area.trim() || null,
+        postcode: siteForm.postcode.trim().toUpperCase() || null,
+        sic_code: siteForm.sic_code.trim() || null,
+        site_contact_name: siteForm.site_contact_name.trim() || null,
+        site_contact_phone: siteForm.site_contact_phone.trim() || null,
       };
 
       let siteId: string;
