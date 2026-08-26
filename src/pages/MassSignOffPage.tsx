@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CheckCircle, ClipboardList, Users, MessageSquare } from "lucide-react";
+import { ArrowLeft, CheckCircle, ClipboardList, Users, MessageSquare, ClipboardCheck } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
@@ -39,15 +39,20 @@ const USER_TYPE_LABELS: Record<string, string> = {
   management: "MANAGEMENT"
 };
 
+type TabKey = "rams" | "toolbox" | "induction";
+
+const ALL_USER_TYPES = ["driver", "yard", "office", "management"];
+
 const MassSignOffPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"rams" | "toolbox">("rams");
+  const [activeTab, setActiveTab] = useState<TabKey>("rams");
   const [rams, setRams] = useState<Document[]>([]);
   const [toolboxTalks, setToolboxTalks] = useState<Document[]>([]);
+  const [inductions, setInductions] = useState<Document[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string>("");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [existingSignatures, setExistingSignatures] = useState<SignatureRecord[]>([]);
@@ -108,6 +113,25 @@ const MassSignOffPage = () => {
         setToolboxTalks(toolboxData);
       }
 
+      const { data: inductionData } = await supabase
+        .from("hs_documents")
+        .select("id, title, reference_code")
+        .eq("category", "site_induction")
+        .eq("is_published", true)
+        .eq("requires_signature", true)
+        .order("reference_code");
+
+      if (inductionData) {
+        setInductions(
+          inductionData.map((d) => ({
+            id: d.id,
+            title: d.title,
+            reference_code: d.reference_code ?? undefined,
+            user_types: ALL_USER_TYPES,
+          }))
+        );
+      }
+
       const { data: usersData } = await supabase
         .from("profiles")
         .select("id, email, full_name, user_types")
@@ -139,10 +163,13 @@ const MassSignOffPage = () => {
       } else if (typeParam === 'rams' && rams.some(r => r.id === idParam)) {
         setActiveTab('rams');
         setSelectedDocId(idParam);
+      } else if (typeParam === 'induction' && inductions.some(i => i.id === idParam)) {
+        setActiveTab('induction');
+        setSelectedDocId(idParam);
       }
     }
     setHasInitialized(true);
-  }, [loading, hasInitialized, searchParams, rams, toolboxTalks]);
+  }, [loading, hasInitialized, searchParams, rams, toolboxTalks, inductions]);
 
   useEffect(() => {
     if (hasInitialized) {
@@ -166,6 +193,15 @@ const MassSignOffPage = () => {
 
         if (data) {
           setExistingSignatures(data.map(d => ({ user_id: d.user_id, document_id: d.rams_id })));
+        }
+      } else if (activeTab === "induction") {
+        const { data } = await supabase
+          .from("hs_document_signatures")
+          .select("user_id, document_id")
+          .eq("document_id", selectedDocId);
+
+        if (data) {
+          setExistingSignatures(data.map(d => ({ user_id: d.user_id, document_id: d.document_id })));
         }
       } else {
         const { data } = await supabase
@@ -214,6 +250,18 @@ const MassSignOffPage = () => {
           signature_image: signatureData,
         });
       error = result.error;
+    } else if (activeTab === "induction") {
+      const result = await supabase
+        .from("hs_document_signatures")
+        .insert({
+          user_id: signingUser.id,
+          document_id: selectedDocId,
+          signature_image: signatureData,
+          employee_name: signingUser.full_name || signingUser.email,
+          language: "en",
+          acknowledgements: [],
+        });
+      error = result.error;
     } else {
       const result = await supabase
         .from("toolbox_talk_signatures")
@@ -248,8 +296,9 @@ const MassSignOffPage = () => {
     setSigningUser(null);
   };
 
-  const currentDocs = activeTab === "rams" ? rams : toolboxTalks;
+  const currentDocs = activeTab === "rams" ? rams : activeTab === "induction" ? inductions : toolboxTalks;
   const selectedDoc = currentDocs.find(d => d.id === selectedDocId);
+  const docLabel = activeTab === "rams" ? "RAMS Document" : activeTab === "induction" ? "Site Induction" : "Toolbox Talk";
   
   const normalizeUserType = (type: string): string => {
     const normalized = type.toLowerCase().replace(/s$/, '');
@@ -327,8 +376,8 @@ const MassSignOffPage = () => {
       </header>
 
       <main className="p-4 max-w-4xl mx-auto">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rams" | "toolbox")} className="mb-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)} className="mb-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="rams" className="gap-2">
               <ClipboardList className="h-4 w-4" />
               RAMS
@@ -337,6 +386,10 @@ const MassSignOffPage = () => {
               <MessageSquare className="h-4 w-4" />
               Toolbox Talks
             </TabsTrigger>
+            <TabsTrigger value="induction" className="gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Site Inductions
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -344,16 +397,16 @@ const MassSignOffPage = () => {
           <div className="flex items-center gap-3 mb-3">
             {activeTab === "rams" ? (
               <ClipboardList className="h-5 w-5 text-primary" />
+            ) : activeTab === "induction" ? (
+              <ClipboardCheck className="h-5 w-5 text-primary" />
             ) : (
               <MessageSquare className="h-5 w-5 text-primary" />
             )}
-            <span className="font-medium">
-              Select {activeTab === "rams" ? "RAMS Document" : "Toolbox Talk"}
-            </span>
+            <span className="font-medium">Select {docLabel}</span>
           </div>
           <Select value={selectedDocId} onValueChange={setSelectedDocId}>
             <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder={`Choose a ${activeTab === "rams" ? "RAMS" : "Toolbox Talk"} to sign...`} />
+              <SelectValue placeholder={`Choose a ${docLabel} to sign...`} />
             </SelectTrigger>
             <SelectContent>
               {currentDocs.map(doc => (
@@ -434,11 +487,13 @@ const MassSignOffPage = () => {
           <Card className="p-8 text-center">
             {activeTab === "rams" ? (
               <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            ) : activeTab === "induction" ? (
+              <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             ) : (
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             )}
             <p className="text-muted-foreground">
-              Select a {activeTab === "rams" ? "RAMS document" : "Toolbox Talk"} above to begin the mass sign-off process.
+              Select a {docLabel} above to begin the mass sign-off process.
             </p>
           </Card>
         )}
