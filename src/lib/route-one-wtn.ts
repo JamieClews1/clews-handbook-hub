@@ -297,8 +297,225 @@ function drawCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string) {
   doc.text(COMPANY.footer2, L + W / 2, y + 7.5, { align: "center" });
 }
 
-export function buildWtnPdf(job: WtnJob): jsPDF {
+/* ────────────────────────────────────────────────────────────
+   Design B — "Modern" single-column note with the Clews logo.
+   Carries exactly the same information as the classic ticket.
+   ──────────────────────────────────────────────────────────── */
+
+const GREEN: [number, number, number] = [22, 101, 52];
+const LIGHT: [number, number, number] = [240, 245, 240];
+
+function drawModernCopy(doc: jsPDF, job: WtnJob, top: number, copyLabel: string, logo?: string | null) {
+  const L = 10;
+  const R = 200;
+  const W = R - L;
+  let y = top;
+
+  const heading = (text: string, x: number, yy: number) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...GREEN);
+    doc.text(text.toUpperCase(), x, yy);
+    doc.setTextColor(0, 0, 0);
+  };
+  const value = (text: string, x: number, yy: number, size = 8, bold = false, maxWidth?: number) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.text(text || "", x, yy, maxWidth ? { maxWidth } : undefined);
+  };
+  const panel = (x: number, yy: number, w: number, h: number, tint = false) => {
+    if (tint) {
+      doc.setFillColor(...LIGHT);
+      doc.roundedRect(x, yy, w, h, 1.2, 1.2, "F");
+    }
+    doc.setDrawColor(190);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(x, yy, w, h, 1.2, 1.2);
+  };
+
+  /* ── Header band ── */
+  doc.setFillColor(...GREEN);
+  doc.rect(L, y, W, 16, "F");
+  if (logo) {
+    try {
+      doc.addImage(logo, imgFormat(logo), L + 2, y + 2, 30, 12);
+    } catch {
+      /* ignore bad logo data */
+    }
+  }
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("CONTROLLED WASTE TRANSFER NOTE", L + 35, y + 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(`Delivery / Collection Ticket  ·  ${COMPANY.carrier}`, L + 35, y + 11.5);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text(copyLabel, R - 2, y + 6, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(`Ticket ${job.job_number || "—"}`, R - 2, y + 10, { align: "right" });
+  doc.text(fmtDate(job.completed_at || job.scheduled_date), R - 2, y + 13.5, { align: "right" });
+  doc.setTextColor(0, 0, 0);
+  y += 18;
+
+  /* ── Key facts strip ── */
+  const facts = [
+    ["Customer O/N", job.po_number || "TBC"],
+    ["Transaction", TYPE_LABELS[String(job.job_type)] || String(job.job_type || "")],
+    ["Container", [job.container_size, job.container_type].filter(Boolean).join(" ")],
+    ["Account", job.account_code || ""],
+    ["Vehicle Reg", job.vehicle_reg || ""],
+  ];
+  const fw = W / facts.length;
+  facts.forEach(([t, v], i) => {
+    panel(L + i * fw, y, fw - 1.5, 11, true);
+    heading(t, L + i * fw + 2, y + 4);
+    value(String(v).slice(0, 26), L + i * fw + 2, y + 9, 8, true, fw - 5);
+  });
+  y += 13;
+
+  /* ── Producer / contact / invoice ── */
+  const rowH = 27;
+  const cw = (W - 3) / 3;
+  panel(L, y, cw, rowH);
+  panel(L + cw + 1.5, y, cw, rowH);
+  panel(L + (cw + 1.5) * 2, y, cw, rowH);
+
+  heading("Waste Producer / Site", L + 2, y + 4);
+  [job.customer_name || "", ...addressLines(job)].slice(0, 6).forEach((line, i) =>
+    value(String(line).slice(0, 42), L + 2, y + 8.5 + i * 3.2, 7.5),
+  );
+
+  heading("Site Contact", L + cw + 3.5, y + 4);
+  value(job.site_contact_name || "—", L + cw + 3.5, y + 9, 7.5);
+  value(job.site_contact_phone || "", L + cw + 3.5, y + 13, 7.5);
+  value(job.sic_code ? `SIC: ${job.sic_code}` : "SIC: —", L + cw + 3.5, y + 17, 7.5);
+  value(`Office: ${COMPANY.phone}`, L + cw + 3.5, y + 21, 7.5);
+  value(COMPANY.orders, L + cw + 3.5, y + 25, 6);
+
+  heading("Invoice Address", L + (cw + 1.5) * 2 + 2, y + 4);
+  (job.invoice_address || "")
+    .split("\n")
+    .slice(0, 5)
+    .forEach((line, i) => value(line.trim(), L + (cw + 1.5) * 2 + 2, y + 9 + i * 3.2, 7.5));
+  y += rowH + 2;
+
+  /* ── Waste description ── */
+  const wasteH = 16;
+  panel(L, y, W * 0.62 - 1.5, wasteH, true);
+  heading("EWC Code & Waste Description", L + 2, y + 4);
+  value([job.ewc_code, job.waste_type].filter(Boolean).join("  —  ") || "—", L + 2, y + 9, 8.5, true, W * 0.62 - 6);
+  value(`Carrier: ${job.carrier_name || COMPANY.name}`, L + 2, y + 13.5, 7);
+
+  panel(L + W * 0.62, y, W * 0.38, wasteH);
+  heading("Disposal Site", L + W * 0.62 + 2, y + 4);
+  (job.disposal_site || "Clews Recycling Ltd\nUnit 17 Hunters Lane\nRugby CV21 1EA")
+    .split("\n")
+    .slice(0, 3)
+    .forEach((line, i) => value(line.trim(), L + W * 0.62 + 2, y + 8.5 + i * 3.2, 7.5));
+  y += wasteH + 2;
+
+  /* ── Comments / directions ── */
+  const cmtH = 14;
+  panel(L, y, W / 2 - 1, cmtH);
+  heading("Comments", L + 2, y + 4);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(doc.splitTextToSize(job.notes || "—", W / 2 - 5), L + 2, y + 8);
+  panel(L + W / 2 + 1, y, W / 2 - 1, cmtH);
+  heading("Directions", L + W / 2 + 3, y + 4);
+  doc.text(doc.splitTextToSize(job.directions || "—", W / 2 - 5), L + W / 2 + 3, y + 8);
+  y += cmtH + 2;
+
+  /* ── Signatures ── */
+  const sigH = 22;
+  panel(L, y, W / 2 - 1, sigH);
+  heading("Waste Producer Signature", L + 2, y + 4);
+  if (job.customer_signature) {
+    try {
+      doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + 2, y + 5, 40, 11);
+    } catch {
+      /* ignore */
+    }
+  }
+  value(`Print: ${job.customer_signoff_name || ""}`, L + 2, y + 19, 7.5);
+  value(job.customer_signoff_at ? `Signed ${fmtDate(job.customer_signoff_at)}` : "", W / 2 - 4, y + 19, 6.5);
+
+  panel(L + W / 2 + 1, y, W / 2 - 1, sigH);
+  heading("Driver Signature", L + W / 2 + 3, y + 4);
+  if (job.driver_signature) {
+    try {
+      doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + W / 2 + 3, y + 5, 40, 11);
+    } catch {
+      /* ignore */
+    }
+  }
+  value(`Print: ${job.driver_signoff_name || job.driver_name || ""}`, L + W / 2 + 3, y + 19, 7.5);
+  y += sigH + 1.5;
+
+  /* ── Terms & footer ── */
+  doc.setFontSize(5.6);
+  doc.setTextColor(90);
+  doc.text(
+    doc.splitTextToSize(
+      "I acknowledge that in signing this waste transfer note, I am confirming that the waste is as described above, and that we accept responsibility for any non-conforming waste subsequently found in the container; I have read or will read the terms and conditions and agree to accept them in their entirety. By signing above, I confirm that I have fulfilled my duty to apply the Waste Hierarchy as required by Regulation 12 of the Waste (England & Wales) Regulations 2011. Skip hire period is for 2 weeks from the date of hire; Roll on Roll off hire period is 30 days from the date of hire. All skips booked through a third party broker must contact the broker directly for all service requirements.",
+      W,
+    ),
+    L,
+    y + 3,
+  );
+  doc.setFontSize(5.8);
+  doc.text(`${COMPANY.footer1}  ·  ${COMPANY.footer2}  ·  ${COMPANY.web}`, L + W / 2, y + 20, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+}
+
+export type WtnDesign = "classic" | "modern";
+
+const DESIGN_KEY = "route_one_wtn_design";
+
+export function getWtnDesign(): WtnDesign {
+  if (typeof localStorage === "undefined") return "classic";
+  return localStorage.getItem(DESIGN_KEY) === "modern" ? "modern" : "classic";
+}
+
+export function setWtnDesign(design: WtnDesign) {
+  localStorage.setItem(DESIGN_KEY, design);
+}
+
+/** Loads the Clews logo as a data URL so jsPDF can embed it. */
+let logoCache: string | null | undefined;
+export async function loadLogoDataUrl(): Promise<string | null> {
+  if (logoCache !== undefined) return logoCache;
+  try {
+    const src = (await import("@/assets/clews-logo.png")).default as string;
+    const res = await fetch(src);
+    const blob = await res.blob();
+    logoCache = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    logoCache = null;
+  }
+  return logoCache;
+}
+
+export function buildWtnPdf(job: WtnJob, design: WtnDesign = "classic", logo?: string | null): jsPDF {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  if (design === "modern") {
+    drawModernCopy(doc, job, 8, "CUSTOMER COPY", logo);
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.1);
+    doc.setLineDashPattern([1.5, 1.5], 0);
+    doc.line(10, 150, 200, 150);
+    doc.setLineDashPattern([], 0);
+    drawModernCopy(doc, job, 156, "OFFICE COPY", logo);
+    return doc;
+  }
   drawCopy(doc, job, 8, "CUSTOMER COPY");
   doc.setLineWidth(0.1);
   doc.setLineDashPattern([1.5, 1.5], 0);
@@ -308,16 +525,23 @@ export function buildWtnPdf(job: WtnJob): jsPDF {
   return doc;
 }
 
+/** Builds the note using the design chosen in RouteOne setup. */
+export async function buildWtnDoc(job: WtnJob, design?: WtnDesign): Promise<jsPDF> {
+  const chosen = design ?? getWtnDesign();
+  const logo = chosen === "modern" ? await loadLogoDataUrl() : null;
+  return buildWtnPdf(job, chosen, logo);
+}
+
 export const wtnFileName = (job: WtnJob) =>
   `WTN-${(job.job_number || "job").replace(/[^\w-]+/g, "")}.pdf`;
 
-export function downloadWtnPdf(job: WtnJob) {
-  buildWtnPdf(job).save(wtnFileName(job));
+export async function downloadWtnPdf(job: WtnJob, design?: WtnDesign) {
+  (await buildWtnDoc(job, design)).save(wtnFileName(job));
 }
 
 /** Opens the note in a new tab and triggers the browser print dialog. */
-export function printWtnPdf(job: WtnJob) {
-  const doc = buildWtnPdf(job);
+export async function printWtnPdf(job: WtnJob, design?: WtnDesign) {
+  const doc = await buildWtnDoc(job, design);
   const url = URL.createObjectURL(doc.output("blob"));
   const win = window.open(url, "_blank");
   if (win) {
@@ -331,3 +555,4 @@ export function printWtnPdf(job: WtnJob) {
     });
   }
 }
+

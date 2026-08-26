@@ -50,6 +50,7 @@ import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
 import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
+import { WtnDesignSettings } from "@/components/route-one/WtnDesignSettings";
 import { useJobTypes, jobTypeLabel, jobTypeSolidClass, jobTypeAccentClass } from "@/components/route-one/jobTypes";
 import {
   DropdownMenu,
@@ -608,7 +609,7 @@ const RouteOnePage = () => {
                 <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
               <Tabs defaultValue="drivers" className="mt-4">
-                <TabsList className="w-full grid grid-cols-4 lg:grid-cols-7">
+                <TabsList className="w-full grid grid-cols-4 lg:grid-cols-8">
                   <TabsTrigger value="drivers">Drivers</TabsTrigger>
                   <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                   <TabsTrigger value="yard-staff">Yard Staff</TabsTrigger>
@@ -616,6 +617,7 @@ const RouteOnePage = () => {
                   <TabsTrigger value="cost-items">Cost Items</TabsTrigger>
                   <TabsTrigger value="job-types">Job Types</TabsTrigger>
                   <TabsTrigger value="container-types">Containers</TabsTrigger>
+                  <TabsTrigger value="wtn-design">WTN Design</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="drivers">
@@ -638,6 +640,9 @@ const RouteOnePage = () => {
                   </TabsContent>
                   <TabsContent value="container-types">
                     <ContainerTypesSettings />
+                  </TabsContent>
+                  <TabsContent value="wtn-design">
+                    <WtnDesignSettings />
                   </TabsContent>
                 </div>
 
