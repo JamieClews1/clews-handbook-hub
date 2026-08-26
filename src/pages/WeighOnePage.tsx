@@ -1019,11 +1019,64 @@ const WeighOnePage = () => {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Container Type</Label>
-                          <Input className="h-9" placeholder="Skip, RoRo, etc." value={formData.container_type} onChange={(e) => setFormData((p) => ({ ...p, container_type: e.target.value }))} />
+                          <Input
+                            className="h-9"
+                            list="midweigh-container-types"
+                            placeholder="Skip, RoRo, etc."
+                            value={formData.container_type}
+                            onChange={(e) => {
+                              const container = e.target.value;
+                              setFormData((p) => ({
+                                ...p,
+                                container_type: container,
+                                vehicle_type: vehicleTypeForContainer(container) || p.vehicle_type,
+                              }));
+                            }}
+                          />
+                          <datalist id="midweigh-container-types">
+                            {containerTypeOptions.map((c) => <option key={c} value={c} />)}
+                          </datalist>
                         </div>
                         <div className="space-y-1.5">
+                          <Label className="text-xs">Vehicle Type</Label>
+                          <Input
+                            className="h-9"
+                            list="midweigh-vehicle-types"
+                            placeholder="Skip, Roll on Roll off, ..."
+                            value={formData.vehicle_type}
+                            onChange={(e) => setFormData((p) => ({ ...p, vehicle_type: e.target.value }))}
+                          />
+                          <datalist id="midweigh-vehicle-types">
+                            {vehicleTypeOptions.map((v) => <option key={v} value={v} />)}
+                          </datalist>
+                        </div>
+                        <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Operator</Label>
-                          <Input className="h-9" placeholder="Operator name" value={formData.operator_name} onChange={(e) => setFormData((p) => ({ ...p, operator_name: e.target.value }))} />
+                          <Input className="h-9 bg-muted/50" value={operatorName} readOnly title="Taken from the signed-in user" />
+                        </div>
+                        <div className="col-span-2 grid grid-cols-2 gap-3 rounded-md border border-foreground/15 p-2">
+                          <SignatureField
+                            label="Operator signature"
+                            value={operatorSignature}
+                            onChange={setOperatorSignature}
+                            hint={myProfile?.signature_image && !operatorSignature ? "Tap to sign, or use your saved signature" : undefined}
+                          />
+                          <SignatureField
+                            label="Driver signature"
+                            value={driverSignature}
+                            onChange={setDriverSignature}
+                          />
+                          {myProfile?.signature_image && !operatorSignature && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="col-span-2 h-7 text-xs"
+                              onClick={() => setOperatorSignature(myProfile.signature_image)}
+                            >
+                              Use my saved signature
+                            </Button>
+                          )}
                         </div>
                         <div className="space-y-1.5 col-span-2 rounded-md bg-muted/40 p-2">
                           <Label className="text-xs">Second Weight / Tare (kg) — optional</Label>
@@ -1732,6 +1785,7 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 <div><span className="text-muted-foreground">EWC:</span> {selectedTransaction.ewc_code ?? "-"}</div>
                 <div><span className="text-muted-foreground">Container:</span> {selectedTransaction.container_type ?? "-"}</div>
+                <div><span className="text-muted-foreground">Vehicle type:</span> {selectedTransaction.vehicle_type ?? "-"}</div>
                 <div><span className="text-muted-foreground">Physical form:</span> {selectedTransaction.physical_form ?? "-"}</div>
                 <div><span className="text-muted-foreground">Carrier:</span> {selectedTransaction.carrier_name ?? "-"}</div>
                 <div><span className="text-muted-foreground">Carrier reg no:</span> {selectedTransaction.carrier_registration ?? "-"}</div>
@@ -1973,7 +2027,17 @@ const WeighOnePage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Container Type</Label>
-                <Input value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
+                <Input list="midweigh-container-types" value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Vehicle Type</Label>
+                <Input list="midweigh-vehicle-types" value={editForm.vehicle_type} onChange={(e) => setEditForm((p) => ({ ...p, vehicle_type: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <SignatureField label="Operator signature" value={editOperatorSignature} onChange={setEditOperatorSignature} />
+              </div>
+              <div className="space-y-1.5">
+                <SignatureField label="Driver signature" value={editDriverSignature} onChange={setEditDriverSignature} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
