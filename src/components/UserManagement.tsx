@@ -468,6 +468,7 @@ export const UserManagement = () => {
           <Shield className="h-4 w-4" /> Admin
         </Button>
       )}
+      {renderArchiveDeleteActions(user)}
     </div>
   );
 
