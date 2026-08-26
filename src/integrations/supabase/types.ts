@@ -5533,34 +5533,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          archived_at: string | null
           created_at: string
           driver_number: number | null
           driver_pin: string | null
           email: string
           full_name: string | null
           id: string
+          is_archived: boolean
           signature_image: string | null
           updated_at: string
           user_types: Database["public"]["Enums"]["user_type"][] | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           driver_number?: number | null
           driver_pin?: string | null
           email: string
           full_name?: string | null
           id: string
+          is_archived?: boolean
           signature_image?: string | null
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           driver_number?: number | null
           driver_pin?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          is_archived?: boolean
           signature_image?: string | null
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null
