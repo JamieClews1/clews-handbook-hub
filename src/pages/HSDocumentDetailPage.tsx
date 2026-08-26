@@ -89,9 +89,8 @@ const HSDocumentDetailPage = () => {
   const [checked, setChecked] = useState<Record<number, boolean>>({});
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [editAcks, setEditAcks] = useState("");
+  const [editLang, setEditLang] = useState("EN");
+  const [editData, setEditData] = useState<Record<string, { title: string; content: string; acks: string }>>({});
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -254,28 +253,58 @@ const HSDocumentDetailPage = () => {
 
   const openEdit = () => {
     if (!doc) return;
-    setEditTitle(doc.title);
-    setEditContent(doc.content);
-    setEditAcks(asArray(doc.acknowledgements).join("\n"));
+    const data: Record<string, { title: string; content: string; acks: string }> = {
+      EN: {
+        title: doc.title,
+        content: doc.content,
+        acks: asArray(doc.acknowledgements).join("\n"),
+      },
+    };
+    for (const code of ["PL", "UK", "RO"]) {
+      const sfx = code.toLowerCase();
+      data[code] = {
+        title: (doc as any)[`title_${sfx}`] || "",
+        content: (doc as any)[`content_${sfx}`] || "",
+        acks: asArray((doc as any)[`acknowledgements_${sfx}`]).join("\n"),
+      };
+    }
+    setEditData(data);
+    setEditLang("EN");
     setEditOpen(true);
   };
 
+  const updateEditField = (field: "title" | "content" | "acks", value: string) =>
+    setEditData((prev) => ({ ...prev, [editLang]: { ...prev[editLang], [field]: value } }));
+
   const saveEdit = async () => {
     if (!doc) return;
-    const { error } = await supabase
-      .from("hs_documents")
-      .update({
-        title: editTitle,
-        content: editContent,
-        acknowledgements: editAcks.split("\n").map((l) => l.trim()).filter(Boolean),
-      })
-      .eq("id", doc.id);
+    const update: Record<string, unknown> = {};
+    for (const [code, d] of Object.entries(editData)) {
+      const acks = d.acks.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (code === "EN") {
+        update.title = d.title;
+        update.content = d.content;
+        update.acknowledgements = acks;
+      } else {
+        const sfx = code.toLowerCase();
+        update[`title_${sfx}`] = d.title || null;
+        update[`content_${sfx}`] = d.content || null;
+        update[`acknowledgements_${sfx}`] = acks;
+      }
+    }
+    const { error } = await supabase.from("hs_documents").update(update).eq("id", doc.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
     setEditOpen(false);
-    toast({ title: "Saved", description: "Re-run translation to update other languages." });
+    toast({
+      title: "Saved",
+      description:
+        editLang === "EN"
+          ? "Re-run translation to update other languages."
+          : "Translation updated. Note: re-running Translate will overwrite manual edits.",
+    });
     load();
   };
 
@@ -489,19 +518,52 @@ const HSDocumentDetailPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
+              <Label>Language</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {LANGUAGES.map((l) => (
+                  <Button
+                    key={l.code}
+                    type="button"
+                    size="sm"
+                    variant={editLang === l.code ? "default" : "outline"}
+                    onClick={() => setEditLang(l.code)}
+                  >
+                    {l.label}
+                  </Button>
+                ))}
+              </div>
+              {editLang !== "EN" && (
+                <p className="text-xs text-muted-foreground">
+                  Editing the {LANGUAGES.find((l) => l.code === editLang)?.label} translation. Re-running Translate will
+                  overwrite these manual edits.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
               <Label>Title</Label>
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              <Input
+                value={editData[editLang]?.title ?? ""}
+                onChange={(e) => updateEditField("title", e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Content</Label>
               <p className="text-xs text-muted-foreground">
                 Use Heading 1 for section titles and Heading 2 for sub-headings so the document keeps its branded layout.
               </p>
-              <RichTextEditor content={editContent} onChange={setEditContent} />
+              <RichTextEditor
+                key={editLang}
+                content={editData[editLang]?.content ?? ""}
+                onChange={(v) => updateEditField("content", v)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Acknowledgement statements (one per line)</Label>
-              <Textarea rows={6} value={editAcks} onChange={(e) => setEditAcks(e.target.value)} />
+              <Textarea
+                rows={6}
+                value={editData[editLang]?.acks ?? ""}
+                onChange={(e) => updateEditField("acks", e.target.value)}
+              />
             </div>
           </div>
 
