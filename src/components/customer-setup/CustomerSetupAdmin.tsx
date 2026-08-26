@@ -487,7 +487,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at,address_1,address_2,address_3,address_4,address_5,area,postcode,sic_code,site_contact_name,site_contact_phone")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
