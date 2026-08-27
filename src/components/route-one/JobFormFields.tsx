@@ -132,6 +132,25 @@ function AutocompleteInput({
   );
 }
 
+/** Normalise a postcode to the "NN6 7XY" spaced form for matching. */
+const postcodeVariants = (input: string) => {
+  const compact = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (compact.length < 3) return [compact];
+  const spaced = `${compact.slice(0, -3)} ${compact.slice(-3)}`;
+  return compact === spaced ? [compact] : [compact, spaced];
+};
+
+type PostcodeMatch = {
+  customer: string;
+  site: string;
+  address: string;
+  postcode: string;
+  container_type?: string;
+  waste_type?: string;
+  last_date?: string;
+  source: "routeone" | "datahub";
+};
+
 export function JobFormFields({
   form,
   setForm,
@@ -142,6 +161,10 @@ export function JobFormFields({
   drivers: any[];
 }) {
   const [setupSites, setSetupSites] = useState<KnownSite[]>([]);
+  const [postcodeQuery, setPostcodeQuery] = useState("");
+  const [postcodeMatches, setPostcodeMatches] = useState<PostcodeMatch[]>([]);
+  const [postcodeSearching, setPostcodeSearching] = useState(false);
+  const [postcodeSearched, setPostcodeSearched] = useState(false);
   const [manualSite, setManualSite] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
   const [prevJobs, setPrevJobs] = useState<any[]>([]);
