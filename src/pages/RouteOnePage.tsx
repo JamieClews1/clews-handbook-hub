@@ -69,6 +69,7 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
   collection: "Collection",
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
+  waste_out_skip: "Waste Out Skip",
 };
 
 // Legacy fully-colored card style — retained for detail dialogs and list badges.
