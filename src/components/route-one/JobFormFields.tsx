@@ -11,6 +11,7 @@ import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react
 import { Link } from "react-router-dom";
 import { useJobTypes } from "./jobTypes";
 import { JobPricingPicker } from "./JobPricingPicker";
+import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
@@ -552,6 +553,8 @@ export function JobFormFields({
           <Textarea value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
         </div>
       </div>
+
+      {form.job_type === "waste_out_skip" && <WasteOutSkipPanel form={form} setForm={setForm} />}
 
       {/* Pricing (Pricing CMS: tier × zone) */}
       <JobPricingPicker form={form} setForm={setForm} />
