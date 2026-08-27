@@ -6669,6 +6669,8 @@ export type Database = {
           customer_signature: string | null
           customer_signoff_at: string | null
           customer_signoff_name: string | null
+          destination_address: string | null
+          destination_name: string | null
           directions: string | null
           display_order: number
           disposal_site: string | null
@@ -6684,6 +6686,7 @@ export type Database = {
           job_type: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge: number | null
           notes: string | null
+          outbound_weight_t: number | null
           po_number: string | null
           query_reason: string | null
           scheduled_date: string
@@ -6704,6 +6707,8 @@ export type Database = {
           vat_rate: number
           vehicle_reg: string | null
           waste_type: string | null
+          weighbridge_ticket_number: string | null
+          weighbridge_transaction_id: string | null
           weight_included_t: number | null
         }
         Insert: {
@@ -6725,6 +6730,8 @@ export type Database = {
           customer_signature?: string | null
           customer_signoff_at?: string | null
           customer_signoff_name?: string | null
+          destination_address?: string | null
+          destination_name?: string | null
           directions?: string | null
           display_order?: number
           disposal_site?: string | null
@@ -6740,6 +6747,7 @@ export type Database = {
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
           notes?: string | null
+          outbound_weight_t?: number | null
           po_number?: string | null
           query_reason?: string | null
           scheduled_date?: string
@@ -6760,6 +6768,8 @@ export type Database = {
           vat_rate?: number
           vehicle_reg?: string | null
           waste_type?: string | null
+          weighbridge_ticket_number?: string | null
+          weighbridge_transaction_id?: string | null
           weight_included_t?: number | null
         }
         Update: {
@@ -6781,6 +6791,8 @@ export type Database = {
           customer_signature?: string | null
           customer_signoff_at?: string | null
           customer_signoff_name?: string | null
+          destination_address?: string | null
+          destination_name?: string | null
           directions?: string | null
           display_order?: number
           disposal_site?: string | null
@@ -6796,6 +6808,7 @@ export type Database = {
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
           notes?: string | null
+          outbound_weight_t?: number | null
           po_number?: string | null
           query_reason?: string | null
           scheduled_date?: string
@@ -6816,6 +6829,8 @@ export type Database = {
           vat_rate?: number
           vehicle_reg?: string | null
           waste_type?: string | null
+          weighbridge_ticket_number?: string | null
+          weighbridge_transaction_id?: string | null
           weight_included_t?: number | null
         }
         Relationships: [
@@ -6824,6 +6839,13 @@ export type Database = {
             columns: ["assigned_driver_id"]
             isOneToOne: false
             referencedRelation: "route_one_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_one_jobs_weighbridge_transaction_id_fkey"
+            columns: ["weighbridge_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -8700,6 +8722,7 @@ export type Database = {
         | "collection"
         | "waste_truck"
         | "wasted_journey"
+        | "waste_out_skip"
       skip_material_type: "card_loose" | "scrap_metal"
       user_type: "driver" | "yard" | "office" | "management"
       weighbridge_status: "first_weigh" | "completed" | "voided"
@@ -8853,6 +8876,7 @@ export const Constants = {
         "collection",
         "waste_truck",
         "wasted_journey",
+        "waste_out_skip",
       ],
       skip_material_type: ["card_loose", "scrap_metal"],
       user_type: ["driver", "yard", "office", "management"],
