@@ -537,6 +537,7 @@ export function JobFormFields({
               <Select
                 value={form.site_name || ""}
                 onValueChange={(v) => {
+                  if (v === "__new_site__") { startNewSite(); return; }
                   const selected = setupSites.find((site) => site.name === v);
                   setForm({
                     ...form,
@@ -548,6 +549,9 @@ export function JobFormFields({
               >
                 <SelectTrigger><SelectValue placeholder={`Select from ${setupSites.length} known sites...`} /></SelectTrigger>
                 <SelectContent className="max-h-64">
+                  <SelectItem value="__new_site__">
+                    <span className="text-primary font-medium">+ New site</span>
+                  </SelectItem>
                   {setupSites.map((s) => (
                     <SelectItem key={s.name} value={s.name}>
                       <span>{s.name}</span>
@@ -557,6 +561,7 @@ export function JobFormFields({
                 </SelectContent>
               </Select>
             )}
+
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
