@@ -173,8 +173,12 @@ export function JobFormFields({
   const [catalogue, setCatalogue] = useState<any[]>([]);
   const [containerTypes, setContainerTypes] = useState<string[]>([]);
   const { types: jobTypes } = useJobTypes();
+  const { zoneFor } = usePostcodeZoneLookup();
+  const queryZone = zoneFor(postcodeQuery);
+  const siteZone = zoneFor(form.site_postcode);
 
   const customer = form.customer_name || "";
+
 
   // Sites for the chosen customer — from customer setup AND the Data Hub history
   useEffect(() => {
