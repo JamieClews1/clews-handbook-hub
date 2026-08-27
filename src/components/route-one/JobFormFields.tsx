@@ -573,9 +573,20 @@ export function JobFormFields({
           </div>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Postcode</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Postcode</Label>
+                {siteZone && (
+                  <Badge variant="secondary" className="gap-1 text-[10px]">
+                    <MapPin className="h-3 w-3" /> {siteZone}
+                  </Badge>
+                )}
+              </div>
               <Input value={form.site_postcode || ""} onChange={(e) => setForm({ ...form, site_postcode: e.target.value })} placeholder="e.g. CV21 1EA" />
+              {!siteZone && (form.site_postcode || "").trim().length >= 3 && (
+                <p className="text-[11px] text-muted-foreground mt-1">No zone configured for this postcode.</p>
+              )}
             </div>
+
             <div>
               <Label className="text-xs">Area / County</Label>
               <Input value={form.site_area || ""} onChange={(e) => setForm({ ...form, site_area: e.target.value })} placeholder="e.g. Warwickshire" />
