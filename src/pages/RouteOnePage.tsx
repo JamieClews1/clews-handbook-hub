@@ -1144,7 +1144,6 @@ const RouteOnePage = () => {
                       onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
                       onSendTicket={() => setTicketJob(job)}
                       onToggleLive={() => updateJob.mutate({ id: job.id, updates: { is_live: !job.is_live } })}
-                  onToggleLive={() => updateJob.mutate({ id: job.id, updates: { is_live: !job.is_live } })}
                       onDragStart={(e) => handleDragStart(e, job.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedJobId === job.id}
