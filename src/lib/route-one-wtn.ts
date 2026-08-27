@@ -52,7 +52,15 @@ export type WtnJob = {
   disposer_signature?: string | null;
   disposer_name?: string | null;
   disposer_signoff_at?: string | null;
+  /* Waste-out skip (weighbridge outbound load) */
+  weighbridge_ticket_number?: string | null;
+  outbound_weight_t?: number | string | null;
+  destination_name?: string | null;
+  destination_address?: string | null;
 };
+
+/** Waste-out skip jobs leave our own site, so Clews is the producer. */
+export const WASTE_OUT_SKIP = "waste_out_skip";
 
 
 const COMPANY = {
