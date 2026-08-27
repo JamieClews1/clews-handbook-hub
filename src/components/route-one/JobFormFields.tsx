@@ -132,6 +132,25 @@ function AutocompleteInput({
   );
 }
 
+/** Normalise a postcode to the "NN6 7XY" spaced form for matching. */
+const postcodeVariants = (input: string) => {
+  const compact = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (compact.length < 3) return [compact];
+  const spaced = `${compact.slice(0, -3)} ${compact.slice(-3)}`;
+  return compact === spaced ? [compact] : [compact, spaced];
+};
+
+type PostcodeMatch = {
+  customer: string;
+  site: string;
+  address: string;
+  postcode: string;
+  container_type?: string;
+  waste_type?: string;
+  last_date?: string;
+  source: "routeone" | "datahub";
+};
+
 export function JobFormFields({
   form,
   setForm,
@@ -142,6 +161,10 @@ export function JobFormFields({
   drivers: any[];
 }) {
   const [setupSites, setSetupSites] = useState<KnownSite[]>([]);
+  const [postcodeQuery, setPostcodeQuery] = useState("");
+  const [postcodeMatches, setPostcodeMatches] = useState<PostcodeMatch[]>([]);
+  const [postcodeSearching, setPostcodeSearching] = useState(false);
+  const [postcodeSearched, setPostcodeSearched] = useState(false);
   const [manualSite, setManualSite] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
   const [prevJobs, setPrevJobs] = useState<any[]>([]);
@@ -264,6 +287,77 @@ export function JobFormFields({
     return [...displayByNormalised.values()].slice(0, 10);
   };
 
+  /** Postcode-first lookup: find known sites/jobs at this postcode. */
+  const searchPostcode = async () => {
+    const input = postcodeQuery.trim();
+    if (input.length < 3) return;
+    setPostcodeSearching(true);
+    setPostcodeSearched(false);
+    const variants = postcodeVariants(input);
+    const orFilter = variants.map((v) => `postcode.ilike.%${v}%`).join(",");
+    const roOrFilter = variants.map((v) => `site_postcode.ilike.%${v}%`).join(",");
+
+    const [{ data: ro }, { data: hub }] = await Promise.all([
+      supabase
+        .from("route_one_jobs")
+        .select("customer_name, site_name, site_address, site_postcode, container_type, container_size, waste_type, scheduled_date")
+        .or(roOrFilter)
+        .order("scheduled_date", { ascending: false })
+        .limit(50),
+      supabase
+        .from("data_hub_jobs")
+        .select("customer, site, postcode, container_type, waste_description, job_date, raw")
+        .or(orFilter)
+        .limit(200),
+    ]);
+
+    const byKey = new Map<string, PostcodeMatch>();
+    for (const j of (ro ?? []) as any[]) {
+      const key = `${(j.site_name || "").toLowerCase()}|${(j.site_postcode || "").toLowerCase()}`;
+      if (byKey.has(key)) continue;
+      byKey.set(key, {
+        customer: j.customer_name || "",
+        site: j.site_name || "",
+        address: j.site_address || "",
+        postcode: j.site_postcode || "",
+        container_type: j.container_type || "",
+        waste_type: j.waste_type || "",
+        last_date: j.scheduled_date || "",
+        source: "routeone",
+      });
+    }
+    for (const j of (hub ?? []) as any[]) {
+      const key = `${(j.site || "").toLowerCase()}|${(j.postcode || "").toLowerCase()}`;
+      if (byKey.has(key)) continue;
+      byKey.set(key, {
+        customer: j.customer || "",
+        site: j.site || "",
+        address: rawText(j.raw, ["Site Address", "Site address", "Address"]),
+        postcode: j.postcode || "",
+        container_type: j.container_type || "",
+        waste_type: j.waste_description || "",
+        last_date: j.job_date || "",
+        source: "datahub",
+      });
+    }
+    setPostcodeMatches([...byKey.values()].slice(0, 15));
+    setPostcodeSearching(false);
+    setPostcodeSearched(true);
+  };
+
+  /** Fill the form from a postcode match and jump straight to previous jobs. */
+  const applyPostcodeMatch = (m: PostcodeMatch) => {
+    setForm({
+      ...form,
+      customer_name: m.customer || form.customer_name,
+      site_name: m.site || form.site_name,
+      site_address: m.address || form.site_address,
+      site_postcode: m.postcode || postcodeQuery.trim(),
+    });
+    setPostcodeMatches([]);
+    setPostcodeSearched(false);
+  };
+
   /** Previous jobs for this customer/site — used to set up an exchange. */
   const loadPreviousJobs = async () => {
     setPrevLoading(true);
@@ -366,6 +460,52 @@ export function JobFormFields({
             Use previous job / exchange
           </Button>
         </div>
+
+        {/* Postcode-first lookup — start the call here */}
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+          <Label className="text-xs font-semibold">Start with the postcode</Label>
+          <div className="flex gap-2">
+            <Input
+              value={postcodeQuery}
+              onChange={(e) => setPostcodeQuery(e.target.value.toUpperCase())}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); searchPostcode(); } }}
+              placeholder="e.g. NN6 7XY — what postcode needs the job?"
+              className="font-mono uppercase"
+              autoFocus
+            />
+            <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={searchPostcode} disabled={postcodeSearching}>
+              {postcodeSearching ? "Searching..." : "Find site"}
+            </Button>
+          </div>
+          {postcodeSearched && postcodeMatches.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">No jobs found at this postcode — fill the customer &amp; site in below as a new site.</p>
+          )}
+          {postcodeMatches.length > 0 && (
+            <div className="rounded-md border border-border bg-background divide-y divide-border max-h-56 overflow-y-auto">
+              {postcodeMatches.map((m, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-accent text-xs"
+                  onClick={() => applyPostcodeMatch(m)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium truncate">{m.site || m.address || m.postcode}</span>
+                    <span className="font-mono text-muted-foreground shrink-0">{m.postcode}</span>
+                  </div>
+                  <div className="text-muted-foreground truncate">
+                    {m.customer}
+                    {m.container_type ? ` · ${m.container_type}` : ""}
+                    {m.waste_type ? ` · ${m.waste_type}` : ""}
+                    {m.last_date ? ` · last job ${new Date(m.last_date).toLocaleDateString("en-GB")}` : ""}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Customer *</Label>

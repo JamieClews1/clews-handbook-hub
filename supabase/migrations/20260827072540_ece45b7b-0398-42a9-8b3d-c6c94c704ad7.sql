@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.data_hub_jobs_sync_postcode() FROM anon, authenticated, public;
