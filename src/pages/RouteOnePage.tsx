@@ -842,6 +842,7 @@ const RouteOnePage = () => {
                     )}
                   </div>
                 )}
+                <JobPhotosSection jobId={viewingJob.id} />
                 <JobPodSection jobNumber={viewingJob.job_number} />
                 <DialogFooter className="gap-2 sm:gap-2">
                   <Button variant="outline" size="sm" onClick={() => printWtnPdf(viewingJob)}>
