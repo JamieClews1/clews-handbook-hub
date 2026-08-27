@@ -151,6 +151,7 @@ Deno.serve(async (req) => {
           .select("*")
           .eq("assigned_driver_id", driverId)
           .eq("scheduled_date", date)
+          .eq("is_live", true)
           .order("scheduled_time", { ascending: true, nullsFirst: false })
           .order("display_order");
         if (error) throw error;

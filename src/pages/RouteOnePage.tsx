@@ -42,7 +42,7 @@ import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
 import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
 import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
-import { FileDown, Printer, Send } from "lucide-react";
+import { FileDown, Printer, Send, Radio } from "lucide-react";
 import { TicketSendDialog } from "@/components/route-one/TicketSendDialog";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
@@ -339,6 +339,7 @@ const RouteOnePage = () => {
         scheduled_date: form.scheduled_date,
         assigned_driver_id: form.assigned_driver_id || null,
         status: form.assigned_driver_id ? "assigned" : "unassigned",
+        is_live: form.job_type === "waste_out_skip",
         ...costFields(form),
       });
       if (error) throw error;
@@ -996,6 +997,7 @@ const RouteOnePage = () => {
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}><FileDown className="h-3 w-3 mr-2" /> Download WTN</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}><Printer className="h-3 w-3 mr-2" /> Print WTN</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setTicketJob(job); }}><Send className="h-3 w-3 mr-2" /> Print / Send ticket</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { is_live: !job.is_live } }); }}><Radio className="h-3 w-3 mr-2" /> {job.is_live ? "Take off live" : "Make live"}</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "completed" } }); }}>Mark Complete</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "query" } }); }}>Flag as Query</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteJob.mutate(job.id); }} className="text-destructive">Delete</DropdownMenuItem>
@@ -1085,6 +1087,7 @@ const RouteOnePage = () => {
                   onDelete={() => deleteJob.mutate(job.id)}
                   onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
                   onSendTicket={() => setTicketJob(job)}
+                  onToggleLive={() => updateJob.mutate({ id: job.id, updates: { is_live: !job.is_live } })}
                   onDragStart={(e) => handleDragStart(e, job.id)}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedJobId === job.id}
@@ -1140,6 +1143,7 @@ const RouteOnePage = () => {
                       onDelete={() => deleteJob.mutate(job.id)}
                       onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
                       onSendTicket={() => setTicketJob(job)}
+                      onToggleLive={() => updateJob.mutate({ id: job.id, updates: { is_live: !job.is_live } })}
                       onDragStart={(e) => handleDragStart(e, job.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedJobId === job.id}
@@ -1200,6 +1204,7 @@ function JobCard({
   onDelete,
   onStatusChange,
   onSendTicket,
+  onToggleLive,
   onDragStart,
   onDragEnd,
   isDragging,
@@ -1208,6 +1213,7 @@ function JobCard({
   onEdit: () => void;
   onView: () => void;
   onSendTicket?: () => void;
+  onToggleLive?: () => void;
   onDelete: () => void;
   onStatusChange: (status: JobStatus) => void;
   onDragStart: (e: React.DragEvent) => void;
@@ -1263,6 +1269,11 @@ function JobCard({
                   <Send className="h-3 w-3 mr-2" /> Print / Send ticket
                 </DropdownMenuItem>
               )}
+              {onToggleLive && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleLive(); }}>
+                  <Radio className="h-3 w-3 mr-2" /> {job.is_live ? "Take off live (hide from driver)" : "Make live (send to driver)"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
@@ -1283,6 +1294,14 @@ function JobCard({
         <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${jtTag(jobType)}`}>
           {jtLabel(jobType)}
         </Badge>
+        <Badge
+          className={`text-[10px] px-1.5 py-0 h-4 border-0 font-medium ${
+            job.is_live ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {job.is_live ? "LIVE" : "Draft"}
+        </Badge>
+
         {job.container_type && (
           <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
         )}
