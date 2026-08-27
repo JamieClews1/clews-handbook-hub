@@ -429,7 +429,7 @@ function drawCopy(
   y += 13;
 
   /* ── Producer / contact / invoice ── */
-  const rowH = 22;
+  const rowH = 20;
   const c1 = 86;
   const c2 = 40;
   const c3 = W - c1 - c2;
@@ -456,7 +456,7 @@ function drawCopy(
   y += rowH;
 
   /* ── Comments / directions ── */
-  const commentH = 9;
+  const commentH = 8;
   box(L, y, c1 + c2, commentH);
   box(L + c1 + c2, y, c3, commentH);
   label("Comments:", L + 1.5, y + 4, 7.5);
@@ -493,14 +493,14 @@ function drawCopy(
   );
   box(L + leftW / 2, y + vehH, leftW / 2, lowerH);
   val(`EWC/Description: ${[job.ewc_code, job.waste_type].filter(Boolean).join(" — ")}`, L + leftW / 2 + 1.5, y + vehH + 4, 7.5, false, leftW / 2 - 3);
-  doc.setFontSize(6.5);
+  doc.setFontSize(5.6);
   doc.text(
     doc.splitTextToSize(
       opts.showHireNote ? opts.hireNote : "",
       leftW / 2 - 6,
     ),
     L + leftW / 2 + leftW / 4,
-    y + vehH + 11,
+    y + vehH + 10.5,
     { align: "center" },
   );
 
