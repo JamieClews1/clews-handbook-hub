@@ -358,6 +358,24 @@ export function JobFormFields({
     setPostcodeSearched(false);
   };
 
+  /** Start a brand new site (and delivery) from scratch at the searched postcode. */
+  const startNewSite = () => {
+    setForm({
+      ...form,
+      job_type: form.job_type || "delivery",
+      site_name: "",
+      site_address: "",
+      site_postcode: postcodeQuery.trim() || form.site_postcode || "",
+      site_area: "",
+      site_contact_name: "",
+      site_contact_phone: "",
+    });
+    setManualSite(true);
+    setPostcodeMatches([]);
+    setPostcodeSearched(false);
+  };
+
+
   /** Previous jobs for this customer/site — used to set up an exchange. */
   const loadPreviousJobs = async () => {
     setPrevLoading(true);
