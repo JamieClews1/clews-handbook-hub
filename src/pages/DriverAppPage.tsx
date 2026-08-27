@@ -746,6 +746,15 @@ const DriverJobDetail = ({
                 <PhotoCapture jobId={job.id} photoType="after" label="After" />
                 <div className="border-t" />
                 <PhotoCapture jobId={job.id} photoType="contamination" label="Contamination" />
+                <div className="border-t" />
+                <PhotoCapture
+                  jobId={job.id}
+                  photoType="third_party_ticket"
+                  label="Third Party Ticket"
+                />
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Photograph any 3rd party weighbridge ticket for this load.
+                </p>
               </CardContent>
             </Card>
 

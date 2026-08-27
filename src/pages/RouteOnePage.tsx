@@ -45,6 +45,7 @@ import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
 import { FileDown, Printer } from "lucide-react";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
+import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
 import { SkiptrakSiteDetails } from "@/components/route-one/SkiptrakSiteDetails";
 import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
@@ -842,6 +843,7 @@ const RouteOnePage = () => {
                     )}
                   </div>
                 )}
+                <JobPhotosSection jobId={viewingJob.id} />
                 <JobPodSection jobNumber={viewingJob.job_number} />
                 <DialogFooter className="gap-2 sm:gap-2">
                   <Button variant="outline" size="sm" onClick={() => printWtnPdf(viewingJob)}>
