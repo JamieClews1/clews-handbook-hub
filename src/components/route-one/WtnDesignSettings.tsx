@@ -49,11 +49,20 @@ const SAMPLE: WtnJob = {
   disposal_site: "Clews Recycling Ltd\nUnit 17 Hunters Lane\nRugby CV21 1EA",
   invoice_address: "Accounts Payable\nBritvic Soft Drinks Ltd\nBreakspear Park\nHemel Hempstead HP2 4TZ",
   vehicle_reg: "CR21 CLW",
+  vehicle_type: "RoRo hook",
   carrier_name: "Clews Recycling Ltd",
+  waste_code: "W220000",
+  quantity: 1,
+  service_code: "R40EXW",
+  nett_price: 245,
+  vat_amount: 49,
+  total_price: 294,
   customer_signoff_name: "J. Smith",
   customer_signoff_at: new Date().toISOString(),
   driver_name: "A. Driver",
+  disposer_name: "Yard Operative",
 };
+
 
 const OPTIONS: { id: WtnDesign; title: string; description: string; points: string[] }[] = [
   {
@@ -168,7 +177,12 @@ export function WtnDesignSettings() {
       { key: "showComments", label: "Comments", hint: "Free-text notes added to the job." },
       { key: "showDirections", label: "Directions", hint: "Access notes for the driver." },
       { key: "showDisposalSite", label: "Disposal site", hint: "Where the waste is taken." },
-      { key: "showSignatures", label: "Signature boxes", hint: "Customer and driver signatures, including phone signatures." },
+      { key: "showSignatures", label: "Signature boxes", hint: "Customer, driver and disposal site signatures, including phone signatures." },
+      { key: "showDisposerSignature", label: "Disposal site signature", hint: "Third signature box signed by the yard/disposal site operative." },
+      { key: "showProducerCert", label: "Producer's certificate", hint: "Waste hierarchy / Regulation 12 & 13 wording above the signatures." },
+      { key: "showWasteCodes", label: "Waste code, quantity & service", hint: "Waste code, SIC code, quantity and service code (as on Suez tickets)." },
+      { key: "showPricing", label: "Nett / VAT / Total prices", hint: "Adds a price row at the bottom of the ticket." },
+
       { key: "showHireNote", label: "Hire period wording", hint: "Skip and RoRo hire period sentence." },
       { key: "showBrokerNote", label: "Broker wording", hint: "Note for skips booked via a third-party broker." },
       { key: "showFooter", label: "Footer / licence line", hint: "Carrier licence, company and VAT numbers." },
@@ -343,6 +357,12 @@ export function WtnDesignSettings() {
                 <AccordionItem value="wording">
                   <AccordionTrigger className="text-sm">Wording &amp; small print</AccordionTrigger>
                   <AccordionContent className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Producer's certificate wording</Label>
+                      <Textarea rows={4} value={opts.producerCert} onChange={(e) => set("producerCert", e.target.value)} />
+                      <p className="text-[11px] text-muted-foreground">Shown just above the three signature boxes.</p>
+                    </div>
+
                     <div className="space-y-1.5">
                       <Label className="text-xs">Terms / duty of care wording</Label>
                       <Textarea rows={5} value={opts.terms} onChange={(e) => set("terms", e.target.value)} />

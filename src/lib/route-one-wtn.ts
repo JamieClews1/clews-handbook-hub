@@ -31,14 +31,29 @@ export type WtnJob = {
   disposal_site?: string | null;
   invoice_address?: string | null;
   vehicle_reg?: string | null;
+  vehicle_type?: string | null;
   carrier_name?: string | null;
+  /* Suez-style extras */
+  waste_code?: string | null;
+  quantity?: number | string | null;
+  service_code?: string | null;
+  depot?: string | null;
+  nett_price?: number | string | null;
+  vat_amount?: number | string | null;
+  total_price?: number | string | null;
   customer_signature?: string | null;
   customer_signoff_name?: string | null;
   customer_signoff_at?: string | null;
   driver_signature?: string | null;
   driver_signoff_name?: string | null;
   driver_name?: string | null;
+  driver_signoff_at?: string | null;
+  /* Disposal site (disposer) certificate */
+  disposer_signature?: string | null;
+  disposer_name?: string | null;
+  disposer_signoff_at?: string | null;
 };
+
 
 const COMPANY = {
   name: "Clews Recycling Ltd",
@@ -61,6 +76,10 @@ export const DEFAULT_HIRE_NOTE =
 export const DEFAULT_BROKER_NOTE =
   "All Skips booked through a Third party broker, Must contact the Broker directly for all service requirements";
 
+/** Producer's certificate wording (as used on Suez-style conveyance notes). */
+export const DEFAULT_PRODUCER_CERT =
+  "I confirm that I have applied the waste management hierarchy as required by Regulation 12 and complied with the requirements of Regulation 13 of the Waste (England and Wales) Regulations 2011 regarding the separate collection of waste paper, metal, plastic and glass.";
+
 /** Plain-English ticket builder options (no coding required). */
 export type WtnOptions = {
   title: string;
@@ -77,10 +96,15 @@ export type WtnOptions = {
   showDirections: boolean;
   showDisposalSite: boolean;
   showSignatures: boolean;
+  showDisposerSignature: boolean;
+  showProducerCert: boolean;
+  showWasteCodes: boolean;
+  showPricing: boolean;
   showBrokerNote: boolean;
   showHireNote: boolean;
   showFooter: boolean;
   terms: string;
+  producerCert: string;
   hireNote: string;
   brokerNote: string;
   footerText: string;
@@ -101,14 +125,20 @@ export const DEFAULT_WTN_OPTIONS: WtnOptions = {
   showDirections: true,
   showDisposalSite: true,
   showSignatures: true,
+  showDisposerSignature: true,
+  showProducerCert: true,
+  showWasteCodes: true,
+  showPricing: false,
   showBrokerNote: true,
   showHireNote: true,
   showFooter: true,
   terms: DEFAULT_TERMS,
+  producerCert: DEFAULT_PRODUCER_CERT,
   hireNote: DEFAULT_HIRE_NOTE,
   brokerNote: DEFAULT_BROKER_NOTE,
   footerText: `${COMPANY.footer1}  ·  ${COMPANY.footer2}  ·  ${COMPANY.web}`,
 };
+
 
 const OPTIONS_KEY = "route_one_wtn_options";
 
@@ -187,6 +217,132 @@ function addressLines(job: WtnJob): string[] {
 const imgFormat = (src: string): "PNG" | "JPEG" =>
   /^data:image\/jpe?g/i.test(src) ? "JPEG" : "PNG";
 
+const money = (v?: number | string | null) => {
+  if (v === null || v === undefined || v === "") return "";
+  const n = typeof v === "number" ? v : Number(String(v).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n.toFixed(2) : String(v);
+};
+
+/**
+ * Shared three-signature strip: Customer, Driver, Disposal Site.
+ * Returns the vertical space it consumed (mm).
+ */
+function drawSignatureTrio(
+  doc: jsPDF,
+  job: WtnJob,
+  L: number,
+  W: number,
+  y: number,
+  opts: WtnOptions,
+  accent?: [number, number, number],
+  compact = false,
+): number {
+  let cursor = y;
+
+  if (opts.showProducerCert && opts.producerCert) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.2);
+    doc.setTextColor(...(accent ?? [0, 0, 0]));
+    doc.text("PRODUCER'S CERTIFICATE", L, cursor + 3);
+    doc.setTextColor(90);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.6);
+    const lines = doc.splitTextToSize(opts.producerCert, W);
+    doc.text(lines, L, cursor + 6.5);
+    doc.setTextColor(0);
+    cursor += 6.5 + lines.length * 2.2;
+  }
+
+  const cols: {
+    title: string;
+    signature?: string | null;
+    name?: string | null;
+    at?: string | null;
+  }[] = [
+    {
+      title: "Customer Signature",
+      signature: job.customer_signature,
+      name: job.customer_signoff_name,
+      at: job.customer_signoff_at,
+    },
+    {
+      title: "Driver Signature",
+      signature: job.driver_signature,
+      name: job.driver_signoff_name || job.driver_name,
+      at: job.driver_signoff_at,
+    },
+  ];
+  if (opts.showDisposerSignature) {
+    cols.push({
+      title: "Disposal Site Signature",
+      signature: job.disposer_signature,
+      name: job.disposer_name,
+      at: job.disposer_signoff_at,
+    });
+  }
+
+  const h = compact ? 20 : 24;
+  const cw = W / cols.length;
+  doc.setDrawColor(...(accent ?? [140, 140, 140]));
+  doc.setLineWidth(0.4);
+  doc.roundedRect(L, cursor, W, h, 1.5, 1.5);
+  doc.setLineWidth(0.2);
+  doc.setDrawColor(215);
+
+  cols.forEach((col, i) => {
+    const x = L + i * cw;
+    if (i > 0) doc.line(x, cursor + 2, x, cursor + h - 2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(110);
+    doc.text(col.title.toUpperCase(), x + 2, cursor + 4.5);
+    doc.setTextColor(0);
+    if (col.signature) {
+      try {
+        doc.addImage(col.signature, imgFormat(col.signature), x + 2, cursor + 5.5, Math.min(45, cw - 6), 11);
+      } catch {
+        /* ignore malformed signature data */
+      }
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`Print: ${col.name || ""}`, x + 2, cursor + h - 4, { maxWidth: cw - 4 });
+    doc.setFontSize(6);
+    doc.setTextColor(120);
+    doc.text(col.at ? `Date: ${fmtDate(col.at)}` : "Date:", x + 2, cursor + h - 1);
+    doc.setTextColor(0);
+  });
+
+  cursor += h;
+  return cursor - y;
+}
+
+/** Optional nett / VAT / total line, mirroring the Suez conveyance note. */
+function drawPricingRow(doc: jsPDF, job: WtnJob, L: number, W: number, y: number): number {
+  const cells: [string, string][] = [
+    ["Nett Price £", money(job.nett_price)],
+    ["VAT £", money(job.vat_amount)],
+    ["Total £", money(job.total_price)],
+  ];
+  const cw = W / 3;
+  doc.setDrawColor(190);
+  doc.setLineWidth(0.2);
+  doc.rect(L, y, W, 8);
+  cells.forEach(([label, value], i) => {
+    const x = L + i * cw;
+    if (i > 0) doc.line(x, y, x, y + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(110);
+    doc.text(label.toUpperCase(), x + 2, y + 3.2);
+    doc.setTextColor(0);
+    doc.setFontSize(8);
+    doc.text(value || "", x + 2, y + 6.8);
+  });
+  return 8;
+}
+
+
 /** Draws one copy of the note into the given vertical band. */
 function drawCopy(
   doc: jsPDF,
@@ -207,10 +363,10 @@ function drawCopy(
     doc.setFontSize(size);
     doc.text(text, x, yy);
   };
-  const val = (text: string, x: number, yy: number, size = 8, bold = false) => {
+  const val = (text: string, x: number, yy: number, size = 8, bold = false, maxWidth?: number) => {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     doc.setFontSize(size);
-    doc.text(text || "", x, yy);
+    doc.text(text || "", x, yy, maxWidth ? { maxWidth } : undefined);
   };
 
   doc.setDrawColor(0);
@@ -244,9 +400,9 @@ function drawCopy(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
-  doc.text(COMPANY.orders, L, y + 22);
+  doc.text(COMPANY.orders, L + 45, y + 19);
 
-  y += 24;
+  y += 21;
 
 
   /* ── Summary strip ── */
@@ -273,7 +429,7 @@ function drawCopy(
   y += 13;
 
   /* ── Producer / contact / invoice ── */
-  const rowH = 26;
+  const rowH = 20;
   const c1 = 86;
   const c2 = 40;
   const c3 = W - c1 - c2;
@@ -284,23 +440,23 @@ function drawCopy(
   label("Waste", L + 1.5, y + 4, 7.5);
   label("Producer:", L + 1.5, y + 8, 7.5);
   const lines = [job.customer_name || "", ...addressLines(job)];
-  lines.slice(0, 7).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 4 + i * 3.2, 7.5));
+  lines.slice(0, 6).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 3.6 + i * 2.9, 7));
 
   label("Site Contact", L + c1 + c2 / 2 - 9, y + 4, 7.5);
-  val(job.site_contact_name || "", L + c1 + 3, y + 10, 7.5);
-  val(job.site_contact_phone || "", L + c1 + 3, y + 15, 7.5);
-  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 21, 7.5);
+  val(job.site_contact_name || "", L + c1 + 3, y + 9, 7);
+  val(job.site_contact_phone || "", L + c1 + 3, y + 13.5, 7);
+  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 18, 7);
 
   label("Invoice Address:", L + c1 + c2 + 1.5, y + 4, 7.5);
   (job.invoice_address || "")
     .split("\n")
     .slice(0, 6)
-    .forEach((line, i) => val(line.trim(), L + c1 + c2 + 26, y + 4 + i * 3.2, 7.5));
+    .forEach((line, i) => val(line.trim(), L + c1 + c2 + 26, y + 4 + i * 2.9, 7));
   val(`Office Contact No: ${COMPANY.phone}`, L + c1 + c2 + 1.5, y + rowH - 2, 7.5);
   y += rowH;
 
   /* ── Comments / directions ── */
-  const commentH = 16;
+  const commentH = 8;
   box(L, y, c1 + c2, commentH);
   box(L + c1 + c2, y, c3, commentH);
   label("Comments:", L + 1.5, y + 4, 7.5);
@@ -311,7 +467,7 @@ function drawCopy(
   y += commentH;
 
   /* ── Vehicle / carrier / EWC / signatures ── */
-  const bandH = 40;
+  const bandH = 30;
   const leftW = 96;
   const rightW = W - leftW;
   const vehH = 14;
@@ -336,67 +492,65 @@ function drawCopy(
     { align: "center" },
   );
   box(L + leftW / 2, y + vehH, leftW / 2, lowerH);
-  val(`EWC/Description: ${[job.ewc_code, job.waste_type].filter(Boolean).join(" — ")}`, L + leftW / 2 + 1.5, y + vehH + 4, 7.5);
-  doc.setFontSize(6.5);
+  val(`EWC/Description: ${[job.ewc_code, job.waste_type].filter(Boolean).join(" — ")}`, L + leftW / 2 + 1.5, y + vehH + 4, 7.5, false, leftW / 2 - 3);
+  doc.setFontSize(5.6);
   doc.text(
     doc.splitTextToSize(
       opts.showHireNote ? opts.hireNote : "",
-      leftW / 2 - 4,
+      leftW / 2 - 6,
     ),
     L + leftW / 2 + leftW / 4,
-    y + vehH + 12,
+    y + vehH + 10.5,
     { align: "center" },
   );
 
-  // Signature panel
-  const sigH = 22;
-  box(L + leftW, y, rightW, sigH);
-  label("Waste Producer Sign:", L + leftW + 1.5, y + 4, 7.5);
-  if (job.customer_signature) {
-    try {
-      doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + leftW + 34, y + 1.5, 40, 16);
-    } catch {
-      /* ignore malformed signature data */
-    }
-  }
-  label("Waste Producer Print:", L + leftW + 1.5, y + sigH - 8, 7.5);
-  val(job.customer_signoff_name || "", L + leftW + 36, y + sigH - 8, 8, true);
-  val(job.customer_signoff_at ? `Signed ${fmtDate(job.customer_signoff_at)}` : "", L + leftW + 1.5, y + sigH - 2, 6.5);
+  // Waste codes + disposal site panel (right of the band)
+  const codesH = 12;
+  box(L + leftW, y, rightW, codesH);
+  label("Waste Code / SIC / Qty:", L + leftW + 1.5, y + 4, 7.5);
+  val(
+    opts.showWasteCodes
+      ? [
+          job.waste_code ? `Waste ${job.waste_code}` : "",
+          job.sic_code ? `SIC ${job.sic_code}` : "",
+          job.quantity ? `Qty ${job.quantity}` : "",
+          job.service_code ? `Service ${job.service_code}` : "",
+        ]
+          .filter(Boolean)
+          .join("  ·  ")
+      : "",
+    L + leftW + 1.5,
+    y + 10,
+    7.5,
+    true,
+  );
 
-  const dispH = bandH - sigH;
-  box(L + leftW, y + sigH, rightW, dispH);
-  label("Disposal Site:", L + leftW + 1.5, y + sigH + 4, 7.5);
+  const dispH = bandH - codesH;
+  box(L + leftW, y + codesH, rightW, dispH);
+  label("Disposal Site:", L + leftW + 1.5, y + codesH + 4, 7.5);
   (job.disposal_site || "Clews Recycling Ltd\nUnit 17 Hunters Lane\nRugby CV21 1EA")
     .split("\n")
     .slice(0, 4)
-    .forEach((line, i) => val(line.trim(), L + leftW + 25, y + sigH + 4 + i * 3.2, 7.5));
-  y += bandH;
+    .forEach((line, i) => val(line.trim(), L + leftW + 25, y + codesH + 4 + i * 3.2, 7.5));
+  y += bandH + 2;
 
-  /* ── Driver sign-off ── */
-  const drvH = 16;
-  box(L, y, leftW, drvH);
-  label("Driver Sign:", L + 1.5, y + 4, 7.5);
-  if (job.driver_signature) {
-    try {
-      doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + 22, y + 1, 38, 13);
-    } catch {
-      /* ignore */
-    }
+  /* ── Signatures: customer, driver, disposal site ── */
+  if (opts.showSignatures) {
+    y += drawSignatureTrio(doc, job, L, W, y, opts, undefined, true) + 1;
   }
-  label("Driver Print:", L + 1.5, y + drvH - 2, 7.5);
-  val(job.driver_signoff_name || job.driver_name || "", L + 22, y + drvH - 2, 8, true);
 
-  box(L + leftW, y, rightW, drvH);
-  doc.setFontSize(6);
-  doc.text(
-    doc.splitTextToSize(
-      opts.terms,
-      rightW - 4,
-    ),
-    L + leftW + 2,
-    y + 3,
-  );
-  y += drvH;
+  if (opts.showPricing) {
+    y += drawPricingRow(doc, job, L, W, y) + 1;
+  }
+
+  /* ── Terms ── */
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(4.9);
+  doc.setTextColor(90);
+  doc.text(doc.splitTextToSize(opts.terms, W), L, y + 2);
+  doc.setTextColor(0);
+  y += 6;
+
 
   /* ── Footer ── */
   if (opts.showFooter) {
@@ -545,7 +699,7 @@ function drawModernCopy(
 
   /* ── Comments / directions ── */
   if (opts.showComments || opts.showDirections) {
-    const cmtH = 14;
+    const cmtH = 12;
     const both = opts.showComments && opts.showDirections;
     const cWidth = both ? W / 2 - 1 : W;
     let cx = L;
@@ -566,44 +720,27 @@ function drawModernCopy(
     y += cmtH + 2;
   }
 
-  /* ── Signatures ── */
+  /* ── Signatures: customer, driver, disposal site ── */
   if (opts.showSignatures) {
-    const sigH = 22;
-    panel(L, y, W / 2 - 1, sigH);
-    heading("Waste Producer Signature", L + 2, y + 4);
-    if (job.customer_signature) {
-      try {
-        doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + 2, y + 5, 40, 11);
-      } catch {
-        /* ignore */
-      }
-    }
-    value(`Print: ${job.customer_signoff_name || ""}`, L + 2, y + 19, 7.5);
-    value(job.customer_signoff_at ? `Signed ${fmtDate(job.customer_signoff_at)}` : "", W / 2 - 4, y + 19, 6.5);
-
-    panel(L + W / 2 + 1, y, W / 2 - 1, sigH);
-    heading("Driver Signature", L + W / 2 + 3, y + 4);
-    if (job.driver_signature) {
-      try {
-        doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + W / 2 + 3, y + 5, 40, 11);
-      } catch {
-        /* ignore */
-      }
-    }
-    value(`Print: ${job.driver_signoff_name || job.driver_name || ""}`, L + W / 2 + 3, y + 19, 7.5);
-    y += sigH + 1.5;
+    y += drawSignatureTrio(doc, job, L, W, y, opts, GREEN, true) + 1;
   }
 
+  if (opts.showPricing) {
+    y += drawPricingRow(doc, job, L, W, y) + 1.5;
+  }
+
+
   /* ── Terms & footer ── */
-  doc.setFontSize(5.6);
+  doc.setFontSize(4.8);
   doc.setTextColor(90);
   const termsText = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
-  doc.text(doc.splitTextToSize(termsText, W), L, y + 3);
+  const termLines = doc.splitTextToSize(termsText, W) as string[];
+  doc.text(termLines.slice(0, 4), L, y + 2.5);
   if (opts.showFooter) {
-    doc.setFontSize(5.8);
-    doc.text(opts.footerText, L + W / 2, y + 20, { align: "center" });
+    doc.setFontSize(5.2);
+    doc.text(opts.footerText, L + W / 2, y + 3 + Math.min(termLines.length, 4) * 2 + 2, { align: "center" });
   }
   doc.setTextColor(0, 0, 0);
 }
@@ -689,6 +826,11 @@ function drawFieldCopy(
     ["Customer O/N", job.po_number || "TBC"],
     ["Account", job.account_code || ""],
   ];
+  if (opts.showWasteCodes) {
+    facts.push(["Waste Code", job.waste_code || ""]);
+    facts.push(["Qty / Service", [job.quantity, job.service_code].filter(Boolean).join(" · ")]);
+  }
+
   const fw = W / facts.length;
   doc.setFillColor(...TINT);
   doc.roundedRect(L, y + 1, W, 13, 1.5, 1.5, "F");
@@ -746,46 +888,28 @@ function drawFieldCopy(
   }
   y += 20;
 
-  /* Signature strip */
+  /* Signature strip: customer, driver, disposal site */
   if (opts.showSignatures) {
-    doc.setDrawColor(...ACCENT);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(L, y, W, 24, 1.5, 1.5);
-    doc.setLineWidth(0.2);
-    doc.setDrawColor(215);
-    doc.line(L + W / 2, y + 2, L + W / 2, y + 22);
-    label("Waste Producer Signature", L + 2, y + 4.5);
-    if (job.customer_signature) {
-      try {
-        doc.addImage(job.customer_signature, imgFormat(job.customer_signature), L + 2, y + 5.5, 45, 12);
-      } catch {
-        /* ignore */
-      }
-    }
-    val(`${job.customer_signoff_name || ""}  ${job.customer_signoff_at ? fmtDate(job.customer_signoff_at) : ""}`, L + 2, y + 22, 8, false);
-    label("Driver Signature", L + W / 2 + 2, y + 4.5);
-    if (job.driver_signature) {
-      try {
-        doc.addImage(job.driver_signature, imgFormat(job.driver_signature), L + W / 2 + 2, y + 5.5, 45, 12);
-      } catch {
-        /* ignore */
-      }
-    }
-    val(job.driver_signoff_name || job.driver_name || "", L + W / 2 + 2, y + 22, 8, false);
-    y += 29;
+    y += drawSignatureTrio(doc, job, L, W, y, opts, ACCENT, true) + 2;
   }
+
+  if (opts.showPricing) {
+    y += drawPricingRow(doc, job, L, W, y) + 2;
+  }
+
 
   /* Terms + footer */
   doc.setTextColor(110);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.4);
+  doc.setFontSize(4.8);
   const terms = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
-  doc.text(doc.splitTextToSize(terms, W), L, y);
+  const fieldTermLines = doc.splitTextToSize(terms, W) as string[];
+  doc.text(fieldTermLines.slice(0, 4), L, y);
   if (opts.showFooter) {
-    doc.setFontSize(5.8);
-    doc.text(opts.footerText, L + W / 2, y + 16, { align: "center" });
+    doc.setFontSize(5.2);
+    doc.text(opts.footerText, L + W / 2, y + Math.min(fieldTermLines.length, 4) * 2 + 2.5, { align: "center" });
   }
   doc.setTextColor(0);
 }
@@ -842,13 +966,13 @@ export function buildWtnPdf(
 
   draw(8, opts.customerCopyLabel);
   if (opts.twoCopies) {
-    const split = design === "classic" ? 152 : 150;
+    const split = design === "classic" ? 148 : 152.5;
     doc.setDrawColor(0);
     doc.setLineWidth(0.1);
     doc.setLineDashPattern([1.5, 1.5], 0);
     doc.line(10, split, 200, split);
     doc.setLineDashPattern([], 0);
-    draw(156, opts.officeCopyLabel);
+    draw(design === "classic" ? 152 : 153, opts.officeCopyLabel);
   }
   return doc;
 }
