@@ -2220,6 +2220,7 @@ export type Database = {
           manual_edit_note: string | null
           movement_type: string | null
           order_number_override: string | null
+          postcode: string | null
           raw: Json
           rebate_rate_per_tonne: number | null
           site: string | null
@@ -2250,6 +2251,7 @@ export type Database = {
           manual_edit_note?: string | null
           movement_type?: string | null
           order_number_override?: string | null
+          postcode?: string | null
           raw?: Json
           rebate_rate_per_tonne?: number | null
           site?: string | null
@@ -2280,6 +2282,7 @@ export type Database = {
           manual_edit_note?: string | null
           movement_type?: string | null
           order_number_override?: string | null
+          postcode?: string | null
           raw?: Json
           rebate_rate_per_tonne?: number | null
           site?: string | null
