@@ -1295,6 +1295,14 @@ function JobCard({
         <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${jtTag(jobType)}`}>
           {jtLabel(jobType)}
         </Badge>
+        <Badge
+          className={`text-[10px] px-1.5 py-0 h-4 border-0 font-medium ${
+            job.is_live ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {job.is_live ? "LIVE" : "Draft"}
+        </Badge>
+
         {job.container_type && (
           <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
         )}
