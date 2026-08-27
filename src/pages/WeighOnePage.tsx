@@ -131,6 +131,8 @@ const WeighOnePage = () => {
   const { user } = useAuth();
   const [operatorSignature, setOperatorSignature] = useState<string | null>(null);
   const [driverSignature, setDriverSignature] = useState<string | null>(null);
+  /** Waste OUT on a Clews vehicle → also raise the matching Route One job */
+  const [createRouteOneJob, setCreateRouteOneJob] = useState(true);
   const [editOperatorSignature, setEditOperatorSignature] = useState<string | null>(null);
   const [editDriverSignature, setEditDriverSignature] = useState<string | null>(null);
 
@@ -299,6 +301,22 @@ const WeighOnePage = () => {
       return data as { id: string; vehicle_reg: string }[];
     },
   });
+
+  /** Our own Route One fleet — used to spot Clews vehicles on Waste OUT loads */
+  const { data: ownFleetRegs = [] } = useQuery({
+    queryKey: ["weighone-own-fleet"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("route_one_vehicles").select("registration");
+      if (error) throw error;
+      return ((data as { registration: string | null }[]) ?? [])
+        .map((v) => (v.registration ?? "").replace(/\s+/g, "").toUpperCase())
+        .filter(Boolean);
+    },
+  });
+
+  const isOwnVehicle = (reg: string, carrier: string) =>
+    ownFleetRegs.includes((reg || "").replace(/\s+/g, "").toUpperCase()) ||
+    (carrier || "").toLowerCase().includes("clews");
 
   // Logged-in user — always the operator on the ticket
   const { data: myProfile } = useQuery({
