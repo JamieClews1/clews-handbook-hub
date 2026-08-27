@@ -131,6 +131,8 @@ const WeighOnePage = () => {
   const { user } = useAuth();
   const [operatorSignature, setOperatorSignature] = useState<string | null>(null);
   const [driverSignature, setDriverSignature] = useState<string | null>(null);
+  /** Waste OUT on a Clews vehicle → also raise the matching Route One job */
+  const [createRouteOneJob, setCreateRouteOneJob] = useState(true);
   const [editOperatorSignature, setEditOperatorSignature] = useState<string | null>(null);
   const [editDriverSignature, setEditDriverSignature] = useState<string | null>(null);
 
@@ -299,6 +301,22 @@ const WeighOnePage = () => {
       return data as { id: string; vehicle_reg: string }[];
     },
   });
+
+  /** Our own Route One fleet — used to spot Clews vehicles on Waste OUT loads */
+  const { data: ownFleetRegs = [] } = useQuery({
+    queryKey: ["weighone-own-fleet"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("route_one_vehicles").select("registration");
+      if (error) throw error;
+      return ((data as { registration: string | null }[]) ?? [])
+        .map((v) => (v.registration ?? "").replace(/\s+/g, "").toUpperCase())
+        .filter(Boolean);
+    },
+  });
+
+  const isOwnVehicle = (reg: string, carrier: string) =>
+    ownFleetRegs.includes((reg || "").replace(/\s+/g, "").toUpperCase()) ||
+    (carrier || "").toLowerCase().includes("clews");
 
   // Logged-in user — always the operator on the ticket
   const { data: myProfile } = useQuery({
@@ -554,6 +572,40 @@ const WeighOnePage = () => {
           toast.error("Transaction saved but attachments failed: " + (e as Error).message);
         }
       }
+
+      /* Waste OUT on one of our own vehicles → raise the matching Route One job */
+      if (
+        txData &&
+        formData.job_type === "waste_out" &&
+        createRouteOneJob &&
+        isOwnVehicle(formData.vehicle_reg, formData.carrier_name)
+      ) {
+        const { error: roError } = await supabase.from("route_one_jobs").insert({
+          customer_name: formData.customer || OWN_CARRIER_NAME,
+          site_name: formData.site || null,
+          job_type: "waste_out_skip",
+          status: hasTare ? "completed" : "unassigned",
+          scheduled_date: new Date().toISOString().slice(0, 10),
+          completed_at: hasTare ? new Date().toISOString() : null,
+          container_type: formData.container_type || null,
+          waste_type: wasteType?.waste_type || null,
+          ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
+          vehicle_reg: formData.vehicle_reg.toUpperCase() || null,
+          carrier_name: formData.carrier_name || OWN_CARRIER_NAME,
+          weighbridge_transaction_id: txData.id,
+          weighbridge_ticket_number: ticket,
+          outbound_weight_t: netKg != null ? Math.round((netKg / 1000) * 100) / 100 : null,
+          destination_name: formData.customer || null,
+          disposal_site: formData.customer || null,
+          notes: `Auto-created from WeighOne ticket ${ticket}`,
+          created_by: user?.id ?? null,
+        });
+        if (roError) {
+          toast.error("Ticket saved but Route One job failed: " + roError.message);
+        } else {
+          toast.success("Route One waste-out job created");
+        }
+      }
     },
 
     onSuccess: () => {
@@ -589,6 +641,16 @@ const WeighOnePage = () => {
         })
         .eq("id", selectedTransaction.id);
       if (error) throw error;
+
+      // Keep any auto-created Route One waste-out job in step with the final weight
+      await supabase
+        .from("route_one_jobs")
+        .update({
+          outbound_weight_t: Math.round((netKg / 1000) * 100) / 100,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("weighbridge_transaction_id", selectedTransaction.id);
     },
     onSuccess: () => {
       toast.success("Transaction completed");
@@ -929,6 +991,23 @@ const WeighOnePage = () => {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {formData.job_type === "waste_out" && isOwnVehicle(formData.vehicle_reg, formData.carrier_name) && (
+                        <label className="flex items-start gap-2 rounded-md border border-foreground/15 bg-muted/40 p-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 accent-primary"
+                            checked={createRouteOneJob}
+                            onChange={(e) => setCreateRouteOneJob(e.target.checked)}
+                          />
+                          <span className="text-xs">
+                            <span className="font-medium">Create matching Route One job</span>
+                            <span className="block text-muted-foreground">
+                              Clews vehicle detected — a Waste Out Skip job will be raised in Route One and linked to this ticket.
+                            </span>
+                          </span>
+                        </label>
+                      )}
 
                       {formData.job_type === "skip" && (
                         <div className="grid grid-cols-2 gap-3">
