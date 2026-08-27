@@ -890,7 +890,7 @@ function drawFieldCopy(
 
   /* Signature strip: customer, driver, disposal site */
   if (opts.showSignatures) {
-    y += drawSignatureTrio(doc, job, L, W, y, opts, ACCENT) + 3;
+    y += drawSignatureTrio(doc, job, L, W, y, opts, ACCENT, true) + 2;
   }
 
   if (opts.showPricing) {
@@ -901,14 +901,15 @@ function drawFieldCopy(
   /* Terms + footer */
   doc.setTextColor(110);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.4);
+  doc.setFontSize(4.8);
   const terms = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
-  doc.text(doc.splitTextToSize(terms, W), L, y);
+  const fieldTermLines = doc.splitTextToSize(terms, W) as string[];
+  doc.text(fieldTermLines.slice(0, 4), L, y);
   if (opts.showFooter) {
-    doc.setFontSize(5.8);
-    doc.text(opts.footerText, L + W / 2, y + 16, { align: "center" });
+    doc.setFontSize(5.2);
+    doc.text(opts.footerText, L + W / 2, y + Math.min(fieldTermLines.length, 4) * 2 + 2.5, { align: "center" });
   }
   doc.setTextColor(0);
 }
