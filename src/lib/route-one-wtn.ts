@@ -699,7 +699,7 @@ function drawModernCopy(
 
   /* ── Comments / directions ── */
   if (opts.showComments || opts.showDirections) {
-    const cmtH = 14;
+    const cmtH = 12;
     const both = opts.showComments && opts.showDirections;
     const cWidth = both ? W / 2 - 1 : W;
     let cx = L;
@@ -722,7 +722,7 @@ function drawModernCopy(
 
   /* ── Signatures: customer, driver, disposal site ── */
   if (opts.showSignatures) {
-    y += drawSignatureTrio(doc, job, L, W, y, opts, GREEN) + 1.5;
+    y += drawSignatureTrio(doc, job, L, W, y, opts, GREEN, true) + 1;
   }
 
   if (opts.showPricing) {
@@ -731,15 +731,16 @@ function drawModernCopy(
 
 
   /* ── Terms & footer ── */
-  doc.setFontSize(5.6);
+  doc.setFontSize(4.8);
   doc.setTextColor(90);
   const termsText = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
-  doc.text(doc.splitTextToSize(termsText, W), L, y + 3);
+  const termLines = doc.splitTextToSize(termsText, W) as string[];
+  doc.text(termLines.slice(0, 4), L, y + 2.5);
   if (opts.showFooter) {
-    doc.setFontSize(5.8);
-    doc.text(opts.footerText, L + W / 2, y + 20, { align: "center" });
+    doc.setFontSize(5.2);
+    doc.text(opts.footerText, L + W / 2, y + 3 + Math.min(termLines.length, 4) * 2 + 2, { align: "center" });
   }
   doc.setTextColor(0, 0, 0);
 }
