@@ -188,6 +188,7 @@ const TYPE_LABELS: Record<string, string> = {
   collection: "Collect",
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
+  waste_out_skip: "Waste Out Skip",
 };
 
 
