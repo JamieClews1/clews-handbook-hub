@@ -98,13 +98,18 @@ export function TicketSendDialog({ job, open, onOpenChange }: Props) {
     );
   }, [open, job]);
 
-  useEffect(() => {
-    setPhotoSel(Object.fromEntries(Object.keys(photoGroups).map((k) => [k, true])));
-  }, [photoGroups]);
+  // Stable keys — photoGroups/docs are rebuilt every render, so depend on their
+  // contents, not their identity, or these effects loop forever.
+  const photoGroupKeys = Object.keys(photoGroups).sort().join("|");
+  const docIds = docs.map((d: any) => d.id).sort().join("|");
 
   useEffect(() => {
-    setDocSel(Object.fromEntries(docs.map((d: any) => [d.id, true])));
-  }, [docs]);
+    setPhotoSel(Object.fromEntries(photoGroupKeys ? photoGroupKeys.split("|").map((k) => [k, true]) : []));
+  }, [photoGroupKeys]);
+
+  useEffect(() => {
+    setDocSel(Object.fromEntries(docIds ? docIds.split("|").map((id) => [id, true]) : []));
+  }, [docIds]);
 
   const selectedPhotos = photos.filter((p) => photoSel[p.photo_type || "photo"]);
   const selectedDocs = (docs as any[]).filter((d) => docSel[d.id]);
