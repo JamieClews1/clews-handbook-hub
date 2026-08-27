@@ -440,18 +440,18 @@ function drawCopy(
   label("Waste", L + 1.5, y + 4, 7.5);
   label("Producer:", L + 1.5, y + 8, 7.5);
   const lines = [job.customer_name || "", ...addressLines(job)];
-  lines.slice(0, 7).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 4 + i * 3.2, 7.5));
+  lines.slice(0, 6).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 3.6 + i * 2.9, 7));
 
   label("Site Contact", L + c1 + c2 / 2 - 9, y + 4, 7.5);
-  val(job.site_contact_name || "", L + c1 + 3, y + 10, 7.5);
-  val(job.site_contact_phone || "", L + c1 + 3, y + 15, 7.5);
-  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 21, 7.5);
+  val(job.site_contact_name || "", L + c1 + 3, y + 9, 7);
+  val(job.site_contact_phone || "", L + c1 + 3, y + 13.5, 7);
+  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 18, 7);
 
   label("Invoice Address:", L + c1 + c2 + 1.5, y + 4, 7.5);
   (job.invoice_address || "")
     .split("\n")
     .slice(0, 6)
-    .forEach((line, i) => val(line.trim(), L + c1 + c2 + 26, y + 4 + i * 3.2, 7.5));
+    .forEach((line, i) => val(line.trim(), L + c1 + c2 + 26, y + 4 + i * 2.9, 7));
   val(`Office Contact No: ${COMPANY.phone}`, L + c1 + c2 + 1.5, y + rowH - 2, 7.5);
   y += rowH;
 
