@@ -39,7 +39,7 @@ import { SignatureField } from "@/components/SignatureField";
 import { downloadWtnPdf } from "@/lib/route-one-wtn";
 
 /* ─── Types ───────────────────────────────────── */
-type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
+type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey" | "waste_out_skip";
 type JobStatus = "unassigned" | "assigned" | "in_progress" | "completed" | "query";
 
 const JOB_TYPE_LABELS: Record<JobType, string> = {
@@ -48,6 +48,7 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
   collection: "Collection",
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
+  waste_out_skip: "Waste Out Skip",
 };
 
 const JOB_TYPE_COLORS: Record<JobType, { bg: string; border: string; text: string; badge: string }> = {
@@ -56,6 +57,7 @@ const JOB_TYPE_COLORS: Record<JobType, { bg: string; border: string; text: strin
   collection:     { bg: "bg-orange-500/10",  border: "border-orange-500",  text: "text-orange-700",  badge: "bg-orange-500 text-white" },
   waste_truck:    { bg: "bg-blue-500/10",    border: "border-blue-500",    text: "text-blue-700",    badge: "bg-blue-500 text-white" },
   wasted_journey: { bg: "bg-red-500/10",     border: "border-red-500",     text: "text-red-700",     badge: "bg-red-500 text-white" },
+  waste_out_skip: { bg: "bg-slate-500/10",   border: "border-slate-500",   text: "text-slate-700",   badge: "bg-slate-700 text-white" },
 };
 
 const STATUS_LABELS: Record<string, string> = {

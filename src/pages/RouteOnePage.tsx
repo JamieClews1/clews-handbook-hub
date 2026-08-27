@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
+type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey" | "waste_out_skip";
 type JobStatus = "unassigned" | "assigned" | "in_progress" | "completed" | "query";
 
 const JOB_TYPE_LABELS: Record<JobType, string> = {
@@ -69,6 +69,7 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
   collection: "Collection",
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
+  waste_out_skip: "Waste Out Skip",
 };
 
 // Legacy fully-colored card style — retained for detail dialogs and list badges.
@@ -78,6 +79,7 @@ const JOB_TYPE_COLORS: Record<JobType, string> = {
   collection: "bg-orange-500 border-orange-600 text-white",
   waste_truck: "bg-blue-600 border-blue-700 text-white",
   wasted_journey: "bg-red-600 border-red-700 text-white",
+  waste_out_skip: "bg-slate-700 border-slate-800 text-white",
 };
 
 const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
@@ -86,6 +88,7 @@ const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
   collection: "bg-white/25 text-white hover:bg-white/35 border-0",
   waste_truck: "bg-white/25 text-white hover:bg-white/35 border-0",
   wasted_journey: "bg-white/25 text-white hover:bg-white/35 border-0",
+  waste_out_skip: "bg-white/25 text-white hover:bg-white/35 border-0",
 };
 
 // Kanban job-card accent bar (3px, square-cornered, left edge).
@@ -95,6 +98,7 @@ const JOB_TYPE_ACCENT: Record<JobType, string> = {
   collection: "bg-orange-500",
   waste_truck: "bg-blue-500",
   wasted_journey: "bg-red-500",
+  waste_out_skip: "bg-slate-600",
 };
 
 // Independent tag colors used for the job-type pill on kanban cards.
@@ -104,6 +108,7 @@ const JOB_TYPE_TAG: Record<JobType, string> = {
   collection: "bg-orange-500/10 text-orange-700 border border-orange-500/20",
   waste_truck: "bg-blue-500/10 text-blue-700 border border-blue-500/20",
   wasted_journey: "bg-red-500/10 text-red-700 border border-red-500/20",
+  waste_out_skip: "bg-slate-500/10 text-slate-700 border border-slate-500/20",
 };
 
 // Configured job types (route_one_job_types) win; static maps are the fallback
@@ -179,6 +184,11 @@ const RouteOnePage = () => {
     carrier_name: "",
     ewc_code: "",
     job_type: "delivery" as JobType,
+    weighbridge_transaction_id: "",
+    weighbridge_ticket_number: "",
+    outbound_weight_t: "",
+    destination_name: "",
+    destination_address: "",
     container_type: "",
     container_size: "",
     waste_type: "",
@@ -312,6 +322,11 @@ const RouteOnePage = () => {
         vehicle_reg: form.vehicle_reg || null,
         carrier_name: form.carrier_name || null,
         ewc_code: form.ewc_code || null,
+        weighbridge_transaction_id: form.weighbridge_transaction_id || null,
+        weighbridge_ticket_number: form.weighbridge_ticket_number || null,
+        outbound_weight_t: form.outbound_weight_t === "" || form.outbound_weight_t == null ? null : Number(form.outbound_weight_t),
+        destination_name: form.destination_name || null,
+        destination_address: form.destination_address || null,
         job_type: form.job_type,
         container_type: form.container_type || null,
         container_size: form.container_size || null,
@@ -395,6 +410,11 @@ const RouteOnePage = () => {
       vehicle_reg: editForm.vehicle_reg || null,
       carrier_name: editForm.carrier_name || null,
       ewc_code: editForm.ewc_code || null,
+      weighbridge_transaction_id: editForm.weighbridge_transaction_id || null,
+      weighbridge_ticket_number: editForm.weighbridge_ticket_number || null,
+      outbound_weight_t: editForm.outbound_weight_t === "" || editForm.outbound_weight_t == null ? null : Number(editForm.outbound_weight_t),
+      destination_name: editForm.destination_name || null,
+      destination_address: editForm.destination_address || null,
       job_type: editForm.job_type,
       container_type: editForm.container_type || null,
       container_size: editForm.container_size || null,
@@ -436,6 +456,11 @@ const RouteOnePage = () => {
       carrier_name: job.carrier_name || "",
       ewc_code: job.ewc_code || "",
       job_type: job.job_type || "delivery",
+      weighbridge_transaction_id: job.weighbridge_transaction_id || "",
+      weighbridge_ticket_number: job.weighbridge_ticket_number || "",
+      outbound_weight_t: job.outbound_weight_t ?? "",
+      destination_name: job.destination_name || "",
+      destination_address: job.destination_address || "",
       container_type: job.container_type || "",
       container_size: job.container_size || "",
       waste_type: job.waste_type || "",
@@ -462,6 +487,8 @@ const RouteOnePage = () => {
       account_code: "", invoice_address: "", directions: "", disposal_site: "",
       vehicle_reg: "", carrier_name: "", ewc_code: "",
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
+      weighbridge_transaction_id: "", weighbridge_ticket_number: "", outbound_weight_t: "",
+      destination_name: "", destination_address: "",
       notes: "", po_number: "", scheduled_date: format(selectedDate, "yyyy-MM-dd"),
       assigned_driver_id: "",
       haulage_cost: "", charge_per_tonne: "", min_weight_charge: "", weight_included_t: "",
