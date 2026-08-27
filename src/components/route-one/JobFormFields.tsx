@@ -460,6 +460,52 @@ export function JobFormFields({
             Use previous job / exchange
           </Button>
         </div>
+
+        {/* Postcode-first lookup — start the call here */}
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+          <Label className="text-xs font-semibold">Start with the postcode</Label>
+          <div className="flex gap-2">
+            <Input
+              value={postcodeQuery}
+              onChange={(e) => setPostcodeQuery(e.target.value.toUpperCase())}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); searchPostcode(); } }}
+              placeholder="e.g. NN6 7XY — what postcode needs the job?"
+              className="font-mono uppercase"
+              autoFocus
+            />
+            <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={searchPostcode} disabled={postcodeSearching}>
+              {postcodeSearching ? "Searching..." : "Find site"}
+            </Button>
+          </div>
+          {postcodeSearched && postcodeMatches.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">No jobs found at this postcode — fill the customer &amp; site in below as a new site.</p>
+          )}
+          {postcodeMatches.length > 0 && (
+            <div className="rounded-md border border-border bg-background divide-y divide-border max-h-56 overflow-y-auto">
+              {postcodeMatches.map((m, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-accent text-xs"
+                  onClick={() => applyPostcodeMatch(m)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium truncate">{m.site || m.address || m.postcode}</span>
+                    <span className="font-mono text-muted-foreground shrink-0">{m.postcode}</span>
+                  </div>
+                  <div className="text-muted-foreground truncate">
+                    {m.customer}
+                    {m.container_type ? ` · ${m.container_type}` : ""}
+                    {m.waste_type ? ` · ${m.waste_type}` : ""}
+                    {m.last_date ? ` · last job ${new Date(m.last_date).toLocaleDateString("en-GB")}` : ""}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Customer *</Label>
