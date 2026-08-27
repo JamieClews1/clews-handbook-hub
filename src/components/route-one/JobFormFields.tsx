@@ -287,6 +287,77 @@ export function JobFormFields({
     return [...displayByNormalised.values()].slice(0, 10);
   };
 
+  /** Postcode-first lookup: find known sites/jobs at this postcode. */
+  const searchPostcode = async () => {
+    const input = postcodeQuery.trim();
+    if (input.length < 3) return;
+    setPostcodeSearching(true);
+    setPostcodeSearched(false);
+    const variants = postcodeVariants(input);
+    const orFilter = variants.map((v) => `postcode.ilike.%${v}%`).join(",");
+    const roOrFilter = variants.map((v) => `site_postcode.ilike.%${v}%`).join(",");
+
+    const [{ data: ro }, { data: hub }] = await Promise.all([
+      supabase
+        .from("route_one_jobs")
+        .select("customer_name, site_name, site_address, site_postcode, container_type, container_size, waste_type, scheduled_date")
+        .or(roOrFilter)
+        .order("scheduled_date", { ascending: false })
+        .limit(50),
+      supabase
+        .from("data_hub_jobs")
+        .select("customer, site, postcode, container_type, waste_description, job_date, raw")
+        .or(orFilter)
+        .limit(200),
+    ]);
+
+    const byKey = new Map<string, PostcodeMatch>();
+    for (const j of (ro ?? []) as any[]) {
+      const key = `${(j.site_name || "").toLowerCase()}|${(j.site_postcode || "").toLowerCase()}`;
+      if (byKey.has(key)) continue;
+      byKey.set(key, {
+        customer: j.customer_name || "",
+        site: j.site_name || "",
+        address: j.site_address || "",
+        postcode: j.site_postcode || "",
+        container_type: j.container_type || "",
+        waste_type: j.waste_type || "",
+        last_date: j.scheduled_date || "",
+        source: "routeone",
+      });
+    }
+    for (const j of (hub ?? []) as any[]) {
+      const key = `${(j.site || "").toLowerCase()}|${(j.postcode || "").toLowerCase()}`;
+      if (byKey.has(key)) continue;
+      byKey.set(key, {
+        customer: j.customer || "",
+        site: j.site || "",
+        address: rawText(j.raw, ["Site Address", "Site address", "Address"]),
+        postcode: j.postcode || "",
+        container_type: j.container_type || "",
+        waste_type: j.waste_description || "",
+        last_date: j.job_date || "",
+        source: "datahub",
+      });
+    }
+    setPostcodeMatches([...byKey.values()].slice(0, 15));
+    setPostcodeSearching(false);
+    setPostcodeSearched(true);
+  };
+
+  /** Fill the form from a postcode match and jump straight to previous jobs. */
+  const applyPostcodeMatch = (m: PostcodeMatch) => {
+    setForm({
+      ...form,
+      customer_name: m.customer || form.customer_name,
+      site_name: m.site || form.site_name,
+      site_address: m.address || form.site_address,
+      site_postcode: m.postcode || postcodeQuery.trim(),
+    });
+    setPostcodeMatches([]);
+    setPostcodeSearched(false);
+  };
+
   /** Previous jobs for this customer/site — used to set up an exchange. */
   const loadPreviousJobs = async () => {
     setPrevLoading(true);
