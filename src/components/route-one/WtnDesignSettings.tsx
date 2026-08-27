@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { renderPdfFirstPage } from "@/lib/pdf-preview";
 import { Check, Eye, FileDown, RotateCcw, Save } from "lucide-react";
 import {
   DEFAULT_WTN_OPTIONS,
@@ -96,6 +97,7 @@ export function WtnDesignSettings() {
   const [design, setDesign] = useState<WtnDesign>("classic");
   const [opts, setOpts] = useState<WtnOptions>(DEFAULT_WTN_OPTIONS);
   const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [previewFiles, setPreviewFiles] = useState<Record<string, string>>({});
   const [livePreview, setLivePreview] = useState<string>("");
   const urlsRef = useRef<string[]>([]);
 
@@ -114,17 +116,25 @@ export function WtnDesignSettings() {
     const created: string[] = [];
     (async () => {
       const next: Record<string, string> = {};
+      const files: Record<string, string> = {};
       for (const opt of OPTIONS) {
         const doc = await buildWtnDoc(SAMPLE, opt.id, opts);
-        const url = URL.createObjectURL(doc.output("blob"));
-        next[opt.id] = url;
+        const blob = doc.output("blob") as Blob;
+        const url = URL.createObjectURL(blob);
+        files[opt.id] = url;
         created.push(url);
+        try {
+          next[opt.id] = await renderPdfFirstPage(blob, 700);
+        } catch {
+          next[opt.id] = "";
+        }
       }
       if (cancelled) {
         created.forEach((u) => URL.revokeObjectURL(u));
         return;
       }
       setPreviews(next);
+      setPreviewFiles(files);
     })();
     return () => {
       cancelled = true;
@@ -138,9 +148,15 @@ export function WtnDesignSettings() {
     let url = "";
     const t = setTimeout(async () => {
       const doc = await buildWtnDoc(SAMPLE, design, opts);
-      url = URL.createObjectURL(doc.output("blob"));
-      if (cancelled) return URL.revokeObjectURL(url);
-      setLivePreview(url);
+      const blob = doc.output("blob") as Blob;
+      let png = "";
+      try {
+        png = await renderPdfFirstPage(blob, 1000);
+      } catch {
+        png = "";
+      }
+      if (cancelled) return;
+      setLivePreview(png);
     }, 250);
     return () => {
       cancelled = true;
@@ -222,10 +238,10 @@ export function WtnDesignSettings() {
               <CardContent className="space-y-3">
                 <div className="rounded-md border border-border overflow-hidden bg-muted/30">
                   {previews[opt.id] ? (
-                    <iframe
-                      title={`${opt.title} preview`}
-                      src={`${previews[opt.id]}#toolbar=0&navpanes=0&view=FitH`}
-                      className="w-full h-[280px]"
+                    <img
+                      alt={`${opt.title} waste transfer note preview`}
+                      src={previews[opt.id]}
+                      className="w-full h-[280px] object-contain object-top bg-white"
                     />
                   ) : (
                     <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground">
@@ -248,7 +264,7 @@ export function WtnDesignSettings() {
                     <Check className="h-3 w-3 mr-1.5" />
                     {design === opt.id ? "Selected" : "Use this design"}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => window.open(previews[opt.id], "_blank")}>
+                  <Button size="sm" variant="outline" onClick={() => window.open(previewFiles[opt.id], "_blank")}>
                     <Eye className="h-3 w-3 mr-1.5" /> Full size
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => downloadWtnPdf(SAMPLE, opt.id, opts)}>
@@ -417,10 +433,10 @@ export function WtnDesignSettings() {
             <CardContent>
               <div className="rounded-md border border-border overflow-hidden bg-muted/30">
                 {livePreview ? (
-                  <iframe
-                    title="Live ticket preview"
-                    src={`${livePreview}#toolbar=0&navpanes=0&view=FitH`}
-                    className="w-full h-[620px]"
+                  <img
+                    alt="Live waste transfer note preview"
+                    src={livePreview}
+                    className="w-full h-[620px] object-contain object-top bg-white"
                   />
                 ) : (
                   <div className="h-[620px] flex items-center justify-center text-xs text-muted-foreground">
