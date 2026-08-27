@@ -584,6 +584,7 @@ const WeighOnePage = () => {
           customer_name: formData.customer || OWN_CARRIER_NAME,
           site_name: formData.site || null,
           job_type: "waste_out_skip",
+          is_live: true,
           status: hasTare ? "completed" : "unassigned",
           scheduled_date: new Date().toISOString().slice(0, 10),
           completed_at: hasTare ? new Date().toISOString() : null,
