@@ -242,14 +242,26 @@ export function JobFormFields({
 
   const fetchCustomers = async (query: string): Promise<string[]> => {
     const [{ data: setup }, { data: hub }] = await Promise.all([
-      supabase.from("customers").select("customer_name").ilike("customer_name", `%${query}%`).limit(20),
+      supabase
+        .from("customers")
+        .select("customer_name, customer_code")
+        .or(`customer_name.ilike.%${query}%,customer_code.ilike.%${query}%`)
+        .limit(20),
       supabase.from("data_hub_jobs").select("customer").ilike("customer", `%${query}%`).not("customer", "is", null).limit(100),
     ]);
-    const names = [
-      ...(setup ?? []).map((r: any) => r.customer_name),
-      ...(hub ?? []).map((r: any) => r.customer),
-    ].filter(Boolean);
-    return [...new Set(names)].slice(0, 10);
+
+    const displayByNormalised = new Map<string, string>();
+    for (const r of (setup ?? []) as any[]) {
+      const display = r.customer_code ? `${r.customer_name} (${r.customer_code})` : r.customer_name;
+      displayByNormalised.set(normaliseCustomer(display).toLowerCase(), display);
+    }
+    for (const r of (hub ?? []) as any[]) {
+      const name = r.customer;
+      if (!name) continue;
+      const key = normaliseCustomer(name).toLowerCase();
+      if (!displayByNormalised.has(key)) displayByNormalised.set(key, name);
+    }
+    return [...displayByNormalised.values()].slice(0, 10);
   };
 
   /** Previous jobs for this customer/site — used to set up an exchange. */
