@@ -18,6 +18,7 @@ export const DEFAULT_JOB_TYPES: JobTypeDef[] = [
   { key: "waste_truck", label: "Waste Truck", color: "blue", display_order: 4, is_active: true },
   { key: "pickup", label: "Pickup", color: "orange", display_order: 5, is_active: true },
   { key: "seven_five_tonne", label: "7.5 Tonne", color: "cyan", display_order: 6, is_active: true },
+  { key: "waste_out_skip", label: "Waste Out Skip", color: "slate", display_order: 7, is_active: true },
 ];
 
 export const JOB_TYPE_COLOR_OPTIONS = [

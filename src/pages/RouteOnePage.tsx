@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey";
+type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey" | "waste_out_skip";
 type JobStatus = "unassigned" | "assigned" | "in_progress" | "completed" | "query";
 
 const JOB_TYPE_LABELS: Record<JobType, string> = {
@@ -79,6 +79,7 @@ const JOB_TYPE_COLORS: Record<JobType, string> = {
   collection: "bg-orange-500 border-orange-600 text-white",
   waste_truck: "bg-blue-600 border-blue-700 text-white",
   wasted_journey: "bg-red-600 border-red-700 text-white",
+  waste_out_skip: "bg-slate-700 border-slate-800 text-white",
 };
 
 const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
@@ -87,6 +88,7 @@ const JOB_TYPE_BADGE_COLORS: Record<JobType, string> = {
   collection: "bg-white/25 text-white hover:bg-white/35 border-0",
   waste_truck: "bg-white/25 text-white hover:bg-white/35 border-0",
   wasted_journey: "bg-white/25 text-white hover:bg-white/35 border-0",
+  waste_out_skip: "bg-white/25 text-white hover:bg-white/35 border-0",
 };
 
 // Kanban job-card accent bar (3px, square-cornered, left edge).
@@ -96,6 +98,7 @@ const JOB_TYPE_ACCENT: Record<JobType, string> = {
   collection: "bg-orange-500",
   waste_truck: "bg-blue-500",
   wasted_journey: "bg-red-500",
+  waste_out_skip: "bg-slate-600",
 };
 
 // Independent tag colors used for the job-type pill on kanban cards.
@@ -105,6 +108,7 @@ const JOB_TYPE_TAG: Record<JobType, string> = {
   collection: "bg-orange-500/10 text-orange-700 border border-orange-500/20",
   waste_truck: "bg-blue-500/10 text-blue-700 border border-blue-500/20",
   wasted_journey: "bg-red-500/10 text-red-700 border border-red-500/20",
+  waste_out_skip: "bg-slate-500/10 text-slate-700 border border-slate-500/20",
 };
 
 // Configured job types (route_one_job_types) win; static maps are the fallback
