@@ -27,6 +27,6 @@ export async function renderPdfFirstPage(blob: Blob, widthPx = 800): Promise<str
 
   await page.render({ canvas, canvasContext: ctx, viewport } as never).promise;
   const url = canvas.toDataURL("image/png");
-  doc.destroy();
+  void doc.cleanup();
   return url;
 }
