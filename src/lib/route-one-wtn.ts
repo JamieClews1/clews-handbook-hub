@@ -986,12 +986,41 @@ export function buildWtnPdf(
   return doc;
 }
 
+/**
+ * Waste-out skip loads leave our own weighbridge, so the producer block must show
+ * Clews Recycling and the "site" becomes the receiving (disposal) facility.
+ */
+export function mapWasteOutSkip(job: WtnJob): WtnJob {
+  if (job.job_type !== WASTE_OUT_SKIP) return job;
+  const destination = job.destination_name || job.customer_name || job.disposal_site || "";
+  const weight = job.outbound_weight_t;
+  const ticketNote = [
+    job.weighbridge_ticket_number ? `Weighbridge ticket ${job.weighbridge_ticket_number}` : "",
+    weight ? `Weight out ${weight} t` : "",
+    destination ? `Received by ${destination}` : "",
+  ]
+    .filter(Boolean)
+    .join("  ·  ");
+  return {
+    ...job,
+    customer_name: COMPANY.name,
+    site_name: "Clews Recycling Ltd (Weighbridge)",
+    site_address: COMPANY.address[0],
+    site_address_2: COMPANY.address[1],
+    site_area: COMPANY.address[2],
+    site_postcode: COMPANY.address[3],
+    disposal_site: destination || job.disposal_site || null,
+    quantity: job.quantity ?? (weight ? `${weight} t` : null),
+    notes: [ticketNote, job.notes].filter(Boolean).join("\n"),
+  };
+}
+
 /** Builds the note using the design + builder options chosen in RouteOne setup. */
 export async function buildWtnDoc(job: WtnJob, design?: WtnDesign, options?: WtnOptions): Promise<jsPDF> {
   const chosen = design ?? getWtnDesign();
   const opts = options ?? getWtnOptions();
   const logo = opts.showLogo ? await loadLogoDataUrl() : null;
-  return buildWtnPdf(job, chosen, logo, opts);
+  return buildWtnPdf(mapWasteOutSkip(job), chosen, logo, opts);
 }
 
 
