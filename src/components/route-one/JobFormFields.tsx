@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { useJobTypes } from "./jobTypes";
+
 import { JobPricingPicker } from "./JobPricingPicker";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 
@@ -173,8 +175,12 @@ export function JobFormFields({
   const [catalogue, setCatalogue] = useState<any[]>([]);
   const [containerTypes, setContainerTypes] = useState<string[]>([]);
   const { types: jobTypes } = useJobTypes();
+  const { zoneFor } = usePostcodeZoneLookup();
+  const queryZone = zoneFor(postcodeQuery);
+  const siteZone = zoneFor(form.site_postcode);
 
   const customer = form.customer_name || "";
+
 
   // Sites for the chosen customer — from customer setup AND the Data Hub history
   useEffect(() => {
@@ -358,6 +364,24 @@ export function JobFormFields({
     setPostcodeSearched(false);
   };
 
+  /** Start a brand new site (and delivery) from scratch at the searched postcode. */
+  const startNewSite = () => {
+    setForm({
+      ...form,
+      job_type: form.job_type || "delivery",
+      site_name: "",
+      site_address: "",
+      site_postcode: postcodeQuery.trim() || form.site_postcode || "",
+      site_area: "",
+      site_contact_name: "",
+      site_contact_phone: "",
+    });
+    setManualSite(true);
+    setPostcodeMatches([]);
+    setPostcodeSearched(false);
+  };
+
+
   /** Previous jobs for this customer/site — used to set up an exchange. */
   const loadPreviousJobs = async () => {
     setPrevLoading(true);
@@ -463,7 +487,14 @@ export function JobFormFields({
 
         {/* Postcode-first lookup — start the call here */}
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
-          <Label className="text-xs font-semibold">Start with the postcode</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs font-semibold">Start with the postcode</Label>
+            {queryZone && (
+              <Badge className="gap-1 text-[10px]">
+                <MapPin className="h-3 w-3" /> {queryZone}
+              </Badge>
+            )}
+          </div>
           <div className="flex gap-2">
             <Input
               value={postcodeQuery}
@@ -477,8 +508,16 @@ export function JobFormFields({
               {postcodeSearching ? "Searching..." : "Find site"}
             </Button>
           </div>
+          {postcodeQuery.trim().length >= 3 && !queryZone && (
+            <p className="text-[11px] text-muted-foreground">No zone configured for this postcode.</p>
+          )}
           {postcodeSearched && postcodeMatches.length === 0 && (
-            <p className="text-[11px] text-muted-foreground">No jobs found at this postcode — fill the customer &amp; site in below as a new site.</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[11px] text-muted-foreground">No jobs found at this postcode.</p>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={startNewSite}>
+                <Plus className="h-3.5 w-3.5" /> New site &amp; delivery
+              </Button>
+            </div>
           )}
           {postcodeMatches.length > 0 && (
             <div className="rounded-md border border-border bg-background divide-y divide-border max-h-56 overflow-y-auto">
@@ -503,8 +542,14 @@ export function JobFormFields({
               ))}
             </div>
           )}
-          <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
+            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs gap-1 shrink-0" onClick={startNewSite}>
+              <Plus className="h-3.5 w-3.5" /> New site
+            </Button>
+          </div>
         </div>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
@@ -537,6 +582,7 @@ export function JobFormFields({
               <Select
                 value={form.site_name || ""}
                 onValueChange={(v) => {
+                  if (v === "__new_site__") { startNewSite(); return; }
                   const selected = setupSites.find((site) => site.name === v);
                   setForm({
                     ...form,
@@ -548,6 +594,9 @@ export function JobFormFields({
               >
                 <SelectTrigger><SelectValue placeholder={`Select from ${setupSites.length} known sites...`} /></SelectTrigger>
                 <SelectContent className="max-h-64">
+                  <SelectItem value="__new_site__">
+                    <span className="text-primary font-medium">+ New site</span>
+                  </SelectItem>
                   {setupSites.map((s) => (
                     <SelectItem key={s.name} value={s.name}>
                       <span>{s.name}</span>
@@ -557,6 +606,7 @@ export function JobFormFields({
                 </SelectContent>
               </Select>
             )}
+
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -573,9 +623,20 @@ export function JobFormFields({
           </div>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Postcode</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Postcode</Label>
+                {siteZone && (
+                  <Badge variant="secondary" className="gap-1 text-[10px]">
+                    <MapPin className="h-3 w-3" /> {siteZone}
+                  </Badge>
+                )}
+              </div>
               <Input value={form.site_postcode || ""} onChange={(e) => setForm({ ...form, site_postcode: e.target.value })} placeholder="e.g. CV21 1EA" />
+              {!siteZone && (form.site_postcode || "").trim().length >= 3 && (
+                <p className="text-[11px] text-muted-foreground mt-1">No zone configured for this postcode.</p>
+              )}
             </div>
+
             <div>
               <Label className="text-xs">Area / County</Label>
               <Input value={form.site_area || ""} onChange={(e) => setForm({ ...form, site_area: e.target.value })} placeholder="e.g. Warwickshire" />
