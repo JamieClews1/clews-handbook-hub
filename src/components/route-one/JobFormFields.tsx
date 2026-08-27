@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { History, Plus, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { useJobTypes } from "./jobTypes";
+
 import { JobPricingPicker } from "./JobPricingPicker";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 
