@@ -965,13 +965,13 @@ export function buildWtnPdf(
 
   draw(8, opts.customerCopyLabel);
   if (opts.twoCopies) {
-    const split = design === "classic" ? 148 : 150;
+    const split = design === "classic" ? 148 : 149;
     doc.setDrawColor(0);
     doc.setLineWidth(0.1);
     doc.setLineDashPattern([1.5, 1.5], 0);
     doc.line(10, split, 200, split);
     doc.setLineDashPattern([], 0);
-    draw(design === "classic" ? 152 : 156, opts.officeCopyLabel);
+    draw(design === "classic" ? 152 : 153, opts.officeCopyLabel);
   }
   return doc;
 }
