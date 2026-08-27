@@ -463,7 +463,14 @@ export function JobFormFields({
 
         {/* Postcode-first lookup — start the call here */}
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
-          <Label className="text-xs font-semibold">Start with the postcode</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs font-semibold">Start with the postcode</Label>
+            {queryZone && (
+              <Badge className="gap-1 text-[10px]">
+                <MapPin className="h-3 w-3" /> {queryZone}
+              </Badge>
+            )}
+          </div>
           <div className="flex gap-2">
             <Input
               value={postcodeQuery}
@@ -477,8 +484,16 @@ export function JobFormFields({
               {postcodeSearching ? "Searching..." : "Find site"}
             </Button>
           </div>
+          {postcodeQuery.trim().length >= 3 && !queryZone && (
+            <p className="text-[11px] text-muted-foreground">No zone configured for this postcode.</p>
+          )}
           {postcodeSearched && postcodeMatches.length === 0 && (
-            <p className="text-[11px] text-muted-foreground">No jobs found at this postcode — fill the customer &amp; site in below as a new site.</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[11px] text-muted-foreground">No jobs found at this postcode.</p>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={startNewSite}>
+                <Plus className="h-3.5 w-3.5" /> New site &amp; delivery
+              </Button>
+            </div>
           )}
           {postcodeMatches.length > 0 && (
             <div className="rounded-md border border-border bg-background divide-y divide-border max-h-56 overflow-y-auto">
@@ -503,8 +518,14 @@ export function JobFormFields({
               ))}
             </div>
           )}
-          <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
+            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs gap-1 shrink-0" onClick={startNewSite}>
+              <Plus className="h-3.5 w-3.5" /> New site
+            </Button>
+          </div>
         </div>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
