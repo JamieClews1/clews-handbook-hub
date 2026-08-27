@@ -88,12 +88,17 @@ export const DEFAULT_BROKER_NOTE =
 export const DEFAULT_PRODUCER_CERT =
   "I confirm that I have applied the waste management hierarchy as required by Regulation 12 and complied with the requirements of Regulation 13 of the Waste (England and Wales) Regulations 2011 regarding the separate collection of waste paper, metal, plastic and glass.";
 
+/** True when the ticket header should render the logo image (rather than the company name). */
+const useLogoImage = (opts: { showLogo: boolean; brandStyle?: "logo" | "name" }, logo?: string | null) =>
+  Boolean(opts.showLogo && (opts.brandStyle ?? "logo") === "logo" && logo);
+
 /** Plain-English ticket builder options (no coding required). */
 export type WtnOptions = {
   title: string;
   subtitle: string;
   accent: string; // hex
   showLogo: boolean;
+  brandStyle: "logo" | "name"; // show the Clews logo image or just the company name
   logoSize: number; // mm width
   customerCopyLabel: string;
   officeCopyLabel: string;
@@ -123,6 +128,7 @@ export const DEFAULT_WTN_OPTIONS: WtnOptions = {
   subtitle: "Delivery / Collection Ticket",
   accent: "#166534",
   showLogo: true,
+  brandStyle: "logo",
   logoSize: 30,
   customerCopyLabel: "CUSTOMER COPY",
   officeCopyLabel: "OFFICE COPY",
@@ -396,16 +402,17 @@ function drawCopy(
   doc.text(opts.subtitle.toUpperCase(), R, y + 12, { align: "right" });
   doc.text(copyLabel, R, y + 16, { align: "right" });
 
-  if (opts.showLogo && logo) {
+  const showLogoA = useLogoImage(opts, logo);
+  if (showLogoA) {
     try {
-      doc.addImage(logo, imgFormat(logo), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, opts.logoSize * 0.36);
+      doc.addImage(logo!, imgFormat(logo!), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, opts.logoSize * 0.36);
     } catch {
       /* ignore bad logo data */
     }
   }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text(COMPANY.name, L + W / 2, y + (opts.showLogo && logo ? opts.logoSize * 0.36 + 4 : 6), { align: "center" });
+  doc.text(COMPANY.name, L + W / 2, y + (showLogoA ? opts.logoSize * 0.36 + 4 : 6), { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
@@ -613,15 +620,22 @@ function drawModernCopy(
   /* ── Header band ── */
   doc.setFillColor(...GREEN);
   doc.rect(L, y, W, 16, "F");
-  const textX = opts.showLogo && logo ? L + opts.logoSize + 5 : L + 3;
-  if (opts.showLogo && logo) {
+  const showLogoB = useLogoImage(opts, logo);
+  const showNameB = opts.showLogo && !showLogoB;
+  const textX = opts.showLogo ? L + opts.logoSize + 5 : L + 3;
+  if (showLogoB) {
     try {
-      doc.addImage(logo, imgFormat(logo), L + 2, y + 2, opts.logoSize, opts.logoSize * 0.4);
+      doc.addImage(logo!, imgFormat(logo!), L + 2, y + 2, opts.logoSize, opts.logoSize * 0.4);
     } catch {
       /* ignore bad logo data */
     }
   }
   doc.setTextColor(255, 255, 255);
+  if (showNameB) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(COMPANY.name, L + 2, y + 9, { maxWidth: opts.logoSize + 1 });
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text(opts.title, textX, y + 7);
@@ -794,14 +808,21 @@ function drawFieldCopy(
   };
 
   /* Header: logo left, big ticket number right */
-  if (opts.showLogo && logo) {
+  const showLogoC = useLogoImage(opts, logo);
+  if (showLogoC) {
     try {
-      doc.addImage(logo, imgFormat(logo), L, y, opts.logoSize, opts.logoSize * 0.4);
+      doc.addImage(logo!, imgFormat(logo!), L, y, opts.logoSize, opts.logoSize * 0.4);
     } catch {
       /* ignore */
     }
+  } else if (opts.showLogo) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...ACCENT);
+    doc.text(COMPANY.name, L, y + 6, { maxWidth: opts.logoSize + 1 });
+    doc.setTextColor(0);
   }
-  const hx = opts.showLogo && logo ? L + opts.logoSize + 5 : L;
+  const hx = opts.showLogo ? L + opts.logoSize + 5 : L;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(...ACCENT);
@@ -1019,7 +1040,7 @@ export function mapWasteOutSkip(job: WtnJob): WtnJob {
 export async function buildWtnDoc(job: WtnJob, design?: WtnDesign, options?: WtnOptions): Promise<jsPDF> {
   const chosen = design ?? getWtnDesign();
   const opts = options ?? getWtnOptions();
-  const logo = opts.showLogo ? await loadLogoDataUrl() : null;
+  const logo = opts.showLogo && (opts.brandStyle ?? "logo") === "logo" ? await loadLogoDataUrl() : null;
   return buildWtnPdf(mapWasteOutSkip(job), chosen, logo, opts);
 }
 

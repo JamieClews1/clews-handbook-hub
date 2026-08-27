@@ -170,7 +170,7 @@ export function WtnDesignSettings() {
 
   const toggles: { key: keyof WtnOptions; label: string; hint: string }[] = useMemo(
     () => [
-      { key: "showLogo", label: "Clews Recycling logo", hint: "Shows the company logo at the top of the ticket." },
+      { key: "showLogo", label: "Clews Recycling branding", hint: "Shows the logo (or company name) at the top of the ticket." },
       { key: "twoCopies", label: "Two copies per page", hint: "Customer copy on top, office copy underneath." },
       { key: "showSiteContact", label: "Site contact box", hint: "Name, phone and SIC code for the collection site." },
       { key: "showInvoiceAddress", label: "Invoice address box", hint: "Where the invoice should be sent." },
@@ -322,6 +322,28 @@ export function WtnDesignSettings() {
                         />
                       </div>
                       <p className="text-[11px] text-muted-foreground">Used for header bands and headings on Designs B and C.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Header shows</Label>
+                      <div className="flex gap-2">
+                        {([
+                          { v: "logo", l: "Logo" },
+                          { v: "name", l: "Company name" },
+                        ] as const).map((o) => (
+                          <Button
+                            key={o.v}
+                            type="button"
+                            size="sm"
+                            variant={(opts.brandStyle ?? "logo") === o.v ? "default" : "outline"}
+                            onClick={() => set("brandStyle", o.v)}
+                          >
+                            {o.l}
+                          </Button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Choose the Clews Recycling logo image or plain company name text in the ticket header.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs">Logo size ({opts.logoSize} mm wide)</Label>
