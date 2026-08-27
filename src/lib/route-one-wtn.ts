@@ -966,7 +966,7 @@ export function buildWtnPdf(
 
   draw(8, opts.customerCopyLabel);
   if (opts.twoCopies) {
-    const split = design === "classic" ? 148 : 149;
+    const split = design === "classic" ? 148 : 151;
     doc.setDrawColor(0);
     doc.setLineWidth(0.1);
     doc.setLineDashPattern([1.5, 1.5], 0);
