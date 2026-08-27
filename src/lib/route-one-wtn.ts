@@ -1040,7 +1040,7 @@ export function mapWasteOutSkip(job: WtnJob): WtnJob {
 export async function buildWtnDoc(job: WtnJob, design?: WtnDesign, options?: WtnOptions): Promise<jsPDF> {
   const chosen = design ?? getWtnDesign();
   const opts = options ?? getWtnOptions();
-  const logo = opts.showLogo ? await loadLogoDataUrl() : null;
+  const logo = opts.showLogo && (opts.brandStyle ?? "logo") === "logo" ? await loadLogoDataUrl() : null;
   return buildWtnPdf(mapWasteOutSkip(job), chosen, logo, opts);
 }
 
