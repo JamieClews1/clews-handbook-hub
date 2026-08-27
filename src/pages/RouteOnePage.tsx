@@ -45,6 +45,7 @@ import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
 import { FileDown, Printer } from "lucide-react";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
+import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
 import { SkiptrakSiteDetails } from "@/components/route-one/SkiptrakSiteDetails";
 import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
