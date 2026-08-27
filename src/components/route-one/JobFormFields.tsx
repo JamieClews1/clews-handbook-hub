@@ -19,6 +19,7 @@ export const JOB_TYPE_LABELS: Record<string, string> = {
   collection: "Collection",
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
+  waste_out_skip: "Waste Out Skip",
 };
 
 export type CostItem = { name: string; charge: number; qty: number };
