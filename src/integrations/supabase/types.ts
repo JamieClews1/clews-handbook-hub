@@ -6682,6 +6682,7 @@ export type Database = {
           haulage_cost: number | null
           id: string
           invoice_address: string | null
+          is_live: boolean
           job_number: string
           job_type: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge: number | null
@@ -6743,6 +6744,7 @@ export type Database = {
           haulage_cost?: number | null
           id?: string
           invoice_address?: string | null
+          is_live?: boolean
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
@@ -6804,6 +6806,7 @@ export type Database = {
           haulage_cost?: number | null
           id?: string
           invoice_address?: string | null
+          is_live?: boolean
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
