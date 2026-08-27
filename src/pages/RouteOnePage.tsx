@@ -42,7 +42,8 @@ import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
 import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
 import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
-import { FileDown, Printer } from "lucide-react";
+import { FileDown, Printer, Send } from "lucide-react";
+import { TicketSendDialog } from "@/components/route-one/TicketSendDialog";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
@@ -164,6 +165,7 @@ const RouteOnePage = () => {
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
   const [viewingJob, setViewingJob] = useState<any | null>(null);
+  const [ticketJob, setTicketJob] = useState<any | null>(null);
   const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
 
   // New job form
@@ -852,6 +854,9 @@ const RouteOnePage = () => {
                   <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(viewingJob)}>
                     <FileDown className="h-3 w-3 mr-1.5" /> Download WTN
                   </Button>
+                  <Button variant="outline" size="sm" onClick={() => { const j = viewingJob; setViewingJob(null); setTicketJob(j); }}>
+                    <Send className="h-3 w-3 mr-1.5" /> Print / Send ticket
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
                     <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
                   </Button>
@@ -861,6 +866,8 @@ const RouteOnePage = () => {
           })()}
         </DialogContent>
       </Dialog>
+
+      <TicketSendDialog job={ticketJob} open={!!ticketJob} onOpenChange={(o) => { if (!o) setTicketJob(null); }} />
 
       {/* View Skiptrak Job Dialog */}
       <Dialog open={!!viewingSkiptrakJob} onOpenChange={(open) => { if (!open) setViewingSkiptrakJob(null); }}>
@@ -988,6 +995,7 @@ const RouteOnePage = () => {
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(job); }}><Pencil className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}><FileDown className="h-3 w-3 mr-2" /> Download WTN</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}><Printer className="h-3 w-3 mr-2" /> Print WTN</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setTicketJob(job); }}><Send className="h-3 w-3 mr-2" /> Print / Send ticket</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "completed" } }); }}>Mark Complete</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "query" } }); }}>Flag as Query</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteJob.mutate(job.id); }} className="text-destructive">Delete</DropdownMenuItem>
@@ -1076,6 +1084,7 @@ const RouteOnePage = () => {
                   onView={() => setViewingJob(job)}
                   onDelete={() => deleteJob.mutate(job.id)}
                   onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
+                  onSendTicket={() => setTicketJob(job)}
                   onDragStart={(e) => handleDragStart(e, job.id)}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedJobId === job.id}
@@ -1130,6 +1139,7 @@ const RouteOnePage = () => {
                       onView={() => setViewingJob(job)}
                       onDelete={() => deleteJob.mutate(job.id)}
                       onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
+                      onSendTicket={() => setTicketJob(job)}
                       onDragStart={(e) => handleDragStart(e, job.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedJobId === job.id}
@@ -1189,6 +1199,7 @@ function JobCard({
   onView,
   onDelete,
   onStatusChange,
+  onSendTicket,
   onDragStart,
   onDragEnd,
   isDragging,
@@ -1196,6 +1207,7 @@ function JobCard({
   job: any;
   onEdit: () => void;
   onView: () => void;
+  onSendTicket?: () => void;
   onDelete: () => void;
   onStatusChange: (status: JobStatus) => void;
   onDragStart: (e: React.DragEvent) => void;
@@ -1246,6 +1258,11 @@ function JobCard({
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}>
                 <Printer className="h-3 w-3 mr-2" /> Print WTN
               </DropdownMenuItem>
+              {onSendTicket && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSendTicket(); }}>
+                  <Send className="h-3 w-3 mr-2" /> Print / Send ticket
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
