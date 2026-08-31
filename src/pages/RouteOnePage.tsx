@@ -1130,7 +1130,17 @@ const RouteOnePage = () => {
                   isDragging={draggedJobId === job.id}
                 />
               ))}
-              {unassignedJobs.length === 0 && (
+              {unassignedSkiptrakJobs.map((sj: any) => (
+                <SkiptrakJobCard
+                  key={sj.id}
+                  job={sj}
+                  onClick={() => setViewingSkiptrakJob(sj)}
+                  onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
+                  onDragEnd={handleDragEnd}
+                  isDragging={draggedSkiptrakId === sj.id}
+                />
+              ))}
+              {unassignedJobs.length === 0 && unassignedSkiptrakJobs.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-8">No unassigned jobs</p>
               )}
             </div>
@@ -1194,7 +1204,14 @@ const RouteOnePage = () => {
                     </div>
                   )}
                   {skiptrakJobs.map((sj: any) => (
-                    <SkiptrakJobCard key={sj.job_number} job={sj} onClick={() => setViewingSkiptrakJob(sj)} />
+                    <SkiptrakJobCard
+                      key={sj.id}
+                      job={sj}
+                      onClick={() => setViewingSkiptrakJob(sj)}
+                      onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
+                      onDragEnd={handleDragEnd}
+                      isDragging={draggedSkiptrakId === sj.id}
+                    />
                   ))}
                   {totalCount === 0 && (
                     <div className="h-full flex items-center justify-center py-8">
@@ -1381,7 +1398,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 }
 
 // Skiptrak Job Card (read-only, from data_hub_jobs)
-function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
+function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const accent = mappedType ? jtAccent(mappedType) : "bg-muted-foreground/40";
   const tagClass = mappedType ? JOB_TYPE_TAG[mappedType] : "bg-muted text-muted-foreground border border-hairline";
@@ -1389,7 +1406,10 @@ function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-pointer transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden"
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${isDragging ? "opacity-50" : ""}`}
     >
       <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accent}`} />
 
