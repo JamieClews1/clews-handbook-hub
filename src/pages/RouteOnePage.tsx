@@ -163,6 +163,7 @@ const RouteOnePage = () => {
   const [newDriverOpen, setNewDriverOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
+  const [draggedSkiptrakId, setDraggedSkiptrakId] = useState<string | null>(null);
   const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
   const [viewingJob, setViewingJob] = useState<any | null>(null);
   const [ticketJob, setTicketJob] = useState<any | null>(null);
@@ -380,6 +381,20 @@ const RouteOnePage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
     },
+  });
+
+  // Re-assign driver on a Skiptrak job (data_hub_jobs)
+  const updateSkiptrakDriver = useMutation({
+    mutationFn: async ({ id, driverName }: { id: string; driverName: string | null }) => {
+      const { error } = await supabase.from("data_hub_jobs").update({ driver: driverName }).eq("id", id);
+      if (error) throw error;
+      return driverName;
+    },
+    onSuccess: (driverName) => {
+      queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
+      toast({ title: driverName ? `Skiptrak job assigned to ${driverName}` : "Skiptrak job unassigned" });
+    },
+    onError: (e: any) => toast({ title: "Could not re-assign", description: e.message, variant: "destructive" }),
   });
 
   // Delete job
