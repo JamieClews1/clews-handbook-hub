@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase
       .from("data_hub_jobs")
       .select(
-        "job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location",
+        "job_number, job_date, customer, site, postcode, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location",
       )
       .eq("source", "skiptrak")
       .eq("job_date", date)

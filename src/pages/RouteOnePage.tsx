@@ -256,7 +256,7 @@ const RouteOnePage = () => {
     queryFn: async () => {
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location, rebate_rate_per_tonne")
+        .select("id, job_number, job_date, customer, site, postcode, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location, rebate_rate_per_tonne")
         .eq("source", "skiptrak");
       if (viewMode === "day") {
         query = query.eq("job_date", dateStr);
