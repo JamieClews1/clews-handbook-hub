@@ -1366,11 +1366,40 @@ const DriverDashboard = ({
           </Button>
         </div>
 
+        {/* Day navigation — skip between days */}
+        <div className="flex items-center justify-between mb-3 bg-zinc-800 rounded-xl p-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setViewDate((d) => addDays(d, -1))}
+            className="text-zinc-300 hover:text-white hover:bg-zinc-700 h-11 w-11"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </Button>
+          <button
+            onClick={() => setViewDate(new Date())}
+            className="flex-1 text-center py-1 active:scale-[0.98] transition-transform"
+          >
+            <p className="font-semibold text-sm">{format(viewDate, "EEEE, d MMMM")}</p>
+            {!viewingToday && (
+              <p className="text-[11px] text-emerald-400 font-medium">Tap to return to today</p>
+            )}
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setViewDate((d) => addDays(d, 1))}
+            className="text-zinc-300 hover:text-white hover:bg-zinc-700 h-11 w-11"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-zinc-400 text-sm">{format(new Date(), "EEEE, d MMMM yyyy")}</p>
+            <p className="text-zinc-400 text-sm">{format(viewDate, "EEEE, d MMMM yyyy")}</p>
             <p className="text-2xl font-bold mt-1">
-              {totalJobs} Job{totalJobs !== 1 ? "s" : ""} Today
+              {totalJobs} Job{totalJobs !== 1 ? "s" : ""} {viewingToday ? "Today" : format(viewDate, "d MMM")}
             </p>
           </div>
           {jobs.length > 0 && (
