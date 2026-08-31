@@ -954,7 +954,7 @@ const RouteOnePage = () => {
                     <SelectContent>
                       <SelectItem value="__none__">Unassigned</SelectItem>
                       {drivers.map((d: any) => (
-                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                        <SelectItem key={d.id} value={d.driver_name}>{d.driver_name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
