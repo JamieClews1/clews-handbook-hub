@@ -292,7 +292,16 @@ const RouteOnePage = () => {
     );
   });
 
+  // Skiptrak tickets that already have a Route One record (created when a driver
+  // captured photos/signatures) must not appear twice on the board.
+  const routeJobNumbers = new Set(
+    routeJobs
+      .map((job: any) => String(job.job_number ?? "").trim().toUpperCase())
+      .filter(Boolean),
+  );
+
   const skiptrakScheduledJobs = allSkiptrakScheduledJobs.filter((job: any) =>
+    !routeJobNumbers.has(String(job.job_number ?? "").trim().toUpperCase()) &&
     includesSearch(
       job.job_number,
       job.customer,
@@ -305,6 +314,7 @@ const RouteOnePage = () => {
       job.tipping_location,
     ),
   );
+
 
   // Create job mutation
   const createJob = useMutation({

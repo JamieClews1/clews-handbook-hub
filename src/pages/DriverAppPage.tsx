@@ -1339,9 +1339,19 @@ const DriverDashboard = ({
     refetchInterval: 60000,
   });
 
+  // A Skiptrak ticket gets a Route One record once the driver captures photos/signatures —
+  // show only the Route One job in that case so the ticket isn't listed twice.
+  const routeJobNumbers = new Set(
+    jobs.map((j: any) => String(j.job_number ?? "").trim().toUpperCase()).filter(Boolean),
+  );
+  const visibleSkiptrakJobs = skiptrakJobs.filter(
+    (sj: any) => !routeJobNumbers.has(String(sj.job_number ?? "").trim().toUpperCase()),
+  );
+
   const handleJobUpdated = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["driver-jobs", driver.id, today] });
   }, [queryClient, driver.id, today]);
+
 
   if (selectedSkiptrakJob) {
     return (
@@ -1371,7 +1381,7 @@ const DriverDashboard = ({
 
   const completedCount = jobs.filter((j) => j.status === "completed").length;
   const inProgressJob = jobs.find((j) => j.status === "in_progress");
-  const totalJobs = jobs.length + skiptrakJobs.length;
+  const totalJobs = jobs.length + visibleSkiptrakJobs.length;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -1484,14 +1494,14 @@ const DriverDashboard = ({
             {jobs.map((job) => (
               <DriverJobCard key={job.id} job={job} onClick={() => setSelectedJob(job)} />
             ))}
-            {skiptrakJobs.length > 0 && jobs.length > 0 && (
+            {visibleSkiptrakJobs.length > 0 && jobs.length > 0 && (
               <div className="flex items-center gap-3 py-2">
                 <div className="h-px flex-1 bg-border" />
                 <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Skiptrak Jobs</span>
                 <div className="h-px flex-1 bg-border" />
               </div>
             )}
-            {skiptrakJobs.map((sj: any) => (
+            {visibleSkiptrakJobs.map((sj: any) => (
               <SkiptrakDriverCard key={sj.job_number} job={sj} onClick={() => setSelectedSkiptrakJob(sj)} />
             ))}
           </>
