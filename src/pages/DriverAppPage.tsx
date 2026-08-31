@@ -1034,6 +1034,31 @@ const SkiptrakCaptureCard = ({
     }
   };
 
+  const completeSkiptrakJob = async () => {
+    if (!linkedJobId) return;
+    setSaving(true);
+    try {
+      await driverAction("update_job_status", {
+        job_id: linkedJobId,
+        status: "completed",
+        extra: {
+          customer_signature: customerSig,
+          customer_signoff_name: customerSigName.trim() || null,
+          customer_signoff_at: customerSig ? new Date().toISOString() : null,
+          driver_signature: driverSig,
+          driver_signoff_name: driverName || null,
+          completed_at: new Date().toISOString(),
+        },
+      });
+      toast.success("Job completed");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to complete job");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!linkedJobId) {
     return (
       <Card>
@@ -1085,6 +1110,18 @@ const SkiptrakCaptureCard = ({
             className="w-full h-14 text-base font-bold rounded-xl"
           >
             {saving ? "Saving…" : "Save signatures"}
+          </Button>
+          <Button
+            onClick={completeSkiptrakJob}
+            disabled={saving}
+            className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
+          >
+            {saving ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <Check className="w-6 h-6" />
+            )}
+            Complete Job
           </Button>
         </div>
       </CardContent>
