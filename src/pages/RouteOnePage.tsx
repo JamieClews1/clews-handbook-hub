@@ -262,7 +262,7 @@ const RouteOnePage = () => {
       } else {
         query = query.gte("job_date", weekStart).lte("job_date", weekEnd);
       }
-      const { data, error } = await query.not("driver", "is", null).order("job_date");
+      const { data, error } = await query.order("job_date");
       if (error) throw error;
       return data ?? [];
     },
@@ -508,8 +508,18 @@ const RouteOnePage = () => {
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     setDraggedJobId(jobId);
+    setDraggedSkiptrakId(null);
     e.dataTransfer.effectAllowed = "move";
     // Add a slight delay to allow the drag image to render
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
+  };
+
+  const handleSkiptrakDragStart = (e: React.DragEvent, skiptrakId: string) => {
+    setDraggedSkiptrakId(skiptrakId);
+    setDraggedJobId(null);
+    e.dataTransfer.effectAllowed = "move";
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = "0.5";
     }
@@ -520,10 +530,18 @@ const RouteOnePage = () => {
       e.currentTarget.style.opacity = "1";
     }
     setDraggedJobId(null);
+    setDraggedSkiptrakId(null);
     setDragOverDriverId(null);
   };
 
   const handleDrop = (driverId: string | null) => {
+    if (draggedSkiptrakId) {
+      const driverName = driverId ? drivers.find((d: any) => d.id === driverId)?.driver_name ?? null : null;
+      updateSkiptrakDriver.mutate({ id: draggedSkiptrakId, driverName });
+      setDraggedSkiptrakId(null);
+      setDragOverDriverId(null);
+      return;
+    }
     if (!draggedJobId) return;
     updateJob.mutate({
       id: draggedJobId,
@@ -555,11 +573,15 @@ const RouteOnePage = () => {
     const normalized = driverName.toLowerCase().trim();
     return skiptrakScheduledJobs.filter((j: any) => {
       const d = (j.driver || "").toLowerCase().trim();
+      if (!d) return false;
       const dNorm = d.replace(/[.\-_]/g, " ");
       const nNorm = normalized.replace(/[.\-_]/g, " ");
       return dNorm === nNorm || dNorm.includes(nNorm) || nNorm.includes(dNorm);
     });
   };
+
+  const unassignedSkiptrakJobs = skiptrakScheduledJobs.filter((j: any) => !(j.driver || "").trim());
+
 
   const unassignedJobs = jobs.filter((j: any) => !j.assigned_driver_id);
 
