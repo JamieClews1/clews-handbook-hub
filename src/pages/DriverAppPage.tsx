@@ -93,6 +93,7 @@ interface Job {
   customer_name: string;
   site_name: string | null;
   site_address: string | null;
+  site_address_2: string | null;
   site_postcode: string | null;
   job_type: JobType;
   container_type: string | null;
@@ -499,10 +500,14 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
             <h3 className="font-bold text-base text-foreground truncate">{job.customer_name}</h3>
 
             {job.site_name && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{job.site_name}</span>
-              </p>
+              <div className="text-sm text-muted-foreground flex items-start gap-1.5">
+                <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span className="min-w-0">
+                  <span className="block truncate">{job.site_name}</span>
+                  {job.site_address && <span className="block text-xs">{job.site_address}</span>}
+                  {job.site_postcode && <span className="block text-xs font-mono">{job.site_postcode}</span>}
+                </span>
+              </div>
             )}
 
             {job.container_type && (
@@ -670,6 +675,7 @@ const DriverJobDetail = ({
                 <div>
                   <p className="font-semibold text-foreground">{job.site_name}</p>
                   {job.site_address && <p className="text-sm text-muted-foreground">{job.site_address}</p>}
+                  {job.site_address_2 && <p className="text-sm text-muted-foreground">{job.site_address_2}</p>}
                   {job.site_postcode && <p className="text-sm text-muted-foreground font-mono">{job.site_postcode}</p>}
                 </div>
               </div>
@@ -942,10 +948,13 @@ const SkiptrakDriverCard = ({ job, onClick }: { job: any; onClick: () => void })
             </div>
             <h3 className="font-bold text-base text-foreground truncate">{job.customer || "Unknown"}</h3>
             {job.site && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{job.site}</span>
-              </p>
+              <div className="text-sm text-muted-foreground flex items-start gap-1.5">
+                <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span className="min-w-0">
+                  <span className="block truncate">{job.site}</span>
+                  {job.postcode && <span className="block text-xs font-mono">{job.postcode}</span>}
+                </span>
+              </div>
             )}
             <div className="flex items-center gap-3 flex-wrap">
               {job.container_type && (
@@ -1145,7 +1154,7 @@ const SkiptrakJobDetailView = ({
   const [showContamination, setShowContamination] = useState(false);
 
   const handleNavigate = () => {
-    const address = job.site || "";
+    const address = job.postcode ? `${job.site || ""} ${job.postcode}`.trim() : job.site || "";
     if (address) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, "_blank");
     }
@@ -1195,7 +1204,10 @@ const SkiptrakJobDetailView = ({
             {job.site && (
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="font-semibold text-foreground">{job.site}</p>
+                <div>
+                  <p className="font-semibold text-foreground">{job.site}</p>
+                  {job.postcode && <p className="text-sm text-muted-foreground font-mono">{job.postcode}</p>}
+                </div>
               </div>
             )}
             {job.tipping_location && (
