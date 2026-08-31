@@ -1069,7 +1069,9 @@ const SkiptrakJobDetailView = ({
             </div>
           </CardContent>
         </Card>
+        <SkiptrakCaptureCard job={job} driverId={driverId} driverName={driverName} />
         <Card className="border-destructive/30 bg-destructive/5">
+
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2 text-destructive font-bold text-sm">
               <AlertTriangle className="w-4 h-4" />
