@@ -1339,9 +1339,19 @@ const DriverDashboard = ({
     refetchInterval: 60000,
   });
 
+  // A Skiptrak ticket gets a Route One record once the driver captures photos/signatures —
+  // show only the Route One job in that case so the ticket isn't listed twice.
+  const routeJobNumbers = new Set(
+    jobs.map((j: any) => String(j.job_number ?? "").trim().toUpperCase()).filter(Boolean),
+  );
+  const visibleSkiptrakJobs = skiptrakJobs.filter(
+    (sj: any) => !routeJobNumbers.has(String(sj.job_number ?? "").trim().toUpperCase()),
+  );
+
   const handleJobUpdated = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["driver-jobs", driver.id, today] });
   }, [queryClient, driver.id, today]);
+
 
   if (selectedSkiptrakJob) {
     return (
