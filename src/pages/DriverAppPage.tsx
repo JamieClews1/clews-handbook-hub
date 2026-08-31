@@ -93,6 +93,7 @@ interface Job {
   customer_name: string;
   site_name: string | null;
   site_address: string | null;
+  site_address_2: string | null;
   site_postcode: string | null;
   job_type: JobType;
   container_type: string | null;
