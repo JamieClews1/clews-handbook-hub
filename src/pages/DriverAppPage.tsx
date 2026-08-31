@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { driverAction, fileToBase64 } from "@/lib/driver-api";
-import { format } from "date-fns";
+import { format, addDays, isToday } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1278,7 +1278,9 @@ const DriverDashboard = ({
   const queryClient = useQueryClient();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedSkiptrakJob, setSelectedSkiptrakJob] = useState<any | null>(null);
-  const today = format(new Date(), "yyyy-MM-dd");
+  const [viewDate, setViewDate] = useState(new Date());
+  const today = format(viewDate, "yyyy-MM-dd");
+  const viewingToday = isToday(viewDate);
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["driver-jobs", driver.id, today],
