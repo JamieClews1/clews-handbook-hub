@@ -891,30 +891,15 @@ const DriverJobDetail = ({
           )}
 
           {isInProgress && (
-            <>
-              <Button
-                onClick={handleCompleteJob}
-                disabled={updating}
-                className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
-              >
-                {updating ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <Check className="w-6 h-6" />
-                )}
-                Complete Job
-              </Button>
-
-              <Button
-                onClick={handleWastedJourney}
-                disabled={updating}
-                variant="outline"
-                className="w-full h-14 text-lg font-semibold rounded-xl gap-3 border-red-300 text-red-600 hover:bg-red-50"
-              >
-                <Square className="w-5 h-5" />
-                Wasted Journey
-              </Button>
-            </>
+            <Button
+              onClick={handleWastedJourney}
+              disabled={updating}
+              variant="outline"
+              className="w-full h-14 text-lg font-semibold rounded-xl gap-3 border-red-300 text-red-600 hover:bg-red-50"
+            >
+              <Square className="w-5 h-5" />
+              Wasted Journey
+            </Button>
           )}
         </div>
       </div>
