@@ -166,6 +166,55 @@ Deno.serve(async (req) => {
         return json({ ok: true });
       }
 
+      /* ─── Skiptrak ticket → capture record ───
+         Skiptrak jobs have no Route One record, so drivers can't attach photos or
+         signatures to them. Find (or create) a matching route_one_jobs row so the
+         existing photo/signature actions can be reused. */
+      case "ensure_skiptrak_job": {
+        const jobNumber = String(body?.job_number ?? "").trim();
+        if (!jobNumber) return json({ error: "job_number required" }, 400);
+        const driverId = body?.driver_id ? String(body.driver_id) : null;
+
+        const { data: existing, error: findErr } = await supabase
+          .from("route_one_jobs")
+          .select("*")
+          .eq("job_number", jobNumber)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (findErr) throw findErr;
+        if (existing) return json({ job: existing, created: false });
+
+        const movement = String(body?.movement_type ?? "").toLowerCase();
+        const jobType = movement.includes("deliver")
+          ? "delivery"
+          : movement.includes("exchange")
+          ? "exchange"
+          : "collection";
+
+        const { data: created, error: insErr } = await supabase
+          .from("route_one_jobs")
+          .insert({
+            job_number: jobNumber,
+            customer_name: String(body?.customer ?? "Unknown"),
+            site_name: body?.site ? String(body.site) : null,
+            site_address: body?.site ? String(body.site) : null,
+            container_type: body?.container_type ? String(body.container_type) : null,
+            waste_type: body?.waste_description ? String(body.waste_description) : null,
+            vehicle_reg: body?.vehicle_registration ? String(body.vehicle_registration) : null,
+            scheduled_date: String(body?.job_date ?? new Date().toISOString().slice(0, 10)),
+            job_type: jobType,
+            status: "in_progress",
+            is_live: true,
+            assigned_driver_id: driverId,
+            notes: "Created from Skiptrak ticket in the driver app",
+          })
+          .select("*")
+          .single();
+        if (insErr) throw insErr;
+        return json({ job: created, created: true });
+      }
+
       /* ─── Banksman: live weighbridge feed ─── */
       case "list_weighbridge_jobs": {
         const date = body?.date ? String(body.date) : null;
