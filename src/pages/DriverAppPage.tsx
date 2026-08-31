@@ -969,7 +969,133 @@ const SkiptrakDriverCard = ({ job, onClick }: { job: any; onClick: () => void })
   );
 };
 
+/* ─── Skiptrak photos + signatures ────────────── */
+const SkiptrakCaptureCard = ({
+  job,
+  driverId,
+  driverName,
+}: {
+  job: any;
+  driverId: string;
+  driverName: string;
+}) => {
+  const [linkedJobId, setLinkedJobId] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [customerSig, setCustomerSig] = useState<string | null>(null);
+  const [customerSigName, setCustomerSigName] = useState("");
+  const [driverSig, setDriverSig] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const prepare = async () => {
+    setPreparing(true);
+    try {
+      const { job: linked } = await driverAction("ensure_skiptrak_job", {
+        job_number: String(job.job_number || ""),
+        driver_id: driverId,
+        customer: job.customer,
+        site: job.site,
+        container_type: job.container_type,
+        waste_description: job.waste_description,
+        vehicle_registration: job.vehicle_registration,
+        job_date: job.job_date,
+        movement_type: job.movement_type,
+      });
+      setLinkedJobId(linked.id);
+      setCustomerSig(linked.customer_signature || null);
+      setCustomerSigName(linked.customer_signoff_name || "");
+      setDriverSig(linked.driver_signature || null);
+    } catch (err) {
+      console.error(err);
+      toast.error("Couldn't open capture for this ticket");
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  const saveSignatures = async () => {
+    if (!linkedJobId) return;
+    setSaving(true);
+    try {
+      await driverAction("update_job_status", {
+        job_id: linkedJobId,
+        status: "in_progress",
+        extra: {
+          customer_signature: customerSig,
+          customer_signoff_name: customerSigName.trim() || null,
+          customer_signoff_at: customerSig ? new Date().toISOString() : null,
+          driver_signature: driverSig,
+          driver_signoff_name: driverName || null,
+        },
+      });
+      toast.success("Signatures saved");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save signatures");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!linkedJobId) {
+    return (
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">
+            Photos &amp; Signatures
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Capture site photos and on-site sign-off against this Skiptrak ticket.
+          </p>
+          <Button
+            onClick={prepare}
+            disabled={preparing}
+            className="w-full h-14 text-base font-bold rounded-xl gap-3"
+          >
+            <Camera className="w-5 h-5" />
+            {preparing ? "Opening…" : "Add photos & signatures"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Photos</h2>
+        <PhotoCapture jobId={linkedJobId} photoType="before" label="Before" />
+        <PhotoCapture jobId={linkedJobId} photoType="after" label="After" />
+        <PhotoCapture jobId={linkedJobId} photoType="contamination" label="Contamination" />
+        <PhotoCapture jobId={linkedJobId} photoType="third_party_ticket" label="Third party ticket" />
+
+        <div className="pt-2 border-t space-y-3">
+          <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Sign-off</h2>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Customer print name</p>
+            <Input
+              value={customerSigName}
+              onChange={(e) => setCustomerSigName(e.target.value)}
+              placeholder="Who signed on site"
+              className="h-12 rounded-xl text-base"
+            />
+          </div>
+          <SignatureField label="Customer signature" value={customerSig} onChange={setCustomerSig} />
+          <SignatureField label="Driver signature" value={driverSig} onChange={setDriverSig} />
+          <Button
+            onClick={saveSignatures}
+            disabled={saving}
+            className="w-full h-14 text-base font-bold rounded-xl"
+          >
+            {saving ? "Saving…" : "Save signatures"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 /* ─── Skiptrak Job Detail ─────────────────────── */
+
 const SkiptrakJobDetailView = ({
   job,
   driverId,
