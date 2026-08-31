@@ -1369,9 +1369,15 @@ function JobCard({
       </div>
 
       {job.site_name && (
-        <div className="flex items-center gap-1 mt-1">
-          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-          <span className="text-[11px] truncate text-muted-foreground">{job.site_name}</span>
+        <div className="flex items-start gap-1 mt-1">
+          <MapPin className="h-3 w-3 text-muted-foreground shrink-0 mt-px" />
+          <span className="text-[11px] text-muted-foreground">
+            <span className="block truncate font-medium">{job.site_name}</span>
+            {[job.site_address, job.site_address_2].filter(Boolean).length > 0 && (
+              <span className="block">{[job.site_address, job.site_address_2].filter(Boolean).join(", ")}</span>
+            )}
+            {job.site_postcode && <span className="block font-mono">{job.site_postcode}</span>}
+          </span>
         </div>
       )}
 
@@ -1452,9 +1458,12 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       </div>
 
       {job.site && (
-        <div className="flex items-center gap-1 mt-1">
-          <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
-          <span className="text-[11px] truncate text-muted-foreground">{job.site}</span>
+        <div className="flex items-start gap-1 mt-1">
+          <MapPin className="h-3 w-3 shrink-0 text-muted-foreground mt-px" />
+          <span className="text-[11px] text-muted-foreground">
+            <span className="block truncate">{job.site}</span>
+            {job.postcode && <span className="block font-mono">{job.postcode}</span>}
+          </span>
         </div>
       )}
       {job.tipping_location && (
