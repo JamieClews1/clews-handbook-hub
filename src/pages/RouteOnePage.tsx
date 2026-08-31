@@ -163,6 +163,7 @@ const RouteOnePage = () => {
   const [newDriverOpen, setNewDriverOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
+  const [draggedSkiptrakId, setDraggedSkiptrakId] = useState<string | null>(null);
   const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
   const [viewingJob, setViewingJob] = useState<any | null>(null);
   const [ticketJob, setTicketJob] = useState<any | null>(null);
@@ -262,7 +263,7 @@ const RouteOnePage = () => {
       } else {
         query = query.gte("job_date", weekStart).lte("job_date", weekEnd);
       }
-      const { data, error } = await query.not("driver", "is", null).order("job_date");
+      const { data, error } = await query.order("job_date");
       if (error) throw error;
       return data ?? [];
     },
@@ -380,6 +381,20 @@ const RouteOnePage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
     },
+  });
+
+  // Re-assign driver on a Skiptrak job (data_hub_jobs)
+  const updateSkiptrakDriver = useMutation({
+    mutationFn: async ({ id, driverName }: { id: string; driverName: string | null }) => {
+      const { error } = await supabase.from("data_hub_jobs").update({ driver: driverName }).eq("id", id);
+      if (error) throw error;
+      return driverName;
+    },
+    onSuccess: (driverName) => {
+      queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
+      toast({ title: driverName ? `Skiptrak job assigned to ${driverName}` : "Skiptrak job unassigned" });
+    },
+    onError: (e: any) => toast({ title: "Could not re-assign", description: e.message, variant: "destructive" }),
   });
 
   // Delete job
@@ -508,8 +523,18 @@ const RouteOnePage = () => {
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, jobId: string) => {
     setDraggedJobId(jobId);
+    setDraggedSkiptrakId(null);
     e.dataTransfer.effectAllowed = "move";
     // Add a slight delay to allow the drag image to render
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5";
+    }
+  };
+
+  const handleSkiptrakDragStart = (e: React.DragEvent, skiptrakId: string) => {
+    setDraggedSkiptrakId(skiptrakId);
+    setDraggedJobId(null);
+    e.dataTransfer.effectAllowed = "move";
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = "0.5";
     }
@@ -520,10 +545,18 @@ const RouteOnePage = () => {
       e.currentTarget.style.opacity = "1";
     }
     setDraggedJobId(null);
+    setDraggedSkiptrakId(null);
     setDragOverDriverId(null);
   };
 
   const handleDrop = (driverId: string | null) => {
+    if (draggedSkiptrakId) {
+      const driverName = driverId ? drivers.find((d: any) => d.id === driverId)?.driver_name ?? null : null;
+      updateSkiptrakDriver.mutate({ id: draggedSkiptrakId, driverName });
+      setDraggedSkiptrakId(null);
+      setDragOverDriverId(null);
+      return;
+    }
     if (!draggedJobId) return;
     updateJob.mutate({
       id: draggedJobId,
@@ -555,11 +588,15 @@ const RouteOnePage = () => {
     const normalized = driverName.toLowerCase().trim();
     return skiptrakScheduledJobs.filter((j: any) => {
       const d = (j.driver || "").toLowerCase().trim();
+      if (!d) return false;
       const dNorm = d.replace(/[.\-_]/g, " ");
       const nNorm = normalized.replace(/[.\-_]/g, " ");
       return dNorm === nNorm || dNorm.includes(nNorm) || nNorm.includes(dNorm);
     });
   };
+
+  const unassignedSkiptrakJobs = skiptrakScheduledJobs.filter((j: any) => !(j.driver || "").trim());
+
 
   const unassignedJobs = jobs.filter((j: any) => !j.assigned_driver_id);
 
@@ -1093,7 +1130,17 @@ const RouteOnePage = () => {
                   isDragging={draggedJobId === job.id}
                 />
               ))}
-              {unassignedJobs.length === 0 && (
+              {unassignedSkiptrakJobs.map((sj: any) => (
+                <SkiptrakJobCard
+                  key={sj.id}
+                  job={sj}
+                  onClick={() => setViewingSkiptrakJob(sj)}
+                  onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
+                  onDragEnd={handleDragEnd}
+                  isDragging={draggedSkiptrakId === sj.id}
+                />
+              ))}
+              {unassignedJobs.length === 0 && unassignedSkiptrakJobs.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-8">No unassigned jobs</p>
               )}
             </div>
@@ -1157,7 +1204,14 @@ const RouteOnePage = () => {
                     </div>
                   )}
                   {skiptrakJobs.map((sj: any) => (
-                    <SkiptrakJobCard key={sj.job_number} job={sj} onClick={() => setViewingSkiptrakJob(sj)} />
+                    <SkiptrakJobCard
+                      key={sj.id}
+                      job={sj}
+                      onClick={() => setViewingSkiptrakJob(sj)}
+                      onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
+                      onDragEnd={handleDragEnd}
+                      isDragging={draggedSkiptrakId === sj.id}
+                    />
                   ))}
                   {totalCount === 0 && (
                     <div className="h-full flex items-center justify-center py-8">
@@ -1344,7 +1398,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 }
 
 // Skiptrak Job Card (read-only, from data_hub_jobs)
-function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
+function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const accent = mappedType ? jtAccent(mappedType) : "bg-muted-foreground/40";
   const tagClass = mappedType ? JOB_TYPE_TAG[mappedType] : "bg-muted text-muted-foreground border border-hairline";
@@ -1352,7 +1406,10 @@ function SkiptrakJobCard({ job, onClick }: { job: any; onClick?: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-pointer transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden"
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${isDragging ? "opacity-50" : ""}`}
     >
       <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accent}`} />
 
