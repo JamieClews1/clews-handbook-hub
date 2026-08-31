@@ -931,12 +931,33 @@ const RouteOnePage = () => {
                   <DetailRow label="Date" value={viewingSkiptrakJob.job_date || "—"} />
                   <DetailRow label="Customer" value={viewingSkiptrakJob.customer || "—"} />
                   <DetailRow label="Site" value={viewingSkiptrakJob.site || "—"} />
-                  <DetailRow label="Driver" value={viewingSkiptrakJob.driver || "—"} />
                   <DetailRow label="Vehicle" value={viewingSkiptrakJob.vehicle_registration || "—"} />
                   <DetailRow label="Container" value={viewingSkiptrakJob.container_type || "—"} />
                   <DetailRow label="Waste" value={viewingSkiptrakJob.waste_description || "—"} />
                   <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
                   <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Re-assign Driver</p>
+                  <Select
+                    value={(viewingSkiptrakJob.driver || "").trim() || "__none__"}
+                    onValueChange={(v) => {
+                      const driverName = v === "__none__" ? null : v;
+                      setViewingSkiptrakJob({ ...viewingSkiptrakJob, driver: driverName });
+                      updateSkiptrakDriver.mutate({ id: viewingSkiptrakJob.id, driverName });
+                    }}
+                    disabled={updateSkiptrakDriver.isPending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select driver" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Unassigned</SelectItem>
+                      {drivers.map((d: any) => (
+                        <SelectItem key={d.id} value={d.driver_name}>{d.driver_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <BespokeRateEditor
                   jobId={viewingSkiptrakJob.id}
