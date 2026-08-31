@@ -805,6 +805,19 @@ const DriverJobDetail = ({
                     hint="Signed on site — added to the waste transfer note."
                   />
                   <SignatureField label="Driver signature" value={driverSig} onChange={setDriverSig} />
+
+                  <Button
+                    onClick={handleCompleteJob}
+                    disabled={updating}
+                    className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
+                  >
+                    {updating ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <Check className="w-6 h-6" />
+                    )}
+                    Complete Job
+                  </Button>
                 </CardContent>
               </Card>
             )}
