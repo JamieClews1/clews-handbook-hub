@@ -1154,7 +1154,7 @@ const SkiptrakJobDetailView = ({
   const [showContamination, setShowContamination] = useState(false);
 
   const handleNavigate = () => {
-    const address = job.site || "";
+    const address = job.postcode ? `${job.site || ""} ${job.postcode}`.trim() : job.site || "";
     if (address) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, "_blank");
     }
@@ -1204,7 +1204,10 @@ const SkiptrakJobDetailView = ({
             {job.site && (
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="font-semibold text-foreground">{job.site}</p>
+                <div>
+                  <p className="font-semibold text-foreground">{job.site}</p>
+                  {job.postcode && <p className="text-sm text-muted-foreground font-mono">{job.postcode}</p>}
+                </div>
               </div>
             )}
             {job.tipping_location && (
