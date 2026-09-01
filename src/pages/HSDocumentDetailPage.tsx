@@ -196,6 +196,7 @@ const HSDocumentDetailPage = () => {
         .body h3, .body h4 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: .04em; color: #1f7a45; margin: 12px 0 6px; }
         .body ul, .body ol { padding-left: 18px; margin: 8px 0; }
         .body table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .body img { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 6px; margin: 10px 0; }
         .body th, .body td { border: 1px solid #bbb; padding: 5px 7px; text-align: left; font-size: 10pt; }
         .body th { background: #f1f1f1; }
         .acks { margin-top: 16px; border: 1px solid #ccc; padding: 10px 12px; page-break-inside: avoid; }
@@ -423,6 +424,7 @@ const HSDocumentDetailPage = () => {
               [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-6 [&_ol]:marker:text-primary
               [&_strong]:font-semibold [&_strong]:text-foreground
               [&_a]:text-primary [&_a]:underline
+              [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border
               [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-md [&_table]:border
               [&_th]:border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold
               [&_td]:border [&_td]:px-3 [&_td]:py-2"
