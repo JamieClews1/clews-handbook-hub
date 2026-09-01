@@ -547,6 +547,24 @@ function drawCopy(
     .forEach((line, i) => val(line.trim(), L + leftW + 25, y + codesH + 4 + i * 3.2, 7.5));
   y += bandH + 2;
 
+  /* ── Rental / hire terms — dedicated highlighted space ── */
+  if (opts.showHireNote && opts.hireNote) {
+    const termLines = doc.splitTextToSize(opts.hireNote, W - 34) as string[];
+    const boxH = 5.5 + termLines.length * 2.8;
+    doc.setFillColor(254, 243, 199); // amber highlight
+    doc.setDrawColor(160);
+    doc.setLineWidth(0.3);
+    doc.rect(L, y, W, boxH, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.text("RENTAL / HIRE TERMS:", L + 2, y + 3.6);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.4);
+    doc.text(termLines, L + 32, y + 3.6);
+    doc.setLineWidth(0.2);
+    y += boxH + 1.5;
+  }
+
   /* ── Signatures: customer, driver, disposal site ── */
   if (opts.showSignatures) {
     y += drawSignatureTrio(doc, job, L, W, y, opts, undefined, true) + 1;
