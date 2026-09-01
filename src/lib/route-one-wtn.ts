@@ -790,7 +790,7 @@ function drawModernCopy(
   /* ── Terms & footer ── */
   doc.setFontSize(4.8);
   doc.setTextColor(90);
-  const termsText = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
+  const termsText = [opts.terms, opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
   const termLines = doc.splitTextToSize(termsText, W) as string[];
@@ -985,7 +985,7 @@ function drawFieldCopy(
   doc.setTextColor(110);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(4.8);
-  const terms = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
+  const terms = [opts.terms, opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
   const fieldTermLines = doc.splitTextToSize(terms, W) as string[];
