@@ -1623,17 +1623,13 @@ const DriverAppPage = () => {
             }
           });
       } else {
-        supabase
-          .from("route_one_drivers")
-          .select("*, route_one_vehicles(registration, vehicle_type)")
-          .eq("id", id)
-          .eq("is_active", true)
-          .maybeSingle()
-          .then(({ data }) => {
+        driverAction("driver_restore", { id })
+          .then(({ driver: data }) => {
             if (data)
               setUser({ id: data.id, name: data.driver_name, role: "driver", driver: data as Driver });
             else localStorage.removeItem("driver_session");
-          });
+          })
+          .catch(() => localStorage.removeItem("driver_session"));
       }
     } catch {
       localStorage.removeItem("driver_session");
