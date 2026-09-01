@@ -758,6 +758,27 @@ function drawModernCopy(
     y += cmtH + 2;
   }
 
+  /* ── Rental / hire terms — dedicated highlighted space ── */
+  if (opts.showHireNote && opts.hireNote) {
+    const termLines = doc.splitTextToSize(opts.hireNote, W - 36) as string[];
+    const boxH = 5.5 + termLines.length * 2.8;
+    doc.setFillColor(254, 243, 199);
+    panel(L, y, W, boxH);
+    doc.setFillColor(254, 243, 199);
+    doc.rect(L, y, W, boxH, "F");
+    doc.setDrawColor(190);
+    doc.roundedRect(L, y, W, boxH, 1.2, 1.2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...GREEN);
+    doc.text("RENTAL / HIRE TERMS:", L + 2, y + 3.6);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.4);
+    doc.text(termLines, L + 34, y + 3.6);
+    y += boxH + 2;
+  }
+
   /* ── Signatures: customer, driver, disposal site ── */
   if (opts.showSignatures) {
     y += drawSignatureTrio(doc, job, L, W, y, opts, GREEN, true) + 1;
