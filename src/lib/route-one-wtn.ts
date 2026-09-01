@@ -763,9 +763,7 @@ function drawModernCopy(
     const termLines = doc.splitTextToSize(opts.hireNote, W - 36) as string[];
     const boxH = 5.5 + termLines.length * 2.8;
     doc.setFillColor(254, 243, 199);
-    panel(L, y, W, boxH);
-    doc.setFillColor(254, 243, 199);
-    doc.rect(L, y, W, boxH, "F");
+    doc.roundedRect(L, y, W, boxH, 1.2, 1.2, "F");
     doc.setDrawColor(190);
     doc.roundedRect(L, y, W, boxH, 1.2, 1.2);
     doc.setFont("helvetica", "bold");
