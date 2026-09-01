@@ -952,6 +952,25 @@ function drawFieldCopy(
   }
   y += 20;
 
+  /* Rental / hire terms — dedicated highlighted space */
+  if (opts.showHireNote && opts.hireNote) {
+    const termLines = doc.splitTextToSize(opts.hireNote, W - 40) as string[];
+    const boxH = 6 + termLines.length * 3.2;
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(L, y, W, boxH, 1.5, 1.5, "F");
+    doc.setDrawColor(180);
+    doc.roundedRect(L, y, W, boxH, 1.5, 1.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(110);
+    doc.text("RENTAL / HIRE TERMS:", L + 2, y + 4);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(termLines, L + 38, y + 4);
+    y += boxH + 2;
+  }
+
   /* Signature strip: customer, driver, disposal site */
   if (opts.showSignatures) {
     y += drawSignatureTrio(doc, job, L, W, y, opts, ACCENT, true) + 2;
