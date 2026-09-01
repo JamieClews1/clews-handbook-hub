@@ -404,19 +404,26 @@ function drawCopy(
 
   const showLogoA = useLogoImage(opts, logo);
   if (showLogoA) {
+    // Logo carries the company name — don't repeat it underneath (prevents overlap).
+    const logoH = opts.logoSize * 0.36;
     try {
-      doc.addImage(logo!, imgFormat(logo!), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, opts.logoSize * 0.36);
+      doc.addImage(logo!, imgFormat(logo!), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, logoH);
     } catch {
       /* ignore bad logo data */
     }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + logoH + 4, { align: "center" });
+    doc.text(COMPANY.orders, L + W / 2, y + logoH + 7.5, { align: "center" });
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(COMPANY.name, L + W / 2, y + 6, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
+    doc.text(COMPANY.orders, L + 45, y + 19);
   }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(COMPANY.name, L + W / 2, y + (showLogoA ? opts.logoSize * 0.36 + 4 : 6), { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
-  doc.text(COMPANY.orders, L + 45, y + 19);
 
   y += 21;
 
