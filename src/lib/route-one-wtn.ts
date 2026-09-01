@@ -425,7 +425,7 @@ function drawCopy(
     doc.text(COMPANY.orders, L + 45, y + 19);
   }
 
-  y += 21;
+  y += 20;
 
 
   /* ── Summary strip ── */
@@ -452,7 +452,7 @@ function drawCopy(
   y += 13;
 
   /* ── Producer / contact / invoice ── */
-  const rowH = 20;
+  const rowH = 18;
   const c1 = 86;
   const c2 = 40;
   const c3 = W - c1 - c2;
@@ -463,12 +463,12 @@ function drawCopy(
   label("Waste", L + 1.5, y + 4, 7.5);
   label("Producer:", L + 1.5, y + 8, 7.5);
   const lines = [job.customer_name || "", ...addressLines(job)];
-  lines.slice(0, 6).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 3.6 + i * 2.9, 7));
+  lines.slice(0, 5).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 3.6 + i * 2.9, 7));
 
   label("Site Contact", L + c1 + c2 / 2 - 9, y + 4, 7.5);
   val(job.site_contact_name || "", L + c1 + 3, y + 9, 7);
   val(job.site_contact_phone || "", L + c1 + 3, y + 13.5, 7);
-  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 18, 7);
+  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 16, 7);
 
   label("Invoice Address:", L + c1 + c2 + 1.5, y + 4, 7.5);
   (job.invoice_address || "")
@@ -479,7 +479,7 @@ function drawCopy(
   y += rowH;
 
   /* ── Comments / directions ── */
-  const commentH = 8;
+  const commentH = 7;
   box(L, y, c1 + c2, commentH);
   box(L + c1 + c2, y, c3, commentH);
   label("Comments:", L + 1.5, y + 4, 7.5);
@@ -490,7 +490,7 @@ function drawCopy(
   y += commentH;
 
   /* ── Vehicle / carrier / EWC / signatures ── */
-  const bandH = 30;
+  const bandH = 29;
   const leftW = 96;
   const rightW = W - leftW;
   const vehH = 14;
@@ -580,7 +580,7 @@ function drawCopy(
   doc.setTextColor(90);
   doc.text(doc.splitTextToSize(opts.terms, W), L, y + 2);
   doc.setTextColor(0);
-  y += 6;
+  y += 5;
 
 
   /* ── Footer ── */
