@@ -578,15 +578,16 @@ function drawCopy(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(4.9);
   doc.setTextColor(90);
-  doc.text(doc.splitTextToSize(opts.terms, W), L, y + 2);
+  const ackLines = doc.splitTextToSize(opts.terms, W) as string[];
+  doc.text(ackLines, L, y + 2);
   doc.setTextColor(0);
-  y += 5;
+  y += 2 + ackLines.length * 1.8;
 
 
   /* ── Footer ── */
   if (opts.showFooter) {
     doc.setFontSize(6.5);
-    doc.text(doc.splitTextToSize(opts.footerText, W), L + W / 2, y + 4, { align: "center" });
+    doc.text(doc.splitTextToSize(opts.footerText, W), L + W / 2, y + 3, { align: "center" });
   }
 }
 
