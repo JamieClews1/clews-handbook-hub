@@ -516,16 +516,6 @@ function drawCopy(
   );
   box(L + leftW / 2, y + vehH, leftW / 2, lowerH);
   val(`EWC/Description: ${[job.ewc_code, job.waste_type].filter(Boolean).join(" — ")}`, L + leftW / 2 + 1.5, y + vehH + 4, 7.5, false, leftW / 2 - 3);
-  doc.setFontSize(5.6);
-  doc.text(
-    doc.splitTextToSize(
-      opts.showHireNote ? opts.hireNote : "",
-      leftW / 2 - 6,
-    ),
-    L + leftW / 2 + leftW / 4,
-    y + vehH + 10.5,
-    { align: "center" },
-  );
 
   // Waste codes + disposal site panel (right of the band)
   const codesH = 12;
