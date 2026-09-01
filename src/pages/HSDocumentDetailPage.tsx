@@ -423,6 +423,7 @@ const HSDocumentDetailPage = () => {
               [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-6 [&_ol]:marker:text-primary
               [&_strong]:font-semibold [&_strong]:text-foreground
               [&_a]:text-primary [&_a]:underline
+              [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border
               [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-md [&_table]:border
               [&_th]:border [&_th]:bg-muted/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold
               [&_td]:border [&_td]:px-3 [&_td]:py-2"
