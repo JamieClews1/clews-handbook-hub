@@ -196,6 +196,7 @@ const HSDocumentDetailPage = () => {
         .body h3, .body h4 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: .04em; color: #1f7a45; margin: 12px 0 6px; }
         .body ul, .body ol { padding-left: 18px; margin: 8px 0; }
         .body table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .body img { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 6px; margin: 10px 0; }
         .body th, .body td { border: 1px solid #bbb; padding: 5px 7px; text-align: left; font-size: 10pt; }
         .body th { background: #f1f1f1; }
         .acks { margin-top: 16px; border: 1px solid #ccc; padding: 10px 12px; page-break-inside: avoid; }
