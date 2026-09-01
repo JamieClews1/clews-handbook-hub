@@ -404,21 +404,28 @@ function drawCopy(
 
   const showLogoA = useLogoImage(opts, logo);
   if (showLogoA) {
+    // Logo carries the company name — don't repeat it underneath (prevents overlap).
+    const logoH = opts.logoSize * 0.36;
     try {
-      doc.addImage(logo!, imgFormat(logo!), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, opts.logoSize * 0.36);
+      doc.addImage(logo!, imgFormat(logo!), L + W / 2 - opts.logoSize / 2, y, opts.logoSize, logoH);
     } catch {
       /* ignore bad logo data */
     }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + logoH + 4, { align: "center" });
+    doc.text(COMPANY.orders, L + W / 2, y + logoH + 7.5, { align: "center" });
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(COMPANY.name, L + W / 2, y + 6, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
+    doc.text(COMPANY.orders, L + 45, y + 19);
   }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(COMPANY.name, L + W / 2, y + (showLogoA ? opts.logoSize * 0.36 + 4 : 6), { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(`${COMPANY.web}   ·   ${COMPANY.phone}`, L + W / 2, y + 16, { align: "center" });
-  doc.text(COMPANY.orders, L + 45, y + 19);
 
-  y += 21;
+  y += 20;
 
 
   /* ── Summary strip ── */
@@ -445,7 +452,7 @@ function drawCopy(
   y += 13;
 
   /* ── Producer / contact / invoice ── */
-  const rowH = 20;
+  const rowH = 18;
   const c1 = 86;
   const c2 = 40;
   const c3 = W - c1 - c2;
@@ -456,12 +463,12 @@ function drawCopy(
   label("Waste", L + 1.5, y + 4, 7.5);
   label("Producer:", L + 1.5, y + 8, 7.5);
   const lines = [job.customer_name || "", ...addressLines(job)];
-  lines.slice(0, 6).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 3.6 + i * 2.9, 7));
+  lines.slice(0, 5).forEach((line, i) => val(String(line).slice(0, 40), L + 20, y + 3.6 + i * 2.9, 7));
 
   label("Site Contact", L + c1 + c2 / 2 - 9, y + 4, 7.5);
   val(job.site_contact_name || "", L + c1 + 3, y + 9, 7);
   val(job.site_contact_phone || "", L + c1 + 3, y + 13.5, 7);
-  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 18, 7);
+  val(job.sic_code ? `SIC : ${job.sic_code}` : "", L + c1 + 3, y + 16, 7);
 
   label("Invoice Address:", L + c1 + c2 + 1.5, y + 4, 7.5);
   (job.invoice_address || "")
@@ -472,7 +479,7 @@ function drawCopy(
   y += rowH;
 
   /* ── Comments / directions ── */
-  const commentH = 8;
+  const commentH = 7;
   box(L, y, c1 + c2, commentH);
   box(L + c1 + c2, y, c3, commentH);
   label("Comments:", L + 1.5, y + 4, 7.5);
@@ -483,7 +490,7 @@ function drawCopy(
   y += commentH;
 
   /* ── Vehicle / carrier / EWC / signatures ── */
-  const bandH = 30;
+  const bandH = 29;
   const leftW = 96;
   const rightW = W - leftW;
   const vehH = 14;
@@ -509,16 +516,6 @@ function drawCopy(
   );
   box(L + leftW / 2, y + vehH, leftW / 2, lowerH);
   val(`EWC/Description: ${[job.ewc_code, job.waste_type].filter(Boolean).join(" — ")}`, L + leftW / 2 + 1.5, y + vehH + 4, 7.5, false, leftW / 2 - 3);
-  doc.setFontSize(5.6);
-  doc.text(
-    doc.splitTextToSize(
-      opts.showHireNote ? opts.hireNote : "",
-      leftW / 2 - 6,
-    ),
-    L + leftW / 2 + leftW / 4,
-    y + vehH + 10.5,
-    { align: "center" },
-  );
 
   // Waste codes + disposal site panel (right of the band)
   const codesH = 12;
@@ -550,6 +547,24 @@ function drawCopy(
     .forEach((line, i) => val(line.trim(), L + leftW + 25, y + codesH + 4 + i * 3.2, 7.5));
   y += bandH + 2;
 
+  /* ── Rental / hire terms — dedicated highlighted space ── */
+  if (opts.showHireNote && opts.hireNote) {
+    const termLines = doc.splitTextToSize(opts.hireNote, W - 34) as string[];
+    const boxH = 5.5 + termLines.length * 2.8;
+    doc.setFillColor(254, 243, 199); // amber highlight
+    doc.setDrawColor(160);
+    doc.setLineWidth(0.3);
+    doc.rect(L, y, W, boxH, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.text("RENTAL / HIRE TERMS:", L + 2, y + 3.6);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.4);
+    doc.text(termLines, L + 32, y + 3.6);
+    doc.setLineWidth(0.2);
+    y += boxH + 1.5;
+  }
+
   /* ── Signatures: customer, driver, disposal site ── */
   if (opts.showSignatures) {
     y += drawSignatureTrio(doc, job, L, W, y, opts, undefined, true) + 1;
@@ -563,15 +578,16 @@ function drawCopy(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(4.9);
   doc.setTextColor(90);
-  doc.text(doc.splitTextToSize(opts.terms, W), L, y + 2);
+  const ackLines = doc.splitTextToSize(opts.terms, W) as string[];
+  doc.text(ackLines, L, y + 2);
   doc.setTextColor(0);
-  y += 6;
+  y += 2 + ackLines.length * 1.8;
 
 
   /* ── Footer ── */
   if (opts.showFooter) {
     doc.setFontSize(6.5);
-    doc.text(doc.splitTextToSize(opts.footerText, W), L + W / 2, y + 4, { align: "center" });
+    doc.text(doc.splitTextToSize(opts.footerText, W), L + W / 2, y + 3, { align: "center" });
   }
 }
 
@@ -743,6 +759,25 @@ function drawModernCopy(
     y += cmtH + 2;
   }
 
+  /* ── Rental / hire terms — dedicated highlighted space ── */
+  if (opts.showHireNote && opts.hireNote) {
+    const termLines = doc.splitTextToSize(opts.hireNote, W - 36) as string[];
+    const boxH = 5.5 + termLines.length * 2.8;
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(L, y, W, boxH, 1.2, 1.2, "F");
+    doc.setDrawColor(190);
+    doc.roundedRect(L, y, W, boxH, 1.2, 1.2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...GREEN);
+    doc.text("RENTAL / HIRE TERMS:", L + 2, y + 3.6);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.4);
+    doc.text(termLines, L + 34, y + 3.6);
+    y += boxH + 2;
+  }
+
   /* ── Signatures: customer, driver, disposal site ── */
   if (opts.showSignatures) {
     y += drawSignatureTrio(doc, job, L, W, y, opts, GREEN, true) + 1;
@@ -756,7 +791,7 @@ function drawModernCopy(
   /* ── Terms & footer ── */
   doc.setFontSize(4.8);
   doc.setTextColor(90);
-  const termsText = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
+  const termsText = [opts.terms, opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
   const termLines = doc.splitTextToSize(termsText, W) as string[];
@@ -918,6 +953,25 @@ function drawFieldCopy(
   }
   y += 20;
 
+  /* Rental / hire terms — dedicated highlighted space */
+  if (opts.showHireNote && opts.hireNote) {
+    const termLines = doc.splitTextToSize(opts.hireNote, W - 40) as string[];
+    const boxH = 6 + termLines.length * 3.2;
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(L, y, W, boxH, 1.5, 1.5, "F");
+    doc.setDrawColor(180);
+    doc.roundedRect(L, y, W, boxH, 1.5, 1.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(110);
+    doc.text("RENTAL / HIRE TERMS:", L + 2, y + 4);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(termLines, L + 38, y + 4);
+    y += boxH + 2;
+  }
+
   /* Signature strip: customer, driver, disposal site */
   if (opts.showSignatures) {
     y += drawSignatureTrio(doc, job, L, W, y, opts, ACCENT, true) + 2;
@@ -932,7 +986,7 @@ function drawFieldCopy(
   doc.setTextColor(110);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(4.8);
-  const terms = [opts.terms, opts.showHireNote ? opts.hireNote : "", opts.showBrokerNote ? opts.brokerNote : ""]
+  const terms = [opts.terms, opts.showBrokerNote ? opts.brokerNote : ""]
     .filter(Boolean)
     .join(" ");
   const fieldTermLines = doc.splitTextToSize(terms, W) as string[];
