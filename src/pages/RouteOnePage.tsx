@@ -48,6 +48,7 @@ import { TicketSendDialog } from "@/components/route-one/TicketSendDialog";
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
 import { SkiptrakSiteDetails } from "@/components/route-one/SkiptrakSiteDetails";
+import { WtnJobSignatures } from "@/components/wtn";
 import { BespokeRateEditor } from "@/components/route-one/BespokeRateEditor";
 import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
@@ -893,6 +894,7 @@ const RouteOnePage = () => {
                     )}
                   </div>
                 )}
+                <WtnJobSignatures jobNumber={viewingJob.job_number} />
                 <JobPhotosSection jobId={viewingJob.id} />
                 <JobPodSection jobNumber={viewingJob.job_number} />
                 <DialogFooter className="gap-2 sm:gap-2">
@@ -978,6 +980,7 @@ const RouteOnePage = () => {
                     queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
                   }}
                 />
+                <WtnJobSignatures jobNumber={viewingSkiptrakJob.job_number} />
                 <SkiptrakSiteDetails job={viewingSkiptrakJob} />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
               </div>
