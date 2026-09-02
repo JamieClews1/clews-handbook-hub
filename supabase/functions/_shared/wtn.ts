@@ -8,6 +8,15 @@ export const corsHeaders = {
 
 export const BUCKET = "wtn-documents";
 
+// pdf.js tears down its internal decompression streams late, which surfaces as
+// a stray "failed to write whole buffer" rejection after a PDF is parsed.
+// Swallow it so it can't kill the function between documents.
+globalThis.addEventListener("unhandledrejection", (e: any) => {
+  if (String(e?.reason?.message ?? e?.reason ?? "").includes("failed to write whole buffer")) {
+    e.preventDefault?.();
+  }
+});
+
 export function admin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -96,7 +105,7 @@ export function parseNames(text: string): { customerName: string | null; driverN
 }
 
 /* ------------------------------------------------------------------ */
-/* Embedded image extraction (raw PDF object scan)                     */
+/* Embedded image extraction (pdf.js: pixels + page placement)         */
 /* ------------------------------------------------------------------ */
 
 export type ExtractedImage = {
@@ -105,31 +114,16 @@ export type ExtractedImage = {
   contentType: string;
   width: number;
   height: number;
+  /** 1-based page the image is drawn on */
+  page: number;
+  /** placement in PDF points (origin bottom-left) */
+  x: number;
+  y: number;
+  dw: number;
+  dh: number;
+  /** true when the bitmap is (nearly) blank — an unsigned signature box */
+  blank: boolean;
 };
-
-const dec = new TextDecoder("latin1");
-
-function indexOfSeq(hay: Uint8Array, needle: string, from: number): number {
-  const n = new TextEncoder().encode(needle);
-  outer: for (let i = from; i <= hay.length - n.length; i++) {
-    for (let j = 0; j < n.length; j++) if (hay[i + j] !== n[j]) continue outer;
-    return i;
-  }
-  return -1;
-}
-
-async function inflate(data: Uint8Array): Promise<Uint8Array | null> {
-  for (const fmt of ["deflate", "deflate-raw"] as const) {
-    try {
-      const ds = new DecompressionStream(fmt);
-      const buf = await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
-      return new Uint8Array(buf);
-    } catch {
-      // try next format
-    }
-  }
-  return null;
-}
 
 function crc32(buf: Uint8Array): number {
   let c: number;
@@ -144,7 +138,7 @@ function crc32(buf: Uint8Array): number {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-async function encodePng(raw: Uint8Array, width: number, height: number, channels: 1 | 3): Promise<Uint8Array | null> {
+async function encodePng(raw: Uint8Array, width: number, height: number, channels: 1 | 3 | 4): Promise<Uint8Array | null> {
   const stride = width * channels;
   if (raw.length < stride * height) return null;
   // Add PNG filter byte (0) per scanline
@@ -173,7 +167,7 @@ async function encodePng(raw: Uint8Array, width: number, height: number, channel
   dv.setUint32(0, width);
   dv.setUint32(4, height);
   ihdr[8] = 8; // bit depth
-  ihdr[9] = channels === 1 ? 0 : 2; // colour type
+  ihdr[9] = channels === 1 ? 0 : channels === 4 ? 6 : 2; // colour type
   const parts = [
     new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     chunk("IHDR", ihdr),
@@ -190,77 +184,204 @@ async function encodePng(raw: Uint8Array, width: number, height: number, channel
   return png;
 }
 
+type TextItemPos = { str: string; x: number; y: number; page: number };
+
+const matMul = (a: number[], b: number[]) => [
+  a[0] * b[0] + a[2] * b[1],
+  a[1] * b[0] + a[3] * b[1],
+  a[0] * b[2] + a[2] * b[3],
+  a[1] * b[2] + a[3] * b[3],
+  a[0] * b[4] + a[2] * b[5] + a[4],
+  a[1] * b[4] + a[3] * b[5] + a[5],
+];
+
+/** Fraction of pixels that differ noticeably from white. */
+function inkRatio(data: Uint8Array, channels: number): number {
+  let ink = 0;
+  let seen = 0;
+  const step = channels * Math.max(1, Math.floor(data.length / channels / 20000));
+  for (let i = 0; i + channels <= data.length; i += step * channels) {
+    seen++;
+    const r = data[i];
+    const g = channels >= 3 ? data[i + 1] : r;
+    const b = channels >= 3 ? data[i + 2] : r;
+    if (r < 220 || g < 220 || b < 220) ink++;
+  }
+  return seen ? ink / seen : 0;
+}
+
 /**
- * Scan the raw PDF for image XObjects and return decoded images.
- * Handles DCTDecode (JPEG, passed straight through) and FlateDecode
- * DeviceRGB / DeviceGray bitmaps (re-encoded as PNG).
+ * Extract every bitmap drawn in the PDF together with where it sits on the
+ * page — position is what tells a driver signature apart from a customer one.
  */
-export async function extractImages(bytes: Uint8Array, max = 40): Promise<ExtractedImage[]> {
+export async function extractPlacedImages(pdf: any, max = 40): Promise<ExtractedImage[]> {
   const out: ExtractedImage[] = [];
-  let pos = 0;
-  while (out.length < max) {
-    const at = indexOfSeq(bytes, "/Image", pos);
-    if (at < 0) break;
-    pos = at + 6;
-
-    // Find the dictionary start before the marker and the stream that follows.
-    const dictStart = Math.max(0, at - 900);
-    const header = dec.decode(bytes.subarray(dictStart, at + 900));
-    const streamRel = indexOfSeq(bytes, "stream", at);
-    if (streamRel < 0) break;
-    const dictText = dec.decode(bytes.subarray(dictStart, streamRel));
-
-    const width = Number(dictText.match(/\/Width\s+(\d+)/)?.[1] ?? 0);
-    const height = Number(dictText.match(/\/Height\s+(\d+)/)?.[1] ?? 0);
-    const length = Number(dictText.match(/\/Length\s+(\d+)/)?.[1] ?? 0);
-    const filter = (dictText.match(/\/Filter\s*\/?\s*\[?\s*\/?([A-Za-z0-9]+)/)?.[1] ?? "").toLowerCase();
-    const cs = (dictText.match(/\/ColorSpace\s*\/?\s*([A-Za-z0-9]+)/)?.[1] ?? "").toLowerCase();
-    const bpc = Number(dictText.match(/\/BitsPerComponent\s+(\d+)/)?.[1] ?? 8);
-    if (!width || !height) continue;
-
-    // Stream data begins after "stream" + EOL
-    let start = streamRel + 6;
-    if (bytes[start] === 13) start++;
-    if (bytes[start] === 10) start++;
-    let end = length > 0 ? start + length : indexOfSeq(bytes, "endstream", start);
-    if (end <= start || end > bytes.length) {
-      end = indexOfSeq(bytes, "endstream", start);
-      if (end < 0) break;
-    }
-    const data = bytes.subarray(start, end);
-    pos = end;
-
-    try {
-      if (filter.includes("dct")) {
-        out.push({ bytes: new Uint8Array(data), ext: "jpg", contentType: "image/jpeg", width, height });
-      } else if (filter.includes("flate") && bpc === 8) {
-        const raw = await inflate(new Uint8Array(data));
-        if (!raw) continue;
-        const channels: 1 | 3 = cs.includes("gray") ? 1 : 3;
-        const png = await encodePng(raw, width, height, channels);
-        if (png) out.push({ bytes: png, ext: "png", contentType: "image/png", width, height });
+  for (let p = 1; p <= pdf.numPages && out.length < max; p++) {
+    const page = await pdf.getPage(p);
+    const ops = await page.getOperatorList();
+    let ctm = [1, 0, 0, 1, 0, 0];
+    const stack: number[][] = [];
+    for (let i = 0; i < ops.fnArray.length && out.length < max; i++) {
+      const fn = ops.fnArray[i];
+      const args = ops.argsArray[i];
+      if (fn === 10) stack.push(ctm.slice());
+      else if (fn === 11) ctm = stack.pop() ?? ctm;
+      else if (fn === 12) ctm = matMul(ctm, args as number[]);
+      else if (fn === 85 || fn === 86 || fn === 87) {
+        const name = args[0];
+        if (typeof name !== "string") continue;
+        const obj: any = await new Promise((resolve) => {
+          let done = false;
+          const finish = (v: any) => {
+            if (!done) {
+              done = true;
+              resolve(v);
+            }
+          };
+          setTimeout(() => finish(null), 5000);
+          try {
+            page.objs.get(name, finish);
+          } catch {
+            finish(null);
+          }
+        });
+        if (!obj?.data || !obj.width || !obj.height) continue;
+        const channels = obj.kind === 1 ? 1 : obj.kind === 3 ? 4 : 3;
+        const data = new Uint8Array(obj.data.buffer ?? obj.data, obj.data.byteOffset ?? 0, obj.data.length);
+        const png = await encodePng(data, obj.width, obj.height, channels as 1 | 3 | 4);
+        if (!png) continue;
+        out.push({
+          bytes: png,
+          ext: "png",
+          contentType: "image/png",
+          width: obj.width,
+          height: obj.height,
+          page: p,
+          x: ctm[4],
+          y: ctm[5],
+          dw: Math.abs(ctm[0]),
+          dh: Math.abs(ctm[3]),
+          blank: inkRatio(data, channels) < 0.004,
+        });
       }
-    } catch (e) {
-      console.error("wtn image decode failed", e);
     }
-    void header;
   }
   return out;
 }
 
-/** Signatures are wide, short, low-detail strokes; photos are large. */
-export function classifyImages(images: ExtractedImage[]) {
-  const signatures: ExtractedImage[] = [];
-  const photos: ExtractedImage[] = [];
-  for (const img of images) {
-    const area = img.width * img.height;
-    const ratio = img.width / Math.max(1, img.height);
-    const isSignature = area < 260_000 && ratio >= 1.2 && img.height <= 400;
-    if (isSignature && signatures.length < 2) signatures.push(img);
-    else photos.push(img);
+/** Positioned text items, used to locate the signature/name labels. */
+export async function extractTextItems(pdf: any): Promise<TextItemPos[]> {
+  const items: TextItemPos[] = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    for (const it of tc.items as any[]) {
+      const s = String(it.str ?? "").trim();
+      if (!s) continue;
+      items.push({ str: s, x: it.transform[4], y: it.transform[5], page: p });
+    }
   }
-  return { signatures, photos };
+  return items;
 }
+
+function findLabel(items: TextItemPos[], re: RegExp): TextItemPos | null {
+  return items.find((i) => i.page === 1 && re.test(i.str)) ?? null;
+}
+
+/** Value printed to the right of a label, stopping at the next column label. */
+function valueRightOf(items: TextItemPos[], label: TextItemPos | null): string | null {
+  if (!label) return null;
+  const row = items
+    .filter((i) => i.page === label.page && Math.abs(i.y - label.y) <= 4 && i.x > label.x + 2)
+    .sort((a, b) => a.x - b.x);
+  const parts: string[] = [];
+  for (const it of row) {
+    if (/:\s*$/.test(it.str)) break; // next field label on the same line
+    parts.push(it.str);
+  }
+  return cleanName(parts.join(" "));
+}
+
+
+/**
+ * Match images to the "Driver Sign" / "Customer Sign" boxes on the ticket.
+ * Anything on a later page (or a large unmatched image) is a job photo;
+ * small unmatched images in the header band are branding and are dropped.
+ */
+export function classifyImages(images: ExtractedImage[], items: TextItemPos[]) {
+  const driverLabel = findLabel(items, /^driver\s*sign/i);
+  const customerLabel = findLabel(items, /^customer\s*sign/i);
+
+  const near = (img: ExtractedImage, label: TextItemPos | null) =>
+    !!label && img.page === label.page && Math.abs(img.x - label.x) <= 140 && Math.abs(img.y - label.y) <= 70;
+
+  let driverSig: ExtractedImage | null = null;
+  let customerSig: ExtractedImage | null = null;
+  const photos: ExtractedImage[] = [];
+
+  for (const img of images) {
+    if (img.page === 1 && !driverSig && near(img, driverLabel)) {
+      driverSig = img;
+      continue;
+    }
+    if (img.page === 1 && !customerSig && near(img, customerLabel)) {
+      customerSig = img;
+      continue;
+    }
+    if (img.page > 1) {
+      photos.push(img);
+      continue;
+    }
+    // Unmatched on page 1: keep only if it is big enough to be a real photo.
+    if (img.dw * img.dh >= 60_000) photos.push(img);
+  }
+
+  // Fallback for tickets without recognisable labels: two small wide images
+  // on page 1 are the signatures (left = driver, right = customer).
+  if (!driverSig && !customerSig && !driverLabel && !customerLabel) {
+    const candidates = images
+      .filter((i) => i.page === 1 && i.dw * i.dh < 60_000 && i.dw > i.dh && i.y < 500)
+      .sort((a, b) => a.x - b.x);
+    driverSig = candidates[0] ?? null;
+    customerSig = candidates[1] ?? null;
+  }
+
+  if (driverSig?.blank) driverSig = null;
+  if (customerSig?.blank) customerSig = null;
+
+  return { driverSig, customerSig, photos: photos.filter((p) => !p.blank) };
+}
+
+/** Full analysis of a WTN PDF: text, names, signatures and photos. */
+export async function analyseWtn(bytes: Uint8Array) {
+  const { getDocumentProxy, extractText: ex } = await import("https://esm.sh/unpdf@0.12.1");
+  const pdf = await getDocumentProxy(bytes);
+  const { text } = await ex(pdf, { mergePages: true });
+  const items = await extractTextItems(pdf);
+  const images = await extractPlacedImages(pdf);
+  const { driverSig, customerSig, photos } = classifyImages(images, items);
+
+  const driverLabel =
+    findLabel(items, /^driver\s*\/?\s*vehicle\s*:?$/i) ?? findLabel(items, /^driver\s*(name)?\s*:?$/i);
+  const customerLabel =
+    findLabel(items, /^customer\s*print/i) ?? findLabel(items, /^(print(ed)?\s*name|received\s*by)/i);
+  // Only fall back to loose text matching when the ticket has no proper label
+  // — otherwise a blank field would pick up terms-and-conditions wording.
+  const fallback = driverLabel && customerLabel ? { driverName: null, customerName: null } : parseNames(String(text ?? ""));
+  const driverName = valueRightOf(items, driverLabel) ?? fallback.driverName;
+  const customerName = valueRightOf(items, customerLabel) ?? fallback.customerName;
+
+
+  try {
+    await pdf.cleanup?.();
+    await pdf.destroy?.();
+  } catch {
+    // best-effort teardown
+  }
+
+  return { text: String(text ?? ""), driverName, customerName, driverSig, customerSig, photos };
+}
+
 
 /** Download the PDF, parse it and write names / signatures / photos back. */
 export async function processDocument(sb: ReturnType<typeof admin>, documentId: string) {
@@ -277,10 +398,8 @@ export async function processDocument(sb: ReturnType<typeof admin>, documentId: 
     if (dl.error) throw dl.error;
     const bytes = new Uint8Array(await dl.data.arrayBuffer());
 
-    const text = await extractText(bytes);
-    const { customerName, driverName } = parseNames(text);
-    const images = await extractImages(bytes);
-    const { signatures, photos } = classifyImages(images);
+    const { text, customerName, driverName, customerSig: custImg, driverSig: drvImg, photos } =
+      await analyseWtn(bytes);
 
     // Replace any previously extracted images for this document.
     const { data: old } = await sb.from("wtn_document_images").select("storage_path").eq("document_id", doc.id);
@@ -301,8 +420,8 @@ export async function processDocument(sb: ReturnType<typeof admin>, documentId: 
       return path;
     };
 
-    const customerSig = signatures[0] ? await put(signatures[0], "signature-customer", 1) : null;
-    const driverSig = signatures[1] ? await put(signatures[1], "signature-driver", 2) : null;
+    const customerSig = custImg ? await put(custImg, "signature-customer", 1) : null;
+    const driverSig = drvImg ? await put(drvImg, "signature-driver", 2) : null;
     for (let i = 0; i < photos.length; i++) await put(photos[i], "photo", i + 1);
 
     if (uploaded.length) {
@@ -332,7 +451,13 @@ export async function processDocument(sb: ReturnType<typeof admin>, documentId: 
       })
       .eq("id", doc.id);
 
-    return { id: doc.id, customerName, driverName, photos: photos.length, signatures: signatures.length };
+    return {
+      id: doc.id,
+      customerName,
+      driverName,
+      photos: photos.length,
+      signatures: (customerSig ? 1 : 0) + (driverSig ? 1 : 0),
+    };
   } catch (e) {
     await sb
       .from("wtn_documents")
