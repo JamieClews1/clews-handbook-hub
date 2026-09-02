@@ -157,14 +157,23 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
       }
       if (ids.length) {
         toast({ title: "Uploaded", description: `${ids.length} of ${Array.from(files).length} document(s) uploaded — parsing…` });
-        // Parse in small batches so one slow/failed document can't stall the rest.
-        for (let i = 0; i < ids.length; i += 10) {
+        // Parse in very small batches (large PDFs can time out) with one retry each.
+        for (let i = 0; i < ids.length; i += 3) {
+          const batch = ids.slice(i, i + 3);
           try {
-            await parseWtnDocuments(ids.slice(i, i + 10));
+            await parseWtnDocuments(batch);
           } catch (e) {
-            console.error("wtn parse batch failed", e);
+            console.error("wtn parse batch failed, retrying one by one", e);
+            for (const id of batch) {
+              try {
+                await parseWtnDocuments([id]);
+              } catch (err) {
+                console.error("wtn parse failed", id, err);
+              }
+            }
           }
         }
+
       }
       if (failures.length) {
         toast({
