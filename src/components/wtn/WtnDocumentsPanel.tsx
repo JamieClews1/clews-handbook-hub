@@ -127,17 +127,27 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     const current = await fetchPdaUploadSettings();
     setRules(current);
     let skippedPrefix = 0;
+    let notPdf = 0;
+    const failures: { name: string; message: string }[] = [];
     try {
       for (const file of Array.from(files)) {
         if (!/\.pdf$/i.test(file.name)) {
-          toast({ title: "Skipped", description: `${file.name} is not a PDF.`, variant: "destructive" });
+          notPdf += 1;
           continue;
         }
         if (current.require_job_prefix && !hasJobPrefix(file.name)) {
           skippedPrefix += 1;
           continue;
         }
-        ids.push(await uploadWtnPdf(file, current.replace_existing));
+        // One bad file must never abort the rest of the batch.
+        try {
+          ids.push(await uploadWtnPdf(file, current.replace_existing));
+        } catch (e: any) {
+          failures.push({ name: file.name, message: e?.message ?? "Upload failed" });
+        }
+      }
+      if (notPdf) {
+        toast({ title: `${notPdf} file(s) skipped`, description: "Not PDF files." });
       }
       if (skippedPrefix) {
         toast({
@@ -146,8 +156,25 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
         });
       }
       if (ids.length) {
-        toast({ title: "Uploaded", description: `${ids.length} WTN document(s) uploaded — parsing…` });
-        await parseWtnDocuments(ids);
+        toast({ title: "Uploaded", description: `${ids.length} of ${Array.from(files).length} document(s) uploaded — parsing…` });
+        // Parse in small batches so one slow/failed document can't stall the rest.
+        for (let i = 0; i < ids.length; i += 10) {
+          try {
+            await parseWtnDocuments(ids.slice(i, i + 10));
+          } catch (e) {
+            console.error("wtn parse batch failed", e);
+          }
+        }
+      }
+      if (failures.length) {
+        toast({
+          title: `${failures.length} file(s) failed`,
+          description: `${failures
+            .slice(0, 3)
+            .map((f) => `${f.name}: ${f.message}`)
+            .join("; ")}${failures.length > 3 ? "…" : ""}`,
+          variant: "destructive",
+        });
       }
       await load();
     } catch (e: any) {
