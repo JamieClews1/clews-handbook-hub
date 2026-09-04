@@ -513,6 +513,9 @@ export type Database = {
           total_weight_t: number | null
           updated_at: string
           vessel: string | null
+          wb_job_date: string | null
+          wb_location: string | null
+          wb_ticket_number: string | null
         }
         Insert: {
           annex7?: Json
@@ -546,6 +549,9 @@ export type Database = {
           total_weight_t?: number | null
           updated_at?: string
           vessel?: string | null
+          wb_job_date?: string | null
+          wb_location?: string | null
+          wb_ticket_number?: string | null
         }
         Update: {
           annex7?: Json
@@ -579,6 +585,9 @@ export type Database = {
           total_weight_t?: number | null
           updated_at?: string
           vessel?: string | null
+          wb_job_date?: string | null
+          wb_location?: string | null
+          wb_ticket_number?: string | null
         }
         Relationships: [
           {
