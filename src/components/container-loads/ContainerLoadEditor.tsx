@@ -6,7 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
@@ -37,6 +42,8 @@ import {
   Package,
   Loader2,
   Send,
+  Scale,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ContainerLoadSendDialog } from "./ContainerLoadSendDialog";
@@ -110,6 +117,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
+  const [wbLoading, setWbLoading] = useState(false);
 
   const update = (patch: Partial<ContainerLoad>) =>
     setLoad((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -181,6 +189,9 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           annex7_upload: merged.annex7_upload as any,
           packing_upload: merged.packing_upload as any,
           load_name: merged.load_name,
+          wb_ticket_number: merged.wb_ticket_number,
+          wb_location: merged.wb_location,
+          wb_job_date: merged.wb_job_date,
         })
         .eq("id", loadId);
       if (error) throw error;
@@ -345,6 +356,57 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     }
   };
 
+  const lookupWbTicket = async () => {
+    if (!load) return;
+    const ticket = (load.wb_ticket_number || "").trim();
+    if (!ticket) {
+      toast({ title: "Enter a WB ticket number first", variant: "destructive" });
+      return;
+    }
+    setWbLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("job_number, customer, site, weight_t, job_date, waste_description, vehicle_registration")
+        .eq("source", "Midweigh")
+        .ilike("job_number", ticket)
+        .order("job_date", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      const job = data?.[0];
+      if (!job) {
+        toast({
+          title: "Ticket not found",
+          description: `No Midweigh record for ${ticket}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const matchedCustomer = customers.find(
+        (c) => c.customer_name.trim().toLowerCase() === (job.customer || "").trim().toLowerCase(),
+      );
+      await persist({
+        wb_ticket_number: job.job_number,
+        wb_location: job.site || null,
+        wb_job_date: job.job_date || null,
+        customer_name: job.customer || load.customer_name,
+        customer_id: matchedCustomer?.id ?? load.customer_id,
+        total_weight_t: job.weight_t != null ? Number(job.weight_t) : load.total_weight_t,
+        material: load.material || job.waste_description || null,
+      });
+      toast({
+        title: "Weighbridge ticket found",
+        description: `${job.customer || "Unknown customer"} · ${job.site || "No location"} · ${
+          job.weight_t ?? "—"
+        } t`,
+      });
+    } catch (e: any) {
+      toast({ title: "Lookup failed", description: e.message, variant: "destructive" });
+    } finally {
+      setWbLoading(false);
+    }
+  };
+
   if (loading || !load) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -433,21 +495,89 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         </div>
       </div>
 
-      <Tabs defaultValue="bales" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="bales" className="gap-1">
-            <Package className="h-4 w-4" /> Bales
-          </TabsTrigger>
-          <TabsTrigger value="photos" className="gap-1">
-            <Camera className="h-4 w-4" /> Photos
-          </TabsTrigger>
-          <TabsTrigger value="paperwork" className="gap-1">
-            <FileText className="h-4 w-4" /> Paperwork
-          </TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Scale className="h-4 w-4" /> Weighbridge ticket
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="wb_ticket">WB ticket number</Label>
+              <Input
+                id="wb_ticket"
+                value={load.wb_ticket_number ?? ""}
+                onChange={(e) => update({ wb_ticket_number: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") lookupWbTicket();
+                }}
+                placeholder="e.g. 123456"
+                className="h-11 w-48 text-lg font-semibold"
+              />
+            </div>
+            <Button onClick={lookupWbTicket} disabled={wbLoading} className="gap-2 h-11">
+              {wbLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              Pull from Midweigh
+            </Button>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label>Company</Label>
+              <Input
+                value={load.customer_name ?? ""}
+                onChange={(e) => update({ customer_name: e.target.value })}
+                onBlur={() => persist()}
+                placeholder="Customer"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Location</Label>
+              <Input
+                value={load.wb_location ?? ""}
+                onChange={(e) => update({ wb_location: e.target.value })}
+                onBlur={() => persist()}
+                placeholder="Site / location"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Weight (t)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={load.total_weight_t ?? ""}
+                onChange={(e) =>
+                  update({ total_weight_t: e.target.value === "" ? null : Number(e.target.value) })
+                }
+                onBlur={() => persist()}
+              />
+            </div>
+          </div>
+          {load.wb_job_date && (
+            <p className="text-xs text-muted-foreground">
+              Ticket date: {new Date(load.wb_job_date).toLocaleDateString("en-GB")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Accordion
+        type="multiple"
+        defaultValue={["bales", "photos", "paperwork"]}
+        className="space-y-3"
+      >
 
         {/* BALES & PACKING */}
-        <TabsContent value="bales" className="space-y-4">
+        <AccordionItem value="bales" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 font-semibold">
+              <Package className="h-4 w-4" /> Bales
+              <span className="text-xs font-normal text-muted-foreground">
+                {load.bale_count} bale(s)
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Bale count</CardTitle>
@@ -469,10 +599,20 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </AccordionContent>
+        </AccordionItem>
 
         {/* PHOTOS */}
-        <TabsContent value="photos" className="space-y-4">
+        <AccordionItem value="photos" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 font-semibold">
+              <Camera className="h-4 w-4" /> Photos
+              <span className="text-xs font-normal text-muted-foreground">
+                {load.photos.length} taken
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
           <input
             ref={fileRef}
             type="file"
@@ -603,10 +743,20 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
+        </AccordionContent>
+        </AccordionItem>
 
         {/* PAPERWORK */}
-        <TabsContent value="paperwork" className="space-y-4">
+        <AccordionItem value="paperwork" className="border rounded-lg px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 font-semibold">
+              <FileText className="h-4 w-4" /> Paperwork
+              <span className="text-xs font-normal text-muted-foreground">
+                {(load.packing_upload ? 1 : 0) + (load.annex7_upload ? 1 : 0)} of 2 uploaded
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pb-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Paperwork uploads</CardTitle>
@@ -668,8 +818,9 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </AccordionContent>
+        </AccordionItem>
+      </Accordion>
       <ContainerLoadSendDialog
         load={load}
         open={sendOpen}
