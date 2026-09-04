@@ -387,19 +387,22 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       const matchedCustomer = customers.find(
         (c) => c.customer_name.trim().toLowerCase() === (job.customer || "").trim().toLowerCase(),
       );
+      // Midweigh weights are stored in KG — normalise to tonnes
+      const rawWeight = job.weight_t != null ? Number(job.weight_t) : null;
+      const weightT = rawWeight != null ? (rawWeight > 1000 ? rawWeight / 1000 : rawWeight) : null;
       await persist({
         wb_ticket_number: job.job_number,
         wb_location: job.site || null,
         wb_job_date: job.job_date || null,
         customer_name: job.customer || load.customer_name,
         customer_id: matchedCustomer?.id ?? load.customer_id,
-        total_weight_t: job.weight_t != null ? Number(job.weight_t) : load.total_weight_t,
+        total_weight_t: weightT ?? load.total_weight_t,
         material: load.material || job.waste_description || null,
       });
       toast({
         title: "Weighbridge ticket found",
         description: `${job.customer || "Unknown customer"} · ${job.site || "No location"} · ${
-          job.weight_t ?? "—"
+          weightT != null ? weightT.toFixed(2) : "—"
         } t`,
       });
     } catch (e: any) {
