@@ -370,7 +370,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       const { data, error } = await supabase
         .from("data_hub_jobs")
         .select("job_number, customer, site, weight_t, job_date, waste_description, vehicle_registration")
-        .eq("source", "Midweigh")
+        .ilike("source", "midweigh")
         .ilike("job_number", ticket)
         .order("job_date", { ascending: false })
         .limit(1);
