@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
 
     await supabase
       .from("container_loads")
-      .update({ sent_at: new Date().toISOString(), supplier_email: payload.to })
+      .update({ sent_at: new Date().toISOString(), supplier_email: toList[0] })
       .eq("id", payload.loadId);
 
     await supabase.from("container_load_send_log").insert({ ...logRow, status: "sent" });
