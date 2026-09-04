@@ -461,13 +461,6 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setSendOpen(true)}
-            className="gap-2"
-          >
-            <Send className="h-4 w-4" /> Send
-          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="icon">
