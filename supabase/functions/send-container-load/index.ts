@@ -100,6 +100,11 @@ Deno.serve(async (req) => {
       </p>`;
 
     const ORDERS = "orders@clewsrecycling.co.uk";
+    const toList = payload.to
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!toList.length) throw new Error("No recipient email provided");
     const ccList = (payload.cc || "")
       .split(",")
       .map((s) => s.trim())
@@ -107,14 +112,14 @@ Deno.serve(async (req) => {
     // orders@ must always receive a copy
     if (
       !ccList.some((c) => c.toLowerCase() === ORDERS) &&
-      payload.to.trim().toLowerCase() !== ORDERS
+      !toList.some((t) => t.toLowerCase() === ORDERS)
     ) {
       ccList.push(ORDERS);
     }
 
     const emailPayload: any = {
       from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
-      to: [payload.to],
+      to: toList,
       subject: payload.subject,
       html,
       reply_to: payload.replyTo || ORDERS,
@@ -126,8 +131,9 @@ Deno.serve(async (req) => {
       load_id: load.id,
       reference: load.reference,
       load_name: (load as any).load_name ?? null,
-      to_email: payload.to,
+      to_email: toList.join(", "),
       cc_email: ccList.join(", "),
+
       reply_to_email: payload.replyTo || ORDERS,
       subject: payload.subject,
       body: payload.body,
@@ -155,7 +161,7 @@ Deno.serve(async (req) => {
 
     await supabase
       .from("container_loads")
-      .update({ sent_at: new Date().toISOString(), supplier_email: payload.to })
+      .update({ sent_at: new Date().toISOString(), supplier_email: toList[0] })
       .eq("id", payload.loadId);
 
     await supabase.from("container_load_send_log").insert({ ...logRow, status: "sent" });

@@ -34,6 +34,8 @@ interface ContactRow {
   phone: string | null;
   role: string | null;
   is_default: boolean;
+  account_number: string | null;
+
 }
 
 interface EmailSettings {
@@ -173,6 +175,8 @@ export const ContainerLoadSettingsDialog = () => {
         phone: c.phone,
         role: c.role,
         is_default: c.is_default,
+        account_number: c.account_number,
+
       })
       .eq("id", c.id);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
@@ -287,7 +291,16 @@ export const ContainerLoadSettingsDialog = () => {
                             onBlur={() => saveContact({ ...c })}
                           />
                         </div>
-                        <div className="space-y-1 sm:col-span-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Account number</Label>
+                          <Input
+                            value={c.account_number ?? ""}
+                            onChange={(e) => patchContact(c.id, { account_number: e.target.value })}
+                            onBlur={() => saveContact({ ...c })}
+                            placeholder="e.g. DH0577"
+                          />
+                        </div>
+                        <div className="space-y-1">
                           <Label className="text-xs">Role / notes</Label>
                           <Input
                             value={c.role ?? ""}
@@ -296,6 +309,7 @@ export const ContainerLoadSettingsDialog = () => {
                             placeholder="e.g. Supplier, Shipping agent"
                           />
                         </div>
+
                       </div>
                       <div className="flex items-center justify-between">
                         <Button

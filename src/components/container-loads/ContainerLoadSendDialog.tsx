@@ -66,10 +66,10 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
         supabase
           .from("container_load_contacts")
           .select("id, name, company, email, is_default")
-          .order("is_default", { ascending: false })
+          .order("company")
           .order("name"),
       ]);
-      const list = contactData || [];
+      const list = (contactData || []).filter((c) => c.email);
       setContacts(list);
       setCc(data?.cc_email || ORDERS_EMAIL);
       setReplyTo(data?.reply_to_email || ORDERS_EMAIL);
@@ -85,13 +85,33 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     })();
   }, [open, load]);
 
+  const toList = to
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const toSet = new Set(toList.map((t) => t.toLowerCase()));
+
+  const toggleRecipient = (email: string) => {
+    const lower = email.toLowerCase();
+    const next = toSet.has(lower)
+      ? toList.filter((t) => t.toLowerCase() !== lower)
+      : [...toList, email];
+    setTo(next.join(", "));
+  };
+
+  const groupedContacts = contacts.reduce<Record<string, typeof contacts>>((acc, c) => {
+    const key = c.company || "Other";
+    (acc[key] ||= []).push(c);
+    return acc;
+  }, {});
+
   const ccList = cc
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   const finalCc =
     ccList.some((c) => c.toLowerCase() === ORDERS_EMAIL) ||
-    to.trim().toLowerCase() === ORDERS_EMAIL
+    toSet.has(ORDERS_EMAIL)
       ? ccList
       : [...ccList, ORDERS_EMAIL];
 
@@ -101,7 +121,9 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     ...(load.packing_upload ? [load.packing_upload.name || "Packing list"] : []),
   ];
 
-  const toValid = EMAIL_RE.test(to.trim());
+  const invalidTo = toList.filter((t) => !EMAIL_RE.test(t));
+  const toValid = toList.length > 0 && invalidTo.length === 0;
+
 
   const handleSend = async () => {
     if (!toValid) {
@@ -146,35 +168,47 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
           </div>
         ) : step === "compose" ? (
           <div className="space-y-3">
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-3">
               <div className="space-y-1.5">
-                <Label>To (supplier)</Label>
+                <Label>To (supplier) — pick one or more</Label>
                 <Input
                   value={to}
                   onChange={(e) => setTo(e.target.value)}
-                  placeholder="supplier@example.com"
+                  placeholder="supplier@example.com, second@example.com"
                 />
-                {to.trim() && !toValid && (
-                  <p className="text-xs text-destructive">That doesn't look like a valid email address.</p>
+                {invalidTo.length > 0 && (
+                  <p className="text-xs text-destructive">
+                    Not a valid email: {invalidTo.join(", ")}
+                  </p>
                 )}
                 {contacts.length > 0 && (
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {contacts.map((c) => (
-                      <Button
-                        key={c.id}
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={() => setTo(c.email)}
-                      >
-                        {c.name}
-                        {c.company ? ` · ${c.company}` : ""}
-                      </Button>
+                  <div className="space-y-2 pt-1 max-h-52 overflow-y-auto rounded border p-2">
+                    {Object.entries(groupedContacts).map(([company, list]) => (
+                      <div key={company}>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">{company}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {list.map((c) => {
+                            const active = toSet.has(c.email.toLowerCase());
+                            return (
+                              <Button
+                                key={c.id}
+                                type="button"
+                                size="sm"
+                                variant={active ? "default" : "outline"}
+                                className="h-7 text-xs"
+                                onClick={() => toggleRecipient(c.email)}
+                              >
+                                {c.name}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
+
               <div className="space-y-1.5">
                 <Label>CC</Label>
                 <Input value={cc} onChange={(e) => setCc(e.target.value)} />
