@@ -49,6 +49,7 @@ import {
   PaperworkMode,
   PhotoCategory,
   PHOTO_REQUIREMENTS,
+  containerLoadTitle,
   normalizeContainerLoad,
   packingTotalKg,
 } from "@/lib/container-loads";
@@ -179,6 +180,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           paperwork_mode: merged.paperwork_mode,
           annex7_upload: merged.annex7_upload as any,
           packing_upload: merged.packing_upload as any,
+          load_name: merged.load_name,
         })
         .eq("id", loadId);
       if (error) throw error;
@@ -363,13 +365,20 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">{load.reference}</h2>
+              <Input
+                value={load.load_name ?? ""}
+                onChange={(e) => update({ load_name: e.target.value })}
+                onBlur={() => persist()}
+                placeholder={load.reference || "Name this container"}
+                aria-label="Container name"
+                className="h-9 w-[240px] text-lg font-bold border-dashed"
+              />
               <Badge variant="outline" className={meta.badgeClass}>
                 {meta.label}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {load.customer_name || "Unassigned customer"}
+              {load.reference} · {load.customer_name || "Unassigned customer"}
             </p>
           </div>
         </div>
@@ -407,7 +416,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete container load?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently deletes {load.reference} and its details. Uploaded photos remain in storage.
+                  This permanently deletes {containerLoadTitle(load)} and its details. Uploaded photos remain in storage.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -425,12 +434,15 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       </div>
 
       <Tabs defaultValue="bales" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="bales" className="gap-1">
             <Package className="h-4 w-4" /> Bales
           </TabsTrigger>
           <TabsTrigger value="photos" className="gap-1">
             <Camera className="h-4 w-4" /> Photos
+          </TabsTrigger>
+          <TabsTrigger value="paperwork" className="gap-1">
+            <FileText className="h-4 w-4" /> Paperwork
           </TabsTrigger>
         </TabsList>
 
@@ -590,6 +602,71 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* PAPERWORK */}
+        <TabsContent value="paperwork" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Paperwork uploads</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  { kind: "packing" as const, label: "Packing list", file: load.packing_upload },
+                  { kind: "annex7" as const, label: "Annex 7", file: load.annex7_upload },
+                ]
+              ).map(({ kind, label, file }) => (
+                <div key={kind} className="rounded-lg border p-3 space-y-2">
+                  <div className="font-semibold text-sm">{label}</div>
+                  {file ? (
+                    <div className="flex items-center justify-between gap-2 rounded bg-muted/40 p-2">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm truncate underline"
+                      >
+                        {file.name || label}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => removePaperwork(kind)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No document uploaded yet.</p>
+                  )}
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx"
+                      className="hidden"
+                      onChange={(e) => {
+                        uploadPaperwork(kind, e.target.files?.[0] ?? null);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button asChild variant="outline" size="sm" className="gap-2 w-full" disabled={uploading}>
+                      <span>
+                        <Upload className="h-4 w-4" />
+                        {file ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          {uploading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+            </div>
           )}
         </TabsContent>
       </Tabs>
