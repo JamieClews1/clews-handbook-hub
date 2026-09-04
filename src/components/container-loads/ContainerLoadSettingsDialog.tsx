@@ -300,15 +300,6 @@ export const ContainerLoadSettingsDialog = () => {
             onBlur={() => saveContact({ ...c })}
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Account number</Label>
-          <Input
-            value={c.account_number ?? ""}
-            onChange={(e) => patchContact(c.id, { account_number: e.target.value })}
-            onBlur={() => saveContact({ ...c })}
-            placeholder="e.g. DH0577"
-          />
-        </div>
         <div className="space-y-1 sm:col-span-2">
           <Label className="text-xs">Role / notes</Label>
           <Input
