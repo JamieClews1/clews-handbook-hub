@@ -74,6 +74,7 @@ export const ContainerLoadSettingsDialog = () => {
         supabase
           .from("customers")
           .select("id, customer_name, is_container_load_customer")
+          .eq("is_container_load_customer", true)
           .order("customer_name"),
         supabase
           .from("container_load_email_settings")
@@ -339,6 +340,10 @@ export const ContainerLoadSettingsDialog = () => {
             </TabsContent>
 
             <TabsContent value="customers" className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                These are the only companies offered when creating a container load. Untick one to
+                remove it from the list.
+              </p>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
