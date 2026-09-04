@@ -4,8 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ContainerLoadSendHistory } from "./ContainerLoadSendHistory";
 import { History } from "lucide-react";
 import {
@@ -17,12 +23,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Settings, Loader2, Search, Mail, Users, Contact, Plus, Trash2, Star } from "lucide-react";
+import {
+  Settings,
+  Loader2,
+  Search,
+  Mail,
+  Building2,
+  Plus,
+  Trash2,
+  Star,
+  Save,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface CustomerRow {
+interface CompanyRow {
   id: string;
   customer_name: string;
+  customer_code: string;
   is_container_load_customer: boolean;
 }
 
@@ -30,12 +47,12 @@ interface ContactRow {
   id: string;
   name: string;
   company: string | null;
+  customer_id: string | null;
   email: string;
   phone: string | null;
   role: string | null;
   is_default: boolean;
   account_number: string | null;
-
 }
 
 interface EmailSettings {
@@ -60,11 +77,13 @@ export const ContainerLoadSettingsDialog = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [rows, setRows] = useState<CustomerRow[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [search, setSearch] = useState("");
   const [emailSettings, setEmailSettings] = useState<EmailSettings>(EMPTY_EMAIL);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [newCompanyCode, setNewCompanyCode] = useState("");
+  const [addingCompany, setAddingCompany] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +92,7 @@ export const ContainerLoadSettingsDialog = () => {
       const [{ data: custData }, { data: emailData }, { data: contactData }] = await Promise.all([
         supabase
           .from("customers")
-          .select("id, customer_name, is_container_load_customer")
+          .select("id, customer_name, customer_code, is_container_load_customer")
           .eq("is_container_load_customer", true)
           .order("customer_name"),
         supabase
@@ -87,44 +106,147 @@ export const ContainerLoadSettingsDialog = () => {
           .order("is_default", { ascending: false })
           .order("name"),
       ]);
+      setCompanies((custData || []) as CompanyRow[]);
       setContacts((contactData || []) as ContactRow[]);
-      const list = (custData || []) as CustomerRow[];
-      setRows(list);
-      setSelected(new Set(list.filter((c) => c.is_container_load_customer).map((c) => c.id)));
       if (emailData) setEmailSettings(emailData as EmailSettings);
       setLoading(false);
     })();
   }, [open]);
 
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const contactsFor = (company: CompanyRow) =>
+    contacts.filter(
+      (c) =>
+        c.customer_id === company.id ||
+        (!c.customer_id &&
+          (c.company || "").trim().toLowerCase() ===
+            company.customer_name.trim().toLowerCase()),
+    );
+
+  const unassigned = useMemo(
+    () =>
+      contacts.filter(
+        (c) =>
+          !c.customer_id &&
+          !companies.some(
+            (co) =>
+              co.customer_name.trim().toLowerCase() === (c.company || "").trim().toLowerCase(),
+          ),
+      ),
+    [contacts, companies],
+  );
+
+  const filteredCompanies = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter(
+      (c) =>
+        c.customer_name.toLowerCase().includes(q) ||
+        (c.customer_code || "").toLowerCase().includes(q),
+    );
+  }, [companies, search]);
+
+  const addCompany = async () => {
+    const name = newCompanyName.trim();
+    if (!name) return;
+    setAddingCompany(true);
+    try {
+      const code =
+        newCompanyCode.trim() ||
+        name.replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase() + "01";
+      const { data, error } = await supabase
+        .from("customers")
+        .insert({ customer_name: name, customer_code: code, is_container_load_customer: true })
+        .select("id, customer_name, customer_code, is_container_load_customer")
+        .single();
+      if (error) throw error;
+      setCompanies((prev) =>
+        [...prev, data as CompanyRow].sort((a, b) => a.customer_name.localeCompare(b.customer_name)),
+      );
+      setNewCompanyName("");
+      setNewCompanyCode("");
+      toast({ title: "Company added", description: name });
+    } catch (e: any) {
+      toast({ title: "Could not add company", description: e.message, variant: "destructive" });
+    } finally {
+      setAddingCompany(false);
+    }
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => r.customer_name.toLowerCase().includes(q));
-  }, [rows, search]);
+  const saveCompany = async (c: CompanyRow) => {
+    const { error } = await supabase
+      .from("customers")
+      .update({ customer_name: c.customer_name, customer_code: c.customer_code })
+      .eq("id", c.id);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+  };
 
-  const handleSaveCustomers = async () => {
-    setSaving(true);
-    try {
-      const enable = rows.filter((r) => selected.has(r.id) && !r.is_container_load_customer).map((r) => r.id);
-      const disable = rows.filter((r) => !selected.has(r.id) && r.is_container_load_customer).map((r) => r.id);
-      if (enable.length)
-        await supabase.from("customers").update({ is_container_load_customer: true }).in("id", enable);
-      if (disable.length)
-        await supabase.from("customers").update({ is_container_load_customer: false }).in("id", disable);
-      toast({ title: "Customers saved", description: `${selected.size} enabled.` });
-    } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
+  const patchCompany = (id: string, patch: Partial<CompanyRow>) =>
+    setCompanies((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+
+  const removeCompany = async (c: CompanyRow) => {
+    const { error } = await supabase
+      .from("customers")
+      .update({ is_container_load_customer: false })
+      .eq("id", c.id);
+    if (error) {
+      toast({ title: "Remove failed", description: error.message, variant: "destructive" });
+      return;
     }
+    setCompanies((prev) => prev.filter((x) => x.id !== c.id));
+    toast({ title: "Company removed from container loads" });
+  };
+
+  const addContact = async (company?: CompanyRow) => {
+    const { data, error } = await supabase
+      .from("container_load_contacts")
+      .insert({
+        name: "New contact",
+        email: "",
+        company: company?.customer_name ?? null,
+        customer_id: company?.id ?? null,
+      })
+      .select("*")
+      .single();
+    if (error) {
+      toast({ title: "Could not add contact", description: error.message, variant: "destructive" });
+      return;
+    }
+    setContacts((prev) => [...prev, data as ContactRow]);
+  };
+
+  const patchContact = (id: string, patch: Partial<ContactRow>) =>
+    setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+
+  const saveContact = async (c: ContactRow) => {
+    const { error } = await supabase
+      .from("container_load_contacts")
+      .update({
+        name: c.name,
+        company: c.company,
+        customer_id: c.customer_id,
+        email: c.email,
+        phone: c.phone,
+        role: c.role,
+        is_default: c.is_default,
+        account_number: c.account_number,
+      })
+      .eq("id", c.id);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+  };
+
+  const deleteContact = async (id: string) => {
+    const { error } = await supabase.from("container_load_contacts").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const toggleDefault = async (c: ContactRow) => {
+    const next = !c.is_default;
+    patchContact(c.id, { is_default: next });
+    await supabase.from("container_load_contacts").update({ is_default: next }).eq("id", c.id);
   };
 
   const handleSaveEmail = async () => {
@@ -150,53 +272,74 @@ export const ContainerLoadSettingsDialog = () => {
     }
   };
 
-  const addContact = async () => {
-    const { data, error } = await supabase
-      .from("container_load_contacts")
-      .insert({ name: "New contact", email: "" })
-      .select("*")
-      .single();
-    if (error) {
-      toast({ title: "Could not add contact", description: error.message, variant: "destructive" });
-      return;
-    }
-    setContacts((prev) => [...prev, data as ContactRow]);
-  };
-
-  const patchContact = (id: string, patch: Partial<ContactRow>) =>
-    setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-
-  const saveContact = async (c: ContactRow) => {
-    const { error } = await supabase
-      .from("container_load_contacts")
-      .update({
-        name: c.name,
-        company: c.company,
-        email: c.email,
-        phone: c.phone,
-        role: c.role,
-        is_default: c.is_default,
-        account_number: c.account_number,
-
-      })
-      .eq("id", c.id);
-    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
-  };
-
-  const deleteContact = async (id: string) => {
-    const { error } = await supabase.from("container_load_contacts").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-      return;
-    }
-    setContacts((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  const toggleDefault = async (c: ContactRow) => {
-    const next = !c.is_default;
-    patchContact(c.id, { is_default: next });
-    await supabase.from("container_load_contacts").update({ is_default: next }).eq("id", c.id);
-  };
+  const renderContact = (c: ContactRow) => (
+    <div key={c.id} className="rounded-lg border p-3 space-y-2 bg-card">
+      <div className="grid sm:grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Contact name</Label>
+          <Input
+            value={c.name}
+            onChange={(e) => patchContact(c.id, { name: e.target.value })}
+            onBlur={() => saveContact({ ...c })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Email</Label>
+          <Input
+            type="email"
+            value={c.email}
+            onChange={(e) => patchContact(c.id, { email: e.target.value })}
+            onBlur={() => saveContact({ ...c })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Phone</Label>
+          <Input
+            value={c.phone ?? ""}
+            onChange={(e) => patchContact(c.id, { phone: e.target.value })}
+            onBlur={() => saveContact({ ...c })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Account number</Label>
+          <Input
+            value={c.account_number ?? ""}
+            onChange={(e) => patchContact(c.id, { account_number: e.target.value })}
+            onBlur={() => saveContact({ ...c })}
+            placeholder="e.g. DH0577"
+          />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-xs">Role / notes</Label>
+          <Input
+            value={c.role ?? ""}
+            onChange={(e) => patchContact(c.id, { role: e.target.value })}
+            onBlur={() => saveContact({ ...c })}
+            placeholder="e.g. Supplier, Shipping agent"
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <Button
+          size="sm"
+          variant={c.is_default ? "secondary" : "ghost"}
+          className="gap-2"
+          onClick={() => toggleDefault(c)}
+        >
+          <Star className={`h-4 w-4 ${c.is_default ? "fill-current text-amber-500" : ""}`} />
+          {c.is_default ? "Default recipient" : "Make default"}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive gap-2"
+          onClick={() => deleteContact(c.id)}
+        >
+          <Trash2 className="h-4 w-4" /> Remove
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -205,11 +348,11 @@ export const ContainerLoadSettingsDialog = () => {
           <Settings className="h-4 w-4" /> Settings
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Container load settings</DialogTitle>
           <DialogDescription>
-            Manage which customers do container loads and configure the send-to-supplier email.
+            Manage the companies you ship containers to, their contacts and the send email.
           </DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -217,13 +360,10 @@ export const ContainerLoadSettingsDialog = () => {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <Tabs defaultValue="customers">
-            <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="customers" className="gap-2">
-                <Users className="h-4 w-4" /> Customers
-              </TabsTrigger>
-              <TabsTrigger value="contacts" className="gap-2">
-                <Contact className="h-4 w-4" /> Contacts
+          <Tabs defaultValue="company">
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="company" className="gap-2">
+                <Building2 className="h-4 w-4" /> Company
               </TabsTrigger>
               <TabsTrigger value="email" className="gap-2">
                 <Mail className="h-4 w-4" /> Email
@@ -233,147 +373,155 @@ export const ContainerLoadSettingsDialog = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="history" className="space-y-3">
+            <TabsContent value="company" className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Every container load email that has been sent, who received it and what was attached.
+                Click a company to open its profile and contacts. These companies are the only ones
+                offered when creating a container load.
               </p>
-              <ContainerLoadSendHistory />
-            </TabsContent>
 
-            <TabsContent value="contacts" className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Suppliers and hauliers you send container loads to. Starred contacts appear first
-                  when sending.
-                </p>
-                <Button size="sm" variant="outline" className="gap-2" onClick={addContact}>
-                  <Plus className="h-4 w-4" /> Add contact
-                </Button>
-              </div>
-              <div className="max-h-[45vh] overflow-y-auto space-y-3 pr-1">
-                {contacts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No contacts yet.
-                  </p>
-                ) : (
-                  contacts.map((c) => (
-                    <div key={c.id} className="rounded-lg border p-3 space-y-2">
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Name</Label>
-                          <Input
-                            value={c.name}
-                            onChange={(e) => patchContact(c.id, { name: e.target.value })}
-                            onBlur={() => saveContact({ ...c })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Company</Label>
-                          <Input
-                            value={c.company ?? ""}
-                            onChange={(e) => patchContact(c.id, { company: e.target.value })}
-                            onBlur={() => saveContact({ ...c })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Email</Label>
-                          <Input
-                            type="email"
-                            value={c.email}
-                            onChange={(e) => patchContact(c.id, { email: e.target.value })}
-                            onBlur={() => saveContact({ ...c })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Phone</Label>
-                          <Input
-                            value={c.phone ?? ""}
-                            onChange={(e) => patchContact(c.id, { phone: e.target.value })}
-                            onBlur={() => saveContact({ ...c })}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Account number</Label>
-                          <Input
-                            value={c.account_number ?? ""}
-                            onChange={(e) => patchContact(c.id, { account_number: e.target.value })}
-                            onBlur={() => saveContact({ ...c })}
-                            placeholder="e.g. DH0577"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Role / notes</Label>
-                          <Input
-                            value={c.role ?? ""}
-                            onChange={(e) => patchContact(c.id, { role: e.target.value })}
-                            onBlur={() => saveContact({ ...c })}
-                            placeholder="e.g. Supplier, Shipping agent"
-                          />
-                        </div>
-
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Button
-                          size="sm"
-                          variant={c.is_default ? "secondary" : "ghost"}
-                          className="gap-2"
-                          onClick={() => toggleDefault(c)}
-                        >
-                          <Star
-                            className={`h-4 w-4 ${c.is_default ? "fill-current text-amber-500" : ""}`}
-                          />
-                          {c.is_default ? "Default recipient" : "Make default"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive gap-2"
-                          onClick={() => deleteContact(c.id)}
-                        >
-                          <Trash2 className="h-4 w-4" /> Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="customers" className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                These are the only companies offered when creating a container load. Untick one to
-                remove it from the list.
-              </p>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search customers…"
+                  placeholder="Search companies…"
                 />
               </div>
-              <div className="max-h-[45vh] overflow-y-auto border rounded-md divide-y">
-                {filtered.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No customers.</p>
+
+              <div className="max-h-[45vh] overflow-y-auto pr-1">
+                {filteredCompanies.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No companies.</p>
                 ) : (
-                  filtered.map((c) => (
-                    <label
-                      key={c.id}
-                      className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-accent/40"
-                    >
-                      <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggle(c.id)} />
-                      <span className="text-sm">{c.customer_name}</span>
-                    </label>
-                  ))
+                  <Accordion type="multiple" className="space-y-2">
+                    {filteredCompanies.map((company) => {
+                      const list = contactsFor(company);
+                      return (
+                        <AccordionItem
+                          key={company.id}
+                          value={company.id}
+                          className="border rounded-lg px-3"
+                        >
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex items-center gap-2 text-left">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{company.customer_name}</span>
+                              {company.customer_code && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {company.customer_code}
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-[10px]">
+                                {list.length} contact{list.length === 1 ? "" : "s"}
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-3 pb-4">
+                            <div className="grid sm:grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Company name</Label>
+                                <Input
+                                  value={company.customer_name}
+                                  onChange={(e) =>
+                                    patchCompany(company.id, { customer_name: e.target.value })
+                                  }
+                                  onBlur={() => saveCompany(company)}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Company code</Label>
+                                <Input
+                                  value={company.customer_code ?? ""}
+                                  onChange={(e) =>
+                                    patchCompany(company.id, { customer_code: e.target.value })
+                                  }
+                                  onBlur={() => saveCompany(company)}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <p className="text-xs font-medium">Contacts</p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-2"
+                                onClick={() => addContact(company)}
+                              >
+                                <Plus className="h-4 w-4" /> Add contact
+                              </Button>
+                            </div>
+
+                            {list.length === 0 ? (
+                              <p className="text-sm text-muted-foreground py-3">
+                                No contacts for this company yet.
+                              </p>
+                            ) : (
+                              <div className="space-y-3">{list.map(renderContact)}</div>
+                            )}
+
+                            <div className="flex justify-end">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive gap-2"
+                                onClick={() => removeCompany(company)}
+                              >
+                                <Trash2 className="h-4 w-4" /> Remove company
+                              </Button>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
                 )}
               </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{selected.size} selected</p>
-                <Button onClick={handleSaveCustomers} disabled={saving} className="gap-2">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save customers
-                </Button>
+
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-xs font-medium flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Add new company
+                </p>
+                <div className="grid sm:grid-cols-[1fr_160px_auto] gap-2 items-end">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Company name</Label>
+                    <Input
+                      value={newCompanyName}
+                      onChange={(e) => setNewCompanyName(e.target.value)}
+                      placeholder="e.g. Nevis Resources Limited"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Code (optional)</Label>
+                    <Input
+                      value={newCompanyCode}
+                      onChange={(e) => setNewCompanyCode(e.target.value)}
+                      placeholder="e.g. NEV01"
+                    />
+                  </div>
+                  <Button
+                    onClick={addCompany}
+                    disabled={addingCompany || !newCompanyName.trim()}
+                    className="gap-2"
+                  >
+                    {addingCompany ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Add
+                  </Button>
+                </div>
               </div>
+
+              {unassigned.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Contacts not linked to a company
+                  </p>
+                  <div className="space-y-3">{unassigned.map(renderContact)}</div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="email" className="space-y-3">
@@ -420,6 +568,13 @@ export const ContainerLoadSettingsDialog = () => {
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save email settings
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Every container load email that has been sent, who received it and what was attached.
+              </p>
+              <ContainerLoadSendHistory />
             </TabsContent>
           </Tabs>
         )}
