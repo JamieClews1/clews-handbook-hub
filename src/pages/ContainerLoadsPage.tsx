@@ -21,6 +21,7 @@ import {
   ContainerStatus,
   CONTAINER_STATUS_META,
   CONTAINER_STATUS_ORDER,
+  containerLoadTitle,
   normalizeContainerLoad,
 } from "@/lib/container-loads";
 import { ContainerLoadEditor } from "@/components/container-loads/ContainerLoadEditor";
@@ -228,7 +229,7 @@ const ContainerLoadsPage = () => {
                         <Card className="h-full hover:shadow-md transition-shadow hover:border-primary/40">
                           <CardContent className="p-4 space-y-3">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-lg">{l.reference}</span>
+                              <span className="font-bold text-lg">{containerLoadTitle(l)}</span>
                               <Badge variant="outline" className={meta.badgeClass}>
                                 {meta.label}
                               </Badge>

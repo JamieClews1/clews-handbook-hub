@@ -15,13 +15,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Settings, Loader2, Search, Mail, Users } from "lucide-react";
+import { Settings, Loader2, Search, Mail, Users, Contact, Plus, Trash2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CustomerRow {
   id: string;
   customer_name: string;
   is_container_load_customer: boolean;
+}
+
+interface ContactRow {
+  id: string;
+  name: string;
+  company: string | null;
+  email: string;
+  phone: string | null;
+  role: string | null;
+  is_default: boolean;
 }
 
 interface EmailSettings {
@@ -50,12 +60,13 @@ export const ContainerLoadSettingsDialog = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [emailSettings, setEmailSettings] = useState<EmailSettings>(EMPTY_EMAIL);
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
 
   useEffect(() => {
     if (!open) return;
     (async () => {
       setLoading(true);
-      const [{ data: custData }, { data: emailData }] = await Promise.all([
+      const [{ data: custData }, { data: emailData }, { data: contactData }] = await Promise.all([
         supabase
           .from("customers")
           .select("id, customer_name, is_container_load_customer")
@@ -65,7 +76,13 @@ export const ContainerLoadSettingsDialog = () => {
           .select("*")
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("container_load_contacts")
+          .select("*")
+          .order("is_default", { ascending: false })
+          .order("name"),
       ]);
+      setContacts((contactData || []) as ContactRow[]);
       const list = (custData || []) as CustomerRow[];
       setRows(list);
       setSelected(new Set(list.filter((c) => c.is_container_load_customer).map((c) => c.id)));
@@ -128,6 +145,52 @@ export const ContainerLoadSettingsDialog = () => {
     }
   };
 
+  const addContact = async () => {
+    const { data, error } = await supabase
+      .from("container_load_contacts")
+      .insert({ name: "New contact", email: "" })
+      .select("*")
+      .single();
+    if (error) {
+      toast({ title: "Could not add contact", description: error.message, variant: "destructive" });
+      return;
+    }
+    setContacts((prev) => [...prev, data as ContactRow]);
+  };
+
+  const patchContact = (id: string, patch: Partial<ContactRow>) =>
+    setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+
+  const saveContact = async (c: ContactRow) => {
+    const { error } = await supabase
+      .from("container_load_contacts")
+      .update({
+        name: c.name,
+        company: c.company,
+        email: c.email,
+        phone: c.phone,
+        role: c.role,
+        is_default: c.is_default,
+      })
+      .eq("id", c.id);
+    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+  };
+
+  const deleteContact = async (id: string) => {
+    const { error } = await supabase.from("container_load_contacts").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const toggleDefault = async (c: ContactRow) => {
+    const next = !c.is_default;
+    patchContact(c.id, { is_default: next });
+    await supabase.from("container_load_contacts").update({ is_default: next }).eq("id", c.id);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -148,14 +211,106 @@ export const ContainerLoadSettingsDialog = () => {
           </div>
         ) : (
           <Tabs defaultValue="customers">
-            <TabsList className="grid grid-cols-2 w-full">
+            <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="customers" className="gap-2">
                 <Users className="h-4 w-4" /> Customers
+              </TabsTrigger>
+              <TabsTrigger value="contacts" className="gap-2">
+                <Contact className="h-4 w-4" /> Contacts
               </TabsTrigger>
               <TabsTrigger value="email" className="gap-2">
                 <Mail className="h-4 w-4" /> Email
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="contacts" className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Suppliers and hauliers you send container loads to. Starred contacts appear first
+                  when sending.
+                </p>
+                <Button size="sm" variant="outline" className="gap-2" onClick={addContact}>
+                  <Plus className="h-4 w-4" /> Add contact
+                </Button>
+              </div>
+              <div className="max-h-[45vh] overflow-y-auto space-y-3 pr-1">
+                {contacts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No contacts yet.
+                  </p>
+                ) : (
+                  contacts.map((c) => (
+                    <div key={c.id} className="rounded-lg border p-3 space-y-2">
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Name</Label>
+                          <Input
+                            value={c.name}
+                            onChange={(e) => patchContact(c.id, { name: e.target.value })}
+                            onBlur={() => saveContact({ ...c })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Company</Label>
+                          <Input
+                            value={c.company ?? ""}
+                            onChange={(e) => patchContact(c.id, { company: e.target.value })}
+                            onBlur={() => saveContact({ ...c })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Email</Label>
+                          <Input
+                            type="email"
+                            value={c.email}
+                            onChange={(e) => patchContact(c.id, { email: e.target.value })}
+                            onBlur={() => saveContact({ ...c })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Phone</Label>
+                          <Input
+                            value={c.phone ?? ""}
+                            onChange={(e) => patchContact(c.id, { phone: e.target.value })}
+                            onBlur={() => saveContact({ ...c })}
+                          />
+                        </div>
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-xs">Role / notes</Label>
+                          <Input
+                            value={c.role ?? ""}
+                            onChange={(e) => patchContact(c.id, { role: e.target.value })}
+                            onBlur={() => saveContact({ ...c })}
+                            placeholder="e.g. Supplier, Shipping agent"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Button
+                          size="sm"
+                          variant={c.is_default ? "secondary" : "ghost"}
+                          className="gap-2"
+                          onClick={() => toggleDefault(c)}
+                        >
+                          <Star
+                            className={`h-4 w-4 ${c.is_default ? "fill-current text-amber-500" : ""}`}
+                          />
+                          {c.is_default ? "Default recipient" : "Make default"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive gap-2"
+                          onClick={() => deleteContact(c.id)}
+                        >
+                          <Trash2 className="h-4 w-4" /> Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
 
             <TabsContent value="customers" className="space-y-3">
               <div className="relative">

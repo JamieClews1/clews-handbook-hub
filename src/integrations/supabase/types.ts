@@ -411,6 +411,45 @@ export type Database = {
         }
         Relationships: []
       }
+      container_load_contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          is_default: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_default?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       container_load_email_settings: {
         Row: {
           cc_email: string
@@ -458,6 +497,7 @@ export type Database = {
           ewc_code: string | null
           export_date: string | null
           id: string
+          load_name: string | null
           material: string | null
           notes: string | null
           operator_name: string | null
@@ -490,6 +530,7 @@ export type Database = {
           ewc_code?: string | null
           export_date?: string | null
           id?: string
+          load_name?: string | null
           material?: string | null
           notes?: string | null
           operator_name?: string | null
@@ -522,6 +563,7 @@ export type Database = {
           ewc_code?: string | null
           export_date?: string | null
           id?: string
+          load_name?: string | null
           material?: string | null
           notes?: string | null
           operator_name?: string | null

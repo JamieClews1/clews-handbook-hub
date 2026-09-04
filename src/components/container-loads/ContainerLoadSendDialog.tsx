@@ -48,21 +48,34 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
   const [replyTo, setReplyTo] = useState("orders@clewsrecycling.co.uk");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [contacts, setContacts] = useState<
+    { id: string; name: string; company: string | null; email: string; is_default: boolean }[]
+  >([]);
 
   useEffect(() => {
     if (!open) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("container_load_email_settings")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
+      const [{ data }, { data: contactData }] = await Promise.all([
+        supabase.from("container_load_email_settings").select("*").limit(1).maybeSingle(),
+        supabase
+          .from("container_load_contacts")
+          .select("id, name, company, email, is_default")
+          .order("is_default", { ascending: false })
+          .order("name"),
+      ]);
+      const list = contactData || [];
+      setContacts(list);
       setCc(data?.cc_email || "orders@clewsrecycling.co.uk");
       setReplyTo(data?.reply_to_email || "orders@clewsrecycling.co.uk");
       setSubject(applyTemplate(data?.default_subject || `Container load ${load.reference}`, load));
       setBody(applyTemplate(data?.default_body || "", load));
-      setTo(load.supplier_email || load.annex7?.consignee_email || "");
+      setTo(
+        load.supplier_email ||
+          list.find((c) => c.is_default)?.email ||
+          load.annex7?.consignee_email ||
+          "",
+      );
       setLoading(false);
     })();
   }, [open, load]);
@@ -115,6 +128,23 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
               <div className="space-y-1.5">
                 <Label>To (supplier)</Label>
                 <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="supplier@example.com" />
+                {contacts.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {contacts.map((c) => (
+                      <Button
+                        key={c.id}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => setTo(c.email)}
+                      >
+                        {c.name}
+                        {c.company ? ` · ${c.company}` : ""}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>CC</Label>
