@@ -74,6 +74,7 @@ export const ContainerLoadSettingsDialog = () => {
         supabase
           .from("customers")
           .select("id, customer_name, is_container_load_customer")
+          .eq("is_container_load_customer", true)
           .order("customer_name"),
         supabase
           .from("container_load_email_settings")
