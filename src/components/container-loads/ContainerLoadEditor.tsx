@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ContainerLoadSendDialog } from "./ContainerLoadSendDialog";
+import { ContainerLoadSendHistory } from "./ContainerLoadSendHistory";
 import {
   ContainerLoad,
   ContainerStatus,
@@ -116,6 +117,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
   const [wbLoading, setWbLoading] = useState(false);
 
