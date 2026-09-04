@@ -217,7 +217,7 @@ export const ContainerLoadSettingsDialog = () => {
   const patchContact = (id: string, patch: Partial<ContactRow>) =>
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
 
-  const saveContact = async (c: ContactRow) => {
+  const saveContact = async (c: ContactRow, notify = false) => {
     const { error } = await supabase
       .from("container_load_contacts")
       .update({
@@ -228,11 +228,15 @@ export const ContainerLoadSettingsDialog = () => {
         phone: c.phone,
         role: c.role,
         is_default: c.is_default,
-        account_number: c.account_number,
       })
       .eq("id", c.id);
-    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (notify) toast({ title: "Contact saved", description: c.name });
   };
+
 
   const deleteContact = async (id: string) => {
     const { error } = await supabase.from("container_load_contacts").delete().eq("id", id);
