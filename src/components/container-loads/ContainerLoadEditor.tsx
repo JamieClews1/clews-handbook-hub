@@ -370,8 +370,10 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
       const { data, error } = await supabase
         .from("data_hub_jobs")
         .select("job_number, customer, site, weight_t, job_date, waste_description, vehicle_registration")
-        .ilike("source", "midweigh")
-        .ilike("job_number", ticket)
+        // Exact filters use the indexed job lookup. Case-insensitive scans time
+        // out against the full Data Hub table.
+        .eq("source", "midweigh")
+        .eq("job_number", ticket)
         .order("job_date", { ascending: false })
         .limit(1);
       if (error) throw error;
