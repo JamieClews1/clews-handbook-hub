@@ -413,8 +413,10 @@ export type Database = {
       }
       container_load_contacts: {
         Row: {
+          account_number: string | null
           company: string | null
           created_at: string
+          customer_id: string | null
           email: string
           id: string
           is_default: boolean
@@ -425,8 +427,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_number?: string | null
           company?: string | null
           created_at?: string
+          customer_id?: string | null
           email: string
           id?: string
           is_default?: boolean
@@ -437,8 +441,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_number?: string | null
           company?: string | null
           created_at?: string
+          customer_id?: string | null
           email?: string
           id?: string
           is_default?: boolean
@@ -448,7 +454,15 @@ export type Database = {
           role?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "container_load_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       container_load_email_settings: {
         Row: {
