@@ -217,7 +217,7 @@ export const ContainerLoadSettingsDialog = () => {
   const patchContact = (id: string, patch: Partial<ContactRow>) =>
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
 
-  const saveContact = async (c: ContactRow) => {
+  const saveContact = async (c: ContactRow, notify = false) => {
     const { error } = await supabase
       .from("container_load_contacts")
       .update({
@@ -228,11 +228,15 @@ export const ContainerLoadSettingsDialog = () => {
         phone: c.phone,
         role: c.role,
         is_default: c.is_default,
-        account_number: c.account_number,
       })
       .eq("id", c.id);
-    if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (notify) toast({ title: "Contact saved", description: c.name });
   };
+
 
   const deleteContact = async (id: string) => {
     const { error } = await supabase.from("container_load_contacts").delete().eq("id", id);
@@ -320,14 +324,19 @@ export const ContainerLoadSettingsDialog = () => {
           <Star className={`h-4 w-4 ${c.is_default ? "fill-current text-amber-500" : ""}`} />
           {c.is_default ? "Default recipient" : "Make default"}
         </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-destructive gap-2"
-          onClick={() => deleteContact(c.id)}
-        >
-          <Trash2 className="h-4 w-4" /> Remove
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button size="sm" className="gap-2" onClick={() => saveContact({ ...c }, true)}>
+            <Save className="h-4 w-4" /> Save contact
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive gap-2"
+            onClick={() => deleteContact(c.id)}
+          >
+            <Trash2 className="h-4 w-4" /> Remove
+          </Button>
+        </div>
       </div>
     </div>
   );
