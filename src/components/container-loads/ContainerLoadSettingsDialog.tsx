@@ -34,6 +34,8 @@ interface ContactRow {
   phone: string | null;
   role: string | null;
   is_default: boolean;
+  account_number: string | null;
+
 }
 
 interface EmailSettings {
