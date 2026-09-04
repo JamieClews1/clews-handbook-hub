@@ -84,6 +84,9 @@ export interface ContainerLoad {
   id: string;
   reference: string | null;
   load_name: string | null;
+  wb_ticket_number: string | null;
+  wb_location: string | null;
+  wb_job_date: string | null;
   status: ContainerStatus;
   customer_id: string | null;
   customer_name: string | null;
@@ -159,6 +162,9 @@ export function normalizeContainerLoad(row: any): ContainerLoad {
     annex7_upload: (row.annex7_upload ?? null) as PaperworkFile | null,
     packing_upload: (row.packing_upload ?? null) as PaperworkFile | null,
     load_name: row.load_name ?? null,
+    wb_ticket_number: row.wb_ticket_number ?? null,
+    wb_location: row.wb_location ?? null,
+    wb_job_date: row.wb_job_date ?? null,
   };
 }
 
