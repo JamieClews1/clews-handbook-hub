@@ -39,13 +39,17 @@ function applyTemplate(str: string, load: ContainerLoad): string {
   return str.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+const ORDERS_EMAIL = "orders@clewsrecycling.co.uk";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Props) => {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"compose" | "review">("compose");
   const [to, setTo] = useState("");
-  const [cc, setCc] = useState("orders@clewsrecycling.co.uk");
-  const [replyTo, setReplyTo] = useState("orders@clewsrecycling.co.uk");
+  const [cc, setCc] = useState(ORDERS_EMAIL);
+  const [replyTo, setReplyTo] = useState(ORDERS_EMAIL);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [contacts, setContacts] = useState<
@@ -54,6 +58,7 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
 
   useEffect(() => {
     if (!open) return;
+    setStep("compose");
     (async () => {
       setLoading(true);
       const [{ data }, { data: contactData }] = await Promise.all([
@@ -66,8 +71,8 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
       ]);
       const list = contactData || [];
       setContacts(list);
-      setCc(data?.cc_email || "orders@clewsrecycling.co.uk");
-      setReplyTo(data?.reply_to_email || "orders@clewsrecycling.co.uk");
+      setCc(data?.cc_email || ORDERS_EMAIL);
+      setReplyTo(data?.reply_to_email || ORDERS_EMAIL);
       setSubject(applyTemplate(data?.default_subject || `Container load ${load.reference}`, load));
       setBody(applyTemplate(data?.default_body || "", load));
       setTo(
@@ -80,20 +85,33 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     })();
   }, [open, load]);
 
-  const attachmentCount =
-    (load.photos?.length || 0) +
-    (load.annex7_upload ? 1 : 0) +
-    (load.packing_upload ? 1 : 0);
+  const ccList = cc
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const finalCc =
+    ccList.some((c) => c.toLowerCase() === ORDERS_EMAIL) ||
+    to.trim().toLowerCase() === ORDERS_EMAIL
+      ? ccList
+      : [...ccList, ORDERS_EMAIL];
+
+  const attachmentNames = [
+    ...(load.photos || []).map((p, i) => p.caption || p.path.split("/").pop() || `Photo ${i + 1}`),
+    ...(load.annex7_upload ? [load.annex7_upload.name || "Annex 7"] : []),
+    ...(load.packing_upload ? [load.packing_upload.name || "Packing list"] : []),
+  ];
+
+  const toValid = EMAIL_RE.test(to.trim());
 
   const handleSend = async () => {
-    if (!to.trim()) {
-      toast({ title: "Recipient required", variant: "destructive" });
+    if (!toValid) {
+      toast({ title: "Enter a valid recipient email", variant: "destructive" });
       return;
     }
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-container-load", {
-        body: { loadId: load.id, to: to.trim(), cc, replyTo, subject, body },
+        body: { loadId: load.id, to: to.trim(), cc: finalCc.join(", "), replyTo, subject, body },
       });
       if (error) throw error;
       toast({
@@ -111,23 +129,34 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Send container load to supplier</DialogTitle>
+          <DialogTitle>
+            {step === "compose" ? "Create email" : "Check and send"}
+          </DialogTitle>
           <DialogDescription>
-            All photos and uploaded paperwork will be attached automatically.
+            {step === "compose"
+              ? "All photos and uploaded paperwork will be attached automatically."
+              : "Check the receiving email address and attachments before sending."}
           </DialogDescription>
         </DialogHeader>
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : (
+        ) : step === "compose" ? (
           <div className="space-y-3">
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>To (supplier)</Label>
-                <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="supplier@example.com" />
+                <Input
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  placeholder="supplier@example.com"
+                />
+                {to.trim() && !toValid && (
+                  <p className="text-xs text-destructive">That doesn't look like a valid email address.</p>
+                )}
                 {contacts.length > 0 && (
                   <div className="flex flex-wrap gap-1 pt-1">
                     {contacts.map((c) => (
@@ -149,6 +178,9 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
               <div className="space-y-1.5">
                 <Label>CC</Label>
                 <Input value={cc} onChange={(e) => setCc(e.target.value)} />
+                <p className="text-xs text-muted-foreground">
+                  {ORDERS_EMAIL} is always copied in.
+                </p>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -165,18 +197,69 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded p-2">
               <Paperclip className="h-4 w-4" />
-              {attachmentCount} attachment(s): {load.photos?.length || 0} photo(s)
+              {attachmentNames.length} attachment(s): {load.photos?.length || 0} photo(s)
               {load.annex7_upload ? ", Annex 7" : ""}
               {load.packing_upload ? ", Packing List" : ""}
             </div>
           </div>
+        ) : (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border divide-y">
+              <div className="flex gap-3 p-3">
+                <span className="w-24 shrink-0 text-muted-foreground">To</span>
+                <span className="font-medium break-all">{to}</span>
+              </div>
+              <div className="flex gap-3 p-3">
+                <span className="w-24 shrink-0 text-muted-foreground">CC</span>
+                <span className="break-all">{finalCc.join(", ") || "—"}</span>
+              </div>
+              <div className="flex gap-3 p-3">
+                <span className="w-24 shrink-0 text-muted-foreground">Reply to</span>
+                <span className="break-all">{replyTo}</span>
+              </div>
+              <div className="flex gap-3 p-3">
+                <span className="w-24 shrink-0 text-muted-foreground">Subject</span>
+                <span className="font-medium">{subject}</span>
+              </div>
+            </div>
+            <div className="rounded-lg border p-3 whitespace-pre-wrap bg-muted/30 max-h-56 overflow-y-auto">
+              {body || <span className="text-muted-foreground">No message</span>}
+            </div>
+            <div className="rounded-lg border p-3 space-y-1">
+              <div className="flex items-center gap-2 font-medium">
+                <Paperclip className="h-4 w-4" /> {attachmentNames.length} attachment(s)
+              </div>
+              {attachmentNames.length === 0 ? (
+                <p className="text-muted-foreground">Nothing attached to this load yet.</p>
+              ) : (
+                <ul className="list-disc pl-5 text-muted-foreground">
+                  {attachmentNames.map((n, i) => (
+                    <li key={i} className="break-all">{n}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSend} disabled={sending || loading} className="gap-2">
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Send email
-          </Button>
+          {step === "compose" ? (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={() => setStep("review")} disabled={loading || !toValid}>
+                Check &amp; continue
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => setStep("compose")} disabled={sending}>
+                Back
+              </Button>
+              <Button onClick={handleSend} disabled={sending} className="gap-2">
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send email
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

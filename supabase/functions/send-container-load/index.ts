@@ -99,15 +99,41 @@ Deno.serve(async (req) => {
         Please reply to <a href="mailto:${payload.replyTo || "orders@clewsrecycling.co.uk"}">${payload.replyTo || "orders@clewsrecycling.co.uk"}</a> with any questions.
       </p>`;
 
+    const ORDERS = "orders@clewsrecycling.co.uk";
+    const ccList = (payload.cc || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    // orders@ must always receive a copy
+    if (
+      !ccList.some((c) => c.toLowerCase() === ORDERS) &&
+      payload.to.trim().toLowerCase() !== ORDERS
+    ) {
+      ccList.push(ORDERS);
+    }
+
     const emailPayload: any = {
       from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
       to: [payload.to],
       subject: payload.subject,
       html,
-      reply_to: payload.replyTo || "orders@clewsrecycling.co.uk",
+      reply_to: payload.replyTo || ORDERS,
       attachments,
     };
-    if (payload.cc) emailPayload.cc = payload.cc.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ccList.length) emailPayload.cc = ccList;
+
+    const logRow: Record<string, unknown> = {
+      load_id: load.id,
+      reference: load.reference,
+      load_name: (load as any).load_name ?? null,
+      to_email: payload.to,
+      cc_email: ccList.join(", "),
+      reply_to_email: payload.replyTo || ORDERS,
+      subject: payload.subject,
+      body: payload.body,
+      attachment_count: attachments.length,
+      attachment_names: attachments.map((a) => a.filename),
+    };
 
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -121,6 +147,9 @@ Deno.serve(async (req) => {
     const respText = await resp.text();
     if (!resp.ok) {
       console.error("resend error", resp.status, respText);
+      await supabase
+        .from("container_load_send_log")
+        .insert({ ...logRow, status: "failed", error_message: respText.slice(0, 1000) });
       throw new Error(`Email send failed: ${respText}`);
     }
 
@@ -129,8 +158,10 @@ Deno.serve(async (req) => {
       .update({ sent_at: new Date().toISOString(), supplier_email: payload.to })
       .eq("id", payload.loadId);
 
+    await supabase.from("container_load_send_log").insert({ ...logRow, status: "sent" });
+
     return new Response(
-      JSON.stringify({ ok: true, attachments: attachments.length }),
+      JSON.stringify({ ok: true, attachments: attachments.length, cc: ccList }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {

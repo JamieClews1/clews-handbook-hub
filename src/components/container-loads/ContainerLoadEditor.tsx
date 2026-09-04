@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ContainerLoadSendDialog } from "./ContainerLoadSendDialog";
+import { ContainerLoadSendHistory } from "./ContainerLoadSendHistory";
 import {
   ContainerLoad,
   ContainerStatus,
@@ -116,6 +117,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
   const [wbLoading, setWbLoading] = useState(false);
 
@@ -460,13 +462,6 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setSendOpen(true)}
-            className="gap-2"
-          >
-            <Send className="h-4 w-4" /> Send
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -821,11 +816,37 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Send className="h-4 w-4" /> Send container load
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setSendOpen(true)} className="gap-2">
+              <Send className="h-4 w-4" /> Create email &amp; send
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Photos and paperwork are attached automatically. orders@clewsrecycling.co.uk is always copied in.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Send history</p>
+            <ContainerLoadSendHistory loadId={load.id} refreshKey={historyKey} />
+          </div>
+        </CardContent>
+      </Card>
+
       <ContainerLoadSendDialog
         load={load}
         open={sendOpen}
         onOpenChange={setSendOpen}
-        onSent={() => persist()}
+        onSent={() => {
+          setHistoryKey((k) => k + 1);
+          persist();
+        }}
       />
     </div>
   );

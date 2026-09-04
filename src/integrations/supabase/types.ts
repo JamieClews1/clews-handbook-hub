@@ -480,6 +480,68 @@ export type Database = {
         }
         Relationships: []
       }
+      container_load_send_log: {
+        Row: {
+          attachment_count: number
+          attachment_names: Json
+          body: string | null
+          cc_email: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          load_id: string | null
+          load_name: string | null
+          reference: string | null
+          reply_to_email: string | null
+          sent_by: string | null
+          status: string
+          subject: string | null
+          to_email: string
+        }
+        Insert: {
+          attachment_count?: number
+          attachment_names?: Json
+          body?: string | null
+          cc_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          load_id?: string | null
+          load_name?: string | null
+          reference?: string | null
+          reply_to_email?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          to_email: string
+        }
+        Update: {
+          attachment_count?: number
+          attachment_names?: Json
+          body?: string | null
+          cc_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          load_id?: string | null
+          load_name?: string | null
+          reference?: string | null
+          reply_to_email?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "container_load_send_log_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "container_loads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       container_loads: {
         Row: {
           annex7: Json
