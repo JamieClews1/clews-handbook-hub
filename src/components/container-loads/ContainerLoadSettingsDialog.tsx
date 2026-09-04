@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ContainerLoadSendHistory } from "./ContainerLoadSendHistory";
+import { History } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -198,7 +200,7 @@ export const ContainerLoadSettingsDialog = () => {
           <Settings className="h-4 w-4" /> Settings
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Container load settings</DialogTitle>
           <DialogDescription>
@@ -211,7 +213,7 @@ export const ContainerLoadSettingsDialog = () => {
           </div>
         ) : (
           <Tabs defaultValue="customers">
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-4 w-full">
               <TabsTrigger value="customers" className="gap-2">
                 <Users className="h-4 w-4" /> Customers
               </TabsTrigger>
@@ -221,7 +223,17 @@ export const ContainerLoadSettingsDialog = () => {
               <TabsTrigger value="email" className="gap-2">
                 <Mail className="h-4 w-4" /> Email
               </TabsTrigger>
+              <TabsTrigger value="history" className="gap-2">
+                <History className="h-4 w-4" /> History
+              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="history" className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Every container load email that has been sent, who received it and what was attached.
+              </p>
+              <ContainerLoadSendHistory />
+            </TabsContent>
 
             <TabsContent value="contacts" className="space-y-3">
               <div className="flex items-center justify-between">
