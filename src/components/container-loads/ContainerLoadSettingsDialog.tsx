@@ -175,6 +175,8 @@ export const ContainerLoadSettingsDialog = () => {
         phone: c.phone,
         role: c.role,
         is_default: c.is_default,
+        account_number: c.account_number,
+
       })
       .eq("id", c.id);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
