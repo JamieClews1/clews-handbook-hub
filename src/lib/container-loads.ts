@@ -83,6 +83,7 @@ export interface ContainerLoad {
   sent_at: string | null;
   id: string;
   reference: string | null;
+  load_name: string | null;
   status: ContainerStatus;
   customer_id: string | null;
   customer_name: string | null;
@@ -157,7 +158,16 @@ export function normalizeContainerLoad(row: any): ContainerLoad {
     paperwork_mode: (row.paperwork_mode ?? "create") as PaperworkMode,
     annex7_upload: (row.annex7_upload ?? null) as PaperworkFile | null,
     packing_upload: (row.packing_upload ?? null) as PaperworkFile | null,
+    load_name: row.load_name ?? null,
   };
+}
+
+/** Display title for a load: the user-set name, falling back to the reference. */
+export function containerLoadTitle(load: {
+  load_name?: string | null;
+  reference?: string | null;
+}): string {
+  return (load.load_name || "").trim() || load.reference || "Container load";
 }
 
 export function packingTotalKg(packing: PackingRow[]): number {
