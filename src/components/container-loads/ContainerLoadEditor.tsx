@@ -814,11 +814,37 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Send className="h-4 w-4" /> Send container load
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setSendOpen(true)} className="gap-2">
+              <Send className="h-4 w-4" /> Create email &amp; send
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Photos and paperwork are attached automatically. orders@clewsrecycling.co.uk is always copied in.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Send history</p>
+            <ContainerLoadSendHistory loadId={load.id} refreshKey={historyKey} />
+          </div>
+        </CardContent>
+      </Card>
+
       <ContainerLoadSendDialog
         load={load}
         open={sendOpen}
         onOpenChange={setSendOpen}
-        onSent={() => persist()}
+        onSent={() => {
+          setHistoryKey((k) => k + 1);
+          persist();
+        }}
       />
     </div>
   );
