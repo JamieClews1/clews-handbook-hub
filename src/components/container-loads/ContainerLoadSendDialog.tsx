@@ -66,10 +66,10 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
         supabase
           .from("container_load_contacts")
           .select("id, name, company, email, is_default")
-          .order("is_default", { ascending: false })
+          .order("company")
           .order("name"),
       ]);
-      const list = contactData || [];
+      const list = (contactData || []).filter((c) => c.email);
       setContacts(list);
       setCc(data?.cc_email || ORDERS_EMAIL);
       setReplyTo(data?.reply_to_email || ORDERS_EMAIL);
@@ -85,13 +85,33 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     })();
   }, [open, load]);
 
+  const toList = to
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const toSet = new Set(toList.map((t) => t.toLowerCase()));
+
+  const toggleRecipient = (email: string) => {
+    const lower = email.toLowerCase();
+    const next = toSet.has(lower)
+      ? toList.filter((t) => t.toLowerCase() !== lower)
+      : [...toList, email];
+    setTo(next.join(", "));
+  };
+
+  const groupedContacts = contacts.reduce<Record<string, typeof contacts>>((acc, c) => {
+    const key = c.company || "Other";
+    (acc[key] ||= []).push(c);
+    return acc;
+  }, {});
+
   const ccList = cc
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
   const finalCc =
     ccList.some((c) => c.toLowerCase() === ORDERS_EMAIL) ||
-    to.trim().toLowerCase() === ORDERS_EMAIL
+    toSet.has(ORDERS_EMAIL)
       ? ccList
       : [...ccList, ORDERS_EMAIL];
 
@@ -101,7 +121,9 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     ...(load.packing_upload ? [load.packing_upload.name || "Packing list"] : []),
   ];
 
-  const toValid = EMAIL_RE.test(to.trim());
+  const invalidTo = toList.filter((t) => !EMAIL_RE.test(t));
+  const toValid = toList.length > 0 && invalidTo.length === 0;
+
 
   const handleSend = async () => {
     if (!toValid) {
