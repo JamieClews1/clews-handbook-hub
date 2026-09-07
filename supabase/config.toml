@@ -100,3 +100,6 @@ verify_jwt = true
 
 [functions.send-route-one-ticket]
 verify_jwt = true
+
+[functions.parse-timesheet-pdf]
+verify_jwt = true
