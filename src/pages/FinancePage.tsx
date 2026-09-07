@@ -4,6 +4,8 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import FinanceDashboard from "@/components/finance/FinanceDashboard";
 import InvoicesTab from "@/components/finance/InvoicesTab";
 import FinanceSettingsTab from "@/components/finance/FinanceSettingsTab";
+import PayrollTab from "@/components/finance/payroll/PayrollTab";
+
 
 export default function FinancePage() {
   const { canAccess, loading } = useFinanceAccess();
@@ -41,6 +43,7 @@ export default function FinancePage() {
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="payroll">Payroll &amp; Time</TabsTrigger>
           <TabsTrigger value="settings">Settings &amp; Sage</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4">
@@ -49,10 +52,14 @@ export default function FinancePage() {
         <TabsContent value="invoices" className="mt-4">
           <InvoicesTab />
         </TabsContent>
+        <TabsContent value="payroll" className="mt-4">
+          <PayrollTab />
+        </TabsContent>
         <TabsContent value="settings" className="mt-4">
           <FinanceSettingsTab />
         </TabsContent>
       </Tabs>
+
     </div>
   );
 }
