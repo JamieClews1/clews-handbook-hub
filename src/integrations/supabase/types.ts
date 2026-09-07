@@ -5016,6 +5016,212 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_employees: {
+        Row: {
+          basic_rate: number
+          contracted_hours: number
+          created_at: string
+          employee_no: number | null
+          first_name: string
+          higher_rate: number
+          holiday_rate: number
+          id: string
+          is_active: boolean
+          notes: string | null
+          payroll_no: string | null
+          saturday_rate: number
+          staff_group: string
+          surname: string
+          updated_at: string
+          user_id: string | null
+          week_setup: string | null
+          weekly_bonus: number
+        }
+        Insert: {
+          basic_rate?: number
+          contracted_hours?: number
+          created_at?: string
+          employee_no?: number | null
+          first_name: string
+          higher_rate?: number
+          holiday_rate?: number
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          payroll_no?: string | null
+          saturday_rate?: number
+          staff_group?: string
+          surname: string
+          updated_at?: string
+          user_id?: string | null
+          week_setup?: string | null
+          weekly_bonus?: number
+        }
+        Update: {
+          basic_rate?: number
+          contracted_hours?: number
+          created_at?: string
+          employee_no?: number | null
+          first_name?: string
+          higher_rate?: number
+          holiday_rate?: number
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          payroll_no?: string | null
+          saturday_rate?: number
+          staff_group?: string
+          surname?: string
+          updated_at?: string
+          user_id?: string | null
+          week_setup?: string | null
+          weekly_bonus?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_timesheet_entries: {
+        Row: {
+          adjustments: number
+          approved: boolean
+          comments: string | null
+          created_at: string
+          days: Json
+          employee_id: string | null
+          employee_name: string
+          employee_no: number | null
+          gross_pay: number
+          higher_rate_hours: number
+          holiday_days: number
+          holiday_hours: number
+          id: string
+          normal_hours: number
+          paid_hours: number
+          rate_totals: Json
+          saturday_hours: number
+          staff_group: string | null
+          timesheet_id: string
+          total_hours: number
+          updated_at: string
+          week_setup: string | null
+        }
+        Insert: {
+          adjustments?: number
+          approved?: boolean
+          comments?: string | null
+          created_at?: string
+          days?: Json
+          employee_id?: string | null
+          employee_name: string
+          employee_no?: number | null
+          gross_pay?: number
+          higher_rate_hours?: number
+          holiday_days?: number
+          holiday_hours?: number
+          id?: string
+          normal_hours?: number
+          paid_hours?: number
+          rate_totals?: Json
+          saturday_hours?: number
+          staff_group?: string | null
+          timesheet_id: string
+          total_hours?: number
+          updated_at?: string
+          week_setup?: string | null
+        }
+        Update: {
+          adjustments?: number
+          approved?: boolean
+          comments?: string | null
+          created_at?: string
+          days?: Json
+          employee_id?: string | null
+          employee_name?: string
+          employee_no?: number | null
+          gross_pay?: number
+          higher_rate_hours?: number
+          holiday_days?: number
+          holiday_hours?: number
+          id?: string
+          normal_hours?: number
+          paid_hours?: number
+          rate_totals?: Json
+          saturday_hours?: number
+          staff_group?: string | null
+          timesheet_id?: string
+          total_hours?: number
+          updated_at?: string
+          week_setup?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_timesheet_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_timesheet_entries_timesheet_id_fkey"
+            columns: ["timesheet_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_timesheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_timesheets: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          id: string
+          notes: string | null
+          parsed_at: string | null
+          pay_date: string | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+          uploaded_by: string | null
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          notes?: string | null
+          parsed_at?: string | null
+          pay_date?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          notes?: string | null
+          parsed_at?: string | null
+          pay_date?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       pda_upload_settings: {
         Row: {
           created_at: string
