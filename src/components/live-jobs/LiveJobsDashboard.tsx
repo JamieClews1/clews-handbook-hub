@@ -752,8 +752,12 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
     let result = sites;
 
     if (wasteSearchLower) {
+      const norm = wasteSearchLower.replace(/\s+/g, "");
       result = result.filter(s =>
-        s.wasteTypes.some(wt => wt.toLowerCase().includes(wasteSearchLower))
+        s.wasteTypes.some(wt => wt.toLowerCase().includes(wasteSearchLower)) ||
+        s.site.toLowerCase().includes(wasteSearchLower) ||
+        s.site.toLowerCase().replace(/\s+/g, "").includes(norm) ||
+        s.customer.toLowerCase().includes(wasteSearchLower)
       );
     }
 
@@ -848,10 +852,10 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
               </div>
             )}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground mr-1">Search by waste type:</span>
+              <span className="text-sm font-medium text-muted-foreground mr-1">Search:</span>
               <Input
                 type="text"
-                placeholder="e.g. wood, cardboard, soil..."
+                placeholder="Postcode, address, customer or waste type..."
                 value={wasteSearch}
                 onChange={e => setWasteSearch(e.target.value)}
                 className="max-w-sm h-8 text-sm"
