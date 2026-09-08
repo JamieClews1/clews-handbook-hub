@@ -852,10 +852,10 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
               </div>
             )}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground mr-1">Search by waste type:</span>
+              <span className="text-sm font-medium text-muted-foreground mr-1">Search:</span>
               <Input
                 type="text"
-                placeholder="e.g. wood, cardboard, soil..."
+                placeholder="Postcode, address, customer or waste type..."
                 value={wasteSearch}
                 onChange={e => setWasteSearch(e.target.value)}
                 className="max-w-sm h-8 text-sm"
