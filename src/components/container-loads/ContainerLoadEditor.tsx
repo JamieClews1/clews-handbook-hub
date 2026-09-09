@@ -675,29 +675,30 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
 
       <Accordion
         type="multiple"
-        defaultValue={["bales", "photos", "paperwork"]}
+        defaultValue={["detail", "photos", "paperwork"]}
         className="space-y-3"
       >
 
-        {/* BALES & PACKING */}
-        <AccordionItem value="bales" className="border rounded-lg px-4">
+        {/* DETAIL: bales, serial, container & export date */}
+        <AccordionItem value="detail" className="border rounded-lg px-4">
           <AccordionTrigger className="hover:no-underline">
             <span className="flex items-center gap-2 font-semibold">
-              <Package className="h-4 w-4" /> Bales
+              <Package className="h-4 w-4" /> Detail
               <span className="text-xs font-normal text-muted-foreground">
                 {load.bale_count} bale(s)
+                {load.container_number ? ` · ${load.container_number}` : ""}
               </span>
             </span>
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pb-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Bale count</CardTitle>
+              <CardTitle className="text-base">Load detail</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-end gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bale_count">Number of bales</Label>
+                  <Label htmlFor="bale_count">Bale count</Label>
                   <Input
                     id="bale_count"
                     type="number"
@@ -707,6 +708,40 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                     value={load.bale_count}
                     onChange={(e) => update({ bale_count: parseInt(e.target.value) || 0 })}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="seal_number">Serial number</Label>
+                  <Input
+                    id="seal_number"
+                    value={load.seal_number ?? ""}
+                    onChange={(e) => update({ seal_number: e.target.value })}
+                    onBlur={() => persist()}
+                    placeholder="e.g. seal / serial no."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="container_number">Container number</Label>
+                  <Input
+                    id="container_number"
+                    value={load.container_number ?? ""}
+                    onChange={(e) => update({ container_number: e.target.value })}
+                    onBlur={() => persist()}
+                    placeholder="e.g. MSKU 123456-7"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="export_date">Export date</Label>
+                  <Input
+                    id="export_date"
+                    type="date"
+                    value={load.export_date ?? new Date().toISOString().slice(0, 10)}
+                    onChange={(e) =>
+                      persist({ export_date: e.target.value || null })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Defaults to today — pick another date to override.
+                  </p>
                 </div>
               </div>
             </CardContent>
