@@ -65,6 +65,8 @@ const MassSignOffPage = () => {
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isManagement, setIsManagement] = useState(false);
+  const [checkedAcks, setCheckedAcks] = useState<boolean[]>([]);
+
 
   useEffect(() => {
     const checkManagement = async () => {
