@@ -32,6 +32,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
   ArrowLeft,
   Save,
   Trash2,
