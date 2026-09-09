@@ -66,16 +66,24 @@ Deno.serve(async (req) => {
     // Gather attachments (photos + uploaded paperwork)
     const attachments: { filename: string; content: string }[] = [];
 
-    const photos = Array.isArray(load.photos) ? load.photos : [];
-    for (const [idx, p] of photos.entries()) {
-      try {
-        const content = await fetchAsBase64(p.url);
-        attachments.push({
-          filename: filenameFromPath(p.path, `photo-${idx + 1}.jpg`),
-          content,
-        });
-      } catch (e) {
-        console.warn("photo skipped", e);
+    if (payload.photoAttachments?.length) {
+      // Client already compressed each photo to under 1MB
+      for (const [idx, a] of payload.photoAttachments.entries()) {
+        if (!a?.content) continue;
+        attachments.push({ filename: a.filename || `photo-${idx + 1}.jpg`, content: a.content });
+      }
+    } else {
+      const photos = Array.isArray(load.photos) ? load.photos : [];
+      for (const [idx, p] of photos.entries()) {
+        try {
+          const content = await fetchAsBase64(p.url);
+          attachments.push({
+            filename: filenameFromPath(p.path, `photo-${idx + 1}.jpg`),
+            content,
+          });
+        } catch (e) {
+          console.warn("photo skipped", e);
+        }
       }
     }
 
