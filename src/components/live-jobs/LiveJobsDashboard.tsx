@@ -1064,7 +1064,7 @@ type OwnSkipSite = {
 function SiteLookup({ sites, ownSkipSites }: { sites: LookupSiteEntry[]; ownSkipSites: OwnSkipSite[] }) {
   const [query, setQuery] = useState("");
 
-  const ownSkipKeys = useMemo(() => new Set(ownSkipSites.map(o => o.key)), [ownSkipSites]);
+  
 
   // Aggregate every known site (live or not) across skip/roro categories, and
   // merge in Own Skip sites so regular-service customers always appear.
