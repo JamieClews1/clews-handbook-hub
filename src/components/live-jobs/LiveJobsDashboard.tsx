@@ -162,6 +162,19 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       .select("bin_key")
       .eq("collected", true)
       .then(({ data }) => setCollectedBinKeys(new Set((data ?? []).map((r: { bin_key: string }) => r.bin_key))));
+
+    supabase
+      .from("rental_chases")
+      .select("bin_key,site,customer,container_type")
+      .eq("own_skip", true)
+      .then(({ data }) =>
+        setOwnSkipSites((data ?? []).map((r: any) => ({
+          key: String(r.bin_key).split("|||")[0],
+          site: r.site,
+          customer: r.customer,
+          containerType: r.container_type,
+        })))
+      );
   }, []);
 
 
