@@ -179,7 +179,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
 
 
   // ── Compute live containers (net on-site per customer+site) ──
-  const { liveSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
+  const { liveSites, allSites, liveCounts, monthlyData, recentActivity, overRentalSites } = useMemo(() => {
     // Track net containers per site+category (ignoring customer name variations)
     const siteMap: Record<string, { customers: Set<string>; latestCustomer: string; latestCustomerDate: string | null; site: string; category: ContainerCategory; delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; containerTypes: Set<string>; wasteTypes: Set<string>; plannedCollections: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; lastDeliveryOrExchangeDate: string | null; lastTipReturnDate: string | null; lastCollectionDate: string | null; wasteTypes: Set<string>; positions: Record<string, PosCounts> }> }> = {};
 
@@ -336,43 +336,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       }
     }
 
-    // Sites with net containers on-site
-    const live = Object.values(siteMap)
+    // Every site seen in the data window (live or not) — powers the postcode/site lookup
+    const all = Object.values(siteMap)
       .map(s => {
-        const totalMovements = s.delivered + s.collected + s.exchanged;
-        // A Tip/Return is a servicing visit (skip emptied and returned), so it
-        // resets the over-rental clock just like a delivery/exchange. The rental
-        // clock therefore runs from the most recent "keep on site" movement —
-        // whichever of delivery, exchange, or tip/return happened last.
-        const lastKeepDate = [s.lastDeliveryOrExchangeDate, s.lastTipReturnDate]
-          .filter((d): d is string => !!d)
-          .sort()
-          .pop() ?? null;
-        const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
-        // Artics (waste trucks) don't stay on-site, so count sites visited instead
-        let netOnSite: number;
-        if (s.category === "artic") {
-          netOnSite = totalMovements; // For artics, this represents visit count
-        } else {
-          // Count each distinct on-site position (EWC/waste stream) across all
-          // container types so simultaneous containers aren't collapsed into one.
-          netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
-        }
-        const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
-        // Genuine uncollected delivery balance — ignores phantom containers
-        // synthesised from a lone exchange/tip-return with no delivery on record.
-        const netDeliveredOnSite = s.category === "artic"
-          ? 0
-          : Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeNetOnSite(ctb.positions), 0);
-        // Over rental when the skip has sat on-site beyond the free period since
-        // its last servicing/keep movement. Regularly tipped-and-returned skips
-        // (frequent service) stay under the threshold and never flag. An isolated
-        // single tip/return or exchange with no delivery on record is NOT counted
-        // as an on-site container, so it no longer falsely flags as over rental.
-        const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netDeliveredOnSite > 0 && !collectionClearedIt;
+...
         return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
-      })
-      .filter(s => s.category === "artic" ? s.netOnSite > 0 : s.netOnSite > 0)
+      });
+
+    // Sites with net containers on-site
+    const live = all
+      .filter(s => s.netOnSite > 0)
       .sort((a, b) => b.netOnSite - a.netOnSite);
 
     // Counts by category
