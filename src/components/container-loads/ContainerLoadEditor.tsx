@@ -296,7 +296,8 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     try {
       const newPhotos = [...load.photos];
       for (const file of Array.from(files)) {
-        const stamped = await stampImage(file);
+        const taken = await readCaptureTime(file);
+        const stamped = await stampImage(file, taken);
         const path = `container-loads/${loadId}/${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 8)}.jpg`;
@@ -312,9 +313,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           url: data.publicUrl,
           caption: "",
           uploaded_at: new Date().toISOString(),
+          taken_at: taken.toISOString(),
           category: uploadCategory,
         });
       }
+
       await persist({ photos: newPhotos });
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
     } catch (e: any) {
