@@ -247,7 +247,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           total_weight_t: merged.total_weight_t,
           destination_country: merged.destination_country,
           destination_facility: merged.destination_facility,
-          export_date: merged.export_date || null,
+          export_date: merged.export_date || new Date().toISOString().slice(0, 10),
           booking_reference: merged.booking_reference,
           vessel: merged.vessel,
           photos: merged.photos as any,
