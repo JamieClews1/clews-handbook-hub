@@ -25,7 +25,9 @@ interface Props {
 
 function applyTemplate(str: string, load: ContainerLoad): string {
   const vars: Record<string, string> = {
-    reference: load.reference || "",
+    reference: load.load_name || load.reference || "",
+    customer_reference: load.load_name || "",
+    internal_reference: load.reference || "",
     container_number: load.container_number || "",
     seal_number: load.seal_number || "",
     material: load.material || "",
