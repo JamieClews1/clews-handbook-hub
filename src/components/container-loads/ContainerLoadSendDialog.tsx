@@ -57,6 +57,57 @@ function isLoadCompany(
 
 const ORDERS_EMAIL = "orders@clewsrecycling.co.uk";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_PHOTO_BYTES = 950 * 1024; // keep every photo under ~1MB
+
+const blobToBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+const loadImage = (blob: Blob) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+
+/** Re-encode a photo as a JPEG under ~1MB, keeping the burnt-in timestamp. */
+async function compressPhoto(blob: Blob): Promise<Blob> {
+  if (blob.size <= MAX_PHOTO_BYTES) return blob;
+  const img = await loadImage(blob);
+  let maxDim = 2000;
+  let quality = 0.8;
+  let out = blob;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return blob;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const encoded = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/jpeg", quality),
+    );
+    if (!encoded) return out;
+    out = encoded;
+    if (encoded.size <= MAX_PHOTO_BYTES) return encoded;
+    quality = Math.max(0.4, quality - 0.12);
+    maxDim = Math.round(maxDim * 0.8);
+  }
+  return out;
+}
 
 export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Props) => {
   const { toast } = useToast();
@@ -166,8 +217,38 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     }
     setSending(true);
     try {
+      // Compress photos to under ~1MB each before sending
+      const photoAttachments: { filename: string; content: string }[] = [];
+      for (const [i, p] of (load.photos || []).entries()) {
+        try {
+          const res = await fetch(p.url);
+          if (!res.ok) continue;
+          const original = await res.blob();
+          const small = await compressPhoto(original);
+          const base = (p.path.split("/").pop() || `photo-${i + 1}.jpg`).replace(
+            /\.(png|webp|heic|heif|jpeg|jpg)$/i,
+            "",
+          );
+          const ext = small.type === "image/jpeg" ? "jpg" : (original.type.split("/")[1] || "jpg");
+          photoAttachments.push({
+            filename: `${base}.${ext}`,
+            content: await blobToBase64(small),
+          });
+        } catch (err) {
+          console.warn("photo compress failed", err);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("send-container-load", {
-        body: { loadId: load.id, to: to.trim(), cc: finalCc.join(", "), replyTo, subject, body },
+        body: {
+          loadId: load.id,
+          to: to.trim(),
+          cc: finalCc.join(", "),
+          replyTo,
+          subject,
+          body,
+          photoAttachments,
+        },
       });
       if (error) throw error;
       toast({

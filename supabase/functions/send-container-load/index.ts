@@ -14,7 +14,10 @@ interface Payload {
   replyTo?: string;
   subject: string;
   body: string;
+  /** Optional pre-compressed photos (base64, no data URL prefix) from the client. */
+  photoAttachments?: { filename: string; content: string }[];
 }
+
 
 async function fetchAsBase64(url: string): Promise<string> {
   const res = await fetch(url);
@@ -63,16 +66,24 @@ Deno.serve(async (req) => {
     // Gather attachments (photos + uploaded paperwork)
     const attachments: { filename: string; content: string }[] = [];
 
-    const photos = Array.isArray(load.photos) ? load.photos : [];
-    for (const [idx, p] of photos.entries()) {
-      try {
-        const content = await fetchAsBase64(p.url);
-        attachments.push({
-          filename: filenameFromPath(p.path, `photo-${idx + 1}.jpg`),
-          content,
-        });
-      } catch (e) {
-        console.warn("photo skipped", e);
+    if (payload.photoAttachments?.length) {
+      // Client already compressed each photo to under 1MB
+      for (const [idx, a] of payload.photoAttachments.entries()) {
+        if (!a?.content) continue;
+        attachments.push({ filename: a.filename || `photo-${idx + 1}.jpg`, content: a.content });
+      }
+    } else {
+      const photos = Array.isArray(load.photos) ? load.photos : [];
+      for (const [idx, p] of photos.entries()) {
+        try {
+          const content = await fetchAsBase64(p.url);
+          attachments.push({
+            filename: filenameFromPath(p.path, `photo-${idx + 1}.jpg`),
+            content,
+          });
+        } catch (e) {
+          console.warn("photo skipped", e);
+        }
       }
     }
 
@@ -105,13 +116,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111;white-space:pre-wrap">${payload.body
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")}</div>
-      <p style="font-family:Arial,sans-serif;font-size:12px;color:#666;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
-        Please reply to <a href="mailto:${payload.replyTo || "orders@clewsrecycling.co.uk"}">${payload.replyTo || "orders@clewsrecycling.co.uk"}</a> with any questions.
-      </p>`;
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    // Outlook ignores white-space:pre-wrap, so build real paragraphs / line breaks
+    const bodyHtml = escapeHtml((payload.body || "").replace(/\r\n/g, "\n").trim())
+      .split(/\n{2,}/)
+      .map(
+        (para) =>
+          `<p style="margin:0 0 14px 0">${para.split("\n").join("<br />")}</p>`,
+      )
+      .join("");
+
+    const replyAddr = payload.replyTo || "orders@clewsrecycling.co.uk";
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#111">
+        ${bodyHtml}
+        <p style="font-size:12px;color:#666;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
+          Please reply to <a href="mailto:${replyAddr}">${replyAddr}</a> with any questions.
+        </p>
+      </div>`;
+    const text = `${(payload.body || "").trim()}\n\nPlease reply to ${replyAddr} with any questions.`;
 
     const ORDERS = "orders@clewsrecycling.co.uk";
     const toList = payload.to
@@ -136,6 +160,7 @@ Deno.serve(async (req) => {
       to: toList,
       subject: payload.subject,
       html,
+      text,
       reply_to: payload.replyTo || ORDERS,
       attachments,
     };
