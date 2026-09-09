@@ -25,7 +25,9 @@ interface Props {
 
 function applyTemplate(str: string, load: ContainerLoad): string {
   const vars: Record<string, string> = {
-    reference: load.reference || "",
+    reference: load.load_name || load.reference || "",
+    customer_reference: load.load_name || "",
+    internal_reference: load.reference || "",
     container_number: load.container_number || "",
     seal_number: load.seal_number || "",
     material: load.material || "",
@@ -94,7 +96,7 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
       setContacts(list);
       setCc(data?.cc_email || ORDERS_EMAIL);
       setReplyTo(data?.reply_to_email || ORDERS_EMAIL);
-      setSubject(applyTemplate(data?.default_subject || `Container load ${load.reference}`, load));
+      setSubject(applyTemplate(data?.default_subject || `Container load ${load.load_name || load.reference}`, load));
       setBody(applyTemplate(data?.default_body || "", load));
 
       // Recipients come ONLY from contacts linked to the company this load is for

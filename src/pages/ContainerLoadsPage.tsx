@@ -114,7 +114,7 @@ const ContainerLoadsPage = () => {
     if (statusFilter !== "all" && l.status !== statusFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      return [l.reference, l.customer_name, l.container_number, l.material, l.destination_country]
+      return [l.load_name, l.booking_reference, l.reference, l.customer_name, l.container_number, l.material, l.destination_country]
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(q));
     }
@@ -183,7 +183,7 @@ const ContainerLoadsPage = () => {
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search reference, customer, container, material…"
+                    placeholder="Search customer reference, customer, container, material…"
                     className="pl-9"
                   />
                 </div>

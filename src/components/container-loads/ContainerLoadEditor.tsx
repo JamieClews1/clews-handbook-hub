@@ -541,20 +541,25 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <Input
-                value={load.load_name ?? ""}
-                onChange={(e) => update({ load_name: e.target.value })}
-                onBlur={() => persist()}
-                placeholder={load.reference || "Name this container"}
-                aria-label="Container name"
-                className="h-9 w-[240px] text-lg font-bold border-dashed"
-              />
-              <Badge variant="outline" className={meta.badgeClass}>
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">
+                  Customer reference
+                </p>
+                <Input
+                  value={load.load_name ?? ""}
+                  onChange={(e) => update({ load_name: e.target.value })}
+                  onBlur={() => persist()}
+                  placeholder="e.g. IW61588"
+                  aria-label="Customer reference"
+                  className="h-9 w-[240px] text-lg font-bold border-dashed"
+                />
+              </div>
+              <Badge variant="outline" className={`${meta.badgeClass} self-end mb-1.5`}>
                 {meta.label}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {load.reference} · {load.customer_name || "Unassigned customer"}
+              Internal ref {load.reference} · {load.customer_name || "Unassigned customer"}
             </p>
           </div>
         </div>

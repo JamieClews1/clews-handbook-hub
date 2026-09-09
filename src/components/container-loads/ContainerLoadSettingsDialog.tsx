@@ -528,7 +528,7 @@ export const ContainerLoadSettingsDialog = () => {
               <p className="text-xs text-muted-foreground">
                 These defaults populate the send dialog. Use{" "}
                 <code className="text-[11px] bg-muted px-1 rounded">
-                  {"{{reference}} {{container_number}} {{seal_number}} {{material}} {{bale_count}} {{total_weight_t}} {{destination_facility}} {{destination_country}} {{export_date}} {{customer_name}}"}
+                  {"{{reference}} {{customer_reference}} {{internal_reference}} {{container_number}} {{seal_number}} {{material}} {{bale_count}} {{total_weight_t}} {{destination_facility}} {{destination_country}} {{export_date}} {{customer_name}}"}
                 </code>{" "}
                 as placeholders.
               </p>
