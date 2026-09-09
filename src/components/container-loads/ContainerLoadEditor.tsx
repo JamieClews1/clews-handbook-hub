@@ -258,6 +258,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           paperwork_mode: merged.paperwork_mode,
           annex7_upload: merged.annex7_upload as any,
           packing_upload: merged.packing_upload as any,
+          extra_uploads: merged.extra_uploads as any,
           load_name: merged.load_name,
           wb_ticket_number: merged.wb_ticket_number,
           wb_location: merged.wb_location,
