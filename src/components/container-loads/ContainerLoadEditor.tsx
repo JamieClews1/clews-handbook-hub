@@ -65,9 +65,76 @@ import { generateAnnex7Pdf, generatePackingSheetPdf } from "@/lib/container-pape
 
 const BUCKET = "load-photos";
 
+/**
+ * Read the original capture time out of a JPEG's EXIF data (DateTimeOriginal /
+ * DateTimeDigitized / DateTime). Falls back to the file's last-modified time,
+ * then to now.
+ */
+async function readCaptureTime(file: File): Promise<Date> {
+  try {
+    const buf = await file.slice(0, 256 * 1024).arrayBuffer();
+    const view = new DataView(buf);
+    if (view.getUint16(0) !== 0xffd8) throw new Error("not jpeg");
+    let offset = 2;
+    while (offset + 4 < view.byteLength) {
+      if (view.getUint8(offset) !== 0xff) break;
+      const marker = view.getUint8(offset + 1);
+      const size = view.getUint16(offset + 2);
+      if (marker === 0xe1) {
+        const start = offset + 4;
+        // "Exif\0\0"
+        if (view.getUint32(start) === 0x45786966) {
+          const tiff = start + 6;
+          const little = view.getUint16(tiff) === 0x4949;
+          const get16 = (o: number) => view.getUint16(o, little);
+          const get32 = (o: number) => view.getUint32(o, little);
+          const readDir = (dirOffset: number): string | null => {
+            const count = get16(dirOffset);
+            let exifIfd: number | null = null;
+            for (let i = 0; i < count; i++) {
+              const entry = dirOffset + 2 + i * 12;
+              const tag = get16(entry);
+              if (tag === 0x8769) exifIfd = tiff + get32(entry + 8);
+              if (tag === 0x9003 || tag === 0x9004 || tag === 0x0132) {
+                const valOffset = tiff + get32(entry + 8);
+                let s = "";
+                for (let c = 0; c < 19; c++) s += String.fromCharCode(view.getUint8(valOffset + c));
+                if (/^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) return s;
+              }
+            }
+            return exifIfd !== null ? readDir(exifIfd) : null;
+          };
+          const s = readDir(tiff + get32(tiff + 4));
+          if (s) {
+            const [d, t] = s.split(" ");
+            const [y, mo, da] = d.split(":").map(Number);
+            const [h, mi, se] = t.split(":").map(Number);
+            return new Date(y, mo - 1, da, h, mi, se);
+          }
+        }
+      }
+      offset += 2 + size;
+    }
+  } catch {
+    // Not a JPEG or no EXIF — fall through.
+  }
+  if (file.lastModified) return new Date(file.lastModified);
+  return new Date();
+}
+
+export const formatStamp = (d: Date) =>
+  d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
 // Burn a date/time stamp onto the bottom of a photo so it is embedded in the
 // image itself (visible in the app, downloads, and the container load report).
-async function stampImage(file: File): Promise<Blob> {
+async function stampImage(file: File, taken: Date): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
@@ -76,13 +143,7 @@ async function stampImage(file: File): Promise<Blob> {
   if (!ctx) return file;
   ctx.drawImage(bitmap, 0, 0);
 
-  const stamp = new Date().toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const stamp = formatStamp(taken);
 
   // Scale the stamp relative to image size so it is legible on any resolution.
   const fontSize = Math.max(18, Math.round(canvas.width * 0.03));
@@ -102,6 +163,7 @@ async function stampImage(file: File): Promise<Blob> {
     canvas.toBlob((b) => resolve(b || file), "image/jpeg", 0.92)
   );
 }
+
 
 interface Props {
   loadId: string;
