@@ -115,7 +115,7 @@ const MassSignOffPage = () => {
 
       const { data: inductionData } = await supabase
         .from("hs_documents")
-        .select("id, title, reference_code")
+        .select("id, title, reference_code, acknowledgements")
         .eq("category", "site_induction")
         .eq("is_published", true)
         .eq("requires_signature", true)
@@ -128,9 +128,13 @@ const MassSignOffPage = () => {
             title: d.title,
             reference_code: d.reference_code ?? undefined,
             user_types: ALL_USER_TYPES,
+            acknowledgements: Array.isArray(d.acknowledgements)
+              ? (d.acknowledgements as unknown[]).filter((a): a is string => typeof a === "string")
+              : [],
           }))
         );
       }
+
 
       const { data: usersData } = await supabase
         .from("profiles")
