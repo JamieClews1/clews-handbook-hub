@@ -39,6 +39,20 @@ function applyTemplate(str: string, load: ContainerLoad): string {
   return str.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+const norm = (s: string | null | undefined) =>
+  (s || "").toLowerCase().replace(/\b(ltd|limited|uk|group|trading|resources|environmentals?)\b/g, "").replace(/[^a-z0-9]/g, "");
+
+/** Does this contact belong to the company this container load is for? */
+function isLoadCompany(
+  c: { company: string | null; customer_id?: string | null },
+  load: ContainerLoad,
+): boolean {
+  if (c.customer_id && load.customer_id && c.customer_id === load.customer_id) return true;
+  const a = norm(c.company);
+  const b = norm(load.customer_name);
+  return !!a && !!b && (a === b || a.includes(b) || b.includes(a));
+}
+
 const ORDERS_EMAIL = "orders@clewsrecycling.co.uk";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
