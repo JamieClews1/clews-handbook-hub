@@ -513,7 +513,7 @@ const MassSignOffPage = () => {
       </main>
 
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">
               Confirm Signature
@@ -527,14 +527,54 @@ const MassSignOffPage = () => {
               </strong>
             </DialogDescription>
           </DialogHeader>
-          
-          <SignaturePad
-            onSave={handleSignatureComplete}
-            onCancel={() => {
-              setShowSignDialog(false);
-              setSigningUser(null);
-            }}
-          />
+
+          {activeAcks.length > 0 && (
+            <div className="rounded-lg border p-3 space-y-3">
+              <p className="text-sm font-semibold">
+                Tick each statement to confirm ({checkedAcks.filter(Boolean).length}/{activeAcks.length})
+              </p>
+              {activeAcks.map((ack, i) => (
+                <label key={i} className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={!!checkedAcks[i]}
+                    onCheckedChange={(v) =>
+                      setCheckedAcks((prev) => {
+                        const next = [...prev];
+                        next[i] = v === true;
+                        return next;
+                      })
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm leading-snug">{ack}</span>
+                </label>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setCheckedAcks(new Array(activeAcks.length).fill(true))}
+              >
+                Tick all
+              </Button>
+            </div>
+          )}
+
+          {allAcksChecked ? (
+            <SignaturePad
+              onSave={handleSignatureComplete}
+              onCancel={() => {
+                setShowSignDialog(false);
+                setSigningUser(null);
+              }}
+            />
+          ) : (
+            <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+              All statements must be ticked before signing.
+            </p>
+          )}
+
 
           {isSigning && (
             <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
