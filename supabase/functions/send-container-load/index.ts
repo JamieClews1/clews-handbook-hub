@@ -116,13 +116,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111;white-space:pre-wrap">${payload.body
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")}</div>
-      <p style="font-family:Arial,sans-serif;font-size:12px;color:#666;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
-        Please reply to <a href="mailto:${payload.replyTo || "orders@clewsrecycling.co.uk"}">${payload.replyTo || "orders@clewsrecycling.co.uk"}</a> with any questions.
-      </p>`;
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    // Outlook ignores white-space:pre-wrap, so build real paragraphs / line breaks
+    const bodyHtml = escapeHtml((payload.body || "").replace(/\r\n/g, "\n").trim())
+      .split(/\n{2,}/)
+      .map(
+        (para) =>
+          `<p style="margin:0 0 14px 0">${para.split("\n").join("<br />")}</p>`,
+      )
+      .join("");
+
+    const replyAddr = payload.replyTo || "orders@clewsrecycling.co.uk";
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#111">
+        ${bodyHtml}
+        <p style="font-size:12px;color:#666;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
+          Please reply to <a href="mailto:${replyAddr}">${replyAddr}</a> with any questions.
+        </p>
+      </div>`;
+    const text = `${(payload.body || "").trim()}\n\nPlease reply to ${replyAddr} with any questions.`;
 
     const ORDERS = "orders@clewsrecycling.co.uk";
     const toList = payload.to
