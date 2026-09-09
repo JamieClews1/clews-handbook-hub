@@ -1,0 +1,1 @@
+ALTER TABLE public.container_loads ADD COLUMN IF NOT EXISTS extra_uploads jsonb NOT NULL DEFAULT '[]'::jsonb;
