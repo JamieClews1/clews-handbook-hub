@@ -39,6 +39,20 @@ function applyTemplate(str: string, load: ContainerLoad): string {
   return str.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+const norm = (s: string | null | undefined) =>
+  (s || "").toLowerCase().replace(/\b(ltd|limited|uk|group|trading|resources|environmentals?)\b/g, "").replace(/[^a-z0-9]/g, "");
+
+/** Does this contact belong to the company this container load is for? */
+function isLoadCompany(
+  c: { company: string | null; customer_id?: string | null },
+  load: ContainerLoad,
+): boolean {
+  if (c.customer_id && load.customer_id && c.customer_id === load.customer_id) return true;
+  const a = norm(c.company);
+  const b = norm(load.customer_name);
+  return !!a && !!b && (a === b || a.includes(b) || b.includes(a));
+}
+
 const ORDERS_EMAIL = "orders@clewsrecycling.co.uk";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -53,7 +67,14 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [contacts, setContacts] = useState<
-    { id: string; name: string; company: string | null; email: string; is_default: boolean }[]
+    {
+      id: string;
+      name: string;
+      company: string | null;
+      email: string;
+      is_default: boolean;
+      customer_id?: string | null;
+    }[]
   >([]);
 
   useEffect(() => {
@@ -65,7 +86,7 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
         supabase.from("container_load_email_settings").select("*").limit(1).maybeSingle(),
         supabase
           .from("container_load_contacts")
-          .select("id, name, company, email, is_default")
+          .select("id, name, company, email, is_default, customer_id")
           .order("company")
           .order("name"),
       ]);
@@ -75,8 +96,13 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
       setReplyTo(data?.reply_to_email || ORDERS_EMAIL);
       setSubject(applyTemplate(data?.default_subject || `Container load ${load.reference}`, load));
       setBody(applyTemplate(data?.default_body || "", load));
+
+      const loadContacts = list.filter((c) => isLoadCompany(c, load));
+      const preferred = loadContacts.filter((c) => c.is_default);
+      const auto = (preferred.length ? preferred : loadContacts).map((c) => c.email);
       setTo(
         load.supplier_email ||
+          (auto.length ? auto.join(", ") : "") ||
           list.find((c) => c.is_default)?.email ||
           load.annex7?.consignee_email ||
           "",
@@ -104,6 +130,15 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     (acc[key] ||= []).push(c);
     return acc;
   }, {});
+
+  /** Company groups, with the company this load is for listed first. */
+  const contactGroups = Object.entries(groupedContacts)
+    .map(([company, list]) => ({
+      company,
+      list,
+      isLoadCompany: list.some((c) => isLoadCompany(c, load)),
+    }))
+    .sort((a, b) => Number(b.isLoadCompany) - Number(a.isLoadCompany) || a.company.localeCompare(b.company));
 
   const ccList = cc
     .split(",")
@@ -171,7 +206,15 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
           <div className="space-y-3">
             <div className="grid gap-3">
               <div className="space-y-1.5">
-                <Label>To (supplier) — pick one or more</Label>
+                <Label>
+                  To (supplier) — pick one or more
+                  {load.customer_name ? (
+                    <span className="ml-2 font-normal text-xs text-muted-foreground">
+                      This load is for <span className="font-semibold text-foreground">{load.customer_name}</span>
+                      {load.wb_ticket_number ? ` (WB ${load.wb_ticket_number})` : ""}
+                    </span>
+                  ) : null}
+                </Label>
                 <Input
                   value={to}
                   onChange={(e) => setTo(e.target.value)}
@@ -184,9 +227,19 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
                 )}
                 {contacts.length > 0 && (
                   <div className="space-y-2 pt-1 max-h-52 overflow-y-auto rounded border p-2">
-                    {Object.entries(groupedContacts).map(([company, list]) => (
-                      <div key={company}>
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">{company}</p>
+                    {contactGroups.map(({ company, list, isLoadCompany: isForLoad }) => (
+                      <div
+                        key={company}
+                        className={isForLoad ? "rounded-md bg-primary/5 border border-primary/30 p-2" : ""}
+                      >
+                        <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-2">
+                          {company}
+                          {isForLoad && (
+                            <span className="rounded bg-primary/15 text-primary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                              This load
+                            </span>
+                          )}
+                        </p>
                         <div className="flex flex-wrap gap-1">
                           {list.map((c) => {
                             const active = toSet.has(c.email.toLowerCase());
