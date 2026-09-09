@@ -187,6 +187,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [historyKey, setHistoryKey] = useState(0);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
   const [wbLoading, setWbLoading] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const update = (patch: Partial<ContainerLoad>) =>
     setLoad((prev) => (prev ? { ...prev, ...patch } : prev));
