@@ -341,6 +341,40 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     await persist({ photos: load.photos.filter((p) => p.path !== path) });
   };
 
+  const uploadExtraPaperwork = async (files: FileList | null) => {
+    if (!files?.length || !load) return;
+    setUploading(true);
+    try {
+      const added = [...(load.extra_uploads ?? [])];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop() || "pdf";
+        const path = `container-loads/${loadId}/paperwork/extra-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type || "application/octet-stream",
+        });
+        if (error) throw error;
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        added.push({ path, url: data.publicUrl, name: file.name, uploaded_at: new Date().toISOString() });
+      }
+      await persist({ extra_uploads: added });
+      toast({ title: "Uploaded", description: `${files.length} document(s) added.` });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeExtraPaperwork = async (path: string) => {
+    if (!load) return;
+    await supabase.storage.from(BUCKET).remove([path]);
+    await persist({ extra_uploads: (load.extra_uploads ?? []).filter((f) => f.path !== path) });
+  };
+
   const uploadPaperwork = async (kind: "annex7" | "packing", file: File | null) => {
     if (!file || !load) return;
     setUploading(true);
