@@ -237,6 +237,8 @@ export const LoadReviewScreen = ({
             </div>
           )}
 
+          {jobNumber && <JobTicketPhotos jobNumber={jobNumber} />}
+
           {jobNumber && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Weighbridge Weight (kg):</span>
