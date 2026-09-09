@@ -400,6 +400,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
 
     return {
       liveSites: live,
+      allSites: all,
       liveCounts: { skip: counts.skip, roro: counts.roro, artic: counts.artic, totalSites: counts.totalSites.size },
       monthlyData: monthly,
       recentActivity: recentJobs.slice(0, 100),
