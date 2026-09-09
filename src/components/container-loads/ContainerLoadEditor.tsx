@@ -1050,6 +1050,62 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               ))}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Additional paperwork
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {(load.extra_uploads ?? []).length} document(s)
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(load.extra_uploads ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Add any other documents for this container — they are attached to the email too.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {(load.extra_uploads ?? []).map((f) => (
+                    <li
+                      key={f.path}
+                      className="flex items-center justify-between gap-2 rounded bg-muted/40 p-2"
+                    >
+                      <a href={f.url} target="_blank" rel="noreferrer" className="text-sm truncate underline">
+                        {f.name || f.path.split("/").pop()}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => removeExtraPaperwork(f.path)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="block">
+                <input
+                  type="file"
+                  multiple
+                  accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    uploadExtraPaperwork(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <Button asChild variant="outline" size="sm" className="gap-2 w-full sm:w-auto" disabled={uploading}>
+                  <span>
+                    <Upload className="h-4 w-4" /> Upload additional paperwork
+                  </span>
+                </Button>
+              </label>
+            </CardContent>
+          </Card>
           {uploading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
