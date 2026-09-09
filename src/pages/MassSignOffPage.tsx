@@ -309,6 +309,9 @@ const MassSignOffPage = () => {
   const currentDocs = activeTab === "rams" ? rams : activeTab === "induction" ? inductions : toolboxTalks;
   const selectedDoc = currentDocs.find(d => d.id === selectedDocId);
   const docLabel = activeTab === "rams" ? "RAMS Document" : activeTab === "induction" ? "Site Induction" : "Toolbox Talk";
+  const activeAcks = activeTab === "induction" ? selectedDoc?.acknowledgements ?? [] : [];
+  const allAcksChecked = activeAcks.every((_, i) => checkedAcks[i]);
+
   
   const normalizeUserType = (type: string): string => {
     const normalized = type.toLowerCase().replace(/s$/, '');
