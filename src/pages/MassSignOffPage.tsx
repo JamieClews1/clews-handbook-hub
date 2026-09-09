@@ -269,7 +269,7 @@ const MassSignOffPage = () => {
           signature_image: signatureData,
           employee_name: signingUser.full_name || signingUser.email,
           language: "en",
-          acknowledgements: [],
+          acknowledgements: activeAcks,
         });
       error = result.error;
     } else {
