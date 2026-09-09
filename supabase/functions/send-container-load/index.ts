@@ -91,6 +91,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    const extras = Array.isArray((load as any).extra_uploads) ? (load as any).extra_uploads : [];
+    for (const [idx, file] of extras.entries()) {
+      if (!file?.url) continue;
+      try {
+        const content = await fetchAsBase64(file.url);
+        attachments.push({
+          filename: file.name || filenameFromPath(file.path, `document-${idx + 1}.pdf`),
+          content,
+        });
+      } catch (e) {
+        console.warn("extra doc skipped", e);
+      }
+    }
+
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111;white-space:pre-wrap">${payload.body
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")

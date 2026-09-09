@@ -572,6 +572,7 @@ export type Database = {
           destination_facility: string | null
           ewc_code: string | null
           export_date: string | null
+          extra_uploads: Json
           id: string
           load_name: string | null
           material: string | null
@@ -608,6 +609,7 @@ export type Database = {
           destination_facility?: string | null
           ewc_code?: string | null
           export_date?: string | null
+          extra_uploads?: Json
           id?: string
           load_name?: string | null
           material?: string | null
@@ -644,6 +646,7 @@ export type Database = {
           destination_facility?: string | null
           ewc_code?: string | null
           export_date?: string | null
+          extra_uploads?: Json
           id?: string
           load_name?: string | null
           material?: string | null

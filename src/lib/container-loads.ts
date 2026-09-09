@@ -81,6 +81,7 @@ export interface ContainerLoad {
   paperwork_mode: PaperworkMode;
   annex7_upload: PaperworkFile | null;
   packing_upload: PaperworkFile | null;
+  extra_uploads: PaperworkFile[];
   supplier_email: string | null;
   sent_at: string | null;
   id: string;
@@ -163,6 +164,7 @@ export function normalizeContainerLoad(row: any): ContainerLoad {
     paperwork_mode: (row.paperwork_mode ?? "create") as PaperworkMode,
     annex7_upload: (row.annex7_upload ?? null) as PaperworkFile | null,
     packing_upload: (row.packing_upload ?? null) as PaperworkFile | null,
+    extra_uploads: Array.isArray(row.extra_uploads) ? (row.extra_uploads as PaperworkFile[]) : [],
     load_name: row.load_name ?? null,
     wb_ticket_number: row.wb_ticket_number ?? null,
     wb_location: row.wb_location ?? null,

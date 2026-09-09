@@ -119,6 +119,7 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     ...(load.photos || []).map((p, i) => p.caption || p.path.split("/").pop() || `Photo ${i + 1}`),
     ...(load.annex7_upload ? [load.annex7_upload.name || "Annex 7"] : []),
     ...(load.packing_upload ? [load.packing_upload.name || "Packing list"] : []),
+    ...(load.extra_uploads || []).map((f, i) => f.name || `Document ${i + 1}`),
   ];
 
   const invalidTo = toList.filter((t) => !EMAIL_RE.test(t));
@@ -234,6 +235,7 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
               {attachmentNames.length} attachment(s): {load.photos?.length || 0} photo(s)
               {load.annex7_upload ? ", Annex 7" : ""}
               {load.packing_upload ? ", Packing List" : ""}
+              {load.extra_uploads?.length ? `, ${load.extra_uploads.length} extra document(s)` : ""}
             </div>
           </div>
         ) : (

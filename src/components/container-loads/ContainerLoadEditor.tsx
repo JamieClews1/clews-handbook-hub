@@ -258,6 +258,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           paperwork_mode: merged.paperwork_mode,
           annex7_upload: merged.annex7_upload as any,
           packing_upload: merged.packing_upload as any,
+          extra_uploads: merged.extra_uploads as any,
           load_name: merged.load_name,
           wb_ticket_number: merged.wb_ticket_number,
           wb_location: merged.wb_location,
@@ -338,6 +339,40 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     if (!load) return;
     await supabase.storage.from(BUCKET).remove([path]);
     await persist({ photos: load.photos.filter((p) => p.path !== path) });
+  };
+
+  const uploadExtraPaperwork = async (files: FileList | null) => {
+    if (!files?.length || !load) return;
+    setUploading(true);
+    try {
+      const added = [...(load.extra_uploads ?? [])];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop() || "pdf";
+        const path = `container-loads/${loadId}/paperwork/extra-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type || "application/octet-stream",
+        });
+        if (error) throw error;
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        added.push({ path, url: data.publicUrl, name: file.name, uploaded_at: new Date().toISOString() });
+      }
+      await persist({ extra_uploads: added });
+      toast({ title: "Uploaded", description: `${files.length} document(s) added.` });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeExtraPaperwork = async (path: string) => {
+    if (!load) return;
+    await supabase.storage.from(BUCKET).remove([path]);
+    await persist({ extra_uploads: (load.extra_uploads ?? []).filter((f) => f.path !== path) });
   };
 
   const uploadPaperwork = async (kind: "annex7" | "packing", file: File | null) => {
@@ -1013,6 +1048,62 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                   </label>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Additional paperwork
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {(load.extra_uploads ?? []).length} document(s)
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(load.extra_uploads ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Add any other documents for this container — they are attached to the email too.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {(load.extra_uploads ?? []).map((f) => (
+                    <li
+                      key={f.path}
+                      className="flex items-center justify-between gap-2 rounded bg-muted/40 p-2"
+                    >
+                      <a href={f.url} target="_blank" rel="noreferrer" className="text-sm truncate underline">
+                        {f.name || f.path.split("/").pop()}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => removeExtraPaperwork(f.path)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="block">
+                <input
+                  type="file"
+                  multiple
+                  accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    uploadExtraPaperwork(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <Button asChild variant="outline" size="sm" className="gap-2 w-full sm:w-auto" disabled={uploading}>
+                  <span>
+                    <Upload className="h-4 w-4" /> Upload additional paperwork
+                  </span>
+                </Button>
+              </label>
             </CardContent>
           </Card>
           {uploading && (
