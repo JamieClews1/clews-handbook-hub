@@ -274,6 +274,8 @@ export const NewLoadForm = ({
                 )}
               </div>
             )}
+
+            <JobTicketPhotos jobNumber={jobNumber} />
           </div>
 
           <div className="space-y-2">
