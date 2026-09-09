@@ -260,6 +260,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+      if (galleryRef.current) galleryRef.current.value = "";
     }
   };
 
