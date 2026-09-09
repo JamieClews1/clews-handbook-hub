@@ -239,8 +239,10 @@ const MassSignOffPage = () => {
       return;
     }
 
+    setCheckedAcks(new Array(activeAcks.length).fill(false));
     setSigningUser(userProfile);
     setShowSignDialog(true);
+
   };
 
   const handleSignatureComplete = async (signatureData: string) => {
