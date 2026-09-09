@@ -25,7 +25,9 @@ interface Document {
   title: string;
   reference_code?: string;
   user_types: string[];
+  acknowledgements?: string[];
 }
+
 
 interface SignatureRecord {
   user_id: string;
