@@ -30,7 +30,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
   ArrowLeft,
   Save,
   Trash2,
@@ -65,9 +69,76 @@ import { generateAnnex7Pdf, generatePackingSheetPdf } from "@/lib/container-pape
 
 const BUCKET = "load-photos";
 
+/**
+ * Read the original capture time out of a JPEG's EXIF data (DateTimeOriginal /
+ * DateTimeDigitized / DateTime). Falls back to the file's last-modified time,
+ * then to now.
+ */
+async function readCaptureTime(file: File): Promise<Date> {
+  try {
+    const buf = await file.slice(0, 256 * 1024).arrayBuffer();
+    const view = new DataView(buf);
+    if (view.getUint16(0) !== 0xffd8) throw new Error("not jpeg");
+    let offset = 2;
+    while (offset + 4 < view.byteLength) {
+      if (view.getUint8(offset) !== 0xff) break;
+      const marker = view.getUint8(offset + 1);
+      const size = view.getUint16(offset + 2);
+      if (marker === 0xe1) {
+        const start = offset + 4;
+        // "Exif\0\0"
+        if (view.getUint32(start) === 0x45786966) {
+          const tiff = start + 6;
+          const little = view.getUint16(tiff) === 0x4949;
+          const get16 = (o: number) => view.getUint16(o, little);
+          const get32 = (o: number) => view.getUint32(o, little);
+          const readDir = (dirOffset: number): string | null => {
+            const count = get16(dirOffset);
+            let exifIfd: number | null = null;
+            for (let i = 0; i < count; i++) {
+              const entry = dirOffset + 2 + i * 12;
+              const tag = get16(entry);
+              if (tag === 0x8769) exifIfd = tiff + get32(entry + 8);
+              if (tag === 0x9003 || tag === 0x9004 || tag === 0x0132) {
+                const valOffset = tiff + get32(entry + 8);
+                let s = "";
+                for (let c = 0; c < 19; c++) s += String.fromCharCode(view.getUint8(valOffset + c));
+                if (/^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) return s;
+              }
+            }
+            return exifIfd !== null ? readDir(exifIfd) : null;
+          };
+          const s = readDir(tiff + get32(tiff + 4));
+          if (s) {
+            const [d, t] = s.split(" ");
+            const [y, mo, da] = d.split(":").map(Number);
+            const [h, mi, se] = t.split(":").map(Number);
+            return new Date(y, mo - 1, da, h, mi, se);
+          }
+        }
+      }
+      offset += 2 + size;
+    }
+  } catch {
+    // Not a JPEG or no EXIF — fall through.
+  }
+  if (file.lastModified) return new Date(file.lastModified);
+  return new Date();
+}
+
+export const formatStamp = (d: Date) =>
+  d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
 // Burn a date/time stamp onto the bottom of a photo so it is embedded in the
 // image itself (visible in the app, downloads, and the container load report).
-async function stampImage(file: File): Promise<Blob> {
+async function stampImage(file: File, taken: Date): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
@@ -76,13 +147,7 @@ async function stampImage(file: File): Promise<Blob> {
   if (!ctx) return file;
   ctx.drawImage(bitmap, 0, 0);
 
-  const stamp = new Date().toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const stamp = formatStamp(taken);
 
   // Scale the stamp relative to image size so it is legible on any resolution.
   const fontSize = Math.max(18, Math.round(canvas.width * 0.03));
@@ -103,6 +168,7 @@ async function stampImage(file: File): Promise<Blob> {
   );
 }
 
+
 interface Props {
   loadId: string;
   onBack: () => void;
@@ -121,6 +187,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [historyKey, setHistoryKey] = useState(0);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
   const [wbLoading, setWbLoading] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const update = (patch: Partial<ContainerLoad>) =>
     setLoad((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -234,7 +301,8 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     try {
       const newPhotos = [...load.photos];
       for (const file of Array.from(files)) {
-        const stamped = await stampImage(file);
+        const taken = await readCaptureTime(file);
+        const stamped = await stampImage(file, taken);
         const path = `container-loads/${loadId}/${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 8)}.jpg`;
@@ -250,9 +318,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           url: data.publicUrl,
           caption: "",
           uploaded_at: new Date().toISOString(),
+          taken_at: taken.toISOString(),
           category: uploadCategory,
         });
       }
+
       await persist({ photos: newPhotos });
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
     } catch (e: any) {
@@ -764,18 +834,24 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {load.photos.map((p) => {
+                  {load.photos.map((p, i) => {
                     const req = PHOTO_REQUIREMENTS.find((r) => r.key === p.category);
+                    const when = p.taken_at || p.uploaded_at;
                     return (
                       <div key={p.path} className="space-y-1">
                         <div className="relative">
-                          <a href={p.url} target="_blank" rel="noreferrer">
+                          <button
+                            type="button"
+                            className="block w-full"
+                            onClick={() => setViewerIndex(i)}
+                          >
                             <img
                               src={p.url}
                               alt={req?.label || "Photo"}
+                              loading="lazy"
                               className="w-full h-28 object-cover rounded-lg border"
                             />
-                          </a>
+                          </button>
                           <Button
                             variant="destructive"
                             size="icon"
@@ -788,6 +864,12 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                         <div className="text-[11px] font-medium truncate">
                           {req?.label || "Other"}
                         </div>
+                        {when && (
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {formatStamp(new Date(when))}
+                            {p.taken_at ? "" : " (uploaded)"}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -795,8 +877,76 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </CardContent>
             </Card>
           )}
+
+          {/* Full-size photo viewer */}
+          <Dialog
+            open={viewerIndex !== null}
+            onOpenChange={(o) => !o && setViewerIndex(null)}
+          >
+            <DialogContent className="max-w-4xl">
+              {viewerIndex !== null && load.photos[viewerIndex] && (
+                <div className="space-y-3">
+                  <img
+                    src={load.photos[viewerIndex].url}
+                    alt="Container load photo"
+                    className="w-full max-h-[70vh] object-contain rounded"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm">
+                      <div className="font-medium">
+                        {PHOTO_REQUIREMENTS.find(
+                          (r) => r.key === load.photos[viewerIndex].category
+                        )?.label || "Other photo"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {load.photos[viewerIndex].taken_at
+                          ? `Taken ${formatStamp(new Date(load.photos[viewerIndex].taken_at!))}`
+                          : load.photos[viewerIndex].uploaded_at
+                          ? `Uploaded ${formatStamp(
+                              new Date(load.photos[viewerIndex].uploaded_at!)
+                            )}`
+                          : ""}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={viewerIndex === 0}
+                        onClick={() => setViewerIndex((i) => (i ?? 0) - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" /> Previous
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {viewerIndex + 1} / {load.photos.length}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={viewerIndex >= load.photos.length - 1}
+                        onClick={() => setViewerIndex((i) => (i ?? 0) + 1)}
+                      >
+                        Next <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button variant="secondary" size="sm" asChild>
+                        <a
+                          href={load.photos[viewerIndex].url}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                        >
+                          <Download className="h-4 w-4 mr-1" /> Open
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </AccordionContent>
         </AccordionItem>
+
 
         {/* PAPERWORK */}
         <AccordionItem value="paperwork" className="border rounded-lg px-4">

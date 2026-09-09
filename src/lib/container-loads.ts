@@ -32,6 +32,8 @@ export interface ContainerPhoto {
   url: string;
   caption?: string;
   uploaded_at?: string;
+  /** Original capture time (from photo metadata where available). */
+  taken_at?: string;
   category?: PhotoCategory;
 }
 
