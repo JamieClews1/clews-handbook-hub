@@ -35,7 +35,7 @@ function applyTemplate(str: string, load: ContainerLoad): string {
     total_weight_t: load.total_weight_t != null ? String(load.total_weight_t) : "",
     destination_facility: load.destination_facility || "",
     destination_country: load.destination_country || "",
-    export_date: load.export_date || "",
+    export_date: new Date(load.export_date || Date.now()).toLocaleDateString("en-GB"),
     customer_name: load.customer_name || "",
   };
   return str.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
