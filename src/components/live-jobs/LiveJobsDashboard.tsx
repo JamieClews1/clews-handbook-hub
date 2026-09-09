@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer, Legend } from "recharts";
-import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle, Download } from "lucide-react";
+import { Truck, Container, ArrowRightLeft, MapPin, TrendingUp, AlertTriangle, Download, Search, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
@@ -121,6 +121,9 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // Bins staff have manually confirmed as collected in the Rentals section. These are
   // hidden from the over-rental list here too, so Live Jobs and Rentals match exactly.
   const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
+  // Customer-owned skips we service regularly (flagged in Rentals). These sites are
+  // treated as live in the lookup even when deliveries/collections don't balance.
+  const [ownSkipSites, setOwnSkipSites] = useState<{ key: string; site: string | null; customer: string | null; containerType: string | null }[]>([]);
 
   useEffect(() => {
     const fetchJobs = async () => {
