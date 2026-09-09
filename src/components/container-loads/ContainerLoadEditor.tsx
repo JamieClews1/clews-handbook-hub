@@ -834,18 +834,24 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {load.photos.map((p) => {
+                  {load.photos.map((p, i) => {
                     const req = PHOTO_REQUIREMENTS.find((r) => r.key === p.category);
+                    const when = p.taken_at || p.uploaded_at;
                     return (
                       <div key={p.path} className="space-y-1">
                         <div className="relative">
-                          <a href={p.url} target="_blank" rel="noreferrer">
+                          <button
+                            type="button"
+                            className="block w-full"
+                            onClick={() => setViewerIndex(i)}
+                          >
                             <img
                               src={p.url}
                               alt={req?.label || "Photo"}
+                              loading="lazy"
                               className="w-full h-28 object-cover rounded-lg border"
                             />
-                          </a>
+                          </button>
                           <Button
                             variant="destructive"
                             size="icon"
@@ -858,6 +864,12 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                         <div className="text-[11px] font-medium truncate">
                           {req?.label || "Other"}
                         </div>
+                        {when && (
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {formatStamp(new Date(when))}
+                            {p.taken_at ? "" : " (uploaded)"}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -865,8 +877,76 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               </CardContent>
             </Card>
           )}
+
+          {/* Full-size photo viewer */}
+          <Dialog
+            open={viewerIndex !== null}
+            onOpenChange={(o) => !o && setViewerIndex(null)}
+          >
+            <DialogContent className="max-w-4xl">
+              {viewerIndex !== null && load.photos[viewerIndex] && (
+                <div className="space-y-3">
+                  <img
+                    src={load.photos[viewerIndex].url}
+                    alt="Container load photo"
+                    className="w-full max-h-[70vh] object-contain rounded"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm">
+                      <div className="font-medium">
+                        {PHOTO_REQUIREMENTS.find(
+                          (r) => r.key === load.photos[viewerIndex].category
+                        )?.label || "Other photo"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {load.photos[viewerIndex].taken_at
+                          ? `Taken ${formatStamp(new Date(load.photos[viewerIndex].taken_at!))}`
+                          : load.photos[viewerIndex].uploaded_at
+                          ? `Uploaded ${formatStamp(
+                              new Date(load.photos[viewerIndex].uploaded_at!)
+                            )}`
+                          : ""}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={viewerIndex === 0}
+                        onClick={() => setViewerIndex((i) => (i ?? 0) - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" /> Previous
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {viewerIndex + 1} / {load.photos.length}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={viewerIndex >= load.photos.length - 1}
+                        onClick={() => setViewerIndex((i) => (i ?? 0) + 1)}
+                      >
+                        Next <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button variant="secondary" size="sm" asChild>
+                        <a
+                          href={load.photos[viewerIndex].url}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                        >
+                          <Download className="h-4 w-4 mr-1" /> Open
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </AccordionContent>
         </AccordionItem>
+
 
         {/* PAPERWORK */}
         <AccordionItem value="paperwork" className="border rounded-lg px-4">
