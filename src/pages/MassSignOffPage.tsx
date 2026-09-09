@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { ArrowLeft, CheckCircle, ClipboardList, Users, MessageSquare, ClipboardCheck } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +27,9 @@ interface Document {
   title: string;
   reference_code?: string;
   user_types: string[];
+  acknowledgements?: string[];
 }
+
 
 interface SignatureRecord {
   user_id: string;
@@ -63,6 +67,8 @@ const MassSignOffPage = () => {
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isManagement, setIsManagement] = useState(false);
+  const [checkedAcks, setCheckedAcks] = useState<boolean[]>([]);
+
 
   useEffect(() => {
     const checkManagement = async () => {
@@ -115,7 +121,7 @@ const MassSignOffPage = () => {
 
       const { data: inductionData } = await supabase
         .from("hs_documents")
-        .select("id, title, reference_code")
+        .select("id, title, reference_code, acknowledgements")
         .eq("category", "site_induction")
         .eq("is_published", true)
         .eq("requires_signature", true)
@@ -128,9 +134,13 @@ const MassSignOffPage = () => {
             title: d.title,
             reference_code: d.reference_code ?? undefined,
             user_types: ALL_USER_TYPES,
+            acknowledgements: Array.isArray(d.acknowledgements)
+              ? (d.acknowledgements as unknown[]).filter((a): a is string => typeof a === "string")
+              : [],
           }))
         );
       }
+
 
       const { data: usersData } = await supabase
         .from("profiles")
@@ -231,8 +241,10 @@ const MassSignOffPage = () => {
       return;
     }
 
+    setCheckedAcks(new Array(activeAcks.length).fill(false));
     setSigningUser(userProfile);
     setShowSignDialog(true);
+
   };
 
   const handleSignatureComplete = async (signatureData: string) => {
@@ -259,7 +271,7 @@ const MassSignOffPage = () => {
           signature_image: signatureData,
           employee_name: signingUser.full_name || signingUser.email,
           language: "en",
-          acknowledgements: [],
+          acknowledgements: activeAcks,
         });
       error = result.error;
     } else {
@@ -299,6 +311,9 @@ const MassSignOffPage = () => {
   const currentDocs = activeTab === "rams" ? rams : activeTab === "induction" ? inductions : toolboxTalks;
   const selectedDoc = currentDocs.find(d => d.id === selectedDocId);
   const docLabel = activeTab === "rams" ? "RAMS Document" : activeTab === "induction" ? "Site Induction" : "Toolbox Talk";
+  const activeAcks = activeTab === "induction" ? selectedDoc?.acknowledgements ?? [] : [];
+  const allAcksChecked = activeAcks.every((_, i) => checkedAcks[i]);
+
   
   const normalizeUserType = (type: string): string => {
     const normalized = type.toLowerCase().replace(/s$/, '');
@@ -500,7 +515,7 @@ const MassSignOffPage = () => {
       </main>
 
       <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">
               Confirm Signature
@@ -514,14 +529,54 @@ const MassSignOffPage = () => {
               </strong>
             </DialogDescription>
           </DialogHeader>
-          
-          <SignaturePad
-            onSave={handleSignatureComplete}
-            onCancel={() => {
-              setShowSignDialog(false);
-              setSigningUser(null);
-            }}
-          />
+
+          {activeAcks.length > 0 && (
+            <div className="rounded-lg border p-3 space-y-3">
+              <p className="text-sm font-semibold">
+                Tick each statement to confirm ({checkedAcks.filter(Boolean).length}/{activeAcks.length})
+              </p>
+              {activeAcks.map((ack, i) => (
+                <label key={i} className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    checked={!!checkedAcks[i]}
+                    onCheckedChange={(v) =>
+                      setCheckedAcks((prev) => {
+                        const next = [...prev];
+                        next[i] = v === true;
+                        return next;
+                      })
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm leading-snug">{ack}</span>
+                </label>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setCheckedAcks(new Array(activeAcks.length).fill(true))}
+              >
+                Tick all
+              </Button>
+            </div>
+          )}
+
+          {allAcksChecked ? (
+            <SignaturePad
+              onSave={handleSignatureComplete}
+              onCancel={() => {
+                setShowSignDialog(false);
+                setSigningUser(null);
+              }}
+            />
+          ) : (
+            <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+              All statements must be ticked before signing.
+            </p>
+          )}
+
 
           {isSigning && (
             <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
