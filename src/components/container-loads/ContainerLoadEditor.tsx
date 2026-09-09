@@ -116,6 +116,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
@@ -259,6 +260,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+      if (galleryRef.current) galleryRef.current.value = "";
     }
   };
 
@@ -621,6 +623,15 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
             className="hidden"
             onChange={(e) => handleUpload(e.target.files)}
           />
+          <input
+            ref={galleryRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+
 
           <Card>
             <CardHeader>
@@ -628,25 +639,20 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Tap a tile to take that photo. A date & time stamp is added automatically.
+                Take a photo with the camera or upload one you already have. A date & time
+                stamp is added automatically.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {PHOTO_REQUIREMENTS.map((req) => {
                   const count = load.photos.filter((p) => p.category === req.key).length;
                   const done = count > 0;
                   return (
-                    <button
+                    <div
                       key={req.key}
-                      type="button"
-                      disabled={uploading}
-                      onClick={() => {
-                        setUploadCategory(req.key);
-                        fileRef.current?.click();
-                      }}
-                      className={`flex items-start gap-3 rounded-lg border p-3 text-left transition active:scale-[0.99] ${
+                      className={`flex items-start gap-3 rounded-lg border p-3 text-left transition ${
                         done
                           ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800"
-                          : "border-border bg-muted/20 hover:border-primary/40"
+                          : "border-border bg-muted/20"
                       }`}
                     >
                       <div
@@ -670,22 +676,40 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">{req.hint}</div>
-                        <div className="text-[11px] font-medium mt-1 text-primary">
-                          {done ? "Retake / add another" : "Tap to take photo"}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 gap-1.5 text-xs"
+                            disabled={uploading}
+                            onClick={() => {
+                              setUploadCategory(req.key);
+                              fileRef.current?.click();
+                            }}
+                          >
+                            <Camera className="h-3.5 w-3.5" />
+                            {done ? "Retake" : "Take photo"}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1.5 text-xs"
+                            disabled={uploading}
+                            onClick={() => {
+                              setUploadCategory(req.key);
+                              galleryRef.current?.click();
+                            }}
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Upload
+                          </Button>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
-                <button
-                  type="button"
-                  disabled={uploading}
-                  onClick={() => {
-                    setUploadCategory("other");
-                    fileRef.current?.click();
-                  }}
-                  className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/10 p-3 text-left hover:border-primary/40"
-                >
+                <div className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/10 p-3 text-left">
                   <div className="mt-0.5 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                     <Plus className="h-4 w-4" />
                   </div>
@@ -694,8 +718,36 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                     <div className="text-xs text-muted-foreground mt-0.5">
                       Any additional photo of the load
                     </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 gap-1.5 text-xs"
+                        disabled={uploading}
+                        onClick={() => {
+                          setUploadCategory("other");
+                          fileRef.current?.click();
+                        }}
+                      >
+                        <Camera className="h-3.5 w-3.5" /> Take photo
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1.5 text-xs"
+                        disabled={uploading}
+                        onClick={() => {
+                          setUploadCategory("other");
+                          galleryRef.current?.click();
+                        }}
+                      >
+                        <Upload className="h-3.5 w-3.5" /> Upload
+                      </Button>
+                    </div>
                   </div>
-                </button>
+                </div>
               </div>
               {uploading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
