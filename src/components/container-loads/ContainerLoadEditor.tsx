@@ -116,6 +116,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [customers, setCustomers] = useState<{ id: string; customer_name: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   const [uploadCategory, setUploadCategory] = useState<PhotoCategory>("other");
