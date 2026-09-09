@@ -206,7 +206,15 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
           <div className="space-y-3">
             <div className="grid gap-3">
               <div className="space-y-1.5">
-                <Label>To (supplier) — pick one or more</Label>
+                <Label>
+                  To (supplier) — pick one or more
+                  {load.customer_name ? (
+                    <span className="ml-2 font-normal text-xs text-muted-foreground">
+                      This load is for <span className="font-semibold text-foreground">{load.customer_name}</span>
+                      {load.wb_ticket_number ? ` (WB ${load.wb_ticket_number})` : ""}
+                    </span>
+                  ) : null}
+                </Label>
                 <Input
                   value={to}
                   onChange={(e) => setTo(e.target.value)}
