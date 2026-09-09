@@ -623,6 +623,15 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
             className="hidden"
             onChange={(e) => handleUpload(e.target.files)}
           />
+          <input
+            ref={galleryRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+
 
           <Card>
             <CardHeader>
