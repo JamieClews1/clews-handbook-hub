@@ -217,8 +217,38 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     }
     setSending(true);
     try {
+      // Compress photos to under ~1MB each before sending
+      const photoAttachments: { filename: string; content: string }[] = [];
+      for (const [i, p] of (load.photos || []).entries()) {
+        try {
+          const res = await fetch(p.url);
+          if (!res.ok) continue;
+          const original = await res.blob();
+          const small = await compressPhoto(original);
+          const base = (p.path.split("/").pop() || `photo-${i + 1}.jpg`).replace(
+            /\.(png|webp|heic|heif|jpeg|jpg)$/i,
+            "",
+          );
+          const ext = small.type === "image/jpeg" ? "jpg" : (original.type.split("/")[1] || "jpg");
+          photoAttachments.push({
+            filename: `${base}.${ext}`,
+            content: await blobToBase64(small),
+          });
+        } catch (err) {
+          console.warn("photo compress failed", err);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("send-container-load", {
-        body: { loadId: load.id, to: to.trim(), cc: finalCc.join(", "), replyTo, subject, body },
+        body: {
+          loadId: load.id,
+          to: to.trim(),
+          cc: finalCc.join(", "),
+          replyTo,
+          subject,
+          body,
+          photoAttachments,
+        },
       });
       if (error) throw error;
       toast({
