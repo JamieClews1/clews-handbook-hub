@@ -598,6 +598,9 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         />
       </div>
 
+      {/* ── Site / Postcode Lookup ── */}
+      <SiteLookup sites={allSites} ownSkipSites={ownSkipSites} />
+
       {/* ── Monthly Activity ── */}
       <Card className="border-hairline">
         <CardHeader className="pb-3">
