@@ -1044,3 +1044,156 @@ function OverRentalTable({ sites }: { sites: OverRentalSite[] }) {
     </Card>
   );
 }
+
+type LookupSiteEntry = {
+  site: string;
+  category: ContainerCategory;
+  customer: string;
+  netOnSite: number;
+  lastActivityDate: string | null;
+  containerTypes: string[];
+};
+
+type OwnSkipSite = {
+  key: string;
+  site: string | null;
+  customer: string | null;
+  containerType: string | null;
+};
+
+function SiteLookup({ sites, ownSkipSites }: { sites: LookupSiteEntry[]; ownSkipSites: OwnSkipSite[] }) {
+  const [query, setQuery] = useState("");
+
+  const ownSkipKeys = useMemo(() => new Set(ownSkipSites.map(o => o.key)), [ownSkipSites]);
+
+  // Aggregate every known site (live or not) across skip/roro categories, and
+  // merge in Own Skip sites so regular-service customers always appear.
+  const byName = useMemo(() => {
+    const map: Record<string, {
+      site: string;
+      customer: string;
+      skips: number;
+      roros: number;
+      lastActivity: string | null;
+      containerTypes: Set<string>;
+      ownSkip: boolean;
+      ownSkipContainer: string | null;
+    }> = {};
+
+    for (const s of sites) {
+      if (s.category === "artic") continue; // waste trucks don't stay on-site
+      const k = s.site.toLowerCase().trim();
+      if (!map[k]) {
+        map[k] = { site: s.site, customer: s.customer, skips: 0, roros: 0, lastActivity: null, containerTypes: new Set(), ownSkip: false, ownSkipContainer: null };
+      }
+      const e = map[k];
+      if (s.category === "skip") e.skips += s.netOnSite;
+      if (s.category === "roro") e.roros += s.netOnSite;
+      if (s.lastActivityDate && (!e.lastActivity || s.lastActivityDate > e.lastActivity)) {
+        e.lastActivity = s.lastActivityDate;
+        e.customer = s.customer;
+      }
+      s.containerTypes.forEach(ct => e.containerTypes.add(ct));
+    }
+
+    for (const o of ownSkipSites) {
+      const k = o.key;
+      if (!map[k]) {
+        map[k] = {
+          site: o.site ?? o.key,
+          customer: o.customer ?? "Unknown",
+          skips: 0,
+          roros: 0,
+          lastActivity: null,
+          containerTypes: new Set(o.containerType ? [o.containerType] : []),
+          ownSkip: true,
+          ownSkipContainer: o.containerType,
+        };
+      } else {
+        map[k].ownSkip = true;
+        if (o.containerType) map[k].ownSkipContainer = o.containerType;
+      }
+    }
+    return map;
+  }, [sites, ownSkipSites]);
+
+  const q = query.trim().toLowerCase();
+  const norm = q.replace(/\s+/g, "");
+  const results = useMemo(() => {
+    if (!q) return [];
+    return Object.entries(byName)
+      .filter(([k, e]) =>
+        k.includes(q) ||
+        (norm.length >= 2 && k.replace(/\s+/g, "").includes(norm)) ||
+        e.customer.toLowerCase().includes(q)
+      )
+      .sort(([, a], [, b]) => (b.skips + b.roros) - (a.skips + a.roros))
+      .slice(0, 20)
+      .map(([k, e]) => ({ key: k, ...e }));
+  }, [byName, q, norm]);
+
+  return (
+    <Card className="border-hairline">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base font-medium">
+          <Search className="h-4 w-4 text-muted-foreground" /> Site / Postcode Lookup
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Search any postcode, address or customer to check if it's a live site (skip or RoRo on site), including customers with their own skip that we service regularly.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Input
+          type="text"
+          placeholder="e.g. CV21 3 or LE17, site address or customer name..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          className="max-w-md h-9 text-sm"
+        />
+
+        {q && results.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No site found for that search — we don't appear to have worked this site in the last 12 months.
+          </p>
+        )}
+
+        {results.length > 0 && (
+          <div className="space-y-1.5">
+            {results.map(r => {
+              const onSite = r.skips + r.roros;
+              const isLive = onSite > 0 || r.ownSkip;
+              return (
+                <div key={r.key} className="flex flex-wrap items-center gap-3 text-sm border rounded-md px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium">{r.customer}</span>
+                    <span className="text-muted-foreground"> — {r.site}</span>
+                    {r.lastActivity && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        Last activity {format(new Date(r.lastActivity), "dd MMM yyyy")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {isLive ? (
+                      <Badge className="bg-success/15 text-success border border-success/30">
+                        LIVE{onSite > 0 ? ` · ${onSite} on site` : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">No container on site</Badge>
+                    )}
+                    {r.ownSkip && (
+                      <Badge className="bg-info/15 text-info border border-info/30">
+                        <Package className="h-3 w-3 mr-1" />
+                        Own Skip{r.ownSkipContainer ? ` · ${r.ownSkipContainer}` : ""}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
