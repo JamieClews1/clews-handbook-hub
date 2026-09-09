@@ -81,6 +81,7 @@ export interface ContainerLoad {
   paperwork_mode: PaperworkMode;
   annex7_upload: PaperworkFile | null;
   packing_upload: PaperworkFile | null;
+  extra_uploads: PaperworkFile[];
   supplier_email: string | null;
   sent_at: string | null;
   id: string;
