@@ -53,7 +53,14 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [contacts, setContacts] = useState<
-    { id: string; name: string; company: string | null; email: string; is_default: boolean }[]
+    {
+      id: string;
+      name: string;
+      company: string | null;
+      email: string;
+      is_default: boolean;
+      customer_id?: string | null;
+    }[]
   >([]);
 
   useEffect(() => {
