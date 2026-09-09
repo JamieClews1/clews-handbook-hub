@@ -72,7 +72,7 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
         supabase.from("container_load_email_settings").select("*").limit(1).maybeSingle(),
         supabase
           .from("container_load_contacts")
-          .select("id, name, company, email, is_default")
+          .select("id, name, company, email, is_default, customer_id")
           .order("company")
           .order("name"),
       ]);
@@ -82,8 +82,13 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
       setReplyTo(data?.reply_to_email || ORDERS_EMAIL);
       setSubject(applyTemplate(data?.default_subject || `Container load ${load.reference}`, load));
       setBody(applyTemplate(data?.default_body || "", load));
+
+      const loadContacts = list.filter((c) => isLoadCompany(c, load));
+      const preferred = loadContacts.filter((c) => c.is_default);
+      const auto = (preferred.length ? preferred : loadContacts).map((c) => c.email);
       setTo(
         load.supplier_email ||
+          (auto.length ? auto.join(", ") : "") ||
           list.find((c) => c.is_default)?.email ||
           load.annex7?.consignee_email ||
           "",
