@@ -97,16 +97,12 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
       setSubject(applyTemplate(data?.default_subject || `Container load ${load.reference}`, load));
       setBody(applyTemplate(data?.default_body || "", load));
 
+      // Recipients come ONLY from contacts linked to the company this load is for
+      // (never the weighbridge supplier email or a global default contact).
       const loadContacts = list.filter((c) => isLoadCompany(c, load));
       const preferred = loadContacts.filter((c) => c.is_default);
       const auto = (preferred.length ? preferred : loadContacts).map((c) => c.email);
-      setTo(
-        load.supplier_email ||
-          (auto.length ? auto.join(", ") : "") ||
-          list.find((c) => c.is_default)?.email ||
-          load.annex7?.consignee_email ||
-          "",
-      );
+      setTo(auto.join(", "));
       setLoading(false);
     })();
   }, [open, load]);
