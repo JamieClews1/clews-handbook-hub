@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
       to: toList,
       subject: payload.subject,
       html,
+      text,
       reply_to: payload.replyTo || ORDERS,
       attachments,
     };
