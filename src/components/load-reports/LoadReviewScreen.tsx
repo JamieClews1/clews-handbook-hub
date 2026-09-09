@@ -15,6 +15,7 @@ import { LineItem } from "./TallyScreen";
 import { Droplets } from "lucide-react";
 import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
 import { formatLoadReportDateLocale } from "@/lib/load-report-dates";
+import { JobTicketPhotos } from "./JobTicketPhotos";
 
 interface LoadReviewScreenProps {
   operatorName: string;
@@ -235,6 +236,8 @@ export const LoadReviewScreen = ({
               <span className="font-medium">{jobNumber}</span>
             </div>
           )}
+
+          {jobNumber && <JobTicketPhotos jobNumber={jobNumber} />}
 
           {jobNumber && (
             <div className="flex justify-between">

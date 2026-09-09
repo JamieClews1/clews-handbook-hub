@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileSiteSelect } from "./MobileSiteSelect";
+import { JobTicketPhotos } from "./JobTicketPhotos";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -274,6 +275,8 @@ export const NewLoadForm = ({
                 )}
               </div>
             )}
+
+            <JobTicketPhotos jobNumber={jobNumber} />
           </div>
 
           <div className="space-y-2">
