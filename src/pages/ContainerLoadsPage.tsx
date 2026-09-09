@@ -183,7 +183,7 @@ const ContainerLoadsPage = () => {
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search reference, customer, container, material…"
+                    placeholder="Search customer reference, customer, container, material…"
                     className="pl-9"
                   />
                 </div>
