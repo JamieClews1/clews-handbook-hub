@@ -131,6 +131,15 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
     return acc;
   }, {});
 
+  /** Company groups, with the company this load is for listed first. */
+  const contactGroups = Object.entries(groupedContacts)
+    .map(([company, list]) => ({
+      company,
+      list,
+      isLoadCompany: list.some((c) => isLoadCompany(c, load)),
+    }))
+    .sort((a, b) => Number(b.isLoadCompany) - Number(a.isLoadCompany) || a.company.localeCompare(b.company));
+
   const ccList = cc
     .split(",")
     .map((s) => s.trim())
@@ -210,9 +219,19 @@ export const ContainerLoadSendDialog = ({ load, open, onOpenChange, onSent }: Pr
                 )}
                 {contacts.length > 0 && (
                   <div className="space-y-2 pt-1 max-h-52 overflow-y-auto rounded border p-2">
-                    {Object.entries(groupedContacts).map(([company, list]) => (
-                      <div key={company}>
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">{company}</p>
+                    {contactGroups.map(({ company, list, isLoadCompany: isForLoad }) => (
+                      <div
+                        key={company}
+                        className={isForLoad ? "rounded-md bg-primary/5 border border-primary/30 p-2" : ""}
+                      >
+                        <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-2">
+                          {company}
+                          {isForLoad && (
+                            <span className="rounded bg-primary/15 text-primary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                              This load
+                            </span>
+                          )}
+                        </p>
                         <div className="flex flex-wrap gap-1">
                           {list.map((c) => {
                             const active = toSet.has(c.email.toLowerCase());
