@@ -14,7 +14,10 @@ interface Payload {
   replyTo?: string;
   subject: string;
   body: string;
+  /** Optional pre-compressed photos (base64, no data URL prefix) from the client. */
+  photoAttachments?: { filename: string; content: string }[];
 }
+
 
 async function fetchAsBase64(url: string): Promise<string> {
   const res = await fetch(url);
