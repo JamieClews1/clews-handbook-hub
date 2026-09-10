@@ -130,6 +130,7 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
     let notPdf = 0;
     const failures: { name: string; message: string }[] = [];
     try {
+      const queue: File[] = [];
       for (const file of Array.from(files)) {
         if (!/\.pdf$/i.test(file.name)) {
           notPdf += 1;
@@ -139,13 +140,27 @@ export const WtnDocumentsPanel = ({ canManage = true }: Props) => {
           skippedPrefix += 1;
           continue;
         }
-        // One bad file must never abort the rest of the batch.
-        try {
-          ids.push(await uploadWtnPdf(file, current.replace_existing));
-        } catch (e: any) {
-          failures.push({ name: file.name, message: e?.message ?? "Upload failed" });
-        }
+        queue.push(file);
       }
+
+      // Upload several at a time with a retry each, so a slow or failing file
+      // never stalls (or aborts) the rest of the batch.
+      const CONCURRENCY = 4;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < queue.length) {
+          const file = queue[cursor++];
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              ids.push(await uploadWtnPdf(file, current.replace_existing));
+              break;
+            } catch (e: any) {
+              if (attempt === 1) failures.push({ name: file.name, message: e?.message ?? "Upload failed" });
+            }
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker));
       if (notPdf) {
         toast({ title: `${notPdf} file(s) skipped`, description: "Not PDF files." });
       }
