@@ -222,27 +222,41 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={handleFileChange}
       />
-      <Button
-        variant="outline"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isProcessing}
-        className="gap-2"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          <>
-            <ImageIcon className="h-4 w-4" />
-            Upload Screenshot
-          </>
-        )}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Select value={targetMonth} onValueChange={setTargetMonth}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Month" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-50">
+            <SelectItem value="all">All months</SelectItem>
+            {MONTH_NAMES.slice(1).map((m, i) => (
+              <SelectItem key={m} value={String(i + 1)}>{m} only</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isProcessing}
+          className="gap-2"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <ImageIcon className="h-4 w-4" />
+              Upload Screenshots
+            </>
+          )}
+        </Button>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
