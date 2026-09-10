@@ -146,11 +146,17 @@ export default function BiffaFuelSurcharge({ canEdit }: Props) {
     }
 
     const hf = (haulierFilter || "Biffa").toLowerCase().trim();
+    const parseMoney = (v: any): number => {
+      if (v === null || v === undefined) return 0;
+      const n = Number(String(v).replace(/[^0-9.\-]/g, ""));
+      return Number.isFinite(n) ? n : 0;
+    };
     const filtered: BiffaJob[] = all
       .map((j) => {
         const raw = (j.raw ?? {}) as Record<string, any>;
         const haulier = raw["Haulier"] ? String(raw["Haulier"]).trim() : null;
-        const tp = Number(raw["Total Price"]);
+        // Midweigh exports use "Cost"; older files used "Total Price"
+        const tp = parseMoney(raw["Cost"] ?? raw["Total Price"] ?? raw["Total Cost"] ?? raw["Value"]);
         return {
           id: j.id,
           job_number: j.job_number,
@@ -160,10 +166,11 @@ export default function BiffaFuelSurcharge({ canEdit }: Props) {
           weight_t: j.weight_t,
           haulier,
           product: raw["Product"] ? String(raw["Product"]) : raw["EWC Desc"] ? String(raw["EWC Desc"]) : null,
-          total_price: Number.isFinite(tp) ? tp : 0,
+          total_price: tp,
         };
       })
       .filter((j) => (j.haulier ?? "").toLowerCase().startsWith(hf) && j.total_price > 0);
+
 
     setJobs(filtered);
     setCalcLoading(false);
