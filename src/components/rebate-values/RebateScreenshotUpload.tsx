@@ -65,47 +65,62 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
   const [dialogOpen, setDialogOpen] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Record<string, boolean>>({});
+  const [targetMonth, setTargetMonth] = useState<string>("all");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file", description: "Please upload an image file.", variant: "destructive" });
+    const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) {
+      toast({ title: "Invalid file", description: "Please upload image files.", variant: "destructive" });
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // Convert to base64
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const allEntries: ExtractedEntry[] = [];
+      const unmatchedNames: string[] = [];
+      let year = new Date().getFullYear();
+      const titles: string[] = [];
 
-      const { data, error } = await supabase.functions.invoke("parse-rebate-screenshot", {
-        body: {
-          imageBase64: base64,
-          rebateItems: items.map((i) => ({ id: i.id, name: i.name })),
-        },
-      });
+      for (const file of files) {
+        // Convert to base64
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Failed to parse screenshot");
+        const { data, error } = await supabase.functions.invoke("parse-rebate-screenshot", {
+          body: {
+            imageBase64: base64,
+            rebateItems: items.map((i) => ({ id: i.id, name: i.name })),
+          },
+        });
 
-      const extracted = data.data as ExtractedData;
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || "Failed to parse screenshot");
 
-      // Only keep entries that have matched items
-      const matchedEntries = extracted.entries.filter((e) => e.itemId);
-      const unmatchedEntries = extracted.entries.filter((e) => !e.itemId);
+        const extracted = data.data as ExtractedData;
+        if (extracted.year) year = extracted.year;
+        if (extracted.tableTitle) titles.push(extracted.tableTitle);
+
+        for (const entry of extracted.entries) {
+          if (entry.itemId) allEntries.push(entry);
+          else if (entry.unmatchedName) unmatchedNames.push(entry.unmatchedName);
+        }
+      }
+
+      // Optional month filter
+      const monthFilter = targetMonth === "all" ? null : Number(targetMonth);
+      const matchedEntries = monthFilter ? allEntries.filter((e) => e.month === monthFilter) : allEntries;
 
       if (matchedEntries.length === 0) {
         toast({
-          title: "No matches found",
-          description: `Could not match any items. Unmatched: ${unmatchedEntries.map((e) => e.unmatchedName).join(", ")}`,
+          title: "No values found",
+          description: monthFilter
+            ? `No ${MONTH_NAMES[monthFilter]} values found in the uploaded image(s).`
+            : `Could not match any items. Unmatched: ${unmatchedNames.join(", ")}`,
           variant: "destructive",
         });
         return;
@@ -113,18 +128,18 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
 
       // Default all matched entries to selected
       const selections: Record<string, boolean> = {};
-      matchedEntries.forEach((entry, idx) => {
+      matchedEntries.forEach((_, idx) => {
         selections[`${idx}`] = true;
       });
 
-      setExtractedData({ ...extracted, entries: matchedEntries });
+      setExtractedData({ year, tableTitle: titles.join(" • "), entries: matchedEntries });
       setSelectedEntries(selections);
       setDialogOpen(true);
 
-      if (unmatchedEntries.length > 0) {
+      if (unmatchedNames.length > 0) {
         toast({
           title: "Some items unmatched",
-          description: `Could not match: ${unmatchedEntries.map((e) => e.unmatchedName).join(", ")}`,
+          description: `Could not match: ${Array.from(new Set(unmatchedNames)).join(", ")}`,
         });
       }
     } catch (err: any) {
