@@ -135,7 +135,12 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       
       let bestSiteId = sites[0].id;
       let bestCount = 0;
-      
+
+      // One query for every site instead of a count per site (which timed out).
+      const siteNamesBySite = new Map<string, string[]>();
+      const allSiteNames = new Set<string>();
+      const allCustomers = new Set<string>();
+
       for (const site of sites) {
         const siteNames = [
           site.data_hub_site,
@@ -144,28 +149,49 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
           site.data_hub_site_4,
           site.data_hub_site_5,
         ].filter(Boolean) as string[];
+        siteNamesBySite.set(site.id, siteNames);
+        siteNames.forEach((n) => allSiteNames.add(n));
+        if (site.data_hub_customer) allCustomers.add(site.data_hub_customer);
+      }
 
-        const customerFilters = site.data_hub_customer
-          ? [site.data_hub_customer]
-          : [];
-
-        if (siteNames.length === 0 && customerFilters.length === 0) continue;
-        
+      if (allSiteNames.size > 0 || allCustomers.size > 0) {
         let query = supabase
           .from("data_hub_jobs")
-          .select("id", { count: "exact", head: true })
+          .select("site, customer")
           .gte("job_date", thirtyDaysAgo)
-          .lte("job_date", today);
+          .lte("job_date", today)
+          .limit(5000);
 
-        if (customerFilters.length > 0) query = query.in("customer", customerFilters);
-        if (siteNames.length > 0) query = query.in("site", siteNames);
-        
-        const { count } = await query;
-        if ((count ?? 0) > bestCount) {
-          bestCount = count ?? 0;
-          bestSiteId = site.id;
+        if (allSiteNames.size > 0) {
+          query = query.in("site", Array.from(allSiteNames));
+        } else {
+          query = query.in("customer", Array.from(allCustomers));
+        }
+
+        const { data: recentJobs } = await query;
+
+        const countByName = new Map<string, number>();
+        const countByCustomer = new Map<string, number>();
+        for (const j of recentJobs ?? []) {
+          if (j.site) countByName.set(j.site, (countByName.get(j.site) ?? 0) + 1);
+          if (j.customer) countByCustomer.set(j.customer, (countByCustomer.get(j.customer) ?? 0) + 1);
+        }
+
+        for (const site of sites) {
+          const siteNames = siteNamesBySite.get(site.id) ?? [];
+          let count = 0;
+          if (siteNames.length > 0) {
+            count = siteNames.reduce((sum, n) => sum + (countByName.get(n) ?? 0), 0);
+          } else if (site.data_hub_customer) {
+            count = countByCustomer.get(site.data_hub_customer) ?? 0;
+          }
+          if (count > bestCount) {
+            bestCount = count;
+            bestSiteId = site.id;
+          }
         }
       }
+      
       
       setSelectedSiteId(bestSiteId);
       setAutoLoaded(true);
