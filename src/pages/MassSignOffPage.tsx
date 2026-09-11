@@ -145,6 +145,7 @@ const MassSignOffPage = () => {
       const { data: usersData } = await supabase
         .from("profiles")
         .select("id, email, full_name, user_types")
+        .not("is_archived", "is", true)
         .order("full_name");
 
       if (usersData) {
