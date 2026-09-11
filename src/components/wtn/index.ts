@@ -5,3 +5,4 @@ export { WtnDetails } from "./WtnDetails";
 export { WtnDocumentsPanel } from "./WtnDocumentsPanel";
 export { JobWtnDocuments } from "./JobWtnDocuments";
 export { WtnJobSignatures } from "./WtnJobSignatures";
+export { MissingPdasPanel } from "./MissingPdasPanel";

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WtnDocumentsPanel } from "@/components/wtn";
+import { WtnDocumentsPanel, MissingPdasPanel } from "@/components/wtn";
 import { useAuth } from "@/hooks/useAuth";
 
 const PdaUploadsPage = () => {
@@ -25,6 +25,8 @@ const PdaUploadsPage = () => {
             the Data Hub.
           </p>
         </div>
+
+        <MissingPdasPanel />
 
         <WtnDocumentsPanel canManage />
       </div>
