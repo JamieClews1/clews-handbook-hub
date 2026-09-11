@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS idx_data_hub_jobs_customer_job_date ON public.data_hub_jobs (customer, job_date DESC);
+CREATE INDEX IF NOT EXISTS idx_data_hub_jobs_site_job_date ON public.data_hub_jobs (site, job_date DESC);

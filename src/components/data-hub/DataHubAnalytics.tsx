@@ -90,6 +90,7 @@ const DataHubAnalytics = () => {
 
   // State for chart controls
   const currentYear = new Date().getFullYear();
+  const [lookbackYears, setLookbackYears] = useState(3);
   const [jobsYear, setJobsYear] = useState(currentYear.toString());
   const [incomeYear, setIncomeYear] = useState(currentYear.toString());
   const [showIncomePrevYear, setShowIncomePrevYear] = useState(false);
@@ -120,11 +121,13 @@ const DataHubAnalytics = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [jobs]);
 
-  // Fetch ALL jobs (both sources)
+  // Fetch jobs for the selected look-back window only. Sweeping the whole
+  // table hits the database statement timeout as job history grows.
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       try {
+        const fromDate = `${currentYear - (lookbackYears - 1)}-01-01`;
         let allJobs: RawJob[] = [];
         let offset = 0;
         const limit = 1000;
@@ -134,6 +137,7 @@ const DataHubAnalytics = () => {
           const { data, error } = await supabase
             .from("data_hub_jobs")
             .select("id, job_date, customer, movement_type, source, raw")
+            .gte("job_date", fromDate)
             .order("job_date", { ascending: true })
             .range(offset, offset + limit - 1);
 
@@ -156,7 +160,7 @@ const DataHubAnalytics = () => {
     };
 
     fetchJobs();
-  }, []);
+  }, [lookbackYears, currentYear]);
 
   // 1. Annual Revenue by Month - Year on Year Comparison
   const annualRevenueData = useMemo(() => {
@@ -325,6 +329,20 @@ const DataHubAnalytics = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2">
+        <Label className="text-sm text-muted-foreground">Data range</Label>
+        <Select value={String(lookbackYears)} onValueChange={(v) => setLookbackYears(Number(v))}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">This year</SelectItem>
+            <SelectItem value="2">Last 2 years</SelectItem>
+            <SelectItem value="3">Last 3 years</SelectItem>
+            <SelectItem value="5">Last 5 years</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       {/* 1. Annual Revenue by Month - YoY Comparison */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
