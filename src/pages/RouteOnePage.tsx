@@ -220,6 +220,8 @@ const RouteOnePage = () => {
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const weekStart = format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEnd = format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const search = (searchParams.get("search") ?? "").trim().toLowerCase();
+  const isExactTicketSearch = /^\d+$/.test(search);
 
   // Fetch drivers
   const { data: drivers = [] } = useQuery({
@@ -237,10 +239,16 @@ const RouteOnePage = () => {
 
   // Fetch jobs for selected date/week
   const { data: routeJobs = [] } = useQuery({
-    queryKey: ["route-one-jobs", viewMode, dateStr, weekStart],
+    queryKey: ["route-one-jobs", viewMode, dateStr, weekStart, search],
     queryFn: async () => {
       let query = supabase.from("route_one_jobs").select("*");
-      if (viewMode === "day") {
+      if (isExactTicketSearch) {
+        query = query.eq("job_number", search);
+      } else if (search) {
+        query = query.or(
+          `job_number.ilike.%${search}%,customer_name.ilike.%${search}%,site_name.ilike.%${search}%,site_address.ilike.%${search}%,site_postcode.ilike.%${search}%,vehicle_reg.ilike.%${search}%`,
+        );
+      } else if (viewMode === "day") {
         query = query.eq("scheduled_date", dateStr);
       } else {
         query = query.gte("scheduled_date", weekStart).lte("scheduled_date", weekEnd);
@@ -253,13 +261,19 @@ const RouteOnePage = () => {
 
   // Fetch Skiptrak scheduled jobs for the selected date range (from data_hub_jobs)
   const { data: allSkiptrakScheduledJobs = [] } = useQuery({
-    queryKey: ["route-one-skiptrak-jobs", viewMode, dateStr, weekStart],
+    queryKey: ["route-one-skiptrak-jobs", viewMode, dateStr, weekStart, search],
     queryFn: async () => {
       let query = supabase
         .from("data_hub_jobs")
         .select("id, job_number, job_date, customer, site, postcode, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location, rebate_rate_per_tonne")
         .eq("source", "skiptrak");
-      if (viewMode === "day") {
+      if (isExactTicketSearch) {
+        query = query.eq("job_number", search);
+      } else if (search) {
+        query = query.or(
+          `job_number.ilike.%${search}%,customer.ilike.%${search}%,site.ilike.%${search}%,postcode.ilike.%${search}%,vehicle_registration.ilike.%${search}%,driver.ilike.%${search}%`,
+        );
+      } else if (viewMode === "day") {
         query = query.eq("job_date", dateStr);
       } else {
         query = query.gte("job_date", weekStart).lte("job_date", weekEnd);
@@ -270,7 +284,6 @@ const RouteOnePage = () => {
     },
   });
 
-  const search = (searchParams.get("search") ?? "").trim().toLowerCase();
   const includesSearch = (...values: unknown[]) =>
     !search || values.some((value) => String(value ?? "").toLowerCase().includes(search));
 
