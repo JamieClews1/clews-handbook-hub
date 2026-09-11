@@ -71,6 +71,17 @@ export function SiteHistoryDialog({
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  const PAGE_SIZE = 200;
+
+  // Reset paging whenever the dialog target changes
+  useEffect(() => {
+    setJobs([]);
+    setPage(0);
+    setHasMore(false);
+  }, [open, siteName, dataHubCustomer, JSON.stringify(dataHubSites)]);
 
   useEffect(() => {
     if (!open) return;
@@ -85,7 +96,13 @@ export function SiteHistoryDialog({
       const cols =
         "id,job_number,source,job_date,customer,site,movement_type,container_type,ewc,waste_description,weight_t,vehicle_registration,driver,tipping_location,raw";
 
-      let query = supabase.from("data_hub_jobs").select(cols).limit(2000);
+      // Newest first, one page at a time — pulling thousands of rows at once
+      // was hitting the database statement timeout.
+      let query = supabase
+        .from("data_hub_jobs")
+        .select(cols)
+        .order("job_date", { ascending: false })
+        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (siteNames.length > 0) {
         query = query.in("site", siteNames);
       } else if (dataHubCustomer) {
@@ -97,11 +114,17 @@ export function SiteHistoryDialog({
       if (cancelled) return;
       if (error) {
         console.error("[SiteHistory] load failed", error);
-        setJobs([]);
+        if (page === 0) setJobs([]);
       } else {
         const rows = (data ?? []) as unknown as Job[];
-        rows.sort((a, b) => (b.job_date ?? "").localeCompare(a.job_date ?? ""));
-        setJobs(rows);
+        setHasMore(rows.length === PAGE_SIZE);
+        setJobs((prev) => {
+          const merged = page === 0 ? rows : [...prev, ...rows];
+          const seen = new Set<string>();
+          return merged
+            .filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+            .sort((a, b) => (b.job_date ?? "").localeCompare(a.job_date ?? ""));
+        });
       }
       setLoading(false);
     };
@@ -110,7 +133,7 @@ export function SiteHistoryDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, siteName, dataHubCustomer, JSON.stringify(dataHubSites)]);
+  }, [open, page, siteName, dataHubCustomer, JSON.stringify(dataHubSites)]);
 
   const positions = useMemo<Position[]>(() => {
     const map = new Map<string, Position>();
