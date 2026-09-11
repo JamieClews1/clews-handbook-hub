@@ -123,6 +123,9 @@ export default function BiffaFuelSurcharge({ canEdit }: Props) {
       return;
     }
     setCalcLoading(true);
+    // NOTE: customer names contain parentheses e.g. "Biffa (Leics)", which break
+    // PostgREST `in.(...)` parsing — so filter by a safe pattern and match client-side.
+    const includedSet = new Set(included.map((c) => c.toLowerCase().trim()));
     const all: any[] = [];
     let offset = 0;
     while (true) {
@@ -130,7 +133,7 @@ export default function BiffaFuelSurcharge({ canEdit }: Props) {
         .from("data_hub_jobs")
         .select("id, job_number, job_date, customer, site, weight_t, raw")
         .eq("source", "midweigh")
-        .in("customer", included)
+        .ilike("customer", "%biffa%")
         .gte("job_date", fromDate)
         .lte("job_date", toDate)
         .range(offset, offset + 999);
@@ -152,6 +155,7 @@ export default function BiffaFuelSurcharge({ canEdit }: Props) {
       return Number.isFinite(n) ? n : 0;
     };
     const filtered: BiffaJob[] = all
+      .filter((j) => includedSet.has(String(j.customer ?? "").toLowerCase().trim()))
       .map((j) => {
         const raw = (j.raw ?? {}) as Record<string, any>;
         const haulier = raw["Haulier"] ? String(raw["Haulier"]).trim() : null;
