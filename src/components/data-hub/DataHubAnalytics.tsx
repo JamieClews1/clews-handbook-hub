@@ -90,6 +90,7 @@ const DataHubAnalytics = () => {
 
   // State for chart controls
   const currentYear = new Date().getFullYear();
+  const [lookbackYears, setLookbackYears] = useState(3);
   const [jobsYear, setJobsYear] = useState(currentYear.toString());
   const [incomeYear, setIncomeYear] = useState(currentYear.toString());
   const [showIncomePrevYear, setShowIncomePrevYear] = useState(false);
