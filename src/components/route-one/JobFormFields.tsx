@@ -556,7 +556,7 @@ export function JobFormFields({
             <Label className="text-xs">Customer *</Label>
             <AutocompleteInput
               value={form.customer_name || ""}
-              onChange={(val) => setForm({ ...form, customer_name: val })}
+              onChange={(val) => setForm({ ...form, customer_name: normaliseCustomer(val) })}
               placeholder="Start typing customer..."
               fetchSuggestions={fetchCustomers}
             />
