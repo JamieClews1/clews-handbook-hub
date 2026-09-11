@@ -120,11 +120,13 @@ const DataHubAnalytics = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [jobs]);
 
-  // Fetch ALL jobs (both sources)
+  // Fetch jobs for the selected look-back window only. Sweeping the whole
+  // table hits the database statement timeout as job history grows.
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       try {
+        const fromDate = `${currentYear - (lookbackYears - 1)}-01-01`;
         let allJobs: RawJob[] = [];
         let offset = 0;
         const limit = 1000;
@@ -134,6 +136,7 @@ const DataHubAnalytics = () => {
           const { data, error } = await supabase
             .from("data_hub_jobs")
             .select("id, job_date, customer, movement_type, source, raw")
+            .gte("job_date", fromDate)
             .order("job_date", { ascending: true })
             .range(offset, offset + limit - 1);
 
@@ -156,7 +159,7 @@ const DataHubAnalytics = () => {
     };
 
     fetchJobs();
-  }, []);
+  }, [lookbackYears, currentYear]);
 
   // 1. Annual Revenue by Month - Year on Year Comparison
   const annualRevenueData = useMemo(() => {
