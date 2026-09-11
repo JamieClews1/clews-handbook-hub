@@ -348,8 +348,10 @@ export function MonthlyRebateGenerationV2() {
             const bespokeRate = rawBespokeRate == null || Number.isNaN(Number(rawBespokeRate))
               ? null
               : Number(rawBespokeRate);
-            totalRebate += Math.max(0, job.weight_t - threshold) * (bespokeRate ?? rate);
+            totalRebate += job.weight_t * (bespokeRate ?? rate);
           }
+          // Threshold applies once to the month's aggregated tonnage, not per load.
+          if (threshold > 0) totalRebate = Math.max(0, totalRebate - threshold * rate);
           rebateTotal += totalRebate;
           weightTotal += totalWeight;
           // Show the rate actually applied: with bespoke per-job rates the

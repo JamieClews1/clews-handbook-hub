@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Check admin role after auth state change
         if (session?.user) {
           setTimeout(() => {
+            enforceNotArchived(session.user.id);
             checkAdminRole(session.user.id);
           }, 0);
         } else {
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        enforceNotArchived(session.user.id);
         checkAdminRole(session.user.id);
       } else {
         setLoading(false);
@@ -52,6 +54,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  /** Archived staff must not retain access — sign them straight back out. */
+  const enforceNotArchived = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_archived")
+        .eq("id", userId)
+        .maybeSingle();
+      if ((data as { is_archived?: boolean } | null)?.is_archived) {
+        await supabase.auth.signOut();
+        setIsAdmin(false);
+      }
+    } catch {
+      /* ignore – never block sign-in on a lookup failure */
+    }
+  };
 
   const checkAdminRole = async (userId: string) => {
     try {

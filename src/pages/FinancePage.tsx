@@ -4,7 +4,7 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import FinanceDashboard from "@/components/finance/FinanceDashboard";
 import InvoicesTab from "@/components/finance/InvoicesTab";
 import FinanceSettingsTab from "@/components/finance/FinanceSettingsTab";
-import PayrollTab from "@/components/finance/payroll/PayrollTab";
+
 
 
 export default function FinancePage() {

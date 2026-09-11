@@ -97,7 +97,7 @@ export function AppSidebar() {
   );
   const [financeOpen, setFinanceOpen] = useSidebarGroupState(
     "finance",
-    isInSection(["/finance", "/rebate-values"]),
+    isInSection(["/finance", "/rebate-values", "/payroll"]),
   );
   const [performanceOpen, setPerformanceOpen] = useSidebarGroupState(
     "performance",
@@ -487,6 +487,14 @@ export function AppSidebar() {
                         <Link to="/finance">
                           <PoundSterling className="h-[18px] w-[18px]" />
                           {!collapsed && <span>Invoicing</span>}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem data-sec="payroll">
+                      <SidebarMenuButton asChild isActive={isActive("/payroll")}>
+                        <Link to="/payroll">
+                          <PoundSterling className="h-[18px] w-[18px]" />
+                          {!collapsed && <span>Payroll &amp; Time</span>}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
