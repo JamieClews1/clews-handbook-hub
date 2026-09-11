@@ -291,6 +291,13 @@ export function SiteHistoryDialog({
                   </AccordionItem>
                 ))}
               </Accordion>
+              {hasMore && (
+                <div className="flex justify-center pt-4">
+                  <Button variant="outline" disabled={loading} onClick={() => setPage((p) => p + 1)}>
+                    {loading ? "Loading…" : "Load more"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
