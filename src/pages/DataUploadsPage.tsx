@@ -371,9 +371,14 @@ const DataUploadsPage = () => {
 
       if (filters.search) {
         const term = filters.search.replace(/,/g, "");
-        q = q.or(
-          `job_number.ilike.%${term}%,customer.ilike.%${term}%,site.ilike.%${term}%,ewc.ilike.%${term}%`,
-        );
+        const isExactTicketNumber = /^\d+$/.test(term);
+        if (isExactTicketNumber) {
+          q = q.eq("job_number", term);
+        } else {
+          q = q.or(
+            `job_number.ilike.%${term}%,customer.ilike.%${term}%,site.ilike.%${term}%,ewc.ilike.%${term}%`,
+          );
+        }
       }
 
       const { data, error } = await q;
