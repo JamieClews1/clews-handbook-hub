@@ -348,7 +348,7 @@ export function MonthlyRebateGenerationV2() {
             const bespokeRate = rawBespokeRate == null || Number.isNaN(Number(rawBespokeRate))
               ? null
               : Number(rawBespokeRate);
-            totalRebate += Math.max(0, job.weight_t - threshold) * (bespokeRate ?? rate);
+            totalRebate += job.weight_t * (bespokeRate ?? rate);
           }
           rebateTotal += totalRebate;
           weightTotal += totalWeight;
