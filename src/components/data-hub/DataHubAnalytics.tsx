@@ -329,6 +329,20 @@ const DataHubAnalytics = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2">
+        <Label className="text-sm text-muted-foreground">Data range</Label>
+        <Select value={String(lookbackYears)} onValueChange={(v) => setLookbackYears(Number(v))}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">This year</SelectItem>
+            <SelectItem value="2">Last 2 years</SelectItem>
+            <SelectItem value="3">Last 3 years</SelectItem>
+            <SelectItem value="5">Last 5 years</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       {/* 1. Annual Revenue by Month - YoY Comparison */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
