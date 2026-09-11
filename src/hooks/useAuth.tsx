@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Check admin role after auth state change
         if (session?.user) {
           setTimeout(() => {
+            enforceNotArchived(session.user.id);
             checkAdminRole(session.user.id);
           }, 0);
         } else {
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        enforceNotArchived(session.user.id);
         checkAdminRole(session.user.id);
       } else {
         setLoading(false);
