@@ -350,6 +350,8 @@ export function MonthlyRebateGenerationV2() {
               : Number(rawBespokeRate);
             totalRebate += job.weight_t * (bespokeRate ?? rate);
           }
+          // Threshold applies once to the month's aggregated tonnage, not per load.
+          if (threshold > 0) totalRebate = Math.max(0, totalRebate - threshold * rate);
           rebateTotal += totalRebate;
           weightTotal += totalWeight;
           // Show the rate actually applied: with bespoke per-job rates the
