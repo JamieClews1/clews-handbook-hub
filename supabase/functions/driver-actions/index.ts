@@ -137,7 +137,13 @@ Deno.serve(async (req) => {
             },
             { onConflict: "driver_id" },
           );
-        if (error) throw error;
+        if (error) {
+          // Stale device session: the driver row was deleted/renamed.
+          if ((error as { code?: string }).code === "23503") {
+            return json({ ok: false, stale_session: true, error: "driver no longer exists" }, 200);
+          }
+          throw error;
+        }
         return json({ ok: true });
       }
 
