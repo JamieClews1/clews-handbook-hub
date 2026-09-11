@@ -155,6 +155,7 @@ export default function BiffaFuelSurcharge({ canEdit }: Props) {
       return Number.isFinite(n) ? n : 0;
     };
     const filtered: BiffaJob[] = all
+      .filter((j) => includedSet.has(String(j.customer ?? "").toLowerCase().trim()))
       .map((j) => {
         const raw = (j.raw ?? {}) as Record<string, any>;
         const haulier = raw["Haulier"] ? String(raw["Haulier"]).trim() : null;
