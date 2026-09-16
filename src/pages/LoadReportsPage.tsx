@@ -22,6 +22,7 @@ import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
 
 // Staci-specific components
 import { StaciTallyScreen, StaciReviewScreen, StaciPalletEntry } from "@/components/load-reports/staci";
+import { resolveStaciPalletColour } from "@/components/load-reports/staci/types";
 
 type ViewMode = "customer" | "list" | "all" | "new" | "tally" | "review";
 
@@ -898,7 +899,7 @@ const LoadReportsPage = () => {
         if (staciPalletEntries.length > 0) {
           const entries = staciPalletEntries.map((entry, idx) => ({
             load_report_id: reportId,
-            colour: entry.colour,
+            colour: resolveStaciPalletColour(entry.weight_kg, entry.waste_breakdown, entry.colour),
             weight_kg: entry.weight_kg,
             pallet_type: entry.pallet_type,
             display_order: idx,

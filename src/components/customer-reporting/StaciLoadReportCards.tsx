@@ -23,7 +23,8 @@ import {
   StaciPalletColour,
   StaciColourSummary,
   getTotalPercentage,
-  calculatePalletColour,
+  resolveStaciPalletColour,
+  type StaciWasteBreakdown,
 } from "@/components/load-reports/staci/types";
 
 interface StaciReport {
@@ -52,7 +53,7 @@ interface StaciReport {
     colour: StaciPalletColour;
     weight_kg: number;
     pallet_count: number;
-    waste_breakdown: Record<string, number>;
+    waste_breakdown: StaciWasteBreakdown;
     description: string;
   }[];
 }
@@ -248,7 +249,7 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
 
     for (const entry of report.pallet_entries) {
       const palletCount = entry.pallet_count || 1;
-      const colour = entry.colour as StaciPalletColour;
+      const colour = resolveStaciPalletColour(entry.weight_kg, entry.waste_breakdown, entry.colour);
       const existing = colourMap.get(colour) || { count: 0, weight: 0 };
       colourMap.set(colour, {
         count: existing.count + palletCount,
