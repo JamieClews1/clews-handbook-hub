@@ -694,21 +694,21 @@ const RouteOnePage = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       {/* Header Bar */}
-      <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="px-4 py-3 border-b border-border bg-card flex flex-wrap items-center justify-between gap-x-3 gap-y-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
             <Route className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">RouteOne</h1>
-            <p className="text-xs text-muted-foreground">Transport Dispatch</p>
+            <h1 className="text-lg font-bold text-foreground leading-tight">RouteOne</h1>
+            <p className="text-[11px] text-muted-foreground leading-tight">Transport Dispatch</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {/* View toggle */}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
-            <TabsList className="h-8">
+            <TabsList className="h-8 shrink-0">
               <TabsTrigger value="day" className="text-xs px-3 h-7">Day</TabsTrigger>
               <TabsTrigger value="week" className="text-xs px-3 h-7">Week</TabsTrigger>
               <TabsTrigger value="list" className="text-xs px-3 h-7"><List className="h-3 w-3 mr-1" />List</TabsTrigger>
@@ -717,13 +717,12 @@ const RouteOnePage = () => {
             </TabsList>
           </Tabs>
 
-
           {/* Date navigation */}
-          <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-1">
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-1 shrink-0">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigateDate(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-7 text-xs font-medium min-w-[120px]" onClick={() => setSelectedDate(new Date())}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs font-medium min-w-[110px]" onClick={() => setSelectedDate(new Date())}>
               <Calendar className="h-3.5 w-3.5 mr-1.5" />
               {viewMode === "day"
                 ? format(selectedDate, "EEE dd MMM")
@@ -736,11 +735,22 @@ const RouteOnePage = () => {
           </div>
 
           {/* Stats */}
-          <div className="hidden md:flex items-center gap-3 text-xs text-muted-foreground ml-2">
-            <span><strong className="text-foreground">{totalJobs}</strong> jobs</span>
-            <span><strong className="text-emerald-600">{completedJobs}</strong> done</span>
-            {queryJobs > 0 && <span><strong className="text-red-600">{queryJobs}</strong> queries</span>}
+          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground shrink-0 px-1">
+            <Badge variant="secondary" className="gap-1 font-normal">
+              <strong className="text-foreground">{totalJobs}</strong> jobs
+            </Badge>
+            <Badge variant="outline" className="gap-1 font-normal">
+              <strong className="text-emerald-600">{completedJobs}</strong> done
+            </Badge>
+            {queryJobs > 0 && (
+              <Badge variant="outline" className="gap-1 font-normal border-destructive/40 text-destructive">
+                <strong>{queryJobs}</strong> queries
+              </Badge>
+            )}
           </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
 
           {/* Reorganise the day */}
           {viewMode === "day" && (
