@@ -303,18 +303,24 @@ export function PermitDialog({
                   <span className="truncate">
                     {selectedJob
                       ? `${selectedJob.job_number ? `#${selectedJob.job_number} — ` : ""}${selectedJob.customer_name} — ${selectedJob.site_postcode || "no postcode"}`
-                      : "Choose a job (optional)"}
+                      : jobNumber
+                        ? `#${jobNumber}${customerName ? ` — ${customerName}` : ""}`
+                        : "Choose a job (optional)"}
                   </span>
                   <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[320px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Type a job number, customer or postcode..." />
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder="Type a job number, customer or postcode..."
+                    value={jobSearch}
+                    onValueChange={setJobSearch}
+                  />
                   <CommandList className="max-h-72">
                     <CommandEmpty>No job found.</CommandEmpty>
-                    <CommandGroup>
-                      {jobs.map((j: any) => {
+                    <CommandGroup heading="RouteOne jobs">
+                      {filteredRouteJobs.map((j: any) => {
                         const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
                         return (
                           <CommandItem
@@ -328,6 +334,22 @@ export function PermitDialog({
                         );
                       })}
                     </CommandGroup>
+                    {hubOnly.length > 0 && (
+                      <CommandGroup heading="Other tickets (Data Hub)">
+                        {hubOnly.map((h: any) => (
+                          <CommandItem
+                            key={h.id}
+                            value={`hub-${h.id}`}
+                            onSelect={() => { onPickHubJob(h); setJobPickerOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", !jobId && jobNumber === String(h.job_number) ? "opacity-100" : "opacity-0")} />
+                            #{h.job_number} — {h.customer || "no customer"} — {h.postcode || "no postcode"}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+
                   </CommandList>
                 </Command>
               </PopoverContent>
