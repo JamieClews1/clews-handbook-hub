@@ -58,6 +58,7 @@ export function PermitDialog({
   const [expiryDate, setExpiryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [wcc, setWcc] = useState<WccFormValues | null>(null);
 
   // Jobs available to attach a permit to
   const { data: jobs = [] } = useQuery({
