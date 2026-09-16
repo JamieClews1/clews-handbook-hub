@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -184,6 +184,27 @@ export function PermitDialog({
       prev ? { ...prev, start_date: startDate || prev.start_date, end_date: expiryDate || prev.end_date } : prev,
     );
   }, [startDate, expiryDate]);
+
+  // Default "location of skip" and "address of works" to the site address,
+  // updating whenever the address changes unless the user has typed their own.
+  const lastAddressDefault = useRef("");
+  useEffect(() => {
+    const address = [siteAddress, postcode].filter(Boolean).join(", ").trim();
+    setWcc((prev) => {
+      if (!prev) return prev;
+      const untouched = (v: string) => !v || v === lastAddressDefault.current;
+      if (!untouched(prev.skip_location) && !untouched(prev.works_address)) {
+        lastAddressDefault.current = address;
+        return prev;
+      }
+      lastAddressDefault.current = address;
+      return {
+        ...prev,
+        skip_location: untouched(prev.skip_location) ? address : prev.skip_location,
+        works_address: untouched(prev.works_address) ? address : prev.works_address,
+      };
+    });
+  }, [siteAddress, postcode]);
 
   const onPickJob = (id: string) => {
     const j = jobs.find((x: any) => x.id === id);
