@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_data_hub_jobs_job_number_prefix ON public.data_hub_jobs (job_number varchar_pattern_ops);
