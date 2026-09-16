@@ -742,6 +742,20 @@ const RouteOnePage = () => {
             {queryJobs > 0 && <span><strong className="text-red-600">{queryJobs}</strong> queries</span>}
           </div>
 
+          {/* Reorganise the day */}
+          {viewMode === "day" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setReorganiseOpen(true)}
+              disabled={plannerJobs.length === 0}
+            >
+              <Route className="h-3.5 w-3.5" />
+              Reorganise Day
+            </Button>
+          )}
+
           {/* Driver App Link */}
           <Link to="/driver" target="_blank">
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
