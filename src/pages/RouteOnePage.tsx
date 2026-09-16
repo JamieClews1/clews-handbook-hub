@@ -173,6 +173,7 @@ const RouteOnePage = () => {
   const [viewingJob, setViewingJob] = useState<any | null>(null);
   const [ticketJob, setTicketJob] = useState<any | null>(null);
   const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
+  const [reorganiseOpen, setReorganiseOpen] = useState(false);
 
   // New job form
   const [jobForm, setJobForm] = useState({
