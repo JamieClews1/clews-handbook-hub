@@ -347,23 +347,8 @@ export function PermitDialog({
                   />
                   <CommandList className="max-h-72">
                     <CommandEmpty>No job found.</CommandEmpty>
-                    <CommandGroup heading="RouteOne jobs">
-                      {filteredRouteJobs.map((j: any) => {
-                        const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
-                        return (
-                          <CommandItem
-                            key={j.id}
-                            value={searchValue}
-                            onSelect={() => { onPickJob(j.id); setJobPickerOpen(false); }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", jobId === j.id ? "opacity-100" : "opacity-0")} />
-                            {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
                     {hubOnly.length > 0 && (
-                      <CommandGroup heading="Other tickets (Data Hub)">
+                      <CommandGroup heading="Uploaded jobs">
                         {hubOnly.map((h: any) => (
                           <CommandItem
                             key={h.id}
@@ -376,6 +361,24 @@ export function PermitDialog({
                         ))}
                       </CommandGroup>
                     )}
+                    {filteredRouteJobs.length > 0 && (
+                      <CommandGroup heading="RouteOne jobs">
+                        {filteredRouteJobs.map((j: any) => {
+                          const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
+                          return (
+                            <CommandItem
+                              key={j.id}
+                              value={searchValue}
+                              onSelect={() => { onPickJob(j.id); setJobPickerOpen(false); }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", jobId === j.id ? "opacity-100" : "opacity-0")} />
+                              {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    )}
+
                   </CommandList>
                 </Command>
               </PopoverContent>
