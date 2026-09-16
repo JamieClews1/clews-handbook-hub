@@ -799,6 +799,9 @@ const RouteOnePage = () => {
                   <TabsContent value="wtn-design">
                     <WtnDesignSettings />
                   </TabsContent>
+                  <TabsContent value="routing">
+                    <RoutingRulesSettings />
+                  </TabsContent>
                 </div>
 
               </Tabs>
