@@ -82,6 +82,12 @@ export function PermitDialog({
     },
   });
 
+  const selectedJob = useMemo(
+    () => (jobs as any[]).find((j) => j.id === jobId) ?? null,
+    [jobs, jobId],
+  );
+
+
   useEffect(() => {
     if (!open) return;
     const src = permit ?? null;
