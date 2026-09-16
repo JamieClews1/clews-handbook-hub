@@ -103,3 +103,12 @@ verify_jwt = true
 
 [functions.parse-timesheet-pdf]
 verify_jwt = true
+
+[functions.permit-apply]
+verify_jwt = true
+
+[functions.permit-expiry-check]
+verify_jwt = false
+
+[functions.permit-inbox-match]
+verify_jwt = false
