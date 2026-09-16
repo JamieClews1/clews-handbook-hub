@@ -201,9 +201,31 @@ export function PermitDialog({
     }
   };
 
+  /** Build the council form and store it so the email can attach it. */
+  const uploadWccForm = async (permitId: string): Promise<string | null> => {
+    if (!needsWccForm || !wcc) return null;
+    const bytes = await buildWccPermitPdf(wcc);
+    const path = `${permitId}/${wccPdfFileName({ job_number: jobNumber, id: permitId })}`;
+    const { error } = await supabase.storage
+      .from("permit-documents")
+      .upload(path, new Blob([bytes.slice() as unknown as BlobPart], { type: "application/pdf" }), {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+    if (error) throw error;
+    await supabase.from("permit_applications").update({ application_pdf_path: path }).eq("id", permitId);
+    return path;
+  };
+
   const handleSend = async () => {
     const id = await save();
     if (!id) return;
+    try {
+      await uploadWccForm(id);
+    } catch (e: any) {
+      toast({ title: "Could not attach the council form", description: e.message, variant: "destructive" });
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("permit-apply", { body: { permitId: id } });
     if (error || (data as any)?.error) {
       toast({
