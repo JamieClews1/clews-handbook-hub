@@ -420,11 +420,27 @@ const DataUploadsPage = () => {
 
     setIsDeleting(true);
     try {
+      // Remember these tickets as void so a future upload can't bring them back.
+      const voidRows = jobs
+        .filter((j) => j.job_number && (j as any).source)
+        .map((j) => ({
+          job_number: String(j.job_number),
+          source: String((j as any).source),
+          reason: "Deleted from Data Hub",
+        }));
+      for (const part of chunk(voidRows, 200)) {
+        const { error: voidErr } = await supabase
+          .from("data_hub_void_jobs")
+          .upsert(part as any, { onConflict: "job_number,source" });
+        if (voidErr) console.error("Could not record void jobs:", voidErr);
+      }
+
       // Delete the currently displayed results (up to 200) to match what the user is seeing.
       for (const idChunk of chunk(ids, 200)) {
         const { error } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
         if (error) throw error;
       }
+
 
       toast({
         title: "Deleted",
