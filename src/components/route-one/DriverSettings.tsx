@@ -270,8 +270,8 @@ export const DriverSettings = () => {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading drivers...</div>
           ) : (
-            <div className="overflow-y-auto max-h-[55vh]">
-              <Table>
+<div className="overflow-auto max-h-[55vh]">
+              <Table className="min-w-[860px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
