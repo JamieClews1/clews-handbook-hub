@@ -787,17 +787,18 @@ const RouteOnePage = () => {
                 <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
               <Tabs defaultValue="drivers" className="mt-4">
-                <TabsList className="w-full grid grid-cols-3 lg:grid-cols-9">
-                  <TabsTrigger value="drivers">Drivers</TabsTrigger>
-                  <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
-                  <TabsTrigger value="yard-staff">Yard Staff</TabsTrigger>
-                  <TabsTrigger value="driver-app">Driver App</TabsTrigger>
-                  <TabsTrigger value="cost-items">Cost Items</TabsTrigger>
-                  <TabsTrigger value="job-types">Job Types</TabsTrigger>
-                  <TabsTrigger value="container-types">Containers</TabsTrigger>
-                  <TabsTrigger value="wtn-design">Ticket Builder</TabsTrigger>
-                  <TabsTrigger value="routing">Routing Rules</TabsTrigger>
+                <TabsList className="flex w-full flex-wrap h-auto justify-start gap-1 p-1">
+                  <TabsTrigger value="drivers" className="text-xs whitespace-nowrap">Drivers</TabsTrigger>
+                  <TabsTrigger value="vehicles" className="text-xs whitespace-nowrap">Vehicles</TabsTrigger>
+                  <TabsTrigger value="yard-staff" className="text-xs whitespace-nowrap">Yard Staff</TabsTrigger>
+                  <TabsTrigger value="driver-app" className="text-xs whitespace-nowrap">Driver App</TabsTrigger>
+                  <TabsTrigger value="cost-items" className="text-xs whitespace-nowrap">Cost Items</TabsTrigger>
+                  <TabsTrigger value="job-types" className="text-xs whitespace-nowrap">Job Types</TabsTrigger>
+                  <TabsTrigger value="container-types" className="text-xs whitespace-nowrap">Containers</TabsTrigger>
+                  <TabsTrigger value="wtn-design" className="text-xs whitespace-nowrap">Ticket Builder</TabsTrigger>
+                  <TabsTrigger value="routing" className="text-xs whitespace-nowrap">Routing Rules</TabsTrigger>
                 </TabsList>
+
                 <div className="mt-4">
                   <TabsContent value="drivers">
                     <DriverSettings />
