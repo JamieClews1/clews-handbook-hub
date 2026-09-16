@@ -152,6 +152,15 @@ export const DriverSettings = () => {
   };
 
   const handleSave = () => {
+    // One vehicle per driver: block a registration already held by someone else.
+    if (form.vehicle_id) {
+      const clash = drivers.find(d => d.vehicle_id === form.vehicle_id && d.id !== editDriver?.id);
+      if (clash) {
+        const reg = vehicles.find(v => v.id === form.vehicle_id)?.registration || "That vehicle";
+        toast.error(`${reg} is already assigned to ${clash.driver_name}. Only one driver per vehicle.`);
+        return;
+      }
+    }
     const data: Record<string, any> = {
       driver_name: form.driver_name.trim(),
       driver_number: form.driver_number ? parseInt(form.driver_number) : null,
