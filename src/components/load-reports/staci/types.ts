@@ -179,6 +179,20 @@ export function calculatePalletColour(weight_kg: number, breakdown: StaciWasteBr
   return "yellow";
 }
 
+/**
+ * Resolve a pallet colour from its current weight and breakdown.
+ * Incomplete legacy entries retain their saved colour until their breakdown is completed.
+ */
+export function resolveStaciPalletColour(
+  weightKg: number,
+  breakdown: StaciWasteBreakdown,
+  savedColour: StaciPalletColour
+): StaciPalletColour {
+  const breakdownTotal = getTotalPercentage(breakdown);
+  if (weightKg <= 0 || Math.abs(breakdownTotal - 100) >= 0.01) return savedColour;
+  return calculatePalletColour(weightKg, breakdown);
+}
+
 // Colour display configuration
 export const STACI_COLOUR_CONFIG: Record<StaciPalletColour, { 
   label: string; 

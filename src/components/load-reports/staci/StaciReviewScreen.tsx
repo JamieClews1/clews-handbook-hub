@@ -12,6 +12,7 @@ import {
   STACI_PALLET_GOOD_REBATE,
   getTotalPercentage,
   calculatePalletColour,
+  resolveStaciPalletColour,
 } from "./types";
 import { formatLoadReportDate } from "@/lib/load-report-dates";
 
@@ -100,7 +101,7 @@ function buildSummaries(palletEntries: StaciPalletEntry[], goodPalletCount: numb
     if (!isValid) continue;
 
     const palletCount = entry.pallet_count || 1;
-    const colour = entry.colour;
+    const colour = resolveStaciPalletColour(entry.weight_kg, entry.waste_breakdown, entry.colour);
     const existing = colourMap.get(colour) || { count: 0, weight: 0 };
     colourMap.set(colour, {
       count: existing.count + palletCount,

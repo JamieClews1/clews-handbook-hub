@@ -137,7 +137,9 @@ export function StaciReportsDashboard({ customerId, customerName, isPortalView }
 
       const mapped: PalletRow[] = (data ?? []).map((r: any) => ({
         id: r.id,
-        colour: r.colour,
+        colour: r.waste_breakdown
+          ? resolveStaciPalletColour(Number(r.weight_kg), r.waste_breakdown as StaciWasteBreakdown, r.colour)
+          : r.colour,
         weight_kg: r.weight_kg,
         pallet_type: r.pallet_type ?? "good",
         pallet_count: r.pallet_count ?? 1,
