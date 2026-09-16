@@ -110,7 +110,7 @@ export const EwcCodePicker = ({ value, onChange }: { value: string; onChange: (v
     description: c.description,
     hazardous: c.hazardous,
     is_common: c.is_common,
-    group: `${c.sub_chapter} ${c.sub_chapter_name}`,
+    group: `Chapter ${c.chapter} — ${c.chapter_name}`,
   }));
   return (
     <CodeCombobox
