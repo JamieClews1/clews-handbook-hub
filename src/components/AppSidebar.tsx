@@ -242,6 +242,14 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem data-sec="permits">
+                    <SidebarMenuButton asChild isActive={isActive("/permits")}>
+                      <Link to="/permits">
+                        <FileCheck className="h-[18px] w-[18px]" />
+                        {!collapsed && <span>Permits</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem data-sec="performance-contaminations">
                     <SidebarMenuButton asChild isActive={isActive("/performance-hub/contaminations")}>
                       <Link to="/performance-hub/contaminations">
