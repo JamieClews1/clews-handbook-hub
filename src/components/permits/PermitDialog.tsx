@@ -82,19 +82,22 @@ export function PermitDialog({
     },
   });
 
-  // Fallback: tickets that only exist in the Data Hub (Skiptrak/Midweigh), searched on demand
+  // Most jobs come from the Skiptrak/Midweigh data uploads, so search those too
   const [jobSearch, setJobSearch] = useState("");
   const { data: hubJobs = [] } = useQuery({
     queryKey: ["permit_hub_job_options", jobSearch],
-    enabled: open && jobSearch.trim().length >= 3,
+    enabled: open,
     queryFn: async () => {
       const term = jobSearch.trim();
-      const { data, error } = await supabase
+      let q = supabase
         .from("data_hub_jobs")
         .select("id, job_number, source, customer, site, postcode, job_date")
-        .or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`)
         .order("job_date", { ascending: false })
-        .limit(25);
+        .limit(term ? 40 : 25);
+      if (term) {
+        q = q.or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -110,6 +113,7 @@ export function PermitDialog({
       return true;
     });
   }, [hubJobs, jobs]);
+
 
   const selectedJob = useMemo(
     () => (jobs as any[]).find((j) => j.id === jobId) ?? null,
