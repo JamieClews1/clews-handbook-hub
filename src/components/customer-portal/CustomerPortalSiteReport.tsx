@@ -155,35 +155,43 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       }
 
       if (allSiteNames.size > 0 || allCustomers.size > 0) {
-        let query = supabase
-          .from("data_hub_jobs")
-          .select("site, customer")
-          .gte("job_date", thirtyDaysAgo)
-          .lte("job_date", today)
-          .limit(5000);
+        // Two bounded queries (by site name, by customer) rather than one per
+        // site, so customer-only sites are still counted and other customers'
+        // jobs on an identically named site are not.
+        const baseSelect = () =>
+          supabase
+            .from("data_hub_jobs")
+            .select("site, customer")
+            .gte("job_date", thirtyDaysAgo)
+            .lte("job_date", today)
+            .order("job_date", { ascending: false })
+            .limit(5000);
 
-        if (allSiteNames.size > 0) {
-          query = query.in("site", Array.from(allSiteNames));
-        } else {
-          query = query.in("customer", Array.from(allCustomers));
-        }
+        const [byName, byCustomer] = await Promise.all([
+          allSiteNames.size > 0
+            ? baseSelect().in("site", Array.from(allSiteNames))
+            : Promise.resolve({ data: [] as any[] }),
+          allCustomers.size > 0
+            ? baseSelect().in("customer", Array.from(allCustomers))
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
 
-        const { data: recentJobs } = await query;
-
-        const countByName = new Map<string, number>();
-        const countByCustomer = new Map<string, number>();
-        for (const j of recentJobs ?? []) {
-          if (j.site) countByName.set(j.site, (countByName.get(j.site) ?? 0) + 1);
-          if (j.customer) countByCustomer.set(j.customer, (countByCustomer.get(j.customer) ?? 0) + 1);
-        }
+        const nameRows = (byName.data ?? []) as { site: string | null; customer: string | null }[];
+        const customerRows = (byCustomer.data ?? []) as { site: string | null; customer: string | null }[];
 
         for (const site of sites) {
           const siteNames = siteNamesBySite.get(site.id) ?? [];
           let count = 0;
           if (siteNames.length > 0) {
-            count = siteNames.reduce((sum, n) => sum + (countByName.get(n) ?? 0), 0);
+            const names = new Set(siteNames);
+            count = nameRows.filter(
+              (j) =>
+                j.site &&
+                names.has(j.site) &&
+                (!site.data_hub_customer || j.customer === site.data_hub_customer),
+            ).length;
           } else if (site.data_hub_customer) {
-            count = countByCustomer.get(site.data_hub_customer) ?? 0;
+            count = customerRows.filter((j) => j.customer === site.data_hub_customer).length;
           }
           if (count > bestCount) {
             bestCount = count;
