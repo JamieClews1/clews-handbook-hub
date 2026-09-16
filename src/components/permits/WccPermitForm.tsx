@@ -26,7 +26,9 @@ export function WccPermitForm({
     onChange({ ...values, [key]: value });
 
   const makeBlob = async () =>
-    new Blob([await buildWccPermitPdf(values)], { type: "application/pdf" });
+    new Blob([(await buildWccPermitPdf(values)).slice() as unknown as BlobPart], {
+      type: "application/pdf",
+    });
 
   const preview = async () => {
     setBusy(true);
