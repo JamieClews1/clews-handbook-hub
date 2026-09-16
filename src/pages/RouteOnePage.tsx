@@ -1073,7 +1073,10 @@ const RouteOnePage = () => {
                         }`} />
                       </TableCell>
                       <TableCell className="font-medium text-sm">{job.customer_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{job.site_name || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        <span className="mr-1.5">{job.site_name || "—"}</span>
+                        <PermitBadge permit={permitsByJob[job.id]} />
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
                       </TableCell>
@@ -1183,6 +1186,7 @@ const RouteOnePage = () => {
                 <JobCard
                   key={job.id}
                   job={job}
+                  permit={permitsByJob[job.id]}
                   onEdit={() => openEditDialog(job)}
                   onView={() => setViewingJob(job)}
                   onDelete={() => deleteJob.mutate(job.id)}
@@ -1249,6 +1253,7 @@ const RouteOnePage = () => {
                     <JobCard
                       key={job.id}
                       job={job}
+                      permit={permitsByJob[job.id]}
                       onEdit={() => openEditDialog(job)}
                       onView={() => setViewingJob(job)}
                       onDelete={() => deleteJob.mutate(job.id)}
