@@ -1432,6 +1432,8 @@ function JobCard({
         >
           {job.is_live ? "LIVE" : "Draft"}
         </Badge>
+        <PermitBadge permit={permit} />
+
 
         {job.container_type && (
           <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
