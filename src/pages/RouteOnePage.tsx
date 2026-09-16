@@ -222,7 +222,9 @@ const RouteOnePage = () => {
   const weekStart = format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEnd = format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const search = (searchParams.get("search") ?? "").trim().toLowerCase();
-  const isExactTicketSearch = /^\d+$/.test(search);
+  // Only a full job number (5+ digits) uses the indexed exact match; partial
+  // numeric fragments still run a normal contains search.
+  const isExactTicketSearch = /^\d{5,}$/.test(search);
 
   // Fetch drivers
   const { data: drivers = [] } = useQuery({
