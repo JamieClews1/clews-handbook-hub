@@ -97,6 +97,20 @@ const haversineMiles = (a: LatLng, b: LatLng) => {
 };
 
 /**
+ * Average speed for a leg. Short town hops are slower; long legs are mostly
+ * A-road and motorway, so they run at a higher average speed.
+ */
+export function speedForMiles(miles: number, rules: RoutingRules): { mph: number; band: string } {
+  const fallback = rules.avg_speed_mph || 28;
+  if (!rules.speed_bands_enabled) return { mph: fallback, band: "" };
+  const shortMax = rules.speed_band_short_miles ?? 5;
+  const longMin = rules.speed_band_long_miles ?? 15;
+  if (miles <= shortMax) return { mph: rules.avg_speed_short_mph || fallback, band: "local" };
+  if (miles >= longMin) return { mph: rules.avg_speed_long_mph || fallback, band: "long run" };
+  return { mph: rules.avg_speed_mid_mph || fallback, band: "mixed roads" };
+}
+
+/**
  * Minutes to travel from one postcode to another.
  * Distance model: real postcode-to-postcode miles at the configured average speed.
  * Zone model: an average time per postcode zone.
@@ -115,8 +129,9 @@ export function travelMinutes(
     const b = ctx?.coords?.get(pcKey(toPostcode));
     if (a && b) {
       const miles = haversineMiles(a, b) * (rules.road_distance_factor || 1.3);
-      const mins = Math.max(rules.mins_travel_min, Math.round((miles / (rules.avg_speed_mph || 28)) * 60));
-      return { minutes: mins, basis: `${miles.toFixed(1)} miles at ${rules.avg_speed_mph} mph` };
+      const { mph, band } = speedForMiles(miles, rules);
+      const mins = Math.max(rules.mins_travel_min, Math.round((miles / mph) * 60));
+      return { minutes: mins, basis: `${miles.toFixed(1)} miles at ${mph} mph${band ? ` (${band})` : ""}` };
     }
   }
 
