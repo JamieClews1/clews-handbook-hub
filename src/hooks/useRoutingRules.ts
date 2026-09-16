@@ -23,8 +23,17 @@ export type RoutingRules = {
   travel_model: "fixed" | "distance" | "zone";
   /** Depot / yard postcode — the first and last leg of every day. */
   yard_postcode: string;
-  /** Average road speed used to turn miles into minutes. */
+  /** Average road speed used to turn miles into minutes (fallback / when bands are off). */
   avg_speed_mph: number;
+  /** Use different average speeds for short, medium and long legs. */
+  speed_bands_enabled: boolean;
+  /** Legs up to this many miles count as short (town work). */
+  speed_band_short_miles: number;
+  /** Legs over this many miles count as long (mostly A-road / motorway). */
+  speed_band_long_miles: number;
+  avg_speed_short_mph: number;
+  avg_speed_mid_mph: number;
+  avg_speed_long_mph: number;
   /** Straight-line miles are multiplied by this to approximate road miles. */
   road_distance_factor: number;
   /** Never allow a travel leg shorter than this. */
