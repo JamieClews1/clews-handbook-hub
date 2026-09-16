@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { planDay, type PlannerDriver, type PlannerJob } from "@/lib/route-planner";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
+import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
+import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 
 type Props = {
   open: boolean;
@@ -22,8 +24,18 @@ type Props = {
 export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateLabel, onApplied }: Props) => {
   const { rules } = useRoutingRules();
   const [applying, setApplying] = useState(false);
+  const { zoneFor } = usePostcodeZoneLookup();
 
-  const plan = useMemo(() => planDay(jobs, drivers, rules), [jobs, drivers, rules]);
+  const postcodes = useMemo(
+    () => [rules.yard_postcode, ...jobs.map(j => j.postcode)],
+    [jobs, rules.yard_postcode],
+  );
+  const { coords, loading: coordsLoading } = usePostcodeCoords(postcodes, open && rules.travel_model === "distance");
+
+  const plan = useMemo(
+    () => planDay(jobs, drivers, rules, { coords, zoneFor }),
+    [jobs, drivers, rules, coords, zoneFor],
+  );
 
   const currentByDriver = useMemo(() => {
     const map = new Map<string, PlannerJob[]>();
@@ -84,6 +96,13 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
           <Badge variant="outline">{jobs.length} jobs</Badge>
           <Badge variant="outline">{movedCount} changes</Badge>
           {plan.unplanned.length > 0 && <Badge variant="destructive">{plan.unplanned.length} unplaced</Badge>}
+          <Badge variant="outline">
+            {rules.travel_model === "distance"
+              ? coordsLoading ? "Working out distances…" : "Travel by postcode distance"
+              : rules.travel_model === "zone"
+              ? "Travel by zone average"
+              : "Flat travel allowance"}
+          </Badge>
         </div>
 
         {plan.warnings.length > 0 && (

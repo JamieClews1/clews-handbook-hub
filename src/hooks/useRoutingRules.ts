@@ -19,6 +19,20 @@ export type RoutingRules = {
   skip_drivers_no_roro: boolean;
   idle_drivers_not_working: boolean;
   loaded_skips_one_at_a_time: boolean;
+  /** How travel time between jobs is worked out. */
+  travel_model: "fixed" | "distance" | "zone";
+  /** Depot / yard postcode — the first and last leg of every day. */
+  yard_postcode: string;
+  /** Average road speed used to turn miles into minutes. */
+  avg_speed_mph: number;
+  /** Straight-line miles are multiplied by this to approximate road miles. */
+  road_distance_factor: number;
+  /** Never allow a travel leg shorter than this. */
+  mins_travel_min: number;
+  /** Average minutes to reach each postcode zone from the yard. */
+  zone_travel_minutes: Record<string, number>;
+  /** Minutes between two jobs inside the same zone. */
+  mins_travel_within_zone: number;
 };
 
 export const DEFAULT_ROUTING_RULES: RoutingRules = {
@@ -39,6 +53,13 @@ export const DEFAULT_ROUTING_RULES: RoutingRules = {
   skip_drivers_no_roro: true,
   idle_drivers_not_working: true,
   loaded_skips_one_at_a_time: true,
+  travel_model: "distance",
+  yard_postcode: "CV21 1EA",
+  avg_speed_mph: 28,
+  road_distance_factor: 1.3,
+  mins_travel_min: 10,
+  zone_travel_minutes: {},
+  mins_travel_within_zone: 12,
 };
 
 const NUMBER_KEYS: (keyof RoutingRules)[] = [
@@ -54,6 +75,10 @@ const NUMBER_KEYS: (keyof RoutingRules)[] = [
   "mins_travel",
   "mins_break",
   "day_length_hours",
+  "avg_speed_mph",
+  "road_distance_factor",
+  "mins_travel_min",
+  "mins_travel_within_zone",
 ];
 
 export function useRoutingRules() {
