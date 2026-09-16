@@ -420,11 +420,27 @@ const DataUploadsPage = () => {
 
     setIsDeleting(true);
     try {
+      // Remember these tickets as void so a future upload can't bring them back.
+      const voidRows = jobs
+        .filter((j) => j.job_number && (j as any).source)
+        .map((j) => ({
+          job_number: String(j.job_number),
+          source: String((j as any).source),
+          reason: "Deleted from Data Hub",
+        }));
+      for (const part of chunk(voidRows, 200)) {
+        const { error: voidErr } = await supabase
+          .from("data_hub_void_jobs")
+          .upsert(part as any, { onConflict: "job_number,source" });
+        if (voidErr) console.error("Could not record void jobs:", voidErr);
+      }
+
       // Delete the currently displayed results (up to 200) to match what the user is seeing.
       for (const idChunk of chunk(ids, 200)) {
         const { error } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
         if (error) throw error;
       }
+
 
       toast({
         title: "Deleted",
@@ -667,8 +683,22 @@ const DataUploadsPage = () => {
     setUploadProgress({ current: 0, total: 0, stage: "Parsing file..." });
     
     try {
-      const jobsToUpsert = await parseFileToJobs(file, source);
+      const parsedJobs = await parseFileToJobs(file, source);
+
+      // Skip tickets that were previously voided/deleted so uploads can't resurrect them.
+      const voidedKeys = new Set<string>();
+      {
+        const { data: voided, error: voidErr } = await supabase
+          .from("data_hub_void_jobs")
+          .select("job_number")
+          .eq("source", source);
+        if (voidErr) console.error("Could not load void job list:", voidErr);
+        (voided ?? []).forEach((v: any) => voidedKeys.add(String(v.job_number)));
+      }
+      const jobsToUpsert = parsedJobs.filter((j) => !voidedKeys.has(String(j.job_number)));
+      const skippedVoid = parsedJobs.length - jobsToUpsert.length;
       const totalRows = jobsToUpsert.length;
+
 
       // Keep a raw preview (first 100 rows) from the uploaded document for debugging/verification.
       const rawRows = jobsToUpsert.slice(0, 100).map((j) => j.raw ?? {}).filter(Boolean) as Record<string, unknown>[];
@@ -780,7 +810,9 @@ const DataUploadsPage = () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
-      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)`;
+      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)` +
+        (skippedVoid > 0 ? ` — skipped ${skippedVoid.toLocaleString()} voided ticket(s)` : "");
+
       setLastUploadSummary(summary);
 
       // Record an entry in the upload activity log
