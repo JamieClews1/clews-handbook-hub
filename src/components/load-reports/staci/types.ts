@@ -203,7 +203,7 @@ export const STACI_COLOUR_CONFIG: Record<StaciPalletColour, {
     label: "Yellow", 
     bgColor: "bg-yellow-400", 
     textColor: "text-black",
-    description: "Mixed load (more than one material or any contamination)"
+    description: "Mixed load without one recyclable material above 90%"
   },
   blue: { 
     label: "Blue", 
