@@ -53,6 +53,13 @@ export const DEFAULT_ROUTING_RULES: RoutingRules = {
   skip_drivers_no_roro: true,
   idle_drivers_not_working: true,
   loaded_skips_one_at_a_time: true,
+  travel_model: "distance",
+  yard_postcode: "DY8 4QH",
+  avg_speed_mph: 28,
+  road_distance_factor: 1.3,
+  mins_travel_min: 10,
+  zone_travel_minutes: {},
+  mins_travel_within_zone: 12,
 };
 
 const NUMBER_KEYS: (keyof RoutingRules)[] = [
