@@ -794,7 +794,9 @@ const DataUploadsPage = () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
-      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)`;
+      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)` +
+        (skippedVoid > 0 ? ` — skipped ${skippedVoid.toLocaleString()} voided ticket(s)` : "");
+
       setLastUploadSummary(summary);
 
       // Record an entry in the upload activity log
