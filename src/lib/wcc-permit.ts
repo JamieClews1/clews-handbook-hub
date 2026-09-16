@@ -114,7 +114,7 @@ const MAX_WIDTH: Record<string, number> = {
 };
 
 export async function buildWccPermitPdf(values: WccFormValues): Promise<Uint8Array> {
-  const res = await fetch(templateAsset.url);
+  const res = await fetch(templateUrl as string);
   if (!res.ok) throw new Error("Could not load the council form template");
   const pdf = await PDFDocument.load(await res.arrayBuffer(), { ignoreEncryption: true });
   const font = await pdf.embedFont(StandardFonts.Helvetica);
