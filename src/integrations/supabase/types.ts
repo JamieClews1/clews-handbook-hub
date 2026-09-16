@@ -2987,6 +2987,54 @@ export type Database = {
           },
         ]
       }
+      ewc_codes: {
+        Row: {
+          chapter: string
+          chapter_name: string
+          code: string
+          created_at: string
+          description: string
+          hazardous: boolean
+          id: string
+          is_active: boolean
+          is_common: boolean
+          notes: string | null
+          sub_chapter: string
+          sub_chapter_name: string
+          updated_at: string
+        }
+        Insert: {
+          chapter: string
+          chapter_name: string
+          code: string
+          created_at?: string
+          description: string
+          hazardous?: boolean
+          id?: string
+          is_active?: boolean
+          is_common?: boolean
+          notes?: string | null
+          sub_chapter: string
+          sub_chapter_name: string
+          updated_at?: string
+        }
+        Update: {
+          chapter?: string
+          chapter_name?: string
+          code?: string
+          created_at?: string
+          description?: string
+          hazardous?: boolean
+          id?: string
+          is_active?: boolean
+          is_common?: boolean
+          notes?: string | null
+          sub_chapter?: string
+          sub_chapter_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       facility_recycling_forms: {
         Row: {
           additional_comments: string | null
@@ -7556,6 +7604,45 @@ export type Database = {
           tare_weight_kg?: number | null
           updated_at?: string
           vehicle_type?: string
+        }
+        Relationships: []
+      }
+      sic_codes: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          is_common: boolean
+          notes: string | null
+          section: string
+          section_name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          is_common?: boolean
+          notes?: string | null
+          section: string
+          section_name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          is_common?: boolean
+          notes?: string | null
+          section?: string
+          section_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
