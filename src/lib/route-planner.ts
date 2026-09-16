@@ -28,6 +28,8 @@ export type PlannedJob = {
   end: string;
   reason: string;
   movedFrom: string | null;
+  travelMinutes?: number;
+  travelBasis?: string;
 };
 
 export type DriverPlan = {
