@@ -275,7 +275,8 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
         colour,
         palletCount: data.count,
         totalWeightKg: data.weight,
-        ratePerPallet: rate,
+        ratePerPallet: isGreenOverride ? -Math.abs(report.green_rate_per_tonne) : rate,
+        rateIsPerTonne: isGreenOverride || colour === "waste_wood",
         totalValue: value,
       });
 
@@ -487,9 +488,9 @@ export const StaciLoadReportCards = ({ dateFrom: dateFromProp, dateTo: dateToPro
                                   <TableCell className="text-right text-sm">{s.totalWeightKg.toLocaleString()}</TableCell>
                                   <TableCell className="text-right text-sm">
                                     {s.ratePerPallet < 0 ? (
-                                      <span className="text-green-600">-£{Math.abs(s.ratePerPallet).toFixed(2)}</span>
+                                      <span className="text-green-600">-£{Math.abs(s.ratePerPallet).toFixed(2)}{s.rateIsPerTonne ? "/t" : ""}</span>
                                     ) : (
-                                      `£${s.ratePerPallet.toFixed(2)}`
+                                      `£${s.ratePerPallet.toFixed(2)}${s.rateIsPerTonne ? "/t" : ""}`
                                     )}
                                   </TableCell>
                                   <TableCell className={cn("text-right text-sm font-medium", s.totalValue < 0 && "text-green-600")}>

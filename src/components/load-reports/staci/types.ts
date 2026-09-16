@@ -231,5 +231,7 @@ export interface StaciColourSummary {
   palletCount: number;
   totalWeightKg: number;
   ratePerPallet: number;
+  /** True when ratePerPallet is a per-tonne rate rather than a per-pallet rate */
+  rateIsPerTonne?: boolean;
   totalValue: number;
 }

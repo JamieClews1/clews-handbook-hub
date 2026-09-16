@@ -794,7 +794,13 @@ const LoadReportsPage = () => {
         + (staciPapersDolavOnPallets ? staciPapersDolavCount : 0)
         + (staciGlassDolavOnPallets ? staciGlassDolavCount : 0)
         + (staciScrapMetalLooseOnPallets ? staciScrapMetalLooseCount : 0);
-      const staciTotalWeight = staciPalletEntries.reduce((sum, e) => sum + e.weight_kg * (e.pallet_count || 1), 0);
+      const staciTotalWeight =
+        staciPalletEntries.reduce((sum, e) => sum + e.weight_kg * (e.pallet_count || 1), 0) +
+        staciCardBalesCount * staciCardBalesWeightKg +
+        staciFilmsBaleCount * staciFilmsBaleWeightKg +
+        staciPapersDolavCount * staciPapersDolavWeightKg +
+        staciGlassDolavCount * staciGlassDolavWeightKg +
+        staciScrapMetalLooseCount * staciScrapMetalLooseWeightKg;
       
       const { totalPallets, totalWeight } = isStaci 
         ? { totalPallets: staciTotalPallets, totalWeight: staciTotalWeight }
