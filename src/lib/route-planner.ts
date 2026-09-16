@@ -195,6 +195,7 @@ export function planDay(
   jobs: PlannerJob[],
   drivers: PlannerDriver[],
   rules: RoutingRules,
+  ctx?: TravelContext,
 ): RoutePlan {
   const warnings: string[] = [];
 
