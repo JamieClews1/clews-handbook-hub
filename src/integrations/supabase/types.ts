@@ -5254,6 +5254,7 @@ export type Database = {
       }
       permit_applications: {
         Row: {
+          application_pdf_path: string | null
           applied_at: string | null
           area: string | null
           confirmed_at: string | null
@@ -5263,6 +5264,7 @@ export type Database = {
           crm_ticket_id: string | null
           customer_name: string | null
           expiry_date: string | null
+          form_data: Json | null
           id: string
           job_number: string | null
           last_chase_at: string | null
@@ -5281,6 +5283,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          application_pdf_path?: string | null
           applied_at?: string | null
           area?: string | null
           confirmed_at?: string | null
@@ -5290,6 +5293,7 @@ export type Database = {
           crm_ticket_id?: string | null
           customer_name?: string | null
           expiry_date?: string | null
+          form_data?: Json | null
           id?: string
           job_number?: string | null
           last_chase_at?: string | null
@@ -5308,6 +5312,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          application_pdf_path?: string | null
           applied_at?: string | null
           area?: string | null
           confirmed_at?: string | null
@@ -5317,6 +5322,7 @@ export type Database = {
           crm_ticket_id?: string | null
           customer_name?: string | null
           expiry_date?: string | null
+          form_data?: Json | null
           id?: string
           job_number?: string | null
           last_chase_at?: string | null
