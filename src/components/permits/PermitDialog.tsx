@@ -180,6 +180,30 @@ export function PermitDialog({
     setPricingId(null);
   };
 
+  const onPickHubJob = (h: any) => {
+    setJobId(null);
+    setJobNumber(String(h.job_number ?? ""));
+    setCustomerName(h.customer ?? "");
+    setSiteAddress([h.site, h.postcode].filter(Boolean).join(", "));
+    setPostcode(h.postcode ?? "");
+    if (h.job_date) setStartDate(h.job_date);
+    setPricingId(null);
+  };
+
+  const filteredRouteJobs = useMemo(() => {
+    const term = jobSearch.trim().toLowerCase();
+    const list = jobs as any[];
+    if (!term) return list.slice(0, 50);
+    return list
+      .filter((j) =>
+        `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`
+          .toLowerCase()
+          .includes(term),
+      )
+      .slice(0, 50);
+  }, [jobs, jobSearch]);
+
+
   const payload = () => ({
     route_one_job_id: jobId,
     job_number: jobNumber || null,
