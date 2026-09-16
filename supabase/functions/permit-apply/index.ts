@@ -78,6 +78,24 @@ Deno.serve(async (req) => {
 
     const cc = [...(council?.cc_emails ?? []), settings.chase_recipient].filter(Boolean);
 
+    // Attach the completed council application form when one has been generated.
+    const attachments: { filename: string; content: string }[] = [];
+    if (permit.application_pdf_path) {
+      const { data: file, error: dlErr } = await supabase.storage
+        .from("permit-documents")
+        .download(permit.application_pdf_path);
+      if (dlErr || !file) return json({ error: "Could not load the completed application form" }, 400);
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+      }
+      attachments.push({
+        filename: permit.application_pdf_path.split("/").pop() ?? "application.pdf",
+        content: btoa(binary),
+      });
+    }
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
@@ -87,6 +105,7 @@ Deno.serve(async (req) => {
         cc: [...new Set(cc)],
         subject,
         html: bodyHtml,
+        ...(attachments.length ? { attachments } : {}),
       }),
     });
     const result = await res.json();
