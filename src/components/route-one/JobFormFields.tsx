@@ -13,6 +13,7 @@ import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { useJobTypes } from "./jobTypes";
 
 import { JobPricingPicker } from "./JobPricingPicker";
+import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
@@ -646,7 +647,7 @@ export function JobFormFields({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <Label className="text-xs">SIC Code</Label>
-            <Input value={form.sic_code || ""} onChange={(e) => setForm({ ...form, sic_code: e.target.value })} placeholder="e.g. 41201" />
+            <SicCodePicker value={form.sic_code || ""} onChange={(v) => setForm({ ...form, sic_code: v })} />
           </div>
           <div>
             <Label className="text-xs">Site Contact</Label>
@@ -664,7 +665,7 @@ export function JobFormFields({
           </div>
           <div>
             <Label className="text-xs">EWC Code</Label>
-            <Input value={form.ewc_code || ""} onChange={(e) => setForm({ ...form, ewc_code: e.target.value })} placeholder="e.g. 17 09 04" />
+            <EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} />
           </div>
           <div>
             <Label className="text-xs">Vehicle Registration</Label>
