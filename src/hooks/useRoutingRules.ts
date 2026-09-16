@@ -23,8 +23,17 @@ export type RoutingRules = {
   travel_model: "fixed" | "distance" | "zone";
   /** Depot / yard postcode — the first and last leg of every day. */
   yard_postcode: string;
-  /** Average road speed used to turn miles into minutes. */
+  /** Average road speed used to turn miles into minutes (fallback / when bands are off). */
   avg_speed_mph: number;
+  /** Use different average speeds for short, medium and long legs. */
+  speed_bands_enabled: boolean;
+  /** Legs up to this many miles count as short (town work). */
+  speed_band_short_miles: number;
+  /** Legs over this many miles count as long (mostly A-road / motorway). */
+  speed_band_long_miles: number;
+  avg_speed_short_mph: number;
+  avg_speed_mid_mph: number;
+  avg_speed_long_mph: number;
   /** Straight-line miles are multiplied by this to approximate road miles. */
   road_distance_factor: number;
   /** Never allow a travel leg shorter than this. */
@@ -56,6 +65,12 @@ export const DEFAULT_ROUTING_RULES: RoutingRules = {
   travel_model: "distance",
   yard_postcode: "CV21 1EA",
   avg_speed_mph: 28,
+  speed_bands_enabled: true,
+  speed_band_short_miles: 5,
+  speed_band_long_miles: 15,
+  avg_speed_short_mph: 20,
+  avg_speed_mid_mph: 30,
+  avg_speed_long_mph: 42,
   road_distance_factor: 1.3,
   mins_travel_min: 10,
   zone_travel_minutes: {},
@@ -76,6 +91,11 @@ const NUMBER_KEYS: (keyof RoutingRules)[] = [
   "mins_break",
   "day_length_hours",
   "avg_speed_mph",
+  "speed_band_short_miles",
+  "speed_band_long_miles",
+  "avg_speed_short_mph",
+  "avg_speed_mid_mph",
+  "avg_speed_long_mph",
   "road_distance_factor",
   "mins_travel_min",
   "mins_travel_within_zone",
