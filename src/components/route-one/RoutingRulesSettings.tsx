@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Save, Loader2, X, Plus, Route } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoutingRules, type RoutingRules } from "@/hooks/useRoutingRules";
+import { usePostcodeZones } from "@/hooks/usePostcodeZones";
 
 const NumField = ({ label, hint, value, onChange }: { label: string; hint?: string; value: number; onChange: (v: number) => void }) => (
   <div className="space-y-1.5">
