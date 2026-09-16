@@ -772,6 +772,7 @@ const RouteOnePage = () => {
                   <TabsTrigger value="job-types">Job Types</TabsTrigger>
                   <TabsTrigger value="container-types">Containers</TabsTrigger>
                   <TabsTrigger value="wtn-design">Ticket Builder</TabsTrigger>
+                  <TabsTrigger value="routing">Routing Rules</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="drivers">
