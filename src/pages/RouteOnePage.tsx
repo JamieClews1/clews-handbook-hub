@@ -36,6 +36,9 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
+import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
+import { RoutingProposalDialog } from "@/components/route-one/RoutingProposalDialog";
+import type { PlannerJob, PlannerDriver } from "@/lib/route-planner";
 import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
@@ -170,6 +173,7 @@ const RouteOnePage = () => {
   const [viewingJob, setViewingJob] = useState<any | null>(null);
   const [ticketJob, setTicketJob] = useState<any | null>(null);
   const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
+  const [reorganiseOpen, setReorganiseOpen] = useState(false);
 
   // New job form
   const [jobForm, setJobForm] = useState({
@@ -644,6 +648,44 @@ const RouteOnePage = () => {
 
   const unassignedJobs = jobs.filter((j: any) => !j.assigned_driver_id);
 
+  // Inputs for the day-routing planner (RouteOne tickets + uploaded Skiptrak jobs)
+  const plannerJobs: PlannerJob[] = [
+    ...jobs.map((j: any) => ({
+      id: j.id,
+      source: "route_one" as const,
+      jobNumber: String(j.job_number ?? ""),
+      movement: String(j.job_type ?? ""),
+      containerType: String(j.container_type ?? ""),
+      containerSize: j.container_size ?? null,
+      customer: String(j.customer_name ?? ""),
+      site: String(j.site_name ?? ""),
+      postcode: String(j.site_postcode ?? ""),
+      currentDriverId: j.assigned_driver_id ?? null,
+      currentDriverName: drivers.find((d: any) => d.id === j.assigned_driver_id)?.driver_name ?? null,
+    })),
+    ...skiptrakScheduledJobs.map((j: any) => ({
+      id: j.id,
+      source: "skiptrak" as const,
+      jobNumber: String(j.job_number ?? ""),
+      movement: String(j.movement_type ?? ""),
+      containerType: String(j.container_type ?? ""),
+      containerSize: null,
+      customer: String(j.customer ?? ""),
+      site: String(j.site ?? ""),
+      postcode: String(j.postcode ?? ""),
+      currentDriverId: null,
+      currentDriverName: j.driver ? String(j.driver) : null,
+    })),
+  ];
+
+  const plannerDrivers: PlannerDriver[] = drivers.map((d: any) => ({
+    id: d.id,
+    name: d.driver_name,
+    registration: d.route_one_vehicles?.registration ?? null,
+    vehicleType: d.route_one_vehicles?.vehicle_type ?? null,
+    category: d.category ?? null,
+  }));
+
   // Stats
   const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j: any) => j.status === "completed").length;
@@ -700,6 +742,20 @@ const RouteOnePage = () => {
             {queryJobs > 0 && <span><strong className="text-red-600">{queryJobs}</strong> queries</span>}
           </div>
 
+          {/* Reorganise the day */}
+          {viewMode === "day" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setReorganiseOpen(true)}
+              disabled={plannerJobs.length === 0}
+            >
+              <Route className="h-3.5 w-3.5" />
+              Reorganise Day
+            </Button>
+          )}
+
           {/* Driver App Link */}
           <Link to="/driver" target="_blank">
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
@@ -721,7 +777,7 @@ const RouteOnePage = () => {
                 <SheetTitle>RouteOne Setup</SheetTitle>
               </SheetHeader>
               <Tabs defaultValue="drivers" className="mt-4">
-                <TabsList className="w-full grid grid-cols-4 lg:grid-cols-8">
+                <TabsList className="w-full grid grid-cols-3 lg:grid-cols-9">
                   <TabsTrigger value="drivers">Drivers</TabsTrigger>
                   <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                   <TabsTrigger value="yard-staff">Yard Staff</TabsTrigger>
@@ -730,6 +786,7 @@ const RouteOnePage = () => {
                   <TabsTrigger value="job-types">Job Types</TabsTrigger>
                   <TabsTrigger value="container-types">Containers</TabsTrigger>
                   <TabsTrigger value="wtn-design">Ticket Builder</TabsTrigger>
+                  <TabsTrigger value="routing">Routing Rules</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="drivers">
@@ -755,6 +812,9 @@ const RouteOnePage = () => {
                   </TabsContent>
                   <TabsContent value="wtn-design">
                     <WtnDesignSettings />
+                  </TabsContent>
+                  <TabsContent value="routing">
+                    <RoutingRulesSettings />
                   </TabsContent>
                 </div>
 
@@ -951,6 +1011,18 @@ const RouteOnePage = () => {
       </Dialog>
 
       <TicketSendDialog job={ticketJob} open={!!ticketJob} onOpenChange={(o) => { if (!o) setTicketJob(null); }} />
+
+      <RoutingProposalDialog
+        open={reorganiseOpen}
+        onOpenChange={setReorganiseOpen}
+        jobs={plannerJobs}
+        drivers={plannerDrivers}
+        dateLabel={format(selectedDate, "EEE dd MMM yyyy")}
+        onApplied={() => {
+          queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
+          queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
+        }}
+      />
 
       {/* View Skiptrak Job Dialog */}
       <Dialog open={!!viewingSkiptrakJob} onOpenChange={(open) => { if (!open) setViewingSkiptrakJob(null); }}>

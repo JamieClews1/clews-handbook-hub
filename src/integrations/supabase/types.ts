@@ -7574,6 +7574,27 @@ export type Database = {
           },
         ]
       }
+      route_one_routing_rules: {
+        Row: {
+          created_at: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       route_one_vehicles: {
         Row: {
           created_at: string
