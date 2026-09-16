@@ -44,6 +44,7 @@ import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel"
 import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
 import { FileDown, Printer, Send, Radio } from "lucide-react";
 import { TicketSendDialog } from "@/components/route-one/TicketSendDialog";
+import { PermitBadge } from "@/components/permits/PermitBadge";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
