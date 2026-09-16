@@ -262,6 +262,15 @@ export const StaciTallyScreen = ({
 
   const grandTotalPallets = totalPallets + onPalletsBaleDolavCount;
 
+  // Everything on the load: pallet entries plus bales, dolavs and loose material
+  const baleDolavTotalKg =
+    cardBalesCount * cardBalesWeightKg +
+    filmsBaleCount * filmsBaleWeightKg +
+    papersDolavCount * papersDolavWeightKg +
+    glassDolavCount * glassDolavWeightKg +
+    scrapMetalLooseCount * scrapMetalLooseWeightKg;
+  const grandTotalWeightKg = totalWeightKg + baleDolavTotalKg;
+
   const incompleteCount = palletEntries.length - totalPalletTypes;
 
   const isCurrentPalletValid = () => {
