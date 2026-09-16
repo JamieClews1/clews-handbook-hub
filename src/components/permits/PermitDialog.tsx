@@ -253,16 +253,45 @@ export function PermitDialog({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs">RouteOne job</Label>
-            <Select value={jobId ?? ""} onValueChange={onPickJob}>
-              <SelectTrigger><SelectValue placeholder="Choose a job (optional)" /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {jobs.map((j: any) => (
-                  <SelectItem key={j.id} value={j.id}>
-                    {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={jobPickerOpen} onOpenChange={setJobPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {selectedJob
+                      ? `${selectedJob.job_number ? `#${selectedJob.job_number} — ` : ""}${selectedJob.customer_name} — ${selectedJob.site_postcode || "no postcode"}`
+                      : "Choose a job (optional)"}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Type a job number, customer or postcode..." />
+                  <CommandList className="max-h-72">
+                    <CommandEmpty>No job found.</CommandEmpty>
+                    <CommandGroup>
+                      {jobs.map((j: any) => {
+                        const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
+                        return (
+                          <CommandItem
+                            key={j.id}
+                            value={searchValue}
+                            onSelect={() => { onPickJob(j.id); setJobPickerOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", jobId === j.id ? "opacity-100" : "opacity-0")} />
+                            {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
