@@ -149,6 +149,9 @@ export async function buildWccPermitPdf(values: WccFormValues): Promise<Uint8Arr
     declaration_date: ukDate(values.declaration_date),
   };
 
+  // The blank form carries an old licence reference printed in black; hide it.
+  pages[0].drawRectangle({ x: 314, y: 268, width: 256, height: 24, color: rgb(1, 1, 1) });
+
   for (const [key, slot] of Object.entries(SLOTS)) {
     const value = (text[key] ?? "").trim();
     if (!value) continue;
