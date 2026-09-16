@@ -299,11 +299,12 @@ export const DriverSettings = () => {
                       </TableCell>
                       <TableCell>
                         {d.route_one_vehicles ? (
-                          <div className="flex items-center gap-1.5">
-                            <Truck className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="font-mono text-xs">{d.route_one_vehicles.registration}</span>
-                            <Badge variant="outline" className="text-[10px] h-4 px-1">{d.route_one_vehicles.vehicle_type}</Badge>
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <Truck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="font-mono text-xs whitespace-nowrap">{d.route_one_vehicles.registration}</span>
+                            <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none whitespace-nowrap shrink-0">{d.route_one_vehicles.vehicle_type}</Badge>
                           </div>
+
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
