@@ -82,37 +82,44 @@ export function PermitDialog({
     },
   });
 
-  // Most jobs come from the Skiptrak/Midweigh data uploads, so search those too
+  // Jobs come from the Skiptrak upload, so that's what we search
   const [jobSearch, setJobSearch] = useState("");
-  const { data: hubJobs = [] } = useQuery({
-    queryKey: ["permit_hub_job_options", jobSearch],
-    enabled: open,
-    queryFn: async () => {
-      const term = jobSearch.trim();
+  const [hubOnly, setHubOnly] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const term = jobSearch.trim();
+    const run = async () => {
       let q = supabase
         .from("data_hub_jobs")
-        .select("id, job_number, source, customer, site, postcode, job_date")
+        .select("id, job_number, customer, site, postcode, job_date")
+        .eq("source", "skiptrak")
         .order("job_date", { ascending: false })
         .limit(term ? 40 : 25);
       if (term) {
         q = q.or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`);
       }
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+      const { data } = await q;
+      if (cancelled) return;
+      const seen = new Set<string>();
+      setHubOnly(
+        (data ?? []).filter((h: any) => {
+          const n = String(h.job_number ?? "");
+          if (!n || seen.has(n)) return false;
+          seen.add(n);
+          return true;
+        }),
+      );
+    };
+    const t = setTimeout(run, term ? 250 : 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [open, jobSearch]);
 
-  const hubOnly = useMemo(() => {
-    const known = new Set((jobs as any[]).map((j) => String(j.job_number ?? "")));
-    const seen = new Set<string>();
-    return (hubJobs as any[]).filter((h) => {
-      const n = String(h.job_number ?? "");
-      if (!n || known.has(n) || seen.has(n)) return false;
-      seen.add(n);
-      return true;
-    });
-  }, [hubJobs, jobs]);
+
 
 
   const selectedJob = useMemo(
@@ -194,18 +201,8 @@ export function PermitDialog({
     setPricingId(null);
   };
 
-  const filteredRouteJobs = useMemo(() => {
-    const term = jobSearch.trim().toLowerCase();
-    const list = jobs as any[];
-    if (!term) return list.slice(0, 50);
-    return list
-      .filter((j) =>
-        `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`
-          .toLowerCase()
-          .includes(term),
-      )
-      .slice(0, 50);
-  }, [jobs, jobSearch]);
+
+
 
 
   const payload = () => ({
@@ -348,36 +345,20 @@ export function PermitDialog({
                   <CommandList className="max-h-72">
                     <CommandEmpty>No job found.</CommandEmpty>
                     {hubOnly.length > 0 && (
-                      <CommandGroup heading="Uploaded jobs">
+                      <CommandGroup heading="Skiptrak jobs">
                         {hubOnly.map((h: any) => (
                           <CommandItem
                             key={h.id}
                             value={`hub-${h.id}`}
                             onSelect={() => { onPickHubJob(h); setJobPickerOpen(false); }}
                           >
-                            <Check className={cn("mr-2 h-4 w-4", !jobId && jobNumber === String(h.job_number) ? "opacity-100" : "opacity-0")} />
+                            <Check className={cn("mr-2 h-4 w-4", jobNumber === String(h.job_number) ? "opacity-100" : "opacity-0")} />
                             #{h.job_number} — {h.customer || "no customer"} — {h.postcode || "no postcode"}
                           </CommandItem>
                         ))}
                       </CommandGroup>
                     )}
-                    {filteredRouteJobs.length > 0 && (
-                      <CommandGroup heading="RouteOne jobs">
-                        {filteredRouteJobs.map((j: any) => {
-                          const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
-                          return (
-                            <CommandItem
-                              key={j.id}
-                              value={searchValue}
-                              onSelect={() => { onPickJob(j.id); setJobPickerOpen(false); }}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", jobId === j.id ? "opacity-100" : "opacity-0")} />
-                              {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    )}
+
 
                   </CommandList>
                 </Command>
