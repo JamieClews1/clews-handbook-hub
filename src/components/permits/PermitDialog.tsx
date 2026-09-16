@@ -98,8 +98,14 @@ export function PermitDialog({
         .order("job_date", { ascending: false })
         .limit(term ? 40 : 25);
       if (term) {
-        q = q.or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`);
+        // Digits = ticket number (indexed prefix match); anything else searches the text fields
+        if (/^\d+$/.test(term)) {
+          q = q.ilike("job_number", `${term}%`);
+        } else {
+          q = q.or(`customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`);
+        }
       }
+
       const { data } = await q;
       if (cancelled) return;
       const seen = new Set<string>();
