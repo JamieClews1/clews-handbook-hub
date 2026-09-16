@@ -96,6 +96,13 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
           <Badge variant="outline">{jobs.length} jobs</Badge>
           <Badge variant="outline">{movedCount} changes</Badge>
           {plan.unplanned.length > 0 && <Badge variant="destructive">{plan.unplanned.length} unplaced</Badge>}
+          <Badge variant="outline">
+            {rules.travel_model === "distance"
+              ? coordsLoading ? "Working out distances…" : "Travel by postcode distance"
+              : rules.travel_model === "zone"
+              ? "Travel by zone average"
+              : "Flat travel allowance"}
+          </Badge>
         </div>
 
         {plan.warnings.length > 0 && (
