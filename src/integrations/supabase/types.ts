@@ -5252,6 +5252,294 @@ export type Database = {
         }
         Relationships: []
       }
+      permit_applications: {
+        Row: {
+          applied_at: string | null
+          area: string | null
+          confirmed_at: string | null
+          council_emails: string[]
+          created_at: string
+          created_by: string | null
+          crm_ticket_id: string | null
+          customer_name: string | null
+          expiry_date: string | null
+          id: string
+          job_number: string | null
+          last_chase_at: string | null
+          last_chase_window: string | null
+          notes: string | null
+          notice_required: string | null
+          permit_days: number | null
+          permit_reference: string | null
+          price_exc_vat: number | null
+          pricing_id: string | null
+          route_one_job_id: string | null
+          site_address: string | null
+          site_postcode: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          area?: string | null
+          confirmed_at?: string | null
+          council_emails?: string[]
+          created_at?: string
+          created_by?: string | null
+          crm_ticket_id?: string | null
+          customer_name?: string | null
+          expiry_date?: string | null
+          id?: string
+          job_number?: string | null
+          last_chase_at?: string | null
+          last_chase_window?: string | null
+          notes?: string | null
+          notice_required?: string | null
+          permit_days?: number | null
+          permit_reference?: string | null
+          price_exc_vat?: number | null
+          pricing_id?: string | null
+          route_one_job_id?: string | null
+          site_address?: string | null
+          site_postcode?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          area?: string | null
+          confirmed_at?: string | null
+          council_emails?: string[]
+          created_at?: string
+          created_by?: string | null
+          crm_ticket_id?: string | null
+          customer_name?: string | null
+          expiry_date?: string | null
+          id?: string
+          job_number?: string | null
+          last_chase_at?: string | null
+          last_chase_window?: string | null
+          notes?: string | null
+          notice_required?: string | null
+          permit_days?: number | null
+          permit_reference?: string | null
+          price_exc_vat?: number | null
+          pricing_id?: string | null
+          route_one_job_id?: string | null
+          site_address?: string | null
+          site_postcode?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_applications_crm_ticket_id_fkey"
+            columns: ["crm_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_applications_pricing_id_fkey"
+            columns: ["pricing_id"]
+            isOneToOne: false
+            referencedRelation: "permit_pricing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_applications_route_one_job_id_fkey"
+            columns: ["route_one_job_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_councils: {
+        Row: {
+          active: boolean
+          application_emails: string[]
+          area: string
+          cc_emails: string[]
+          council_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          portal_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          application_emails?: string[]
+          area: string
+          cc_emails?: string[]
+          council_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          portal_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          application_emails?: string[]
+          area?: string
+          cc_emails?: string[]
+          council_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          portal_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      permit_email_log: {
+        Row: {
+          body_html: string | null
+          cc: string[]
+          created_at: string
+          email_type: string
+          error: string | null
+          id: string
+          permit_application_id: string | null
+          recipients: string[]
+          sent_by: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          body_html?: string | null
+          cc?: string[]
+          created_at?: string
+          email_type: string
+          error?: string | null
+          id?: string
+          permit_application_id?: string | null
+          recipients?: string[]
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          body_html?: string | null
+          cc?: string[]
+          created_at?: string
+          email_type?: string
+          error?: string | null
+          id?: string
+          permit_application_id?: string | null
+          recipients?: string[]
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_email_log_permit_application_id_fkey"
+            columns: ["permit_application_id"]
+            isOneToOne: false
+            referencedRelation: "permit_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_pricing: {
+        Row: {
+          active: boolean
+          area: string
+          created_at: string
+          id: string
+          notice_required: string | null
+          permit_days: number
+          postcodes: string
+          price_exc_vat: number
+          price_inc_vat: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          area: string
+          created_at?: string
+          id?: string
+          notice_required?: string | null
+          permit_days: number
+          postcodes: string
+          price_exc_vat?: number
+          price_inc_vat?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          area?: string
+          created_at?: string
+          id?: string
+          notice_required?: string | null
+          permit_days?: number
+          postcodes?: string
+          price_exc_vat?: number
+          price_inc_vat?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      permit_settings: {
+        Row: {
+          application_body: string
+          application_subject: string
+          auto_confirm_from_replies: boolean
+          auto_send_applications: boolean
+          chase_body: string
+          chase_lead_hours: number
+          chase_recipient: string
+          chase_subject: string
+          created_at: string
+          expiry_check_enabled: boolean
+          id: string
+          sender_email: string
+          sender_name: string
+          updated_at: string
+        }
+        Insert: {
+          application_body?: string
+          application_subject?: string
+          auto_confirm_from_replies?: boolean
+          auto_send_applications?: boolean
+          chase_body?: string
+          chase_lead_hours?: number
+          chase_recipient?: string
+          chase_subject?: string
+          created_at?: string
+          expiry_check_enabled?: boolean
+          id?: string
+          sender_email?: string
+          sender_name?: string
+          updated_at?: string
+        }
+        Update: {
+          application_body?: string
+          application_subject?: string
+          auto_confirm_from_replies?: boolean
+          auto_send_applications?: boolean
+          chase_body?: string
+          chase_lead_hours?: number
+          chase_recipient?: string
+          chase_subject?: string
+          created_at?: string
+          expiry_check_enabled?: boolean
+          id?: string
+          sender_email?: string
+          sender_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       po_notification_config: {
         Row: {
           enabled: boolean
@@ -7027,6 +7315,8 @@ export type Database = {
           min_weight_charge: number | null
           notes: string | null
           outbound_weight_t: number | null
+          permit_application_id: string | null
+          permit_required: boolean
           po_number: string | null
           query_reason: string | null
           scheduled_date: string
@@ -7089,6 +7379,8 @@ export type Database = {
           min_weight_charge?: number | null
           notes?: string | null
           outbound_weight_t?: number | null
+          permit_application_id?: string | null
+          permit_required?: boolean
           po_number?: string | null
           query_reason?: string | null
           scheduled_date?: string
@@ -7151,6 +7443,8 @@ export type Database = {
           min_weight_charge?: number | null
           notes?: string | null
           outbound_weight_t?: number | null
+          permit_application_id?: string | null
+          permit_required?: boolean
           po_number?: string | null
           query_reason?: string | null
           scheduled_date?: string
@@ -7181,6 +7475,13 @@ export type Database = {
             columns: ["assigned_driver_id"]
             isOneToOne: false
             referencedRelation: "route_one_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_one_jobs_permit_application_id_fkey"
+            columns: ["permit_application_id"]
+            isOneToOne: false
+            referencedRelation: "permit_applications"
             referencedColumns: ["id"]
           },
           {

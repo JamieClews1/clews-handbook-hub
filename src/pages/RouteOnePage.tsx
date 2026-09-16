@@ -44,6 +44,7 @@ import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel"
 import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
 import { FileDown, Printer, Send, Radio } from "lucide-react";
 import { TicketSendDialog } from "@/components/route-one/TicketSendDialog";
+import { PermitBadge } from "@/components/permits/PermitBadge";
 
 import { JobPodSection } from "@/components/route-one/JobPodSection";
 import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
@@ -258,6 +259,23 @@ const RouteOnePage = () => {
       return data;
     },
   });
+
+  // Permit records keyed by the job they belong to (for the permit badge)
+  const { data: permitsByJob = {} as Record<string, any> } = useQuery({
+    queryKey: ["route_one_permits"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("permit_applications")
+        .select("id, route_one_job_id, status, expiry_date")
+        .not("route_one_job_id", "is", null);
+      if (error) throw error;
+      const map: Record<string, any> = {};
+      for (const p of data ?? []) map[(p as any).route_one_job_id] = p;
+      return map;
+    },
+  });
+
+
 
   // Fetch Skiptrak scheduled jobs for the selected date range (from data_hub_jobs)
   const { data: allSkiptrakScheduledJobs = [] } = useQuery({
@@ -1056,7 +1074,10 @@ const RouteOnePage = () => {
                         }`} />
                       </TableCell>
                       <TableCell className="font-medium text-sm">{job.customer_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{job.site_name || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        <span className="mr-1.5">{job.site_name || "—"}</span>
+                        <PermitBadge permit={permitsByJob[job.id]} />
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
                       </TableCell>
@@ -1166,6 +1187,7 @@ const RouteOnePage = () => {
                 <JobCard
                   key={job.id}
                   job={job}
+                  permit={permitsByJob[job.id]}
                   onEdit={() => openEditDialog(job)}
                   onView={() => setViewingJob(job)}
                   onDelete={() => deleteJob.mutate(job.id)}
@@ -1232,6 +1254,7 @@ const RouteOnePage = () => {
                     <JobCard
                       key={job.id}
                       job={job}
+                      permit={permitsByJob[job.id]}
                       onEdit={() => openEditDialog(job)}
                       onView={() => setViewingJob(job)}
                       onDelete={() => deleteJob.mutate(job.id)}
@@ -1300,6 +1323,7 @@ const RouteOnePage = () => {
 // Job Card Component
 function JobCard({
   job,
+  permit,
   onEdit,
   onView,
   onDelete,
@@ -1311,6 +1335,7 @@ function JobCard({
   isDragging,
 }: {
   job: any;
+  permit?: any;
   onEdit: () => void;
   onView: () => void;
   onSendTicket?: () => void;
@@ -1408,6 +1433,8 @@ function JobCard({
         >
           {job.is_live ? "LIVE" : "Draft"}
         </Badge>
+        <PermitBadge permit={permit} />
+
 
         {job.container_type && (
           <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
