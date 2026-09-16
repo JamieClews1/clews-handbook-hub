@@ -67,7 +67,7 @@ function ukDate(iso: string | null | undefined): string {
 type Slot = { page: 0 | 1; x: number; y: number; size?: number; leading?: number };
 
 const SLOTS: Record<string, Slot> = {
-  company_name: { page: 0, x: 228, y: 485 },
+  company_name: { page: 0, x: 228, y: 481 },
   registered_address: { page: 0, x: 246, y: 459, leading: 12 },
   email_address: { page: 0, x: 203, y: 406 },
   telephone: { page: 0, x: 218, y: 387 },
