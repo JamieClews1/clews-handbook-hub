@@ -329,6 +329,8 @@ export function PermitDialog({
             </div>
           </div>
 
+          {needsWccForm && wcc && <WccPermitForm values={wcc} onChange={setWcc} />}
+
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>
             <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
