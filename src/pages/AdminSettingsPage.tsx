@@ -8,8 +8,9 @@ import { AutoReplyExclusionSettings } from "@/components/AutoReplyExclusionSetti
 
 import { SectionVisibilitySettings } from "@/components/SectionVisibilitySettings";
 import { BusinessProfileSettings } from "@/components/BusinessProfileSettings";
+import { CodeRegistersSettings } from "@/components/settings/CodeRegistersSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Mail, LayoutGrid, Building2 } from "lucide-react";
+import { Settings, Mail, LayoutGrid, Building2, ListOrdered } from "lucide-react";
 
 
 
@@ -58,6 +59,10 @@ const AdminSettingsPage = () => {
             <LayoutGrid className="h-4 w-4" />
             Section Visibility
           </TabsTrigger>
+          <TabsTrigger value="codes" className="gap-2">
+            <ListOrdered className="h-4 w-4" />
+            EWC &amp; SIC Codes
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="business">
@@ -70,6 +75,10 @@ const AdminSettingsPage = () => {
 
         <TabsContent value="sections">
           <SectionVisibilitySettings />
+        </TabsContent>
+
+        <TabsContent value="codes">
+          <CodeRegistersSettings />
         </TabsContent>
 
 
