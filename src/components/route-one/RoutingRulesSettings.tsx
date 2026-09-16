@@ -97,6 +97,71 @@ export const RoutingRulesSettings = () => {
       </Card>
 
       <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Travel times</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">How travel time is worked out</Label>
+            <Select value={local.travel_model} onValueChange={(v: any) => set("travel_model", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="distance">Postcode to postcode distance</SelectItem>
+                <SelectItem value="zone">Average time per zone</SelectItem>
+                <SelectItem value="fixed">One flat allowance between jobs</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              {local.travel_model === "distance"
+                ? "Real miles between each postcode, converted at the average speed below. Falls back to zone times, then the flat allowance, when a postcode can't be found."
+                : local.travel_model === "zone"
+                ? "Each zone has an average time from the yard; jobs in the same zone use the local hop time."
+                : "Every leg uses the same flat travel allowance."}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Yard postcode</Label>
+              <Input value={local.yard_postcode} onChange={e => set("yard_postcode", e.target.value.toUpperCase())} placeholder="CV21 1EA" className="uppercase" />
+            </div>
+            <NumField label="Average speed (mph)" value={local.avg_speed_mph} onChange={v => set("avg_speed_mph", v)} />
+            <NumField label="Road distance factor" hint="Straight line miles × this" value={local.road_distance_factor} onChange={v => set("road_distance_factor", v)} />
+            <NumField label="Shortest travel leg (mins)" value={local.mins_travel_min} onChange={v => set("mins_travel_min", v)} />
+            <NumField label="Within the same zone (mins)" value={local.mins_travel_within_zone} onChange={v => set("mins_travel_within_zone", v)} />
+            <NumField label="Flat allowance (mins)" hint="Used when nothing else is known" value={local.mins_travel} onChange={v => set("mins_travel", v)} />
+          </div>
+
+          {local.travel_model !== "fixed" && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Average minutes from the yard to each zone</Label>
+              {zones.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">No postcode zones set up yet.</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {zones.map(z => (
+                    <div key={z.id} className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground">{z.zone_name}</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={local.zone_travel_minutes?.[z.zone_name] ?? ""}
+                        placeholder="—"
+                        onChange={e => {
+                          const next = { ...(local.zone_travel_minutes || {}) };
+                          if (e.target.value === "") delete next[z.zone_name];
+                          else next[z.zone_name] = Number(e.target.value) || 0;
+                          set("zone_travel_minutes", next);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Artic vehicle registrations</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">Drivers on these registrations get the artic / curtain side work.</p>
