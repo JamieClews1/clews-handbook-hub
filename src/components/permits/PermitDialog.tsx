@@ -82,10 +82,40 @@ export function PermitDialog({
     },
   });
 
+  // Fallback: tickets that only exist in the Data Hub (Skiptrak/Midweigh), searched on demand
+  const [jobSearch, setJobSearch] = useState("");
+  const { data: hubJobs = [] } = useQuery({
+    queryKey: ["permit_hub_job_options", jobSearch],
+    enabled: open && jobSearch.trim().length >= 3,
+    queryFn: async () => {
+      const term = jobSearch.trim();
+      const { data, error } = await supabase
+        .from("data_hub_jobs")
+        .select("id, job_number, source, customer, site, postcode, job_date")
+        .or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`)
+        .order("job_date", { ascending: false })
+        .limit(25);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const hubOnly = useMemo(() => {
+    const known = new Set((jobs as any[]).map((j) => String(j.job_number ?? "")));
+    const seen = new Set<string>();
+    return (hubJobs as any[]).filter((h) => {
+      const n = String(h.job_number ?? "");
+      if (!n || known.has(n) || seen.has(n)) return false;
+      seen.add(n);
+      return true;
+    });
+  }, [hubJobs, jobs]);
+
   const selectedJob = useMemo(
     () => (jobs as any[]).find((j) => j.id === jobId) ?? null,
     [jobs, jobId],
   );
+
 
 
   useEffect(() => {
@@ -149,6 +179,30 @@ export function PermitDialog({
     if (j.scheduled_date) setStartDate(j.scheduled_date);
     setPricingId(null);
   };
+
+  const onPickHubJob = (h: any) => {
+    setJobId(null);
+    setJobNumber(String(h.job_number ?? ""));
+    setCustomerName(h.customer ?? "");
+    setSiteAddress([h.site, h.postcode].filter(Boolean).join(", "));
+    setPostcode(h.postcode ?? "");
+    if (h.job_date) setStartDate(h.job_date);
+    setPricingId(null);
+  };
+
+  const filteredRouteJobs = useMemo(() => {
+    const term = jobSearch.trim().toLowerCase();
+    const list = jobs as any[];
+    if (!term) return list.slice(0, 50);
+    return list
+      .filter((j) =>
+        `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`
+          .toLowerCase()
+          .includes(term),
+      )
+      .slice(0, 50);
+  }, [jobs, jobSearch]);
+
 
   const payload = () => ({
     route_one_job_id: jobId,
@@ -273,18 +327,24 @@ export function PermitDialog({
                   <span className="truncate">
                     {selectedJob
                       ? `${selectedJob.job_number ? `#${selectedJob.job_number} — ` : ""}${selectedJob.customer_name} — ${selectedJob.site_postcode || "no postcode"}`
-                      : "Choose a job (optional)"}
+                      : jobNumber
+                        ? `#${jobNumber}${customerName ? ` — ${customerName}` : ""}`
+                        : "Choose a job (optional)"}
                   </span>
                   <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[320px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Type a job number, customer or postcode..." />
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder="Type a job number, customer or postcode..."
+                    value={jobSearch}
+                    onValueChange={setJobSearch}
+                  />
                   <CommandList className="max-h-72">
                     <CommandEmpty>No job found.</CommandEmpty>
-                    <CommandGroup>
-                      {jobs.map((j: any) => {
+                    <CommandGroup heading="RouteOne jobs">
+                      {filteredRouteJobs.map((j: any) => {
                         const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
                         return (
                           <CommandItem
@@ -298,6 +358,20 @@ export function PermitDialog({
                         );
                       })}
                     </CommandGroup>
+                    {hubOnly.length > 0 && (
+                      <CommandGroup heading="Other tickets (Data Hub)">
+                        {hubOnly.map((h: any) => (
+                          <CommandItem
+                            key={h.id}
+                            value={`hub-${h.id}`}
+                            onSelect={() => { onPickHubJob(h); setJobPickerOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", !jobId && jobNumber === String(h.job_number) ? "opacity-100" : "opacity-0")} />
+                            #{h.job_number} — {h.customer || "no customer"} — {h.postcode || "no postcode"}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
