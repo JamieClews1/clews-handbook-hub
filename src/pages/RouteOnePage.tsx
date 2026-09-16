@@ -874,6 +874,7 @@ const RouteOnePage = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
