@@ -33,7 +33,7 @@ const PermitsPage = () => {
           <TabsContent value="settings"><PermitSettingsTab /></TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
+    </>
   );
 };
 
