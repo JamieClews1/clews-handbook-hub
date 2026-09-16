@@ -359,9 +359,10 @@ export const DriverSettings = () => {
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>
-            </div>
-          )}
+               </Table>
+             </div>
+           </div>
+           )}
         </CardContent>
       </Card>
 
