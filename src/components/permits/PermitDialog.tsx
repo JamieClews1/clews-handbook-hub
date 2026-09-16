@@ -116,6 +116,14 @@ export function PermitDialog({
   }, [startDate, selected?.permit_days]);
 
   const council = councils.find((c) => c.area === selected?.area);
+  const needsWccForm = isWccArea(selected?.area ?? matches[0]?.area ?? null);
+
+  // Keep the form's licence dates in step with the permit dates
+  useEffect(() => {
+    setWcc((prev) =>
+      prev ? { ...prev, start_date: startDate || prev.start_date, end_date: expiryDate || prev.end_date } : prev,
+    );
+  }, [startDate, expiryDate]);
 
   const onPickJob = (id: string) => {
     const j = jobs.find((x: any) => x.id === id);
