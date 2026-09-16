@@ -259,6 +259,23 @@ const RouteOnePage = () => {
     },
   });
 
+  // Permit records keyed by the job they belong to (for the permit badge)
+  const { data: permitsByJob = {} as Record<string, any> } = useQuery({
+    queryKey: ["route_one_permits"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("permit_applications")
+        .select("id, route_one_job_id, status, expiry_date")
+        .not("route_one_job_id", "is", null);
+      if (error) throw error;
+      const map: Record<string, any> = {};
+      for (const p of data ?? []) map[(p as any).route_one_job_id] = p;
+      return map;
+    },
+  });
+
+
+
   // Fetch Skiptrak scheduled jobs for the selected date range (from data_hub_jobs)
   const { data: allSkiptrakScheduledJobs = [] } = useQuery({
     queryKey: ["route-one-skiptrak-jobs", viewMode, dateStr, weekStart, search],
