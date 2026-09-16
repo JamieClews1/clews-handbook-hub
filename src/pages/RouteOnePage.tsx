@@ -1012,6 +1012,18 @@ const RouteOnePage = () => {
 
       <TicketSendDialog job={ticketJob} open={!!ticketJob} onOpenChange={(o) => { if (!o) setTicketJob(null); }} />
 
+      <RoutingProposalDialog
+        open={reorganiseOpen}
+        onOpenChange={setReorganiseOpen}
+        jobs={plannerJobs}
+        drivers={plannerDrivers}
+        dateLabel={format(selectedDate, "EEE dd MMM yyyy")}
+        onApplied={() => {
+          queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
+          queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
+        }}
+      />
+
       {/* View Skiptrak Job Dialog */}
       <Dialog open={!!viewingSkiptrakJob} onOpenChange={(open) => { if (!open) setViewingSkiptrakJob(null); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
