@@ -648,6 +648,44 @@ const RouteOnePage = () => {
 
   const unassignedJobs = jobs.filter((j: any) => !j.assigned_driver_id);
 
+  // Inputs for the day-routing planner (RouteOne tickets + uploaded Skiptrak jobs)
+  const plannerJobs: PlannerJob[] = [
+    ...jobs.map((j: any) => ({
+      id: j.id,
+      source: "route_one" as const,
+      jobNumber: String(j.job_number ?? ""),
+      movement: String(j.job_type ?? ""),
+      containerType: String(j.container_type ?? ""),
+      containerSize: j.container_size ?? null,
+      customer: String(j.customer_name ?? ""),
+      site: String(j.site_name ?? ""),
+      postcode: String(j.site_postcode ?? ""),
+      currentDriverId: j.assigned_driver_id ?? null,
+      currentDriverName: drivers.find((d: any) => d.id === j.assigned_driver_id)?.driver_name ?? null,
+    })),
+    ...skiptrakScheduledJobs.map((j: any) => ({
+      id: j.id,
+      source: "skiptrak" as const,
+      jobNumber: String(j.job_number ?? ""),
+      movement: String(j.movement_type ?? ""),
+      containerType: String(j.container_type ?? ""),
+      containerSize: null,
+      customer: String(j.customer ?? ""),
+      site: String(j.site ?? ""),
+      postcode: String(j.postcode ?? ""),
+      currentDriverId: null,
+      currentDriverName: j.driver ? String(j.driver) : null,
+    })),
+  ];
+
+  const plannerDrivers: PlannerDriver[] = drivers.map((d: any) => ({
+    id: d.id,
+    name: d.driver_name,
+    registration: d.route_one_vehicles?.registration ?? null,
+    vehicleType: d.route_one_vehicles?.vehicle_type ?? null,
+    category: d.category ?? null,
+  }));
+
   // Stats
   const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j: any) => j.status === "completed").length;
