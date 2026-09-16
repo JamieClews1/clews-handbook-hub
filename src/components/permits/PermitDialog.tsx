@@ -62,6 +62,12 @@ export function PermitDialog({
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [wcc, setWcc] = useState<WccFormValues | null>(null);
+  const [jobPickerOpen, setJobPickerOpen] = useState(false);
+
+  const selectedJob = useMemo(
+    () => (jobs as any[]).find((j) => j.id === jobId) ?? null,
+    [jobs, jobId],
+  );
 
   // Jobs available to attach a permit to
   const { data: jobs = [] } = useQuery({
