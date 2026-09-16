@@ -32,6 +32,7 @@ const ToggleRow = ({ label, hint, checked, onChange }: { label: string; hint: st
 
 export const RoutingRulesSettings = () => {
   const { rules, isLoading, saveRule } = useRoutingRules();
+  const { zones } = usePostcodeZones();
   const [local, setLocal] = useState<RoutingRules>(rules);
   const [regInput, setRegInput] = useState("");
   const [saving, setSaving] = useState(false);
