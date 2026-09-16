@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, ArrowRight, Loader2, Truck, UserX } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { planDay, type PlannerDriver, type PlannerJob } from "@/lib/route-planner";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
 import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
+
 
 type Props = {
   open: boolean;
@@ -32,10 +35,49 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
   );
   const { coords, loading: coordsLoading } = usePostcodeCoords(postcodes, open && rules.travel_model === "distance");
 
-  const plan = useMemo(
-    () => planDay(jobs, drivers, rules, { coords, zoneFor }),
-    [jobs, drivers, rules, coords, zoneFor],
+  // Drivers can swap vehicles — their set-up vehicle is only the default for the day.
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["route-one-vehicles-all"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("route_one_vehicles")
+        .select("id, registration, vehicle_type")
+        .eq("is_active", true)
+        .order("registration");
+      if (error) throw error;
+      return data as { id: string; registration: string; vehicle_type: string }[];
+    },
+  });
+
+  // driverId -> vehicle registration chosen for today ("" = no vehicle)
+  const [vehicleChoice, setVehicleChoice] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (open) setVehicleChoice({});
+  }, [open]);
+
+  const hasWorkToday = useMemo(() => {
+    const n = (v: string | null) => (v ?? "").toLowerCase().trim();
+    return (d: PlannerDriver) =>
+      jobs.some(j => j.currentDriverId === d.id || (j.currentDriverName && n(j.currentDriverName) === n(d.name)));
+  }, [jobs]);
+
+  const effectiveDrivers = useMemo(
+    () =>
+      drivers.map(d => {
+        const reg = vehicleChoice[d.id];
+        if (reg === undefined) return d;
+        const v = vehicles.find(x => x.registration === reg);
+        return { ...d, registration: v?.registration ?? null, vehicleType: v?.vehicle_type ?? null };
+      }),
+    [drivers, vehicleChoice, vehicles],
   );
+
+  const plan = useMemo(
+    () => planDay(jobs, effectiveDrivers, rules, { coords, zoneFor }),
+    [jobs, effectiveDrivers, rules, coords, zoneFor],
+  );
+
 
   const currentByDriver = useMemo(() => {
     const map = new Map<string, PlannerJob[]>();
@@ -104,6 +146,50 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
               : "Flat travel allowance"}
           </Badge>
         </div>
+
+        <Card className="border-border/60">
+          <CardContent className="p-3 space-y-2">
+            <div>
+              <p className="text-sm font-semibold">Which truck is each driver on today?</p>
+              <p className="text-xs text-muted-foreground">
+                Their usual truck is picked by default — change it here if they have swapped.
+              </p>
+            </div>
+            <Separator />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {drivers.filter(hasWorkToday).map(d => {
+                const chosen = vehicleChoice[d.id] ?? d.registration ?? "";
+                return (
+                  <div key={d.id} className="flex items-center gap-2">
+                    <span className="text-xs font-medium flex-1 truncate">{d.name}</span>
+                    <Select
+                      value={chosen || "none"}
+                      onValueChange={v => setVehicleChoice(prev => ({ ...prev, [d.id]: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger className="h-8 w-[190px] text-xs">
+                        <SelectValue placeholder="No vehicle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No vehicle</SelectItem>
+                        {vehicles.map(v => (
+                          <SelectItem key={v.id} value={v.registration}>
+                            {v.registration} ({v.vehicle_type})
+                            {d.registration === v.registration ? " · usual" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+              {drivers.filter(hasWorkToday).length === 0 && (
+                <p className="text-xs text-muted-foreground">No drivers have jobs booked today.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+
 
         {plan.warnings.length > 0 && (
           <Card className="border-amber-500/40 bg-amber-500/5">
