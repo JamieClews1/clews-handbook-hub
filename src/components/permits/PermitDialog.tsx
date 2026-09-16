@@ -82,19 +82,22 @@ export function PermitDialog({
     },
   });
 
-  // Fallback: tickets that only exist in the Data Hub (Skiptrak/Midweigh), searched on demand
+  // Most jobs come from the Skiptrak/Midweigh data uploads, so search those too
   const [jobSearch, setJobSearch] = useState("");
   const { data: hubJobs = [] } = useQuery({
     queryKey: ["permit_hub_job_options", jobSearch],
-    enabled: open && jobSearch.trim().length >= 3,
+    enabled: open,
     queryFn: async () => {
       const term = jobSearch.trim();
-      const { data, error } = await supabase
+      let q = supabase
         .from("data_hub_jobs")
         .select("id, job_number, source, customer, site, postcode, job_date")
-        .or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`)
         .order("job_date", { ascending: false })
-        .limit(25);
+        .limit(term ? 40 : 25);
+      if (term) {
+        q = q.or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,postcode.ilike.%${term}%,site.ilike.%${term}%`);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -110,6 +113,7 @@ export function PermitDialog({
       return true;
     });
   }, [hubJobs, jobs]);
+
 
   const selectedJob = useMemo(
     () => (jobs as any[]).find((j) => j.id === jobId) ?? null,
@@ -316,7 +320,7 @@ export function PermitDialog({
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">RouteOne job</Label>
+            <Label className="text-xs">Job</Label>
             <Popover open={jobPickerOpen} onOpenChange={setJobPickerOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -343,23 +347,8 @@ export function PermitDialog({
                   />
                   <CommandList className="max-h-72">
                     <CommandEmpty>No job found.</CommandEmpty>
-                    <CommandGroup heading="RouteOne jobs">
-                      {filteredRouteJobs.map((j: any) => {
-                        const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
-                        return (
-                          <CommandItem
-                            key={j.id}
-                            value={searchValue}
-                            onSelect={() => { onPickJob(j.id); setJobPickerOpen(false); }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", jobId === j.id ? "opacity-100" : "opacity-0")} />
-                            {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
                     {hubOnly.length > 0 && (
-                      <CommandGroup heading="Other tickets (Data Hub)">
+                      <CommandGroup heading="Uploaded jobs">
                         {hubOnly.map((h: any) => (
                           <CommandItem
                             key={h.id}
@@ -372,6 +361,24 @@ export function PermitDialog({
                         ))}
                       </CommandGroup>
                     )}
+                    {filteredRouteJobs.length > 0 && (
+                      <CommandGroup heading="RouteOne jobs">
+                        {filteredRouteJobs.map((j: any) => {
+                          const searchValue = `${j.job_number ?? ""} ${j.customer_name ?? ""} ${j.site_postcode ?? ""} ${j.site_address ?? ""}`.trim();
+                          return (
+                            <CommandItem
+                              key={j.id}
+                              value={searchValue}
+                              onSelect={() => { onPickJob(j.id); setJobPickerOpen(false); }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", jobId === j.id ? "opacity-100" : "opacity-0")} />
+                              {j.job_number ? `#${j.job_number} — ` : ""}{j.customer_name} — {j.site_postcode || "no postcode"}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    )}
+
                   </CommandList>
                 </Command>
               </PopoverContent>
