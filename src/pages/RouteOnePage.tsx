@@ -36,6 +36,9 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
+import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
+import { RoutingProposalDialog } from "@/components/route-one/RoutingProposalDialog";
+import type { PlannerJob, PlannerDriver } from "@/lib/route-planner";
 import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
