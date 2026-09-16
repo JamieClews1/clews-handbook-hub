@@ -77,9 +77,11 @@ export function matchPermitRows(postcode: string, rows: PermitPricingRow[]): Per
     if (/\s/.test(t)) return compact.startsWith(t.replace(/\s+/g, ""));
     return outward === t;
   };
+  const tokens = (r: PermitPricingRow): string[] =>
+    Array.isArray(r.postcodes) ? r.postcodes : String(r.postcodes ?? "").split(",");
   return rows
     .filter((r) => r.active)
-    .filter((r) => (r.postcodes || "").split(",").some(matches))
+    .filter((r) => tokens(r).some(matches))
     .sort((a, b) => Number(a.price_exc_vat) - Number(b.price_exc_vat));
 }
 
