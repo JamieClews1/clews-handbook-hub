@@ -667,8 +667,22 @@ const DataUploadsPage = () => {
     setUploadProgress({ current: 0, total: 0, stage: "Parsing file..." });
     
     try {
-      const jobsToUpsert = await parseFileToJobs(file, source);
+      const parsedJobs = await parseFileToJobs(file, source);
+
+      // Skip tickets that were previously voided/deleted so uploads can't resurrect them.
+      const voidedKeys = new Set<string>();
+      {
+        const { data: voided, error: voidErr } = await supabase
+          .from("data_hub_void_jobs")
+          .select("job_number")
+          .eq("source", source);
+        if (voidErr) console.error("Could not load void job list:", voidErr);
+        (voided ?? []).forEach((v: any) => voidedKeys.add(String(v.job_number)));
+      }
+      const jobsToUpsert = parsedJobs.filter((j) => !voidedKeys.has(String(j.job_number)));
+      const skippedVoid = parsedJobs.length - jobsToUpsert.length;
       const totalRows = jobsToUpsert.length;
+
 
       // Keep a raw preview (first 100 rows) from the uploaded document for debugging/verification.
       const rawRows = jobsToUpsert.slice(0, 100).map((j) => j.raw ?? {}).filter(Boolean) as Record<string, unknown>[];
