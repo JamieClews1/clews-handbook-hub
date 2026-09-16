@@ -320,7 +320,7 @@ export function PermitDialog({
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">RouteOne job</Label>
+            <Label className="text-xs">Job</Label>
             <Popover open={jobPickerOpen} onOpenChange={setJobPickerOpen}>
               <PopoverTrigger asChild>
                 <Button
