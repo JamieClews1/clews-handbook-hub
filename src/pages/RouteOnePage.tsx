@@ -1322,6 +1322,7 @@ const RouteOnePage = () => {
 // Job Card Component
 function JobCard({
   job,
+  permit,
   onEdit,
   onView,
   onDelete,
@@ -1333,6 +1334,7 @@ function JobCard({
   isDragging,
 }: {
   job: any;
+  permit?: any;
   onEdit: () => void;
   onView: () => void;
   onSendTicket?: () => void;
