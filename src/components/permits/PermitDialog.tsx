@@ -349,8 +349,6 @@ export function PermitDialog({
                       </CommandGroup>
                     )}
                   </CommandList>
-
-                  </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
