@@ -1,0 +1,138 @@
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { Save, Loader2, X, Plus, Route } from "lucide-react";
+import { useRoutingRules, type RoutingRules } from "@/hooks/useRoutingRules";
+
+const NumField = ({ label, hint, value, onChange }: { label: string; hint?: string; value: number; onChange: (v: number) => void }) => (
+  <div className="space-y-1.5">
+    <Label className="text-xs font-medium">{label}</Label>
+    {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+    <Input type="number" min={0} value={value} onChange={e => onChange(Number(e.target.value) || 0)} />
+  </div>
+);
+
+const ToggleRow = ({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) => (
+  <div className="flex items-start justify-between gap-4 py-2">
+    <div>
+      <p className="text-sm font-medium">{label}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
+    </div>
+    <Switch checked={checked} onCheckedChange={onChange} />
+  </div>
+);
+
+export const RoutingRulesSettings = () => {
+  const { rules, isLoading, saveRule } = useRoutingRules();
+  const [local, setLocal] = useState<RoutingRules>(rules);
+  const [regInput, setRegInput] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setLocal(rules); }, [rules]);
+
+  const set = <K extends keyof RoutingRules>(k: K, v: RoutingRules[K]) => setLocal(p => ({ ...p, [k]: v }));
+  const hasChanges = JSON.stringify(local) !== JSON.stringify(rules);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const key of Object.keys(local) as (keyof RoutingRules)[]) {
+        if (JSON.stringify(local[key]) !== JSON.stringify(rules[key])) {
+          await saveRule.mutateAsync({ key, value: local[key] });
+        }
+      }
+      toast.success("Routing rules saved");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save routing rules");
+    }
+    setSaving(false);
+  };
+
+  const addReg = () => {
+    const v = regInput.trim().toUpperCase();
+    if (v && !local.artic_regs.some(r => r.toUpperCase() === v)) {
+      set("artic_regs", [...local.artic_regs, v]);
+      setRegInput("");
+    }
+  };
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading routing rules...</div>;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base"><Route className="h-4 w-4" /> Loading limits</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <NumField label="Max skips per load" hint="Empty skips leaving together" value={local.max_skips_per_load} onChange={v => set("max_skips_per_load", v)} />
+          <NumField label="Max 8yd per load" value={local.max_8yd_per_load} onChange={v => set("max_8yd_per_load", v)} />
+          <NumField label="Max 12yd per load" value={local.max_12yd_per_load} onChange={v => set("max_12yd_per_load", v)} />
+          <NumField label="Max skips on an empty vehicle" value={local.max_skips_on_empty_vehicle} onChange={v => set("max_skips_on_empty_vehicle", v)} />
+          <NumField label="Ro-Ro containers per trip" value={local.roro_containers_per_trip} onChange={v => set("roro_containers_per_trip", v)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Time assumptions</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <NumField label="Delivery (mins)" value={local.mins_delivery} onChange={v => set("mins_delivery", v)} />
+          <NumField label="Collection (mins)" value={local.mins_collection} onChange={v => set("mins_collection", v)} />
+          <NumField label="Exchange (mins)" value={local.mins_exchange} onChange={v => set("mins_exchange", v)} />
+          <NumField label="Tipping (mins)" value={local.mins_tipping} onChange={v => set("mins_tipping", v)} />
+          <NumField label="Travel between jobs (mins)" value={local.mins_travel} onChange={v => set("mins_travel", v)} />
+          <NumField label="Break (mins)" value={local.mins_break} onChange={v => set("mins_break", v)} />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Day start</Label>
+            <Input type="time" value={local.day_start} onChange={e => set("day_start", e.target.value)} />
+          </div>
+          <NumField label="Day length (hours)" value={local.day_length_hours} onChange={v => set("day_length_hours", v)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Artic vehicle registrations</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Drivers on these registrations get the artic / curtain side work.</p>
+          <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+            {local.artic_regs.map((r, i) => (
+              <Badge key={i} variant="secondary" className="gap-1 pr-1 font-mono">
+                {r}
+                <button onClick={() => set("artic_regs", local.artic_regs.filter((_, idx) => idx !== i))} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input value={regInput} onChange={e => setRegInput(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addReg())} placeholder="e.g. FG61 SYV" className="flex-1 uppercase" />
+            <Button type="button" size="sm" variant="outline" onClick={addReg} disabled={!regInput.trim()}><Plus className="h-4 w-4" /></Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Rules</CardTitle></CardHeader>
+        <CardContent className="divide-y divide-border">
+          <ToggleRow label="Skip drivers never get Ro-Ro work" hint="Work is only given to a vehicle that can carry it." checked={local.skip_drivers_no_roro} onChange={v => set("skip_drivers_no_roro", v)} />
+          <ToggleRow label="Drivers with no jobs are not working" hint="A driver with nothing booked that day is left out of the plan." checked={local.idle_drivers_not_working} onChange={v => set("idle_drivers_not_working", v)} />
+          <ToggleRow label="Loaded skips return one at a time" hint="Full skips come back singly for tipping." checked={local.loaded_skips_one_at_a_time} onChange={v => set("loaded_skips_one_at_a_time", v)} />
+        </CardContent>
+      </Card>
+
+      <Separator />
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={!hasChanges || saving}>
+          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          Save Routing Rules
+        </Button>
+      </div>
+    </div>
+  );
+};
