@@ -126,12 +126,38 @@ export const RoutingRulesSettings = () => {
               <Label className="text-xs font-medium">Yard postcode</Label>
               <Input value={local.yard_postcode} onChange={e => set("yard_postcode", e.target.value.toUpperCase())} placeholder="CV21 1EA" className="uppercase" />
             </div>
-            <NumField label="Average speed (mph)" value={local.avg_speed_mph} onChange={v => set("avg_speed_mph", v)} />
+            <NumField label="Average speed (mph)" hint="Used when speed bands are off" value={local.avg_speed_mph} onChange={v => set("avg_speed_mph", v)} />
             <NumField label="Road distance factor" hint="Straight line miles × this" value={local.road_distance_factor} onChange={v => set("road_distance_factor", v)} />
             <NumField label="Shortest travel leg (mins)" value={local.mins_travel_min} onChange={v => set("mins_travel_min", v)} />
             <NumField label="Within the same zone (mins)" value={local.mins_travel_within_zone} onChange={v => set("mins_travel_within_zone", v)} />
             <NumField label="Flat allowance (mins)" hint="Used when nothing else is known" value={local.mins_travel} onChange={v => set("mins_travel", v)} />
           </div>
+
+          {local.travel_model === "distance" && (
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-xs font-medium">Different speeds for short and long journeys</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Town work crawls; longer runs are mostly A-road and motorway, so they average a higher speed.
+                  </p>
+                </div>
+                <Switch
+                  checked={local.speed_bands_enabled}
+                  onCheckedChange={v => set("speed_bands_enabled", v)}
+                />
+              </div>
+              {local.speed_bands_enabled && (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <NumField label="Short up to (miles)" value={local.speed_band_short_miles} onChange={v => set("speed_band_short_miles", v)} />
+                  <NumField label="Local speed (mph)" value={local.avg_speed_short_mph} onChange={v => set("avg_speed_short_mph", v)} />
+                  <NumField label="Mixed roads speed (mph)" value={local.avg_speed_mid_mph} onChange={v => set("avg_speed_mid_mph", v)} />
+                  <NumField label="Long from (miles)" value={local.speed_band_long_miles} onChange={v => set("speed_band_long_miles", v)} />
+                  <NumField label="Long run speed (mph)" value={local.avg_speed_long_mph} onChange={v => set("avg_speed_long_mph", v)} />
+                </div>
+              )}
+            </div>
+          )}
 
           {local.travel_model !== "fixed" && (
             <div className="space-y-2">
