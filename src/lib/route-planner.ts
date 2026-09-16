@@ -71,6 +71,72 @@ export function laneForDriver(driver: PlannerDriver, rules: RoutingRules): Lane 
 
 const outward = (postcode: string) => norm(postcode).replace(/\s+/g, " ").split(" ")[0] || "";
 
+export type LatLng = { lat: number; lng: number };
+
+/** Extra information the planner can use to work out real travel times. */
+export type TravelContext = {
+  /** Postcode (letters and digits only, upper case) → coordinates. */
+  coords?: Map<string, LatLng>;
+  /** Postcode → configured zone name. */
+  zoneFor?: (postcode: string) => string | null;
+};
+
+const pcKey = (pc: string | null | undefined) => String(pc ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+const haversineMiles = (a: LatLng, b: LatLng) => {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 3958.8;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+};
+
+/**
+ * Minutes to travel from one postcode to another.
+ * Distance model: real postcode-to-postcode miles at the configured average speed.
+ * Zone model: an average time per postcode zone.
+ * Fixed model (or missing data): the flat travel allowance.
+ */
+export function travelMinutes(
+  fromPostcode: string | null | undefined,
+  toPostcode: string | null | undefined,
+  rules: RoutingRules,
+  ctx?: TravelContext,
+): { minutes: number; basis: string } {
+  const flat = { minutes: rules.mins_travel, basis: `${rules.mins_travel} min flat allowance` };
+
+  if (rules.travel_model === "distance") {
+    const a = ctx?.coords?.get(pcKey(fromPostcode));
+    const b = ctx?.coords?.get(pcKey(toPostcode));
+    if (a && b) {
+      const miles = haversineMiles(a, b) * (rules.road_distance_factor || 1.3);
+      const mins = Math.max(rules.mins_travel_min, Math.round((miles / (rules.avg_speed_mph || 28)) * 60));
+      return { minutes: mins, basis: `${miles.toFixed(1)} miles at ${rules.avg_speed_mph} mph` };
+    }
+  }
+
+  if (rules.travel_model === "zone" || rules.travel_model === "distance") {
+    const zf = ctx?.zoneFor;
+    const zoneA = fromPostcode ? zf?.(fromPostcode) ?? null : null;
+    const zoneB = toPostcode ? zf?.(toPostcode) ?? null : null;
+    const table = rules.zone_travel_minutes || {};
+    if (zoneB && zoneA && zoneA === zoneB) {
+      return { minutes: Math.max(rules.mins_travel_min, rules.mins_travel_within_zone), basis: `within ${zoneA}` };
+    }
+    const mb = zoneB ? table[zoneB] : undefined;
+    const ma = zoneA ? table[zoneA] : undefined;
+    if (typeof mb === "number" || typeof ma === "number") {
+      const mins = Math.max(rules.mins_travel_min, Math.round(Math.max(mb ?? 0, ma ?? 0)));
+      return { minutes: mins, basis: `average time for ${zoneB || zoneA}` };
+    }
+  }
+
+  return flat;
+}
+
 const minutesForMovement = (movement: string, rules: RoutingRules) => {
   const m = norm(movement);
   if (m.includes("exchange")) return rules.mins_exchange;
