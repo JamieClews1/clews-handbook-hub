@@ -10,6 +10,29 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl as string;
 
+/** Renders every page of a PDF to PNG data URLs. */
+export async function renderPdfPages(blob: Blob, widthPx = 800): Promise<string[]> {
+  const data = new Uint8Array(await blob.arrayBuffer());
+  const doc = await pdfjs.getDocument({ data }).promise;
+  const urls: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: widthPx / base.width });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not available");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvas, canvasContext: ctx, viewport } as never).promise;
+    urls.push(canvas.toDataURL("image/png"));
+  }
+  void doc.cleanup();
+  return urls;
+}
+
 export async function renderPdfFirstPage(blob: Blob, widthPx = 800): Promise<string> {
   const data = new Uint8Array(await blob.arrayBuffer());
   const doc = await pdfjs.getDocument({ data }).promise;
