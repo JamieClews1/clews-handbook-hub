@@ -262,22 +262,27 @@ export function planDay(
     let trip: PlannerJob[] = [];
     const flushInto = (target: DriverPlan, group: PlannerJob[]) => {
       for (const job of group) {
-        const travel = target.jobs.length === 0 ? rules.mins_travel : rules.mins_travel;
+        const from = target.jobs.length === 0 ? rules.yard_postcode : target.jobs[target.jobs.length - 1].job.postcode;
+        const leg = travelMinutes(from, job.postcode, rules, ctx);
+        const travel = leg.minutes;
         const work = minutesForMovement(job.movement, rules);
         const start = target.totalMinutes + travel;
         const end = start + work;
         const movedFromName = job.currentDriverName || null;
         const moved = norm(movedFromName) !== norm(target.driver.name);
+        const travelNote = `${travel} min travel (${leg.basis})`;
         target.jobs.push({
           job,
           start: fmt(rules.day_start, start),
           end: fmt(rules.day_start, end),
+          travelMinutes: travel,
+          travelBasis: leg.basis,
           movedFrom: moved ? movedFromName : null,
           reason: moved
             ? movedFromName
-              ? `Moved from ${movedFromName} to balance the day and keep ${outward(job.postcode).toUpperCase() || "this area"} work together.`
-              : `Assigned to ${target.driver.name} — ${lane === "roro" ? "Ro-Ro" : lane} vehicle, ${outward(job.postcode).toUpperCase() || "no postcode"}.`
-            : `Kept with ${target.driver.name}, resequenced with other ${outward(job.postcode).toUpperCase() || "local"} work.`,
+              ? `Moved from ${movedFromName} to balance the day and keep ${outward(job.postcode).toUpperCase() || "this area"} work together — ${travelNote}.`
+              : `Assigned to ${target.driver.name} — ${lane === "roro" ? "Ro-Ro" : lane} vehicle, ${outward(job.postcode).toUpperCase() || "no postcode"}, ${travelNote}.`
+            : `Kept with ${target.driver.name}, resequenced with other ${outward(job.postcode).toUpperCase() || "local"} work — ${travelNote}.`,
         });
         target.totalMinutes = end;
         if (target.totalMinutes > dayCap / 2 && target.totalMinutes - work <= dayCap / 2) {
