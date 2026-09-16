@@ -22,6 +22,7 @@ import {
   type StaciWasteBreakdown,
   type StaciPalletColour,
   STACI_COLOUR_CONFIG,
+  resolveStaciPalletColour,
 } from "@/components/load-reports/staci/types";
 import {
   PieChart,

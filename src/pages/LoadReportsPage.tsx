@@ -22,6 +22,7 @@ import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
 
 // Staci-specific components
 import { StaciTallyScreen, StaciReviewScreen, StaciPalletEntry } from "@/components/load-reports/staci";
+import { resolveStaciPalletColour } from "@/components/load-reports/staci/types";
 
 type ViewMode = "customer" | "list" | "all" | "new" | "tally" | "review";
 
