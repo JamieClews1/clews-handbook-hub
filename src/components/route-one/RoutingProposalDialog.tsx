@@ -35,10 +35,49 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
   );
   const { coords, loading: coordsLoading } = usePostcodeCoords(postcodes, open && rules.travel_model === "distance");
 
-  const plan = useMemo(
-    () => planDay(jobs, drivers, rules, { coords, zoneFor }),
-    [jobs, drivers, rules, coords, zoneFor],
+  // Drivers can swap vehicles — their set-up vehicle is only the default for the day.
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["route-one-vehicles-all"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("route_one_vehicles")
+        .select("id, registration, vehicle_type")
+        .eq("is_active", true)
+        .order("registration");
+      if (error) throw error;
+      return data as { id: string; registration: string; vehicle_type: string }[];
+    },
+  });
+
+  // driverId -> vehicle registration chosen for today ("" = no vehicle)
+  const [vehicleChoice, setVehicleChoice] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (open) setVehicleChoice({});
+  }, [open]);
+
+  const hasWorkToday = useMemo(() => {
+    const n = (v: string | null) => (v ?? "").toLowerCase().trim();
+    return (d: PlannerDriver) =>
+      jobs.some(j => j.currentDriverId === d.id || (j.currentDriverName && n(j.currentDriverName) === n(d.name)));
+  }, [jobs]);
+
+  const effectiveDrivers = useMemo(
+    () =>
+      drivers.map(d => {
+        const reg = vehicleChoice[d.id];
+        if (reg === undefined) return d;
+        const v = vehicles.find(x => x.registration === reg);
+        return { ...d, registration: v?.registration ?? null, vehicleType: v?.vehicle_type ?? null };
+      }),
+    [drivers, vehicleChoice, vehicles],
   );
+
+  const plan = useMemo(
+    () => planDay(jobs, effectiveDrivers, rules, { coords, zoneFor }),
+    [jobs, effectiveDrivers, rules, coords, zoneFor],
+  );
+
 
   const currentByDriver = useMemo(() => {
     const map = new Map<string, PlannerJob[]>();
