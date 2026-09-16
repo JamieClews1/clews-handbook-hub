@@ -19,6 +19,14 @@ import {
   type PermitStatus,
 } from "@/lib/permits";
 import { usePermitCouncils, usePermitPricing } from "@/hooks/usePermits";
+import { WccPermitForm } from "@/components/permits/WccPermitForm";
+import {
+  buildWccPermitPdf,
+  isWccArea,
+  wccPdfFileName,
+  wccValuesForPermit,
+  type WccFormValues,
+} from "@/lib/wcc-permit";
 
 const STATUSES: PermitStatus[] = ["needed", "applied", "confirmed", "active", "rejected", "expired", "cancelled"];
 
@@ -50,6 +58,7 @@ export function PermitDialog({
   const [expiryDate, setExpiryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [wcc, setWcc] = useState<WccFormValues | null>(null);
 
   // Jobs available to attach a permit to
   const { data: jobs = [] } = useQuery({
@@ -80,6 +89,17 @@ export function PermitDialog({
     setStartDate(src?.start_date ?? presetJob?.scheduled_date ?? "");
     setExpiryDate(src?.expiry_date ?? "");
     setNotes(src?.notes ?? "");
+    setWcc(
+      wccValuesForPermit({
+        site_address:
+          src?.site_address ??
+          [presetJob?.site_name, presetJob?.site_address, presetJob?.site_address_2].filter(Boolean).join(", "),
+        site_postcode: src?.site_postcode ?? presetJob?.site_postcode ?? "",
+        start_date: src?.start_date ?? presetJob?.scheduled_date ?? "",
+        expiry_date: src?.expiry_date ?? "",
+        form_data: (src as any)?.form_data ?? null,
+      }),
+    );
   }, [open, permit, presetJob]);
 
   const matches = useMemo(() => matchPermitRows(postcode, pricing), [postcode, pricing]);
@@ -96,6 +116,14 @@ export function PermitDialog({
   }, [startDate, selected?.permit_days]);
 
   const council = councils.find((c) => c.area === selected?.area);
+  const needsWccForm = isWccArea(selected?.area ?? matches[0]?.area ?? null);
+
+  // Keep the form's licence dates in step with the permit dates
+  useEffect(() => {
+    setWcc((prev) =>
+      prev ? { ...prev, start_date: startDate || prev.start_date, end_date: expiryDate || prev.end_date } : prev,
+    );
+  }, [startDate, expiryDate]);
 
   const onPickJob = (id: string) => {
     const j = jobs.find((x: any) => x.id === id);
@@ -126,6 +154,7 @@ export function PermitDialog({
     expiry_date: expiryDate || null,
     council_emails: council?.application_emails ?? [],
     notes: notes || null,
+    form_data: needsWccForm && wcc ? (wcc as any) : null,
   });
 
   const save = async (): Promise<string | null> => {
@@ -172,9 +201,31 @@ export function PermitDialog({
     }
   };
 
+  /** Build the council form and store it so the email can attach it. */
+  const uploadWccForm = async (permitId: string): Promise<string | null> => {
+    if (!needsWccForm || !wcc) return null;
+    const bytes = await buildWccPermitPdf(wcc);
+    const path = `${permitId}/${wccPdfFileName({ job_number: jobNumber, id: permitId })}`;
+    const { error } = await supabase.storage
+      .from("permit-documents")
+      .upload(path, new Blob([bytes.slice() as unknown as BlobPart], { type: "application/pdf" }), {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+    if (error) throw error;
+    await supabase.from("permit_applications").update({ application_pdf_path: path }).eq("id", permitId);
+    return path;
+  };
+
   const handleSend = async () => {
     const id = await save();
     if (!id) return;
+    try {
+      await uploadWccForm(id);
+    } catch (e: any) {
+      toast({ title: "Could not attach the council form", description: e.message, variant: "destructive" });
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("permit-apply", { body: { permitId: id } });
     if (error || (data as any)?.error) {
       toast({
@@ -277,6 +328,8 @@ export function PermitDialog({
               <Input type="date" value={expiryDate ?? ""} onChange={(e) => setExpiryDate(e.target.value)} />
             </div>
           </div>
+
+          {needsWccForm && wcc && <WccPermitForm values={wcc} onChange={setWcc} />}
 
           <div className="space-y-1.5">
             <Label className="text-xs">Notes</Label>

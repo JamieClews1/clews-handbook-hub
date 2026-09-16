@@ -1,0 +1,3 @@
+CREATE POLICY "Staff can read permit documents" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'permit-documents');
+CREATE POLICY "Staff can upload permit documents" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'permit-documents');
+CREATE POLICY "Staff can update permit documents" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'permit-documents');
