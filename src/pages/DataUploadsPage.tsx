@@ -371,8 +371,10 @@ const DataUploadsPage = () => {
 
       if (filters.search) {
         const term = filters.search.replace(/,/g, "");
-        const isExactTicketNumber = /^\d+$/.test(term);
-        if (isExactTicketNumber) {
+        // Full job numbers (5+ digits) use the indexed exact match; shorter or
+        // partial numbers still fall back to a normal contains search.
+        const isFullTicketNumber = /^\d{5,}$/.test(term);
+        if (isFullTicketNumber) {
           q = q.eq("job_number", term);
         } else {
           q = q.or(
