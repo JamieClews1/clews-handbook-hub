@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,6 +40,8 @@ const CATEGORIES = ["Skips", "Ro Ro", "Other"];
 
 export const DriverSettings = () => {
   const queryClient = useQueryClient();
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
   const [editDriver, setEditDriver] = useState<Driver | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({
@@ -270,7 +272,24 @@ export const DriverSettings = () => {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading drivers...</div>
           ) : (
-<div className="overflow-x-auto pb-2">
+          <>
+            <div
+              ref={topScrollRef}
+              className="overflow-x-auto border-b bg-muted/20"
+              onScroll={(event) => {
+                if (tableScrollRef.current) tableScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
+              }}
+              aria-label="Scroll driver table horizontally"
+            >
+              <div className="h-3 min-w-[860px]" />
+            </div>
+            <div
+              ref={tableScrollRef}
+              className="overflow-x-auto pb-2"
+              onScroll={(event) => {
+                if (topScrollRef.current) topScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
+              }}
+            >
             <div className="overflow-y-auto max-h-[55vh]">
               <Table className="min-w-[860px]">
                 <TableHeader>
@@ -362,6 +381,7 @@ export const DriverSettings = () => {
                </Table>
              </div>
            </div>
+          </>
            )}
         </CardContent>
       </Card>
