@@ -2555,6 +2555,33 @@ export type Database = {
           },
         ]
       }
+      data_hub_void_jobs: {
+        Row: {
+          created_at: string
+          id: string
+          job_number: string
+          reason: string | null
+          source: string
+          voided_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_number: string
+          reason?: string | null
+          source: string
+          voided_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_number?: string
+          reason?: string | null
+          source?: string
+          voided_by?: string | null
+        }
+        Relationships: []
+      }
       data_upload_log: {
         Row: {
           file_name: string | null
