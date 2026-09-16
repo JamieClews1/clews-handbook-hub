@@ -154,6 +154,7 @@ export function PermitDialog({
     expiry_date: expiryDate || null,
     council_emails: council?.application_emails ?? [],
     notes: notes || null,
+    form_data: needsWccForm && wcc ? (wcc as any) : null,
   });
 
   const save = async (): Promise<string | null> => {
