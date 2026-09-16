@@ -89,6 +89,17 @@ export function PermitDialog({
     setStartDate(src?.start_date ?? presetJob?.scheduled_date ?? "");
     setExpiryDate(src?.expiry_date ?? "");
     setNotes(src?.notes ?? "");
+    setWcc(
+      wccValuesForPermit({
+        site_address:
+          src?.site_address ??
+          [presetJob?.site_name, presetJob?.site_address, presetJob?.site_address_2].filter(Boolean).join(", "),
+        site_postcode: src?.site_postcode ?? presetJob?.site_postcode ?? "",
+        start_date: src?.start_date ?? presetJob?.scheduled_date ?? "",
+        expiry_date: src?.expiry_date ?? "",
+        form_data: (src as any)?.form_data ?? null,
+      }),
+    );
   }, [open, permit, presetJob]);
 
   const matches = useMemo(() => matchPermitRows(postcode, pricing), [postcode, pricing]);
