@@ -75,6 +75,10 @@ const NUMBER_KEYS: (keyof RoutingRules)[] = [
   "mins_travel",
   "mins_break",
   "day_length_hours",
+  "avg_speed_mph",
+  "road_distance_factor",
+  "mins_travel_min",
+  "mins_travel_within_zone",
 ];
 
 export function useRoutingRules() {
