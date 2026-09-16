@@ -270,7 +270,8 @@ export const DriverSettings = () => {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading drivers...</div>
           ) : (
-<div className="overflow-auto max-h-[55vh]">
+<div className="overflow-x-auto pb-2">
+            <div className="overflow-y-auto max-h-[55vh]">
               <Table className="min-w-[860px]">
                 <TableHeader>
                   <TableRow>
@@ -358,9 +359,10 @@ export const DriverSettings = () => {
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>
-            </div>
-          )}
+               </Table>
+             </div>
+           </div>
+           )}
         </CardContent>
       </Card>
 
