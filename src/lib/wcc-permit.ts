@@ -7,7 +7,9 @@
  * like the one the office fills in by hand.
  */
 import { PDFDocument, PDFName, StandardFonts, rgb } from "pdf-lib";
-import templateAsset from "@/assets/wcc-skip-permit-template.pdf.asset.json";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - vite url import
+import templateUrl from "@/assets/wcc-skip-permit-template.pdf?url";
 
 export const WCC_AREAS = ["Rugby / Crick", "Warwick / Leamington"];
 
