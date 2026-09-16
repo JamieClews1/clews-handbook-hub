@@ -19,6 +19,14 @@ import {
   type PermitStatus,
 } from "@/lib/permits";
 import { usePermitCouncils, usePermitPricing } from "@/hooks/usePermits";
+import { WccPermitForm } from "@/components/permits/WccPermitForm";
+import {
+  buildWccPermitPdf,
+  isWccArea,
+  wccPdfFileName,
+  wccValuesForPermit,
+  type WccFormValues,
+} from "@/lib/wcc-permit";
 
 const STATUSES: PermitStatus[] = ["needed", "applied", "confirmed", "active", "rejected", "expired", "cancelled"];
 
