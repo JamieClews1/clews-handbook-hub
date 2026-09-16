@@ -54,7 +54,7 @@ export const DEFAULT_ROUTING_RULES: RoutingRules = {
   idle_drivers_not_working: true,
   loaded_skips_one_at_a_time: true,
   travel_model: "distance",
-  yard_postcode: "DY8 4QH",
+  yard_postcode: "CV21 1EA",
   avg_speed_mph: 28,
   road_distance_factor: 1.3,
   mins_travel_min: 10,
