@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, ArrowRight, Loader2, Truck, UserX } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { planDay, type PlannerDriver, type PlannerJob } from "@/lib/route-planner";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
 import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
+
 
 type Props = {
   open: boolean;
