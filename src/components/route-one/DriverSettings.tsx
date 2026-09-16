@@ -219,7 +219,7 @@ export const DriverSettings = () => {
           </Select>
         </div>
         <div>
-          <Label className="text-xs">Assigned Vehicle</Label>
+          <Label className="text-xs">Default Vehicle</Label>
           <Select value={form.vehicle_id || "none"} onValueChange={(v) => setForm({ ...form, vehicle_id: v === "none" ? "" : v })}>
             <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
             <SelectContent>
