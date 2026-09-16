@@ -147,6 +147,50 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
           </Badge>
         </div>
 
+        <Card className="border-border/60">
+          <CardContent className="p-3 space-y-2">
+            <div>
+              <p className="text-sm font-semibold">Which truck is each driver on today?</p>
+              <p className="text-xs text-muted-foreground">
+                Their usual truck is picked by default — change it here if they have swapped.
+              </p>
+            </div>
+            <Separator />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {drivers.filter(hasWorkToday).map(d => {
+                const chosen = vehicleChoice[d.id] ?? d.registration ?? "";
+                return (
+                  <div key={d.id} className="flex items-center gap-2">
+                    <span className="text-xs font-medium flex-1 truncate">{d.name}</span>
+                    <Select
+                      value={chosen || "none"}
+                      onValueChange={v => setVehicleChoice(prev => ({ ...prev, [d.id]: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger className="h-8 w-[190px] text-xs">
+                        <SelectValue placeholder="No vehicle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No vehicle</SelectItem>
+                        {vehicles.map(v => (
+                          <SelectItem key={v.id} value={v.registration}>
+                            {v.registration} ({v.vehicle_type})
+                            {d.registration === v.registration ? " · usual" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+              {drivers.filter(hasWorkToday).length === 0 && (
+                <p className="text-xs text-muted-foreground">No drivers have jobs booked today.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+
+
         {plan.warnings.length > 0 && (
           <Card className="border-amber-500/40 bg-amber-500/5">
             <CardContent className="p-3 space-y-1.5">
