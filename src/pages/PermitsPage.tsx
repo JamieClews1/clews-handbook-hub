@@ -1,5 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AppLayout } from "@/components/AppLayout";
 import { FileCheck, Clock, Settings } from "lucide-react";
 import { PermitApplicationsTab } from "@/components/permits/PermitApplicationsTab";
 import { PermitExpiryTab } from "@/components/permits/PermitExpiryTab";
@@ -7,7 +6,7 @@ import { PermitSettingsTab } from "@/components/permits/PermitSettingsTab";
 
 const PermitsPage = () => {
   return (
-    <AppLayout>
+    <>
       <div className="p-4 md:p-6 max-w-screen-2xl mx-auto w-full space-y-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Permits</h1>
