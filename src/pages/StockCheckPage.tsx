@@ -14,6 +14,7 @@ import { StockCheckSettings } from "@/components/stock-check/StockCheckSettings"
 import { StockCheckHistory } from "@/components/stock-check/StockCheckHistory";
 import { StockCheckNotifications } from "@/components/stock-check/StockCheckNotifications";
 import { supabase } from "@/integrations/supabase/client";
+import { useExpectedStock } from "@/hooks/useExpectedStock";
 
 const StockCheckPage = () => {
   const navigate = useNavigate();
@@ -23,6 +24,9 @@ const StockCheckPage = () => {
   const [liveTab, setLiveTab] = useState("current");
   const [editCheckId, setEditCheckId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Keeps the expected-fleet snapshot fresh for the public share page,
+  // regardless of which Stock Check tab is open.
+  useExpectedStock();
 
   useEffect(() => {
     if (!loading && !user) {
