@@ -1225,12 +1225,6 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   // profile. Scrapped / Yard Use bins don't count toward active stock.
   const expected = useExpectedStock();
   const accounted = useMemo(() => {
-    const active = rows.filter(
-      (r) => r.condition !== "Scrapped" && r.condition !== "Yard Use",
-    );
-    const cataloguedByType: Record<string, number> = {};
-    for (const t of expected.containerTypes) cataloguedByType[t.id] = 0;
-    let unmatched = 0;
     // Inventory sizes read "40 CU YD" / "12 CU YD ENCLOSED"; stock-check keywords
     // read "40 Yard" / "12 Yard Enclosed". Normalise before matching.
     const normaliseSize = (size: string) =>
@@ -1239,21 +1233,42 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         .replace(/\byds?\b/gi, "Yard")
         .replace(/\s+/g, " ")
         .trim();
-    for (const r of active) {
+    const matchType = (r: InventoryRow) => {
+      if (!r.size) return null;
       const candidates = expected.containerTypes.filter((t) => t.category === r.asset_type);
-      const type = r.size ? bestExpectedTypeFor(normaliseSize(r.size), candidates) : null;
+      return bestExpectedTypeFor(normaliseSize(r.size), candidates);
+    };
+
+    const active = allRows.filter((r) => !isOutOfService(r.condition));
+    const outOfService = allRows.filter((r) => isOutOfService(r.condition));
+
+    const cataloguedByType: Record<string, number> = {};
+    for (const t of expected.containerTypes) cataloguedByType[t.id] = 0;
+    let unmatched = 0;
+    for (const r of active) {
+      const type = matchType(r);
       if (type) cataloguedByType[type.id] += 1;
       else unmatched += 1;
     }
+
+    // The yard tally is a physical count, so Scrapped / Yard Use bins sitting in
+    // the yard inflate the expected in-yard figures. Subtract any catalogued
+    // out-of-service bins from their size's expected count (never below zero).
+    const outOfServiceByType: Record<string, number> = {};
+    for (const r of outOfService) {
+      const type = matchType(r);
+      if (type) outOfServiceByType[type.id] = (outOfServiceByType[type.id] || 0) + 1;
+    }
+
     const perType = expected.containerTypes.map((t) => ({
       id: t.id,
       name: t.name,
       category: t.category,
       catalogued: cataloguedByType[t.id] || 0,
-      expected: expected.expectedByType[t.id] || 0,
+      expected: Math.max(0, (expected.expectedByType[t.id] || 0) - (outOfServiceByType[t.id] || 0)),
     }));
     const totalCatalogued = active.length;
-    const totalExpected = expected.expectedByCategory.skip + expected.expectedByCategory.roro;
+    const totalExpected = perType.reduce((s, t) => s + t.expected, 0);
     return {
       perType,
       unmatched,
@@ -1261,7 +1276,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       totalExpected,
       pct: totalExpected > 0 ? Math.round((totalCatalogued / totalExpected) * 100) : null,
     };
-  }, [rows, expected.containerTypes, expected.expectedByType, expected.expectedByCategory]);
+  }, [allRows, expected.containerTypes, expected.expectedByType]);
 
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };

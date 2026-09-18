@@ -329,6 +329,22 @@ export const useExpectedStock = (): ExpectedStock => {
     if (total <= 0) return;
     snapshotWritten = true;
     (async () => {
+      // The yard tally is a physical count, so Scrapped / Yard Use bins sitting
+      // in the yard inflate the expected figures. Subtract any catalogued
+      // out-of-service bins so the share page compares like-for-like.
+      const { data: outRows } = await supabase
+        .from("skip_inventory")
+        .select("asset_type")
+        .in("condition", ["Scrapped", "Yard Use"]);
+      let outSkip = 0;
+      let outRoro = 0;
+      for (const r of outRows || []) {
+        if (r.asset_type === "roro") outRoro += 1;
+        else outSkip += 1;
+      }
+      const adjSkip = Math.max(0, expectedByCategory.skip - outSkip);
+      const adjRoro = Math.max(0, expectedByCategory.roro - outRoro);
+      const adjTotal = adjSkip + adjRoro;
       const { data: latest } = await supabase
         .from("inventory_expected_snapshot")
         .select("expected_skip, expected_roro, expected_total")
@@ -337,15 +353,15 @@ export const useExpectedStock = (): ExpectedStock => {
         .maybeSingle();
       if (
         latest &&
-        latest.expected_skip === expectedByCategory.skip &&
-        latest.expected_roro === expectedByCategory.roro &&
-        latest.expected_total === total
+        latest.expected_skip === adjSkip &&
+        latest.expected_roro === adjRoro &&
+        latest.expected_total === adjTotal
       )
         return;
       await supabase.from("inventory_expected_snapshot").insert({
-        expected_skip: expectedByCategory.skip,
-        expected_roro: expectedByCategory.roro,
-        expected_total: total,
+        expected_skip: adjSkip,
+        expected_roro: adjRoro,
+        expected_total: adjTotal,
       });
     })();
   }, [loading, settingsLoading, expectedByCategory]);
