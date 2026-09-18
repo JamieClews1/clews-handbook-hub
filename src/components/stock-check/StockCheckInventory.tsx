@@ -234,6 +234,7 @@ const conditionStyle: Record<string, string> = {
 };
 
 const isScrapped = (c?: string | null) => c === "Scrapped";
+const isOutOfService = (c?: string | null) => c === "Scrapped" || c === "Yard Use";
 
 
 const emptyForm = {
