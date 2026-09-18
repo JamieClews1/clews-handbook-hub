@@ -86,6 +86,7 @@ import {
 
 import { cn, compareAssetNumbers } from "@/lib/utils";
 import { publicUrl } from "@/lib/public-url";
+import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock";
 
 interface InventoryRow {
   id: string;
@@ -1207,6 +1208,40 @@ const InventoryList = () => {
   const needRepair = rows.filter((r) => r.repairs_required).length;
   const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
 
+  // % of expected fleet (Total Stock: in yard + on site) that has a catalogued
+  // profile. Scrapped / Yard Use bins don't count toward active stock.
+  const expected = useExpectedStock();
+  const accounted = useMemo(() => {
+    const active = rows.filter(
+      (r) => r.condition !== "Scrapped" && r.condition !== "Yard Use",
+    );
+    const cataloguedByType: Record<string, number> = {};
+    for (const t of expected.containerTypes) cataloguedByType[t.id] = 0;
+    let unmatched = 0;
+    for (const r of active) {
+      const candidates = expected.containerTypes.filter((t) => t.category === r.asset_type);
+      const type = r.size ? bestExpectedTypeFor(r.size, candidates) : null;
+      if (type) cataloguedByType[type.id] += 1;
+      else unmatched += 1;
+    }
+    const perType = expected.containerTypes.map((t) => ({
+      id: t.id,
+      name: t.name,
+      category: t.category,
+      catalogued: cataloguedByType[t.id] || 0,
+      expected: expected.expectedByType[t.id] || 0,
+    }));
+    const totalCatalogued = active.length;
+    const totalExpected = expected.expectedByCategory.skip + expected.expectedByCategory.roro;
+    return {
+      perType,
+      unmatched,
+      totalCatalogued,
+      totalExpected,
+      pct: totalExpected > 0 ? Math.round((totalCatalogued / totalExpected) * 100) : null,
+    };
+  }, [rows, expected.containerTypes, expected.expectedByType, expected.expectedByCategory]);
+
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
     for (const r of rows) {
@@ -1361,6 +1396,68 @@ const InventoryList = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            Stock Accounted For
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {expected.loading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Comparing with expected stock…
+            </div>
+          ) : accounted.pct === null ? (
+            <p className="text-sm text-muted-foreground">
+              No expected stock yet — complete a stock take in the Live tab first.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-end justify-between gap-4 flex-wrap">
+                <div>
+                  <span className={cn(
+                    "text-3xl font-bold",
+                    accounted.pct >= 90 ? "text-emerald-600" : accounted.pct >= 60 ? "text-amber-600" : "text-red-600",
+                  )}>
+                    {accounted.pct}%
+                  </span>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {accounted.totalCatalogued} of {accounted.totalExpected} expected bins have a catalogued profile
+                    {accounted.unmatched > 0 && ` (${accounted.unmatched} with no matching size)`}
+                  </p>
+                </div>
+              </div>
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    accounted.pct >= 90 ? "bg-emerald-500" : accounted.pct >= 60 ? "bg-amber-500" : "bg-red-500",
+                  )}
+                  style={{ width: `${Math.min(accounted.pct, 100)}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {accounted.perType.map((t) => {
+                  const pct = t.expected > 0 ? Math.round((t.catalogued / t.expected) * 100) : null;
+                  return (
+                    <div key={t.id} className="rounded-lg border border-border p-3">
+                      <p className="text-xs font-medium text-muted-foreground truncate">{t.name}</p>
+                      <p className="text-lg font-bold text-foreground">
+                        {pct === null ? "—" : `${pct}%`}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t.catalogued} catalogued / {t.expected} expected
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
