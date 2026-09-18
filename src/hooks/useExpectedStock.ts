@@ -123,6 +123,9 @@ export const useExpectedStock = (): ExpectedStock => {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
+  // Bins manually marked collected in Rentals — excluded from Live Jobs counts,
+  // so they must be excluded here too (same site|||container_type key).
+  const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -142,6 +145,12 @@ export const useExpectedStock = (): ExpectedStock => {
         .select("id, from_type_id, to_type_id, ewc_codes, is_active")
         .eq("is_active", true);
       setReclassRules((rules ?? []) as EwcReclassRule[]);
+
+      const { data: collected } = await supabase
+        .from("rental_chases")
+        .select("bin_key")
+        .eq("collected", true);
+      setCollectedBinKeys(new Set((collected ?? []).map((r: { bin_key: string }) => r.bin_key)));
 
       const { data: latestCheck } = await supabase
         .from("stock_checks")
@@ -279,6 +288,8 @@ export const useExpectedStock = (): ExpectedStock => {
     for (const p of Object.values(positions)) {
       const count = allowed.get(p) ?? 0;
       if (count <= 0) continue;
+      const binKey = `${p.site.toLowerCase().trim()}|||${p.containerType.toLowerCase().trim()}`;
+      if (collectedBinKeys.has(binKey)) continue;
       const candidates = containerTypes.filter((t) => t.category === p.category);
       const type = bestExpectedTypeFor(p.containerType, candidates);
       if (type) byType[type.id] += count;
@@ -299,7 +310,7 @@ export const useExpectedStock = (): ExpectedStock => {
       a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
     );
     return { onSiteByType: byType, onSiteOther: other, siteDetail: detail };
-  }, [containerTypes, jobs, excludedSites, liveSettings]);
+  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys]);
 
   const expectedByType = useMemo(() => {
     const map: Record<string, number> = {};
