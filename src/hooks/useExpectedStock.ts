@@ -288,6 +288,8 @@ export const useExpectedStock = (): ExpectedStock => {
     for (const p of Object.values(positions)) {
       const count = allowed.get(p) ?? 0;
       if (count <= 0) continue;
+      const binKey = `${p.site.toLowerCase().trim()}|||${p.containerType.toLowerCase().trim()}`;
+      if (collectedBinKeys.has(binKey)) continue;
       const candidates = containerTypes.filter((t) => t.category === p.category);
       const type = bestExpectedTypeFor(p.containerType, candidates);
       if (type) byType[type.id] += count;
