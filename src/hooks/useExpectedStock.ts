@@ -123,6 +123,9 @@ export const useExpectedStock = (): ExpectedStock => {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
+  // Bins manually marked collected in Rentals — excluded from Live Jobs counts,
+  // so they must be excluded here too (same site|||container_type key).
+  const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const load = async () => {
