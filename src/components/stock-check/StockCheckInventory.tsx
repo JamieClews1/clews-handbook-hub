@@ -234,6 +234,7 @@ const conditionStyle: Record<string, string> = {
 };
 
 const isScrapped = (c?: string | null) => c === "Scrapped";
+const isOutOfService = (c?: string | null) => c === "Scrapped" || c === "Yard Use";
 
 
 const emptyForm = {
@@ -989,7 +990,7 @@ const DEFAULT_COLUMNS: Record<string, boolean> = Object.fromEntries(
 );
 
 /* ─── Inventory list ─── */
-const InventoryList = () => {
+const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-service" }) => {
 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -1102,7 +1103,7 @@ const InventoryList = () => {
   };
 
   const {
-    data: rows = [],
+    data: allRows = [],
     isLoading,
     isFetching,
     refetch,
@@ -1126,6 +1127,18 @@ const InventoryList = () => {
       })) as InventoryRow[];
     },
   });
+
+  // Yard Use / Scrapped bins live in their own tab — they aren't part of the
+  // live stock calculation.
+  const rows = useMemo(
+    () =>
+      allRows.filter((r) =>
+        scope === "out-of-service"
+          ? isOutOfService(r.condition)
+          : !isOutOfService(r.condition),
+      ),
+    [allRows, scope],
+  );
 
   const { data: conditionValues = [] } = useQuery({
     queryKey: ["skip-inventory-condition-values"],
@@ -1405,6 +1418,7 @@ const InventoryList = () => {
         </Card>
       </div>
 
+      {scope === "active" && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -1466,6 +1480,7 @@ const InventoryList = () => {
           )}
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
@@ -1962,6 +1977,10 @@ export const StockCheckInventory = () => {
           <Boxes className="h-4 w-4" />
           Inventory
         </TabsTrigger>
+        <TabsTrigger value="out-of-service" className="gap-2">
+          <Boxes className="h-4 w-4" />
+          Yard Use &amp; Scrapped
+        </TabsTrigger>
         <TabsTrigger value="leaderboard" className="gap-2">
           <Trophy className="h-4 w-4" />
           Leaderboard
@@ -1969,6 +1988,9 @@ export const StockCheckInventory = () => {
       </TabsList>
       <TabsContent value="inventory">
         <InventoryList />
+      </TabsContent>
+      <TabsContent value="out-of-service">
+        <InventoryList scope="out-of-service" />
       </TabsContent>
       <TabsContent value="leaderboard">
         <SkipTrackerLeaderboard />
