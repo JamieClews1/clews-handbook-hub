@@ -28,6 +28,10 @@ interface JobRow {
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Module-level guard so the expected-stock snapshot is written at most once
+// per browser session, no matter how many components use this hook.
+let snapshotWritten = false;
 const matchKeyword = (haystack: string, kw: string) => {
   const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
   return re.test(haystack);
