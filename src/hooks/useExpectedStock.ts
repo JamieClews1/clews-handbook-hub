@@ -316,6 +316,36 @@ export const useExpectedStock = (): ExpectedStock => {
     };
   }, [containerTypes, expectedByType, onSiteOther]);
 
+  // Persist the latest expected totals so the public inventory share page can
+  // show "% of expected bins catalogued". Writes at most once per browser
+  // session, and only when the figures changed.
+  useEffect(() => {
+    if (loading || settingsLoading || snapshotWritten) return;
+    const total = expectedByCategory.skip + expectedByCategory.roro;
+    if (total <= 0) return;
+    snapshotWritten = true;
+    (async () => {
+      const { data: latest } = await supabase
+        .from("inventory_expected_snapshot")
+        .select("expected_skip, expected_roro, expected_total")
+        .order("computed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (
+        latest &&
+        latest.expected_skip === expectedByCategory.skip &&
+        latest.expected_roro === expectedByCategory.roro &&
+        latest.expected_total === total
+      )
+        return;
+      await supabase.from("inventory_expected_snapshot").insert({
+        expected_skip: expectedByCategory.skip,
+        expected_roro: expectedByCategory.roro,
+        expected_total: total,
+      });
+    })();
+  }, [loading, settingsLoading, expectedByCategory]);
+
   return {
     loading: loading || settingsLoading,
     containerTypes,
