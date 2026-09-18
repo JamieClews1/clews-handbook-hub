@@ -1480,6 +1480,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
           )}
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
