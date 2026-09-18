@@ -310,7 +310,7 @@ export const useExpectedStock = (): ExpectedStock => {
       a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
     );
     return { onSiteByType: byType, onSiteOther: other, siteDetail: detail };
-  }, [containerTypes, jobs, excludedSites, liveSettings]);
+  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys]);
 
   const expectedByType = useMemo(() => {
     const map: Record<string, number> = {};
