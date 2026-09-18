@@ -1977,6 +1977,10 @@ export const StockCheckInventory = () => {
           <Boxes className="h-4 w-4" />
           Inventory
         </TabsTrigger>
+        <TabsTrigger value="out-of-service" className="gap-2">
+          <Boxes className="h-4 w-4" />
+          Yard Use &amp; Scrapped
+        </TabsTrigger>
         <TabsTrigger value="leaderboard" className="gap-2">
           <Trophy className="h-4 w-4" />
           Leaderboard
@@ -1984,6 +1988,9 @@ export const StockCheckInventory = () => {
       </TabsList>
       <TabsContent value="inventory">
         <InventoryList />
+      </TabsContent>
+      <TabsContent value="out-of-service">
+        <InventoryList scope="out-of-service" />
       </TabsContent>
       <TabsContent value="leaderboard">
         <SkipTrackerLeaderboard />
