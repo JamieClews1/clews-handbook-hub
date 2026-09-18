@@ -96,12 +96,22 @@ Deno.serve(async (req) => {
       .update({ view_count: (link.view_count ?? 0) + 1, last_viewed_at: new Date().toISOString() })
       .eq("id", link.id);
 
+    // Latest expected-fleet snapshot (written by the internal Stock Check), so
+    // the share page can show what % of expected bins are catalogued.
+    const { data: snapshot } = await supabase
+      .from("inventory_expected_snapshot")
+      .select("expected_skip, expected_roro, expected_total, computed_at")
+      .order("computed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     return json({
       label: link.label,
       show_values: link.show_values,
       show_photos: link.show_photos,
       verified_only: link.verified_only,
       items,
+      expected: snapshot ?? null,
     });
   } catch (e) {
     console.error("public-inventory error", e);
