@@ -21,7 +21,7 @@ export type LiveJobsSettings = {
 };
 
 const DEFAULTS: LiveJobsSettings = {
-  rental_free_days: 28,
+  rental_free_days: 30,
   artic_vehicle_regs: ["FG61 SYV", "FJ18 FDM"],
   artic_container_keywords: ["curtain side", "walking floor", "bulk ejector", "artic haulage"],
   roro_container_keywords: ["ro ro", "roll on roll off", "ro ro haulage"],

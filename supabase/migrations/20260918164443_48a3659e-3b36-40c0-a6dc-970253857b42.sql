@@ -1,0 +1,1 @@
+UPDATE live_jobs_settings SET setting_value = '30', description = 'Number of free rental days before a site is flagged as over rental (30 days included)' WHERE setting_key = 'rental_free_days';
