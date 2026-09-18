@@ -221,7 +221,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
           <Label>Search</Label>
           <Input
             className="w-56"
-            placeholder="Job no, site, waste..."
+            placeholder="Job no, order no, site..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
