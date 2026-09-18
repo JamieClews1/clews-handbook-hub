@@ -3925,6 +3925,30 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_expected_snapshot: {
+        Row: {
+          computed_at: string
+          expected_roro: number
+          expected_skip: number
+          expected_total: number
+          id: string
+        }
+        Insert: {
+          computed_at?: string
+          expected_roro?: number
+          expected_skip?: number
+          expected_total?: number
+          id?: string
+        }
+        Update: {
+          computed_at?: string
+          expected_roro?: number
+          expected_skip?: number
+          expected_total?: number
+          id?: string
+        }
+        Relationships: []
+      }
       inventory_share_links: {
         Row: {
           created_at: string

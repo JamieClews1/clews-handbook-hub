@@ -44,6 +44,13 @@ interface Item {
 
 const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
 
+interface ExpectedSnapshot {
+  expected_skip: number;
+  expected_roro: number;
+  expected_total: number;
+  computed_at: string;
+}
+
 const PublicInventoryPage = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -52,6 +59,7 @@ const PublicInventoryPage = () => {
   const [showValues, setShowValues] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
+  const [expected, setExpected] = useState<ExpectedSnapshot | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
@@ -78,6 +86,7 @@ const PublicInventoryPage = () => {
           setShowValues(!!body.show_values);
           setShowPhotos(!!body.show_photos);
           setItems(body.items || []);
+          setExpected(body.expected ?? null);
         }
       } catch {
         setError("Unable to load inventory");
@@ -116,6 +125,19 @@ const PublicInventoryPage = () => {
   const totalValue = filtered.reduce((s, r) => s + (r.value || 0), 0);
   const portfolioValue = items.reduce((s, r) => s + (r.value || 0), 0);
   const repairsCount = items.filter((i) => i.repairs_required).length;
+
+  const accounted = useMemo(() => {
+    if (!expected || expected.expected_total <= 0) return null;
+    const skips = items.filter((i) => i.asset_type === "skip").length;
+    const roros = items.filter((i) => i.asset_type === "roro").length;
+    const pct = (n: number, d: number) =>
+      d > 0 ? Math.min(100, Math.round((n / d) * 100)) : null;
+    return {
+      totalPct: pct(items.length, expected.expected_total),
+      skipPct: pct(skips, expected.expected_skip),
+      roroPct: pct(roros, expected.expected_roro),
+    };
+  }, [items, expected]);
 
   const breakdown = useMemo(() => {
     const map = new Map<
@@ -218,7 +240,7 @@ const PublicInventoryPage = () => {
           </div>
         </header>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total assets</CardTitle>
@@ -266,6 +288,36 @@ const PublicInventoryPage = () => {
               </CardHeader>
               <CardContent>
                 <span className="text-3xl font-bold">{money(portfolioValue)}</span>
+              </CardContent>
+            </Card>
+          )}
+          {accounted && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Bins accounted for
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                <span className="text-3xl font-bold">{accounted.totalPct}%</span>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      (accounted.totalPct ?? 0) >= 90
+                        ? "bg-emerald-500"
+                        : (accounted.totalPct ?? 0) >= 60
+                          ? "bg-amber-500"
+                          : "bg-red-500",
+                    )}
+                    style={{ width: `${accounted.totalPct ?? 0}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  of expected fleet catalogued
+                  {accounted.skipPct !== null ? ` · skips ${accounted.skipPct}%` : ""}
+                  {accounted.roroPct !== null ? ` · RoRos ${accounted.roroPct}%` : ""}
+                </p>
               </CardContent>
             </Card>
           )}
