@@ -990,7 +990,7 @@ const DEFAULT_COLUMNS: Record<string, boolean> = Object.fromEntries(
 );
 
 /* ─── Inventory list ─── */
-const InventoryList = () => {
+const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-service" }) => {
 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
