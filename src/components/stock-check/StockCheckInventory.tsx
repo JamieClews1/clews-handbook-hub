@@ -1127,6 +1127,18 @@ const InventoryList = () => {
     },
   });
 
+  // Yard Use / Scrapped bins live in their own tab — they aren't part of the
+  // live stock calculation.
+  const rows = useMemo(
+    () =>
+      allRows.filter((r) =>
+        scope === "out-of-service"
+          ? isOutOfService(r.condition)
+          : !isOutOfService(r.condition),
+      ),
+    [allRows, scope],
+  );
+
   const { data: conditionValues = [] } = useQuery({
     queryKey: ["skip-inventory-condition-values"],
     queryFn: async () => {
