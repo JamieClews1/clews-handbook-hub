@@ -754,6 +754,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [selectedSizes, setSelectedSizes] = useState<Set<number>>(new Set());
   const [wasteSearch, setWasteSearch] = useState("");
 
   // Collect all unique container types across all sites in this tab
@@ -770,6 +771,14 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
     });
   }, [sites]);
 
+  // Distinct bin sizes (in yards) across all container types, e.g. 8, 12, 35.
+  // Size 0 means the type name carries no yard figure — grouped as "Other".
+  const allSizes = useMemo(() => {
+    const sizes = new Set<number>();
+    for (const ct of allContainerTypes) sizes.add(extractBinSize(ct));
+    return Array.from(sizes).sort((a, b) => a - b);
+  }, [allContainerTypes]);
+
   const toggleType = (ct: string) => {
     setSelectedTypes(prev => {
       const next = new Set(prev);
@@ -778,9 +787,17 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
     });
   };
 
+  const toggleSize = (size: number) => {
+    setSelectedSizes(prev => {
+      const next = new Set(prev);
+      if (next.has(size)) next.delete(size); else next.add(size);
+      return next;
+    });
+  };
+
   const wasteSearchLower = wasteSearch.trim().toLowerCase();
 
-  // Filter sites by selected container types and waste type search
+  // Filter sites by selected container types and/or bin sizes and waste type search
   const filteredSites = useMemo(() => {
     let result = sites;
 
@@ -794,10 +811,13 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
       );
     }
 
-    if (selectedTypes.size === 0) return result;
+    if (selectedTypes.size === 0 && selectedSizes.size === 0) return result;
     return result
       .map(s => {
-        const matchingTypes = s.containerTypes.filter(ct => selectedTypes.has(ct));
+        const matchingTypes = s.containerTypes.filter(ct =>
+          (selectedTypes.size === 0 || selectedTypes.has(ct)) &&
+          (selectedSizes.size === 0 || selectedSizes.has(extractBinSize(ct)))
+        );
         if (matchingTypes.length === 0) return null;
         // Recalculate on-site from matching container type breakdowns only,
         // counting each distinct position (EWC/waste stream).
@@ -809,7 +829,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
         return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
-  }, [sites, selectedTypes, wasteSearchLower]);
+  }, [sites, selectedTypes, selectedSizes, wasteSearchLower]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -859,9 +879,31 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
 
   return (
     <Card>
-      {(allContainerTypes.length > 1 || sites.some(s => s.wasteTypes.length > 0)) && (
+      {(allContainerTypes.length > 1 || allSizes.length > 1 || sites.some(s => s.wasteTypes.length > 0)) && (
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3">
+            {allSizes.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground mr-1">Filter by size:</span>
+                <Badge
+                  variant={selectedSizes.size === 0 ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedSizes(new Set())}
+                >
+                  All sizes
+                </Badge>
+                {allSizes.map(size => (
+                  <Badge
+                    key={size}
+                    variant={selectedSizes.has(size) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleSize(size)}
+                  >
+                    {size === 0 ? "Other" : `${size} yd`}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {allContainerTypes.length > 1 && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
@@ -870,7 +912,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                   className="cursor-pointer"
                   onClick={() => setSelectedTypes(new Set())}
                 >
-                  All ({sites.length})
+                  All types
                 </Badge>
                 {allContainerTypes.map(ct => (
                   <Badge
