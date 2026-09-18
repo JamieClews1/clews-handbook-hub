@@ -146,6 +146,12 @@ export const useExpectedStock = (): ExpectedStock => {
         .eq("is_active", true);
       setReclassRules((rules ?? []) as EwcReclassRule[]);
 
+      const { data: collected } = await supabase
+        .from("rental_chases")
+        .select("bin_key")
+        .eq("collected", true);
+      setCollectedBinKeys(new Set((collected ?? []).map((r: { bin_key: string }) => r.bin_key)));
+
       const { data: latestCheck } = await supabase
         .from("stock_checks")
         .select("id, check_date, updated_at, created_at")
