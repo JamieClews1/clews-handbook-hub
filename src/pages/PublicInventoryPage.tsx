@@ -44,6 +44,13 @@ interface Item {
 
 const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
 
+interface ExpectedSnapshot {
+  expected_skip: number;
+  expected_roro: number;
+  expected_total: number;
+  computed_at: string;
+}
+
 const PublicInventoryPage = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -52,6 +59,7 @@ const PublicInventoryPage = () => {
   const [showValues, setShowValues] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
+  const [expected, setExpected] = useState<ExpectedSnapshot | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
@@ -78,6 +86,7 @@ const PublicInventoryPage = () => {
           setShowValues(!!body.show_values);
           setShowPhotos(!!body.show_photos);
           setItems(body.items || []);
+          setExpected(body.expected ?? null);
         }
       } catch {
         setError("Unable to load inventory");
