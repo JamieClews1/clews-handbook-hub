@@ -879,9 +879,31 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
 
   return (
     <Card>
-      {(allContainerTypes.length > 1 || sites.some(s => s.wasteTypes.length > 0)) && (
+      {(allContainerTypes.length > 1 || allSizes.length > 1 || sites.some(s => s.wasteTypes.length > 0)) && (
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3">
+            {allSizes.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground mr-1">Filter by size:</span>
+                <Badge
+                  variant={selectedSizes.size === 0 ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedSizes(new Set())}
+                >
+                  All sizes
+                </Badge>
+                {allSizes.map(size => (
+                  <Badge
+                    key={size}
+                    variant={selectedSizes.has(size) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleSize(size)}
+                  >
+                    {size === 0 ? "Other" : `${size} yd`}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {allContainerTypes.length > 1 && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-muted-foreground mr-1">Filter by type:</span>
@@ -890,7 +912,7 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                   className="cursor-pointer"
                   onClick={() => setSelectedTypes(new Set())}
                 >
-                  All ({sites.length})
+                  All types
                 </Badge>
                 {allContainerTypes.map(ct => (
                   <Badge
