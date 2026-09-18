@@ -86,6 +86,7 @@ import {
 
 import { cn, compareAssetNumbers } from "@/lib/utils";
 import { publicUrl } from "@/lib/public-url";
+import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock";
 
 interface InventoryRow {
   id: string;
