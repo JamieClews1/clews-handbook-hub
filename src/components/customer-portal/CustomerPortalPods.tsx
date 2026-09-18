@@ -32,6 +32,14 @@ type JobRow = {
   site: string | null;
   container_type: string | null;
   waste_description: string | null;
+  order_number_override: string | null;
+  raw: Record<string, unknown> | null;
+};
+
+const getOrderNumber = (job: JobRow): string | null => {
+  if (job.order_number_override?.trim()) return job.order_number_override.trim();
+  const fromRaw = (job.raw?.["Order No"] ?? job.raw?.["Order"] ?? job.raw?.["order_number"]) as string | undefined;
+  return fromRaw?.trim() ? fromRaw.trim() : null;
 };
 
 const ALL_SITES = "__all__";
@@ -101,7 +109,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_date, job_number, site, container_type, waste_description")
+        .select("id, job_date, job_number, site, container_type, waste_description, order_number_override, raw")
         .gte("job_date", format(dateRange.from, "yyyy-MM-dd"))
         .lte("job_date", format(dateRange.to, "yyyy-MM-dd"))
         .order("job_date", { ascending: false })
@@ -166,7 +174,9 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
     const withDocs = jobs.filter((j) => podJobs.has(j.job_number) || wtnJobs.has(j.job_number));
     if (!term) return withDocs;
     return withDocs.filter((j) =>
-      [j.job_number, j.site, j.waste_description, j.container_type].some((v) => (v ?? "").toLowerCase().includes(term))
+      [j.job_number, getOrderNumber(j), j.site, j.waste_description, j.container_type].some((v) =>
+        (v ?? "").toLowerCase().includes(term)
+      )
     );
   }, [jobs, podJobs, wtnJobs, search]);
 
@@ -211,7 +221,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
           <Label>Search</Label>
           <Input
             className="w-56"
-            placeholder="Job no, site, waste..."
+            placeholder="Job no, order no, site..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -239,6 +249,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Job No.</TableHead>
+                <TableHead>Order No.</TableHead>
                 <TableHead>Site</TableHead>
                 <TableHead>Container</TableHead>
                 <TableHead>Waste Type</TableHead>
@@ -251,6 +262,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
                 <TableRow key={job.id}>
                   <TableCell>{job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}</TableCell>
                   <TableCell className="font-mono text-sm">{job.job_number}</TableCell>
+                  <TableCell className="font-mono text-sm">{getOrderNumber(job) ?? "-"}</TableCell>
                   <TableCell>{job.site ?? "-"}</TableCell>
                   <TableCell>{job.container_type ?? "-"}</TableCell>
                   <TableCell>{job.waste_description ?? "-"}</TableCell>
