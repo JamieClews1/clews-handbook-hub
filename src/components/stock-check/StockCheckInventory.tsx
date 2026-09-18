@@ -178,15 +178,30 @@ const TagCell = ({
           className="w-full text-left rounded-md px-1 py-0.5 hover:bg-muted transition-colors"
         >
           {current.length ? (
-            <div className="flex flex-wrap gap-1">
-              {current.map((t) => (
-                <Badge key={t} variant="outline" className={cn("text-[10px]", colourFor(t))}>
+            <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+              {current.slice(0, 2).map((t) => (
+                <span
+                  key={t}
+                  className={cn(
+                    "shrink-0 px-2 py-0.5 rounded border text-[10px] font-medium",
+                    colourFor(t),
+                  )}
+                >
                   {t}
-                </Badge>
+                </span>
               ))}
+              {current.length > 2 && (
+                <span className="shrink-0 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-medium">
+                  +{current.length - 2}
+                </span>
+              )}
+              <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
             </div>
           ) : (
-            <span className="text-muted-foreground">+ Tag</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors text-xs font-medium">
+              <Plus className="h-3 w-3" />
+              Tag
+            </span>
           )}
         </button>
       </PopoverTrigger>
