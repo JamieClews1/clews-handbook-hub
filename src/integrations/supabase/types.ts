@@ -9487,6 +9487,7 @@ export type Database = {
       }
       is_finance_user: { Args: { _user_id: string }; Returns: boolean }
       is_management: { Args: { _user_id: string }; Returns: boolean }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       lookup_job_weights: {
         Args: { pairs: Json }
         Returns: {
