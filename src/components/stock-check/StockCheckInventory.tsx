@@ -1398,6 +1398,68 @@ const InventoryList = () => {
       </div>
 
       <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            Stock Accounted For
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {expected.loading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Comparing with expected stock…
+            </div>
+          ) : accounted.pct === null ? (
+            <p className="text-sm text-muted-foreground">
+              No expected stock yet — complete a stock take in the Live tab first.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-end justify-between gap-4 flex-wrap">
+                <div>
+                  <span className={cn(
+                    "text-3xl font-bold",
+                    accounted.pct >= 90 ? "text-emerald-600" : accounted.pct >= 60 ? "text-amber-600" : "text-red-600",
+                  )}>
+                    {accounted.pct}%
+                  </span>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {accounted.totalCatalogued} of {accounted.totalExpected} expected bins have a catalogued profile
+                    {accounted.unmatched > 0 && ` (${accounted.unmatched} with no matching size)`}
+                  </p>
+                </div>
+              </div>
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    accounted.pct >= 90 ? "bg-emerald-500" : accounted.pct >= 60 ? "bg-amber-500" : "bg-red-500",
+                  )}
+                  style={{ width: `${Math.min(accounted.pct, 100)}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {accounted.perType.map((t) => {
+                  const pct = t.expected > 0 ? Math.round((t.catalogued / t.expected) * 100) : null;
+                  return (
+                    <div key={t.id} className="rounded-lg border border-border p-3">
+                      <p className="text-xs font-medium text-muted-foreground truncate">{t.name}</p>
+                      <p className="text-lg font-bold text-foreground">
+                        {pct === null ? "—" : `${pct}%`}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t.catalogued} catalogued / {t.expected} expected
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Condition Report</CardTitle>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleDownloadReport}>
