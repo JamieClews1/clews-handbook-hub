@@ -1218,9 +1218,17 @@ const InventoryList = () => {
     const cataloguedByType: Record<string, number> = {};
     for (const t of expected.containerTypes) cataloguedByType[t.id] = 0;
     let unmatched = 0;
+    // Inventory sizes read "40 CU YD" / "12 CU YD ENCLOSED"; stock-check keywords
+    // read "40 Yard" / "12 Yard Enclosed". Normalise before matching.
+    const normaliseSize = (size: string) =>
+      size
+        .replace(/\bcu\.?\s*yds?\b/gi, "Yard")
+        .replace(/\byds?\b/gi, "Yard")
+        .replace(/\s+/g, " ")
+        .trim();
     for (const r of active) {
       const candidates = expected.containerTypes.filter((t) => t.category === r.asset_type);
-      const type = r.size ? bestExpectedTypeFor(r.size, candidates) : null;
+      const type = r.size ? bestExpectedTypeFor(normaliseSize(r.size), candidates) : null;
       if (type) cataloguedByType[type.id] += 1;
       else unmatched += 1;
     }
