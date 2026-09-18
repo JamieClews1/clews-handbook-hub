@@ -1418,6 +1418,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         </Card>
       </div>
 
+      {scope === "active" && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
