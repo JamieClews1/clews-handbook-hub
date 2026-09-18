@@ -1207,6 +1207,40 @@ const InventoryList = () => {
   const needRepair = rows.filter((r) => r.repairs_required).length;
   const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
 
+  // % of expected fleet (Total Stock: in yard + on site) that has a catalogued
+  // profile. Scrapped / Yard Use bins don't count toward active stock.
+  const expected = useExpectedStock();
+  const accounted = useMemo(() => {
+    const active = rows.filter(
+      (r) => r.condition !== "Scrapped" && r.condition !== "Yard Use",
+    );
+    const cataloguedByType: Record<string, number> = {};
+    for (const t of expected.containerTypes) cataloguedByType[t.id] = 0;
+    let unmatched = 0;
+    for (const r of active) {
+      const candidates = expected.containerTypes.filter((t) => t.category === r.asset_type);
+      const type = r.size ? bestExpectedTypeFor(r.size, candidates) : null;
+      if (type) cataloguedByType[type.id] += 1;
+      else unmatched += 1;
+    }
+    const perType = expected.containerTypes.map((t) => ({
+      id: t.id,
+      name: t.name,
+      category: t.category,
+      catalogued: cataloguedByType[t.id] || 0,
+      expected: expected.expectedByType[t.id] || 0,
+    }));
+    const totalCatalogued = active.length;
+    const totalExpected = expected.expectedByCategory.skip + expected.expectedByCategory.roro;
+    return {
+      perType,
+      unmatched,
+      totalCatalogued,
+      totalExpected,
+      pct: totalExpected > 0 ? Math.round((totalCatalogued / totalExpected) * 100) : null,
+    };
+  }, [rows, expected.containerTypes, expected.expectedByType, expected.expectedByCategory]);
+
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
     for (const r of rows) {
