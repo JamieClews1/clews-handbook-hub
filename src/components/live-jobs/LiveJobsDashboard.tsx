@@ -356,14 +356,24 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         } else {
           // Count each distinct on-site position (EWC/waste stream) across all
           // container types so simultaneous containers aren't collapsed into one.
-          netOnSite = Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeOnSite(ctb.positions), 0);
+          // Container types staff have manually confirmed as collected (Rentals →
+          // Collected) are excluded, so the on-site counts match the Rentals view.
+          netOnSite = Object.entries(s.containerTypeBreakdown).reduce((sum, [ct, ctb]) => {
+            const key = `${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`;
+            if (collectedBinKeys.has(key)) return sum;
+            return sum + typeOnSite(ctb.positions);
+          }, 0);
         }
         const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
         // Genuine uncollected delivery balance — ignores phantom containers
         // synthesised from a lone exchange/tip-return with no delivery on record.
         const netDeliveredOnSite = s.category === "artic"
           ? 0
-          : Object.values(s.containerTypeBreakdown).reduce((sum, ctb) => sum + typeNetOnSite(ctb.positions), 0);
+          : Object.entries(s.containerTypeBreakdown).reduce((sum, [ct, ctb]) => {
+              const key = `${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`;
+              if (collectedBinKeys.has(key)) return sum;
+              return sum + typeNetOnSite(ctb.positions);
+            }, 0);
         // Over rental when the skip has sat on-site beyond the free period since
         // its last servicing/keep movement. Regularly tipped-and-returned skips
         // (frequent service) stay under the threshold and never flag. An isolated
