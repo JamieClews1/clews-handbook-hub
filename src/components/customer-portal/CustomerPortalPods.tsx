@@ -32,6 +32,14 @@ type JobRow = {
   site: string | null;
   container_type: string | null;
   waste_description: string | null;
+  order_number_override: string | null;
+  raw: Record<string, unknown> | null;
+};
+
+const getOrderNumber = (job: JobRow): string | null => {
+  if (job.order_number_override?.trim()) return job.order_number_override.trim();
+  const fromRaw = (job.raw?.["Order No"] ?? job.raw?.["Order"] ?? job.raw?.["order_number"]) as string | undefined;
+  return fromRaw?.trim() ? fromRaw.trim() : null;
 };
 
 const ALL_SITES = "__all__";
@@ -101,7 +109,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
 
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_date, job_number, site, container_type, waste_description")
+        .select("id, job_date, job_number, site, container_type, waste_description, order_number_override, raw")
         .gte("job_date", format(dateRange.from, "yyyy-MM-dd"))
         .lte("job_date", format(dateRange.to, "yyyy-MM-dd"))
         .order("job_date", { ascending: false })
