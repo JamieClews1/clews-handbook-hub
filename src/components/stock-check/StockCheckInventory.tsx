@@ -1102,7 +1102,7 @@ const InventoryList = () => {
   };
 
   const {
-    data: rows = [],
+    data: allRows = [],
     isLoading,
     isFetching,
     refetch,
