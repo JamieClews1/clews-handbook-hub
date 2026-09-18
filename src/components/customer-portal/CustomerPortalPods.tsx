@@ -174,7 +174,9 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
     const withDocs = jobs.filter((j) => podJobs.has(j.job_number) || wtnJobs.has(j.job_number));
     if (!term) return withDocs;
     return withDocs.filter((j) =>
-      [j.job_number, j.site, j.waste_description, j.container_type].some((v) => (v ?? "").toLowerCase().includes(term))
+      [j.job_number, getOrderNumber(j), j.site, j.waste_description, j.container_type].some((v) =>
+        (v ?? "").toLowerCase().includes(term)
+      )
     );
   }, [jobs, podJobs, wtnJobs, search]);
 
@@ -247,6 +249,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Job No.</TableHead>
+                <TableHead>Order No.</TableHead>
                 <TableHead>Site</TableHead>
                 <TableHead>Container</TableHead>
                 <TableHead>Waste Type</TableHead>
@@ -259,6 +262,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
                 <TableRow key={job.id}>
                   <TableCell>{job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}</TableCell>
                   <TableCell className="font-mono text-sm">{job.job_number}</TableCell>
+                  <TableCell className="font-mono text-sm">{getOrderNumber(job) ?? "-"}</TableCell>
                   <TableCell>{job.site ?? "-"}</TableCell>
                   <TableCell>{job.container_type ?? "-"}</TableCell>
                   <TableCell>{job.waste_description ?? "-"}</TableCell>
