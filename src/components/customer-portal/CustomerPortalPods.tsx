@@ -38,8 +38,16 @@ type JobRow = {
 
 const getOrderNumber = (job: JobRow): string | null => {
   if (job.order_number_override?.trim()) return job.order_number_override.trim();
-  const fromRaw = (job.raw?.["Order No"] ?? job.raw?.["Order"] ?? job.raw?.["order_number"]) as string | undefined;
-  return fromRaw?.trim() ? fromRaw.trim() : null;
+  const raw = job.raw && typeof job.raw === "object" && !Array.isArray(job.raw) ? (job.raw as Record<string, unknown>) : null;
+  const fromRaw = raw?.["Order No"] ?? raw?.["Order"] ?? raw?.["order_number"];
+  const str = fromRaw == null ? "" : String(fromRaw).trim();
+  return str ? str : null;
+};
+
+const formatJobDate = (value: string | null): string => {
+  if (!value) return "-";
+  const d = new Date(value.length <= 10 ? `${value}T00:00:00` : value);
+  return isNaN(d.getTime()) ? "-" : format(d, "dd/MM/yyyy");
 };
 
 const ALL_SITES = "__all__";
