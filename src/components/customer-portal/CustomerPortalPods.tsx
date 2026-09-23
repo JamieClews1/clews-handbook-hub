@@ -268,7 +268,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
             <TableBody>
               {filtered.map((job) => (
                 <TableRow key={job.id}>
-                  <TableCell>{job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "-"}</TableCell>
+                  <TableCell>{formatJobDate(job.job_date)}</TableCell>
                   <TableCell className="font-mono text-sm">{job.job_number}</TableCell>
                   <TableCell className="font-mono text-sm">{getOrderNumber(job) ?? "-"}</TableCell>
                   <TableCell>{job.site ?? "-"}</TableCell>
