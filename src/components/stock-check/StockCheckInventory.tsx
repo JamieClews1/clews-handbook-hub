@@ -1282,7 +1282,9 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       catalogued: cataloguedByType[t.id] || 0,
       expected: Math.max(0, (expected.expectedByType[t.id] || 0) - (outOfServiceByType[t.id] || 0)),
     }));
-    const totalCatalogued = active.length;
+    // Only bins matched to an expected size count, capped per size so a surplus
+    // in one size can't hide a shortfall in another (headline never exceeds 100%).
+    const totalCatalogued = perType.reduce((s, t) => s + Math.min(t.catalogued, t.expected), 0);
     const totalExpected = perType.reduce((s, t) => s + t.expected, 0);
     return {
       perType,
