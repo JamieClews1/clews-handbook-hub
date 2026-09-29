@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.grant_staff_role_on_user_types() FROM PUBLIC, anon, authenticated;
