@@ -1775,6 +1775,10 @@ export function CustomerSetupAdmin() {
                                   <Button variant="outline" size="sm" onClick={() => saveSiteAccess(m.id)}>
                                     Save access
                                   </Button>
+                                  <Button variant="outline" size="sm" className="gap-1" onClick={() => openAccessEmailDialog(m.id)}>
+                                    <Mail className="h-3 w-3" />
+                                    Send login email
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => removeMembership(m.id)}>
                                     Remove
                                   </Button>
