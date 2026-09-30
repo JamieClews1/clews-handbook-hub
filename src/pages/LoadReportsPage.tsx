@@ -70,6 +70,7 @@ const LoadReportsPage = () => {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [weighbridgeWeightKg, setWeighbridgeWeightKg] = useState<number | null>(null);
   const [weighbridgeLoading, setWeighbridgeLoading] = useState(false);
+  const [siteMismatch, setSiteMismatch] = useState<string | null>(null);
   const [palletsOut, setPalletsOut] = useState(0);
   const [noPalletsOnLoad, setNoPalletsOnLoad] = useState(false);
   const [excludeFromRebate, setExcludeFromRebate] = useState(false);
@@ -437,6 +438,60 @@ const LoadReportsPage = () => {
     if (match) setSelectedSiteId(match.id);
   };
 
+  // Flag when the selected site doesn't match the site on the job ticket
+  const checkSiteMismatch = async (jobNum: string, siteId: string) => {
+    const trimmed = jobNum.trim();
+    if (!trimmed || !siteId) {
+      setSiteMismatch(null);
+      return;
+    }
+
+    const { data: jobs } = await supabase
+      .from("data_hub_jobs")
+      .select("customer, site, source")
+      .eq("job_number", trimmed)
+      .limit(5);
+    if (!jobs || jobs.length === 0) {
+      setSiteMismatch(null);
+      return;
+    }
+
+    const job = jobs.find((j: any) => j.source === "skiptrak") || jobs[0];
+    const jobSite = (job.site || "").trim().toLowerCase();
+    if (!jobSite) {
+      setSiteMismatch(null);
+      return;
+    }
+
+    const { data: mapping } = await supabase
+      .from("customer_sites")
+      .select("data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+      .eq("id", siteId)
+      .maybeSingle();
+    if (!mapping) {
+      setSiteMismatch(null);
+      return;
+    }
+
+    const norm = (s: string | null | undefined) => (s || "").trim().toLowerCase();
+    const matches = [
+      mapping.data_hub_site,
+      mapping.data_hub_site_2,
+      mapping.data_hub_site_3,
+      mapping.data_hub_site_4,
+      mapping.data_hub_site_5,
+    ]
+      .map(norm)
+      .some((s) => s && s === jobSite);
+
+    setSiteMismatch(matches ? null : (job.site || "").trim());
+  };
+
+  const handleSiteChange = (siteId: string) => {
+    setSelectedSiteId(siteId);
+    checkSiteMismatch(jobNumber, siteId);
+  };
+
   const handleJobNumberChange = (value: string) => {
     setJobNumber(value);
 
@@ -445,6 +500,7 @@ const LoadReportsPage = () => {
     (handleJobNumberChange as any)._t = window.setTimeout(() => {
       fetchWeighbridgeWeightKg(value);
       autoAssignSiteFromJob(value);
+      checkSiteMismatch(value, selectedSiteId);
     }, 300);
   };
 
@@ -477,6 +533,7 @@ const LoadReportsPage = () => {
     setVehicleReg("");
     setJobNumber("");
     setSelectedSiteId("");
+    setSiteMismatch(null);
     setPalletsOut(0);
     setNoPalletsOnLoad(false);
     setExcludeFromRebate(false);
@@ -1195,7 +1252,8 @@ const LoadReportsPage = () => {
               onOperatorNameChange={setOperatorName}
               onVehicleRegChange={setVehicleReg}
               onJobNumberChange={handleJobNumberChange}
-              onSiteChange={setSelectedSiteId}
+              onSiteChange={handleSiteChange}
+              siteMismatch={siteMismatch}
               weighbridgeWeightKg={weighbridgeWeightKg}
               weighbridgeLoading={weighbridgeLoading}
               onLookupWeighbridgeWeight={() => fetchWeighbridgeWeightKg(jobNumber)}

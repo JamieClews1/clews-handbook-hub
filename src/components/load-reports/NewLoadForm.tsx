@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Truck, ArrowRight, RefreshCw, Trash2 } from "lucide-react";
+import { Truck, ArrowRight, RefreshCw, Trash2, AlertTriangle } from "lucide-react";
 
 interface SiteOption {
   id: string;
@@ -57,6 +57,8 @@ interface NewLoadFormProps {
   isDeleting?: boolean;
   customerType?: string | null;
   onCustomerTypeChange?: (value: string) => void;
+  /** Site name from the job ticket when it doesn't match the selected site. */
+  siteMismatch?: string | null;
 }
 
 const REPORT_TYPE_OPTIONS: { value: string; label: string }[] = [
@@ -91,6 +93,7 @@ export const NewLoadForm = ({
   isDeleting = false,
   customerType,
   onCustomerTypeChange,
+  siteMismatch,
 }: NewLoadFormProps) => {
   const isEvri = customerType === "evri";
   const jobLabel = isEvri ? "Midweigh Ticket Number" : "Job Number";
@@ -303,6 +306,15 @@ export const NewLoadForm = ({
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            {siteMismatch && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  The job ticket is for site <strong>{siteMismatch}</strong>, which
+                  doesn't match the selected site. Please double-check before continuing.
+                </span>
+              </div>
             )}
           </div>
 
