@@ -284,6 +284,15 @@ export function CustomerSetupAdmin() {
   // Create portal login state (for contacts without portal access)
   const [creatingPortalLogin, setCreatingPortalLogin] = useState(false);
 
+  // Portal access email state
+  const [accessEmailOpen, setAccessEmailOpen] = useState(false);
+  const [accessEmailMembershipId, setAccessEmailMembershipId] = useState<string | null>(null);
+  const [accessEmailTo, setAccessEmailTo] = useState("");
+  const [accessEmailName, setAccessEmailName] = useState("");
+  const [includeTempPassword, setIncludeTempPassword] = useState(true);
+  const [tempPassword, setTempPassword] = useState("");
+  const [sendingAccessEmail, setSendingAccessEmail] = useState(false);
+
   const [syncingBrokerSites, setSyncingBrokerSites] = useState(false);
 
   const normalizeBrokerName = (value: string) =>
