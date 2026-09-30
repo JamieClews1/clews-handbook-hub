@@ -216,6 +216,29 @@ const RouteOnePage = () => {
   const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
   const [reorganiseOpen, setReorganiseOpen] = useState(false);
 
+  // List view column selection, persisted per browser
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(LIST_COLUMNS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter((k: string) => LIST_COLUMNS.some((c) => c.key === k));
+          if (valid.length > 0) return valid;
+        }
+      }
+    } catch { /* ignore */ }
+    return LIST_COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key);
+  });
+  const toggleColumn = (key: string) => {
+    setVisibleColumns((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      try { localStorage.setItem(LIST_COLUMNS_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const activeColumns = LIST_COLUMNS.filter((c) => visibleColumns.includes(c.key));
+
   // New job form
   const [jobForm, setJobForm] = useState({
     customer_name: "",
@@ -330,7 +353,7 @@ const RouteOnePage = () => {
     queryFn: async () => {
       let query = supabase
         .from("data_hub_jobs")
-        .select("id, job_number, job_date, customer, site, postcode, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location, rebate_rate_per_tonne")
+        .select("id, job_number, job_date, customer, site, postcode, movement_type, container_type, waste_description, weight_t, vehicle_registration, driver, tipping_location, rebate_rate_per_tonne, ewc, category, haulier, account_code, order_number_override")
         .eq("source", "skiptrak");
       if (isExactTicketSearch) {
         query = query.eq("job_number", search);
