@@ -76,8 +76,8 @@ interface ListColumnDef {
   key: string;
   label: string;
   defaultVisible: boolean;
-  getNative: (job: any, driver?: any) => React.ReactNode;
-  getSkiptrak: (sj: any) => React.ReactNode;
+  getNative: (job: any, driver?: any) => ReactNode;
+  getSkiptrak: (sj: any) => ReactNode;
 }
 
 const fmtDate = (d: string | null | undefined) => (d ? format(new Date(d), "dd/MM/yy") : "");
