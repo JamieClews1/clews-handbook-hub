@@ -61,10 +61,51 @@ import { WtnDesignSettings } from "@/components/route-one/WtnDesignSettings";
 import { useJobTypes, jobTypeLabel, jobTypeSolidClass, jobTypeAccentClass } from "@/components/route-one/jobTypes";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Columns3 } from "lucide-react";
+
+// Columns available in the List view. Each column knows how to read its value
+// from a native RouteOne job and from a Skiptrak (data hub) job.
+interface ListColumnDef {
+  key: string;
+  label: string;
+  defaultVisible: boolean;
+  getNative: (job: any, driver?: any) => React.ReactNode;
+  getSkiptrak: (sj: any) => React.ReactNode;
+}
+
+const fmtDate = (d: string | null | undefined) => (d ? format(new Date(d), "dd/MM/yy") : "");
+const fmtWeight = (w: number | null | undefined) => (w != null ? `${w}t` : "—");
+
+const LIST_COLUMNS: ListColumnDef[] = [
+  { key: "job_number", label: "Job No", defaultVisible: true, getNative: (j) => j.job_number || "—", getSkiptrak: (s) => s.job_number || "—" },
+  { key: "status", label: "Status", defaultVisible: true, getNative: () => null, getSkiptrak: () => null }, // rendered specially
+  { key: "customer", label: "Customer", defaultVisible: true, getNative: (j) => j.customer_name, getSkiptrak: (s) => s.customer || "Unknown" },
+  { key: "site", label: "Site", defaultVisible: true, getNative: (j) => j.site_name || "—", getSkiptrak: (s) => s.site || "—" },
+  { key: "type", label: "Type", defaultVisible: true, getNative: (j) => j.job_type, getSkiptrak: (s) => s.movement_type || "—" },
+  { key: "container", label: "Container", defaultVisible: true, getNative: (j) => j.container_type || "—", getSkiptrak: (s) => s.container_type || "—" },
+  { key: "weight", label: "Net Weight", defaultVisible: true, getNative: (j) => fmtWeight(j.net_weight_t ?? j.weight_t), getSkiptrak: (s) => fmtWeight(s.weight_t) },
+  { key: "waste", label: "Waste", defaultVisible: true, getNative: (j) => j.waste_type || "—", getSkiptrak: (s) => s.waste_description || "—" },
+  { key: "driver", label: "Driver", defaultVisible: true, getNative: (_j, d) => d?.driver_name || "Unassigned", getSkiptrak: (s) => s.driver || "—" },
+  { key: "date", label: "Date", defaultVisible: true, getNative: (j) => fmtDate(j.scheduled_date), getSkiptrak: (s) => fmtDate(s.job_date) },
+  { key: "po", label: "PO", defaultVisible: true, getNative: (j) => j.po_number || "—", getSkiptrak: (s) => s.order_number_override || "—" },
+  { key: "postcode", label: "Postcode", defaultVisible: false, getNative: (j) => j.site_postcode || "—", getSkiptrak: (s) => s.postcode || "—" },
+  { key: "ewc", label: "EWC", defaultVisible: false, getNative: (j) => j.ewc_code || "—", getSkiptrak: (s) => s.ewc || "—" },
+  { key: "vehicle", label: "Vehicle", defaultVisible: false, getNative: (j) => j.vehicle_reg || "—", getSkiptrak: (s) => s.vehicle_registration || "—" },
+  { key: "tipping", label: "Tipping Location", defaultVisible: false, getNative: (j) => j.disposal_site || "—", getSkiptrak: (s) => s.tipping_location || "—" },
+  { key: "category", label: "Category", defaultVisible: false, getNative: () => "—", getSkiptrak: (s) => s.category || "—" },
+  { key: "haulier", label: "Haulier", defaultVisible: false, getNative: (j) => j.carrier_name || "—", getSkiptrak: (s) => s.haulier || "—" },
+  { key: "account_code", label: "Account Code", defaultVisible: false, getNative: (j) => j.account_code || "—", getSkiptrak: (s) => s.account_code || "—" },
+  { key: "source", label: "Source", defaultVisible: true, getNative: () => "Native", getSkiptrak: () => "Skiptrak" },
+];
+
+const LIST_COLUMNS_STORAGE_KEY = "routeone-list-columns";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey" | "waste_out_skip";
