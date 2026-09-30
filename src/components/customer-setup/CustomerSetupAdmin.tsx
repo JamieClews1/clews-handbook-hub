@@ -1648,6 +1648,18 @@ export function CustomerSetupAdmin() {
                               {/* Actions - right side */}
                               <div className="flex flex-col gap-2 items-end">
                                 <div className="flex items-center gap-1">
+                                  {hasPortalAccess && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs gap-1"
+                                      title="Send portal access email"
+                                      onClick={() => openAccessEmailDialog(membership.id)}
+                                    >
+                                      <Mail className="h-3 w-3" />
+                                      Send access
+                                    </Button>
+                                  )}
                                   {hasPortalAccess ? (
                                     <Button
                                       variant="outline"
