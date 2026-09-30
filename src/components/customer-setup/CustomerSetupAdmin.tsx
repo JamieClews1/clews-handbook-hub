@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users } from "lucide-react";
+import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
@@ -283,6 +283,15 @@ export function CustomerSetupAdmin() {
 
   // Create portal login state (for contacts without portal access)
   const [creatingPortalLogin, setCreatingPortalLogin] = useState(false);
+
+  // Portal access email state
+  const [accessEmailOpen, setAccessEmailOpen] = useState(false);
+  const [accessEmailMembershipId, setAccessEmailMembershipId] = useState<string | null>(null);
+  const [accessEmailTo, setAccessEmailTo] = useState("");
+  const [accessEmailName, setAccessEmailName] = useState("");
+  const [includeTempPassword, setIncludeTempPassword] = useState(true);
+  const [tempPassword, setTempPassword] = useState("");
+  const [sendingAccessEmail, setSendingAccessEmail] = useState(false);
 
   const [syncingBrokerSites, setSyncingBrokerSites] = useState(false);
 
@@ -1136,6 +1145,52 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  const generateTempPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    const bytes = new Uint32Array(10);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  };
+
+  const openAccessEmailDialog = (membershipId: string) => {
+    const m = memberships.find((x) => x.id === membershipId);
+    const profile = m ? profilesById[m.user_id] : null;
+    const contact = m?.contact_id ? contactsById[m.contact_id] : null;
+    setAccessEmailMembershipId(membershipId);
+    setAccessEmailTo(profile?.email ?? contact?.email ?? "");
+    setAccessEmailName(contact?.full_name ?? profile?.full_name ?? "");
+    setIncludeTempPassword(true);
+    setTempPassword(generateTempPassword());
+    setAccessEmailOpen(true);
+  };
+
+  const sendAccessEmail = async () => {
+    if (!accessEmailMembershipId) return;
+    if (includeTempPassword && tempPassword.trim().length < 6) {
+      toast({ title: "Invalid password", description: "Temporary password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    setSendingAccessEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-portal-access-email", {
+        body: {
+          membership_id: accessEmailMembershipId,
+          temporary_password: includeTempPassword ? tempPassword.trim() : null,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Email sent", description: `Portal access details sent to ${data?.sent_to ?? accessEmailTo}.` });
+      setAccessEmailOpen(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to send the portal access email.", variant: "destructive" });
+    } finally {
+      setSendingAccessEmail(false);
+    }
+  };
+
+
+
   // Create a portal login for a contact who doesn't have one yet
   const createPortalLoginForContact = async (contact: CustomerContact) => {
     if (!selectedCustomerId || !contact.email) {
@@ -1593,6 +1648,18 @@ export function CustomerSetupAdmin() {
                               {/* Actions - right side */}
                               <div className="flex flex-col gap-2 items-end">
                                 <div className="flex items-center gap-1">
+                                  {hasPortalAccess && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs gap-1"
+                                      title="Send portal access email"
+                                      onClick={() => openAccessEmailDialog(membership.id)}
+                                    >
+                                      <Mail className="h-3 w-3" />
+                                      Send access
+                                    </Button>
+                                  )}
                                   {hasPortalAccess ? (
                                     <Button
                                       variant="outline"
@@ -1707,6 +1774,10 @@ export function CustomerSetupAdmin() {
                                 <div className="flex flex-wrap gap-2">
                                   <Button variant="outline" size="sm" onClick={() => saveSiteAccess(m.id)}>
                                     Save access
+                                  </Button>
+                                  <Button variant="outline" size="sm" className="gap-1" onClick={() => openAccessEmailDialog(m.id)}>
+                                    <Mail className="h-3 w-3" />
+                                    Send login email
                                   </Button>
                                   <Button variant="outline" size="sm" onClick={() => removeMembership(m.id)}>
                                     Remove
@@ -2500,6 +2571,67 @@ export function CustomerSetupAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Portal access email dialog */}
+      <Dialog open={accessEmailOpen} onOpenChange={setAccessEmailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send portal access email</DialogTitle>
+            <DialogDescription>
+              Emails {accessEmailName ? `${accessEmailName} ` : ""}
+              <span className="font-medium">{accessEmailTo}</span> with the portal address and how to sign in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="include_temp_password"
+                checked={includeTempPassword}
+                onCheckedChange={(v) => setIncludeTempPassword(Boolean(v))}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="include_temp_password" className="cursor-pointer">
+                  Include a temporary password
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Sets this as their password now and includes it in the email. They can change it in My Profile.
+                </p>
+              </div>
+            </div>
+            {includeTempPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="temp_password">Temporary password</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="temp_password"
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Generate a new password"
+                    onClick={() => setTempPassword(generateTempPassword())}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAccessEmailOpen(false)} disabled={sendingAccessEmail}>
+              Cancel
+            </Button>
+            <Button onClick={sendAccessEmail} disabled={sendingAccessEmail || !accessEmailTo}>
+              {sendingAccessEmail ? "Sending..." : "Send email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
     </Tabs>
   );
