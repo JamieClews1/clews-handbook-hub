@@ -1181,23 +1181,43 @@ const RouteOnePage = () => {
           <DriverTrackingMap />
         </div>
       ) : viewMode === "list" ? (
-        <div className="flex-1 overflow-auto p-4">
-          <div className="rounded-lg border border-border">
+        <div className="flex-1 overflow-auto p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {jobs.length + skiptrakScheduledJobs.length} jobs · {activeColumns.length} columns shown
+            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                  <Columns3 className="h-3.5 w-3.5" /> Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs">Show columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {LIST_COLUMNS.map((col) => (
+                  <DropdownMenuCheckboxItem
+                    key={col.key}
+                    checked={visibleColumns.includes(col.key)}
+                    onCheckedChange={() => toggleColumn(col.key)}
+                    onSelect={(e) => e.preventDefault()}
+                    className="text-xs"
+                  >
+                    {col.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[90px]">Job No</TableHead>
-                  <TableHead className="w-[40px]">Status</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Site</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden md:table-cell">Container</TableHead>
-                  <TableHead className="hidden lg:table-cell">Net Weight</TableHead>
-                  <TableHead className="hidden lg:table-cell">Waste</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead className="hidden md:table-cell">Date</TableHead>
-                  <TableHead className="hidden lg:table-cell">PO</TableHead>
-                  <TableHead className="hidden lg:table-cell">Source</TableHead>
+                  {activeColumns.map((col) => (
+                    <TableHead key={col.key} className={col.key === "status" ? "w-[40px]" : col.key === "job_number" ? "w-[90px]" : ""}>
+                      {col.label}
+                    </TableHead>
+                  ))}
                   <TableHead className="w-[40px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -1213,33 +1233,32 @@ const RouteOnePage = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingJob(job)}
                     >
-                      <TableCell className="text-sm tabular-nums font-medium">{job.job_number || "—"}</TableCell>
-                      <TableCell>
-                        <div className={`w-3 h-3 rounded-full ${
-                          status === "completed" ? "bg-emerald-500" :
-                          status === "in_progress" ? "bg-blue-500" :
-                          status === "query" ? "bg-red-500" :
-                          status === "assigned" ? "bg-primary" :
-                          "bg-muted-foreground/30"
-                        }`} />
-                      </TableCell>
-                      <TableCell className="font-medium text-sm">{job.customer_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        <span className="mr-1.5">{job.site_name || "—"}</span>
-                        <PermitBadge permit={permitsByJob[job.id]} />
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{job.container_type || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm tabular-nums">{job.net_weight_t != null ? `${job.net_weight_t}t` : job.weight_t != null ? `${job.weight_t}t` : "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{job.waste_type || "—"}</TableCell>
-                      <TableCell className="text-sm">{driver?.driver_name || "Unassigned"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{job.scheduled_date ? format(new Date(job.scheduled_date), "dd/MM/yy") : ""}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">{job.po_number || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Badge variant="outline" className="text-[10px]">Native</Badge>
-                      </TableCell>
+                      {activeColumns.map((col) => (
+                        <TableCell key={col.key} className="text-sm">
+                          {col.key === "status" ? (
+                            <div className={`w-3 h-3 rounded-full ${
+                              status === "completed" ? "bg-emerald-500" :
+                              status === "in_progress" ? "bg-blue-500" :
+                              status === "query" ? "bg-red-500" :
+                              status === "assigned" ? "bg-primary" :
+                              "bg-muted-foreground/30"
+                            }`} />
+                          ) : col.key === "type" ? (
+                            <Badge className={`text-[10px] ${jtSolid(jt)}`}>{jtLabel(jt)}</Badge>
+                          ) : col.key === "site" ? (
+                            <span className="text-muted-foreground">
+                              <span className="mr-1.5">{job.site_name || "—"}</span>
+                              <PermitBadge permit={permitsByJob[job.id]} />
+                            </span>
+                          ) : col.key === "source" ? (
+                            <Badge variant="outline" className="text-[10px]">Native</Badge>
+                          ) : col.key === "customer" ? (
+                            <span className="font-medium">{col.getNative(job, driver)}</span>
+                          ) : (
+                            col.getNative(job, driver)
+                          )}
+                        </TableCell>
+                      ))}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1271,40 +1290,39 @@ const RouteOnePage = () => {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingSkiptrakJob(sj)}
                     >
-                      <TableCell className="text-sm tabular-nums font-medium">{sj.job_number || "—"}</TableCell>
-                      <TableCell>
-                        <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border border-dashed border-muted-foreground/40" />
-                      </TableCell>
-                      <TableCell className="font-medium text-sm">{sj.customer || "Unknown"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{sj.site || "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {mt ? (
-                          <Badge className={`text-[10px] ${jtSolid(mt)}`}>{sj.movement_type}</Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{sj.movement_type || "—"}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{sj.container_type || "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm tabular-nums">{sj.weight_t != null ? `${sj.weight_t}t` : "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
-                        <span>{sj.waste_description || "—"}</span>
-                        {sj.rebate_rate_per_tonne != null && (
-                          <Badge variant="outline" className="ml-1.5 text-[10px]">£{Number(sj.rebate_rate_per_tonne).toFixed(2)}/t</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">{sj.driver || "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{sj.job_date ? format(new Date(sj.job_date), "dd/MM/yy") : ""}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">—</TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Badge variant="secondary" className="text-[10px]">Skiptrak</Badge>
-                      </TableCell>
+                      {activeColumns.map((col) => (
+                        <TableCell key={col.key} className="text-sm">
+                          {col.key === "status" ? (
+                            <div className="w-3 h-3 rounded-full bg-muted-foreground/20 border border-dashed border-muted-foreground/40" />
+                          ) : col.key === "type" ? (
+                            mt ? (
+                              <Badge className={`text-[10px] ${jtSolid(mt)}`}>{sj.movement_type}</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{sj.movement_type || "—"}</span>
+                            )
+                          ) : col.key === "waste" ? (
+                            <span>
+                              {sj.waste_description || "—"}
+                              {sj.rebate_rate_per_tonne != null && (
+                                <Badge variant="outline" className="ml-1.5 text-[10px]">£{Number(sj.rebate_rate_per_tonne).toFixed(2)}/t</Badge>
+                              )}
+                            </span>
+                          ) : col.key === "source" ? (
+                            <Badge variant="secondary" className="text-[10px]">Skiptrak</Badge>
+                          ) : col.key === "customer" ? (
+                            <span className="font-medium">{col.getSkiptrak(sj)}</span>
+                          ) : (
+                            col.getSkiptrak(sj)
+                          )}
+                        </TableCell>
+                      ))}
                       <TableCell />
                     </TableRow>
                   );
                 })}
                 {jobs.length === 0 && skiptrakScheduledJobs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={activeColumns.length + 1} className="text-center text-muted-foreground py-12">
                       No jobs found for this period
                     </TableCell>
                   </TableRow>
