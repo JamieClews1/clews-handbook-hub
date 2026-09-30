@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2 } from "lucide-react";
+import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1070,6 +1071,18 @@ export function CustomerSetupAdmin() {
     });
   };
 
+  /** Grant/revoke one user's access to one site immediately (used from the Sites table). */
+  const setSingleSiteAccess = async (membershipId: string, siteId: string, checked: boolean) => {
+    toggleSiteAccess(membershipId, siteId, checked);
+    const { error } = checked
+      ? await supabase.from("customer_portal_site_access").insert({ membership_id: membershipId, site_id: siteId })
+      : await supabase.from("customer_portal_site_access").delete().eq("membership_id", membershipId).eq("site_id", siteId);
+    if (error) {
+      toggleSiteAccess(membershipId, siteId, !checked);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const saveSiteAccess = async (membershipId: string) => {
     try {
       const allowed = Array.from(siteAccessByMembershipId[membershipId] ?? []);
@@ -1390,6 +1403,7 @@ export function CustomerSetupAdmin() {
                           <TableHead>Site</TableHead>
                           <TableHead>Load Report Type</TableHead>
                           <TableHead>Owner contact</TableHead>
+                          <TableHead>Portal access</TableHead>
                           <TableHead>Data Hub customer</TableHead>
                           <TableHead>Rebate Set</TableHead>
                           <TableHead className="w-[180px]">Actions</TableHead>
@@ -1425,6 +1439,46 @@ export function CustomerSetupAdmin() {
                                 )}
                               </TableCell>
                               <TableCell>{owner ? owner.full_name : <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const withAccess = memberships.filter((m) => siteAccessByMembershipId[m.id]?.has(s.id));
+                                  const nameFor = (m: Membership) =>
+                                    (m.contact_id && contactsById[m.contact_id]?.full_name) || profilesById[m.user_id]?.email || "User";
+                                  return (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-auto min-h-8 max-w-[240px] justify-start whitespace-normal text-left font-normal">
+                                          <Users className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                                          {withAccess.length === 0
+                                            ? <span className="text-muted-foreground">No users</span>
+                                            : <span className="truncate">{withAccess.map(nameFor).join(", ")}</span>}
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-72 p-3" align="start">
+                                        <p className="text-sm font-medium mb-1">Who can see {s.site_name}?</p>
+                                        {memberships.length === 0 ? (
+                                          <p className="text-xs text-muted-foreground">No portal users yet — create a portal login for a contact first.</p>
+                                        ) : (
+                                          <div className="space-y-1 max-h-64 overflow-auto">
+                                            {memberships.map((m) => (
+                                              <label key={m.id} className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-muted cursor-pointer">
+                                                <Checkbox
+                                                  checked={!!siteAccessByMembershipId[m.id]?.has(s.id)}
+                                                  onCheckedChange={(v) => setSingleSiteAccess(m.id, s.id, Boolean(v))}
+                                                />
+                                                <span className="flex flex-col">
+                                                  <span className="text-sm">{nameFor(m)}</span>
+                                                  <span className="text-xs text-muted-foreground">{profilesById[m.user_id]?.email}</span>
+                                                </span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </PopoverContent>
+                                    </Popover>
+                                  );
+                                })()}
+                              </TableCell>
                               <TableCell>{s.data_hub_customer ?? <span className="text-muted-foreground">—</span>}</TableCell>
                               <TableCell>
                                 {priceSet ? (
@@ -1459,7 +1513,7 @@ export function CustomerSetupAdmin() {
                         })}
                         {sites.filter((s) => !!s.is_archived === showArchivedSites).length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-muted-foreground">
+                            <TableCell colSpan={7} className="text-muted-foreground">
                               {showArchivedSites ? "No archived sites." : "No active sites."}
                             </TableCell>
                           </TableRow>
