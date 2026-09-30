@@ -1145,6 +1145,52 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  const generateTempPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    const bytes = new Uint32Array(10);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  };
+
+  const openAccessEmailDialog = (membershipId: string) => {
+    const m = memberships.find((x) => x.id === membershipId);
+    const profile = m ? profilesById[m.user_id] : null;
+    const contact = m?.contact_id ? contactsById[m.contact_id] : null;
+    setAccessEmailMembershipId(membershipId);
+    setAccessEmailTo(profile?.email ?? contact?.email ?? "");
+    setAccessEmailName(contact?.full_name ?? profile?.full_name ?? "");
+    setIncludeTempPassword(true);
+    setTempPassword(generateTempPassword());
+    setAccessEmailOpen(true);
+  };
+
+  const sendAccessEmail = async () => {
+    if (!accessEmailMembershipId) return;
+    if (includeTempPassword && tempPassword.trim().length < 6) {
+      toast({ title: "Invalid password", description: "Temporary password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    setSendingAccessEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-portal-access-email", {
+        body: {
+          membership_id: accessEmailMembershipId,
+          temporary_password: includeTempPassword ? tempPassword.trim() : null,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Email sent", description: `Portal access details sent to ${data?.sent_to ?? accessEmailTo}.` });
+      setAccessEmailOpen(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to send the portal access email.", variant: "destructive" });
+    } finally {
+      setSendingAccessEmail(false);
+    }
+  };
+
+
+
   // Create a portal login for a contact who doesn't have one yet
   const createPortalLoginForContact = async (contact: CustomerContact) => {
     if (!selectedCustomerId || !contact.email) {
