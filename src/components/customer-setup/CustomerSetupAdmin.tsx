@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users } from "lucide-react";
+import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
