@@ -2568,6 +2568,67 @@ export function CustomerSetupAdmin() {
         </DialogContent>
       </Dialog>
 
+      {/* Portal access email dialog */}
+      <Dialog open={accessEmailOpen} onOpenChange={setAccessEmailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send portal access email</DialogTitle>
+            <DialogDescription>
+              Emails {accessEmailName ? `${accessEmailName} ` : ""}
+              <span className="font-medium">{accessEmailTo}</span> with the portal address and how to sign in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="include_temp_password"
+                checked={includeTempPassword}
+                onCheckedChange={(v) => setIncludeTempPassword(Boolean(v))}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="include_temp_password" className="cursor-pointer">
+                  Include a temporary password
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Sets this as their password now and includes it in the email. They can change it in My Profile.
+                </p>
+              </div>
+            </div>
+            {includeTempPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="temp_password">Temporary password</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="temp_password"
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Generate a new password"
+                    onClick={() => setTempPassword(generateTempPassword())}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAccessEmailOpen(false)} disabled={sendingAccessEmail}>
+              Cancel
+            </Button>
+            <Button onClick={sendAccessEmail} disabled={sendingAccessEmail || !accessEmailTo}>
+              {sendingAccessEmail ? "Sending..." : "Send email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
     </Tabs>
   );
 }
