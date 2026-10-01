@@ -36,6 +36,11 @@ const guides: Guide[] = [
         href: "/rebate-values", linkLabel: "Open monthly rebates",
       },
       {
+        title: "Adjust rebates on individual load reports",
+        detail: "Some rebate changes are made on the load report itself rather than in the setup. When creating or editing a load report you can tick Exclude from Monthly Rebate Report (for example on liquid loads), set a Weight Rebate Threshold so rebate is only paid on weight above that limit, and enter Bespoke Rebate Rates for individual materials on that load.",
+        href: "/load-reports", linkLabel: "Open Load Reports",
+      },
+      {
         title: "Review and send",
         detail: "Preview or download the customer report. When the figures are correct, use the send action for a site or the customer email action. Check every recipient and message in the review window before selecting Send. Use Sent Rebates and Tracking to confirm what was sent and what remains outstanding.",
       },
