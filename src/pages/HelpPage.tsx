@@ -48,6 +48,37 @@ const guides: Guide[] = [
     note: "A locked report keeps its saved figures; changing a monthly rate later will not automatically update that locked report.",
   },
   {
+    id: "rebate-setup",
+    title: "How to set up a rebate",
+    section: "Customer Setup",
+    intro: "Set up a customer and site so their jobs appear in the monthly rebate report with the right prices.",
+    steps: [
+      {
+        title: "Open the customer",
+        detail: "Open Customer Setup and select the customer. If the rebate is for a brand new customer, create the customer first. On the Edit customer screen you can also switch on Midweigh rebates — only do this for customers whose standalone Midweigh weighbridge tickets should generate rebates (for example Biffa, Conectiv or Transol); when it is off, Midweigh jobs are excluded from that customer's rebate reports.",
+        href: "/customer-setup", linkLabel: "Open Customer Setup",
+      },
+      {
+        title: "Open the site and set the load report type",
+        detail: "On the Sites tab choose the site and select Edit (or use New site for a fresh one and save it first). In the Details tab set the Load Report Type — this decides which materials appear for rebate values.",
+      },
+      {
+        title: "Assign a rebate set",
+        detail: "In the Rebate pricing tab pick the rebate set (pricing template) this site uses, or type a name into Or create new rebate set to make a new one. The rebate set is what links the site to the monthly values you enter in Rebates.",
+      },
+      {
+        title: "Add Skip / RoRo rebate lines",
+        detail: "In the Skip / RoRo rebates tab add a line for each rebate material. You can filter by container type (comma-separated for several), set bespoke values, add a per-load weight threshold (pay only on weight above the limit) and apply rate adjustments. Numeric fields update when you click away, not as you type.",
+      },
+      {
+        title: "Check the setup",
+        detail: "Open Rebates → Check, choose the reporting period and select Generate Report. The site should no longer be marked Not Set Up. Remember the figures only show money once the month's values have been entered in Rebates → Monthly Values.",
+        href: "/rebate-values", linkLabel: "Open Rebates",
+      },
+    ],
+    note: "Not every rebate change lives in the setup — on individual load reports you can exclude a load from the monthly rebate report, set a weight rebate threshold and enter bespoke £/tonne rates for that load. See the How to run rebates each month guide.",
+  },
+  {
     id: "skip-count",
     title: "How to do a skip count",
     section: "Stock Check",
