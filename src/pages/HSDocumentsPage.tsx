@@ -6,7 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, ClipboardCheck, Flame, AlertTriangle, ArrowRight, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, ClipboardCheck, Flame, AlertTriangle, ArrowRight, Users, Share2, Copy, Plus } from "lucide-react";
 
 export interface HSDocument {
   id: string;
@@ -47,6 +51,48 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [allSigs, setAllSigs] = useState<{ document_id: string; user_id: string; signed_at: string }[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const { toast } = useToast();
+  const [shareDoc, setShareDoc] = useState<HSDocument | null>(null);
+  const [shareLinks, setShareLinks] = useState<{ id: string; token: string; label: string | null; is_active: boolean; view_count: number }[]>([]);
+  const [shareLabel, setShareLabel] = useState("");
+
+  const loadShareLinks = async (docId: string) => {
+    const { data } = await supabase
+      .from("hs_document_share_links")
+      .select("id, token, label, is_active, view_count")
+      .eq("document_id", docId)
+      .order("created_at", { ascending: false });
+    setShareLinks(data || []);
+  };
+
+  const openShare = (doc: HSDocument) => {
+    setShareDoc(doc);
+    setShareLabel("");
+    loadShareLinks(doc.id);
+  };
+
+  const createShareLink = async () => {
+    if (!shareDoc) return;
+    const { error } = await supabase
+      .from("hs_document_share_links")
+      .insert({ document_id: shareDoc.id, label: shareLabel.trim() || null, created_by: user?.id });
+    if (error) {
+      toast({ title: "Could not create link", variant: "destructive" });
+      return;
+    }
+    setShareLabel("");
+    loadShareLinks(shareDoc.id);
+  };
+
+  const toggleShareLink = async (id: string, active: boolean) => {
+    await supabase.from("hs_document_share_links").update({ is_active: active }).eq("id", id);
+    if (shareDoc) loadShareLinks(shareDoc.id);
+  };
+
+  const copyLink = (token: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/induction/${token}`);
+    toast({ title: "Link copied" });
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -173,6 +219,11 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
                       <Link to={`/mass-sign-off?type=induction&id=${doc.id}`}>
                         <Users className="h-4 w-4" /> Mass sign-off
                       </Link>
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => openShare(doc)}>
+                      <Share2 className="h-4 w-4" /> Share link
                     </Button>
                   )}
                 </CardContent>
