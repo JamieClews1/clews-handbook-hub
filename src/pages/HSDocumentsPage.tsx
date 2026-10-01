@@ -319,6 +319,48 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!shareDoc} onOpenChange={(open) => !open && setShareDoc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share “{shareDoc?.title}”</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Anyone with the link can read and sign this document without logging in — handy for visitors and
+            contractors. Signatures are saved against the document.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Label (optional, e.g. Visitors)"
+              value={shareLabel}
+              onChange={(e) => setShareLabel(e.target.value)}
+            />
+            <Button onClick={createShareLink} className="gap-2 shrink-0">
+              <Plus className="h-4 w-4" /> New link
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {shareLinks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No links yet.</p>
+            ) : (
+              shareLinks.map((l) => (
+                <div key={l.id} className="flex items-center gap-2 rounded border px-3 py-2 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{l.label || "Share link"}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      /induction/{l.token.slice(0, 10)}… · {l.view_count} view{l.view_count === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => copyLink(l.token)} title="Copy link">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Switch checked={l.is_active} onCheckedChange={(v) => toggleShareLink(l.id, v)} />
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
 
   );
