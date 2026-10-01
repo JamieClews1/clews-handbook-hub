@@ -114,6 +114,14 @@ const HSDocumentDetailPage = () => {
     setSignature(sig as SignatureRow | null);
     setName((sig?.employee_name as string) || profile?.full_name || "");
     setJobTitle((sig?.job_title as string) || "");
+    if (isAdmin) {
+      const { data: guests } = await supabase
+        .from("hs_document_guest_signatures")
+        .select("id, signature_image, employee_name, job_title, inducted_by, signed_at, language")
+        .eq("document_id", id)
+        .order("signed_at", { ascending: false });
+      setGuestSigs((guests as SignatureRow[]) || []);
+    }
     setLoadingData(false);
   };
 
