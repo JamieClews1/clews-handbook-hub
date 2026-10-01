@@ -13,7 +13,7 @@ type Guide = {
   note?: string;
 };
 
-const guides: Guide[] = [
+const defaultGuides: Guide[] = [
   {
     id: "monthly-rebates",
     title: "How to run rebates each month",
@@ -107,6 +107,36 @@ const guides: Guide[] = [
       },
     ],
     note: "The Inventory tab tracks individual numbered bins and photos. It is separate from the size-by-size stock take.",
+  },
+  {
+    id: "container-loads",
+    title: "How to do a container load",
+    section: "Container Loads",
+    intro: "Record an export container from loading through to shipping, with photos, paperwork and the email to the buyer.",
+    steps: [
+      {
+        title: "Start a new load",
+        detail: "Open Container Loads and select New load (or use the Container tile in Load Reports). A load starts in Prepping with your name as operator.",
+        href: "/container-loads", linkLabel: "Open Container Loads",
+      },
+      {
+        title: "Fill in the details",
+        detail: "In the Detail section enter the container number, serial number, WB ticket number, weight, export date and bale count. Everything saves as you go.",
+      },
+      {
+        title: "Take the loading photos",
+        detail: "Open Photos and upload the required loading photos (each is date/time stamped). Set the category on each photo and add a caption where helpful. Once loaded, change the status to Loaded.",
+      },
+      {
+        title: "Complete the paperwork",
+        detail: "In Paperwork, check the Annex 7 fields and the packing sheet rows (one per bale), then download the Annex 7 and Packing Sheet PDFs. Set the status to Paperwork ready.",
+      },
+      {
+        title: "Send and mark as shipped",
+        detail: "Select Send to email the paperwork to an approved container contact — orders@ is copied automatically. Check the send history, then set the status to Exported / Shipped once it has left.",
+      },
+    ],
+    note: "Only the approved container contact companies can be emailed. Use the settings button on the Container Loads page to manage contacts and the default email wording.",
   },
 ];
 
