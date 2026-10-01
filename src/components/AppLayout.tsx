@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { PortalAssistantWidget } from "@/components/PortalAssistantWidget";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Search, Bell, Plus } from "lucide-react";
+import { LogOut, User, Search, Bell, Plus, CircleHelp } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -73,6 +73,9 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
 
             <div className="flex items-center gap-1">
+              <Button asChild variant="ghost" size="icon" className="text-muted-foreground" title="Help" aria-label="Help">
+                <Link to="/help"><CircleHelp className="h-5 w-5" /></Link>
+              </Button>
               {/* Quick Actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
