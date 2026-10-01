@@ -186,6 +186,94 @@ Deno.serve(async (req) => {
       return out;
     };
 
+    const postOne = async (payload: any) => {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${tok.token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await resp.text();
+      let respJson: any;
+      try { respJson = JSON.parse(text); } catch { respJson = { raw: text }; }
+      const wtId = respJson?.wasteTrackingId ?? respJson?.wtId ?? respJson?.id ?? null;
+      const errMsg = resp.ok ? null : (respJson?.validation?.errors ? respJson.validation.errors.map((e: any) => e.message).join('; ').slice(0, 500) : (respJson?.message ?? text.slice(0, 500)));
+      return { resp, respJson, wtId, errMsg };
+    };
+
+    // Production Approval Tests: build each DEFRA scenario and submit it to the test system
+    if (action === 'approval_tests') {
+      if (ENVIRONMENT === 'production') {
+        return new Response(JSON.stringify({ error: 'Approval tests only run against the test system' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      let popCodes: string[] = [];
+      try {
+        const pr = await fetch(`${BASE_URL}/reference-data/pop-names`, { headers: { Authorization: `Bearer ${tok.token}`, Accept: 'application/json' } });
+        if (pr.ok) {
+          const j = await pr.json();
+          const arr = Array.isArray(j) ? j : (j?.data ?? j?.popNames ?? []);
+          popCodes = arr.map((x: any) => String(x.code ?? '')).filter(Boolean);
+        }
+      } catch { /* ignore */ }
+      if (popCodes.length < 2) popCodes = ['PFHXS', 'PFOA'];
+      const now = new Date().toISOString().replace(/\.\d{3}Z$/, '.000Z');
+      const w = (amount: number) => ({ metric: 'Tonnes', amount, isEstimate: false });
+      const baseItem = (over: any = {}) => ({
+        ewcCodes: ['170904'], wasteDescription: 'Mixed construction and demolition waste', physicalForm: 'Solid',
+        numberOfContainers: 1, typeOfContainers: mapContainer('skip'), weight: w(2.5),
+        containsPops: false, containsHazardous: false,
+        disposalOrRecoveryCodes: [{ code: 'R13', weight: w(2.5) }], ...over,
+      });
+      const hazItem = (over: any = {}) => baseItem({
+        ewcCodes: ['170503'], wasteDescription: 'Soil and stones containing hazardous substances',
+        containsHazardous: true,
+        hazardous: { sourceOfComponents: 'PROVIDED_WITH_WASTE', hazCodes: ['HP_5', 'HP_7'], components: [{ name: 'Lead', concentration: 120 }, { name: 'Mercury', concentration: 15 }] },
+        ...over,
+      });
+      const popsBlock = { sourceOfComponents: 'PROVIDED_WITH_WASTE', components: [{ code: popCodes[0], concentration: 12.5 }, { code: popCodes[1], concentration: 3.2 }] };
+      const carrierBase = { organisationName: 'Test Carrier Ltd', meansOfTransport: 'Road', vehicleRegistration: 'AB12CDE' };
+      const base = (ref: string, over: any = {}) => ({
+        apiCode: defaultApiCode, dateTimeReceived: now,
+        reasonForNoConsignmentCode: 'Non-Haz Waste Transfer', yourUniqueReference: `PAT-${ref}`,
+        wasteItems: [baseItem()],
+        carrier: { registrationNumber: 'CBDU319913', ...carrierBase },
+        receiver: { siteName: cp?.trading_name || cp?.company_name || 'Clews Recycling Ltd', authorisationNumber: String(cp?.environment_agency_reference || 'EAWML48106').replace(/\s+/g, '') },
+        receipt: { address: { fullAddress: siteAddress, postcode: sitePostcode } },
+        ...over,
+      });
+      const { reasonForNoConsignmentCode: _r, ...noReason } = base('H02');
+      const { disposalOrRecoveryCodes: _d, ...itemNoCodes } = baseItem();
+      const scenarios: { id: string; title: string; expectReject?: boolean; payload: any }[] = [
+        { id: 'R01', title: 'Basic receipt – single waste item', payload: base('R01') },
+        { id: 'R02', title: 'Multiple waste items', payload: base('R02', { wasteItems: [baseItem(), baseItem({ ewcCodes: ['150101'], wasteDescription: 'Paper and cardboard packaging', weight: w(1.2), disposalOrRecoveryCodes: [{ code: 'R3', weight: w(1.2) }] })] }) },
+        { id: 'R03', title: "Means of transport 'Road'", payload: base('R03') },
+        { id: 'R04', title: 'No Disposal/Recovery codes', payload: base('R04', { wasteItems: [itemNoCodes] }) },
+        { id: 'R05', title: 'Multiple Disposal/Recovery codes', payload: base('R05', { wasteItems: [baseItem({ disposalOrRecoveryCodes: [{ code: 'R13', weight: w(1.5) }, { code: 'R5', weight: w(1.0) }] })] }) },
+        { id: 'R07', title: 'Multiple EWC codes', payload: base('R07', { wasteItems: [baseItem({ ewcCodes: ['170904', '170107'] })] }) },
+        { id: 'C01', title: 'No carrier registration, no reason', expectReject: true, payload: base('C01', { carrier: { registrationNumber: null, ...carrierBase } }) },
+        { id: 'C02', title: 'No carrier registration, with reason', payload: base('C02', { carrier: { registrationNumber: null, reasonForNoRegistrationNumber: 'ONE_OFF', ...carrierBase } }) },
+        { id: 'B01', title: 'With a Broker/Dealer', payload: base('B01', { brokerOrDealer: { organisationName: 'Test Broker Ltd', registrationNumber: 'CBDU123456', emailAddress: 'broker@example.co.uk', phoneNumber: '020 4756 0000', address: { fullAddress: '1 Test Street, Coventry', postcode: 'CV1 1AA' } } }) },
+        { id: 'P01', title: 'POPs – multiple components', payload: base('P01', { wasteItems: [baseItem({ ewcCodes: ['200307'], wasteDescription: 'Bulky waste – upholstered seating', containsPops: true, pops: popsBlock, disposalOrRecoveryCodes: [{ code: 'D10', weight: w(2.5) }] })] }) },
+        { id: 'H01', title: 'Hazardous – multiple components', payload: base('H01', { reasonForNoConsignmentCode: 'No documentation provided with Waste', wasteItems: [hazItem()] }) },
+        { id: 'H02', title: 'Hazardous – no consignment code, no reason', expectReject: true, payload: { ...noReason, wasteItems: [hazItem()] } },
+        { id: 'H03', title: 'Hazardous – no consignment code, with reason', payload: base('H03', { reasonForNoConsignmentCode: 'No documentation provided with Waste', wasteItems: [hazItem()] }) },
+        { id: 'X01', title: 'Hazardous and POPs', payload: base('X01', { reasonForNoConsignmentCode: 'No documentation provided with Waste', wasteItems: [hazItem({ containsPops: true, pops: popsBlock })] }) },
+      ];
+      const only: string[] | null = Array.isArray(body.only) ? body.only : null;
+      const out: any[] = [];
+      for (const s of scenarios.filter((x) => !only || only.includes(x.id))) {
+        const { resp, respJson, wtId, errMsg } = await postOne(s.payload);
+        const passed = s.expectReject ? !resp.ok : resp.ok;
+        await supabase.from('dwt_submissions').insert({
+          job_id: null, ticket_number: `PAT-${s.id}`, wt_id: wtId,
+          status: resp.ok ? 'submitted' : 'error', environment: ENVIRONMENT,
+          request_payload: s.payload, response_body: respJson, http_status: resp.status,
+          error_message: errMsg, submitted_by: userId,
+        });
+        out.push({ id: s.id, title: s.title, expect_reject: !!s.expectReject, passed, http_status: resp.status, wt_id: wtId, error: errMsg, warnings: respJson?.validation?.warnings ?? null, tested_at: new Date().toISOString() });
+      }
+      return new Response(JSON.stringify({ ok: out.every((x) => x.passed), results: out }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     for (const r of receipts) {
       const payload = toDefra({ ...(r.payload ?? r) });
       if (!payload.apiCode) payload.apiCode = defaultApiCode;
