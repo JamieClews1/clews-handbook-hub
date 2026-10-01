@@ -91,6 +91,7 @@ const HSDocumentDetailPage = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editLang, setEditLang] = useState("EN");
   const [editData, setEditData] = useState<Record<string, { title: string; content: string; acks: string }>>({});
+  const [guestSigs, setGuestSigs] = useState<SignatureRow[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -509,6 +510,31 @@ const HSDocumentDetailPage = () => {
               {new Date(signature.signed_at).toLocaleString("en-GB")}
               {signature.inducted_by ? ` • inducted by ${signature.inducted_by}` : ""}
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isAdmin && guestSigs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Guest signatures (share links)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {guestSigs.map((g) => (
+              <div key={g.id} className="flex flex-wrap items-center gap-3 rounded border px-3 py-2">
+                <img
+                  src={g.signature_image}
+                  alt={`Signature of ${g.employee_name || "guest"}`}
+                  className="h-12 rounded border bg-white p-1"
+                />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{g.employee_name || "Unnamed"}</span>
+                  {g.job_title ? ` • ${g.job_title}` : ""} • signed{" "}
+                  {new Date(g.signed_at).toLocaleString("en-GB")}
+                  {g.inducted_by ? ` • inducted by ${g.inducted_by}` : ""} • {g.language}
+                </p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
