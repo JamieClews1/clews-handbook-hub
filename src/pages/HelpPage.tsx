@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpen, ClipboardList, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, ClipboardList, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -13,7 +16,7 @@ type Guide = {
   note?: string;
 };
 
-const guides: Guide[] = [
+const defaultGuides: Guide[] = [
   {
     id: "monthly-rebates",
     title: "How to run rebates each month",
@@ -108,14 +111,112 @@ const guides: Guide[] = [
     ],
     note: "The Inventory tab tracks individual numbered bins and photos. It is separate from the size-by-size stock take.",
   },
+  {
+    id: "container-loads",
+    title: "How to do a container load",
+    section: "Container Loads",
+    intro: "Record an export container from loading through to shipping, with photos, paperwork and the email to the buyer.",
+    steps: [
+      {
+        title: "Start a new load",
+        detail: "Open Container Loads and select New load (or use the Container tile in Load Reports). A load starts in Prepping with your name as operator.",
+        href: "/container-loads", linkLabel: "Open Container Loads",
+      },
+      {
+        title: "Fill in the details",
+        detail: "In the Detail section enter the container number, serial number, WB ticket number, weight, export date and bale count. Everything saves as you go.",
+      },
+      {
+        title: "Take the loading photos",
+        detail: "Open Photos and upload the required loading photos (each is date/time stamped). Set the category on each photo and add a caption where helpful. Once loaded, change the status to Loaded.",
+      },
+      {
+        title: "Complete the paperwork",
+        detail: "In Paperwork, check the Annex 7 fields and the packing sheet rows (one per bale), then download the Annex 7 and Packing Sheet PDFs. Set the status to Paperwork ready.",
+      },
+      {
+        title: "Send and mark as shipped",
+        detail: "Select Send to email the paperwork to an approved container contact — orders@ is copied automatically. Check the send history, then set the status to Exported / Shipped once it has left.",
+      },
+    ],
+    note: "Only the approved container contact companies can be emailed. Use the settings button on the Container Loads page to manage contacts and the default email wording.",
+  },
 ];
 
 export default function HelpPage() {
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [guides, setGuides] = useState<Guide[]>(defaultGuides);
+  const [draft, setDraft] = useState<Guide | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  const load = async () => {
+    const { data } = await supabase.from("help_guides" as any).select("id, content, deleted");
+    const rows = (data as any[]) ?? [];
+    const map = new Map(rows.map((r) => [r.id, r]));
+    const merged = defaultGuides.filter((g) => !map.get(g.id)?.deleted).map((g) => (map.get(g.id)?.content as Guide) ?? g);
+    rows.filter((r) => !r.deleted && !defaultGuides.some((g) => g.id === r.id)).forEach((r) => merged.push(r.content as Guide));
+    setGuides(merged);
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    if (!draft || !draft.title.trim()) return;
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const content = { ...draft, steps: draft.steps.filter((s) => s.title.trim() || s.detail.trim()) };
+    const { error } = await supabase.from("help_guides" as any).upsert({ id: draft.id, content, deleted: false, updated_by: user?.id, updated_at: new Date().toISOString() } as any);
+    setSaving(false);
+    if (error) return toast({ title: "Could not save guide", description: error.message, variant: "destructive" });
+    toast({ title: "Guide saved" });
+    setDraft(null);
+    await load();
+    setParams({ guide: draft.id });
+  };
+
+  const remove = async (g: Guide) => {
+    if (!confirm(`Delete "${g.title}"?`)) return;
+    const { error } = await supabase.from("help_guides" as any).upsert({ id: g.id, content: g, deleted: true, updated_at: new Date().toISOString() } as any);
+    if (error) return toast({ title: "Could not delete", description: error.message, variant: "destructive" });
+    setParams({});
+    load();
+  };
+
+  const newGuide = () => setDraft({ id: `guide-${Date.now()}`, title: "", section: "", intro: "", steps: [{ title: "", detail: "" }], note: "" });
+  const setStep = (i: number, patch: Partial<Guide["steps"][number]>) => setDraft((d) => d && { ...d, steps: d.steps.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
+
   const selected = guides.find((guide) => guide.id === params.get("guide"));
   const visible = guides.filter((guide) => `${guide.title} ${guide.section}`.toLowerCase().includes(search.toLowerCase()));
 
+  if (draft) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-8 sm:py-10 space-y-4">
+        <div className="flex items-center justify-between"><h1 className="text-2xl font-semibold text-foreground">Edit guide</h1><Button variant="ghost" size="icon" aria-label="Cancel" onClick={() => setDraft(null)}><X className="h-5 w-5" /></Button></div>
+        <Input placeholder="Title, e.g. How to…" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+        <Input placeholder="Section, e.g. Rebates" value={draft.section} onChange={(e) => setDraft({ ...draft, section: e.target.value })} />
+        <Textarea placeholder="Short introduction" value={draft.intro} onChange={(e) => setDraft({ ...draft, intro: e.target.value })} />
+        <h2 className="pt-2 font-semibold text-foreground">Steps</h2>
+        {draft.steps.map((s, i) => (
+          <div key={i} className="space-y-2 rounded-lg border border-border p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-primary">{i + 1}</span>
+              <Input placeholder="Step title" value={s.title} onChange={(e) => setStep(i, { title: e.target.value })} />
+              <Button variant="ghost" size="icon" aria-label="Remove step" onClick={() => setDraft({ ...draft, steps: draft.steps.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+            <Textarea rows={3} placeholder="What to do" value={s.detail} onChange={(e) => setStep(i, { detail: e.target.value })} />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input placeholder="Link (optional), e.g. /load-reports" value={s.href ?? ""} onChange={(e) => setStep(i, { href: e.target.value || undefined })} />
+              <Input placeholder="Link text, e.g. Open Load Reports" value={s.linkLabel ?? ""} onChange={(e) => setStep(i, { linkLabel: e.target.value || undefined })} />
+            </div>
+          </div>
+        ))}
+        <Button variant="outline" className="gap-2" onClick={() => setDraft({ ...draft, steps: [...draft.steps, { title: "", detail: "" }] })}><Plus className="h-4 w-4" />Add step</Button>
+        <Textarea placeholder="Good to know (optional)" value={draft.note ?? ""} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
+        <div className="flex gap-2"><Button onClick={save} disabled={saving || !draft.title.trim()}>{saving ? "Saving…" : "Save guide"}</Button><Button variant="outline" onClick={() => setDraft(null)}>Cancel</Button></div>
+      </div>
+    );
+  }
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-8 sm:py-10">
       <div className="mb-8 flex items-start gap-4">
@@ -136,7 +237,7 @@ export default function HelpPage() {
           <div className="mb-6 border-b border-border pb-4 text-sm font-medium text-muted-foreground">{selected.section} · {selected.steps.length} steps</div>
           <ol className="space-y-0">
             {selected.steps.map((step, index) => (
-              <li key={step.title} className="relative flex gap-5 border-l border-border pb-9 pl-8 last:border-transparent last:pb-4">
+              <li key={index} className="relative flex gap-5 border-l border-border pb-9 pl-8 last:border-transparent last:pb-4">
                 <span className="absolute -left-4 top-0 flex h-8 w-8 items-center justify-center rounded-full border border-primary bg-background text-sm font-semibold text-primary">{index + 1}</span>
                 <div className="min-w-0">
                   <h2 className="text-lg font-semibold text-foreground">{step.title}</h2>
@@ -147,13 +248,20 @@ export default function HelpPage() {
             ))}
           </ol>
           {selected.note && <div className="mt-6 border-l-2 border-primary bg-muted/50 px-5 py-4 text-sm leading-6 text-foreground"><span className="font-semibold">Good to know: </span>{selected.note}</div>}
-          <Button variant="outline" className="mt-8 gap-2" onClick={() => setParams({})}><ArrowLeft className="h-4 w-4" />All guides</Button>
+          <div className="mt-8 flex flex-wrap gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setParams({})}><ArrowLeft className="h-4 w-4" />All guides</Button>
+            <Button variant="outline" className="gap-2" onClick={() => setDraft(JSON.parse(JSON.stringify(selected)))}><Pencil className="h-4 w-4" />Edit guide</Button>
+            <Button variant="ghost" className="gap-2 text-destructive" onClick={() => remove(selected)}><Trash2 className="h-4 w-4" />Delete</Button>
+          </div>
         </article>
       ) : (
         <div className="max-w-4xl">
-          <div className="relative mb-6 max-w-md">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="relative max-w-md flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input aria-label="Search guides" placeholder="Search guides" value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" />
+          </div>
+          <Button className="gap-2" onClick={newGuide}><Plus className="h-4 w-4" />New guide</Button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {visible.map((guide) => (
