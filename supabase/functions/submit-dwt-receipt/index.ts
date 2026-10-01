@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
         request_payload: payload,
         response_body: respJson,
         http_status: resp.status,
-        error_message: success ? null : (respJson?.message ?? text.slice(0, 500)),
+        error_message: success ? null : (respJson?.validation?.errors ? respJson.validation.errors.map((e: any) => e.message).join('; ').slice(0, 500) : (respJson?.message ?? text.slice(0, 500))),
         submitted_by: userId,
       });
 
