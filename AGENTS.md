@@ -1,1 +1,2 @@
 Keep staff how-to guides in the staff-only Help page and link to existing workflows rather than duplicating task controls, so guidance stays accessible without exposing internal procedures publicly.
+Public share links for H&S documents: hs_document_share_links (token per document) served by the public-hs-document edge function at /induction/:token; guest signatures go to hs_document_guest_signatures (not hs_document_signatures, which requires a user id) so visitors can sign without an account.
