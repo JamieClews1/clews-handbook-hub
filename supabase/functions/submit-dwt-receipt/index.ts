@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
     // Submit one or many receipts
     const receipts: any[] = Array.isArray(body.receipts) ? body.receipts : (body.receipt ? [body.receipt] : []);
-    if (receipts.length === 0) {
+    if (receipts.length === 0 && action !== 'approval_tests') {
       return new Response(JSON.stringify({ error: 'No receipts supplied' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
