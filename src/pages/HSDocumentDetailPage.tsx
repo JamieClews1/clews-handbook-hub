@@ -128,7 +128,7 @@ const HSDocumentDetailPage = () => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, id]);
+  }, [user, id, isAdmin]);
 
   const suffix = language.toLowerCase() as "pl" | "uk" | "ro";
   const title = language === "EN" ? doc?.title : (doc as any)?.[`title_${suffix}`] || doc?.title;
