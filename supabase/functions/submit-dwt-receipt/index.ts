@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       const out: any = {
         apiCode: p.apiCode,
         dateTimeReceived: new Date(`${date}T${time}Z`).toISOString(),
-        reasonForNoConsignmentCode: 'Non-Haz Waste Transfer',
+        reasonForNoConsignmentCode: 'NON_HAZ_WASTE_TRANSFER',
         yourUniqueReference: String(m.ticketNumber ?? ''),
         wasteItems: [{
           ewcCodes: ewc ? [ewc] : [],
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
       const carrierBase = { organisationName: 'Test Carrier Ltd', meansOfTransport: 'Road', vehicleRegistration: 'AB12CDE' };
       const base = (ref: string, over: any = {}) => ({
         apiCode: defaultApiCode, dateTimeReceived: now,
-        reasonForNoConsignmentCode: 'Non-Haz Waste Transfer', yourUniqueReference: `PAT-${ref}`,
+        reasonForNoConsignmentCode: 'NON_HAZ_WASTE_TRANSFER', yourUniqueReference: `PAT-${ref}`,
         wasteItems: [baseItem()],
         carrier: { registrationNumber: 'CBDU319913', ...carrierBase },
         receiver: { siteName: cp?.trading_name || cp?.company_name || 'Clews Recycling Ltd', authorisationNumber: String(cp?.environment_agency_reference || 'EAWML48106').replace(/\s+/g, '') },
@@ -253,10 +253,10 @@ Deno.serve(async (req) => {
         { id: 'C02', title: 'No carrier registration, with reason', payload: base('C02', { carrier: { registrationNumber: null, reasonForNoRegistrationNumber: 'ONE_OFF', ...carrierBase } }) },
         { id: 'B01', title: 'With a Broker/Dealer', payload: base('B01', { brokerOrDealer: { organisationName: 'Test Broker Ltd', registrationNumber: 'CBDU123456', emailAddress: 'broker@example.co.uk', phoneNumber: '020 4756 0000', address: { fullAddress: '1 Test Street, Coventry', postcode: 'CV1 1AA' } } }) },
         { id: 'P01', title: 'POPs – multiple components', payload: base('P01', { wasteItems: [baseItem({ ewcCodes: ['200307'], wasteDescription: 'Bulky waste – upholstered seating', containsPops: true, pops: popsBlock, disposalOrRecoveryCodes: [{ code: 'D10', weight: w(2.5) }] })] }) },
-        { id: 'H01', title: 'Hazardous – multiple components', payload: base('H01', { reasonForNoConsignmentCode: 'No documentation provided with Waste', wasteItems: [hazItem()] }) },
+        { id: 'H01', title: 'Hazardous – multiple components', payload: base('H01', { reasonForNoConsignmentCode: 'NO_DOC_WITH_WASTE', wasteItems: [hazItem()] }) },
         { id: 'H02', title: 'Hazardous – no consignment code, no reason', expectReject: true, payload: { ...noReason, wasteItems: [hazItem()] } },
-        { id: 'H03', title: 'Hazardous – no consignment code, with reason', payload: base('H03', { reasonForNoConsignmentCode: 'No documentation provided with Waste', wasteItems: [hazItem()] }) },
-        { id: 'X01', title: 'Hazardous and POPs', payload: base('X01', { reasonForNoConsignmentCode: 'No documentation provided with Waste', wasteItems: [hazItem({ containsPops: true, pops: popsBlock })] }) },
+        { id: 'H03', title: 'Hazardous – no consignment code, with reason', payload: base('H03', { reasonForNoConsignmentCode: 'NO_DOC_WITH_WASTE', wasteItems: [hazItem()] }) },
+        { id: 'X01', title: 'Hazardous and POPs', payload: base('X01', { reasonForNoConsignmentCode: 'NO_DOC_WITH_WASTE', wasteItems: [hazItem({ containsPops: true, pops: popsBlock })] }) },
       ];
       const only: string[] | null = Array.isArray(body.only) ? body.only : null;
       const out: any[] = [];
