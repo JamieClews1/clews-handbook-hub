@@ -3761,6 +3761,30 @@ export type Database = {
           },
         ]
       }
+      help_guides: {
+        Row: {
+          content: Json
+          deleted: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content: Json
+          deleted?: boolean
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          deleted?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       hr_contact_settings: {
         Row: {
           contact_email: string
