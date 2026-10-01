@@ -8,6 +8,7 @@ import { StaffRoute } from "./components/StaffRoute";
 import { AppLayout } from "./components/AppLayout";
 import LandingPage from "./pages/LandingPage";
 import Index from "./pages/Index";
+import HelpPage from "./pages/HelpPage";
 import HandbookPage from "./pages/HandbookPage";
 import RAMSPage from "./pages/RAMSPage";
 import SiteInductionsPage from "./pages/SiteInductionsPage";
@@ -120,6 +121,7 @@ const App = () => (
 
             {/* Staff-only routes with sidebar layout */}
             <Route path="/portal" element={<Staff><Index /></Staff>} />
+            <Route path="/help" element={<Staff><HelpPage /></Staff>} />
             <Route path="/assistant" element={<Staff><AssistantPage /></Staff>} />
             <Route path="/Assistant" element={<Staff><AssistantPage /></Staff>} />
             <Route path="/ai-assistant" element={<Staff><AIAssistantPage /></Staff>} />

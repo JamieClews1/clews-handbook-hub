@@ -1,0 +1,1 @@
+Keep staff how-to guides in the staff-only Help page and link to existing workflows rather than duplicating task controls, so guidance stays accessible without exposing internal procedures publicly.
