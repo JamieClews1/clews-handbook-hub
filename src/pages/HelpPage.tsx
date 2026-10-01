@@ -27,8 +27,8 @@ const guides: Guide[] = [
       },
       {
         title: "Check which customers are set up",
-        detail: "Open the Check tab, choose the reporting period and select Generate Report. Review any customers marked Not Set Up. If a rebate is due, correct their rebate setup in Customer Setup before continuing.",
-        href: "/rebate-values", linkLabel: "Open rebate check",
+        detail: "Open the Check tab, choose the reporting period and select Generate Report. Review any customers marked Not Set Up. If a rebate is due, follow the How to set up a rebate guide before continuing.",
+        href: "/help?guide=rebate-setup", linkLabel: "Open rebate setup guide",
       },
       {
         title: "Generate the monthly overview",
