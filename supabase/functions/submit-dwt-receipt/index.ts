@@ -110,8 +110,84 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const defaultApiCode = profileRow?.dwt_api_code || '1f83215e-4b90-4785-9ab2-2614839aa2e9';
 
+    // Receiver details from company profile
+    const { data: cp } = await supabase
+      .from('company_profile')
+      .select('company_name, trading_name, operational_address, registered_address, environment_agency_reference, email, telephone')
+      .limit(1)
+      .maybeSingle();
+    const siteAddress = (cp?.operational_address || cp?.registered_address || 'Unit 17 Waste Transfer Station, Hunters Lane, Rugby CV21 1EA').trim();
+    const pcMatch = siteAddress.toUpperCase().match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/);
+    const sitePostcode = pcMatch ? pcMatch[0].replace(/\s*(\d[A-Z]{2})$/, ' $1') : 'CV21 1EA';
+
+    // DEFRA container-type codes (case-sensitive) — fetch once
+    let containerTypes: { code: string; description: string }[] = [];
+    try {
+      const ct = await fetch(`${BASE_URL}/reference-data/container-types`, { headers: { Authorization: `Bearer ${tok.token}`, Accept: 'application/json' } });
+      if (ct.ok) {
+        const j = await ct.json();
+        const arr = Array.isArray(j) ? j : (j?.data ?? j?.containerTypes ?? []);
+        containerTypes = arr.map((x: any) => ({ code: String(x.code ?? x.id ?? ''), description: String(x.description ?? x.name ?? '') })).filter((x: any) => x.code);
+      }
+    } catch { /* fall back below */ }
+    const mapContainer = (raw: string): string => {
+      const s = (raw || '').toLowerCase();
+      if (containerTypes.some((c) => c.code === raw)) return raw;
+      const find = (re: RegExp) => containerTypes.find((c) => re.test(c.description.toLowerCase()))?.code;
+      if (/ro\s*-?\s*ro|roll/.test(s)) return find(/roll|ro-?ro/) ?? find(/skip/) ?? 'SKI';
+      if (/compact|portapack/.test(s)) return find(/compact/) ?? find(/skip/) ?? 'SKI';
+      if (/skip|yd|yard/.test(s)) return find(/skip/) ?? 'SKI';
+      if (/bale/.test(s)) return find(/bale/) ?? 'SKI';
+      if (/bin|wheelie/.test(s)) return find(/wheelie/) ?? 'WBI';
+      if (/van|truck|lorry|loose|bulk/.test(s)) return find(/bulk|loose|vehicle/) ?? 'SKI';
+      return find(/skip/) ?? 'SKI';
+    };
+
+    const toDefra = (p: any): any => {
+      if (!p?.wasteMovement) return p; // already in DEFRA shape
+      const m = p.wasteMovement;
+      const date = m.receivedAt ? String(m.receivedAt).slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const time = /^\d{1,2}:\d{2}(:\d{2})?$/.test(m.receivedTime ?? '') ? (m.receivedTime.length === 5 ? `${m.receivedTime}:00` : m.receivedTime).padStart(8, '0') : '12:00:00';
+      const forms = ['Gas', 'Liquid', 'Solid', 'Powder', 'Sludge', 'Mixed'];
+      const pf = forms.find((f) => f.toLowerCase() === String(m.waste?.physicalForm ?? '').toLowerCase()) ?? 'Solid';
+      const transports = ['Road', 'Rail', 'Air', 'Sea', 'Inland Waterway', 'Piped', 'Other'];
+      const mot = transports.find((t) => t.toLowerCase() === String(m.carrier?.meansOfTransport ?? '').toLowerCase()) ?? 'Road';
+      const ewc = String(m.waste?.ewcCode ?? '').replace(/\D/g, '').slice(0, 6);
+      const carrierReg = (m.carrier?.registrationNumber ?? '').trim();
+      const out: any = {
+        apiCode: p.apiCode,
+        dateTimeReceived: new Date(`${date}T${time}Z`).toISOString(),
+        reasonForNoConsignmentCode: 'Non-Haz Waste Transfer',
+        yourUniqueReference: String(m.ticketNumber ?? ''),
+        wasteItems: [{
+          ewcCodes: ewc ? [ewc] : [],
+          wasteDescription: m.waste?.description || 'Mixed waste',
+          physicalForm: pf,
+          numberOfContainers: 1,
+          typeOfContainers: mapContainer(m.waste?.containerType ?? ''),
+          weight: { metric: 'Tonnes', amount: Number(m.waste?.weightTonnes ?? 0), isEstimate: false },
+          containsPops: false,
+          containsHazardous: false,
+        }],
+        carrier: {
+          registrationNumber: carrierReg || null,
+          ...(carrierReg ? {} : { reasonForNoRegistrationNumber: 'Not provided' }),
+          organisationName: m.carrier?.name || 'Unknown carrier',
+          meansOfTransport: mot,
+          ...(m.carrier?.vehicleRegistration ? { vehicleRegistration: String(m.carrier.vehicleRegistration).replace(/\s+/g, '').slice(0, 10) } : {}),
+        },
+        receiver: {
+          siteName: cp?.trading_name || cp?.company_name || 'Clews Recycling Ltd',
+          authorisationNumber: String(p.receiverAuthorisationNumber || cp?.environment_agency_reference || 'EAWML48106').replace(/^(EAWML|WML)\s+/i, '$1').trim(),
+        },
+        receipt: { address: { fullAddress: siteAddress, postcode: sitePostcode } },
+      };
+      if (m.producer?.name) out.otherReferencesForMovement = [{ label: 'Producer', reference: String(m.producer.name) }];
+      return out;
+    };
+
     for (const r of receipts) {
-      const payload = { ...(r.payload ?? r) };
+      const payload = toDefra({ ...(r.payload ?? r) });
       if (!payload.apiCode) payload.apiCode = defaultApiCode;
       const resp = await fetch(endpoint, {
         method: 'POST',
@@ -137,7 +213,7 @@ Deno.serve(async (req) => {
         request_payload: payload,
         response_body: respJson,
         http_status: resp.status,
-        error_message: success ? null : (respJson?.message ?? text.slice(0, 500)),
+        error_message: success ? null : (respJson?.validation?.errors ? respJson.validation.errors.map((e: any) => e.message).join('; ').slice(0, 500) : (respJson?.message ?? text.slice(0, 500))),
         submitted_by: userId,
       });
 
