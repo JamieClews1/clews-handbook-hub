@@ -91,6 +91,7 @@ const HSDocumentDetailPage = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editLang, setEditLang] = useState("EN");
   const [editData, setEditData] = useState<Record<string, { title: string; content: string; acks: string }>>({});
+  const [guestSigs, setGuestSigs] = useState<SignatureRow[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -113,13 +114,21 @@ const HSDocumentDetailPage = () => {
     setSignature(sig as SignatureRow | null);
     setName((sig?.employee_name as string) || profile?.full_name || "");
     setJobTitle((sig?.job_title as string) || "");
+    if (isAdmin) {
+      const { data: guests } = await supabase
+        .from("hs_document_guest_signatures")
+        .select("id, signature_image, employee_name, job_title, inducted_by, signed_at, language")
+        .eq("document_id", id)
+        .order("signed_at", { ascending: false });
+      setGuestSigs((guests as SignatureRow[]) || []);
+    }
     setLoadingData(false);
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, id]);
+  }, [user, id, isAdmin]);
 
   const suffix = language.toLowerCase() as "pl" | "uk" | "ro";
   const title = language === "EN" ? doc?.title : (doc as any)?.[`title_${suffix}`] || doc?.title;
@@ -509,6 +518,31 @@ const HSDocumentDetailPage = () => {
               {new Date(signature.signed_at).toLocaleString("en-GB")}
               {signature.inducted_by ? ` • inducted by ${signature.inducted_by}` : ""}
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isAdmin && guestSigs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Guest signatures (share links)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {guestSigs.map((g) => (
+              <div key={g.id} className="flex flex-wrap items-center gap-3 rounded border px-3 py-2">
+                <img
+                  src={g.signature_image}
+                  alt={`Signature of ${g.employee_name || "guest"}`}
+                  className="h-12 rounded border bg-white p-1"
+                />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{g.employee_name || "Unnamed"}</span>
+                  {g.job_title ? ` • ${g.job_title}` : ""} • signed{" "}
+                  {new Date(g.signed_at).toLocaleString("en-GB")}
+                  {g.inducted_by ? ` • inducted by ${g.inducted_by}` : ""} • {g.language}
+                </p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

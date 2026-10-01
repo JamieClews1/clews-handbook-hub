@@ -6,7 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, ClipboardCheck, Flame, AlertTriangle, ArrowRight, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, ClipboardCheck, Flame, AlertTriangle, ArrowRight, Users, Share2, Copy, Plus } from "lucide-react";
 
 export interface HSDocument {
   id: string;
@@ -47,6 +51,48 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [allSigs, setAllSigs] = useState<{ document_id: string; user_id: string; signed_at: string }[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const { toast } = useToast();
+  const [shareDoc, setShareDoc] = useState<HSDocument | null>(null);
+  const [shareLinks, setShareLinks] = useState<{ id: string; token: string; label: string | null; is_active: boolean; view_count: number }[]>([]);
+  const [shareLabel, setShareLabel] = useState("");
+
+  const loadShareLinks = async (docId: string) => {
+    const { data } = await supabase
+      .from("hs_document_share_links")
+      .select("id, token, label, is_active, view_count")
+      .eq("document_id", docId)
+      .order("created_at", { ascending: false });
+    setShareLinks(data || []);
+  };
+
+  const openShare = (doc: HSDocument) => {
+    setShareDoc(doc);
+    setShareLabel("");
+    loadShareLinks(doc.id);
+  };
+
+  const createShareLink = async () => {
+    if (!shareDoc) return;
+    const { error } = await supabase
+      .from("hs_document_share_links")
+      .insert({ document_id: shareDoc.id, label: shareLabel.trim() || null, created_by: user?.id });
+    if (error) {
+      toast({ title: "Could not create link", variant: "destructive" });
+      return;
+    }
+    setShareLabel("");
+    loadShareLinks(shareDoc.id);
+  };
+
+  const toggleShareLink = async (id: string, active: boolean) => {
+    await supabase.from("hs_document_share_links").update({ is_active: active }).eq("id", id);
+    if (shareDoc) loadShareLinks(shareDoc.id);
+  };
+
+  const copyLink = (token: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/induction/${token}`);
+    toast({ title: "Link copied" });
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -175,6 +221,11 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
                       </Link>
                     </Button>
                   )}
+                  {isAdmin && (
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => openShare(doc)}>
+                      <Share2 className="h-4 w-4" /> Share link
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -268,6 +319,48 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!shareDoc} onOpenChange={(open) => !open && setShareDoc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share “{shareDoc?.title}”</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Anyone with the link can read and sign this document without logging in — handy for visitors and
+            contractors. Signatures are saved against the document.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Label (optional, e.g. Visitors)"
+              value={shareLabel}
+              onChange={(e) => setShareLabel(e.target.value)}
+            />
+            <Button onClick={createShareLink} className="gap-2 shrink-0">
+              <Plus className="h-4 w-4" /> New link
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {shareLinks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No links yet.</p>
+            ) : (
+              shareLinks.map((l) => (
+                <div key={l.id} className="flex items-center gap-2 rounded border px-3 py-2 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{l.label || "Share link"}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      /induction/{l.token.slice(0, 10)}… · {l.view_count} view{l.view_count === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => copyLink(l.token)} title="Copy link">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Switch checked={l.is_active} onCheckedChange={(v) => toggleShareLink(l.id, v)} />
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
 
   );

@@ -5,3 +5,4 @@
 - [ ] Green pallet value set to -10 is not being saved on the load report
 
 - [x] Restore WasteOne login by restarting the unresponsive backend and verify sign-ins recover.
+- [x] Shareable links for site inductions: staff create links per document; guests read and sign without a login; signatures saved as guest signatures.
