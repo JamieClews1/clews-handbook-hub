@@ -3818,6 +3818,116 @@ export type Database = {
         }
         Relationships: []
       }
+      hs_document_guest_signatures: {
+        Row: {
+          acknowledgements: Json
+          created_at: string
+          date_of_birth: string | null
+          document_id: string
+          employee_name: string | null
+          id: string
+          inducted_by: string | null
+          job_title: string | null
+          language: string
+          share_link_id: string | null
+          signature_image: string
+          signed_at: string
+          site: string | null
+        }
+        Insert: {
+          acknowledgements?: Json
+          created_at?: string
+          date_of_birth?: string | null
+          document_id: string
+          employee_name?: string | null
+          id?: string
+          inducted_by?: string | null
+          job_title?: string | null
+          language?: string
+          share_link_id?: string | null
+          signature_image: string
+          signed_at?: string
+          site?: string | null
+        }
+        Update: {
+          acknowledgements?: Json
+          created_at?: string
+          date_of_birth?: string | null
+          document_id?: string
+          employee_name?: string | null
+          id?: string
+          inducted_by?: string | null
+          job_title?: string | null
+          language?: string
+          share_link_id?: string | null
+          signature_image?: string
+          signed_at?: string
+          site?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hs_document_guest_signatures_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "hs_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hs_document_guest_signatures_share_link_id_fkey"
+            columns: ["share_link_id"]
+            isOneToOne: false
+            referencedRelation: "hs_document_share_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hs_document_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_id: string
+          id: string
+          is_active: boolean
+          label: string | null
+          last_viewed_at: string | null
+          token: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_viewed_at?: string | null
+          token?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_viewed_at?: string | null
+          token?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hs_document_share_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "hs_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hs_document_signatures: {
         Row: {
           acknowledgements: Json
