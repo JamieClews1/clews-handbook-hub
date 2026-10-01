@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
         },
         receiver: {
           siteName: cp?.trading_name || cp?.company_name || 'Clews Recycling Ltd',
-          authorisationNumber: p.receiverAuthorisationNumber || cp?.environment_agency_reference || 'EAWML 48106',
+          authorisationNumber: String(p.receiverAuthorisationNumber || cp?.environment_agency_reference || 'EAWML48106').replace(/^(EAWML|WML)\s+/i, '$1').trim(),
         },
         receipt: { address: { fullAddress: siteAddress, postcode: sitePostcode } },
       };
