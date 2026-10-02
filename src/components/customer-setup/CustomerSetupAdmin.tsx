@@ -309,22 +309,26 @@ export function CustomerSetupAdmin() {
       toast({ title: "Missing customer name", description: "Cannot sync without a customer name.", variant: "destructive" });
       return;
     }
+    const syncAllSites = (opts?.customerId
+      ? customers.find((c) => c.id === opts.customerId)?.all_data_hub_sites
+      : selectedCustomer?.all_data_hub_sites) ?? false;
     setSyncingBrokerSites(true);
     try {
       const normalizedBroker = normalizeBrokerName(brokerName);
       const searchPrefix = brokerName.replace(/\b(limited|ltd|plc|llp)\b/gi, " ").replace(/\s+/g, " ").trim() || brokerName;
 
-      // Fetch all Skiptrak rows whose customer name approximately matches the broker
+      // Fetch Data Hub rows with a site — either every row (all_data_hub_sites) or rows
+      // whose customer name approximately matches the broker
       const pageSize = 1000;
       let from = 0;
       const allRows: { customer: string | null; site: string | null }[] = [];
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("data_hub_jobs")
           .select("customer, site")
-          .not("site", "is", null)
-          .ilike("customer", `${searchPrefix}%`)
-          .range(from, from + pageSize - 1);
+          .not("site", "is", null);
+        if (!syncAllSites) query = query.ilike("customer", `${searchPrefix}%`);
+        const { data, error } = await query.range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
         allRows.push(...data);
@@ -333,14 +337,14 @@ export function CustomerSetupAdmin() {
         if (from > 200000) break;
       }
 
-      // Filter strictly to rows where normalized customer name matches the broker
+      // Filter to matching rows (all rows when syncAllSites is on)
       const matchedSites = new Set<string>();
       const matchedCustomers = new Set<string>();
       for (const row of allRows) {
         const c = (row.customer || "").trim();
         const s = (row.site || "").trim();
         if (!c || !s) continue;
-        if (normalizeBrokerName(c) !== normalizedBroker) continue;
+        if (!syncAllSites && normalizeBrokerName(c) !== normalizedBroker) continue;
         matchedSites.add(s);
         matchedCustomers.add(c);
       }
