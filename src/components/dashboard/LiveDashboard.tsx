@@ -83,12 +83,12 @@ export function LiveDashboard() {
 
   const attention = data ? [
     { n: data.crm_unassigned, label: "unassigned CRM tickets", to: "/crm" },
-    { n: data.contaminations_no_charge, label: "open contaminations with no charge set", to: "/contaminations" },
+    { n: data.contaminations_no_charge, label: "open contaminations with no charge set", to: "/performance-hub/contaminations" },
     { n: data.permits_expiring, label: "permits expiring in the next 30 days", to: "/permits" },
     ...(!data.skiptrak_last_sync || differenceInHours(new Date(), new Date(data.skiptrak_last_sync)) > 24
-      ? [{ n: 1, label: "Skiptrak data not updated in 24 hours", to: "/data-uploads" }] : []),
+      ? [{ n: 1, label: "Skiptrak data not updated in 24 hours", to: "/data-hub/uploads" }] : []),
     ...(!data.midweigh_last_sync || differenceInHours(new Date(), new Date(data.midweigh_last_sync)) > 24
-      ? [{ n: 1, label: "Midweigh data not updated in 24 hours", to: "/data-uploads" }] : []),
+      ? [{ n: 1, label: "Midweigh data not updated in 24 hours", to: "/data-hub/uploads" }] : []),
   ].filter((a) => a.n > 0) : [];
 
   return (
