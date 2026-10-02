@@ -53,7 +53,7 @@ export function WasteClassificationFields({ value, onChange, ewcCode, settings =
           {matched && Object.keys(defaults).length > 0 && (
             <Button type="button" size="sm" variant="outline" onClick={() => onChange({ ...value, ...defaults })}>Apply EWC defaults</Button>
           )}
-          {!compact && <Button type="button" variant="link" size="sm" asChild><Link to="/admin/settings?tab=codes">Edit code defaults</Link></Button>}
+          <Button type="button" variant="link" size="sm" asChild><Link to="/admin/settings?tab=codes">Edit code defaults</Link></Button>
         </div>
       )}
       <div className="flex flex-wrap gap-5">
@@ -61,6 +61,7 @@ export function WasteClassificationFields({ value, onChange, ewcCode, settings =
         <label className="flex items-center gap-2 text-sm"><Switch checked={!!value.contains_pops} onCheckedChange={(v) => set("contains_pops", v)} /> Contains POPs</label>
         {!settings && <label className="flex items-center gap-2 text-sm"><Switch checked={!!value.estimated_weight} onCheckedChange={(v) => set("estimated_weight", v)} /> Weight estimated</label>}
       </div>
+      {matched?.hazardous && !value.hazardous && !settings && <p className="text-xs text-destructive">This EWC code is marked hazardous (*). Review the classification and switch on Hazardous waste if it applies.</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1"><Label>Disposal / recovery code</Label><Input value={value.recovery_code ?? ""} onChange={(e) => set("recovery_code", e.target.value.toUpperCase())} placeholder="e.g. R13 or D10" /></div>
         {!settings && <div className="space-y-1"><Label>Number of items</Label><Input type="number" min="0" value={value.units ?? ""} onChange={(e) => set("units", e.target.value)} placeholder="e.g. 4 fridges" /></div>}
