@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw, Eye } from "lucide-react";
@@ -122,6 +123,7 @@ type ProfileLite = {
 };
 
 export function CustomerSetupAdmin() {
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
 
   // Radix Select disallows SelectItem value="" (empty string). We use a sentinel
