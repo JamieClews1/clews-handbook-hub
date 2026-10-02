@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -96,7 +98,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <PortalAssistantWidget />
+      {!/^\/(ai-assistant|assistant)(\/|$)/.test(pathname) && <PortalAssistantWidget />}
     </SidebarProvider>
   );
 }

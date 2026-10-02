@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS idx_data_hub_jobs_source_updated ON public.data_hub_jobs (source, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contamination_queries_status ON public.contamination_queries (status);

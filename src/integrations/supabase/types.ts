@@ -70,6 +70,71 @@ export type Database = {
           },
         ]
       }
+      assistant_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          pinned: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assistant_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          tool_calls: Json | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          tool_calls?: Json | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          tool_calls?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_question_log: {
         Row: {
           created_at: string
@@ -87,6 +152,33 @@ export type Database = {
           created_at?: string
           id?: string
           question?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assistant_saved_prompts: {
+        Row: {
+          created_at: string
+          id: string
+          is_shared: boolean
+          name: string
+          prompt: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_shared?: boolean
+          name: string
+          prompt: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_shared?: boolean
+          name?: string
+          prompt?: string
           user_id?: string
         }
         Relationships: []
@@ -9621,6 +9713,7 @@ export type Database = {
           site_count: number
         }[]
       }
+      get_dashboard_summary: { Args: { _day?: string }; Returns: Json }
       get_midweigh_container_types: {
         Args: never
         Returns: {

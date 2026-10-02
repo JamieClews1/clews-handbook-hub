@@ -10,6 +10,7 @@ import {
   Package,
   ArrowRight,
 } from "lucide-react";
+import { LiveDashboard } from "@/components/dashboard/LiveDashboard";
 import packageJson from "../../package.json";
 
 const appVersion = packageJson.version;
@@ -92,6 +93,8 @@ const Index = () => {
         </div>
         <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">v{appVersion}</span>
       </div>
+
+      <LiveDashboard />
 
       {/* Platform Pillars */}
       <div>

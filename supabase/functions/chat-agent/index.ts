@@ -182,6 +182,9 @@ GETTING GREAT ANSWERS (matching rules):
 - DEDUPE sources: the same job can appear twice in data_hub_jobs — source "skiptrak" (weight_t already in TONNES) and "midweigh" (weight in KG, divide by 1000). For movements/containers use skiptrak; for weighbridge tonnage use midweigh ÷1000. Don't double-count.
 - DISAMBIGUATE NAMES FIRST. Short names match several places — list the distinct matches before totalling, and tell the user which you included/excluded. Watch for substring false matches (e.g. "%ford%" matches "Telford").
 - SANITY-CHECK numbers and state your assumptions and the period you used.
+- UNITS: always report weights in TONNES to 1 decimal place (e.g. 12.4 t). Convert kg to tonnes before showing. Never label a kg value as tonnes.
+- FORMAT: use markdown — headings, bold, bullet lists and proper pipe tables for tabular data.
+- If a data source returns an error or TIMEOUT, still answer from the other sources and say clearly which source could not be read.
 
 BE DETERMINED: you have many tool turns. A good answer often takes several queries — orient with schema_info, list distinct matches, pull rows, cross-check, then answer. If a query returns nothing, broaden it and try again before giving up.
 
@@ -550,13 +553,45 @@ async function rentalPositions(supabase: any) {
   }
 }
 
-async function runTool(supabase: any, name: string, input: any) {
+async function runToolInner(supabase: any, name: string, input: any) {
   switch (name) {
     case "query_data": return await queryData(supabase, input || {});
     case "schema_info": return await schemaInfo(supabase, input || {});
     case "rental_positions": return await rentalPositions(supabase);
     default: return { error: `Unknown tool: ${name}` };
   }
+}
+
+// Each data source gets 20 seconds; on timeout the model is told which source
+// failed so it can still give a partial answer.
+const TOOL_TIMEOUT_MS = 20_000;
+async function runTool(supabase: any, name: string, input: any) {
+  let timer: number | undefined;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({
+      error: `TIMEOUT: this data source (${stepLabel(name, input)}) took longer than 20 seconds. Give a partial answer from the other sources and tell the user this source could not be read.`,
+      rows: [], count: 0,
+    }), TOOL_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([runToolInner(supabase, name, input), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const TABLE_LABELS: Record<string, string> = {
+  data_hub_jobs: "job records", weighbridge_transactions: "weighbridge data", load_reports: "load reports",
+  load_line_items: "load reports", rental_chases: "rentals", rental_agreements: "rentals",
+  crm_tickets: "CRM", contamination_queries: "contaminations", customers: "customers",
+  customer_sites: "customer sites", skip_inventory: "inventory", route_one_jobs: "RouteOne jobs",
+  permit_applications: "permits", pricing_rate_card_values: "pricing", pricing_entries: "pricing",
+};
+function stepLabel(name: string, input: any): string {
+  if (name === "rental_positions") return "Checking rental positions";
+  if (name === "schema_info") return input?.table ? `Looking up ${TABLE_LABELS[input.table] || input.table}` : "Looking up available data";
+  const t = input?.table as string | undefined;
+  return `Reading ${t ? TABLE_LABELS[t] || t.replace(/_/g, " ") : "data"}`;
 }
 
 // ---------- Action executors (only run after user confirmation) ----------
@@ -919,77 +954,101 @@ Deno.serve(async (req) => {
 
     const system = buildSystemPrompt(profile?.full_name || "there", context);
 
-    // Agentic tool loop with Anthropic.
-    let finalText = "";
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const anthropicRes = await callAnthropicWithRetry(apiKey, {
-        model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages,
-      });
+    const wantStream = (body as any)?.stream === true;
 
-      if (!anthropicRes.ok) {
-        const errText = await anthropicRes.text();
-        console.error("Anthropic API error", anthropicRes.status, errText);
-        let detail = errText;
-        try { detail = JSON.parse(errText)?.error?.message ?? errText; } catch { /* keep raw */ }
-        if (anthropicRes.status === 429 || anthropicRes.status === 529) {
-          return jsonResponse({
-            error: "The assistant is busy right now (AI rate limit reached). Please wait about a minute and try again. Asking for a smaller slice of data at a time also helps.",
-          }, 429);
+    // Agentic tool loop. `emit` reports progress steps when streaming.
+    const runAgent = async (emit: (step: string) => void): Promise<{ status: number; body: any }> => {
+      let finalText = "";
+      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        emit(round === 0 ? "Thinking" : "Working out the answer");
+        const anthropicRes = await callAnthropicWithRetry(apiKey, {
+          model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, messages,
+        });
+
+        if (!anthropicRes.ok) {
+          const errText = await anthropicRes.text();
+          console.error("Anthropic API error", anthropicRes.status, errText);
+          let detail = errText;
+          try { detail = JSON.parse(errText)?.error?.message ?? errText; } catch { /* keep raw */ }
+          if (anthropicRes.status === 429 || anthropicRes.status === 529) {
+            return { status: 429, body: { error: "The assistant is busy right now (AI rate limit reached). Please wait about a minute and try again." } };
+          }
+          return { status: anthropicRes.status >= 500 ? 502 : 400, body: { error: `Anthropic API error: ${detail}` } };
         }
-        const status = anthropicRes.status >= 500 ? 502 : 400;
-        return jsonResponse({ error: `Anthropic API error: ${detail}` }, status);
+
+        const data = await anthropicRes.json();
+        const contentBlocks: any[] = Array.isArray(data?.content) ? data.content : [];
+        const textThisTurn = contentBlocks.filter((b) => b?.type === "text").map((b) => b?.text ?? "").join("").trim();
+        if (textThisTurn) finalText = textThisTurn;
+
+        const toolUses = contentBlocks.filter((b) => b?.type === "tool_use");
+        if (data?.stop_reason !== "tool_use" || toolUses.length === 0) break;
+
+        const actionUses = toolUses.filter((tu) => ACTION_TOOL_NAMES.has(tu.name));
+        if (actionUses.length > 0) {
+          const pendingActions = actionUses.map((tu) => ({
+            id: tu.id, tool: tu.name, input: tu.input,
+            description: typeof tu.input?.description === "string" && tu.input.description.trim()
+              ? tu.input.description.trim() : tu.name.replace(/_/g, " "),
+          }));
+          return { status: 200, body: { reply: finalText || "I've prepared the following for your approval:", pendingActions } };
+        }
+
+        messages.push({ role: "assistant", content: contentBlocks });
+        const toolResults: any[] = [];
+        for (const tu of toolUses) {
+          emit(stepLabel(tu.name, tu.input));
+          const result = await runTool(adminClient, tu.name, tu.input);
+          toolResults.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(result).slice(0, 12_000) });
+        }
+        messages.push({ role: "user", content: toolResults });
+        finalText = "";
       }
 
-      const data = await anthropicRes.json();
-      const contentBlocks: any[] = Array.isArray(data?.content) ? data.content : [];
-
-      // Collect any text from this turn.
-      const textThisTurn = contentBlocks
-        .filter((b) => b?.type === "text")
-        .map((b) => b?.text ?? "")
-        .join("")
-        .trim();
-      if (textThisTurn) finalText = textThisTurn;
-
-      const toolUses = contentBlocks.filter((b) => b?.type === "tool_use");
-      if (data?.stop_reason !== "tool_use" || toolUses.length === 0) {
-        break; // Final answer reached.
+      // Recovery: if no final text came back, ask once more for a written answer from what was gathered.
+      if (!finalText) {
+        emit("Writing up the answer");
+        const last = messages[messages.length - 1];
+        if (last?.role === "assistant") messages.push({ role: "user", content: "Please write your answer now from what you have gathered." });
+        else if (Array.isArray(last?.content)) (last.content as any[]).push({ type: "text", text: "Please write your answer now from what you have gathered, noting any source that failed." });
+        const res = await callAnthropicWithRetry(apiKey, { model: MODEL, max_tokens: MAX_TOKENS, system, tools: ALL_TOOLS, tool_choice: { type: "none" }, messages });
+        if (res.ok) {
+          const d = await res.json();
+          finalText = (d?.content || []).filter((b: any) => b?.type === "text").map((b: any) => b.text).join("").trim();
+        } else {
+          await res.text().catch(() => {});
+        }
       }
+      if (!finalText) return { status: 502, body: { error: "The assistant returned an empty response." } };
+      return { status: 200, body: { reply: finalText } };
+    };
 
-      // If Claude proposes any data-changing / email actions, DO NOT run them.
-      // Return them to the UI as pending actions for the user to confirm.
-      const actionUses = toolUses.filter((tu) => ACTION_TOOL_NAMES.has(tu.name));
-      if (actionUses.length > 0) {
-        const pendingActions = actionUses.map((tu) => ({
-          id: tu.id,
-          tool: tu.name,
-          input: tu.input,
-          description: typeof tu.input?.description === "string" && tu.input.description.trim()
-            ? tu.input.description.trim()
-            : tu.name.replace(/_/g, " "),
-        }));
-        return jsonResponse({
-          reply: finalText || "I've prepared the following for your approval:",
-          pendingActions,
-        });
-      }
-
-      // Otherwise run the requested read tools and feed results back.
-      messages.push({ role: "assistant", content: contentBlocks });
-      const toolResults: any[] = [];
-      for (const tu of toolUses) {
-        const result = await runTool(adminClient, tu.name, tu.input);
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: tu.id,
-          content: JSON.stringify(result).slice(0, 12_000),
-        });
-      }
-      messages.push({ role: "user", content: toolResults });
+    if (!wantStream) {
+      const out = await runAgent(() => {});
+      return jsonResponse(out.body, out.status);
     }
 
-    if (!finalText) return jsonResponse({ error: "The assistant returned an empty response." }, 502);
-    return jsonResponse({ reply: finalText });
+    // Server-sent events: `step` events while working, then `done` or `error`.
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (event: string, data: unknown) => {
+          try { controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); } catch { /* closed */ }
+        };
+        const ping = setInterval(() => { try { controller.enqueue(encoder.encode(`: ping\n\n`)); } catch { /* closed */ } }, 10_000);
+        try {
+          const out = await runAgent((step) => send("step", { label: step }));
+          send(out.status === 200 ? "done" : "error", out.body);
+        } catch (e) {
+          console.error("chat-agent stream error", e);
+          send("error", { error: "Something went wrong while contacting the assistant." });
+        } finally {
+          clearInterval(ping);
+          controller.close();
+        }
+      },
+    });
+    return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
   } catch (err) {
     console.error("chat-agent unexpected error", err);
     return jsonResponse({ error: "Something went wrong while contacting the assistant." }, 500);
