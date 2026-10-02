@@ -95,6 +95,7 @@ const ContaminationsDashboard = ({ onSelectQuery, onViewAll }: Props) => {
           .from("data_hub_jobs")
           .select("*")
           .eq("source", "skiptrak")
+          .order("id", { ascending: true })
           .range(from, from + batchSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
