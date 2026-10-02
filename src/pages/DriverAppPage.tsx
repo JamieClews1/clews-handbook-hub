@@ -833,7 +833,7 @@ const DriverJobDetail = ({
 
                   <Button
                     onClick={handleCompleteJob}
-                    disabled={updating || (!!classification.hazardous && !classification.consignment_code?.trim() && !classification.missing_consignment_reason?.trim())}
+                    disabled={updating || (!!classification.hazardous && !classification.consignment_code?.trim() && !classification.missing_consignment_reason?.trim()) || (!!classification.consignment_code && !/^[A-Z0-9]{6}\/[A-Z0-9]{5}$/.test(classification.consignment_code.trim()))}
                     className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
                   >
                     {updating ? (
