@@ -46,6 +46,7 @@ type Customer = {
   custom_reporting_periods_enabled: boolean;
   po_spans_periods: boolean;
   is_broker: boolean;
+  all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
   is_active: boolean;
   data_hub_customer: string | null;
@@ -153,7 +154,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, midweigh_rebates_enabled: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -436,7 +437,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,all_data_hub_sites,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -949,6 +950,7 @@ export function CustomerSetupAdmin() {
       custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
       po_spans_periods: customer.po_spans_periods ?? false,
       is_broker: customer.is_broker ?? false,
+      all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
     });
     setEditCustomerOpen(true);
@@ -979,6 +981,7 @@ export function CustomerSetupAdmin() {
           custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
           po_spans_periods: editCustomerForm.po_spans_periods,
           is_broker: editCustomerForm.is_broker,
+          all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
         })
         .eq("id", editingCustomer.id);
@@ -2056,6 +2059,19 @@ export function CustomerSetupAdmin() {
               <Switch
                 checked={editCustomerForm.is_broker}
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_broker: v }))}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>All Data Hub sites</Label>
+                <p className="text-xs text-muted-foreground">
+                  For smaller brokers managing many clients: when on, "Sync Sites from Data Hub" adds every site found in the Data Hub, not just sites on this customer's own jobs.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.all_data_hub_sites}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, all_data_hub_sites: v }))}
               />
             </div>
             <Separator />
