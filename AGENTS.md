@@ -2,3 +2,5 @@ Keep staff how-to guides in the staff-only Help page and link to existing workfl
 Public share links for H&S documents: hs_document_share_links (token per document) served by the public-hs-document edge function at /induction/:token; guest signatures go to hs_document_guest_signatures (not hs_document_signatures, which requires a user id) so visitors can sign without an account.
 Keep DWT classification defaults on EWC codes and per-job classification on Route One and Weigh One records, separate from the DEFRA submission mapper until production approval, so draft entries cannot alter submitted receipts.
 Keep staff navigation in seven collapsible groups with a page-only command palette; do not mix page finding with data queries or actions, so navigation changes cannot alter operational records.
+- The home dashboard reads figures only through the staff-only get_dashboard_summary database function, so the dashboard can never change operational or DWT records.
+- Claude Assistant conversations and saved prompts live in per-user assistant_* tables; the chat-agent function streams progress steps over server-sent events and keeps changes behind user confirmation.
