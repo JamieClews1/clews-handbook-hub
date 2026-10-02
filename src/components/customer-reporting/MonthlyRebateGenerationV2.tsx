@@ -1012,6 +1012,7 @@ export function MonthlyRebateGenerationV2() {
           totalRebate: b.totalRebate,
           materials: b.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
         })),
+        jobLoads: breakdowns.flatMap((b) => b.loads.map((l) => ({ site: b.site.site_name, ref: l.ref, date: l.date, source: l.source, description: l.description, weight: l.weight }))),
         loadReportsScope: {
           siteIds: breakdowns.filter((b) => trackSiteId(b)).map((b) => b.site.id),
           periodStart: format(dateRange.from, "yyyy-MM-dd"),
@@ -1101,6 +1102,7 @@ export function MonthlyRebateGenerationV2() {
           materials: sb.materials.map((m) => ({ name: m.name, weight: m.weight, rate: m.rate, rebate: m.rebate, source: m.source })),
         },
       ],
+      jobLoads: sb.loads.map((l) => ({ site: sb.site.site_name, ref: l.ref, date: l.date, source: l.source, description: l.description, weight: l.weight })),
       loadReportsScope: {
         siteIds: trackSiteId(sb) ? [sb.site.id] : [],
         periodStart: format(dateRange.from, "yyyy-MM-dd"),
