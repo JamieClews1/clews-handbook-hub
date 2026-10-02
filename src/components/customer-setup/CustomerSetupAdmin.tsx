@@ -292,46 +292,86 @@ export function CustomerSetupAdmin() {
   const [tempPassword, setTempPassword] = useState("");
   const [sendingAccessEmail, setSendingAccessEmail] = useState(false);
 
-  // Read-only list of sites found on this customer's OWN Data Hub jobs (exact customer name match).
-  const [dataHubSites, setDataHubSites] = useState<{ site: string; customer: string; jobs: number }[]>([]);
+  // On open, sites found on this customer's OWN Skiptrak jobs (exact customer name match) are
+  // created automatically, one per job address (Address 2 + postcode). Never other customers' jobs.
   const [loadingDataHubSites, setLoadingDataHubSites] = useState(false);
+  const autoSyncedRef = useRef<Set<string>>(new Set());
 
   const loadDataHubSites = async (customerId: string, currentSites: CustomerSite[]) => {
+    if (autoSyncedRef.current.has(customerId)) return;
+    autoSyncedRef.current.add(customerId);
     const cust = customers.find((c) => c.id === customerId);
     const names = new Set<string>();
     if (cust?.customer_name) names.add(cust.customer_name.trim());
     if ((cust as any)?.data_hub_customer) names.add(String((cust as any).data_hub_customer).trim());
-    currentSites.forEach((s) => s.data_hub_customer && names.add(s.data_hub_customer.trim()));
     const list = Array.from(names).filter(Boolean);
-    setDataHubSites([]);
     if (list.length === 0) return;
     setLoadingDataHubSites(true);
     try {
-      const counts = new Map<string, { site: string; customer: string; jobs: number }>();
+      type G = { addr: string; postcode: string; customer: string; siteCounts: Map<string, number> };
+      const groups = new Map<string, G>();
       for (const name of list) {
         let from = 0;
-        while (from < 50000) {
+        while (from < 20000) {
           const { data, error } = await supabase
             .from("data_hub_jobs")
-            .select("customer, site")
+            .select("site, postcode, raw")
             .eq("customer", name)
+            .eq("source", "skiptrak")
             .not("site", "is", null)
             .range(from, from + 999);
           if (error) throw error;
-          for (const r of data ?? []) {
+          for (const r of (data ?? []) as any[]) {
             const site = (r.site || "").trim();
             if (!site) continue;
-            const k = site.toLowerCase();
-            const e = counts.get(k) ?? { site, customer: name, jobs: 0 };
-            e.jobs++;
-            counts.set(k, e);
+            const addr = String(r.raw?.["Address 2"] ?? "").trim();
+            const pc = String(r.postcode ?? r.raw?.Postcode ?? "").trim().toUpperCase();
+            const key = addr ? `${addr.toLowerCase()}|${pc}` : `site:${site.toLowerCase()}`;
+            const g = groups.get(key) ?? { addr, postcode: pc, customer: name, siteCounts: new Map() };
+            g.siteCounts.set(site, (g.siteCounts.get(site) ?? 0) + 1);
+            groups.set(key, g);
           }
           if (!data || data.length < 1000) break;
           from += 1000;
         }
       }
-      if (selectedCustomerIdRef.current === customerId) {
-        setDataHubSites(Array.from(counts.values()).sort((a, b) => a.site.localeCompare(b.site)));
+      // Pick a base name per group: most common site name that isn't just the address.
+      const entries = Array.from(groups.values()).map((g) => {
+        const ranked = Array.from(g.siteCounts.entries()).sort((a, b) => b[1] - a[1]);
+        const base = (ranked.find(([s]) => s.toLowerCase() !== g.addr.toLowerCase()) ?? ranked[0])[0];
+        return { ...g, base };
+      });
+      const baseUse = new Map<string, number>();
+      entries.forEach((e) => baseUse.set(e.base.toLowerCase(), (baseUse.get(e.base.toLowerCase()) ?? 0) + 1));
+
+      const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
+      const toInsert = entries
+        .map((e) => ({
+          ...e,
+          label: (baseUse.get(e.base.toLowerCase()) ?? 0) > 1 && e.addr ? `${e.base} - ${e.addr}` : e.base,
+        }))
+        .filter((e) => {
+          const names = new Set([e.label, ...e.siteCounts.keys()].map(norm));
+          return !currentSites.some((s) => {
+            const sNames = [s.site_name, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5].map(norm);
+            if (sNames.includes(norm(e.label))) return true;
+            if (!sNames.some((n) => n && names.has(n))) return false;
+            const sAddr = norm((s as any).address_1);
+            return !sAddr || !e.addr || sAddr === norm(e.addr);
+          });
+        })
+        .map((e) => ({
+          customer_id: customerId,
+          site_name: e.label,
+          data_hub_customer: e.customer,
+          data_hub_site: e.base,
+          address_1: e.addr || null,
+          postcode: e.postcode || null,
+        }));
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from("customer_sites").insert(toInsert);
+        if (error) throw error;
+        if (selectedCustomerIdRef.current === customerId) await loadCustomerDetails(customerId);
       }
     } catch (e) {
       console.error("Failed to read Data Hub sites", e);
@@ -340,7 +380,7 @@ export function CustomerSetupAdmin() {
     }
   };
 
-  const addDataHubSite = async (siteName: string, customerName: string) => {
+  const _unusedAddDataHubSite = async (siteName: string, customerName: string) => {
     if (!selectedCustomerId) return;
     const { error } = await supabase.from("customer_sites").insert({
       customer_id: selectedCustomerId,
@@ -1423,31 +1463,9 @@ export function CustomerSetupAdmin() {
                     className="max-w-sm"
                   />
 
-                  {(() => {
-                    const known = new Set(
-                      sites.flatMap((s) => [s.site_name, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5])
-                        .filter(Boolean)
-                        .map((v) => String(v).trim().toLowerCase())
-                    );
-                    const missing = dataHubSites.filter((d) => !known.has(d.site.toLowerCase()));
-                    if (loadingDataHubSites) return <p className="text-sm text-muted-foreground">Reading sites from this customer's Data Hub jobs…</p>;
-                    if (missing.length === 0) return null;
-                    return (
-                      <div className="rounded-md border border-border p-3 space-y-2">
-                        <p className="text-sm font-medium">On this customer's jobs but not set up yet ({missing.length})</p>
-                        <p className="text-xs text-muted-foreground">Read only from jobs under this customer's name. Nothing is added until you click Add.</p>
-                        <div className="flex flex-wrap gap-2">
-                          {missing.map((d) => (
-                            <div key={d.site} className="flex items-center gap-2 rounded border border-border px-2 py-1 text-sm">
-                              <span>{d.site}</span>
-                              <span className="text-xs text-muted-foreground">{d.jobs} jobs</span>
-                              <Button size="sm" variant="outline" className="h-6 px-2" onClick={() => addDataHubSite(d.site, d.customer)}>Add</Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {loadingDataHubSites && (
+                    <p className="text-sm text-muted-foreground">Reading sites from this customer's jobs…</p>
+                  )}
 
 
 
