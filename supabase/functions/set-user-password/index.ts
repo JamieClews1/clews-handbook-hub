@@ -103,7 +103,17 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating password:', updateError);
-      throw updateError;
+      const code = (updateError as { code?: string }).code;
+      if (code === 'weak_password') {
+        return new Response(
+          JSON.stringify({ error: 'That password has appeared in a known data leak, so it is blocked. Please choose a different, less common password (e.g. three random words plus a number).' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: updateError.message }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Password updated successfully for user:', user_id);
