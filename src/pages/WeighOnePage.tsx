@@ -24,6 +24,7 @@ import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
+import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 
@@ -54,6 +55,7 @@ interface WeighbridgeTransaction {
   driver_name: string | null;
   waste_description: string | null;
   ewc_code: string | null;
+  waste_classification: unknown;
   container_type: string | null;
   vehicle_type: string | null;
   operator_signature: string | null;
@@ -164,6 +166,8 @@ const WeighOnePage = () => {
 
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
+  const [classification, setClassification] = useState<WasteClassification>({});
+  const [editClassification, setEditClassification] = useState<WasteClassification>({});
 
   // Edit form (existing transaction)
   const [editForm, setEditForm] = useState({
@@ -509,6 +513,7 @@ const WeighOnePage = () => {
         driver_name: formData.driver_name || null,
         waste_description: wasteType?.waste_type || null,
         ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
+        waste_classification: classification,
         container_type: formData.container_type || null,
         vehicle_type: formData.vehicle_type || null,
         operator_signature: operatorSignature,
@@ -591,6 +596,7 @@ const WeighOnePage = () => {
           container_type: formData.container_type || null,
           waste_type: wasteType?.waste_type || null,
           ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
+          waste_classification: classification,
           vehicle_reg: formData.vehicle_reg.toUpperCase() || null,
           carrier_name: formData.carrier_name || OWN_CARRIER_NAME,
           weighbridge_transaction_id: txData.id,
@@ -716,6 +722,7 @@ const WeighOnePage = () => {
       tare_weight_kg: t.tare_weight_kg != null ? String(t.tare_weight_kg) : "",
 
     });
+    setEditClassification(asClassification(t.waste_classification));
     setEditOperatorSignature(t.operator_signature ?? null);
     setEditDriverSignature(t.driver_signature ?? null);
     setEditDialogOpen(true);
@@ -745,6 +752,7 @@ const WeighOnePage = () => {
           waste_type_id: editForm.waste_type_id || null,
           waste_description: wasteType?.waste_type ?? selectedTransaction.waste_description,
           ewc_code: editForm.ewc_code || wasteType?.ewc_code || null,
+          waste_classification: editClassification,
           container_type: editForm.container_type || null,
           vehicle_type: editForm.vehicle_type || null,
           operator_signature: editOperatorSignature,
@@ -830,6 +838,7 @@ const WeighOnePage = () => {
 
   const resetForm = () => {
     setFormData({ ...emptyForm });
+    setClassification({});
     setOperatorSignature(null);
     setDriverSignature(null);
     setStagedAttachments([]);
@@ -1181,6 +1190,7 @@ const WeighOnePage = () => {
                           )}
                         </div>
                       </div>
+                      <WasteClassificationFields value={classification} onChange={setClassification} ewcCode={formData.ewc_code || selectedWasteType?.ewc_code || ""} compact />
                       </div>
                     </div>
                   </div>
@@ -1867,6 +1877,7 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Site:</span> {selectedTransaction.site ?? "-"}</div>
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 <div><span className="text-muted-foreground">EWC:</span> {selectedTransaction.ewc_code ?? "-"}</div>
+                <div><span className="text-muted-foreground">Hazardous / POPs:</span> {asClassification(selectedTransaction.waste_classification).hazardous ? "Hazardous" : "No"} / {asClassification(selectedTransaction.waste_classification).contains_pops ? "POPs" : "No"}</div>
                 <div><span className="text-muted-foreground">Container:</span> {selectedTransaction.container_type ?? "-"}</div>
                 <div><span className="text-muted-foreground">Vehicle type:</span> {selectedTransaction.vehicle_type ?? "-"}</div>
                 <div><span className="text-muted-foreground">Physical form:</span> {selectedTransaction.physical_form ?? "-"}</div>
@@ -2151,6 +2162,7 @@ const WeighOnePage = () => {
               <Label>Notes</Label>
               <Input value={editForm.notes} onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))} />
             </div>
+            <WasteClassificationFields value={editClassification} onChange={setEditClassification} ewcCode={editForm.ewc_code || wasteTypes.find((w) => w.id === editForm.waste_type_id)?.ewc_code || ""} />
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
               <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending}>Save changes</Button>
