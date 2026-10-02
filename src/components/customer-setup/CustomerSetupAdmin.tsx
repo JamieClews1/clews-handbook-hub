@@ -467,7 +467,17 @@ export function CustomerSetupAdmin() {
   const createCustomerFromSource = async (sourceName: string) => {
     const name = sourceName.trim();
     if (!name) return;
-    const code = generateCustomerCode(name);
+    const { data: codeRow } = await supabase
+      .from("data_hub_jobs")
+      .select("account_code")
+      .ilike("customer", name)
+      .not("account_code", "is", null)
+      .neq("account_code", "")
+      .limit(1)
+      .maybeSingle();
+    const hubCode = codeRow?.account_code?.trim().toUpperCase();
+    const taken = hubCode && customers.some((c) => c.customer_code.toUpperCase() === hubCode);
+    const code = hubCode && !taken ? hubCode : generateCustomerCode(name);
     setSavingCustomer(true);
     try {
       const { data, error } = await supabase
