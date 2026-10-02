@@ -300,9 +300,10 @@ export function CustomerSetupAdmin() {
       .replace(/\s+/g, " ")
       .trim();
 
-  const syncBrokerSitesFromSkiptrak = async () => {
-    if (!selectedCustomer || !selectedCustomerId) return;
-    const brokerName = selectedCustomer.customer_name?.trim();
+  const syncBrokerSitesFromSkiptrak = async (opts?: { customerId: string; customerName: string; silent?: boolean }) => {
+    const targetId = opts?.customerId ?? selectedCustomerId;
+    const brokerName = (opts?.customerName ?? selectedCustomer?.customer_name)?.trim();
+    if (!targetId) return;
     if (!brokerName) {
       toast({ title: "Missing customer name", description: "Cannot sync without a customer name.", variant: "destructive" });
       return;
@@ -320,7 +321,6 @@ export function CustomerSetupAdmin() {
         const { data, error } = await supabase
           .from("data_hub_jobs")
           .select("customer, site")
-          .eq("source", "skiptrak")
           .not("site", "is", null)
           .ilike("customer", `${searchPrefix}%`)
           .range(from, from + pageSize - 1);
@@ -345,23 +345,26 @@ export function CustomerSetupAdmin() {
       }
 
       if (matchedSites.size === 0) {
-        toast({ title: "No Skiptrak sites found", description: `No Skiptrak jobs were found for "${brokerName}".`, variant: "destructive" });
+        if (opts?.silent) return;
+        toast({ title: "No Data Hub sites found", description: `No Data Hub jobs were found for "${brokerName}".`, variant: "destructive" });
         return;
       }
 
       // Determine which sites are already present (case-insensitive name match)
-      const existingNames = new Set(sites.map((s) => s.site_name.trim().toLowerCase()));
+      const { data: existingRows } = await supabase.from("customer_sites").select("site_name").eq("customer_id", targetId);
+      const existingNames = new Set((existingRows ?? []).map((s) => (s.site_name || "").trim().toLowerCase()));
       const customerAlias = Array.from(matchedCustomers)[0] ?? brokerName;
       const toInsert = Array.from(matchedSites)
         .filter((siteName) => !existingNames.has(siteName.toLowerCase()))
         .map((siteName) => ({
-          customer_id: selectedCustomerId,
+          customer_id: targetId,
           site_name: siteName,
           data_hub_customer: customerAlias,
           data_hub_site: siteName,
         }));
 
       if (toInsert.length === 0) {
+        if (opts?.silent) return;
         toast({ title: "Already in sync", description: `All ${matchedSites.size} Skiptrak site(s) for this broker are already added.` });
         return;
       }
@@ -370,10 +373,10 @@ export function CustomerSetupAdmin() {
       if (insertError) throw insertError;
 
       toast({
-        title: "Broker sites synced",
-        description: `Added ${toInsert.length} new site(s) from Skiptrak. Skipped ${matchedSites.size - toInsert.length} already present.`,
+        title: "Sites synced",
+        description: `Added ${toInsert.length} new site(s) from Data Hub. Skipped ${matchedSites.size - toInsert.length} already present.`,
       });
-      await loadCustomerDetails(selectedCustomerId);
+      await loadCustomerDetails(targetId);
     } catch (e: any) {
       toast({ title: "Sync failed", description: e?.message ?? "Failed to sync broker sites.", variant: "destructive" });
     } finally {
@@ -490,7 +493,10 @@ export function CustomerSetupAdmin() {
       if (error) throw error;
       toast({ title: "Created", description: `${name} added from Data Hub.` });
       await loadCustomers();
-      if (data?.id) setSelectedCustomerId(data.id);
+      if (data?.id) {
+        setSelectedCustomerId(data.id);
+        await syncBrokerSitesFromSkiptrak({ customerId: data.id, customerName: name, silent: true });
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to create customer.", variant: "destructive" });
     } finally {
@@ -921,7 +927,10 @@ export function CustomerSetupAdmin() {
       setNewCustomerCode("");
       setNewCustomerName("");
       await loadCustomers();
-      if (data?.id) setSelectedCustomerId(data.id);
+      if (data?.id) {
+        setSelectedCustomerId(data.id);
+        await syncBrokerSitesFromSkiptrak({ customerId: data.id, customerName: name, silent: true });
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to create customer.", variant: "destructive" });
     } finally {
@@ -1423,20 +1432,18 @@ export function CustomerSetupAdmin() {
                       <h3 className="text-lg font-semibold">Sites</h3>
                       <p className="text-sm text-muted-foreground">
                         {selectedCustomer.is_broker
-                          ? "Broker account: use 'Sync Sites from Skiptrak' to auto-add every site assigned to this broker in Skiptrak."
+                          ? "Broker account: use 'Sync Sites from Data Hub' to auto-add every site assigned to this broker in Skiptrak."
                           : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {selectedCustomer.is_broker && (
-                        <Button
-                          variant="outline"
-                          onClick={syncBrokerSitesFromSkiptrak}
-                          disabled={syncingBrokerSites}
-                        >
-                          {syncingBrokerSites ? "Syncing…" : "Sync Sites from Skiptrak"}
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        onClick={() => syncBrokerSitesFromSkiptrak()}
+                        disabled={syncingBrokerSites}
+                      >
+                        {syncingBrokerSites ? "Syncing…" : "Sync Sites from Data Hub"}
+                      </Button>
                       <Button
                         variant={showArchivedSites ? "default" : "outline"}
                         onClick={() => setShowArchivedSites((v) => !v)}
