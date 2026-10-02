@@ -99,6 +99,7 @@ const READ_WHITELIST = new Set<string>([
   "enquiries",
   "credit_account_applications",
   "profiles",
+  "help_guides",
 ]);
 
 // Tables Claude may UPDATE / DELETE — every change requires explicit user
@@ -145,6 +146,7 @@ const ACTION_TOOL_NAMES = new Set<string>([
   "update_load_reports",
   "delete_load_reports",
   "send_email",
+  "save_help_guide",
 ]);
 
 const MODEL = "claude-sonnet-4-6";
@@ -196,6 +198,14 @@ DOING TASKS (action tools — these CHANGE data or send email):
 - For record edits use update_records {table, updates:[{id, changes}]}; for removals delete_records {table, ids:[]}; for new rows insert_records {table, rows:[]}. CRM status changes: update crm_tickets (status "open"/"closed", assigned_to, priority). Pricing edits: update pricing_entries / pricing_rate_card_values / pricing_skip_sizes after reading current values. Load reports have dedicated tools that also manage their line items.
 - To email someone use send_email {to, subject, html, description}. Compose proper HTML. Confirm the recipient address before sending.
 - After the user confirms, the portal runs the action and tells them the result — you do not need to do anything else.
+
+WRITING "HOW TO" GUIDES (save_help_guide):
+- When asked to make a how-to guide, first research the workflow: use schema_info/query_data on the related tables (and help_guides to see existing guides and avoid duplicates) so the steps match how the portal really works. If you are unsure how a screen works, ask one short question rather than inventing buttons.
+- Write for non-technical yard and office staff: plain UK English, no table/column names, no jargon.
+- Title starts "How to …". Intro: 1–2 sentences on the outcome. Then 4–7 steps in the order they're done. Each step title is a short imperative ("Open the load report", "Check the weights"). Each detail says where to go (e.g. "Open Load Reports → Missing Reports"), the exact button/tab names in bold-free plain text, what to check, and what to do if something looks wrong.
+- Add href links only to these real pages: /load-reports, /rebate-values, /customer-reporting, /admin/customers, /performance-hub/live-jobs, /performance-hub/rentals, /performance-hub/stock-check, /performance-hub/contaminations, /performance-hub/pda-uploads, /data-hub/uploads, /route-one, /weigh-one, /container-loads, /permits, /pods, /po-checks, /staci-reports, /crm, /pricing, /finance, /payroll, /digital-waste-tracking, /site-inductions, /help?guide=<id>.
+- Finish with a "note" (Good to know) for the most common mistake or gotcha.
+- Show the full draft guide to the user in your reply first, then call save_help_guide so they can confirm. It appears on the Help page (top-right ? icon) once confirmed.
 
 STYLE:
 - Be concise and direct. Use bullet points and clear numbers. Round weights sensibly.
@@ -269,6 +279,35 @@ const TOOLS = [
 // actions and only run after the user clicks Confirm. Each requires a
 // human-readable "description".
 const ACTION_TOOLS = [
+  {
+    name: "save_help_guide",
+    description: "Create or update a staff 'How to' guide on the Help page. Staff confirm before it is saved.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Short kebab-case slug, e.g. 'reconcile-load-reports'. Reuse an existing id to update that guide." },
+        title: { type: "string", description: "Starts with 'How to', e.g. 'How to reconcile load reports'." },
+        section: { type: "string", description: "Portal area, e.g. 'Load Reports', 'Rebates', 'Customer Setup'." },
+        intro: { type: "string", description: "One or two sentences on what the guide achieves." },
+        steps: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              detail: { type: "string" },
+              href: { type: "string", description: "Optional portal path from the known page list." },
+              linkLabel: { type: "string" },
+            },
+            required: ["title", "detail"],
+          },
+        },
+        note: { type: "string", description: "Optional 'Good to know' tip." },
+        description: { type: "string" },
+      },
+      required: ["id", "title", "section", "intro", "steps", "description"],
+    },
+  },
   {
     name: "update_records",
     description: "Update one or more existing rows in a writable table. Read the records first to get real ids.",
@@ -855,6 +894,20 @@ async function mergeSites(
   return results;
 }
 
+async function saveHelpGuide(supabase: any, d: any, userId: string) {
+  const id = String(d.id || d.title || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const steps = Array.isArray(d.steps) ? d.steps.filter((s: any) => s?.title && s?.detail).map((s: any) => ({
+    title: String(s.title), detail: String(s.detail),
+    ...(s.href && String(s.href).startsWith("/") ? { href: String(s.href), linkLabel: String(s.linkLabel || "Open page") } : {}),
+  })) : [];
+  if (!id || !d.title || steps.length === 0) return { errors: ["A guide needs an id, a title and at least one step."] };
+  const content: any = { id, title: String(d.title), section: String(d.section || "General"), intro: String(d.intro || ""), steps };
+  if (d.note) content.note = String(d.note);
+  const { error } = await supabase.from("help_guides").upsert({ id, content, deleted: false, updated_by: userId, updated_at: new Date().toISOString() });
+  if (error) return { errors: [error.message] };
+  return { created: 1, errors: [], link: `/help?guide=${id}` };
+}
+
 async function executeAction(supabase: any, tool: string, input: any, userId: string, userName: string) {
   switch (tool) {
     case "update_records": return await updateRecords(supabase, input || {});
@@ -866,6 +919,7 @@ async function executeAction(supabase: any, tool: string, input: any, userId: st
     case "update_load_reports": return await updateLoadReports(supabase, input || {});
     case "delete_load_reports": return await deleteLoadReports(supabase, input || {});
     case "send_email": return await sendEmail(input || {});
+    case "save_help_guide": return await saveHelpGuide(supabase, input || {}, userId);
     default: return { error: `Unknown action: ${tool}` };
   }
 }
