@@ -134,6 +134,8 @@ export function CustomerSetupAdmin() {
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const selectedCustomerIdRef = React.useRef<string | null>(null);
+  selectedCustomerIdRef.current = selectedCustomerId;
   const [customerSearch, setCustomerSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
 
