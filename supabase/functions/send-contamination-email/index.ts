@@ -63,6 +63,10 @@ serve(async (req) => {
         to: [to],
         subject,
         html: htmlBody,
+        attachments: (photos || []).slice(0, 15).map((url: string, i: number) => {
+          const ext = (url.split("?")[0].match(/\.(jpe?g|png|webp|gif)$/i)?.[1] || "jpg").toLowerCase();
+          return { path: url, filename: `contamination-photo-${i + 1}.${ext}` };
+        }),
       }),
     });
 

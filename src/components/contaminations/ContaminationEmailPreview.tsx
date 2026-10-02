@@ -8,7 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Send, X } from "lucide-react";
+import { Send, X, Check } from "lucide-react";
+import { fetchJobTicketPhotos } from "@/lib/job-ticket-photos";
+import { cn } from "@/lib/utils";
+
+const PhotoTile = ({ url, label, on, onClick }: { url: string; label: string; on: boolean; onClick: () => void }) => (
+  <button type="button" onClick={onClick} title={label} className="relative text-left">
+    <img src={url} alt={label} className={cn("h-16 w-16 rounded object-cover border-2", on ? "border-primary" : "border-border opacity-40")} />
+    {on && (
+      <span className="absolute top-0.5 right-0.5 rounded-full bg-primary text-primary-foreground p-0.5">
+        <Check className="h-3 w-3" />
+      </span>
+    )}
+    <span className="block text-[10px] text-muted-foreground w-16 truncate">{label}</span>
+  </button>
+);
 
 interface Props {
   query: any;
@@ -52,6 +66,24 @@ Clews Recycling`;
   );
   const [body, setBody] = useState(defaultBody);
 
+  // Load photos (driver + PDA ticket) for this job, valid 7 days so email links keep working
+  const { data: loadPhotos = [], isLoading: loadingPhotos } = useQuery({
+    queryKey: ["contamination-load-photos", query.job_number],
+    queryFn: () => fetchJobTicketPhotos(String(query.job_number || ""), 60 * 60 * 24 * 7),
+  });
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const allPhotos: string[] = [
+    ...(query.photos || []),
+    ...loadPhotos.map((p) => p.url),
+  ];
+  const selectedPhotos = allPhotos.filter((u) => !excluded.has(u));
+  const toggle = (u: string) =>
+    setExcluded((prev) => {
+      const n = new Set(prev);
+      n.has(u) ? n.delete(u) : n.add(u);
+      return n;
+    });
+
   const handleSend = async () => {
     if (!recipientEmail) {
       toast({ title: "Missing recipient email", variant: "destructive" });
@@ -64,7 +96,7 @@ Clews Recycling`;
           to: recipientEmail,
           subject,
           body,
-          photos: query.photos || [],
+          photos: selectedPhotos,
           queryId: query.id,
         },
       });
@@ -126,16 +158,21 @@ Clews Recycling`;
           <Label>Body</Label>
           <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={16} className="font-mono text-sm" />
         </div>
-        {(query.photos || []).length > 0 && (
-          <div>
-            <Label className="text-xs text-muted-foreground">{query.photos.length} photo(s) will be attached</Label>
-            <div className="flex gap-2 mt-1">
-              {query.photos.slice(0, 4).map((url: string, i: number) => (
-                <img key={i} src={url} alt="" className="h-12 w-12 rounded object-cover border border-border" />
-              ))}
-            </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">
+            {loadingPhotos
+              ? "Loading photos from the load…"
+              : `${selectedPhotos.length} of ${allPhotos.length} photo(s) will be attached — click a photo to include/exclude`}
+          </Label>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {(query.photos || []).map((url: string) => (
+              <PhotoTile key={url} url={url} label="Contamination" on={!excluded.has(url)} onClick={() => toggle(url)} />
+            ))}
+            {loadPhotos.map((p) => (
+              <PhotoTile key={p.id} url={p.url} label={p.label} on={!excluded.has(p.url)} onClick={() => toggle(p.url)} />
+            ))}
           </div>
-        )}
+        </div>
         <div className="flex gap-2 pt-2">
           <Button onClick={handleSend} disabled={sending} className="gap-2">
             <Send className="h-4 w-4" />
