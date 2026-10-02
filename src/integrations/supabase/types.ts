@@ -2994,6 +2994,7 @@ export type Database = {
           code: string
           created_at: string
           description: string
+          dwt_defaults: Json
           hazardous: boolean
           id: string
           is_active: boolean
@@ -3009,6 +3010,7 @@ export type Database = {
           code: string
           created_at?: string
           description: string
+          dwt_defaults?: Json
           hazardous?: boolean
           id?: string
           is_active?: boolean
@@ -3024,6 +3026,7 @@ export type Database = {
           code?: string
           created_at?: string
           description?: string
+          dwt_defaults?: Json
           hazardous?: boolean
           id?: string
           is_active?: boolean
@@ -7575,6 +7578,7 @@ export type Database = {
           updated_at: string
           vat_rate: number
           vehicle_reg: string | null
+          waste_classification: Json
           waste_type: string | null
           weighbridge_ticket_number: string | null
           weighbridge_transaction_id: string | null
@@ -7639,6 +7643,7 @@ export type Database = {
           updated_at?: string
           vat_rate?: number
           vehicle_reg?: string | null
+          waste_classification?: Json
           waste_type?: string | null
           weighbridge_ticket_number?: string | null
           weighbridge_transaction_id?: string | null
@@ -7703,6 +7708,7 @@ export type Database = {
           updated_at?: string
           vat_rate?: number
           vehicle_reg?: string | null
+          waste_classification?: Json
           waste_type?: string | null
           weighbridge_ticket_number?: string | null
           weighbridge_transaction_id?: string | null
@@ -9175,6 +9181,7 @@ export type Database = {
           updated_at: string
           vehicle_reg: string
           vehicle_type: string | null
+          waste_classification: Json
           waste_description: string | null
           waste_type_id: string | null
           weight_charge: number | null
@@ -9215,6 +9222,7 @@ export type Database = {
           updated_at?: string
           vehicle_reg: string
           vehicle_type?: string | null
+          waste_classification?: Json
           waste_description?: string | null
           waste_type_id?: string | null
           weight_charge?: number | null
@@ -9255,6 +9263,7 @@ export type Database = {
           updated_at?: string
           vehicle_reg?: string
           vehicle_type?: string | null
+          waste_classification?: Json
           waste_description?: string | null
           waste_type_id?: string | null
           weight_charge?: number | null
