@@ -49,6 +49,8 @@ export type CustomerRebateExportInput = {
     /** £/tonne rate for the pallet weight charge (typically negative). */
     palletChargeRate?: number;
   };
+  /** Skip / RoRo / weighbridge jobs behind the rebate lines (non load-report loads). */
+  jobLoads?: Array<{ site: string; ref: string; date: string | null; source: string; description: string; weight: number }>;
 };
 
 
@@ -500,6 +502,43 @@ export async function buildCustomerRebateWorkbook(
     grandRow.height = 22;
 
     dsizer.apply(ds);
+  }
+
+  // =========================================================================
+  // LOAD BREAKDOWN — Skip / RoRo / weighbridge jobs
+  // =========================================================================
+  const jobLoads = (input.jobLoads ?? []).filter((l) => l.source !== "Load Report");
+  if (jobLoads.length > 0) {
+    const js = wb.addWorksheet("Load Breakdown");
+    js.getRow(1).getCell(1).value = `Load Breakdown — ${customerName} — ${input.periodLabel}`;
+    js.getRow(1).getCell(1).font = { name: "Calibri", size: 14, bold: true, color: { argb: HEADER_GREY } };
+    const headers = ["Date", "Job No.", "Source", "Site", "Description", "Weight (t)"];
+    const hr = js.getRow(3);
+    headers.forEach((h, i) => {
+      const c = hr.getCell(i + 1);
+      c.value = h;
+      c.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND_GREEN } };
+    });
+    let r = 4;
+    let tot = 0;
+    for (const l of [...jobLoads].sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))) {
+      const row = js.getRow(r++);
+      row.getCell(1).value = l.date ? format(new Date(l.date + "T00:00:00Z"), "dd/MM/yyyy") : "—";
+      row.getCell(2).value = l.ref;
+      row.getCell(3).value = l.source;
+      row.getCell(4).value = l.site;
+      row.getCell(5).value = l.description;
+      row.getCell(6).value = round2(l.weight);
+      row.getCell(6).numFmt = "#,##0.00";
+      tot += l.weight;
+    }
+    const tr = js.getRow(r);
+    tr.getCell(5).value = "Total";
+    tr.getCell(6).value = round2(tot);
+    tr.getCell(6).numFmt = "#,##0.00";
+    [5, 6].forEach((c) => (tr.getCell(c).font = { name: "Calibri", size: 10, bold: true }));
+    [12, 10, 12, 28, 50, 12].forEach((w, i) => (js.getColumn(i + 1).width = w));
   }
 
   // =========================================================================
