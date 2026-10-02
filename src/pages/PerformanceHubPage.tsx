@@ -1,205 +1,33 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, Database, Radio, Gauge, AlertTriangle, Box, Fuel, PoundSterling, FileText } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { BarChart3, Database, Radio, Gauge, AlertTriangle, Box, Fuel, PoundSterling, FileText, ArrowUpRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { PageHeading } from "@/components/PageHeading";
 
+const sections: { title: string; description: string; path: string; icon: LucideIcon }[] = [
+  { title: "Waste KPIs", description: "Zero to Landfill and wood recovery", path: "/performance-hub/waste-kpis", icon: Gauge },
+  { title: "Business Reports", description: "Business performance and trends", path: "/performance-hub/reports", icon: BarChart3 },
+  { title: "Live Jobs", description: "Skips and RoRos on site", path: "/performance-hub/live-jobs", icon: Radio },
+  { title: "Rentals", description: "Over-rentals and agreements", path: "/performance-hub/rentals", icon: PoundSterling },
+  { title: "Data Uploads", description: "Skiptrak and Midweigh data", path: "/performance-hub/data", icon: Database },
+  { title: "PDA Uploads", description: "Transfer notes matched to jobs", path: "/performance-hub/pda-uploads", icon: FileText },
+  { title: "Contaminations", description: "Queries, charges and communications", path: "/performance-hub/contaminations", icon: AlertTriangle },
+  { title: "Stock Check", description: "Container stock and availability", path: "/performance-hub/stock-check", icon: Box },
+  { title: "Fuel Surcharges", description: "Vehicle and zone surcharges", path: "/performance-hub/fuel-surcharges", icon: Fuel },
+];
 
-const PerformanceHubPage = () => {
-  const navigate = useNavigate();
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
+export default function PerformanceHubPage() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/portal">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Portal</span>
-              </Button>
-            </Link>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          {/* Title */}
-          <h1 className="text-4xl font-bold text-center text-foreground mb-8">
-            PERFORMANCE HUB
-          </h1>
-
-
-          {/* Section Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Waste KPIs */}
-            <Link to="/performance-hub/waste-kpis" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <Gauge className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Waste KPIs
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Zero to Landfill and Grade C Wood recovery tracking
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Business Reports */}
-            <Link to="/performance-hub/reports" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <BarChart3 className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Business Reports
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Analytics, tracking, and AI-powered insights for business performance
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Live Jobs */}
-            <Link to="/performance-hub/live-jobs" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <Radio className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Live Jobs
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Live container tracking — Skips, RoRos and Artics on-site
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Rentals */}
-            <Link to="/performance-hub/rentals" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <PoundSterling className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Rentals
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Track bins over rental, chase customers for payment, and manage rental agreements
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-
-
-            {/* Data Uploads */}
-            <Link to="/performance-hub/data" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <Database className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Data Uploads
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Upload and manage Skiptrak and Midweigh operational data
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* PDA Uploads */}
-            <Link to="/performance-hub/pda-uploads" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <FileText className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    PDA Uploads
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Waste transfer notes emailed from Skiptrak, matched to job tickets
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-
-            {/* Contaminations */}
-            <Link to="/performance-hub/contaminations" className="group">
-              <div className="h-full p-8 rounded-xl bg-destructive hover:bg-destructive/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <AlertTriangle className="h-12 w-12 text-destructive-foreground" />
-                  <h2 className="text-xl font-bold text-destructive-foreground uppercase tracking-wide">
-                    Contaminations
-                  </h2>
-                  <p className="text-destructive-foreground/80 text-sm">
-                    Track and manage contamination queries, charges and communications
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Stock Check */}
-            <Link to="/performance-hub/stock-check" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <Box className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Stock Check
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Monitor skip and RoRo stock levels, availability, and projected movements
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Fuel Surcharges */}
-            <Link to="/performance-hub/fuel-surcharges" className="group">
-              <div className="h-full p-8 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <Fuel className="h-12 w-12 text-primary-foreground" />
-                  <h2 className="text-xl font-bold text-primary-foreground uppercase tracking-wide">
-                    Fuel Surcharges
-                  </h2>
-                  <p className="text-primary-foreground/80 text-sm">
-                    Auto-calculated temporary fuel surcharges by vehicle type and zone
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </main>
+    <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6">
+      <PageHeading title="Performance Hub" section={{ label: "Home", href: "/portal" }} description="Explore operational and business reports." />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {sections.map(({ title, description, path, icon: Icon }) => (
+          <Link key={path} to={path} className="group flex min-h-32 items-start gap-4 rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-base font-semibold text-foreground">{title}</span><span className="mt-1 block text-sm text-muted-foreground">{description}</span></span>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
+          </Link>
+        ))}
+      </div>
     </div>
   );
-};
-
-export default PerformanceHubPage;
+}
