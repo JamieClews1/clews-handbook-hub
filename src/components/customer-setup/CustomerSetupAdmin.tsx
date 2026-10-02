@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw } from "lucide-react";
+import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw, Eye } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
@@ -1664,6 +1664,18 @@ export function CustomerSetupAdmin() {
                                       Send access
                                     </Button>
                                   )}
+                                  {hasPortalAccess && isAdmin && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs gap-1"
+                                      title="Open My Portal as this contact (view only)"
+                                      onClick={() => window.open(`/my-portal?viewAs=${membership.id}`, "_blank")}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      View as
+                                    </Button>
+                                  )}
                                   {hasPortalAccess ? (
                                     <Button
                                       variant="outline"
@@ -1783,6 +1795,12 @@ export function CustomerSetupAdmin() {
                                     <Mail className="h-3 w-3" />
                                     Send login email
                                   </Button>
+                                  {isAdmin && (
+                                    <Button variant="outline" size="sm" className="gap-1" onClick={() => window.open(`/my-portal?viewAs=${m.id}`, "_blank")}>
+                                      <Eye className="h-3 w-3" />
+                                      View as customer
+                                    </Button>
+                                  )}
                                   <Button variant="outline" size="sm" onClick={() => removeMembership(m.id)}>
                                     Remove
                                   </Button>

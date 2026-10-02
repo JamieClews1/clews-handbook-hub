@@ -6024,6 +6024,30 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_view_as_log: {
+        Row: {
+          admin_user_id: string
+          customer_id: string | null
+          id: string
+          membership_id: string
+          viewed_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          customer_id?: string | null
+          id?: string
+          membership_id: string
+          viewed_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          customer_id?: string | null
+          id?: string
+          membership_id?: string
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       postcode_zones: {
         Row: {
           created_at: string
