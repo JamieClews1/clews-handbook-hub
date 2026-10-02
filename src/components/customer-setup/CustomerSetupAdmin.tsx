@@ -46,6 +46,7 @@ type Customer = {
   custom_reporting_periods_enabled: boolean;
   po_spans_periods: boolean;
   is_broker: boolean;
+  all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
   is_active: boolean;
   data_hub_customer: string | null;
@@ -153,7 +154,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, midweigh_rebates_enabled: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false });
 
   const customerCreateSchema = useMemo(
     () =>
@@ -308,22 +309,26 @@ export function CustomerSetupAdmin() {
       toast({ title: "Missing customer name", description: "Cannot sync without a customer name.", variant: "destructive" });
       return;
     }
+    const syncAllSites = (opts?.customerId
+      ? customers.find((c) => c.id === opts.customerId)?.all_data_hub_sites
+      : selectedCustomer?.all_data_hub_sites) ?? false;
     setSyncingBrokerSites(true);
     try {
       const normalizedBroker = normalizeBrokerName(brokerName);
       const searchPrefix = brokerName.replace(/\b(limited|ltd|plc|llp)\b/gi, " ").replace(/\s+/g, " ").trim() || brokerName;
 
-      // Fetch all Skiptrak rows whose customer name approximately matches the broker
+      // Fetch Data Hub rows with a site — either every row (all_data_hub_sites) or rows
+      // whose customer name approximately matches the broker
       const pageSize = 1000;
       let from = 0;
       const allRows: { customer: string | null; site: string | null }[] = [];
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("data_hub_jobs")
           .select("customer, site")
-          .not("site", "is", null)
-          .ilike("customer", `${searchPrefix}%`)
-          .range(from, from + pageSize - 1);
+          .not("site", "is", null);
+        if (!syncAllSites) query = query.ilike("customer", `${searchPrefix}%`);
+        const { data, error } = await query.range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
         allRows.push(...data);
@@ -332,14 +337,14 @@ export function CustomerSetupAdmin() {
         if (from > 200000) break;
       }
 
-      // Filter strictly to rows where normalized customer name matches the broker
+      // Filter to matching rows (all rows when syncAllSites is on)
       const matchedSites = new Set<string>();
       const matchedCustomers = new Set<string>();
       for (const row of allRows) {
         const c = (row.customer || "").trim();
         const s = (row.site || "").trim();
         if (!c || !s) continue;
-        if (normalizeBrokerName(c) !== normalizedBroker) continue;
+        if (!syncAllSites && normalizeBrokerName(c) !== normalizedBroker) continue;
         matchedSites.add(s);
         matchedCustomers.add(c);
       }
@@ -353,7 +358,7 @@ export function CustomerSetupAdmin() {
       // Determine which sites are already present (case-insensitive name match)
       const { data: existingRows } = await supabase.from("customer_sites").select("site_name").eq("customer_id", targetId);
       const existingNames = new Set((existingRows ?? []).map((s) => (s.site_name || "").trim().toLowerCase()));
-      const customerAlias = Array.from(matchedCustomers)[0] ?? brokerName;
+      const customerAlias = syncAllSites ? null : (Array.from(matchedCustomers)[0] ?? brokerName);
       const toInsert = Array.from(matchedSites)
         .filter((siteName) => !existingNames.has(siteName.toLowerCase()))
         .map((siteName) => ({
@@ -436,7 +441,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,all_data_hub_sites,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -949,6 +954,7 @@ export function CustomerSetupAdmin() {
       custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
       po_spans_periods: customer.po_spans_periods ?? false,
       is_broker: customer.is_broker ?? false,
+      all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
     });
     setEditCustomerOpen(true);
@@ -979,6 +985,7 @@ export function CustomerSetupAdmin() {
           custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
           po_spans_periods: editCustomerForm.po_spans_periods,
           is_broker: editCustomerForm.is_broker,
+          all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
         })
         .eq("id", editingCustomer.id);
@@ -1431,9 +1438,11 @@ export function CustomerSetupAdmin() {
                     <div>
                       <h3 className="text-lg font-semibold">Sites</h3>
                       <p className="text-sm text-muted-foreground">
-                        {selectedCustomer.is_broker
-                          ? "Broker account: use 'Sync Sites from Data Hub' to auto-add every site assigned to this broker in Skiptrak."
-                          : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
+                        {selectedCustomer.all_data_hub_sites
+                          ? "All Data Hub sites: 'Sync Sites from Data Hub' adds every site found in the Data Hub."
+                          : selectedCustomer.is_broker
+                            ? "Broker account: use 'Sync Sites from Data Hub' to auto-add every site assigned to this broker in Skiptrak."
+                            : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -2056,6 +2065,19 @@ export function CustomerSetupAdmin() {
               <Switch
                 checked={editCustomerForm.is_broker}
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_broker: v }))}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>All Data Hub sites</Label>
+                <p className="text-xs text-muted-foreground">
+                  For smaller brokers managing many clients: when on, "Sync Sites from Data Hub" adds every site found in the Data Hub, not just sites on this customer's own jobs.
+                </p>
+              </div>
+              <Switch
+                checked={editCustomerForm.all_data_hub_sites}
+                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, all_data_hub_sites: v }))}
               />
             </div>
             <Separator />
