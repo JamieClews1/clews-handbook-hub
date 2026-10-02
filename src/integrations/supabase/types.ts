@@ -9605,6 +9605,7 @@ export type Database = {
           site: string
         }[]
       }
+      get_skiptrak_customer_sites_json: { Args: never; Returns: Json }
       get_skiptrak_rental_positions: {
         Args: never
         Returns: {
