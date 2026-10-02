@@ -1,0 +1,2 @@
+UPDATE public.customer_sites SET site_name='Dan Clancy - 22 George Street', address_1='22 George Street', postcode='CV47 8JT'
+WHERE customer_id='b05fe858-794b-4ce4-9420-01241a0e7d60' AND site_name='Dan Clancy';
