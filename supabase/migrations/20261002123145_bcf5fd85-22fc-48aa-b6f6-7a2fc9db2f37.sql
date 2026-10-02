@@ -1,0 +1,2 @@
+ALTER TABLE public.customer_portal_memberships ADD COLUMN IF NOT EXISTS all_sites boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.customer_portal_memberships.all_sites IS 'Broker contact: automatically ticked for every site under their own customer (via customer_portal_site_access rows).';

@@ -113,6 +113,7 @@ type Membership = {
   customer_id: string;
   user_id: string;
   contact_id: string | null;
+  all_sites?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -514,7 +515,7 @@ export function CustomerSetupAdmin() {
         supabase.from("rebate_price_sets").select("id,name,created_at,updated_at").order("name", { ascending: true }),
         supabase
           .from("customer_portal_memberships")
-          .select("id,customer_id,user_id,contact_id,created_at,updated_at")
+          .select("id,customer_id,user_id,contact_id,all_sites,created_at,updated_at")
           .eq("customer_id", customerId)
           .order("created_at", { ascending: false }),
       ]);
@@ -601,6 +602,19 @@ export function CustomerSetupAdmin() {
     for (const r of (accessRows ?? []) as Array<{ membership_id: string; site_id: string }>) {
       accessMap[r.membership_id] ??= new Set();
       accessMap[r.membership_id]!.add(r.site_id);
+    }
+
+    // Broker contacts with full access: tick any of their own customer's sites still missing.
+    const fullAccessRows = membershipRows
+      .filter((m) => m.all_sites)
+      .flatMap((m) =>
+        siteRows
+          .filter((s) => s.customer_id === m.customer_id && !s.is_archived && !accessMap[m.id]?.has(s.id))
+          .map((s) => ({ membership_id: m.id, site_id: s.id }))
+      );
+    if (fullAccessRows.length) {
+      const { error: faErr } = await supabase.from("customer_portal_site_access").insert(fullAccessRows);
+      if (!faErr) fullAccessRows.forEach((r) => accessMap[r.membership_id].add(r.site_id));
     }
 
     // Include implicit owner-based access so existing access shows as ticked.
@@ -1099,6 +1113,26 @@ export function CustomerSetupAdmin() {
       toggleSiteAccess(membershipId, siteId, !checked);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
+  };
+
+  /** Broker contacts: tick every site under their own customer (and keep new sites ticked). */
+  const setAllSitesAccess = async (m: Membership, on: boolean) => {
+    const { error } = await supabase.from("customer_portal_memberships").update({ all_sites: on } as any).eq("id", m.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (on) {
+      const have = siteAccessByMembershipId[m.id] ?? new Set<string>();
+      const rows = sites.filter((s) => s.customer_id === m.customer_id && !s.is_archived && !have.has(s.id))
+        .map((s) => ({ membership_id: m.id, site_id: s.id }));
+      if (rows.length) {
+        const { error: insErr } = await supabase.from("customer_portal_site_access").insert(rows);
+        if (insErr) toast({ title: "Error", description: insErr.message, variant: "destructive" });
+      }
+    }
+    toast({ title: on ? "Full access given" : "Limited to ticked sites", description: on ? "All sites on this account are now ticked." : "Existing ticks are kept; untick any sites they shouldn't see." });
+    if (selectedCustomerId) await loadCustomerDetails(selectedCustomerId);
   };
 
   const saveSiteAccess = async (membershipId: string) => {
@@ -2502,6 +2536,25 @@ export function CustomerSetupAdmin() {
                   </Button>
                 )}
               </div>
+              {selectedCustomer?.is_broker && membershipByContactId[editingContact.id] && (() => {
+                const m = membershipByContactId[editingContact.id];
+                const on = !!m.all_sites;
+                return (
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                    <div>
+                      <p className="text-sm font-medium">Full access to all sites on this account</p>
+                      <p className="text-xs text-muted-foreground">
+                        {on
+                          ? `Sees all ${sites.filter((s) => !s.is_archived).length} sites under ${selectedCustomer.customer_name}, including new ones.`
+                          : "Currently only sees sites ticked for them."}
+                      </p>
+                    </div>
+                    <Button size="sm" variant={on ? "outline" : "default"} onClick={() => setAllSitesAccess(m, !on)}>
+                      {on ? "Limit to ticked sites" : "Give full access"}
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

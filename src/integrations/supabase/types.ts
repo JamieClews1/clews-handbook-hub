@@ -1814,6 +1814,7 @@ export type Database = {
       }
       customer_portal_memberships: {
         Row: {
+          all_sites: boolean
           contact_id: string | null
           created_at: string
           customer_id: string
@@ -1822,6 +1823,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          all_sites?: boolean
           contact_id?: string | null
           created_at?: string
           customer_id: string
@@ -1830,6 +1832,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          all_sites?: boolean
           contact_id?: string | null
           created_at?: string
           customer_id?: string
