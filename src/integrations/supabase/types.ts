@@ -2278,6 +2278,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          all_data_hub_sites: boolean
           auto_pod_emails_enabled: boolean
           created_at: string
           custom_reporting_periods_enabled: boolean
@@ -2295,6 +2296,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          all_data_hub_sites?: boolean
           auto_pod_emails_enabled?: boolean
           created_at?: string
           custom_reporting_periods_enabled?: boolean
@@ -2312,6 +2314,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          all_data_hub_sites?: boolean
           auto_pod_emails_enabled?: boolean
           created_at?: string
           custom_reporting_periods_enabled?: boolean

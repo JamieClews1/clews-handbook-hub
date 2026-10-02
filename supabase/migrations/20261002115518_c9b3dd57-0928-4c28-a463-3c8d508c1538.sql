@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS all_data_hub_sites boolean NOT NULL DEFAULT false; COMMENT ON COLUMN public.customers.all_data_hub_sites IS 'When true, Sync Sites from Data Hub adds every site in data_hub_jobs (for small brokers managing many clients).';
