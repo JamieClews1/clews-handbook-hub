@@ -927,7 +927,10 @@ export function CustomerSetupAdmin() {
       setNewCustomerCode("");
       setNewCustomerName("");
       await loadCustomers();
-      if (data?.id) setSelectedCustomerId(data.id);
+      if (data?.id) {
+        setSelectedCustomerId(data.id);
+        await syncBrokerSitesFromSkiptrak({ customerId: data.id, customerName: name, silent: true });
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to create customer.", variant: "destructive" });
     } finally {
