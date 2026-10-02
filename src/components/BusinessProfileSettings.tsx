@@ -202,7 +202,7 @@ export const BusinessProfileSettings = () => {
               </CardDescription>
             </div>
             <Badge variant="outline" className="gap-1.5">
-              <Radio className="h-3 w-3" /> Sandbox — credentials stored
+              <Radio className="h-3 w-3" /> {profile.dwt_environment === "production" ? "Live — credentials stored" : "Sandbox — credentials stored"}
             </Badge>
           </div>
         </CardHeader>
