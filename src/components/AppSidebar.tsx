@@ -4,7 +4,7 @@ import {
   AlertTriangle, Box, ShieldCheck, ClipboardList, ScrollText, BookOpen, Recycle,
   Container, Calendar, CalendarCheck, Inbox, Users, HardHat, Flame, MessageSquare,
   FileText, Gauge, TrendingUp, BarChart3, Upload, Fuel, Package, Building2,
-  Smartphone, DollarSign, Settings, ChevronDown, ChevronRight,
+  Smartphone, DollarSign, Settings, ChevronDown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -82,8 +82,8 @@ const admin: NavItem[] = [
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
-function NavGroup({ title, items, initialOpen, storageKey, collapsed, currentPath, hidden, isSuperAdmin }: {
-  title: string; items: NavItem[]; initialOpen: boolean; storageKey: string; collapsed: boolean;
+function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed, currentPath, hidden, isSuperAdmin }: {
+  title: string; icon: LucideIcon; items: NavItem[]; initialOpen: boolean; storageKey: string; collapsed: boolean;
   currentPath: string; hidden: Set<string>; isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useSidebarGroupState(storageKey, initialOpen);
@@ -95,6 +95,7 @@ function NavGroup({ title, items, initialOpen, storageKey, collapsed, currentPat
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel title={title} className="h-9 cursor-pointer rounded-md px-3 text-[11px] font-semibold text-sidebar-foreground/70 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+            {collapsed && <Icon className="h-4 w-4" />}
             {!collapsed && <><span>{title}</span><ChevronDown className="ml-auto h-4 w-4" /></>}
           </SidebarGroupLabel>
         </CollapsibleTrigger>
@@ -128,12 +129,12 @@ export function AppSidebar() {
   const isSuperAdmin = isSuperAdminEmail(user?.email);
   const { canAccess: canAccessFinance } = useFinanceAccess();
   const groups = [
-    { title: "Operations", items: operations, key: "nav-operations" },
-    { title: "Customers & Sales", items: customers, key: "nav-customers" },
-    ...(canAccessFinance ? [{ title: "Finance", items: finance, key: "nav-finance" }] : []),
-    { title: "Insights", items: insights, key: "nav-insights" },
-    { title: "Health & Safety", items: safety, key: "nav-safety" },
-    ...(isAdmin ? [{ title: "Admin", items: admin, key: "nav-admin" }] : []),
+    { title: "Operations", icon: Route, items: operations, key: "nav-operations" },
+    { title: "Customers & Sales", icon: Users, items: customers, key: "nav-customers" },
+    ...(canAccessFinance ? [{ title: "Finance", icon: PoundSterling, items: finance, key: "nav-finance" }] : []),
+    { title: "Insights", icon: BarChart3, items: insights, key: "nav-insights" },
+    { title: "Health & Safety", icon: ShieldCheck, items: safety, key: "nav-safety" },
+    ...(isAdmin ? [{ title: "Admin", icon: Settings, items: admin, key: "nav-admin" }] : []),
   ];
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -144,7 +145,7 @@ export function AppSidebar() {
             {!collapsed && <span className="text-lg font-bold text-sidebar-foreground">WasteOne</span>}
           </Link>
         </div>
-        <NavGroup title="Home" items={home} storageKey="nav-home" initialOpen collapsed={collapsed} currentPath={pathname} hidden={hidden} isSuperAdmin={isSuperAdmin} />
+        <NavGroup title="Home" icon={LayoutDashboard} items={home} storageKey="nav-home" initialOpen collapsed={collapsed} currentPath={pathname} hidden={hidden} isSuperAdmin={isSuperAdmin} />
         {groups.map((group) => (
           <NavGroup key={group.key} {...group} storageKey={group.key} initialOpen={group.items.some((item) => pathname === item.path)} collapsed={collapsed} currentPath={pathname} hidden={hidden} isSuperAdmin={isSuperAdmin} />
         ))}
