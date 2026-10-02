@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel, ClipboardList, FileCheck } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Mail, Building2, LogOut, Shield, Package, CalendarCheck, Fuel, ClipboardList, FileCheck, Eye } from "lucide-react";
 import w1Logo from "@/assets/w1-logo.png";
 import { CustomerPortalSiteReport } from "@/components/customer-portal/CustomerPortalSiteReport";
 import { CustomerPortalRebateReport } from "@/components/customer-portal/CustomerPortalRebateReport";
@@ -44,7 +44,10 @@ const ALL_SUBCLIENTS = "__all__";
 const ALL_SITES = "__all_sites__";
 
 const CustomerPortalPage = () => {
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin: realIsAdmin, loading, signOut } = useAuth();
+  const viewAsId = realIsAdmin ? new URLSearchParams(window.location.search).get("viewAs") : null;
+  const isAdmin = realIsAdmin && !viewAsId;
+  const [viewAsName, setViewAsName] = useState<string>("");
   const [membership, setMembership] = useState<PortalMembership | null>(null);
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -94,8 +97,20 @@ const CustomerPortalPage = () => {
             is_broker
           )
         `)
-        .eq("user_id", user.id)
+        .eq(viewAsId ? "id" : "user_id", viewAsId ?? user.id)
         .maybeSingle();
+
+      if (viewAsId && data) {
+        await supabase.from("portal_view_as_log").insert({
+          admin_user_id: user.id,
+          membership_id: viewAsId,
+          customer_id: data.customer_id,
+        } as never);
+        if (data.contact_id) {
+          const { data: c } = await supabase.from("customer_contacts").select("full_name").eq("id", data.contact_id).maybeSingle();
+          setViewAsName((c as { full_name?: string } | null)?.full_name || "");
+        }
+      }
 
       if (!error && data) {
         setMembership(data as unknown as PortalMembership);
@@ -147,7 +162,7 @@ const CustomerPortalPage = () => {
     };
 
     loadData();
-  }, [user, isAdmin]);
+  }, [user, isAdmin, viewAsId]);
 
   // For admin viewing a broker customer, load broker's sites for the dropdown
   useEffect(() => {
@@ -170,6 +185,7 @@ const CustomerPortalPage = () => {
   }, [isAdmin, selectedCustomerId, customers]);
 
   const handleLogout = async () => {
+    if (viewAsId) { window.close(); window.location.href = "/admin/customers"; return; }
     await signOut();
     setMembership(null);
     setCustomers([]);
@@ -277,6 +293,15 @@ const CustomerPortalPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {viewAsId && (
+        <div className="sticky top-0 z-[60] bg-accent text-accent-foreground border-b border-border px-4 py-2 text-sm flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2 font-medium">
+            <Eye className="h-4 w-4" />
+            Viewing as {viewAsName || "customer contact"} ({membership?.customers?.customer_name}) — view only, changes are switched off
+          </span>
+          <Button size="sm" variant="outline" onClick={handleLogout}>Exit view</Button>
+        </div>
+      )}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -298,7 +323,7 @@ const CustomerPortalPage = () => {
                   </Button>
                 </Link>
               )}
-              {!isAdmin && user && (
+              {!isAdmin && !viewAsId && user && (
                 <CustomerPortalProfile
                   userEmail={user.email || ""}
                   customerName={membership?.customers?.customer_name || ""}
@@ -551,11 +576,11 @@ const CustomerPortalPage = () => {
                 </CardHeader>
                 <CardContent>
                   {currentCustomerId && currentCustomer && (
-                    <CustomerPortalPORequests
+                    <fieldset disabled={!!viewAsId} className="contents"><CustomerPortalPORequests
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
                       accessibleSiteIds={effectiveAccessibleSiteIds}
-                    />
+                    /></fieldset>
                   )}
                 </CardContent>
               </Card>
@@ -585,11 +610,11 @@ const CustomerPortalPage = () => {
 
             <TabsContent value="bookings">
               {currentCustomerId && currentCustomer && (
-                <CustomerPortalServices
+                <fieldset disabled={!!viewAsId} className="contents"><CustomerPortalServices
                   customerId={currentCustomerId}
                   customerName={currentCustomer.customer_name}
                   accessibleSiteIds={effectiveAccessibleSiteIds}
-                />
+                /></fieldset>
               )}
             </TabsContent>
 
@@ -603,10 +628,10 @@ const CustomerPortalPage = () => {
                 </CardHeader>
                 <CardContent>
                   {currentCustomerId && currentCustomer && (
-                    <CustomerPortalContactForm 
+                    <fieldset disabled={!!viewAsId} className="contents"><CustomerPortalContactForm 
                       customerId={currentCustomerId}
                       customerName={currentCustomer.customer_name}
-                    />
+                    /></fieldset>
                   )}
                 </CardContent>
               </Card>
