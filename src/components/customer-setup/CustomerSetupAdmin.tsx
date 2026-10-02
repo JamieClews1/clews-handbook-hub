@@ -1918,12 +1918,12 @@ export function CustomerSetupAdmin() {
 
       {/* Edit customer dialog */}
       <Dialog open={editCustomerOpen} onOpenChange={setEditCustomerOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden p-4 sm:p-6">
+          <DialogHeader className="shrink-0 pr-6">
             <DialogTitle>Edit customer</DialogTitle>
             <DialogDescription>Update the customer details and notification settings.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-2">
             <div className="space-y-2">
               <Label htmlFor="edit_customer_name">Customer name</Label>
               <Input
@@ -2035,7 +2035,7 @@ export function CustomerSetupAdmin() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t border-border pt-4">
             <Button variant="outline" onClick={() => setEditCustomerOpen(false)} disabled={savingCustomer}>
               Cancel
             </Button>
