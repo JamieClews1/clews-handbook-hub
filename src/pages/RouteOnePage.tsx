@@ -1020,6 +1020,7 @@ const RouteOnePage = () => {
                   <DetailRow label="Size" value={viewingJob.container_size || "—"} />
                   <DetailRow label="Waste Type" value={viewingJob.waste_type || "—"} />
                   <DetailRow label="EWC" value={viewingJob.ewc_code || "—"} />
+                  <DetailRow label="Hazardous / POPs" value={[viewingJob.waste_classification?.hazardous && "Hazardous", viewingJob.waste_classification?.contains_pops && "POPs"].filter(Boolean).join(" · ") || "—"} />
                   <DetailRow label="PO Number" value={viewingJob.po_number || "—"} />
                   <DetailRow label="Account" value={viewingJob.account_code || "—"} />
                   <DetailRow label="Vehicle Reg" value={viewingJob.vehicle_reg || "—"} />

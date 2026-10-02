@@ -48,7 +48,7 @@ export function WasteClassificationFields({ value, onChange, ewcCode, settings =
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-semibold">Hazardous & POPs details</p>
-            <p className="text-xs text-muted-foreground">Recorded with this job. Current DEFRA uploads are unchanged.</p>
+            <p className="text-xs text-muted-foreground">Saved on this job; not yet included in DEFRA uploads.</p>
           </div>
           {matched && Object.keys(defaults).length > 0 && (
             <Button type="button" size="sm" variant="outline" onClick={() => onChange({ ...value, ...defaults })}>Apply EWC defaults</Button>
