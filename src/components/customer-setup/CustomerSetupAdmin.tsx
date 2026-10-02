@@ -380,21 +380,6 @@ export function CustomerSetupAdmin() {
     }
   };
 
-  const _unusedAddDataHubSite = async (siteName: string, customerName: string) => {
-    if (!selectedCustomerId) return;
-    const { error } = await supabase.from("customer_sites").insert({
-      customer_id: selectedCustomerId,
-      site_name: siteName,
-      data_hub_customer: customerName,
-      data_hub_site: siteName,
-    });
-    if (error) {
-      toast({ title: "Could not add site", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Site added", description: siteName });
-    await loadCustomerDetails(selectedCustomerId);
-  };
 
 
   const selectedCustomer = useMemo(
