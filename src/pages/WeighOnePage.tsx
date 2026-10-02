@@ -1190,7 +1190,6 @@ const WeighOnePage = () => {
                           )}
                         </div>
                       </div>
-                      <WasteClassificationFields value={classification} onChange={setClassification} ewcCode={formData.ewc_code || selectedWasteType?.ewc_code || ""} compact />
                       </div>
                     </div>
                   </div>
@@ -1353,6 +1352,7 @@ const WeighOnePage = () => {
                           <Input className="h-9 font-mono" placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
                         </div>
                       </div>
+                      <WasteClassificationFields value={classification} onChange={setClassification} ewcCode={formData.ewc_code || selectedWasteType?.ewc_code || ""} compact />
                       </div>
                     </div>
 
