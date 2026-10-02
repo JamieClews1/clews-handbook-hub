@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -134,6 +134,8 @@ export function CustomerSetupAdmin() {
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const selectedCustomerIdRef = useRef<string | null>(null);
+  selectedCustomerIdRef.current = selectedCustomerId;
   const [customerSearch, setCustomerSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
 
@@ -290,102 +292,68 @@ export function CustomerSetupAdmin() {
   const [tempPassword, setTempPassword] = useState("");
   const [sendingAccessEmail, setSendingAccessEmail] = useState(false);
 
-  const [syncingBrokerSites, setSyncingBrokerSites] = useState(false);
+  // Read-only list of sites found on this customer's OWN Data Hub jobs (exact customer name match).
+  const [dataHubSites, setDataHubSites] = useState<{ site: string; customer: string; jobs: number }[]>([]);
+  const [loadingDataHubSites, setLoadingDataHubSites] = useState(false);
 
-  const normalizeBrokerName = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/&/g, " and ")
-      .replace(/[.,'"]/g, " ")
-      .replace(/\b(limited|ltd|plc|llp)\b/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+  const loadDataHubSites = async (customerId: string, currentSites: CustomerSite[]) => {
+    const cust = customers.find((c) => c.id === customerId);
+    const names = new Set<string>();
+    if (cust?.customer_name) names.add(cust.customer_name.trim());
+    if ((cust as any)?.data_hub_customer) names.add(String((cust as any).data_hub_customer).trim());
+    currentSites.forEach((s) => s.data_hub_customer && names.add(s.data_hub_customer.trim()));
+    const list = Array.from(names).filter(Boolean);
+    setDataHubSites([]);
+    if (list.length === 0) return;
+    setLoadingDataHubSites(true);
+    try {
+      const counts = new Map<string, { site: string; customer: string; jobs: number }>();
+      for (const name of list) {
+        let from = 0;
+        while (from < 50000) {
+          const { data, error } = await supabase
+            .from("data_hub_jobs")
+            .select("customer, site")
+            .eq("customer", name)
+            .not("site", "is", null)
+            .range(from, from + 999);
+          if (error) throw error;
+          for (const r of data ?? []) {
+            const site = (r.site || "").trim();
+            if (!site) continue;
+            const k = site.toLowerCase();
+            const e = counts.get(k) ?? { site, customer: name, jobs: 0 };
+            e.jobs++;
+            counts.set(k, e);
+          }
+          if (!data || data.length < 1000) break;
+          from += 1000;
+        }
+      }
+      if (selectedCustomerIdRef.current === customerId) {
+        setDataHubSites(Array.from(counts.values()).sort((a, b) => a.site.localeCompare(b.site)));
+      }
+    } catch (e) {
+      console.error("Failed to read Data Hub sites", e);
+    } finally {
+      setLoadingDataHubSites(false);
+    }
+  };
 
-  const syncBrokerSitesFromSkiptrak = async (opts?: { customerId: string; customerName: string; silent?: boolean }) => {
-    const targetId = opts?.customerId ?? selectedCustomerId;
-    const brokerName = (opts?.customerName ?? selectedCustomer?.customer_name)?.trim();
-    if (!targetId) return;
-    if (!brokerName) {
-      toast({ title: "Missing customer name", description: "Cannot sync without a customer name.", variant: "destructive" });
+  const addDataHubSite = async (siteName: string, customerName: string) => {
+    if (!selectedCustomerId) return;
+    const { error } = await supabase.from("customer_sites").insert({
+      customer_id: selectedCustomerId,
+      site_name: siteName,
+      data_hub_customer: customerName,
+      data_hub_site: siteName,
+    });
+    if (error) {
+      toast({ title: "Could not add site", description: error.message, variant: "destructive" });
       return;
     }
-    // Sync is always restricted to this customer's own Data Hub jobs.
-    const syncAllSites = false;
-    setSyncingBrokerSites(true);
-    try {
-      const normalizedBroker = normalizeBrokerName(brokerName);
-      const searchPrefix = brokerName.replace(/\b(limited|ltd|plc|llp)\b/gi, " ").replace(/\s+/g, " ").trim() || brokerName;
-
-      // Fetch Data Hub rows with a site — either every row (all_data_hub_sites) or rows
-      // whose customer name approximately matches the broker
-      const pageSize = 1000;
-      let from = 0;
-      const allRows: { customer: string | null; site: string | null }[] = [];
-      while (true) {
-        let query = supabase
-          .from("data_hub_jobs")
-          .select("customer, site")
-          .not("site", "is", null);
-        if (!syncAllSites) query = query.ilike("customer", `${searchPrefix}%`);
-        const { data, error } = await query.range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allRows.push(...data);
-        if (data.length < pageSize) break;
-        from += pageSize;
-        if (from > 200000) break;
-      }
-
-      // Filter to matching rows (all rows when syncAllSites is on)
-      const matchedSites = new Set<string>();
-      const matchedCustomers = new Set<string>();
-      for (const row of allRows) {
-        const c = (row.customer || "").trim();
-        const s = (row.site || "").trim();
-        if (!c || !s) continue;
-        if (!syncAllSites && normalizeBrokerName(c) !== normalizedBroker) continue;
-        matchedSites.add(s);
-        matchedCustomers.add(c);
-      }
-
-      if (matchedSites.size === 0) {
-        if (opts?.silent) return;
-        toast({ title: "No Data Hub sites found", description: `No Data Hub jobs were found for "${brokerName}".`, variant: "destructive" });
-        return;
-      }
-
-      // Determine which sites are already present (case-insensitive name match)
-      const { data: existingRows } = await supabase.from("customer_sites").select("site_name").eq("customer_id", targetId);
-      const existingNames = new Set((existingRows ?? []).map((s) => (s.site_name || "").trim().toLowerCase()));
-      const customerAlias = syncAllSites ? null : (Array.from(matchedCustomers)[0] ?? brokerName);
-      const toInsert = Array.from(matchedSites)
-        .filter((siteName) => !existingNames.has(siteName.toLowerCase()))
-        .map((siteName) => ({
-          customer_id: targetId,
-          site_name: siteName,
-          data_hub_customer: customerAlias,
-          data_hub_site: siteName,
-        }));
-
-      if (toInsert.length === 0) {
-        if (opts?.silent) return;
-        toast({ title: "Already in sync", description: `All ${matchedSites.size} Skiptrak site(s) for this broker are already added.` });
-        return;
-      }
-
-      const { error: insertError } = await supabase.from("customer_sites").insert(toInsert);
-      if (insertError) throw insertError;
-
-      toast({
-        title: "Sites synced",
-        description: `Added ${toInsert.length} new site(s) from Data Hub. Skipped ${matchedSites.size - toInsert.length} already present.`,
-      });
-      await loadCustomerDetails(targetId);
-    } catch (e: any) {
-      toast({ title: "Sync failed", description: e?.message ?? "Failed to sync broker sites.", variant: "destructive" });
-    } finally {
-      setSyncingBrokerSites(false);
-    }
+    toast({ title: "Site added", description: siteName });
+    await loadCustomerDetails(selectedCustomerId);
   };
 
 
@@ -497,10 +465,7 @@ export function CustomerSetupAdmin() {
       if (error) throw error;
       toast({ title: "Created", description: `${name} added from Data Hub.` });
       await loadCustomers();
-      if (data?.id) {
-        setSelectedCustomerId(data.id);
-        await syncBrokerSitesFromSkiptrak({ customerId: data.id, customerName: name, silent: true });
-      }
+      if (data?.id) setSelectedCustomerId(data.id);
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to create customer.", variant: "destructive" });
     } finally {
@@ -536,6 +501,7 @@ export function CustomerSetupAdmin() {
 
     const s = (sitesData ?? []) as CustomerSite[];
     setSites(s);
+    void loadDataHubSites(customerId, s);
     setContacts((contactsData ?? []) as CustomerContact[]);
     setPriceSets((priceSetsData ?? []) as PriceSet[]);
     setMemberships((membershipsData ?? []) as Membership[]);
@@ -931,10 +897,7 @@ export function CustomerSetupAdmin() {
       setNewCustomerCode("");
       setNewCustomerName("");
       await loadCustomers();
-      if (data?.id) {
-        setSelectedCustomerId(data.id);
-        await syncBrokerSitesFromSkiptrak({ customerId: data.id, customerName: name, silent: true });
-      }
+      if (data?.id) setSelectedCustomerId(data.id);
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to create customer.", variant: "destructive" });
     } finally {
@@ -1459,6 +1422,33 @@ export function CustomerSetupAdmin() {
                     onChange={(e) => setSiteSearch(e.target.value)}
                     className="max-w-sm"
                   />
+
+                  {(() => {
+                    const known = new Set(
+                      sites.flatMap((s) => [s.site_name, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5])
+                        .filter(Boolean)
+                        .map((v) => String(v).trim().toLowerCase())
+                    );
+                    const missing = dataHubSites.filter((d) => !known.has(d.site.toLowerCase()));
+                    if (loadingDataHubSites) return <p className="text-sm text-muted-foreground">Reading sites from this customer's Data Hub jobs…</p>;
+                    if (missing.length === 0) return null;
+                    return (
+                      <div className="rounded-md border border-border p-3 space-y-2">
+                        <p className="text-sm font-medium">On this customer's jobs but not set up yet ({missing.length})</p>
+                        <p className="text-xs text-muted-foreground">Read only from jobs under this customer's name. Nothing is added until you click Add.</p>
+                        <div className="flex flex-wrap gap-2">
+                          {missing.map((d) => (
+                            <div key={d.site} className="flex items-center gap-2 rounded border border-border px-2 py-1 text-sm">
+                              <span>{d.site}</span>
+                              <span className="text-xs text-muted-foreground">{d.jobs} jobs</span>
+                              <Button size="sm" variant="outline" className="h-6 px-2" onClick={() => addDataHubSite(d.site, d.customer)}>Add</Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
 
 
                   <div className="rounded-md border border-border overflow-hidden">
