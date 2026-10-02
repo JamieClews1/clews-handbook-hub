@@ -309,9 +309,8 @@ export function CustomerSetupAdmin() {
       toast({ title: "Missing customer name", description: "Cannot sync without a customer name.", variant: "destructive" });
       return;
     }
-    const syncAllSites = (opts?.customerId
-      ? customers.find((c) => c.id === opts.customerId)?.all_data_hub_sites
-      : selectedCustomer?.all_data_hub_sites) ?? false;
+    // Sync is always restricted to this customer's own Data Hub jobs.
+    const syncAllSites = false;
     setSyncingBrokerSites(true);
     try {
       const normalizedBroker = normalizeBrokerName(brokerName);
@@ -1438,10 +1437,8 @@ export function CustomerSetupAdmin() {
                     <div>
                       <h3 className="text-lg font-semibold">Sites</h3>
                       <p className="text-sm text-muted-foreground">
-                        {selectedCustomer.all_data_hub_sites
-                          ? "All Data Hub sites: 'Sync Sites from Data Hub' adds every site found in the Data Hub."
-                          : selectedCustomer.is_broker
-                            ? "Broker account: use 'Sync Sites from Data Hub' to auto-add every site assigned to this broker in Skiptrak."
+                        {selectedCustomer.is_broker
+                            ? "Broker account: use 'Sync Sites from Data Hub' to add sites found on this customer's own jobs."
                             : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
                       </p>
                     </div>
@@ -2065,19 +2062,6 @@ export function CustomerSetupAdmin() {
               <Switch
                 checked={editCustomerForm.is_broker}
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_broker: v }))}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>All Data Hub sites</Label>
-                <p className="text-xs text-muted-foreground">
-                  For smaller brokers managing many clients: when on, "Sync Sites from Data Hub" adds every site found in the Data Hub, not just sites on this customer's own jobs.
-                </p>
-              </div>
-              <Switch
-                checked={editCustomerForm.all_data_hub_sites}
-                onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, all_data_hub_sites: v }))}
               />
             </div>
             <Separator />
