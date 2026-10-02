@@ -6,3 +6,4 @@
 
 - [x] Restore WasteOne login by restarting the unresponsive backend and verify sign-ins recover.
 - [x] Shareable links for site inductions: staff create links per document; guests read and sign without a login; signatures saved as guest signatures.
+- [x] Add reviewed waste-classification defaults and hazardous/POPs capture in Route One, driver sign-off and Weigh One, without changing DEFRA uploads.

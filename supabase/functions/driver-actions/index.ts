@@ -167,6 +167,19 @@ Deno.serve(async (req) => {
         const jobId = String(body?.job_id ?? "");
         if (!jobId) return json({ error: "job_id required" }, 400);
         const updates = pick({ status: body?.status, ...(body?.extra || {}) }, JOB_UPDATE_FIELDS);
+        if (body?.status === "completed" && body?.extra?.waste_classification) {
+          const { data: existing, error: readError } = await supabase.from("route_one_jobs").select("waste_classification").eq("id", jobId).single();
+          if (readError) throw readError;
+          const stored = existing?.waste_classification && typeof existing.waste_classification === "object" && !Array.isArray(existing.waste_classification) ? existing.waste_classification as Record<string, unknown> : {};
+          if (stored.hazardous || stored.contains_pops) {
+            const input = body.extra.waste_classification;
+            const code = typeof input?.consignment_code === "string" ? input.consignment_code.trim().toUpperCase() : "";
+            const reason = typeof input?.missing_consignment_reason === "string" ? input.missing_consignment_reason.trim().slice(0, 500) : "";
+            if (stored.hazardous && !code && !reason) return json({ error: "Consignment code or missing-document reason required" }, 400);
+            if (code && !/^[A-Z0-9]{6}\/[A-Z0-9]{5}$/.test(code)) return json({ error: "Check the consignment code format" }, 400);
+            updates.waste_classification = { ...stored, consignment_code: code, missing_consignment_reason: reason, units: typeof input?.units === "string" ? input.units.slice(0, 12) : stored.units };
+          }
+        }
         const { error } = await supabase.from("route_one_jobs").update(updates).eq("id", jobId);
         if (error) throw error;
         return json({ ok: true });

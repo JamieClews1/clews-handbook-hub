@@ -257,6 +257,7 @@ const RouteOnePage = () => {
     vehicle_reg: "",
     carrier_name: "",
     ewc_code: "",
+    waste_classification: {},
     job_type: "delivery" as JobType,
     weighbridge_transaction_id: "",
     weighbridge_ticket_number: "",
@@ -438,6 +439,7 @@ const RouteOnePage = () => {
         vehicle_reg: form.vehicle_reg || null,
         carrier_name: form.carrier_name || null,
         ewc_code: form.ewc_code || null,
+        waste_classification: form.waste_classification,
         weighbridge_transaction_id: form.weighbridge_transaction_id || null,
         weighbridge_ticket_number: form.weighbridge_ticket_number || null,
         outbound_weight_t: form.outbound_weight_t === "" || form.outbound_weight_t == null ? null : Number(form.outbound_weight_t),
@@ -541,6 +543,7 @@ const RouteOnePage = () => {
       vehicle_reg: editForm.vehicle_reg || null,
       carrier_name: editForm.carrier_name || null,
       ewc_code: editForm.ewc_code || null,
+      waste_classification: editForm.waste_classification || {},
       weighbridge_transaction_id: editForm.weighbridge_transaction_id || null,
       weighbridge_ticket_number: editForm.weighbridge_ticket_number || null,
       outbound_weight_t: editForm.outbound_weight_t === "" || editForm.outbound_weight_t == null ? null : Number(editForm.outbound_weight_t),
@@ -586,6 +589,7 @@ const RouteOnePage = () => {
       vehicle_reg: job.vehicle_reg || "",
       carrier_name: job.carrier_name || "",
       ewc_code: job.ewc_code || "",
+      waste_classification: job.waste_classification || {},
       job_type: job.job_type || "delivery",
       weighbridge_transaction_id: job.weighbridge_transaction_id || "",
       weighbridge_ticket_number: job.weighbridge_ticket_number || "",
@@ -616,7 +620,7 @@ const RouteOnePage = () => {
       customer_name: "", site_name: "", site_address: "", site_address_2: "", site_area: "",
       site_postcode: "", sic_code: "", site_contact_name: "", site_contact_phone: "",
       account_code: "", invoice_address: "", directions: "", disposal_site: "",
-      vehicle_reg: "", carrier_name: "", ewc_code: "",
+      vehicle_reg: "", carrier_name: "", ewc_code: "", waste_classification: {},
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
       weighbridge_transaction_id: "", weighbridge_ticket_number: "", outbound_weight_t: "",
       destination_name: "", destination_address: "",
@@ -1016,6 +1020,7 @@ const RouteOnePage = () => {
                   <DetailRow label="Size" value={viewingJob.container_size || "—"} />
                   <DetailRow label="Waste Type" value={viewingJob.waste_type || "—"} />
                   <DetailRow label="EWC" value={viewingJob.ewc_code || "—"} />
+                  <DetailRow label="Hazardous / POPs" value={[viewingJob.waste_classification?.hazardous && "Hazardous", viewingJob.waste_classification?.contains_pops && "POPs"].filter(Boolean).join(" · ") || "—"} />
                   <DetailRow label="PO Number" value={viewingJob.po_number || "—"} />
                   <DetailRow label="Account" value={viewingJob.account_code || "—"} />
                   <DetailRow label="Vehicle Reg" value={viewingJob.vehicle_reg || "—"} />

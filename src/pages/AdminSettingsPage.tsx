@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { HRContactSettings } from "@/components/HRContactSettings";
@@ -16,6 +16,7 @@ import { Settings, Mail, LayoutGrid, Building2, ListOrdered } from "lucide-react
 
 const AdminSettingsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAdmin, loading } = useAuth();
 
   useEffect(() => {
@@ -41,7 +42,7 @@ const AdminSettingsPage = () => {
 
   return (
     <AdminPageLayout title="Admin Settings" description="Configure system settings, HR contact information, and automated communications">
-      <Tabs defaultValue="business" className="space-y-6">
+      <Tabs defaultValue={searchParams.get("tab") === "codes" ? "codes" : "business"} className="space-y-6">
         <TabsList>
           <TabsTrigger value="business" className="gap-2">
             <Building2 className="h-4 w-4" />

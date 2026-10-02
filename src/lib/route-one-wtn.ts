@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import type { WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
 /**
  * Waste Transfer Note / Delivery & Collection ticket for RouteOne jobs.
@@ -26,6 +27,7 @@ export type WtnJob = {
   container_size?: string | null;
   waste_type?: string | null;
   ewc_code?: string | null;
+  waste_classification?: WasteClassification | null;
   notes?: string | null;
   directions?: string | null;
   disposal_site?: string | null;
@@ -1057,6 +1059,38 @@ export function buildWtnPdf(
     doc.line(10, split, 200, split);
     doc.setLineDashPattern([], 0);
     draw(design === "classic" ? 152 : 153, opts.officeCopyLabel);
+  }
+  const classification = job.waste_classification;
+  if (classification?.hazardous || classification?.contains_pops) {
+    doc.addPage();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("WASTE CLASSIFICATION DETAILS", 15, 20);
+    doc.setFontSize(10);
+    doc.text(`Job ${job.job_number || "—"}  ·  EWC ${job.ewc_code || "—"}`, 15, 29);
+    doc.setFont("helvetica", "normal");
+    const rows = [
+      ["Hazardous waste", classification.hazardous ? "Yes" : "No"],
+      ["Contains POPs", classification.contains_pops ? "Yes" : "No"],
+      ["Disposal / recovery code", classification.recovery_code],
+      ["Consignment note code", classification.consignment_code],
+      ["Reason if no note", classification.missing_consignment_reason],
+      ["Hazard codes", classification.hazard_codes],
+      ["Hazardous components", classification.hazard_components],
+      ["POP components", classification.pop_components],
+      ["Special handling", classification.special_handling],
+    ];
+    let y = 40;
+    for (const [label, value] of rows) {
+      if (!value) continue;
+      const lines = doc.splitTextToSize(String(value), 130) as string[];
+      if (y + Math.max(8, lines.length * 5) > 275) { doc.addPage(); y = 20; }
+      doc.setFont("helvetica", "bold"); doc.text(`${label}:`, 15, y);
+      doc.setFont("helvetica", "normal"); doc.text(lines, 65, y);
+      y += Math.max(8, lines.length * 5 + 3);
+    }
+    doc.setFontSize(8);
+    doc.text("Recorded on the job; classification must be checked against the relevant waste documentation.", 15, 288);
   }
   return doc;
 }

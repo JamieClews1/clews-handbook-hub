@@ -15,6 +15,7 @@ import { useJobTypes } from "./jobTypes";
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
+import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
@@ -672,6 +673,7 @@ export function JobFormFields({
             <Input value={form.vehicle_reg || ""} onChange={(e) => setForm({ ...form, vehicle_reg: e.target.value.toUpperCase() })} placeholder="e.g. FJ18 FDM" className="font-mono" />
           </div>
         </div>
+        <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Invoice Address</Label>

@@ -37,6 +37,7 @@ import { Boxes } from "lucide-react";
 import { useDriverLocationTracking } from "@/lib/use-driver-location";
 import { SignatureField } from "@/components/SignatureField";
 import { downloadWtnPdf } from "@/lib/route-one-wtn";
+import { asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
 /* ─── Types ───────────────────────────────────── */
 type JobType = "delivery" | "exchange" | "collection" | "waste_truck" | "wasted_journey" | "waste_out_skip";
@@ -100,6 +101,7 @@ interface Job {
   container_size: string | null;
   waste_type: string | null;
   ewc_code: string | null;
+  waste_classification?: WasteClassification | null;
   scheduled_time: string | null;
   status: JobStatus;
   notes: string | null;
@@ -474,6 +476,8 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
               <Badge className={cn("text-xs font-bold", colors.badge)}>
                 {JOB_TYPE_LABELS[job.job_type]}
               </Badge>
+              {asClassification(job.waste_classification).hazardous && <Badge variant="destructive" className="text-xs">Hazardous</Badge>}
+              {asClassification(job.waste_classification).contains_pops && <Badge variant="outline" className="text-xs border-amber-600 text-amber-700">POPs</Badge>}
               {isInProgress && (
                 <Badge className="bg-blue-500 text-white text-xs gap-1">
                   <Play className="w-3 h-3" /> In Progress
@@ -548,6 +552,7 @@ const DriverJobDetail = ({
   const [customerSigName, setCustomerSigName] = useState(job.customer_signoff_name || "");
   const [driverSig, setDriverSig] = useState<string | null>(job.driver_signature || null);
   const [vehicleReg, setVehicleReg] = useState(job.vehicle_reg || "");
+  const [classification, setClassification] = useState<WasteClassification>(asClassification(job.waste_classification));
 
   const colors = JOB_TYPE_COLORS[job.job_type] || JOB_TYPE_COLORS.delivery;
   const isAssigned = job.status === "assigned";
@@ -583,7 +588,7 @@ const DriverJobDetail = ({
       );
     } catch (err) {
       console.error("Update error:", err);
-      toast.error("Failed to update job");
+      toast.error(err instanceof Error ? err.message : "Failed to update job");
     } finally {
       setUpdating(false);
     }
@@ -603,6 +608,7 @@ const DriverJobDetail = ({
       customer_signoff_at: customerSig ? new Date().toISOString() : null,
       driver_signature: driverSig,
       driver_signoff_name: driverName || null,
+      waste_classification: classification,
     });
   };
 
@@ -710,6 +716,13 @@ const DriverJobDetail = ({
                 <p className="text-sm text-foreground">{job.notes}</p>
               </div>
             )}
+            {(classification.hazardous || classification.contains_pops) && (
+              <div className="border-t border-border pt-3 space-y-1 text-sm">
+                <p className="font-semibold text-destructive">{classification.hazardous ? "Hazardous waste" : "POPs waste"}{classification.hazardous && classification.contains_pops ? " · Contains POPs" : ""}</p>
+                {classification.special_handling && <p>{classification.special_handling}</p>}
+                {classification.recovery_code && <p>Recovery / disposal: {classification.recovery_code}</p>}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -786,6 +799,15 @@ const DriverJobDetail = ({
                   <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">
                     Transfer Note Sign-off
                   </h2>
+                  {(classification.hazardous || classification.contains_pops) && (
+                    <div className="space-y-2 rounded-md border border-border p-3">
+                      <p className="text-sm font-semibold">Waste paperwork</p>
+                      {classification.hazardous && <><Input aria-label="Consignment note code" placeholder="Consignment note code (ABCDEF/12345)" value={classification.consignment_code ?? ""} onChange={(e) => setClassification((p) => ({ ...p, consignment_code: e.target.value.toUpperCase() }))} /><Input aria-label="Reason for missing consignment note" placeholder="Or reason no consignment note was provided" value={classification.missing_consignment_reason ?? ""} onChange={(e) => setClassification((p) => ({ ...p, missing_consignment_reason: e.target.value }))} /></>}
+                      <Input aria-label="Number of waste items" type="number" min="0" placeholder="Number of items (if applicable)" value={classification.units ?? ""} onChange={(e) => setClassification((p) => ({ ...p, units: e.target.value }))} />
+                      {classification.hazardous && !classification.consignment_code?.trim() && !classification.missing_consignment_reason?.trim() && <p className="text-xs text-destructive">Enter a consignment code or a reason why none was provided.</p>}
+                      {!!classification.consignment_code && !/^[A-Z0-9]{6}\/[A-Z0-9]{5}$/.test(classification.consignment_code.trim()) && <p className="text-xs text-destructive">Check the consignment code format (ABCDEF/12345).</p>}
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Vehicle registration</p>
                     <Input
@@ -814,7 +836,7 @@ const DriverJobDetail = ({
 
                   <Button
                     onClick={handleCompleteJob}
-                    disabled={updating}
+                    disabled={updating || (!!classification.hazardous && !classification.consignment_code?.trim() && !classification.missing_consignment_reason?.trim()) || (!!classification.consignment_code && !/^[A-Z0-9]{6}\/[A-Z0-9]{5}$/.test(classification.consignment_code.trim()))}
                     className="w-full h-16 text-xl font-bold text-white rounded-xl gap-3 bg-emerald-500 hover:bg-emerald-600"
                   >
                     {updating ? (
