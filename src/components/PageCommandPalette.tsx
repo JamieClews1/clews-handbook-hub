@@ -57,6 +57,7 @@ const adminPages = [
 
 export function PageCommandPalette() {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const { canAccess } = useFinanceAccess();
@@ -81,15 +82,20 @@ export function PageCommandPalette() {
     <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="h-9 gap-2 text-muted-foreground" aria-label="Find a page">
       <Search className="h-4 w-4" /><span className="hidden sm:inline">Find a page</span><kbd className="hidden lg:inline text-xs text-muted-foreground">⌘K</kbd>
     </Button>
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Find a page…" aria-label="Find a page" />
+    <CommandDialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(""); }}>
+      <CommandInput placeholder="Find a page or search jobs…" aria-label="Find a page or search jobs" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No matching page.</CommandEmpty>
         <CommandGroup heading="Pages">
-          {available.map((page) => <CommandItem key={page.path} value={page.name} onSelect={() => { setOpen(false); navigate(page.path); }}>
+          {available.map((page) => <CommandItem key={page.path} value={page.name} onSelect={() => { setOpen(false); setQuery(""); navigate(page.path); }}>
             {page.name}
           </CommandItem>)}
         </CommandGroup>
+        {query.trim() && <CommandGroup heading="Search">
+          <CommandItem value={`Search jobs for ${query}`} onSelect={() => { setOpen(false); navigate(`/route-one?search=${encodeURIComponent(query.trim())}`); setQuery(""); }}>
+            Search jobs for “{query.trim()}”
+          </CommandItem>
+        </CommandGroup>}
       </CommandList>
     </CommandDialog>
   </>;
