@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/button";
+import { PageHeading } from "@/components/PageHeading";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, DollarSign, Send, FileSpreadsheet, Database, Package, ClipboardCheck, Settings } from "lucide-react";
+import { FileText, DollarSign, Send, FileSpreadsheet, Database, ClipboardCheck, Settings } from "lucide-react";
 import { SiteReportGenerator } from "@/components/customer-reporting/SiteReportGenerator";
 import { SiteRebateReportGenerator } from "@/components/customer-reporting/SiteRebateReportGenerator";
 import { MonthlyRebateGeneration } from "@/components/customer-reporting/MonthlyRebateGeneration";
@@ -17,7 +16,6 @@ import { POCheckReport } from "@/components/customer-reporting/POCheckReport";
 import { PONotificationSettings } from "@/components/customer-reporting/PONotificationSettings";
 
 const CustomerReportingPage = () => {
-  const [language, setLanguage] = useState("en");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "site-reports";
@@ -61,21 +59,8 @@ const CustomerReportingPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header language={language} onLanguageChange={setLanguage} />
       <main className="w-full px-4 py-8">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate("/portal")} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Portal
-          </Button>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-2 h-8 bg-yellow-500 rounded-full" />
-            <h1 className="text-3xl font-bold text-foreground">Customer Reporting</h1>
-          </div>
-          <p className="text-muted-foreground ml-5">
-            Generate site reports and rebate reports for customers using Data Hub data
-          </p>
-        </div>
+        <PageHeading section={{ label: "Performance", href: "/performance-hub" }} title="Customer Reporting" description="Generate site reports and rebate reports for customers using Data Hub data" />
 
         <Tabs
           value={initialTab}
