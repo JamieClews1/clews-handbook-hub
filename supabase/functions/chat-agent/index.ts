@@ -550,13 +550,45 @@ async function rentalPositions(supabase: any) {
   }
 }
 
-async function runTool(supabase: any, name: string, input: any) {
+async function runToolInner(supabase: any, name: string, input: any) {
   switch (name) {
     case "query_data": return await queryData(supabase, input || {});
     case "schema_info": return await schemaInfo(supabase, input || {});
     case "rental_positions": return await rentalPositions(supabase);
     default: return { error: `Unknown tool: ${name}` };
   }
+}
+
+// Each data source gets 20 seconds; on timeout the model is told which source
+// failed so it can still give a partial answer.
+const TOOL_TIMEOUT_MS = 20_000;
+async function runTool(supabase: any, name: string, input: any) {
+  let timer: number | undefined;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({
+      error: `TIMEOUT: this data source (${stepLabel(name, input)}) took longer than 20 seconds. Give a partial answer from the other sources and tell the user this source could not be read.`,
+      rows: [], count: 0,
+    }), TOOL_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([runToolInner(supabase, name, input), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const TABLE_LABELS: Record<string, string> = {
+  data_hub_jobs: "job records", weighbridge_transactions: "weighbridge data", load_reports: "load reports",
+  load_line_items: "load reports", rental_chases: "rentals", rental_agreements: "rentals",
+  crm_tickets: "CRM", contamination_queries: "contaminations", customers: "customers",
+  customer_sites: "customer sites", skip_inventory: "inventory", route_one_jobs: "RouteOne jobs",
+  permit_applications: "permits", pricing_rate_card_values: "pricing", pricing_entries: "pricing",
+};
+function stepLabel(name: string, input: any): string {
+  if (name === "rental_positions") return "Checking rental positions";
+  if (name === "schema_info") return input?.table ? `Looking up ${TABLE_LABELS[input.table] || input.table}` : "Looking up available data";
+  const t = input?.table as string | undefined;
+  return `Reading ${t ? TABLE_LABELS[t] || t.replace(/_/g, " ") : "data"}`;
 }
 
 // ---------- Action executors (only run after user confirmation) ----------
