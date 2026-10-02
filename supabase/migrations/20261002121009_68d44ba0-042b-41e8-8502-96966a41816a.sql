@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Portal users can view broker customer sites" ON public.customer_sites;
