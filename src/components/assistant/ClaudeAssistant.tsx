@@ -130,7 +130,7 @@ export function ClaudeAssistant() {
     if (!user) return;
     const { data, error: err } = await supabase.from("assistant_messages").insert({
       conversation_id: convId, user_id: user.id, role: m.role, content: m.content,
-      tool_calls: m.pendingActions ? { pendingActions: m.pendingActions, actionState: m.actionState } : null,
+      tool_calls: (m.pendingActions ? { pendingActions: m.pendingActions, actionState: m.actionState } : null) as any,
     }).select("id").single();
     if (err) { console.error(err); toast({ title: "Couldn't save message to history", variant: "destructive" }); return; }
     await supabase.from("assistant_conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
@@ -230,7 +230,7 @@ export function ClaudeAssistant() {
   const persistActionState = async (m: ChatMessage, state: ActionState) => {
     if (!m.id) return;
     await supabase.from("assistant_messages")
-      .update({ tool_calls: { pendingActions: m.pendingActions, actionState: state } }).eq("id", m.id);
+      .update({ tool_calls: { pendingActions: m.pendingActions, actionState: state } as any }).eq("id", m.id);
   };
 
   const confirmActions = useCallback(async (msgIndex: number) => {
