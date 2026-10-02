@@ -8,7 +8,8 @@ import { isSuperAdminEmail } from "@/lib/super-admin";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 
-const pages = [
+type PageEntry = { name: string; path: string; key?: string };
+const pages: PageEntry[] = [
   { name: "Dashboard", path: "/portal" },
   { name: "Ask One", path: "/assistant", key: "assistant" },
   { name: "Claude Assistant", path: "/ai-assistant", key: "ai-assistant" },
@@ -42,13 +43,13 @@ const pages = [
   { name: "Handbook", path: "/handbook", key: "handbook" },
   { name: "Help", path: "/help" },
 ];
-const financePages = [
+const financePages: PageEntry[] = [
   { name: "Invoicing", path: "/finance" },
   { name: "Rebates", path: "/rebate-values" },
   { name: "Fuel Surcharges", path: "/performance-hub/fuel-surcharges" },
   { name: "Payroll & Time", path: "/payroll" },
 ];
-const adminPages = [
+const adminPages: PageEntry[] = [
   { name: "Customer Setup", path: "/admin/customers" },
   { name: "Users", path: "/admin/users" },
   { name: "Settings", path: "/admin/settings" },
