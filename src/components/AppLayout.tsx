@@ -19,8 +19,8 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-export function AppLayout({
-  const { pathname } = useLocation(); children }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
+  const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
