@@ -1437,19 +1437,10 @@ export function CustomerSetupAdmin() {
                     <div>
                       <h3 className="text-lg font-semibold">Sites</h3>
                       <p className="text-sm text-muted-foreground">
-                        {selectedCustomer.is_broker
-                            ? "Broker account: use 'Sync Sites from Data Hub' to add sites found on this customer's own jobs."
-                            : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
+                        Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => syncBrokerSitesFromSkiptrak()}
-                        disabled={syncingBrokerSites}
-                      >
-                        {syncingBrokerSites ? "Syncing…" : "Sync Sites from Data Hub"}
-                      </Button>
                       <Button
                         variant={showArchivedSites ? "default" : "outline"}
                         onClick={() => setShowArchivedSites((v) => !v)}
