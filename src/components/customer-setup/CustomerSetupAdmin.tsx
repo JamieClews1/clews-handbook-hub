@@ -358,7 +358,7 @@ export function CustomerSetupAdmin() {
       // Determine which sites are already present (case-insensitive name match)
       const { data: existingRows } = await supabase.from("customer_sites").select("site_name").eq("customer_id", targetId);
       const existingNames = new Set((existingRows ?? []).map((s) => (s.site_name || "").trim().toLowerCase()));
-      const customerAlias = Array.from(matchedCustomers)[0] ?? brokerName;
+      const customerAlias = syncAllSites ? null : (Array.from(matchedCustomers)[0] ?? brokerName);
       const toInsert = Array.from(matchedSites)
         .filter((siteName) => !existingNames.has(siteName.toLowerCase()))
         .map((siteName) => ({
@@ -1438,9 +1438,11 @@ export function CustomerSetupAdmin() {
                     <div>
                       <h3 className="text-lg font-semibold">Sites</h3>
                       <p className="text-sm text-muted-foreground">
-                        {selectedCustomer.is_broker
-                          ? "Broker account: use 'Sync Sites from Data Hub' to auto-add every site assigned to this broker in Skiptrak."
-                          : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
+                        {selectedCustomer.all_data_hub_sites
+                          ? "All Data Hub sites: 'Sync Sites from Data Hub' adds every site found in the Data Hub."
+                          : selectedCustomer.is_broker
+                            ? "Broker account: use 'Sync Sites from Data Hub' to auto-add every site assigned to this broker in Skiptrak."
+                            : "Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template."}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
