@@ -96,7 +96,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      <PortalAssistantWidget />
+      {!/^\/(ai-assistant|assistant)(\/|$)/.test(window.location.pathname) && <PortalAssistantWidget />}
     </SidebarProvider>
   );
 }
