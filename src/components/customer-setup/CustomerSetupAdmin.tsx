@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -134,7 +134,7 @@ export function CustomerSetupAdmin() {
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const selectedCustomerIdRef = React.useRef<string | null>(null);
+  const selectedCustomerIdRef = useRef<string | null>(null);
   selectedCustomerIdRef.current = selectedCustomerId;
   const [customerSearch, setCustomerSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
