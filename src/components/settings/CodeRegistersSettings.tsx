@@ -11,7 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Star, StarOff, Trash2 } from "lucide-react";
+import { Plus, Star, StarOff, Trash2, Settings2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 import { useEwcCodes, useSicCodes } from "@/hooks/useCodeRegisters";
 import { codeMatches, normaliseEwcCode, normaliseSicCode } from "@/lib/code-registers";
 
@@ -24,6 +26,8 @@ const EwcRegister = () => {
   const [hazardOnly, setHazardOnly] = useState(false);
   const [newCode, setNewCode] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [editingDefaults, setEditingDefaults] = useState<{ id: string; code: string } | null>(null);
+  const [draftDefaults, setDraftDefaults] = useState<WasteClassification>({});
 
   const rows = data ?? [];
   const chapters = useMemo(() => {
@@ -139,6 +143,7 @@ const EwcRegister = () => {
                   <p className="text-[11px] text-muted-foreground truncate">{r.sub_chapter} {r.sub_chapter_name}</p>
                 </div>
                 {r.hazardous && <Badge variant="destructive" className="text-[10px]">Hazardous</Badge>}
+                <Button variant="ghost" size="icon" title={`DWT defaults for ${r.code}`} aria-label={`DWT defaults for ${r.code}`} onClick={() => { setEditingDefaults({ id: r.id, code: r.code }); setDraftDefaults(asClassification(r.dwt_defaults)); }}><Settings2 className="h-4 w-4" /></Button>
                 <div className="flex items-center gap-1.5">
                   <Label className="text-[11px] text-muted-foreground">Active</Label>
                   <Switch checked={r.is_active} onCheckedChange={(v) => patch(r.id, { is_active: v })} />
@@ -164,6 +169,14 @@ const EwcRegister = () => {
             <Plus className="h-4 w-4" /> Add
           </Button>
         </div>
+        <Dialog open={!!editingDefaults} onOpenChange={(open) => { if (!open) setEditingDefaults(null); }}>
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Waste classification defaults · {editingDefaults?.code}</DialogTitle></DialogHeader>
+            <p className="text-xs text-muted-foreground">Review with your waste classification specialist before using these on jobs. These settings do not change DEFRA uploads.</p>
+            <WasteClassificationFields value={draftDefaults} onChange={setDraftDefaults} ewcCode={editingDefaults?.code ?? ""} settings />
+            <Button onClick={async () => { if (!editingDefaults) return; const { error } = await supabase.from("ewc_codes").update({ dwt_defaults: draftDefaults }).eq("id", editingDefaults.id); if (error) toast({ title: "Could not save", description: error.message, variant: "destructive" }); else { refresh(); setEditingDefaults(null); toast({ title: "Defaults saved" }); } }}>Save defaults</Button>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

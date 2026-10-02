@@ -12,6 +12,7 @@ export interface EwcCode {
   is_common: boolean;
   is_active: boolean;
   notes: string | null;
+  dwt_defaults?: unknown;
 }
 
 export interface SicCode {
