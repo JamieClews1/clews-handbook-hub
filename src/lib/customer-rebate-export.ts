@@ -509,7 +509,7 @@ export async function buildCustomerRebateWorkbook(
   // =========================================================================
   const jobLoads = (input.jobLoads ?? []).filter((l) => l.source !== "Load Report");
   if (jobLoads.length > 0) {
-    const js = wb.addWorksheet("Load Breakdown");
+    const js = wb.addWorksheet(wb.getWorksheet("Load Breakdown") ? "Job Load Breakdown" : "Load Breakdown");
     js.getRow(1).getCell(1).value = `Load Breakdown — ${customerName} — ${input.periodLabel}`;
     js.getRow(1).getCell(1).font = { name: "Calibri", size: 14, bold: true, color: { argb: HEADER_GREY } };
     const headers = ["Date", "Job No.", "Source", "Site", "Description", "Weight (t)"];
