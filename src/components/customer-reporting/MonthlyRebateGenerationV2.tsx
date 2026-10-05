@@ -1881,7 +1881,7 @@ export function MonthlyRebateGenerationV2() {
               <Textarea id="v2-email-body" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={12} className="font-mono text-sm" />
             </div>
             <div className="bg-muted/50 rounded-lg p-3 text-sm">
-              <strong>Rebate Amount:</strong> £{selectedCustomer?.totalRebate.toFixed(2)}
+              <strong>Rebate Amount:</strong> £{selectedSite?.totalRebate.toFixed(2)}
             </div>
           </div>
           <DialogFooter>
