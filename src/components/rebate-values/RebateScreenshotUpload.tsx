@@ -65,7 +65,7 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
   const [dialogOpen, setDialogOpen] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Record<string, boolean>>({});
-  const [targetMonth, setTargetMonth] = useState<string>("all");
+  const [targetMonth, setTargetMonth] = useState<string>(String(new Date().getMonth() + 1));
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
@@ -111,9 +111,15 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
         }
       }
 
-      // Optional month filter
-      const monthFilter = targetMonth === "all" ? null : Number(targetMonth);
-      const matchedEntries = monthFilter ? allEntries.filter((e) => e.month === monthFilter) : allEntries;
+      // Only the chosen month's column is ever imported — other months stay untouched
+      const monthFilter = Number(targetMonth);
+      const seen = new Set<string>();
+      const matchedEntries = allEntries.filter((e) => {
+        if (Number(e.month) !== monthFilter) return false;
+        if (seen.has(e.itemId!)) return false;
+        seen.add(e.itemId!);
+        return true;
+      });
 
       if (matchedEntries.length === 0) {
         toast({
@@ -160,7 +166,9 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
     setIsSaving(true);
 
     try {
-      const entriesToImport = extractedData.entries.filter((_, idx) => selectedEntries[`${idx}`]);
+      const entriesToImport = extractedData.entries.filter(
+        (e, idx) => selectedEntries[`${idx}`] && Number(e.month) === Number(targetMonth),
+      );
 
       if (entriesToImport.length === 0) {
         toast({ title: "Nothing selected", description: "Select at least one entry to import.", variant: "destructive" });
@@ -232,7 +240,6 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
             <SelectValue placeholder="Month" />
           </SelectTrigger>
           <SelectContent className="bg-popover z-50">
-            <SelectItem value="all">All months</SelectItem>
             {MONTH_NAMES.slice(1).map((m, i) => (
               <SelectItem key={m} value={String(i + 1)}>{m} only</SelectItem>
             ))}
