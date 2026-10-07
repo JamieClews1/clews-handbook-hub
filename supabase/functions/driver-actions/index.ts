@@ -321,6 +321,106 @@ Deno.serve(async (req) => {
         return json({ jobs });
       }
 
+      /* ─── Banksman job workflow (yard staff only) ─── */
+      case "banksman_list":
+      case "banksman_charge_items":
+      case "banksman_start":
+      case "banksman_upload_photo":
+      case "banksman_complete": {
+        const staffId = String(body?.staff_id ?? "");
+        if (!staffId) return json({ error: "Not signed in" }, 401);
+        const { data: staff } = await supabase
+          .from("yard_staff").select("id, staff_name").eq("id", staffId).eq("is_active", true).maybeSingle();
+        if (!staff) return json({ error: "Not signed in" }, 401);
+
+        if (action === "banksman_list") {
+          const since = new Date(); since.setDate(since.getDate() - 2);
+          const { data, error } = await supabase
+            .from("banksman_jobs").select("*")
+            .gte("created_at", since.toISOString())
+            .or(`assigned_staff_id.is.null,assigned_staff_id.eq.${staff.id}`)
+            .order("created_at", { ascending: false }).limit(200);
+          if (error) throw error;
+          return json({ jobs: data ?? [] });
+        }
+        if (action === "banksman_charge_items") {
+          const { data } = await supabase.from("contamination_charge_items")
+            .select("id, name, unit_charge, ewc_code").eq("is_active", true).order("display_order");
+          return json({ items: data ?? [] });
+        }
+        const jobId = String(body?.job_id ?? "");
+        if (!jobId) return json({ error: "job_id required" }, 400);
+        const { data: job } = await supabase.from("banksman_jobs").select("*").eq("id", jobId).maybeSingle();
+        if (!job) return json({ error: "Job not found" }, 404);
+
+        if (action === "banksman_start") {
+          if (job.status === "new") {
+            await supabase.from("banksman_jobs").update({ status: "in_progress", started_at: new Date().toISOString(), assigned_staff_id: job.assigned_staff_id ?? staff.id }).eq("id", jobId);
+          }
+          return json({ ok: true });
+        }
+        if (action === "banksman_upload_photo") {
+          const b64 = String(body?.file_base64 ?? "");
+          if (!b64) return json({ error: "file required" }, 400);
+          const kind = body?.kind === "contamination" ? "contamination" : "load";
+          const path = `banksman/${jobId}/${kind}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+          const { error: upErr } = await supabase.storage.from("contamination-photos")
+            .upload(path, decodeBase64(b64), { contentType: String(body?.content_type ?? "image/jpeg") });
+          if (upErr) throw upErr;
+          const { data } = supabase.storage.from("contamination-photos").getPublicUrl(path);
+          return json({ url: data.publicUrl, taken_at: new Date().toISOString() });
+        }
+        // banksman_complete
+        if (job.status === "completed") return json({ error: "Job already completed" }, 400);
+        const asUrls = (v: unknown) => (Array.isArray(v) ? v : []).map((p: any) => ({
+          url: String(p?.url ?? ""), taken_at: String(p?.taken_at ?? new Date().toISOString()), item_id: p?.item_id ? String(p.item_id) : null,
+        })).filter((p) => p.url.startsWith("http")).slice(0, 30);
+        const loadPhotos = asUrls(body?.load_photos);
+        const contPhotos = asUrls(body?.contamination_photos);
+        const rawItems = Array.isArray(body?.contamination_items) ? body.contamination_items : [];
+        const ids = rawItems.map((i: any) => String(i?.item_id ?? "")).filter(Boolean);
+        let items: any[] = [];
+        if (ids.length) {
+          const { data: priced } = await supabase.from("contamination_charge_items").select("id, name, unit_charge").in("id", ids);
+          items = rawItems.map((i: any) => {
+            const p = (priced ?? []).find((x: any) => x.id === String(i.item_id));
+            if (!p) return null;
+            const qty = Math.max(1, Math.min(99, Math.round(Number(i.qty) || 1)));
+            return { item_id: p.id, name: p.name, unit_charge: Number(p.unit_charge), qty, line_total: Number(p.unit_charge) * qty };
+          }).filter(Boolean);
+        }
+        const hasCont = items.length > 0;
+        if (hasCont && contPhotos.length === 0) return json({ error: "A contamination photo is required" }, 400);
+        const total = Math.round(items.reduce((s, i) => s + i.line_total, 0) * 100) / 100;
+        const now = new Date().toISOString();
+
+        let queryId: string | null = null;
+        if (hasCont) {
+          const { data: cq } = await supabase.from("contamination_queries").insert({
+            job_number: job.job_number, customer: job.customer, site: job.site, container_type: job.container_type,
+            vehicle_reg: job.vehicle_reg, waste_description: job.material, job_date: now.slice(0, 10),
+            source_app: "banksman", reporter_name: staff.staff_name, reporter_type: "yard",
+            contamination_type: items.map((i) => `${i.name}${i.qty > 1 ? ` x${i.qty}` : ""}`).join(", "),
+            calculated_charge: total, charge_amount: total,
+            photos: [...contPhotos, ...loadPhotos].map((p) => p.url),
+            status: "query", approval_status: "pending",
+          }).select("id").single();
+          queryId = cq?.id ?? null;
+          if (queryId) await supabase.from("contamination_activity_log").insert({
+            query_id: queryId, user_name: staff.staff_name, action_type: "reported",
+            new_value: `£${total.toFixed(2)}`, notes: "Reported via Banksman App",
+          });
+        }
+        const { error: uErr } = await supabase.from("banksman_jobs").update({
+          status: "completed", completed_at: now, completed_by_staff_id: staff.id, completed_by_name: staff.staff_name,
+          started_at: job.started_at ?? now, load_photos: loadPhotos, has_contamination: hasCont,
+          contamination_items: items, contamination_total: total, contamination_photos: contPhotos,
+          contamination_query_id: queryId, alert_status: hasCont ? "urgent" : "completed",
+        }).eq("id", jobId);
+        if (uErr) throw uErr;
+        return json({ ok: true, urgent: hasCont, total });
+      }
+
       /* ─── Job photos ─── */
       /* ─── Banksman: job & photo lookup (yard staff only) ─── */
       case "yard_job_search":
