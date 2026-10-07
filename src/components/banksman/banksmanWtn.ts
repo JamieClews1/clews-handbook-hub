@@ -44,6 +44,32 @@ export async function openBanksmanWtn(job: BJob, templateHtml?: string | null, i
     };
   }
 
+  // Fill in tipping prices from the WeighOne trade rates when the source record has none.
+  if (!v.price_per_tonne && !v.total_price) {
+    const desc = (v.waste_description || job.material || "").toLowerCase();
+    const ewc = (v.ewc_code || "").trim();
+    const { data: types } = await supabase
+      .from("weighbridge_waste_types")
+      .select("waste_type, ewc_code, price_per_tonne, min_charge")
+      .eq("is_active", true);
+    const match = (types ?? []).find((t: any) => {
+      const name = String(t.waste_type ?? "").toLowerCase();
+      const byEwc = ewc && t.ewc_code && String(t.ewc_code).trim() === ewc;
+      const byName = desc && name && (desc.includes(name) || name.includes(desc));
+      return byEwc || byName;
+    }) as any;
+    if (match && Number(match.price_per_tonne) > 0) {
+      const tonnes = v.net_tonnes ? Number(v.net_tonnes) : null;
+      const rate = Number(match.price_per_tonne);
+      const min = Number(match.min_charge ?? 0);
+      v.price_per_tonne = `£${rate.toFixed(2)}`;
+      if (tonnes != null && !isNaN(tonnes)) {
+        const total = Math.max(tonnes * rate, min);
+        v.total_price = `£${total.toFixed(2)}`;
+      }
+    }
+  }
+
   const when = new Date(job.completed_at ?? job.created_at);
   const charges = job.has_contamination
     ? job.contamination_items.map((i) => `${i.name}${i.qty > 1 ? ` × ${i.qty}` : ""} £${Number(i.line_total).toFixed(2)}`).join(" · ")
