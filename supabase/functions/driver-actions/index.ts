@@ -353,6 +353,30 @@ Deno.serve(async (req) => {
             weight_t: j.weight_t != null && /midweigh/i.test(j.source ?? "")
               ? Math.round(j.weight_t) / 1000 : j.weight_t,
           }));
+          // Flag jobs with chargeable contamination items
+          const nums = jobs.map((j) => j.job_number).filter(Boolean);
+          if (nums.length) {
+            const { data: qs } = await supabase
+              .from("contamination_queries")
+              .select("job_number, charge_amount, calculated_charge")
+              .in("job_number", nums);
+            const byJob = new Map<string, { count: number; total: number }>();
+            for (const c of qs ?? []) {
+              const amt = Number(c.charge_amount ?? c.calculated_charge ?? 0);
+              if (!(amt > 0)) continue;
+              const cur = byJob.get(c.job_number) ?? { count: 0, total: 0 };
+              cur.count += 1;
+              cur.total += amt;
+              byJob.set(c.job_number, cur);
+            }
+            for (const j of jobs) {
+              const ch = byJob.get(j.job_number);
+              if (ch) {
+                (j as Record<string, unknown>).chargeable_count = ch.count;
+                (j as Record<string, unknown>).chargeable_total = Math.round(ch.total * 100) / 100;
+              }
+            }
+          }
           return json({ jobs });
         }
 
