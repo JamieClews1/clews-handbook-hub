@@ -871,7 +871,7 @@ const WeighOnePage = () => {
   const fmtPrice = (val: number | null) => val != null ? `£${val.toFixed(2)}` : "-";
 
   /** Print the A4 waste transfer note (customer copy top, Clews copy bottom). */
-  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = []) => {
+  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
     const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
     const vars = {
@@ -912,7 +912,7 @@ const WeighOnePage = () => {
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) return;
     win.document.write(
-      renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`),
+      renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices }),
     );
     win.document.close();
     win.focus();
@@ -1948,9 +1948,14 @@ const WeighOnePage = () => {
               {selectedTransaction.notes && <div className="text-sm"><span className="text-muted-foreground">Notes:</span> {selectedTransaction.notes}</div>}
               <WeighbridgeAttachments transactionId={selectedTransaction.id} />
               {selectedTransaction.status === "completed" && (
-                <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems)}>
-                  <Printer className="h-4 w-4" /> Print Ticket
-                </Button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
+                    <Printer className="h-4 w-4" /> Without prices
+                  </Button>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, true)}>
+                    <Printer className="h-4 w-4" /> With prices
+                  </Button>
+                </div>
               )}
             </div>
           )}

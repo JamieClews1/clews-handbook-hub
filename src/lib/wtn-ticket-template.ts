@@ -140,6 +140,12 @@ export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
     </div>
   </div>
 
+  <div class="wtn-pricing" data-wtn-pricing>
+    <div><span>Price per tonne</span><strong>{{price_per_tonne}}</strong></div>
+    <div><span>Additional items</span><strong>{{additional_items}}</strong></div>
+    <div class="total"><span>Total price</span><strong>{{total_price}}</strong></div>
+  </div>
+
   <div class="wtn-signs">
     <div class="wtn-sign"><div class="k">Producer Sign</div><div class="name">{{customer}}</div></div>
     <div class="wtn-sign"><div class="k">Driver Sign</div><div class="name">{{driver_name}}</div></div>
@@ -154,11 +160,29 @@ export function renderWtnHalf(template: string, vars: WtnVars): string {
 }
 
 /** Build the full A4 sheet: top = customer copy, bottom = Clews retained copy. */
-export function renderWtnSheet(template: string, vars: WtnVars, title = "Waste Transfer Note"): string {
-  const top = renderWtnHalf(template, { ...vars, copy_label: "CUSTOMER COPY" });
-  const bottom = renderWtnHalf(template, { ...vars, copy_label: "CLEWS RECYCLING — OFFICE COPY" });
+export function renderWtnSheet(
+  template: string,
+  vars: WtnVars,
+  title = "Waste Transfer Note",
+  options: { includePrices?: boolean } = {},
+): string {
+  const includePrices = options.includePrices ?? true;
+  const preparedTemplate = template;
+  const printVars = includePrices
+    ? vars
+    : { ...vars, price_per_tonne: "", total_price: "", additional_items: "" };
+  const top = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CUSTOMER COPY" });
+  const bottom = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" });
   return `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>
-<style>${WTN_PRINT_STYLES}</style></head>
+<style>${WTN_PRINT_STYLES}
+  ${includePrices ? "" : "[data-wtn-pricing] { display: none !important; }"}
+  .wtn-pricing { display: grid; grid-template-columns: 1fr 1.6fr 1fr; border: 1px solid #000; margin-top: 2mm; }
+  .wtn-pricing > div { min-width: 0; padding: 1mm 2mm; border-right: 1px solid #000; }
+  .wtn-pricing > div:last-child { border-right: 0; }
+  .wtn-pricing span { display: block; color: #444; font-size: 6.5pt; text-transform: uppercase; }
+  .wtn-pricing strong { display: block; font-size: 8pt; overflow-wrap: anywhere; }
+  .wtn-pricing .total strong { font-size: 10pt; }
+</style></head>
 <body><div class="wtn-sheet">${top}<div class="wtn-cut">— — — — — — — — — — cut here — — — — — — — — — —</div>${bottom}</div></body></html>`;
 }
 
