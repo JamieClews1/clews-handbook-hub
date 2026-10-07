@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle, ArrowLeft, Camera, CheckCircle2, ClipboardList, HardHat, Loader2, LogOut,
-  Minus, Plus, RefreshCw, Search, Send, Trash2, Truck, X, Bell, Package,
+  Minus, Plus, RefreshCw, Search, Send, Trash2, Truck, X, Bell,
 } from "lucide-react";
 import BanksmanJobsPhotos from "./BanksmanJobsPhotos";
 
@@ -362,4 +362,3 @@ export default function BanksmanWorkflow({ user, onLogout }: { user: BanksmanUse
   );
 }
 
-export { Package };
