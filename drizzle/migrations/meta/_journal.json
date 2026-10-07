@@ -29,6 +29,13 @@
       "when": 1791370636880,
       "tag": "0003_banksman_midweigh_incoming",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791371474338,
+      "tag": "0004_migration",
+      "breakpoints": true
     }
   ]
 }
