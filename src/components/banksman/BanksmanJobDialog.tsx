@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { StatusPill, type BJob } from "./BanksmanWorkflow";
 import { acknowledgeAlert } from "./useBanksmanJobs";
+import { openBanksmanWtn } from "./banksmanWtn";
+import { useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
 
 const gbp = (n: number) => `£${Number(n || 0).toFixed(2)}`;
 const dt = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" }) : "—");
@@ -13,6 +15,7 @@ const dt = (s: string | null) => (s ? new Date(s).toLocaleString("en-GB", { date
 export function BanksmanJobDialog({ job, onClose }: { job: BJob | null; onClose: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: wtnTemplate } = useWtnTemplate();
   const [busy, setBusy] = useState(false);
   const [big, setBig] = useState<string | null>(null);
   if (!job) return null;
@@ -76,6 +79,11 @@ export function BanksmanJobDialog({ job, onClose }: { job: BJob | null; onClose:
         )}
         {!job.has_contamination && job.status === "completed" && (
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 className="h-5 w-5" /> No contamination recorded</p>
+        )}
+        {job.status === "completed" && (
+          <Button size="lg" className="gap-2 font-bold" onClick={() => openBanksmanWtn(job, wtnTemplate?.html)}>
+            <FileText className="h-5 w-5" /> Waste Transfer Ticket
+          </Button>
         )}
 
         <section className="space-y-2">
