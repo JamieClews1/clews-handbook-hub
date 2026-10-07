@@ -1,4 +1,5 @@
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
+import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1839,9 +1840,13 @@ const WeighOnePage = () => {
             <TabsList>
               <TabsTrigger value="guide" className="gap-2"><HardHat className="h-4 w-4" /> Setup Guide</TabsTrigger>
               <TabsTrigger value="yard-staff" className="gap-2"><Users className="h-4 w-4" /> Yard Staff</TabsTrigger>
+              <TabsTrigger value="settings" className="gap-2"><Scale className="h-4 w-4" /> Settings</TabsTrigger>
             </TabsList>
             <TabsContent value="guide">
               <BanksmanAppGuide />
+            </TabsContent>
+            <TabsContent value="settings">
+              <BanksmanSettings />
             </TabsContent>
             <TabsContent value="yard-staff">
               <Card className="border-border/50">

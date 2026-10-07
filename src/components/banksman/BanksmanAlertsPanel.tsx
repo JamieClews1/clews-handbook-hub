@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Bell, CheckCircle2, ClipboardList, Loader2, Search, Timer } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, ClipboardList, Loader2, Maximize2, Minimize2, Search, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusPill, type BJob } from "./BanksmanWorkflow";
 import { useBanksmanJobs } from "./useBanksmanJobs";
@@ -34,9 +34,26 @@ export function BanksmanAlertsPanel() {
       .sort((a, b) => rank(a) - rank(b) || (b.completed_at ?? b.created_at).localeCompare(a.completed_at ?? a.created_at));
   }, [jobs, q]);
   const open = jobs.find((j) => j.id === openId) ?? null;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [isFull, setIsFull] = useState(false);
+  useEffect(() => {
+    const h = () => setIsFull(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", h);
+    return () => document.removeEventListener("fullscreenchange", h);
+  }, []);
+  const toggleFull = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.();
+  };
 
   return (
-    <div className="space-y-4">
+    <div ref={rootRef} className={cn("space-y-4", isFull && "fixed inset-0 z-40 overflow-auto bg-background p-6")}>
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={toggleFull} className="gap-2">
+          {isFull ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          {isFull ? "Exit full screen" : "Full screen"}
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {stats.map((s) => (
           <Card key={s.label} className={cn("border-2", s.cls)}>

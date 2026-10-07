@@ -200,6 +200,7 @@ export type Database = {
           contamination_total: number
           created_at: string
           customer: string | null
+          data_hub_job_id: string | null
           has_contamination: boolean
           id: string
           job_number: string
@@ -207,6 +208,7 @@ export type Database = {
           material: string | null
           notes: string | null
           site: string | null
+          source: string
           started_at: string | null
           status: string
           updated_at: string
@@ -229,6 +231,7 @@ export type Database = {
           contamination_total?: number
           created_at?: string
           customer?: string | null
+          data_hub_job_id?: string | null
           has_contamination?: boolean
           id?: string
           job_number: string
@@ -236,6 +239,7 @@ export type Database = {
           material?: string | null
           notes?: string | null
           site?: string | null
+          source?: string
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -258,6 +262,7 @@ export type Database = {
           contamination_total?: number
           created_at?: string
           customer?: string | null
+          data_hub_job_id?: string | null
           has_contamination?: boolean
           id?: string
           job_number?: string
@@ -265,6 +270,7 @@ export type Database = {
           material?: string | null
           notes?: string | null
           site?: string | null
+          source?: string
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -287,6 +293,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "banksman_jobs_data_hub_job_id_fkey"
+            columns: ["data_hub_job_id"]
+            isOneToOne: true
+            referencedRelation: "data_hub_jobs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "banksman_jobs_weighbridge_transaction_id_fkey"
             columns: ["weighbridge_transaction_id"]
             isOneToOne: true
@@ -294,6 +307,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      banksman_settings: {
+        Row: {
+          id: boolean
+          midweigh_directions: string[]
+          midweigh_enabled: boolean
+          midweigh_excluded_accounts: string[]
+          midweigh_excluded_products: string[]
+          midweigh_job_types: string[]
+          midweigh_max_age_hours: number
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          midweigh_directions?: string[]
+          midweigh_enabled?: boolean
+          midweigh_excluded_accounts?: string[]
+          midweigh_excluded_products?: string[]
+          midweigh_job_types?: string[]
+          midweigh_max_age_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          midweigh_directions?: string[]
+          midweigh_enabled?: boolean
+          midweigh_excluded_accounts?: string[]
+          midweigh_excluded_products?: string[]
+          midweigh_job_types?: string[]
+          midweigh_max_age_hours?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       biffa_fuel_surcharge_settings: {
         Row: {
