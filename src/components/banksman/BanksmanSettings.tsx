@@ -16,7 +16,7 @@ type S = {
   midweigh_excluded_accounts: string[];
   midweigh_max_age_hours: number;
 };
-const toList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+const toList = (s: string) => s.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
 
 /** Controls which Midweigh tickets become incoming Banksman jobs. */
 export function BanksmanSettings() {
