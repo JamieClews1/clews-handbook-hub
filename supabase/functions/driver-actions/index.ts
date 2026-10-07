@@ -322,6 +322,70 @@ Deno.serve(async (req) => {
       }
 
       /* ─── Job photos ─── */
+      /* ─── Banksman: job & photo lookup (yard staff only) ─── */
+      case "yard_job_search":
+      case "yard_job_photos": {
+        const staffId = String(body?.staff_id ?? "");
+        if (!staffId) return json({ error: "Not signed in" }, 401);
+        const { data: staff } = await supabase
+          .from("yard_staff").select("id").eq("id", staffId).eq("is_active", true).maybeSingle();
+        if (!staff) return json({ error: "Not signed in" }, 401);
+
+        if (action === "yard_job_search") {
+          const q = String(body?.query ?? "").trim().slice(0, 60);
+          let jq = supabase
+            .from("data_hub_jobs")
+            .select("id, job_number, source, customer, site, driver, vehicle_registration, container_type, waste_description, weight_t, job_date")
+            .order("job_date", { ascending: false })
+            .limit(40);
+          if (q) {
+            const e = escapeLike(q).replace(/[,()]/g, " ");
+            jq = jq.or(`job_number.eq.${e},vehicle_registration.ilike.%${e}%,customer.ilike.%${e}%`);
+          } else {
+            const since = new Date();
+            since.setDate(since.getDate() - 1);
+            jq = jq.gte("job_date", since.toISOString().slice(0, 10));
+          }
+          const { data, error } = await jq;
+          if (error) throw error;
+          const jobs = (data ?? []).map((j) => ({
+            ...j,
+            weight_t: j.weight_t != null && /midweigh/i.test(j.source ?? "")
+              ? Math.round(j.weight_t) / 1000 : j.weight_t,
+          }));
+          return json({ jobs });
+        }
+
+        const jobNumber = String(body?.job_number ?? "").trim();
+        if (!jobNumber) return json({ error: "job_number required" }, 400);
+        const photos: { id: string; url: string; label: string }[] = [];
+        const pretty = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const { data: rj } = await supabase.from("route_one_jobs").select("id").eq("job_number", jobNumber);
+        const rIds = (rj ?? []).map((j) => j.id);
+        if (rIds.length) {
+          const { data: rp } = await supabase.from("route_one_job_photos")
+            .select("id, photo_type, file_path").in("job_id", rIds).order("created_at");
+          for (const p of rp ?? []) {
+            photos.push({
+              id: p.id,
+              url: supabase.storage.from("route-one-photos").getPublicUrl(p.file_path).data.publicUrl,
+              label: "Driver: " + pretty(p.photo_type || "photo"),
+            });
+          }
+        }
+        const { data: docs } = await supabase.from("wtn_documents").select("id").eq("job_number", jobNumber);
+        const dIds = (docs ?? []).map((d) => d.id);
+        if (dIds.length) {
+          const { data: imgs } = await supabase.from("wtn_document_images")
+            .select("id, storage_path").in("document_id", dIds).eq("kind", "photo").order("sort_order");
+          for (const img of imgs ?? []) {
+            const { data: s } = await supabase.storage.from("wtn-documents").createSignedUrl(img.storage_path, 3600);
+            if (s?.signedUrl) photos.push({ id: img.id, url: s.signedUrl, label: "Ticket photo" });
+          }
+        }
+        return json({ photos });
+      }
+
       case "list_job_photos": {
         const jobId = String(body?.job_id ?? "");
         const photoType = String(body?.photo_type ?? "");

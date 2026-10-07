@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Search,
 } from "lucide-react";
+import BanksmanJobsPhotos from "@/components/banksman/BanksmanJobsPhotos";
 import DriverContaminationFlow from "@/components/driver/DriverContaminationFlow";
 
 /* ─── Types ─── */
@@ -235,6 +236,7 @@ const BanksmanFeed = ({ user, onLogout }: { user: BanksmanUser; onLogout: () => 
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<WeighbridgeJob | null>(null);
+  const [view, setView] = useState<"feed" | "jobs">("feed");
 
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true);
@@ -331,7 +333,11 @@ const BanksmanFeed = ({ user, onLogout }: { user: BanksmanUser; onLogout: () => 
             </Button>
           </div>
         </div>
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+          <Button variant={view === "feed" ? "default" : "outline"} onClick={() => setView("feed")} className="h-11">Weighbridge Feed</Button>
+          <Button variant={view === "jobs" ? "default" : "outline"} onClick={() => setView("jobs")} className="h-11">Jobs &amp; Photos</Button>
+        </div>
+        {view === "feed" && <div className="px-4 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -341,10 +347,10 @@ const BanksmanFeed = ({ user, onLogout }: { user: BanksmanUser; onLogout: () => 
               className="pl-9 h-11"
             />
           </div>
-        </div>
+        </div>}
       </div>
 
-      {/* List */}
+      {view === "jobs" ? <BanksmanJobsPhotos staffId={user.id} /> : (
       <div className="p-4 space-y-3">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -363,6 +369,7 @@ const BanksmanFeed = ({ user, onLogout }: { user: BanksmanUser; onLogout: () => 
           ))
         )}
       </div>
+      )}
     </div>
   );
 };
