@@ -84,6 +84,23 @@ export default function BanksmanJobsPhotos({ staffId }: { staffId: string }) {
           {selected.waste_description && <p className="text-xs text-muted-foreground pt-1">{selected.waste_description}</p>}
         </div>
 
+        {charges.length > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/40 rounded-xl p-4 space-y-2">
+            <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+              <TriangleAlert className="w-4 h-4" /> Chargeable items on this job
+            </p>
+            {charges.map((c) => (
+              <div key={c.id} className="flex justify-between gap-3 text-sm">
+                <span className="text-foreground">{c.type}{c.status ? <span className="text-muted-foreground capitalize"> · {c.status.replace(/_/g, " ")}</span> : null}</span>
+                <span className="font-semibold text-foreground shrink-0">£{c.amount.toFixed(2)}</span>
+              </div>
+            ))}
+            <p className="text-sm font-bold text-foreground text-right pt-1 border-t border-amber-500/30">
+              Total £{charges.reduce((s, c) => s + c.amount, 0).toFixed(2)}
+            </p>
+          </div>
+        )}
+
         <h2 className="font-semibold text-foreground flex items-center gap-2"><Camera className="w-4 h-4" /> Photos</h2>
         {photosLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-7 h-7 animate-spin text-muted-foreground" /></div>
@@ -141,7 +158,14 @@ export default function BanksmanJobsPhotos({ staffId }: { staffId: string }) {
           <button key={j.id} onClick={() => open(j)} className="w-full text-left bg-card border border-border rounded-xl p-4">
             <div className="flex justify-between gap-3">
               <p className="font-bold text-foreground truncate">#{j.job_number} · {j.customer || "Unknown"}</p>
-              {j.source && <Badge variant="outline" className="capitalize shrink-0">{j.source}</Badge>}
+              <span className="flex items-center gap-1.5 shrink-0">
+                {(j.chargeable_count ?? 0) > 0 && (
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 gap-1">
+                    <TriangleAlert className="w-3 h-3" /> £{j.chargeable_total?.toFixed(2)}
+                  </Badge>
+                )}
+                {j.source && <Badge variant="outline" className="capitalize">{j.source}</Badge>}
+              </span>
             </div>
             {j.site && <p className="text-sm text-muted-foreground truncate">{j.site}</p>}
             <div className="flex flex-wrap gap-x-4 text-sm mt-1 text-foreground">
