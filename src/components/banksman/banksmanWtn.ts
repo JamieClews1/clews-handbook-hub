@@ -47,17 +47,21 @@ export async function openBanksmanWtn(job: BJob, templateHtml?: string | null, i
   // Fill in tipping prices from the WeighOne trade rates when the source record has none.
   if (!v.price_per_tonne && !v.total_price) {
     const desc = (v.waste_description || job.material || "").toLowerCase();
-    const ewc = (v.ewc_code || "").trim();
+    const norm = (s: unknown) => String(s ?? "").replace(/\s+/g, "");
+    const ewc = norm(v.ewc_code);
     const { data: types } = await supabase
       .from("weighbridge_waste_types")
       .select("waste_type, ewc_code, price_per_tonne, min_charge")
       .eq("is_active", true);
-    const match = (types ?? []).find((t: any) => {
-      const name = String(t.waste_type ?? "").toLowerCase();
-      const byEwc = ewc && t.ewc_code && String(t.ewc_code).trim() === ewc;
-      const byName = desc && name && (desc.includes(name) || name.includes(desc));
-      return byEwc || byName;
-    }) as any;
+    // Only consider priced rates so £0 legacy types never win the match.
+    const priced = (types ?? []).filter((t: any) => Number(t.price_per_tonne) > 0) as any[];
+    const words = desc.split(/[^a-z]+/).filter((w) => w.length >= 4);
+    const match =
+      (ewc && priced.find((t) => norm(t.ewc_code) === ewc)) ||
+      priced.find((t) => {
+        const name = String(t.waste_type ?? "").toLowerCase();
+        return desc && (desc.includes(name) || name.includes(desc) || words.some((w) => name.includes(w)));
+      });
     if (match && Number(match.price_per_tonne) > 0) {
       const tonnes = v.net_tonnes ? Number(v.net_tonnes) : null;
       const rate = Number(match.price_per_tonne);
