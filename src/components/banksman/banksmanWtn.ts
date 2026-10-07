@@ -6,7 +6,7 @@ import type { BJob } from "./BanksmanWorkflow";
 const kg = (v: number | null | undefined) => (v != null && !isNaN(Number(v)) ? Math.round(Math.abs(Number(v))).toLocaleString() : "");
 
 /** Builds a waste transfer ticket for a completed banksman job, using the shared WeighOne WTN design. */
-export async function openBanksmanWtn(job: BJob, templateHtml?: string | null) {
+export async function openBanksmanWtn(job: BJob, templateHtml?: string | null, includePrices = false) {
   const win = window.open("", "_blank", "width=900,height=1100");
   if (!win) return;
   const j = job as any;
@@ -24,6 +24,8 @@ export async function openBanksmanWtn(job: BJob, templateHtml?: string | null) {
         means_of_transport: w.means_of_transport ?? "Road",
         gross_weight: kg(w.gross_weight_kg), tare_weight: kg(w.tare_weight_kg), net_weight: kg(w.net_weight_kg),
         net_tonnes: w.net_weight_kg != null ? (w.net_weight_kg / 1000).toFixed(2) : "",
+        price_per_tonne: w.price_per_tonne != null ? `£${Number(w.price_per_tonne).toFixed(2)}` : "",
+        total_price: w.total_price != null ? `£${Number(w.total_price).toFixed(2)}` : "",
         gross_time: w.first_weigh_at ? format(new Date(w.first_weigh_at), "HH:mm:ss") : "",
         tare_time: w.second_weigh_at ? format(new Date(w.second_weigh_at), "HH:mm:ss") : "",
         operator_name: w.operator_name ?? "",
@@ -57,7 +59,7 @@ export async function openBanksmanWtn(job: BJob, templateHtml?: string | null) {
     ...WTN_COMPANY_DETAILS,
   } as Record<string, string>;
 
-  win.document.write(renderWtnSheet(templateHtml || DEFAULT_WTN_TEMPLATE, vars, `WTN ${vars.ticket_number}`));
+  win.document.write(renderWtnSheet(templateHtml || DEFAULT_WTN_TEMPLATE, vars, `WTN ${vars.ticket_number}`, { includePrices }));
   win.document.close();
   win.focus();
   win.print();

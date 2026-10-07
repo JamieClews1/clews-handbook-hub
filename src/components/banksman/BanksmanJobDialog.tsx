@@ -81,9 +81,14 @@ export function BanksmanJobDialog({ job, onClose }: { job: BJob | null; onClose:
           <p className="flex items-center gap-2 font-semibold text-emerald-700"><CheckCircle2 className="h-5 w-5" /> No contamination recorded</p>
         )}
         {job.status === "completed" && (
-          <Button size="lg" className="gap-2 font-bold" onClick={() => openBanksmanWtn(job, wtnTemplate?.html)}>
-            <FileText className="h-5 w-5" /> Waste Transfer Ticket
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="lg" className="gap-2 font-bold" onClick={() => openBanksmanWtn(job, wtnTemplate?.html, false)}>
+              <FileText className="h-5 w-5" /> Ticket without prices
+            </Button>
+            <Button size="lg" variant="outline" className="gap-2 font-bold" onClick={() => openBanksmanWtn(job, wtnTemplate?.html, true)}>
+              <FileText className="h-5 w-5" /> Ticket with prices
+            </Button>
+          </div>
         )}
 
         <section className="space-y-2">
