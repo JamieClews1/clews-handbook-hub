@@ -3,7 +3,7 @@ import { driverAction } from "@/lib/driver-api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, ImageOff, Loader2, Search, Truck, Weight, X } from "lucide-react";
+import { ArrowLeft, Camera, ImageOff, Loader2, Search, TriangleAlert, Truck, Weight, X } from "lucide-react";
 
 interface Job {
   id: string;
@@ -17,8 +17,11 @@ interface Job {
   waste_description: string | null;
   weight_t: number | null;
   job_date: string | null;
+  chargeable_count?: number;
+  chargeable_total?: number;
 }
 interface Photo { id: string; url: string; label: string }
+interface Charge { id: string; type: string; amount: number; status: string | null }
 
 export default function BanksmanJobsPhotos({ staffId }: { staffId: string }) {
   const [query, setQuery] = useState("");
