@@ -1663,7 +1663,7 @@ const WeighOnePage = () => {
       {/* Transaction Log */}
       <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : "log"}>
         <TabsList>
-          <TabsTrigger value="alerts" className="gap-2"><AlertTriangle className="h-4 w-4" /> Live Alerts</TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4" /> Live Alerts</TabsTrigger>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4" /> Transaction Log</TabsTrigger>
           <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4" /> Midweigh Data</TabsTrigger>
           <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4" /> Banksman App</TabsTrigger>
