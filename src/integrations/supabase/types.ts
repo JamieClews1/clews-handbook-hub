@@ -183,6 +183,118 @@ export type Database = {
         }
         Relationships: []
       }
+      banksman_jobs: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledged_by_name: string | null
+          alert_status: string
+          assigned_staff_id: string | null
+          completed_at: string | null
+          completed_by_name: string | null
+          completed_by_staff_id: string | null
+          container_type: string | null
+          contamination_items: Json
+          contamination_photos: Json
+          contamination_query_id: string | null
+          contamination_total: number
+          created_at: string
+          customer: string | null
+          has_contamination: boolean
+          id: string
+          job_number: string
+          load_photos: Json
+          material: string | null
+          notes: string | null
+          site: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          vehicle_reg: string | null
+          weighbridge_transaction_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledged_by_name?: string | null
+          alert_status?: string
+          assigned_staff_id?: string | null
+          completed_at?: string | null
+          completed_by_name?: string | null
+          completed_by_staff_id?: string | null
+          container_type?: string | null
+          contamination_items?: Json
+          contamination_photos?: Json
+          contamination_query_id?: string | null
+          contamination_total?: number
+          created_at?: string
+          customer?: string | null
+          has_contamination?: boolean
+          id?: string
+          job_number: string
+          load_photos?: Json
+          material?: string | null
+          notes?: string | null
+          site?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_reg?: string | null
+          weighbridge_transaction_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledged_by_name?: string | null
+          alert_status?: string
+          assigned_staff_id?: string | null
+          completed_at?: string | null
+          completed_by_name?: string | null
+          completed_by_staff_id?: string | null
+          container_type?: string | null
+          contamination_items?: Json
+          contamination_photos?: Json
+          contamination_query_id?: string | null
+          contamination_total?: number
+          created_at?: string
+          customer?: string | null
+          has_contamination?: boolean
+          id?: string
+          job_number?: string
+          load_photos?: Json
+          material?: string | null
+          notes?: string | null
+          site?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_reg?: string | null
+          weighbridge_transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banksman_jobs_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "yard_staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banksman_jobs_completed_by_staff_id_fkey"
+            columns: ["completed_by_staff_id"]
+            isOneToOne: false
+            referencedRelation: "yard_staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banksman_jobs_weighbridge_transaction_id_fkey"
+            columns: ["weighbridge_transaction_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       biffa_fuel_surcharge_settings: {
         Row: {
           created_at: string

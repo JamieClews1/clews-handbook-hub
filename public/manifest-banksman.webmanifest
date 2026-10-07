@@ -1,0 +1,30 @@
+{
+  "id": "/banksman",
+  "name": "WasteOne Banksman",
+  "short_name": "Banksman",
+  "description": "WasteOne banksman app for load photos and contamination reporting.",
+  "theme_color": "#4ECB71",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/banksman",
+  "start_url": "/banksman",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { PortalAssistantWidget } from "@/components/PortalAssistantWidget";
 import { PageCommandPalette } from "@/components/PageCommandPalette";
+import { UrgentContaminationPopup } from "@/components/banksman/UrgentContaminationPopup";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Bell, Plus, CircleHelp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -39,6 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
+        <UrgentContaminationPopup />
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Navigation Bar */}
@@ -68,8 +70,8 @@ export function AppLayout({ children }: AppLayoutProps) {
               </DropdownMenu>
 
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="text-muted-foreground relative">
-                <Bell className="h-4 w-4" />
+              <Button asChild variant="ghost" size="icon" className="text-muted-foreground relative" title="Weighbridge alerts" aria-label="Weighbridge alerts">
+                <Link to="/weigh-one?tab=alerts"><Bell className="h-4 w-4" /></Link>
               </Button>
 
               {/* User Menu */}
