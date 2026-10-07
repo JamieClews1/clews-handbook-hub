@@ -167,9 +167,7 @@ export function renderWtnSheet(
   options: { includePrices?: boolean } = {},
 ): string {
   const includePrices = options.includePrices ?? true;
-  const preparedTemplate = includePrices
-    ? template
-    : template.replace(/<[^>]+data-wtn-pricing[^>]*>[\s\S]*?<\/div>\s*(?=<div class="wtn-signs")/gi, "");
+  const preparedTemplate = template;
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", additional_items: "" };
@@ -177,6 +175,7 @@ export function renderWtnSheet(
   const bottom = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" });
   return `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>
 <style>${WTN_PRINT_STYLES}
+  ${includePrices ? "" : "[data-wtn-pricing] { display: none !important; }"}
   .wtn-pricing { display: grid; grid-template-columns: 1fr 1.6fr 1fr; border: 1px solid #000; margin-top: 2mm; }
   .wtn-pricing > div { min-width: 0; padding: 1mm 2mm; border-right: 1px solid #000; }
   .wtn-pricing > div:last-child { border-right: 0; }
