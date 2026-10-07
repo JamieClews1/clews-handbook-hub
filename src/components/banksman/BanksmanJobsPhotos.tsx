@@ -32,6 +32,7 @@ export default function BanksmanJobsPhotos({ staffId }: { staffId: string }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [zoom, setZoom] = useState<Photo | null>(null);
+  const [charges, setCharges] = useState<Charge[]>([]);
 
   const search = useCallback(async (q: string) => {
     setLoading(true);
@@ -50,10 +51,12 @@ export default function BanksmanJobsPhotos({ staffId }: { staffId: string }) {
   const open = async (job: Job) => {
     setSelected(job);
     setPhotos([]);
+    setCharges([]);
     setPhotosLoading(true);
     try {
-      const { photos } = await driverAction("yard_job_photos", { staff_id: staffId, job_number: job.job_number });
+      const { photos, charges } = await driverAction("yard_job_photos", { staff_id: staffId, job_number: job.job_number });
       setPhotos(photos ?? []);
+      setCharges(charges ?? []);
     } catch { /* show empty */ }
     setPhotosLoading(false);
   };
