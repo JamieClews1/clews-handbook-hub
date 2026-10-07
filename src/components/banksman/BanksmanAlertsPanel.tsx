@@ -37,17 +37,17 @@ export function BanksmanAlertsPanel() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [isFull, setIsFull] = useState(false);
   useEffect(() => {
-    const h = () => setIsFull(document.fullscreenElement === rootRef.current);
+    const h = () => setIsFull(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", h);
     return () => document.removeEventListener("fullscreenchange", h);
   }, []);
   const toggleFull = () => {
     if (document.fullscreenElement) document.exitFullscreen();
-    else rootRef.current?.requestFullscreen?.();
+    else document.documentElement.requestFullscreen?.();
   };
 
   return (
-    <div ref={rootRef} className={cn("space-y-4", isFull && "overflow-auto bg-background p-6")}>
+    <div ref={rootRef} className={cn("space-y-4", isFull && "fixed inset-0 z-40 overflow-auto bg-background p-6")}>
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={toggleFull} className="gap-2">
           {isFull ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
