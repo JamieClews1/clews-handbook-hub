@@ -407,7 +407,20 @@ Deno.serve(async (req) => {
             if (s?.signedUrl) photos.push({ id: img.id, url: s.signedUrl, label: "Ticket photo" });
           }
         }
-        return json({ photos });
+        // Chargeable contamination items for this job
+        const { data: cq } = await supabase
+          .from("contamination_queries")
+          .select("id, contamination_type, query_reason, charge_amount, calculated_charge, status")
+          .eq("job_number", jobNumber);
+        const charges = (cq ?? [])
+          .map((c) => ({
+            id: c.id,
+            type: c.contamination_type || c.query_reason || "Contamination",
+            amount: Math.round(Number(c.charge_amount ?? c.calculated_charge ?? 0) * 100) / 100,
+            status: c.status,
+          }))
+          .filter((c) => c.amount > 0);
+        return json({ photos, charges });
       }
 
       case "list_job_photos": {
