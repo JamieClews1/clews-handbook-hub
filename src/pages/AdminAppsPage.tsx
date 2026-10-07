@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadReportSettings } from "@/components/load-reports/LoadReportSettings";
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
+import { BanksmanInstallCard } from "@/components/apps/BanksmanInstallCard";
 import {
   Smartphone,
   Download,
@@ -268,7 +269,7 @@ const AdminAppsPage = () => {
       title="Apps"
       description="Setup and guides for the Driver, Load Reports and Banksman apps"
     >
-      <Tabs defaultValue="driver" className="space-y-6">
+      <Tabs defaultValue={/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "banksman" : "driver"} className="space-y-6">
         <TabsList>
           <TabsTrigger value="driver" className="gap-2">
             <Truck className="w-4 h-4" /> Driver App
@@ -327,7 +328,8 @@ const AdminAppsPage = () => {
         </TabsContent>
 
         {/* Banksman App */}
-        <TabsContent value="banksman">
+        <TabsContent value="banksman" className="space-y-6">
+          <BanksmanInstallCard />
           <BanksmanAppGuide />
         </TabsContent>
       </Tabs>
