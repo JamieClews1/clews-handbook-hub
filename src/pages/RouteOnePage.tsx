@@ -1396,7 +1396,7 @@ const RouteOnePage = () => {
         <div className="flex h-full min-w-max">
           {/* Unassigned Column */}
           <div
-            className={`${fullScreen ? "w-[220px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
+            className={`${fullScreen ? "w-[200px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
               dragOverDriverId === "__unassigned__" ? "bg-primary/5" : "bg-muted/30"
             }`}
             onDragOver={(e) => handleDragOver(e, null)}
@@ -1453,7 +1453,7 @@ const RouteOnePage = () => {
             return (
               <div
                 key={driver.id}
-                className={`${fullScreen ? "w-[220px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
+                className={`${fullScreen ? "w-[200px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
                   isDropTarget ? "bg-primary/5" : ""
                 }`}
                 onDragOver={(e) => handleDragOver(e, driver.id)}
@@ -1528,7 +1528,7 @@ const RouteOnePage = () => {
           })}
 
           {/* Empty state if no drivers */}
-          {drivers.length > 0 && hiddenDriverCount > 0 && (
+          {drivers.length > 0 && hiddenDriverCount > 0 && !fullScreen && (
             <div className="w-48 shrink-0 p-3 text-xs text-muted-foreground">
               {hiddenDriverCount} driver{hiddenDriverCount === 1 ? "" : "s"} with no jobs hidden (Setup → Routing Rules)
             </div>
