@@ -795,7 +795,7 @@ const RouteOnePage = () => {
           </div>
 
           {/* Stats */}
-          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground shrink-0 px-1">
+          <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground shrink-0 px-1 order-3">
             <Badge variant="secondary" className="gap-1 font-normal">
               <strong className="text-foreground">{totalJobs}</strong> jobs
             </Badge>
@@ -810,7 +810,26 @@ const RouteOnePage = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <div className="flex items-center gap-2 shrink-0 ml-auto order-2">
+          <Dialog open={newJobOpen} onOpenChange={(open) => { setNewJobOpen(open); if (open) resetJobForm(); }}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-1.5 shadow-sm">
+                <Plus className="h-3.5 w-3.5" />
+                New Job
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create Job</DialogTitle>
+              </DialogHeader>
+              <JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} />
+              <DialogFooter>
+                <Button onClick={() => createJob.mutate(jobForm)} disabled={!jobForm.customer_name || createJob.isPending} className="w-full">
+                  {createJob.isPending ? "Creating..." : "Create Job"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           {/* Reorganise the day */}
           {viewMode === "day" && (
             <Button
@@ -895,25 +914,6 @@ const RouteOnePage = () => {
             </SheetContent>
           </Sheet>
 
-          <Dialog open={newJobOpen} onOpenChange={(open) => { setNewJobOpen(open); if (open) resetJobForm(); }}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-1.5 shadow-sm">
-                <Plus className="h-3.5 w-3.5" />
-                New Job
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create Job</DialogTitle>
-              </DialogHeader>
-              <JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} />
-              <DialogFooter>
-                <Button onClick={() => createJob.mutate(jobForm)} disabled={!jobForm.customer_name || createJob.isPending} className="w-full">
-                  {createJob.isPending ? "Creating..." : "Create Job"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
           </div>
         </div>
       </div>
