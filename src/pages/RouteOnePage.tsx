@@ -206,6 +206,19 @@ const RouteOnePage = () => {
   const [searchParams] = useSearchParams();
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
+  const { setOpen: setSidebarOpen } = useSidebar();
+  const [fullScreen, setFullScreen] = useState(false);
+  const toggleFullScreen = async () => {
+    if (fullScreen) {
+      setFullScreen(false);
+      setSidebarOpen(true);
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    } else {
+      setFullScreen(true);
+      setSidebarOpen(false);
+      await document.documentElement.requestFullscreen().catch(() => {});
+    }
+  };
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
