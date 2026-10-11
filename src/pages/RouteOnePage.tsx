@@ -1570,33 +1570,27 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`group relative rounded-md bg-card border border-hairline pl-3 pr-2.5 py-2 cursor-pointer select-none transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${
-        isDragging ? "opacity-50 scale-95" : ""
-      }`}
+      className={`group relative rounded-md border pl-3 pr-2.5 py-2 cursor-pointer select-none transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
+        status === "completed" ? "opacity-70" : ""
+      } ${isDragging ? "opacity-50 scale-95" : ""}`}
     >
-      {/* Left accent bar — thin while open, full-width colour strip once completed */}
-      <span
-        className={`absolute left-0 top-0 bottom-0 ${jtAccent(jobType) ?? "bg-muted"} ${
-          status === "completed" ? "w-[6px]" : "w-[3px]"
-        }`}
-      />
-
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-          <span className="text-[13px] font-medium truncate text-foreground">{job.customer_name}</span>
+          <GripVertical className="h-3 w-3 shrink-0 text-white/60" />
+          <span className="text-[13px] font-medium truncate text-white">{job.customer_name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {status === "completed" && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
           {job.job_number && (
-            <span className="text-[10px] text-muted-foreground tabular-nums">#{job.job_number}</span>
+            <span className="text-[10px] text-white/70 tabular-nums">#{job.job_number}</span>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                <MoreVertical className="h-3 w-3 text-white" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
