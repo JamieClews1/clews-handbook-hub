@@ -1235,7 +1235,9 @@ const RouteOnePage = () => {
                   return (
                     <TableRow
                       key={job.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className={`cursor-pointer hover:bg-muted/50 ${
+                        status === "completed" && jt ? `border-l-4 ${jtAccent(jt)?.replace("bg-", "border-") ?? "border-muted"}` : ""
+                      }`}
                       onClick={() => setViewingJob(job)}
                     >
                       {activeColumns.map((col) => (
