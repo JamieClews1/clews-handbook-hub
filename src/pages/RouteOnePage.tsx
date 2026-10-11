@@ -1600,7 +1600,7 @@ function JobCard({
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${jtTag(jobType)}`}>
+        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${status === "completed" ? jtSolid(jobType) : jtTag(jobType)}`}>
           {jtLabel(jobType)}
         </Badge>
         <Badge
