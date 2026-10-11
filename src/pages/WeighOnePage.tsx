@@ -1,5 +1,6 @@
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
+import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/components/weighone/WeighbridgeRatesSettings";
@@ -119,6 +120,26 @@ const STATUS_CONFIG: Record<WeighbridgeStatus, { label: string; color: string; i
 
 const WeighOnePage = () => {
   const queryClient = useQueryClient();
+  const [fullScreen, setFullScreen] = useState(false);
+  useEffect(() => {
+    const handleExit = () => { if (!document.fullscreenElement) setFullScreen(false); };
+    const handleKey = (event: KeyboardEvent) => { if (event.key === "Escape") setFullScreen(false); };
+    document.addEventListener("fullscreenchange", handleExit);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleExit);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+  const toggleFullScreen = async () => {
+    if (fullScreen) {
+      setFullScreen(false);
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    } else {
+      setFullScreen(true);
+      await document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  };
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
@@ -929,7 +950,7 @@ const WeighOnePage = () => {
     : null;
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6">
+    <div className={fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -941,7 +962,11 @@ const WeighOnePage = () => {
           </h1>
           <p className="text-muted-foreground mt-1">Weighbridge & waste measurement</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="gap-2" onClick={toggleFullScreen}>
+            {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            {fullScreen ? "Exit full screen" : "Full screen"}
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setCmsDialogOpen(true)}>
             <Database className="h-4 w-4" /> Vehicles & Customers
           </Button>
@@ -1659,13 +1684,15 @@ const WeighOnePage = () => {
       </Dialog>
 
       {/* Transaction Log */}
-      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : "log"}>
-        <TabsList>
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : "tickets"}>
+        <TabsList className="h-auto flex flex-wrap justify-start">
+          <TabsTrigger value="tickets" className="gap-2"><FileText className="h-4 w-4" /> All Tickets</TabsTrigger>
           <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4" /> Live Alerts</TabsTrigger>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4" /> Transaction Log</TabsTrigger>
           <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4" /> Midweigh Data</TabsTrigger>
           <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4" /> Banksman App</TabsTrigger>
         </TabsList>
+        <TabsContent value="tickets" className="mt-4"><CombinedTicketList /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
           <Card className="border-border/50">
