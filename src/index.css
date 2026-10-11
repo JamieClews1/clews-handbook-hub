@@ -19,22 +19,22 @@
     --popover-foreground: 160 20% 15%;
 
     /* WasteOne Fresh Green - Primary (from logo #4ECB71) */
-    --primary: 145 55% 48%;
+    --primary: 145 57% 38%;
     --primary-foreground: 0 0% 100%;
 
     /* Slightly darker green - Secondary */
-    --secondary: 150 45% 40%;
+    --secondary: 151 60% 30%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 145 8% 93%;
     --muted-foreground: 150 8% 45%;
 
     /* Green accent */
-    --accent: 145 50% 44%;
+    --accent: 145 57% 38%;
     --accent-foreground: 0 0% 100%;
 
     /* Semantic palette — strict, one meaning each */
-    --success: 145 55% 48%;
+    --success: 145 57% 38%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 40 100% 12%;
@@ -47,7 +47,7 @@
     /* Hairline border for flat, data-dense card surfaces */
     --border-hairline: 220 12% 90%;
     --input: 145 8% 90%;
-    --ring: 145 55% 48%;
+    --ring: 145 57% 38%;
 
     /* Radius scale: 8 controls / 12 cards / 16 modals */
     --radius: 0.75rem;
@@ -55,7 +55,7 @@
     --radius-lg: 1rem;
 
     /* Gradient tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(145, 55%, 48%), hsl(150, 45%, 40%));
+    --gradient-primary: linear-gradient(135deg, hsl(145, 57%, 38%), hsl(151, 60%, 30%));
     --gradient-hero: linear-gradient(135deg, hsl(145, 55%, 42%) 0%, hsl(148, 50%, 36%) 50%, hsl(150, 45%, 38%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(145, 8%, 97%) 0%, hsl(145, 8%, 93%) 100%);
 
