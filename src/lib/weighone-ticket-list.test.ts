@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { combineTickets, ticketWeightTonnes, type CombinedTicket } from "./weighone-ticket-list";
 
 const ticket = (source: CombinedTicket["source"], date: string): CombinedTicket => ({
@@ -9,14 +10,14 @@ const ticket = (source: CombinedTicket["source"], date: string): CombinedTicket 
 describe("combined WeighOne tickets", () => {
   it("combines RouteOne and Midweigh even when ticket numbers match", () => {
     const result = combineTickets([ticket("routeone", "2026-10-08")], [ticket("midweigh", "2026-10-09")]);
-    expect(result.map(row => row.source)).toEqual(["midweigh", "routeone"]);
-    expect(result).toHaveLength(2);
+    assert.deepEqual(result.map(row => row.source), ["midweigh", "routeone"]);
+    assert.equal(result.length, 2);
   });
   it("converts Midweigh kilograms to tonnes", () => {
-    expect(ticketWeightTonnes(2780, "midweigh")).toBe(2.78);
+    assert.equal(ticketWeightTonnes(2780, "midweigh"), 2.78);
   });
   it("keeps RouteOne tonnage unchanged", () => {
-    expect(ticketWeightTonnes(2.78, "routeone")).toBe(2.78);
-    expect(ticketWeightTonnes(2.78, "skiptrak")).toBe(2.78);
+    assert.equal(ticketWeightTonnes(2.78, "routeone"), 2.78);
+    assert.equal(ticketWeightTonnes(2.78, "skiptrak"), 2.78);
   });
 });
