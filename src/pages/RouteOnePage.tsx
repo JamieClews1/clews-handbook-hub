@@ -1,4 +1,4 @@
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,8 +31,11 @@ import {
   Pencil,
   CalendarClock,
   Smartphone,
-
+  Maximize2,
+  Minimize2,
+  CheckCircle2,
 } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
@@ -203,6 +206,30 @@ const RouteOnePage = () => {
   const [searchParams] = useSearchParams();
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
+  const { setOpen: setSidebarOpen } = useSidebar();
+  const [fullScreen, setFullScreen] = useState(false);
+  const toggleFullScreen = async () => {
+    if (fullScreen) {
+      setFullScreen(false);
+      setSidebarOpen(true);
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    } else {
+      setFullScreen(true);
+      setSidebarOpen(false);
+      await document.documentElement.requestFullscreen().catch(() => {});
+    }
+  };
+  // Esc / browser chrome exiting fullscreen should restore the sidebar too
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        setFullScreen(false);
+        setSidebarOpen(true);
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [setSidebarOpen]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
@@ -819,6 +846,19 @@ const RouteOnePage = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
+
+          {/* Full screen (collapses the sidebar too) */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={toggleFullScreen}
+            title={fullScreen ? "Exit full screen" : "Full screen"}
+          >
+            {fullScreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            {fullScreen ? "Exit" : "Full Screen"}
+          </Button>
+
 
           {/* Reorganise the day */}
           {viewMode === "day" && (
@@ -1530,33 +1570,27 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`group relative rounded-md bg-card border border-hairline pl-3 pr-2.5 py-2 cursor-pointer select-none transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${
-        isDragging ? "opacity-50 scale-95" : ""
-      }`}
+      className={`group relative rounded-md border pl-3 pr-2.5 py-2 cursor-pointer select-none transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
+        status === "completed" ? "opacity-70" : ""
+      } ${isDragging ? "opacity-50 scale-95" : ""}`}
     >
-      {/* Left accent bar — thin while open, full-width colour strip once completed */}
-      <span
-        className={`absolute left-0 top-0 bottom-0 ${jtAccent(jobType) ?? "bg-muted"} ${
-          status === "completed" ? "w-[6px]" : "w-[3px]"
-        }`}
-      />
-
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-          <span className="text-[13px] font-medium truncate text-foreground">{job.customer_name}</span>
+          <GripVertical className="h-3 w-3 shrink-0 text-white/60" />
+          <span className="text-[13px] font-medium truncate text-white">{job.customer_name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {status === "completed" && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
           {job.job_number && (
-            <span className="text-[10px] text-muted-foreground tabular-nums">#{job.job_number}</span>
+            <span className="text-[10px] text-white/70 tabular-nums">#{job.job_number}</span>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                <MoreVertical className="h-3 w-3 text-white" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
@@ -1590,9 +1624,9 @@ function JobCard({
 
       {job.site_name && (
         <div className="flex items-start gap-1 mt-1">
-          <MapPin className="h-3 w-3 text-muted-foreground shrink-0 mt-px" />
-          <span className="text-[11px] text-muted-foreground">
-            <span className="block truncate font-medium">{job.site_name}</span>
+          <MapPin className="h-3 w-3 text-white/70 shrink-0 mt-px" />
+          <span className="text-[11px] text-white/80">
+            <span className="block truncate font-medium text-white">{job.site_name}</span>
             {[job.site_address, job.site_address_2].filter(Boolean).length > 0 && (
               <span className="block">{[job.site_address, job.site_address_2].filter(Boolean).join(", ")}</span>
             )}
@@ -1602,40 +1636,36 @@ function JobCard({
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${status === "completed" ? jtSolid(jobType) : jtTag(jobType)}`}>
+        <Badge className="text-[10px] px-1.5 py-0 h-4 font-medium bg-white/25 text-white hover:bg-white/35 border-0">
           {jtLabel(jobType)}
         </Badge>
-        <Badge
-          className={`text-[10px] px-1.5 py-0 h-4 border-0 font-medium ${
-            job.is_live ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-          }`}
-        >
+        <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 font-medium bg-white/15 text-white">
           {job.is_live ? "LIVE" : "Draft"}
         </Badge>
         <PermitBadge permit={permit} />
 
 
         {job.container_type && (
-          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
+          <span className="text-[10px] text-white/70">{job.container_type}</span>
         )}
         {job.container_size && (
-          <span className="text-[10px] text-muted-foreground">{job.container_size}</span>
+          <span className="text-[10px] text-white/70">{job.container_size}</span>
         )}
         {status === "query" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-destructive/10 text-destructive font-medium">
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/25 text-white font-medium">
             <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Query
           </Badge>
         )}
         {status === "completed" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-success/10 text-success">Done</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/25 text-white">Done</Badge>
         )}
         {status === "in_progress" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-info/10 text-info">In Progress</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/15 text-white">In Progress</Badge>
         )}
       </div>
 
       {job.estimated_duration_mins && (
-        <div className="flex items-center gap-1 mt-1.5 text-muted-foreground">
+        <div className="flex items-center gap-1 mt-1.5 text-white/70">
           <Clock className="h-2.5 w-2.5" />
           <span className="text-[10px]">{job.estimated_duration_mins} min</span>
         </div>
@@ -1659,8 +1689,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
-  const accent = mappedType ? jtAccent(mappedType) : "bg-muted-foreground/40";
-  const tagClass = mappedType ? JOB_TYPE_TAG[mappedType] : "bg-muted text-muted-foreground border border-hairline";
+  const solid = mappedType ? jtSolid(mappedType) : "bg-slate-500 border-slate-600 text-white";
 
   return (
     <div
@@ -1668,21 +1697,19 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-md bg-card border border-dashed border-hairline pl-3 pr-2.5 py-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${isDragging ? "opacity-50" : ""}`}
+      className={`group relative rounded-md border border-dashed !border-white/50 pl-3 pr-2.5 py-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
     >
-      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accent}`} />
-
       <div className="flex items-start justify-between gap-1">
-        <span className="text-[13px] font-medium truncate text-foreground">{job.customer || "Unknown"}</span>
+        <span className="text-[13px] font-medium truncate text-white">{job.customer || "Unknown"}</span>
         {job.job_number && (
-          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">#{job.job_number}</span>
+          <span className="text-[10px] text-white/70 tabular-nums shrink-0">#{job.job_number}</span>
         )}
       </div>
 
       {job.site && (
         <div className="flex items-start gap-1 mt-1">
-          <MapPin className="h-3 w-3 shrink-0 text-muted-foreground mt-px" />
-          <span className="text-[11px] text-muted-foreground">
+          <MapPin className="h-3 w-3 shrink-0 text-white/70 mt-px" />
+          <span className="text-[11px] text-white/80">
             <span className="block truncate">{job.site}</span>
             {job.postcode && <span className="block font-mono">{job.postcode}</span>}
           </span>
@@ -1690,21 +1717,21 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       )}
       {job.tipping_location && (
         <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[10px] text-muted-foreground">→ {job.tipping_location}</span>
+          <span className="text-[10px] text-white/70">→ {job.tipping_location}</span>
         </div>
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {job.movement_type && (
-          <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${tagClass}`}>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 font-medium bg-white/25 text-white hover:bg-white/35 border-0">
             {job.movement_type}
           </Badge>
         )}
         {job.container_type && (
-          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
+          <span className="text-[10px] text-white/70">{job.container_type}</span>
         )}
         {job.weight_t != null && job.weight_t > 0 && (
-          <span className="text-[10px] text-muted-foreground">{job.weight_t}t</span>
+          <span className="text-[10px] text-white/70">{job.weight_t}t</span>
         )}
       </div>
     </div>
