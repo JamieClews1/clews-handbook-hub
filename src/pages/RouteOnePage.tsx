@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
+import { DaySheetPrintDialog } from "@/components/route-one/DaySheetPrintDialog";
+import { skiptrakWtnJob } from "@/lib/imported-ticket-print";
 import { DriverVehicleBoard } from "@/components/route-one/DriverVehicleBoard";
 import { groupDriversByVehicle, dailyBoardVehicle } from "@/lib/route-one-vehicle-groups";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
@@ -847,6 +849,7 @@ const RouteOnePage = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          <DaySheetPrintDialog date={dateStr} drivers={drivers} />
           {/* Reorganise the day */}
           {viewMode === "day" && (
             <Button
@@ -1157,6 +1160,10 @@ const RouteOnePage = () => {
                 <WtnJobSignatures jobNumber={viewingSkiptrakJob.job_number} />
                 <SkiptrakSiteDetails job={viewingSkiptrakJob} />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
+                <DialogFooter>
+                  <Button variant="outline" size="sm" onClick={() => printWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><Printer className="h-4 w-4 mr-2" />Print ticket</Button>
+                  <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><FileDown className="h-4 w-4 mr-2" />Download ticket</Button>
+                </DialogFooter>
               </div>
             );
           })()}

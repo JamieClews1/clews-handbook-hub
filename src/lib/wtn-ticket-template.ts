@@ -72,9 +72,9 @@ export const WTN_PRINT_STYLES = `
   .wtn-weights .net td { font-size: 10pt; border-bottom: none; }
   .wtn-decl { flex: 1; border: 1px solid #000; padding: 1.5mm 2mm; font-size: 6.5pt; line-height: 1.3; }
   .wtn-signs { display: flex; gap: 3mm; margin-top: 2mm; }
-  .wtn-sign { flex: 1; border: 1px solid #000; padding: 1.5mm 2mm; height: 17mm; }
+  .wtn-sign { flex: 1; min-width: 0; border: 1px solid #000; padding: 1.5mm 2mm; min-height: 20mm; }
   .wtn-sign .k { font-size: 6.5pt; text-transform: uppercase; color: #444; }
-  .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 9mm; padding-top: .8mm; }
+  .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 7mm; padding-top: .8mm; overflow-wrap: anywhere; }
 `;
 
 /** Default design for one half of the sheet. */

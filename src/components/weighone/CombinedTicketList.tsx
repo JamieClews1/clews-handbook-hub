@@ -12,6 +12,7 @@ import { combineTickets, ticketWeightTonnes, type CombinedTicket } from "@/lib/w
 import { parseLoadReportDate } from "@/lib/load-report-dates";
 import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
 import { WeighbridgeAttachments } from "./WeighbridgeAttachments";
+import { MidweighPrintButton } from "./MidweighPrintButton";
 import type { Database } from "@/integrations/supabase/types";
 
 type RouteJob = Database["public"]["Tables"]["route_one_jobs"]["Row"];
@@ -121,6 +122,7 @@ export function CombinedTicketList() {
                 {open && <TableRow><TableCell colSpan={9} className="bg-muted/30">
                   <div className="space-y-3 p-2"><p><span className="text-muted-foreground">Driver: </span>{ticket.driver || "—"}</p>
                     {ticket.source === "routeone" && <JobPhotosSection jobId={ticket.id} />}
+                    {ticket.source === "midweigh" && <MidweighPrintButton id={ticket.id} />}
                     {ticket.transactionId && <WeighbridgeAttachments transactionId={ticket.transactionId} />}
                     {ticket.raw && typeof ticket.raw === "object" && !Array.isArray(ticket.raw) ? <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Object.entries(ticket.raw).filter(([, value]) => value != null && value !== "").map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm">{typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}</dl> : null}
                   </div>
