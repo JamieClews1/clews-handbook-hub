@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,12 +30,8 @@ import {
   Settings,
   Pencil,
   CalendarClock,
-  Smartphone,
-  Maximize2,
-  Minimize2,
   CheckCircle2,
 } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
@@ -208,39 +204,16 @@ const RouteOnePage = () => {
   const [searchParams] = useSearchParams();
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
-  const { setOpen: setSidebarOpen } = useSidebar();
   const [fullScreen, setFullScreen] = useState(false);
-  const browserFsActive = useRef(false);
-  const toggleFullScreen = async () => {
-    if (fullScreen) {
-      setFullScreen(false);
-      setSidebarOpen(true);
-      browserFsActive.current = false;
-      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
-    } else {
-      setFullScreen(true);
-      setSidebarOpen(false);
-      await document.documentElement.requestFullscreen().catch(() => {});
-      browserFsActive.current = !!document.fullscreenElement;
-    }
-  };
-  // Esc / browser chrome exiting fullscreen should restore the sidebar too —
-  // but only if browser fullscreen was actually entered (it can fail silently)
   useEffect(() => {
-    const onFsChange = () => {
-      if (!document.fullscreenElement && browserFsActive.current) {
-        browserFsActive.current = false;
-        setFullScreen(false);
-        setSidebarOpen(true);
-      }
-    };
+    const onFsChange = () => setFullScreen(Boolean(document.fullscreenElement));
+    onFsChange();
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [setSidebarOpen]);
+  }, []);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
-  const [newDriverOpen, setNewDriverOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [draggedSkiptrakId, setDraggedSkiptrakId] = useState<string | null>(null);
@@ -319,7 +292,6 @@ const RouteOnePage = () => {
   const [editForm, setEditForm] = useState<any>({});
 
   // New driver form
-  const [driverForm, setDriverForm] = useState({ driver_name: "", vehicle_type: "Skip" });
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
   const weekStart = format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -498,24 +470,6 @@ const RouteOnePage = () => {
       setNewJobOpen(false);
       resetJobForm();
       toast({ title: "Job created" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
-  // Create driver mutation
-  const createDriver = useMutation({
-    mutationFn: async (form: typeof driverForm) => {
-      const { error } = await supabase.from("route_one_drivers").insert({
-        driver_name: form.driver_name,
-        display_order: drivers.length,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["route-one-drivers"] });
-      setNewDriverOpen(false);
-      setDriverForm({ driver_name: "", vehicle_type: "Skip" });
-      toast({ title: "Driver added" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -801,18 +755,17 @@ const RouteOnePage = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       {/* Header Bar */}
-      <div className="px-4 py-3 border-b border-border bg-card flex flex-wrap items-center justify-between gap-x-3 gap-y-2 shrink-0">
-        <div className="flex items-center gap-3 shrink-0">
+      <div className="px-4 py-2 border-b border-border bg-card flex items-center gap-3 shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
             <Route className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground leading-tight">RouteOne</h1>
-            <p className="text-[11px] text-muted-foreground leading-tight">Transport Dispatch</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-max flex-1">
           {/* View toggle */}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
             <TabsList className="h-8 shrink-0">
@@ -858,20 +811,6 @@ const RouteOnePage = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-
-          {/* Full screen (collapses the sidebar too) */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            onClick={toggleFullScreen}
-            title={fullScreen ? "Exit full screen" : "Full screen"}
-          >
-            {fullScreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            {fullScreen ? "Exit" : "Full Screen"}
-          </Button>
-
-
           {/* Reorganise the day */}
           {viewMode === "day" && (
             <Button
@@ -885,14 +824,6 @@ const RouteOnePage = () => {
               Reorganise Day
             </Button>
           )}
-
-          {/* Driver App Link */}
-          <Link to="/driver" target="_blank">
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
-              <Smartphone className="h-3.5 w-3.5" />
-              Driver App
-            </Button>
-          </Link>
 
           {/* Settings Sheet */}
           <Sheet>
@@ -930,7 +861,18 @@ const RouteOnePage = () => {
                     <YardStaffSettings />
                   </TabsContent>
                   <TabsContent value="driver-app">
-                    <DriverAppManagement />
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-border pb-4">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Driver App</p>
+                          <p className="text-xs text-muted-foreground">Open the app drivers use for assigned jobs.</p>
+                        </div>
+                        <Link to="/driver" target="_blank">
+                          <Button size="sm">Open Driver App</Button>
+                        </Link>
+                      </div>
+                      <DriverAppManagement />
+                    </div>
                   </TabsContent>
                   <TabsContent value="cost-items">
                     <CostItemsSettings />
@@ -953,32 +895,9 @@ const RouteOnePage = () => {
             </SheetContent>
           </Sheet>
 
-          <Dialog open={newDriverOpen} onOpenChange={setNewDriverOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
-                <User className="h-3.5 w-3.5" />
-                Add Driver
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Add Driver</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs">Driver Name</Label>
-                  <Input value={driverForm.driver_name} onChange={(e) => setDriverForm({ ...driverForm, driver_name: e.target.value })} placeholder="e.g. John Smith" />
-                </div>
-                <Button className="w-full" onClick={() => createDriver.mutate(driverForm)} disabled={!driverForm.driver_name || createDriver.isPending}>
-                  {createDriver.isPending ? "Adding..." : "Add Driver"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
           <Dialog open={newJobOpen} onOpenChange={(open) => { setNewJobOpen(open); if (open) resetJobForm(); }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="h-8 text-xs gap-1.5">
+              <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-1.5 shadow-sm">
                 <Plus className="h-3.5 w-3.5" />
                 New Job
               </Button>
