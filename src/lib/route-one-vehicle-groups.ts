@@ -23,3 +23,9 @@ export function groupDriversByVehicle<T>(drivers: T[], getType: (driver: T) => s
 export function useDriverAccordion(driverCount: number) {
   return driverCount > DRIVER_ACCORDION_THRESHOLD;
 }
+
+export function boardVehicleKind(type: string | null | undefined, registration: string | null | undefined, articRegistrations: string[]): VehicleKind {
+  const normalise = (value: string) => value.toUpperCase().replace(/\s/g, "");
+  if (registration && articRegistrations.some(reg => normalise(reg) === normalise(registration))) return "Artic";
+  return vehicleKind(type);
+}

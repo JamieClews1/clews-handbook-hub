@@ -36,7 +36,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { DriverVehicleBoard } from "@/components/route-one/DriverVehicleBoard";
 import { VehicleTypeIcon } from "@/components/route-one/VehicleTypeIcon";
-import { groupDriversByVehicle, vehicleKind } from "@/lib/route-one-vehicle-groups";
+import { groupDriversByVehicle, boardVehicleKind } from "@/lib/route-one-vehicle-groups";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
@@ -751,7 +751,8 @@ const RouteOnePage = () => {
     ? drivers.filter((d: any) => getDriverJobs(d.id).length + getSkiptrakJobsForDriver(d.driver_name).length > 0)
     : drivers;
   const hiddenDriverCount = drivers.length - boardDrivers.length;
-  const driverVehicleGroups = groupDriversByVehicle(boardDrivers, (driver: any) => driver.route_one_vehicles?.vehicle_type);
+  const driverVehicleType = (driver: any) => boardVehicleKind(driver.route_one_vehicles?.vehicle_type, driver.route_one_vehicles?.registration, boardRules.artic_regs);
+  const driverVehicleGroups = groupDriversByVehicle(boardDrivers, driverVehicleType);
   const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j: any) => j.status === "completed").length;
   const queryJobs = jobs.filter((j: any) => j.status === "query").length;
@@ -1388,7 +1389,7 @@ const RouteOnePage = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                        <div className="shrink-0 text-primary">
-                         <VehicleTypeIcon type={vehicleKind(driver.route_one_vehicles?.vehicle_type)} className="h-7 w-8" />
+                         <VehicleTypeIcon type={driverVehicleType(driver)} className="h-7 w-8" />
                       </div>
                       <div className="min-w-0">
                          <p className="text-[13px] leading-tight font-semibold text-foreground break-words" title={driver.driver_name}>{driver.driver_name}</p>

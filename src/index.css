@@ -172,6 +172,10 @@
     width: max(140px, calc(100cqw / var(--driver-columns)));
     scroll-snap-align: start;
   }
+  .routeone-vehicle-accordion > [data-state="open"] > [role="region"] {
+    flex: 1;
+    min-height: 0;
+  }
   @media (max-width: 767px) {
     .routeone-driver-column { width: 220px; }
   }

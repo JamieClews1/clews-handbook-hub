@@ -26,7 +26,7 @@ export function DriverVehicleBoard<T>({ groups, renderDriver, jobCount }: {
   );
   if (useDriverAccordion(groups.reduce((sum, group) => sum + group.drivers.length, 0))) {
     return (
-      <Accordion type="single" collapsible value={openGroup} onValueChange={setOpenGroup} className="flex h-full min-h-0 flex-col">
+      <Accordion type="single" collapsible value={openGroup} onValueChange={setOpenGroup} className="routeone-vehicle-accordion flex h-full min-h-0 flex-col">
         {groups.map(group => (
           <AccordionItem key={group.type} value={group.type} className="min-h-0 shrink-0 data-[state=open]:flex data-[state=open]:flex-1 data-[state=open]:flex-col">
             <AccordionTrigger className="px-3 py-2 bg-primary/5 hover:no-underline">{summary(group)}</AccordionTrigger>
