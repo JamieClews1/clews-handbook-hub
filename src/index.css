@@ -172,6 +172,11 @@
     width: max(140px, calc(100cqw / var(--driver-columns)));
     scroll-snap-align: start;
   }
+  .routeone-driver-viewport[data-driver-count="1"] { --driver-columns: 1; }
+  .routeone-driver-viewport[data-driver-count="2"] { --driver-columns: 2; }
+  .routeone-driver-viewport[data-driver-count="3"] { --driver-columns: 3; }
+  .routeone-driver-viewport[data-driver-count="4"] { --driver-columns: 4; }
+  .routeone-driver-viewport[data-driver-count="5"] { --driver-columns: 5; }
   .routeone-vehicle-accordion > [data-state="open"] > [role="region"] {
     flex: 1;
     min-height: 0;

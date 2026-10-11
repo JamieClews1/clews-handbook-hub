@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Add RouteOne truck icons and daily vehicle groups, six-driver scrolling, and collapsible groups above eight drivers; verify the board.
+- [x] Add RouteOne truck icons and daily vehicle groups, six-driver scrolling, and collapsible groups above eight drivers; verify the board.
 
 - [x] Add WeighOne full-screen mode and a combined RouteOne / Midweigh ticket list.
 
