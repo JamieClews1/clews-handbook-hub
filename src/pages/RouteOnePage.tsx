@@ -31,8 +31,11 @@ import {
   Pencil,
   CalendarClock,
   Smartphone,
-
+  Maximize2,
+  Minimize2,
+  CheckCircle2,
 } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
