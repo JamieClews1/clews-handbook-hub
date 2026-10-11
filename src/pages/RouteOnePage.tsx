@@ -34,6 +34,9 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
+import { DriverVehicleBoard } from "@/components/route-one/DriverVehicleBoard";
+import { VehicleTypeIcon } from "@/components/route-one/VehicleTypeIcon";
+import { groupDriversByVehicle, vehicleKind } from "@/lib/route-one-vehicle-groups";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
@@ -748,6 +751,7 @@ const RouteOnePage = () => {
     ? drivers.filter((d: any) => getDriverJobs(d.id).length + getSkiptrakJobsForDriver(d.driver_name).length > 0)
     : drivers;
   const hiddenDriverCount = drivers.length - boardDrivers.length;
+  const driverVehicleGroups = groupDriversByVehicle(boardDrivers, (driver: any) => driver.route_one_vehicles?.vehicle_type);
   const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j: any) => j.status === "completed").length;
   const queryJobs = jobs.filter((j: any) => j.status === "query").length;
@@ -1311,11 +1315,11 @@ const RouteOnePage = () => {
         </div>
       ) : (
       /* Dispatch Board (Kanban) */
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex h-full min-w-max">
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex h-full min-w-0">
           {/* Unassigned Column */}
           <div
-            className={`${fullScreen ? "w-[200px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
+            className={`w-36 lg:w-44 shrink-0 border-r border-border flex flex-col transition-colors ${
               dragOverDriverId === "__unassigned__" ? "bg-primary/5" : "bg-muted/30"
             }`}
             onDragOver={(e) => handleDragOver(e, null)}
@@ -1364,7 +1368,8 @@ const RouteOnePage = () => {
           </div>
 
           {/* Driver Columns */}
-          {boardDrivers.map((driver: any) => {
+          <div className="flex-1 min-w-0 min-h-0">
+          <DriverVehicleBoard groups={driverVehicleGroups} jobCount={(driver: any) => getDriverJobs(driver.id).length + getSkiptrakJobsForDriver(driver.driver_name).length} renderDriver={(driver: any) => {
             const driverJobs = getDriverJobs(driver.id);
             const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
             const totalCount = driverJobs.length + skiptrakJobs.length;
@@ -1372,24 +1377,24 @@ const RouteOnePage = () => {
             return (
               <div
                 key={driver.id}
-                className={`${fullScreen ? "w-[200px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
+                className={`routeone-driver-column shrink-0 border-r border-border flex flex-col transition-colors ${
                   isDropTarget ? "bg-primary/5" : ""
                 }`}
                 onDragOver={(e) => handleDragOver(e, driver.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
-                <div className={`px-3 ${fullScreen ? "py-1.5" : "py-2.5"} border-b border-hairline bg-card`}>
+                <div className="px-2 py-2 min-h-16 border-b border-hairline bg-card">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className={`${fullScreen ? "w-6 h-6" : "w-7 h-7"} rounded-full bg-primary flex items-center justify-center shrink-0`}>
-                        <User className="h-3.5 w-3.5 text-primary-foreground" />
+                       <div className="shrink-0 text-primary">
+                         <VehicleTypeIcon type={vehicleKind(driver.route_one_vehicles?.vehicle_type)} className="h-7 w-8" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-foreground truncate">{driver.driver_name}</p>
-                        {driver.route_one_vehicles && !fullScreen && (
+                         <p className="text-[13px] leading-tight font-semibold text-foreground break-words" title={driver.driver_name}>{driver.driver_name}</p>
+                         {driver.route_one_vehicles && (
                           <p className="text-[11px] text-muted-foreground truncate">
-                            {driver.route_one_vehicles.registration} · {driver.route_one_vehicles.vehicle_type}
+                             {driver.route_one_vehicles.registration}
                           </p>
                         )}
                       </div>
@@ -1444,11 +1449,12 @@ const RouteOnePage = () => {
                 </div>
               </div>
             );
-          })}
+          }} />
+          </div>
 
           {/* Empty state if no drivers */}
           {drivers.length > 0 && hiddenDriverCount > 0 && !fullScreen && (
-            <div className="w-48 shrink-0 p-3 text-xs text-muted-foreground">
+              <div className="hidden">
               {hiddenDriverCount} driver{hiddenDriverCount === 1 ? "" : "s"} with no jobs hidden (Setup → Routing Rules)
             </div>
           )}

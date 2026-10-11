@@ -9,3 +9,4 @@ Keep staff navigation in seven collapsible groups with a page-only command palet
 - Keep RouteOne's main toolbar for daily dispatch work; driver administration and app access belong inside RouteOne Setup so New Job remains the primary action.
 Use the shared Button variants for portal actions so primary, outline, secondary, ghost, and destructive controls keep a consistent WasteOne hierarchy.
 Use shared Tabs and Toggle styles for strong text contrast and restrained semantic icon colour, so navigation feels lively without competing with status meaning.
+Keep daily driver grouping and fleet icons in focused presentation modules, separate from routing mutations, so expanding or scrolling groups cannot reassign jobs.

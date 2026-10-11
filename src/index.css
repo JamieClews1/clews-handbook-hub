@@ -163,6 +163,18 @@
 }
 
 @layer utilities {
+  .routeone-driver-viewport {
+    container-type: inline-size;
+    --driver-columns: 6;
+    scroll-snap-type: x proximity;
+  }
+  .routeone-driver-column {
+    width: max(140px, calc(100cqw / var(--driver-columns)));
+    scroll-snap-align: start;
+  }
+  @media (max-width: 767px) {
+    .routeone-driver-column { width: 220px; }
+  }
   .text-balance {
     text-wrap: balance;
   }
