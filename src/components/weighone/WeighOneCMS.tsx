@@ -35,27 +35,15 @@ export const WeighOneCMS = () => {
   // Fetch all customers
   const { data: customers = [], isLoading: customersLoading } = useQuery({
     queryKey: ["weighbridge-customers-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weighbridge_customers")
-        .select("*")
-        .order("customer_name", { ascending: true });
-      if (error) throw error;
-      return data as WeighbridgeCustomer[];
-    },
+    queryFn: () =>
+      fetchAllRows<WeighbridgeCustomer>("weighbridge_customers", "*", "customer_name"),
   });
 
   // Fetch all vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
     queryKey: ["weighbridge-vehicles-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weighbridge_vehicles")
-        .select("*")
-        .order("vehicle_reg", { ascending: true });
-      if (error) throw error;
-      return data as WeighbridgeVehicle[];
-    },
+    queryFn: () =>
+      fetchAllRows<WeighbridgeVehicle>("weighbridge_vehicles", "*", "vehicle_reg"),
   });
 
   // Sync from Midweigh
