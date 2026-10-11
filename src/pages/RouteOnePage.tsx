@@ -1624,9 +1624,9 @@ function JobCard({
 
       {job.site_name && (
         <div className="flex items-start gap-1 mt-1">
-          <MapPin className="h-3 w-3 text-muted-foreground shrink-0 mt-px" />
-          <span className="text-[11px] text-muted-foreground">
-            <span className="block truncate font-medium">{job.site_name}</span>
+          <MapPin className="h-3 w-3 text-white/70 shrink-0 mt-px" />
+          <span className="text-[11px] text-white/80">
+            <span className="block truncate font-medium text-white">{job.site_name}</span>
             {[job.site_address, job.site_address_2].filter(Boolean).length > 0 && (
               <span className="block">{[job.site_address, job.site_address_2].filter(Boolean).join(", ")}</span>
             )}
@@ -1636,40 +1636,36 @@ function JobCard({
       )}
 
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className={`text-[10px] px-1.5 py-0 h-4 font-medium ${status === "completed" ? jtSolid(jobType) : jtTag(jobType)}`}>
+        <Badge className="text-[10px] px-1.5 py-0 h-4 font-medium bg-white/25 text-white hover:bg-white/35 border-0">
           {jtLabel(jobType)}
         </Badge>
-        <Badge
-          className={`text-[10px] px-1.5 py-0 h-4 border-0 font-medium ${
-            job.is_live ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-          }`}
-        >
+        <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 font-medium bg-white/15 text-white">
           {job.is_live ? "LIVE" : "Draft"}
         </Badge>
         <PermitBadge permit={permit} />
 
 
         {job.container_type && (
-          <span className="text-[10px] text-muted-foreground">{job.container_type}</span>
+          <span className="text-[10px] text-white/70">{job.container_type}</span>
         )}
         {job.container_size && (
-          <span className="text-[10px] text-muted-foreground">{job.container_size}</span>
+          <span className="text-[10px] text-white/70">{job.container_size}</span>
         )}
         {status === "query" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-destructive/10 text-destructive font-medium">
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/25 text-white font-medium">
             <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Query
           </Badge>
         )}
         {status === "completed" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-success/10 text-success">Done</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/25 text-white">Done</Badge>
         )}
         {status === "in_progress" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-info/10 text-info">In Progress</Badge>
+          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/15 text-white">In Progress</Badge>
         )}
       </div>
 
       {job.estimated_duration_mins && (
-        <div className="flex items-center gap-1 mt-1.5 text-muted-foreground">
+        <div className="flex items-center gap-1 mt-1.5 text-white/70">
           <Clock className="h-2.5 w-2.5" />
           <span className="text-[10px]">{job.estimated_duration_mins} min</span>
         </div>
