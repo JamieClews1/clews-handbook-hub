@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Add RouteOne daily driver job sheets and imported-ticket printing, plus print actions on both Midweigh lists; verify real tickets.
+- [x] Add RouteOne daily driver job sheets and imported-ticket printing, plus print actions on both Midweigh lists; verify real tickets.
 
 - [x] Remove RouteOne driver vehicle icons, resolve groups from daily vehicles, and strengthen vehicle-type boundaries; verify Monday.
 
