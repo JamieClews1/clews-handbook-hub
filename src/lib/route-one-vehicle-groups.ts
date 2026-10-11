@@ -29,3 +29,26 @@ export function boardVehicleKind(type: string | null | undefined, registration: 
   if (registration && articRegistrations.some(reg => normalise(reg) === normalise(registration))) return "Artic";
   return vehicleKind(type);
 }
+
+interface BoardVehicle { registration: string; vehicle_type: string }
+interface DayVehicleJob { registration?: string | null; containerType?: string | null }
+export function dailyBoardVehicle(jobs: DayVehicleJob[], usualVehicle: BoardVehicle | null | undefined, vehicles: BoardVehicle[], articRegistrations: string[]) {
+  const normalise = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const counts = new Map<string, { registration: string; count: number }>();
+  for (const job of jobs) {
+    if (!job.registration?.trim()) continue;
+    const key = normalise(job.registration);
+    const entry = counts.get(key);
+    counts.set(key, { registration: job.registration.trim(), count: (entry?.count ?? 0) + 1 });
+  }
+  const registration = [...counts.values()].sort((a, b) => b.count - a.count)[0]?.registration;
+  if (!registration) return { registration: usualVehicle?.registration ?? null, type: boardVehicleKind(usualVehicle?.vehicle_type, usualVehicle?.registration, articRegistrations) };
+  const vehicle = vehicles.find(v => normalise(v.registration) === normalise(registration));
+  let type = boardVehicleKind(vehicle?.vehicle_type, registration, articRegistrations);
+  const containers = jobs.filter(j => j.registration && normalise(j.registration) === normalise(registration)).map(j => j.containerType ?? "").join(" ");
+  // Imported catalog types can be stale: the day's specialist equipment is stronger evidence.
+  if (type !== "Artic" && /ro\s*-?\s*ro|roll on|roll off/i.test(containers)) type = "Ro Ro";
+  else if (/curtain|walking floor/i.test(containers)) type = "Artic";
+  else if (type === "Other") type = vehicleKind(containers);
+  return { registration, type };
+}

@@ -1,8 +1,19 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { groupDriversByVehicle, useDriverAccordion, vehicleKind, VISIBLE_DRIVER_COLUMNS } from "./route-one-vehicle-groups";
+import { dailyBoardVehicle, groupDriversByVehicle, useDriverAccordion, vehicleKind, VISIBLE_DRIVER_COLUMNS } from "./route-one-vehicle-groups";
 
 describe("RouteOne daily driver presentation", () => {
+  it("recognises Jaroslaw's Monday artic despite the saved Skip type", () => {
+    assert.equal(dailyBoardVehicle([{ registration: "FJ18FDM", containerType: "Curtain side Trailer" }], { registration: "FJ18FDM", vehicle_type: "Skip" }, [], ["FJ18 FDM"]).type, "Artic");
+  });
+  it("places Lee in Monday's RoRo rather than his usual artic", () => {
+    const result = dailyBoardVehicle([{ registration: "BF67OPZ", containerType: "40 yd Ro Ro" }], { registration: "FG61 SYV", vehicle_type: "Artic" }, [{ registration: "BF67 OPZ", vehicle_type: "Skip" }], ["FG61 SYV"]);
+    assert.equal(result.type, "Ro Ro");
+    assert.equal(result.registration, "BF67OPZ");
+  });
+  it("falls back to the usual vehicle only when the day has no registration", () => {
+    assert.equal(dailyBoardVehicle([], { registration: "FG61 SYV", vehicle_type: "Artic" }, [], ["FG61 SYV"]).type, "Artic");
+  });
   it("sets the visible driver limit to six", () => assert.equal(VISIBLE_DRIVER_COLUMNS, 6));
   it("uses accordion groups only above eight drivers", () => {
     assert.equal(useDriverAccordion(8), false);

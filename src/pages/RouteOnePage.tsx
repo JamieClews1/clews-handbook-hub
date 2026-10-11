@@ -35,8 +35,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { DriverVehicleBoard } from "@/components/route-one/DriverVehicleBoard";
-import { VehicleTypeIcon } from "@/components/route-one/VehicleTypeIcon";
-import { groupDriversByVehicle, boardVehicleKind } from "@/lib/route-one-vehicle-groups";
+import { groupDriversByVehicle, dailyBoardVehicle } from "@/lib/route-one-vehicle-groups";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
@@ -315,6 +314,15 @@ const RouteOnePage = () => {
         .order("display_order");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: boardVehicles = [] } = useQuery({
+    queryKey: ["route-one-board-vehicles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("route_one_vehicles").select("registration, vehicle_type");
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -751,7 +759,11 @@ const RouteOnePage = () => {
     ? drivers.filter((d: any) => getDriverJobs(d.id).length + getSkiptrakJobsForDriver(d.driver_name).length > 0)
     : drivers;
   const hiddenDriverCount = drivers.length - boardDrivers.length;
-  const driverVehicleType = (driver: any) => boardVehicleKind(driver.route_one_vehicles?.vehicle_type, driver.route_one_vehicles?.registration, boardRules.artic_regs);
+  const driverDayVehicles = new Map(boardDrivers.map((driver: any) => [driver.id, dailyBoardVehicle([
+    ...getDriverJobs(driver.id).map((j: any) => ({ registration: j.vehicle_reg, containerType: j.container_type })),
+    ...getSkiptrakJobsForDriver(driver.driver_name).map((j: any) => ({ registration: j.vehicle_registration, containerType: j.container_type })),
+  ], driver.route_one_vehicles, boardVehicles, boardRules.artic_regs)]));
+  const driverVehicleType = (driver: any) => driverDayVehicles.get(driver.id)?.type ?? "Other";
   const driverVehicleGroups = groupDriversByVehicle(boardDrivers, driverVehicleType);
   const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j: any) => j.status === "completed").length;
@@ -1388,14 +1400,11 @@ const RouteOnePage = () => {
                 <div className="px-2 py-2 min-h-16 border-b border-hairline bg-card">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                       <div className="shrink-0 text-primary">
-                         <VehicleTypeIcon type={driverVehicleType(driver)} className="h-7 w-8" />
-                      </div>
                       <div className="min-w-0">
                          <p className="text-[13px] leading-tight font-semibold text-foreground break-words" title={driver.driver_name}>{driver.driver_name}</p>
-                         {driver.route_one_vehicles && (
+                         {driverDayVehicles.get(driver.id)?.registration && (
                           <p className="text-[11px] text-muted-foreground truncate">
-                             {driver.route_one_vehicles.registration}
+                             {driverDayVehicles.get(driver.id)?.registration}
                           </p>
                         )}
                       </div>
