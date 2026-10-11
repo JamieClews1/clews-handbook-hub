@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Add RouteOne truck icons and daily vehicle groups, six-driver scrolling, and collapsible groups above eight drivers; verify the board.
+
 - [x] Add WeighOne full-screen mode and a combined RouteOne / Midweigh ticket list.
 
 - [x] Apply presentation-only recommendations from the 2 Oct design brief without changing data management, reporting calculations, access, or DWT.
