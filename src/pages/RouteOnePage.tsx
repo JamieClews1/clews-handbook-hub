@@ -1419,6 +1419,7 @@ const RouteOnePage = () => {
                   onDragStart={(e) => handleDragStart(e, job.id)}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedJobId === job.id}
+                  compact={fullScreen}
                 />
               ))}
               {unassignedSkiptrakJobs.map((sj: any) => (
@@ -1429,6 +1430,7 @@ const RouteOnePage = () => {
                   onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedSkiptrakId === sj.id}
+                  compact={fullScreen}
                 />
               ))}
               {unassignedJobs.length === 0 && unassignedSkiptrakJobs.length === 0 && (
@@ -1486,6 +1488,7 @@ const RouteOnePage = () => {
                       onDragStart={(e) => handleDragStart(e, job.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedJobId === job.id}
+                      compact={fullScreen}
                     />
                   ))}
                   {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
@@ -1503,6 +1506,7 @@ const RouteOnePage = () => {
                       onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedSkiptrakId === sj.id}
+                      compact={fullScreen}
                     />
                   ))}
                   {totalCount === 0 && (
