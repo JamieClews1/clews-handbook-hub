@@ -1745,7 +1745,7 @@ const WeighOnePage = () => {
                       {filtered.map((t) => {
                         const cfg = STATUS_CONFIG[t.status];
                         return (
-                          <TableRow key={t.id}>
+                          <TableRow key={t.id} className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }}>
                             <TableCell className="font-mono font-medium">{t.ticket_number}</TableCell>
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>

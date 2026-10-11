@@ -107,7 +107,7 @@ export function CombinedTicketList() {
               const key = `${ticket.source}:${ticket.id}`;
               const open = expanded === key;
               return <Fragment key={key}>
-                <TableRow>
+                <TableRow className="cursor-pointer select-none hover:bg-muted/40" onClick={() => setExpanded(open ? null : key)}>
                   <TableCell className="font-mono font-semibold">{ticket.ticket}</TableCell>
                   <TableCell><Badge variant={ticket.source !== "midweigh" ? "secondary" : "outline"}>{ticket.source === "midweigh" ? "Midweigh" : ticket.source === "skiptrak" ? "RouteOne · Skiptrak" : "RouteOne"}</Badge></TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{dateLabel(ticket.date)}</TableCell>
@@ -116,7 +116,7 @@ export function CombinedTicketList() {
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
                   <TableCell className="text-xs"><p>{ticket.movement?.replace(/_/g, " ") || "—"}</p><p className="text-muted-foreground">{ticket.status?.replace(/_/g, " ")}</p></TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"}</TableCell>
-                  <TableCell><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
+                  <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
                 </TableRow>
                 {open && <TableRow><TableCell colSpan={9} className="bg-muted/30">
                   <div className="space-y-3 p-2"><p><span className="text-muted-foreground">Driver: </span>{ticket.driver || "—"}</p>
