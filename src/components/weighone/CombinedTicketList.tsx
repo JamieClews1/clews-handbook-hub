@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, RefreshCw, Search } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search } from "lucide-react";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { combineTickets, ticketWeightTonnes, type CombinedTicket } from "@/lib/weighone-ticket-list";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
@@ -70,6 +70,17 @@ export function CombinedTicketList() {
     return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
   }), [tickets, search, source]);
 
+  const shiftDays = (days: number) => {
+    if (invalidDates) return;
+    const move = (value: string) => {
+      const d = new Date(`${value}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10);
+    };
+    setStart(move(start));
+    setEnd(move(end));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -77,8 +88,10 @@ export function CombinedTicketList() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input aria-label="Search combined tickets" placeholder="Search ticket, customer, vehicle, waste…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <Button variant="outline" size="sm" aria-label="Show previous day" title="Previous day" onClick={() => shiftDays(-1)} disabled={invalidDates}><ChevronLeft className="h-4 w-4" />Previous</Button>
         <label className="space-y-1 text-xs text-muted-foreground">From<Input aria-label="Tickets from date" type="date" value={start} onChange={e => setStart(e.target.value)} className="w-40" /></label>
         <label className="space-y-1 text-xs text-muted-foreground">To<Input aria-label="Tickets to date" type="date" value={end} onChange={e => setEnd(e.target.value)} className="w-40" /></label>
+        <Button variant="outline" size="sm" aria-label="Show next day" title="Next day" onClick={() => shiftDays(1)} disabled={invalidDates}>Next<ChevronRight className="h-4 w-4" /></Button>
         <Select value={source} onValueChange={setSource}>
           <SelectTrigger aria-label="Ticket source" className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="routeone">RouteOne</SelectItem><SelectItem value="midweigh">Midweigh</SelectItem></SelectContent>
