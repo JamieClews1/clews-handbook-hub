@@ -1654,18 +1654,18 @@ function JobCard({
 
       {/* Row 3: site + postcode */}
       {(job.site_name || job.site_postcode) && (
-        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-snug">
+        <div className={`mt-1 flex items-start gap-1.5 ${compact ? "text-xs" : "text-[13px]"} leading-snug`}>
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <div className="min-w-0">
             {job.site_name && <div className="font-semibold break-words">{job.site_name}</div>}
-            {addr && <div className="opacity-95 break-words">{addr}</div>}
+            {addr && !compact && <div className="opacity-95 break-words">{addr}</div>}
             {job.site_postcode && <div className="font-bold tracking-wide">{job.site_postcode}</div>}
           </div>
         </div>
       )}
 
       {/* Row 4: details */}
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs font-semibold">
+      <div className={`flex items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"} flex-wrap text-xs font-semibold`}>
         <span className={`rounded px-1.5 py-0.5 ${job.is_live ? "bg-white text-foreground" : "bg-black/25"}`}>
           {job.is_live ? "LIVE" : "Draft"}
         </span>
@@ -1675,7 +1675,7 @@ function JobCard({
             {[job.container_size, job.container_type].filter(Boolean).join(" ")}
           </span>
         )}
-        {job.estimated_duration_mins && (
+        {job.estimated_duration_mins && !compact && (
           <span className="flex items-center gap-1 rounded bg-black/20 px-1.5 py-0.5">
             <Clock className="h-3 w-3" /> {job.estimated_duration_mins} min
           </span>
@@ -1698,7 +1698,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 }
 
 // Skiptrak Job Card (read-only, from data_hub_jobs)
-function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
+function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging, compact }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean; compact?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const solid = mappedType ? jtSolid(mappedType) : "bg-slate-600 border-slate-700 text-white";
 
@@ -1708,16 +1708,16 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-lg border-2 border-dashed !border-current/60 px-3 py-2.5 cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
+      className={`group relative rounded-lg border-2 border-dashed !border-current/60 ${compact ? "px-2 py-1.5" : "px-3 py-2.5"} cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide truncate">{job.movement_type || "Skiptrak"}</span>
         <span className="rounded bg-black/25 px-1.5 py-0.5 text-[11px] font-semibold shrink-0">Skiptrak</span>
       </div>
-      {job.job_number && <div className="mt-1.5 text-sm font-bold tabular-nums">Job #{job.job_number}</div>}
-      <div className="text-[15px] font-bold leading-snug break-words">{job.customer || "Unknown"}</div>
+      {job.job_number && <div className={`${compact ? "mt-1 text-xs" : "mt-1.5 text-sm"} font-bold tabular-nums`}>Job #{job.job_number}</div>}
+      <div className={`${compact ? "text-sm" : "text-[15px]"} font-bold leading-snug break-words`}>{job.customer || "Unknown"}</div>
       {(job.site || job.postcode) && (
-        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-snug">
+        <div className={`mt-1 flex items-start gap-1.5 ${compact ? "text-xs" : "text-[13px]"} leading-snug`}>
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <div className="min-w-0">
             {job.site && <div className="font-semibold break-words">{job.site}</div>}
@@ -1726,7 +1726,7 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
         </div>
       )}
       {(job.tipping_location || job.container_type || (job.weight_t != null && job.weight_t > 0)) && (
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs font-semibold">
+        <div className={`flex items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"} flex-wrap text-xs font-semibold`}>
           {job.container_type && <span className="rounded bg-black/20 px-1.5 py-0.5">{job.container_type}</span>}
           {job.weight_t != null && job.weight_t > 0 && <span className="rounded bg-black/20 px-1.5 py-0.5">{job.weight_t}t</span>}
           {job.tipping_location && <span className="rounded bg-black/20 px-1.5 py-0.5">→ {job.tipping_location}</span>}
