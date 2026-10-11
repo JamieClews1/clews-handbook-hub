@@ -14,3 +14,4 @@
 - [x] Add reviewed waste-classification defaults and hazardous/POPs capture in Route One, driver sign-off and Weigh One, without changing DEFRA uploads.
 
 - [x] Tidy RouteOne controls into one row; keep New Job prominent; move Driver App and Add Driver into Setup; remove the page Full Screen control.
+- [x] Strengthen portal text contrast and refresh shared buttons, tabs, toggles, and key WeighOne icons with WasteOne and semantic colours.
