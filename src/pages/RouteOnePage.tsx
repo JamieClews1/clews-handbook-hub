@@ -1532,8 +1532,12 @@ function JobCard({
         isDragging ? "opacity-50 scale-95" : ""
       }`}
     >
-      {/* 3px square-cornered left accent bar */}
-      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${jtAccent(jobType) ?? "bg-muted"}`} />
+      {/* Left accent bar — thin while open, full-width colour strip once completed */}
+      <span
+        className={`absolute left-0 top-0 bottom-0 ${jtAccent(jobType) ?? "bg-muted"} ${
+          status === "completed" ? "w-[6px]" : "w-[3px]"
+        }`}
+      />
 
       <div className="flex items-start justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
