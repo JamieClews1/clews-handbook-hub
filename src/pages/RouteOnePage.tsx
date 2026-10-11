@@ -1564,6 +1564,7 @@ function JobCard({
   onDragStart,
   onDragEnd,
   isDragging,
+  compact,
 }: {
   job: any;
   permit?: any;
@@ -1576,6 +1577,7 @@ function JobCard({
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: (e: React.DragEvent) => void;
   isDragging: boolean;
+  compact?: boolean;
 }) {
   const jobType = job.job_type as JobType;
   const status = job.status as JobStatus;
@@ -1589,7 +1591,7 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
+      className={`group relative rounded-lg border ${compact ? "px-2 py-1.5" : "px-3 py-2.5"} cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
         status === "completed" ? "saturate-[.55]" : ""
       } ${isDragging ? "opacity-50 scale-95" : ""}`}
     >
@@ -1647,8 +1649,8 @@ function JobCard({
       </div>
 
       {/* Row 2: job number + customer */}
-      {job.job_number && <div className="mt-1.5 text-sm font-bold tabular-nums">Job #{job.job_number}</div>}
-      <div className="text-[15px] font-bold leading-snug break-words">{job.customer_name}</div>
+      {job.job_number && <div className={`${compact ? "mt-1 text-xs" : "mt-1.5 text-sm"} font-bold tabular-nums`}>Job #{job.job_number}</div>}
+      <div className={`${compact ? "text-sm" : "text-[15px]"} font-bold leading-snug break-words`}>{job.customer_name}</div>
 
       {/* Row 3: site + postcode */}
       {(job.site_name || job.site_postcode) && (
