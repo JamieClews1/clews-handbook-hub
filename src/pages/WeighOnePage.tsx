@@ -3,6 +3,7 @@ import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,15 +223,13 @@ const WeighOnePage = () => {
   // Fetch Midweigh customers
   const { data: midweighCustomers = [] } = useQuery({
     queryKey: ["weighbridge-customers"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weighbridge_customers")
-        .select("id, customer_name")
-        .eq("is_active", true)
-        .order("customer_name", { ascending: true });
-      if (error) throw error;
-      return data as { id: string; customer_name: string }[];
-    },
+    queryFn: () =>
+      fetchAllRows<{ id: string; customer_name: string }>(
+        "weighbridge_customers",
+        "id, customer_name",
+        "customer_name",
+        (q) => q.eq("is_active", true),
+      ),
   });
 
   // Our own waste carriers licence (used for Clews vehicles on Skip jobs)
@@ -297,15 +296,13 @@ const WeighOnePage = () => {
 
   const { data: midweighVehicles = [] } = useQuery({
     queryKey: ["weighbridge-vehicles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weighbridge_vehicles")
-        .select("id, vehicle_reg")
-        .eq("is_active", true)
-        .order("vehicle_reg", { ascending: true });
-      if (error) throw error;
-      return data as { id: string; vehicle_reg: string }[];
-    },
+    queryFn: () =>
+      fetchAllRows<{ id: string; vehicle_reg: string }>(
+        "weighbridge_vehicles",
+        "id, vehicle_reg",
+        "vehicle_reg",
+        (q) => q.eq("is_active", true),
+      ),
   });
 
   /** Our own Route One fleet — used to spot Clews vehicles on Waste OUT loads */
