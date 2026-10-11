@@ -1777,7 +1777,8 @@ const WeighOnePage = () => {
                                       variant="ghost"
                                       className="h-7 w-7"
                                       title="2nd Weigh"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setSelectedTransaction(t);
                                         setSecondWeighDialogOpen(true);
                                       }}
@@ -1789,7 +1790,7 @@ const WeighOnePage = () => {
                                       variant="ghost"
                                       className="h-7 w-7 text-destructive"
                                       title="Void"
-                                      onClick={() => voidMutation.mutate(t.id)}
+                                      onClick={(e) => { e.stopPropagation(); voidMutation.mutate(t.id); }}
                                     >
                                       <XCircle className="h-3.5 w-3.5" />
                                     </Button>
@@ -1801,7 +1802,7 @@ const WeighOnePage = () => {
                                     variant="ghost"
                                     className="h-7 w-7"
                                     title="Print Ticket"
-                                    onClick={() => printTicket(t)}
+                                    onClick={(e) => { e.stopPropagation(); printTicket(t); }}
                                   >
                                     <Printer className="h-3.5 w-3.5" />
                                   </Button>
@@ -1811,7 +1812,8 @@ const WeighOnePage = () => {
                                   variant="ghost"
                                   className="h-7 w-7"
                                   title="View Details"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setSelectedTransaction(t);
                                     setTicketDialogOpen(true);
                                   }}
@@ -1823,7 +1825,7 @@ const WeighOnePage = () => {
                                   variant="ghost"
                                   className="h-7 w-7"
                                   title="Edit"
-                                  onClick={() => openEdit(t)}
+                                  onClick={(e) => { e.stopPropagation(); openEdit(t); }}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
@@ -1832,7 +1834,8 @@ const WeighOnePage = () => {
                                   variant="ghost"
                                   className="h-7 w-7 text-destructive"
                                   title="Delete"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (confirm(`Delete ticket ${t.ticket_number}? This cannot be undone.`)) {
                                       deleteMutation.mutate(t.id);
                                     }
