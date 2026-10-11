@@ -45,9 +45,10 @@ export function dailyBoardVehicle(jobs: DayVehicleJob[], usualVehicle: BoardVehi
   if (!registration) return { registration: usualVehicle?.registration ?? null, type: boardVehicleKind(usualVehicle?.vehicle_type, usualVehicle?.registration, articRegistrations) };
   const vehicle = vehicles.find(v => normalise(v.registration) === normalise(registration));
   let type = boardVehicleKind(vehicle?.vehicle_type, registration, articRegistrations);
-  if (type === "Other") {
-    const containers = jobs.filter(j => j.registration && normalise(j.registration) === normalise(registration)).map(j => j.containerType ?? "").join(" ");
-    type = /curtain|trailer|walking floor/i.test(containers) ? "Artic" : /ro\s*-?\s*ro|roll on|roll off/i.test(containers) ? "Ro Ro" : vehicleKind(containers);
-  }
+  const containers = jobs.filter(j => j.registration && normalise(j.registration) === normalise(registration)).map(j => j.containerType ?? "").join(" ");
+  // Imported catalog types can be stale: the day's specialist equipment is stronger evidence.
+  if (type !== "Artic" && /ro\s*-?\s*ro|roll on|roll off/i.test(containers)) type = "Ro Ro";
+  else if (/curtain|walking floor/i.test(containers)) type = "Artic";
+  else if (type === "Other") type = vehicleKind(containers);
   return { registration, type };
 }

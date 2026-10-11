@@ -7,7 +7,7 @@ describe("RouteOne daily driver presentation", () => {
     assert.equal(dailyBoardVehicle([{ registration: "FJ18FDM", containerType: "Curtain side Trailer" }], { registration: "FJ18FDM", vehicle_type: "Skip" }, [], ["FJ18 FDM"]).type, "Artic");
   });
   it("places Lee in Monday's RoRo rather than his usual artic", () => {
-    const result = dailyBoardVehicle([{ registration: "BF67OPZ", containerType: "40 yd Ro Ro" }], { registration: "FG61 SYV", vehicle_type: "Artic" }, [{ registration: "BF67 OPZ", vehicle_type: "RoRo" }], ["FG61 SYV"]);
+    const result = dailyBoardVehicle([{ registration: "BF67OPZ", containerType: "40 yd Ro Ro" }], { registration: "FG61 SYV", vehicle_type: "Artic" }, [{ registration: "BF67 OPZ", vehicle_type: "Skip" }], ["FG61 SYV"]);
     assert.equal(result.type, "Ro Ro");
     assert.equal(result.registration, "BF67OPZ");
   });
