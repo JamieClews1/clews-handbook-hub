@@ -126,7 +126,7 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
 // Legacy fully-colored card style — retained for detail dialogs and list badges.
 const JOB_TYPE_COLORS: Record<JobType, string> = {
   delivery: "bg-emerald-700 border-emerald-800 text-white",
-  exchange: "bg-amber-700 border-amber-800 text-white",
+  exchange: "bg-amber-400 border-amber-500 text-amber-950",
   collection: "bg-orange-700 border-orange-800 text-white",
   waste_truck: "bg-blue-600 border-blue-700 text-white",
   wasted_journey: "bg-red-600 border-red-700 text-white",
@@ -1574,7 +1574,7 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden text-white ${jtSolid(jobType)} ${
+      className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
         status === "completed" ? "saturate-[.55]" : ""
       } ${isDragging ? "opacity-50 scale-95" : ""}`}
     >
@@ -1691,7 +1691,7 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-lg border-2 border-dashed !border-white/70 px-3 py-2.5 cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden text-white ${solid} ${isDragging ? "opacity-50" : ""}`}
+      className={`group relative rounded-lg border-2 border-dashed !border-current/60 px-3 py-2.5 cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide truncate">{job.movement_type || "Skiptrak"}</span>

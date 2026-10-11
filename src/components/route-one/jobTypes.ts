@@ -27,13 +27,15 @@ export const JOB_TYPE_COLOR_OPTIONS = [
 
 // Darker shades chosen so white text passes WCAG AA (>= 4.5:1) on every colour.
 export const SOLID_HEX: Record<string, string> = {
-  emerald: "#047857", amber: "#b45309", orange: "#c2410c", blue: "#2563eb",
+  emerald: "#047857", amber: "#fbbf24", orange: "#c2410c", blue: "#2563eb",
   violet: "#7c3aed", cyan: "#0e7490", red: "#dc2626", slate: "#475569",
 };
+/** Text colour on each solid block (amber is bright, so it takes dark text). */
+export const SOLID_TEXT_HEX: Record<string, string> = { amber: "#451a03" };
 
 const SOLID: Record<string, string> = {
   emerald: "bg-emerald-700 border-emerald-800 text-white",
-  amber: "bg-amber-700 border-amber-800 text-white",
+  amber: "bg-amber-400 border-amber-500 text-amber-950",
   orange: "bg-orange-700 border-orange-800 text-white",
   blue: "bg-blue-600 border-blue-700 text-white",
   violet: "bg-violet-600 border-violet-700 text-white",
