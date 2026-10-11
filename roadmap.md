@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Remove RouteOne driver vehicle icons, resolve groups from daily vehicles, and strengthen vehicle-type boundaries; verify Monday.
+- [x] Remove RouteOne driver vehicle icons, resolve groups from daily vehicles, and strengthen vehicle-type boundaries; verify Monday.
 
 - [x] Add RouteOne truck icons and daily vehicle groups, six-driver scrolling, and collapsible groups above eight drivers; verify the board.
 
