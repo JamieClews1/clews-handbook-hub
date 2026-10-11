@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Add WeighOne full-screen mode and a combined RouteOne / Midweigh ticket list.
+
 - [x] Apply presentation-only recommendations from the 2 Oct design brief without changing data management, reporting calculations, access, or DWT.
 - [x] Assistant overhaul (history, saved prompts, progress steps, stop/retry, tables, tonnes) and live read-only dashboard figures.
 - [ ] Scheduled reports and reporting fixes (deferred by user)
