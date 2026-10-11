@@ -210,21 +210,26 @@ const RouteOnePage = () => {
   useJobTypes();
   const { setOpen: setSidebarOpen } = useSidebar();
   const [fullScreen, setFullScreen] = useState(false);
+  const browserFsActive = useRef(false);
   const toggleFullScreen = async () => {
     if (fullScreen) {
       setFullScreen(false);
       setSidebarOpen(true);
+      browserFsActive.current = false;
       if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
     } else {
       setFullScreen(true);
       setSidebarOpen(false);
       await document.documentElement.requestFullscreen().catch(() => {});
+      browserFsActive.current = !!document.fullscreenElement;
     }
   };
-  // Esc / browser chrome exiting fullscreen should restore the sidebar too
+  // Esc / browser chrome exiting fullscreen should restore the sidebar too —
+  // but only if browser fullscreen was actually entered (it can fail silently)
   useEffect(() => {
     const onFsChange = () => {
-      if (!document.fullscreenElement) {
+      if (!document.fullscreenElement && browserFsActive.current) {
+        browserFsActive.current = false;
         setFullScreen(false);
         setSidebarOpen(true);
       }
