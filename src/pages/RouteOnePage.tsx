@@ -61,7 +61,7 @@ import { CostItemsSettings } from "@/components/route-one/CostItemsSettings";
 import { JobTypesSettings } from "@/components/route-one/JobTypesSettings";
 import { ContainerTypesSettings } from "@/components/route-one/ContainerTypesSettings";
 import { WtnDesignSettings } from "@/components/route-one/WtnDesignSettings";
-import { useJobTypes, jobTypeLabel, jobTypeSolidClass, jobTypeAccentClass } from "@/components/route-one/jobTypes";
+import { useJobTypes, jobTypeLabel, jobTypeSolidClass, isConfiguredJobType, jobTypeAccentClass } from "@/components/route-one/jobTypes";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -125,9 +125,9 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
 
 // Legacy fully-colored card style — retained for detail dialogs and list badges.
 const JOB_TYPE_COLORS: Record<JobType, string> = {
-  delivery: "bg-emerald-600 border-emerald-700 text-white",
-  exchange: "bg-amber-500 border-amber-600 text-white",
-  collection: "bg-orange-500 border-orange-600 text-white",
+  delivery: "bg-emerald-700 border-emerald-800 text-white",
+  exchange: "bg-amber-400 border-amber-500 text-amber-950",
+  collection: "bg-orange-700 border-orange-800 text-white",
   waste_truck: "bg-blue-600 border-blue-700 text-white",
   wasted_journey: "bg-red-600 border-red-700 text-white",
   waste_out_skip: "bg-slate-700 border-slate-800 text-white",
@@ -165,7 +165,8 @@ const JOB_TYPE_TAG: Record<JobType, string> = {
 // Configured job types (route_one_job_types) win; static maps are the fallback
 // for legacy keys such as `wasted_journey`.
 const jtLabel = (k: string) => jobTypeLabel(k) || JOB_TYPE_LABELS[k as JobType] || k;
-const jtSolid = (k: string) => JOB_TYPE_COLORS[k as JobType] ?? jobTypeSolidClass(k);
+const jtSolid = (k: string) =>
+  isConfiguredJobType(k) ? jobTypeSolidClass(k) : JOB_TYPE_COLORS[k as JobType] ?? jobTypeSolidClass(k);
 const jtAccent = (k: string) => JOB_TYPE_ACCENT[k as JobType] ?? jobTypeAccentClass(k);
 const jtTag = (k: string) =>
   JOB_TYPE_TAG[k as JobType] ?? "bg-muted text-foreground border border-border";
@@ -1564,33 +1565,41 @@ function JobCard({
   const jobType = job.job_type as JobType;
   const status = job.status as JobStatus;
 
+  const addr = [job.site_address, job.site_address_2].filter(Boolean).join(", ");
+  const statusLabel = status === "completed" ? "Done" : status === "in_progress" ? "In progress" : status === "query" ? "Query" : null;
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`group relative rounded-md border pl-3 pr-2.5 py-2 cursor-pointer select-none transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
-        status === "completed" ? "opacity-70" : ""
+      className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
+        status === "completed" ? "saturate-[.55]" : ""
       } ${isDragging ? "opacity-50 scale-95" : ""}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="h-3 w-3 shrink-0 text-white/60" />
-          <span className="text-[13px] font-medium truncate text-white">{job.customer_name}</span>
-        </div>
+      {/* Row 1: type + status */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide">
+          <GripVertical className="h-3.5 w-3.5 opacity-80" />
+          {jtLabel(jobType)}
+        </span>
         <div className="flex items-center gap-1 shrink-0">
-          {status === "completed" && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-          {job.job_number && (
-            <span className="text-[10px] text-white/70 tabular-nums">#{job.job_number}</span>
+          {statusLabel && (
+            <span className="flex items-center gap-1 rounded bg-black/25 px-1.5 py-0.5 text-[11px] font-semibold">
+              {status === "completed" && <CheckCircle2 className="h-3.5 w-3.5" />}
+              {status === "query" && <AlertTriangle className="h-3 w-3" />}
+              {statusLabel}
+            </span>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Job actions"
+                className="h-6 w-6 flex items-center justify-center rounded hover:bg-black/20"
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreVertical className="h-3 w-3 text-white" />
+                <MoreVertical className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
@@ -1622,54 +1631,39 @@ function JobCard({
         </div>
       </div>
 
-      {job.site_name && (
-        <div className="flex items-start gap-1 mt-1">
-          <MapPin className="h-3 w-3 text-white/70 shrink-0 mt-px" />
-          <span className="text-[11px] text-white/80">
-            <span className="block truncate font-medium text-white">{job.site_name}</span>
-            {[job.site_address, job.site_address_2].filter(Boolean).length > 0 && (
-              <span className="block">{[job.site_address, job.site_address_2].filter(Boolean).join(", ")}</span>
-            )}
-            {job.site_postcode && <span className="block font-mono">{job.site_postcode}</span>}
-          </span>
+      {/* Row 2: job number + customer */}
+      {job.job_number && <div className="mt-1.5 text-sm font-bold tabular-nums">Job #{job.job_number}</div>}
+      <div className="text-[15px] font-bold leading-snug break-words">{job.customer_name}</div>
+
+      {/* Row 3: site + postcode */}
+      {(job.site_name || job.site_postcode) && (
+        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-snug">
+          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            {job.site_name && <div className="font-semibold break-words">{job.site_name}</div>}
+            {addr && <div className="opacity-95 break-words">{addr}</div>}
+            {job.site_postcode && <div className="font-bold tracking-wide">{job.site_postcode}</div>}
+          </div>
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        <Badge className="text-[10px] px-1.5 py-0 h-4 font-medium bg-white/25 text-white hover:bg-white/35 border-0">
-          {jtLabel(jobType)}
-        </Badge>
-        <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 font-medium bg-white/15 text-white">
+      {/* Row 4: details */}
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs font-semibold">
+        <span className={`rounded px-1.5 py-0.5 ${job.is_live ? "bg-white text-foreground" : "bg-black/25"}`}>
           {job.is_live ? "LIVE" : "Draft"}
-        </Badge>
+        </span>
         <PermitBadge permit={permit} />
-
-
-        {job.container_type && (
-          <span className="text-[10px] text-white/70">{job.container_type}</span>
+        {(job.container_size || job.container_type) && (
+          <span className="rounded bg-black/20 px-1.5 py-0.5">
+            {[job.container_size, job.container_type].filter(Boolean).join(" ")}
+          </span>
         )}
-        {job.container_size && (
-          <span className="text-[10px] text-white/70">{job.container_size}</span>
-        )}
-        {status === "query" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/25 text-white font-medium">
-            <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Query
-          </Badge>
-        )}
-        {status === "completed" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/25 text-white">Done</Badge>
-        )}
-        {status === "in_progress" && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 border-0 bg-white/15 text-white">In Progress</Badge>
+        {job.estimated_duration_mins && (
+          <span className="flex items-center gap-1 rounded bg-black/20 px-1.5 py-0.5">
+            <Clock className="h-3 w-3" /> {job.estimated_duration_mins} min
+          </span>
         )}
       </div>
-
-      {job.estimated_duration_mins && (
-        <div className="flex items-center gap-1 mt-1.5 text-white/70">
-          <Clock className="h-2.5 w-2.5" />
-          <span className="text-[10px]">{job.estimated_duration_mins} min</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -1689,7 +1683,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
-  const solid = mappedType ? jtSolid(mappedType) : "bg-slate-500 border-slate-600 text-white";
+  const solid = mappedType ? jtSolid(mappedType) : "bg-slate-600 border-slate-700 text-white";
 
   return (
     <div
@@ -1697,43 +1691,30 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-md border border-dashed !border-white/50 pl-3 pr-2.5 py-2 cursor-grab active:cursor-grabbing transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
+      className={`group relative rounded-lg border-2 border-dashed !border-current/60 px-3 py-2.5 cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <span className="text-[13px] font-medium truncate text-white">{job.customer || "Unknown"}</span>
-        {job.job_number && (
-          <span className="text-[10px] text-white/70 tabular-nums shrink-0">#{job.job_number}</span>
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide truncate">{job.movement_type || "Skiptrak"}</span>
+        <span className="rounded bg-black/25 px-1.5 py-0.5 text-[11px] font-semibold shrink-0">Skiptrak</span>
       </div>
-
-      {job.site && (
-        <div className="flex items-start gap-1 mt-1">
-          <MapPin className="h-3 w-3 shrink-0 text-white/70 mt-px" />
-          <span className="text-[11px] text-white/80">
-            <span className="block truncate">{job.site}</span>
-            {job.postcode && <span className="block font-mono">{job.postcode}</span>}
-          </span>
+      {job.job_number && <div className="mt-1.5 text-sm font-bold tabular-nums">Job #{job.job_number}</div>}
+      <div className="text-[15px] font-bold leading-snug break-words">{job.customer || "Unknown"}</div>
+      {(job.site || job.postcode) && (
+        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-snug">
+          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            {job.site && <div className="font-semibold break-words">{job.site}</div>}
+            {job.postcode && <div className="font-bold tracking-wide">{job.postcode}</div>}
+          </div>
         </div>
       )}
-      {job.tipping_location && (
-        <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[10px] text-white/70">→ {job.tipping_location}</span>
+      {(job.tipping_location || job.container_type || (job.weight_t != null && job.weight_t > 0)) && (
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs font-semibold">
+          {job.container_type && <span className="rounded bg-black/20 px-1.5 py-0.5">{job.container_type}</span>}
+          {job.weight_t != null && job.weight_t > 0 && <span className="rounded bg-black/20 px-1.5 py-0.5">{job.weight_t}t</span>}
+          {job.tipping_location && <span className="rounded bg-black/20 px-1.5 py-0.5">→ {job.tipping_location}</span>}
         </div>
       )}
-
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-        {job.movement_type && (
-          <Badge className="text-[10px] px-1.5 py-0 h-4 font-medium bg-white/25 text-white hover:bg-white/35 border-0">
-            {job.movement_type}
-          </Badge>
-        )}
-        {job.container_type && (
-          <span className="text-[10px] text-white/70">{job.container_type}</span>
-        )}
-        {job.weight_t != null && job.weight_t > 0 && (
-          <span className="text-[10px] text-white/70">{job.weight_t}t</span>
-        )}
-      </div>
     </div>
   );
 }
