@@ -836,6 +836,19 @@ const RouteOnePage = () => {
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
 
+          {/* Full screen (collapses the sidebar too) */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={toggleFullScreen}
+            title={fullScreen ? "Exit full screen" : "Full screen"}
+          >
+            {fullScreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            {fullScreen ? "Exit" : "Full Screen"}
+          </Button>
+
+
           {/* Reorganise the day */}
           {viewMode === "day" && (
             <Button
