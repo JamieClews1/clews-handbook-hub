@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, RefreshCw, Search } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search } from "lucide-react";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { combineTickets, ticketWeightTonnes, type CombinedTicket } from "@/lib/weighone-ticket-list";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
