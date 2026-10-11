@@ -1,4 +1,4 @@
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,6 +219,17 @@ const RouteOnePage = () => {
       await document.documentElement.requestFullscreen().catch(() => {});
     }
   };
+  // Esc / browser chrome exiting fullscreen should restore the sidebar too
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        setFullScreen(false);
+        setSidebarOpen(true);
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [setSidebarOpen]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
