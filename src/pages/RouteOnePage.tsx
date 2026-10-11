@@ -1683,7 +1683,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 // Skiptrak Job Card (read-only, from data_hub_jobs)
 function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
-  const solid = mappedType ? jtSolid(mappedType) : "bg-slate-500 border-slate-600 text-white";
+  const solid = mappedType ? jtSolid(mappedType) : "bg-slate-600 border-slate-700 text-white";
 
   return (
     <div
