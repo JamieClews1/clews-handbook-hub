@@ -32,10 +32,11 @@ export function CombinedTicketList() {
     queryKey: ["weighone-combined-tickets", start, end],
     enabled: !invalidDates,
     queryFn: async () => {
-      const [routeJobs, midweighJobs] = await Promise.all([
+      const [routeJobs, hubJobs] = await Promise.all([
         fetchAllRows<RouteJob>("route_one_jobs", "*", "id", q => q.gte("scheduled_date", start).lte("scheduled_date", end)),
-        fetchAllRows<HubJob>("data_hub_jobs", "id, job_number, job_date, customer, site, vehicle_registration, driver, waste_description, ewc, movement_type, weight_t, raw", "id", q => q.eq("source", "midweigh").gte("job_date", start).lte("job_date", end)),
+        fetchAllRows<HubJob>("data_hub_jobs", "id, source, job_number, job_date, customer, site, vehicle_registration, driver, waste_description, ewc, movement_type, weight_t, raw", "id", q => q.in("source", ["midweigh", "skiptrak"]).gte("job_date", start).lte("job_date", end)),
       ]);
+      const nativeNumbers = new Set(routeJobs.map(job => job.job_number.trim().toUpperCase()));
       return combineTickets(
         routeJobs.map((job): CombinedTicket => ({
           id: job.id, source: "routeone", ticket: job.weighbridge_ticket_number || job.job_number,
@@ -44,12 +45,12 @@ export function CombinedTicketList() {
           ewc: job.ewc_code, movement: job.job_type, status: job.status,
           weightTonnes: ticketWeightTonnes(job.outbound_weight_t, "routeone"), transactionId: job.weighbridge_transaction_id,
         })),
-        midweighJobs.map((job): CombinedTicket => ({
-          id: job.id, source: "midweigh", ticket: job.job_number, date: job.job_date,
+        hubJobs.filter(job => job.source !== "skiptrak" || !nativeNumbers.has(job.job_number.trim().toUpperCase())).map((job): CombinedTicket => ({
+          id: job.id, source: job.source === "midweigh" ? "midweigh" : "skiptrak", ticket: job.job_number, date: job.job_date,
           customer: job.customer, site: job.site, vehicle: job.vehicle_registration,
           driver: job.driver, waste: job.waste_description, ewc: job.ewc,
           movement: job.movement_type, status: null,
-          weightTonnes: ticketWeightTonnes(job.weight_t, "midweigh"), raw: job.raw,
+          weightTonnes: ticketWeightTonnes(job.weight_t, job.source === "midweigh" ? "midweigh" : "skiptrak"), raw: job.raw,
         })),
       );
     },
@@ -59,14 +60,14 @@ export function CombinedTicketList() {
   useEffect(() => {
     const channel = supabase.channel("weighone-combined-tickets")
       .on("postgres_changes", { event: "*", schema: "public", table: "route_one_jobs" }, () => client.invalidateQueries({ queryKey: ["weighone-combined-tickets"] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "data_hub_jobs", filter: "source=eq.midweigh" }, () => client.invalidateQueries({ queryKey: ["weighone-combined-tickets"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "data_hub_jobs" }, () => client.invalidateQueries({ queryKey: ["weighone-combined-tickets"] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [client]);
 
   const filtered = useMemo(() => tickets.filter(ticket => {
     const term = search.trim().toLowerCase();
-    return (source === "all" || ticket.source === source) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
+    return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
   }), [tickets, search, source]);
 
   return (
@@ -84,7 +85,7 @@ export function CombinedTicketList() {
         </Select>
         <Button variant="outline" size="icon" aria-label="Refresh tickets" title="Refresh tickets" onClick={() => refetch()} disabled={isFetching || invalidDates}><RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /></Button>
       </div>
-      <p className="text-sm text-muted-foreground">{filtered.length.toLocaleString()} tickets · {tickets.filter(t => t.source === "routeone").length.toLocaleString()} RouteOne · {tickets.filter(t => t.source === "midweigh").length.toLocaleString()} Midweigh</p>
+      <p className="text-sm text-muted-foreground">{filtered.length.toLocaleString()} tickets · {tickets.filter(t => t.source !== "midweigh").length.toLocaleString()} RouteOne · {tickets.filter(t => t.source === "midweigh").length.toLocaleString()} Midweigh</p>
       {invalidDates ? <p role="alert" className="text-destructive">Choose a valid date range.</p> : error ? <div role="alert" className="text-destructive">Tickets could not be loaded. <Button variant="outline" onClick={() => refetch()}>Retry</Button></div> : isLoading ? <p className="py-10 text-center text-muted-foreground">Loading tickets…</p> : (
         <Table>
           <TableHeader><TableRow><TableHead>Ticket</TableHead><TableHead>Source</TableHead><TableHead>Date</TableHead><TableHead>Customer / Site</TableHead><TableHead>Vehicle</TableHead><TableHead>Waste</TableHead><TableHead>Movement / Status</TableHead><TableHead className="text-right">Net (t)</TableHead><TableHead className="w-12">Details</TableHead></TableRow></TableHeader>
@@ -95,14 +96,14 @@ export function CombinedTicketList() {
               return <Fragment key={key}>
                 <TableRow>
                   <TableCell className="font-mono font-semibold">{ticket.ticket}</TableCell>
-                  <TableCell><Badge variant={ticket.source === "routeone" ? "secondary" : "outline"}>{ticket.source === "routeone" ? "RouteOne" : "Midweigh"}</Badge></TableCell>
+                  <TableCell><Badge variant={ticket.source !== "midweigh" ? "secondary" : "outline"}>{ticket.source === "midweigh" ? "Midweigh" : ticket.source === "skiptrak" ? "RouteOne · Skiptrak" : "RouteOne"}</Badge></TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{dateLabel(ticket.date)}</TableCell>
                   <TableCell className="min-w-44"><p>{ticket.customer || "—"}</p><p className="text-xs text-muted-foreground">{ticket.site}</p></TableCell>
                   <TableCell className="whitespace-nowrap font-mono">{ticket.vehicle || "—"}</TableCell>
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
                   <TableCell className="text-xs"><p>{ticket.movement?.replace(/_/g, " ") || "—"}</p><p className="text-muted-foreground">{ticket.status?.replace(/_/g, " ")}</p></TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"}</TableCell>
-                  <TableCell><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source === "routeone" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
+                  <TableCell><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
                 </TableRow>
                 {open && <TableRow><TableCell colSpan={9} className="bg-muted/30">
                   <div className="space-y-3 p-2"><p><span className="text-muted-foreground">Driver: </span>{ticket.driver || "—"}</p>

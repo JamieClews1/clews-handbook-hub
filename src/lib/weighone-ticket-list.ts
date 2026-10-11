@@ -2,7 +2,7 @@ import { parseLoadReportDate } from "@/lib/load-report-dates";
 
 export interface CombinedTicket {
   id: string;
-  source: "routeone" | "midweigh";
+  source: "routeone" | "skiptrak" | "midweigh";
   ticket: string;
   date: string | null;
   customer: string | null;

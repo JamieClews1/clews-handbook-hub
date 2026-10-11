@@ -17,5 +17,6 @@ describe("combined WeighOne tickets", () => {
   });
   it("keeps RouteOne tonnage unchanged", () => {
     expect(ticketWeightTonnes(2.78, "routeone")).toBe(2.78);
+    expect(ticketWeightTonnes(2.78, "skiptrak")).toBe(2.78);
   });
 });
