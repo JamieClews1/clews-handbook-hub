@@ -1686,11 +1686,11 @@ const WeighOnePage = () => {
       {/* Transaction Log */}
       <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : "tickets"}>
         <TabsList className="h-auto flex flex-wrap justify-start">
-          <TabsTrigger value="tickets" className="gap-2"><FileText className="h-4 w-4" /> All Tickets</TabsTrigger>
-          <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4" /> Live Alerts</TabsTrigger>
-          <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4" /> Transaction Log</TabsTrigger>
-          <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4" /> Midweigh Data</TabsTrigger>
-          <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4" /> Banksman App</TabsTrigger>
+          <TabsTrigger value="tickets" className="gap-2"><FileText className="h-4 w-4 text-primary" /> All Tickets</TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4 text-warning" /> Live Alerts</TabsTrigger>
+          <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4 text-info" /> Transaction Log</TabsTrigger>
+          <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4 text-secondary" /> Midweigh Data</TabsTrigger>
+          <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4 text-warning" /> Banksman App</TabsTrigger>
         </TabsList>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>

@@ -27,7 +27,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 145 8% 93%;
-    --muted-foreground: 150 8% 45%;
+    --muted-foreground: 158 12% 32%;
 
     /* Green accent */
     --accent: 145 57% 38%;
@@ -98,7 +98,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 150 10% 16%;
-    --muted-foreground: 145 6% 55%;
+    --muted-foreground: 145 8% 70%;
 
     --accent: 145 48% 45%;
     --accent-foreground: 0 0% 100%;
