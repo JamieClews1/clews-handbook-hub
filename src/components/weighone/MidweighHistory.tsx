@@ -12,6 +12,7 @@ import {
 import { format, parseISO, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { MonthPicker } from "@/components/MonthPicker";
 import { Json } from "@/integrations/supabase/types";
+import { MidweighPrintButton } from "./MidweighPrintButton";
 
 interface MidweighJob {
   id: string;
@@ -228,6 +229,7 @@ const MidweighHistory = () => {
                 {/* Expanded detail */}
                 {isExpanded && (
                   <div className="px-3 pb-3 pt-1 bg-muted/20">
+                    <div className="flex justify-end mb-3"><MidweighPrintButton id={job.id} /></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
                       <Detail label="Job Number" value={job.job_number} />
                       <Detail label="Date" value={job.job_date ? format(parseISO(job.job_date), "dd/MM/yyyy") : null} />

@@ -10,3 +10,4 @@ Keep staff navigation in seven collapsible groups with a page-only command palet
 Use the shared Button variants for portal actions so primary, outline, secondary, ghost, and destructive controls keep a consistent WasteOne hierarchy.
 Use shared Tabs and Toggle styles for strong text contrast and restrained semantic icon colour, so navigation feels lively without competing with status meaning.
 Keep daily driver grouping in focused presentation modules, resolving vehicle registration from the selected day's tickets before the usual driver vehicle, separate from routing mutations, so group display cannot reassign jobs.
+Keep printing read-only: daily sheets fetch the selected day's native and non-duplicated imported jobs independently of board filters; Midweigh print actions read by source and row ID and reuse the shared WeighOne ticket template so printing cannot alter records.
