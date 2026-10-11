@@ -210,21 +210,26 @@ const RouteOnePage = () => {
   useJobTypes();
   const { setOpen: setSidebarOpen } = useSidebar();
   const [fullScreen, setFullScreen] = useState(false);
+  const browserFsActive = useRef(false);
   const toggleFullScreen = async () => {
     if (fullScreen) {
       setFullScreen(false);
       setSidebarOpen(true);
+      browserFsActive.current = false;
       if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
     } else {
       setFullScreen(true);
       setSidebarOpen(false);
       await document.documentElement.requestFullscreen().catch(() => {});
+      browserFsActive.current = !!document.fullscreenElement;
     }
   };
-  // Esc / browser chrome exiting fullscreen should restore the sidebar too
+  // Esc / browser chrome exiting fullscreen should restore the sidebar too —
+  // but only if browser fullscreen was actually entered (it can fail silently)
   useEffect(() => {
     const onFsChange = () => {
-      if (!document.fullscreenElement) {
+      if (!document.fullscreenElement && browserFsActive.current) {
+        browserFsActive.current = false;
         setFullScreen(false);
         setSidebarOpen(true);
       }
@@ -1391,20 +1396,20 @@ const RouteOnePage = () => {
         <div className="flex h-full min-w-max">
           {/* Unassigned Column */}
           <div
-            className={`w-64 shrink-0 border-r border-border flex flex-col transition-colors ${
+            className={`${fullScreen ? "w-[200px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
               dragOverDriverId === "__unassigned__" ? "bg-primary/5" : "bg-muted/30"
             }`}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(null)}
           >
-            <div className="px-3 py-2.5 border-b border-hairline bg-muted/40">
+            <div className={`px-3 ${fullScreen ? "py-1.5" : "py-2.5"} border-b border-hairline bg-muted/40`}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Unassigned</span>
                 <span className="text-[11px] font-medium text-muted-foreground bg-background rounded-full px-2 py-0.5">{unassignedJobs.length}</span>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            <div className={`flex-1 overflow-y-auto ${fullScreen ? "p-1.5 space-y-1" : "p-2 space-y-1.5"}`}>
               {unassignedJobs.map((job: any) => (
                 <JobCard
                   key={job.id}
@@ -1419,6 +1424,7 @@ const RouteOnePage = () => {
                   onDragStart={(e) => handleDragStart(e, job.id)}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedJobId === job.id}
+                  compact={fullScreen}
                 />
               ))}
               {unassignedSkiptrakJobs.map((sj: any) => (
@@ -1429,6 +1435,7 @@ const RouteOnePage = () => {
                   onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
                   onDragEnd={handleDragEnd}
                   isDragging={draggedSkiptrakId === sj.id}
+                  compact={fullScreen}
                 />
               ))}
               {unassignedJobs.length === 0 && unassignedSkiptrakJobs.length === 0 && (
@@ -1446,22 +1453,22 @@ const RouteOnePage = () => {
             return (
               <div
                 key={driver.id}
-                className={`w-64 shrink-0 border-r border-border flex flex-col transition-colors ${
+                className={`${fullScreen ? "w-[200px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
                   isDropTarget ? "bg-primary/5" : ""
                 }`}
                 onDragOver={(e) => handleDragOver(e, driver.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
-                <div className="px-3 py-2.5 border-b border-hairline bg-card">
+                <div className={`px-3 ${fullScreen ? "py-1.5" : "py-2.5"} border-b border-hairline bg-card`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <div className={`${fullScreen ? "w-6 h-6" : "w-7 h-7"} rounded-full bg-primary flex items-center justify-center shrink-0`}>
                         <User className="h-3.5 w-3.5 text-primary-foreground" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-foreground truncate">{driver.driver_name}</p>
-                        {driver.route_one_vehicles && (
+                        {driver.route_one_vehicles && !fullScreen && (
                           <p className="text-[11px] text-muted-foreground truncate">
                             {driver.route_one_vehicles.registration} · {driver.route_one_vehicles.vehicle_type}
                           </p>
@@ -1471,7 +1478,7 @@ const RouteOnePage = () => {
                     <span className="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 shrink-0">{totalCount}</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                <div className={`flex-1 overflow-y-auto ${fullScreen ? "p-1.5 space-y-1" : "p-2 space-y-1.5"}`}>
                   {driverJobs.map((job: any) => (
                     <JobCard
                       key={job.id}
@@ -1486,6 +1493,7 @@ const RouteOnePage = () => {
                       onDragStart={(e) => handleDragStart(e, job.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedJobId === job.id}
+                      compact={fullScreen}
                     />
                   ))}
                   {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
@@ -1503,6 +1511,7 @@ const RouteOnePage = () => {
                       onDragStart={(e) => handleSkiptrakDragStart(e, sj.id)}
                       onDragEnd={handleDragEnd}
                       isDragging={draggedSkiptrakId === sj.id}
+                      compact={fullScreen}
                     />
                   ))}
                   {totalCount === 0 && (
@@ -1519,7 +1528,7 @@ const RouteOnePage = () => {
           })}
 
           {/* Empty state if no drivers */}
-          {drivers.length > 0 && hiddenDriverCount > 0 && (
+          {drivers.length > 0 && hiddenDriverCount > 0 && !fullScreen && (
             <div className="w-48 shrink-0 p-3 text-xs text-muted-foreground">
               {hiddenDriverCount} driver{hiddenDriverCount === 1 ? "" : "s"} with no jobs hidden (Setup → Routing Rules)
             </div>
@@ -1560,6 +1569,7 @@ function JobCard({
   onDragStart,
   onDragEnd,
   isDragging,
+  compact,
 }: {
   job: any;
   permit?: any;
@@ -1572,6 +1582,7 @@ function JobCard({
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: (e: React.DragEvent) => void;
   isDragging: boolean;
+  compact?: boolean;
 }) {
   const jobType = job.job_type as JobType;
   const status = job.status as JobStatus;
@@ -1585,7 +1596,7 @@ function JobCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onView}
-      className={`group relative rounded-lg border px-3 py-2.5 cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
+      className={`group relative rounded-lg border ${compact ? "px-2 py-1.5" : "px-3 py-2.5"} cursor-pointer select-none shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${jtSolid(jobType)} ${
         status === "completed" ? "saturate-[.55]" : ""
       } ${isDragging ? "opacity-50 scale-95" : ""}`}
     >
@@ -1643,23 +1654,23 @@ function JobCard({
       </div>
 
       {/* Row 2: job number + customer */}
-      {job.job_number && <div className="mt-1.5 text-sm font-bold tabular-nums">Job #{job.job_number}</div>}
-      <div className="text-[15px] font-bold leading-snug break-words">{job.customer_name}</div>
+      {job.job_number && <div className={`${compact ? "mt-1 text-xs" : "mt-1.5 text-sm"} font-bold tabular-nums`}>Job #{job.job_number}</div>}
+      <div className={`${compact ? "text-sm" : "text-[15px]"} font-bold leading-snug break-words`}>{job.customer_name}</div>
 
       {/* Row 3: site + postcode */}
       {(job.site_name || job.site_postcode) && (
-        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-snug">
+        <div className={`mt-1 flex items-start gap-1.5 ${compact ? "text-xs" : "text-[13px]"} leading-snug`}>
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <div className="min-w-0">
             {job.site_name && <div className="font-semibold break-words">{job.site_name}</div>}
-            {addr && <div className="opacity-95 break-words">{addr}</div>}
+            {addr && !compact && <div className="opacity-95 break-words">{addr}</div>}
             {job.site_postcode && <div className="font-bold tracking-wide">{job.site_postcode}</div>}
           </div>
         </div>
       )}
 
       {/* Row 4: details */}
-      <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs font-semibold">
+      <div className={`flex items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"} flex-wrap text-xs font-semibold`}>
         <span className={`rounded px-1.5 py-0.5 ${job.is_live ? "bg-white text-foreground" : "bg-black/25"}`}>
           {job.is_live ? "LIVE" : "Draft"}
         </span>
@@ -1669,7 +1680,7 @@ function JobCard({
             {[job.container_size, job.container_type].filter(Boolean).join(" ")}
           </span>
         )}
-        {job.estimated_duration_mins && (
+        {job.estimated_duration_mins && !compact && (
           <span className="flex items-center gap-1 rounded bg-black/20 px-1.5 py-0.5">
             <Clock className="h-3 w-3" /> {job.estimated_duration_mins} min
           </span>
@@ -1692,7 +1703,7 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 }
 
 // Skiptrak Job Card (read-only, from data_hub_jobs)
-function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean }) {
+function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging, compact }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean; compact?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const solid = mappedType ? jtSolid(mappedType) : "bg-slate-600 border-slate-700 text-white";
 
@@ -1702,16 +1713,16 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-lg border-2 border-dashed !border-current/60 px-3 py-2.5 cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
+      className={`group relative rounded-lg border-2 border-dashed !border-current/60 ${compact ? "px-2 py-1.5" : "px-3 py-2.5"} cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-hover hover:-translate-y-px overflow-hidden ${solid} ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide truncate">{job.movement_type || "Skiptrak"}</span>
         <span className="rounded bg-black/25 px-1.5 py-0.5 text-[11px] font-semibold shrink-0">Skiptrak</span>
       </div>
-      {job.job_number && <div className="mt-1.5 text-sm font-bold tabular-nums">Job #{job.job_number}</div>}
-      <div className="text-[15px] font-bold leading-snug break-words">{job.customer || "Unknown"}</div>
+      {job.job_number && <div className={`${compact ? "mt-1 text-xs" : "mt-1.5 text-sm"} font-bold tabular-nums`}>Job #{job.job_number}</div>}
+      <div className={`${compact ? "text-sm" : "text-[15px]"} font-bold leading-snug break-words`}>{job.customer || "Unknown"}</div>
       {(job.site || job.postcode) && (
-        <div className="mt-1 flex items-start gap-1.5 text-[13px] leading-snug">
+        <div className={`mt-1 flex items-start gap-1.5 ${compact ? "text-xs" : "text-[13px]"} leading-snug`}>
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <div className="min-w-0">
             {job.site && <div className="font-semibold break-words">{job.site}</div>}
@@ -1720,7 +1731,7 @@ function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging }: {
         </div>
       )}
       {(job.tipping_location || job.container_type || (job.weight_t != null && job.weight_t > 0)) && (
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap text-xs font-semibold">
+        <div className={`flex items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"} flex-wrap text-xs font-semibold`}>
           {job.container_type && <span className="rounded bg-black/20 px-1.5 py-0.5">{job.container_type}</span>}
           {job.weight_t != null && job.weight_t > 0 && <span className="rounded bg-black/20 px-1.5 py-0.5">{job.weight_t}t</span>}
           {job.tipping_location && <span className="rounded bg-black/20 px-1.5 py-0.5">→ {job.tipping_location}</span>}
