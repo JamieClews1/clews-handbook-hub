@@ -32,7 +32,9 @@ export const WTN_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "net_weight", label: "Net weight (kg)" },
   { key: "net_tonnes", label: "Net weight (tonnes)" },
   { key: "price_per_tonne", label: "Price per tonne" },
-  { key: "total_price", label: "Total price" },
+  { key: "total_price", label: "Total price (net of VAT)" },
+  { key: "vat_amount", label: "VAT amount" },
+  { key: "total_inc_vat", label: "Total including VAT" },
   { key: "additional_items", label: "Additional items (rows)" },
   { key: "operator_name", label: "Weighbridge operator" },
   { key: "notes", label: "Notes / comments" },
@@ -143,7 +145,9 @@ export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
   <div class="wtn-pricing" data-wtn-pricing>
     <div><span>Price per tonne</span><strong>{{price_per_tonne}}</strong></div>
     <div><span>Additional items</span><strong>{{additional_items}}</strong></div>
-    <div class="total"><span>Total price</span><strong>{{total_price}}</strong></div>
+    <div><span>Net total (ex VAT)</span><strong>{{total_price}}</strong></div>
+    <div><span>VAT @ 20%</span><strong>{{vat_amount}}</strong></div>
+    <div class="total"><span>Total inc VAT</span><strong>{{total_inc_vat}}</strong></div>
   </div>
 
   <div class="wtn-signs">
