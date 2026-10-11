@@ -40,6 +40,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
+import { useRoutingRules } from "@/hooks/useRoutingRules";
 import { RoutingProposalDialog } from "@/components/route-one/RoutingProposalDialog";
 import type { PlannerJob, PlannerDriver } from "@/lib/route-planner";
 import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
@@ -783,6 +784,11 @@ const RouteOnePage = () => {
   }));
 
   // Stats
+  const { rules: boardRules } = useRoutingRules();
+  const boardDrivers = boardRules.hide_unused_drivers
+    ? drivers.filter((d: any) => getDriverJobs(d.id).length + getSkiptrakJobsForDriver(d.driver_name).length > 0)
+    : drivers;
+  const hiddenDriverCount = drivers.length - boardDrivers.length;
   const totalJobs = jobs.length;
   const completedJobs = jobs.filter((j: any) => j.status === "completed").length;
   const queryJobs = jobs.filter((j: any) => j.status === "query").length;
@@ -1432,7 +1438,7 @@ const RouteOnePage = () => {
           </div>
 
           {/* Driver Columns */}
-          {drivers.map((driver: any) => {
+          {boardDrivers.map((driver: any) => {
             const driverJobs = getDriverJobs(driver.id);
             const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
             const totalCount = driverJobs.length + skiptrakJobs.length;
@@ -1513,6 +1519,11 @@ const RouteOnePage = () => {
           })}
 
           {/* Empty state if no drivers */}
+          {drivers.length > 0 && hiddenDriverCount > 0 && (
+            <div className="w-48 shrink-0 p-3 text-xs text-muted-foreground">
+              {hiddenDriverCount} driver{hiddenDriverCount === 1 ? "" : "s"} with no jobs hidden (Setup → Routing Rules)
+            </div>
+          )}
           {drivers.length === 0 && (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">

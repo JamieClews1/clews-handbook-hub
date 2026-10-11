@@ -217,6 +217,7 @@ export const RoutingRulesSettings = () => {
           <ToggleRow label="Skip drivers never get Ro-Ro work" hint="Work is only given to a vehicle that can carry it." checked={local.skip_drivers_no_roro} onChange={v => set("skip_drivers_no_roro", v)} />
           <ToggleRow label="Drivers with no jobs are not working" hint="A driver with nothing booked that day is left out of the plan." checked={local.idle_drivers_not_working} onChange={v => set("idle_drivers_not_working", v)} />
           <ToggleRow label="Loaded skips return one at a time" hint="Full skips come back singly for tipping." checked={local.loaded_skips_one_at_a_time} onChange={v => set("loaded_skips_one_at_a_time", v)} />
+          <ToggleRow label="Hide unused drivers on the board" hint="Drivers with no jobs on the chosen day are hidden from the Day view." checked={local.hide_unused_drivers} onChange={v => set("hide_unused_drivers", v)} />
         </CardContent>
       </Card>
 

@@ -19,6 +19,8 @@ export type RoutingRules = {
   skip_drivers_no_roro: boolean;
   idle_drivers_not_working: boolean;
   loaded_skips_one_at_a_time: boolean;
+  /** Hide driver columns on the board when the driver has no jobs that day. */
+  hide_unused_drivers: boolean;
   /** How travel time between jobs is worked out. */
   travel_model: "fixed" | "distance" | "zone";
   /** Depot / yard postcode — the first and last leg of every day. */
@@ -62,6 +64,7 @@ export const DEFAULT_ROUTING_RULES: RoutingRules = {
   skip_drivers_no_roro: true,
   idle_drivers_not_working: true,
   loaded_skips_one_at_a_time: true,
+  hide_unused_drivers: true,
   travel_model: "distance",
   yard_postcode: "CV21 1EA",
   avg_speed_mph: 28,
