@@ -25,13 +25,19 @@ export const JOB_TYPE_COLOR_OPTIONS = [
   "emerald", "amber", "orange", "blue", "violet", "cyan", "red", "slate",
 ];
 
+// Darker shades chosen so white text passes WCAG AA (>= 4.5:1) on every colour.
+export const SOLID_HEX: Record<string, string> = {
+  emerald: "#047857", amber: "#b45309", orange: "#c2410c", blue: "#2563eb",
+  violet: "#7c3aed", cyan: "#0e7490", red: "#dc2626", slate: "#475569",
+};
+
 const SOLID: Record<string, string> = {
-  emerald: "bg-emerald-600 border-emerald-700 text-white",
-  amber: "bg-amber-500 border-amber-600 text-white",
-  orange: "bg-orange-500 border-orange-600 text-white",
+  emerald: "bg-emerald-700 border-emerald-800 text-white",
+  amber: "bg-amber-700 border-amber-800 text-white",
+  orange: "bg-orange-700 border-orange-800 text-white",
   blue: "bg-blue-600 border-blue-700 text-white",
   violet: "bg-violet-600 border-violet-700 text-white",
-  cyan: "bg-cyan-600 border-cyan-700 text-white",
+  cyan: "bg-cyan-700 border-cyan-800 text-white",
   red: "bg-red-600 border-red-700 text-white",
   slate: "bg-slate-600 border-slate-700 text-white",
 };
@@ -59,6 +65,7 @@ const find = (key: string) => registry.find((t) => t.key === key);
 export const jobTypeLabel = (key: string) => find(key)?.label ?? prettify(key || "");
 export const jobTypeSolidClass = (key: string) =>
   SOLID[find(key)?.color ?? "slate"] ?? SOLID.slate;
+export const isConfiguredJobType = (key: string) => !!find(key);
 export const jobTypeAccentClass = (key: string) =>
   ACCENT[find(key)?.color ?? "slate"] ?? ACCENT.slate;
 export const colorSolidClass = (color: string) => SOLID[color] ?? SOLID.slate;
