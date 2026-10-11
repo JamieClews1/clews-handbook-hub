@@ -1391,20 +1391,20 @@ const RouteOnePage = () => {
         <div className="flex h-full min-w-max">
           {/* Unassigned Column */}
           <div
-            className={`w-64 shrink-0 border-r border-border flex flex-col transition-colors ${
+            className={`${fullScreen ? "w-[220px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
               dragOverDriverId === "__unassigned__" ? "bg-primary/5" : "bg-muted/30"
             }`}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(null)}
           >
-            <div className="px-3 py-2.5 border-b border-hairline bg-muted/40">
+            <div className={`px-3 ${fullScreen ? "py-1.5" : "py-2.5"} border-b border-hairline bg-muted/40`}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Unassigned</span>
                 <span className="text-[11px] font-medium text-muted-foreground bg-background rounded-full px-2 py-0.5">{unassignedJobs.length}</span>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            <div className={`flex-1 overflow-y-auto ${fullScreen ? "p-1.5 space-y-1" : "p-2 space-y-1.5"}`}>
               {unassignedJobs.map((job: any) => (
                 <JobCard
                   key={job.id}
@@ -1446,22 +1446,22 @@ const RouteOnePage = () => {
             return (
               <div
                 key={driver.id}
-                className={`w-64 shrink-0 border-r border-border flex flex-col transition-colors ${
+                className={`${fullScreen ? "w-[220px]" : "w-64"} shrink-0 border-r border-border flex flex-col transition-colors ${
                   isDropTarget ? "bg-primary/5" : ""
                 }`}
                 onDragOver={(e) => handleDragOver(e, driver.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
-                <div className="px-3 py-2.5 border-b border-hairline bg-card">
+                <div className={`px-3 ${fullScreen ? "py-1.5" : "py-2.5"} border-b border-hairline bg-card`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <div className={`${fullScreen ? "w-6 h-6" : "w-7 h-7"} rounded-full bg-primary flex items-center justify-center shrink-0`}>
                         <User className="h-3.5 w-3.5 text-primary-foreground" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-foreground truncate">{driver.driver_name}</p>
-                        {driver.route_one_vehicles && (
+                        {driver.route_one_vehicles && !fullScreen && (
                           <p className="text-[11px] text-muted-foreground truncate">
                             {driver.route_one_vehicles.registration} · {driver.route_one_vehicles.vehicle_type}
                           </p>
@@ -1471,7 +1471,7 @@ const RouteOnePage = () => {
                     <span className="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 shrink-0">{totalCount}</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                <div className={`flex-1 overflow-y-auto ${fullScreen ? "p-1.5 space-y-1" : "p-2 space-y-1.5"}`}>
                   {driverJobs.map((job: any) => (
                     <JobCard
                       key={job.id}
