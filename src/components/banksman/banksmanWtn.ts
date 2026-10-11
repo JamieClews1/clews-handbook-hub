@@ -74,6 +74,16 @@ export async function openBanksmanWtn(job: BJob, templateHtml?: string | null, i
     }
   }
 
+  // Prices are net of VAT — add the VAT breakdown for the final total.
+  if (v.total_price) {
+    const net = Number(String(v.total_price).replace(/[^0-9.-]/g, ""));
+    if (!isNaN(net) && net > 0) {
+      const vat = net * 0.2;
+      v.vat_amount = `£${vat.toFixed(2)}`;
+      v.total_inc_vat = `£${(net + vat).toFixed(2)}`;
+    }
+  }
+
   const when = new Date(job.completed_at ?? job.created_at);
   const charges = job.has_contamination
     ? job.contamination_items.map((i) => `${i.name}${i.qty > 1 ? ` × ${i.qty}` : ""} £${Number(i.line_total).toFixed(2)}`).join(" · ")
