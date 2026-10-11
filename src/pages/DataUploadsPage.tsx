@@ -624,14 +624,25 @@ const DataUploadsPage = () => {
         category: source === "midweigh" 
           ? "Midweigh"
           : toCleanString(getFirstMatchingValue(r, ["Category", "Waste Category", "category"])),
-        movement_type: toCleanString(getFirstMatchingValue(r, [
-          "Movement Type", 
-          "Movement", 
-          "movement_type",
-          "In / Out",
-          "In/Out",
-          "In Out",
-        ])),
+        movement_type: (() => {
+          const movement = toCleanString(getFirstMatchingValue(r, [
+            "Movement Type",
+            "Movement",
+            "movement_type",
+            "In / Out",
+            "In/Out",
+            "In Out",
+          ]));
+          const normalized = (movement ?? "").trim().toUpperCase();
+          // Shifted Midweigh rows sometimes put the company name in "In / Out"
+          // and the direction in "Time" — fall back to the Time column then.
+          if (!["INWARD", "OUTWARD"].includes(normalized)) {
+            const timeField = toCleanString(getFirstMatchingValue(r, ["Time", "In / Out Time", "time"]));
+            const timeNormalized = (timeField ?? "").trim().toUpperCase();
+            if (["INWARD", "OUTWARD"].includes(timeNormalized)) return timeNormalized;
+          }
+          return movement;
+        })(),
         container_type: toCleanString(getFirstMatchingValue(r, [
           "Container", 
           "Container Type", 
