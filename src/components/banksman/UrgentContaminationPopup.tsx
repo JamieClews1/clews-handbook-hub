@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBanksmanJobs } from "./useBanksmanJobs";
 import { BanksmanJobDialog } from "./BanksmanJobDialog";
@@ -17,7 +17,16 @@ export function UrgentContaminationPopup() {
   if (!urgent.length) return null;
   const j = urgent[0];
   return (
-    <div role="alertdialog" aria-live="assertive" className="fixed bottom-4 right-4 z-[60] w-[min(26rem,calc(100vw-2rem))] animate-in slide-in-from-bottom rounded-xl border-4 border-destructive-foreground/30 bg-destructive p-4 text-destructive-foreground shadow-2xl">
+    <div role="alertdialog" aria-live="assertive" className="fixed bottom-4 right-4 z-[60] w-[min(26rem,calc(100vw-2rem))] animate-in slide-in-from-bottom rounded-xl border-4 border-destructive-foreground/30 bg-destructive p-4 pr-2 text-destructive-foreground shadow-2xl">
+      <button
+        type="button"
+        aria-label="Dismiss urgent contamination alert"
+        title="Dismiss (comes back if the job is still unacknowledged after a page reload)"
+        onClick={() => setDismissed((prev) => new Set(prev).add(j.id))}
+        className="absolute top-1.5 right-1.5 rounded-md p-1 text-destructive-foreground/80 hover:text-destructive-foreground hover:bg-destructive-foreground/10 transition-colors"
+      >
+        <X className="h-5 w-5" />
+      </button>
       <div className="flex items-start gap-3">
         <AlertTriangle className="h-9 w-9 shrink-0 animate-pulse" />
         <div className="min-w-0 flex-1">
