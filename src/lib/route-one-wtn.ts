@@ -1160,3 +1160,14 @@ export async function printWtnPdf(job: WtnJob, design?: WtnDesign, options?: Wtn
   }
 }
 
+
+/** Builds one PDF holding a ticket for every job (read-only, nothing is saved). */
+export async function buildWtnBatch(jobs: WtnJob[]): Promise<jsPDF | null> {
+  if (!jobs.length) return null;
+  const design = getWtnDesign();
+  const opts = getWtnOptions();
+  const logo = opts.showLogo && (opts.brandStyle ?? "logo") === "logo" ? await loadLogoDataUrl() : null;
+  let doc: jsPDF | undefined;
+  for (const job of jobs) doc = buildWtnPdf(mapWasteOutSkip(job), design, logo, opts, doc);
+  return doc ?? null;
+}
