@@ -9449,6 +9449,10 @@ export type Database = {
           operator_id: string | null
           operator_name: string | null
           operator_signature: string | null
+          payment_method: string | null
+          payment_paid: boolean
+          payment_paid_at: string | null
+          payment_reference: string | null
           physical_form: string | null
           price_per_tonne: number | null
           rate_group_id: string | null
@@ -9490,6 +9494,10 @@ export type Database = {
           operator_id?: string | null
           operator_name?: string | null
           operator_signature?: string | null
+          payment_method?: string | null
+          payment_paid?: boolean
+          payment_paid_at?: string | null
+          payment_reference?: string | null
           physical_form?: string | null
           price_per_tonne?: number | null
           rate_group_id?: string | null
@@ -9531,6 +9539,10 @@ export type Database = {
           operator_id?: string | null
           operator_name?: string | null
           operator_signature?: string | null
+          payment_method?: string | null
+          payment_paid?: boolean
+          payment_paid_at?: string | null
+          payment_reference?: string | null
           physical_form?: string | null
           price_per_tonne?: number | null
           rate_group_id?: string | null
