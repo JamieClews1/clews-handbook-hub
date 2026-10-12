@@ -33,6 +33,18 @@ export type OverRentalBin = {
   lastJobNumber: string | null;
 };
 
+// "Days Over" as shown on the Rentals tables: days beyond the free rental period.
+// daysSinceActivity is the total days since the bin's last movement, so the free
+// period is subtracted — a bin still inside the free period shows 0.
+export function daysOverFreePeriod(
+  daysSinceActivity: number | null | undefined,
+  freeDays: number,
+): number {
+  if (daysSinceActivity == null) return 0;
+  return Math.max(0, daysSinceActivity - freeDays);
+}
+
+
 export function categoriseContainer(
   containerType: string | null,
   vehicleReg: string | null,
