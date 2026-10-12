@@ -6,11 +6,12 @@ import { BanksmanJobDialog } from "./BanksmanJobDialog";
 
 const gbp = (n: number) => `£${Number(n || 0).toFixed(2)}`;
 
-/** Pops up on every staff screen and stays until each urgent contamination is acknowledged. */
+/** Pops up on every staff screen and stays until each urgent contamination is acknowledged or dismissed. */
 export function UrgentContaminationPopup() {
   const { jobs } = useBanksmanJobs();
   const [openId, setOpenId] = useState<string | null>(null);
-  const urgent = jobs.filter((j) => j.alert_status === "urgent");
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const urgent = jobs.filter((j) => j.alert_status === "urgent" && !dismissed.has(j.id));
   const open = jobs.find((j) => j.id === openId) ?? null;
   if (open) return <BanksmanJobDialog job={open} onClose={() => setOpenId(null)} />;
   if (!urgent.length) return null;
