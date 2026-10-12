@@ -24,18 +24,6 @@ type ChargeItem = { id: string; name: string; unit_charge: number };
 const gbp = (n: number) => `£${Number(n || 0).toFixed(2)}`;
 const time = (s: string | null) => (s ? new Date(s).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
 
-/** Shrink a camera photo to ~1600px JPEG and return base64 (no prefix). */
-async function compress(file: File): Promise<string> {
-  const img = await new Promise<HTMLImageElement>((res, rej) => {
-    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file);
-  });
-  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-  const c = document.createElement("canvas");
-  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-  c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
-  URL.revokeObjectURL(img.src);
-  return c.toDataURL("image/jpeg", 0.8).split(",")[1];
-}
 
 export function StatusPill({ job }: { job: Pick<BJob, "status" | "alert_status"> }) {
   const map: Record<string, [string, string]> = {
