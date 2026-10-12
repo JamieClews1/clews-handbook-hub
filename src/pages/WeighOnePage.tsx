@@ -28,6 +28,7 @@ import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
+import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
 import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -1967,6 +1968,10 @@ const WeighOnePage = () => {
                   <span>{fmtPrice(selectedTransaction.total_price)}</span>
                 </div>
               </div>
+              <WeighOnePaymentPanel
+                transaction={selectedTransaction as any}
+                onSaved={(patch) => setSelectedTransaction({ ...selectedTransaction, ...patch } as WeighbridgeTransaction)}
+              />
 
               <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
                 <div>1st Weigh: {selectedTransaction.first_weigh_at ? format(new Date(selectedTransaction.first_weigh_at), "dd/MM/yyyy HH:mm:ss") : "-"}</div>
