@@ -24,18 +24,6 @@ type ChargeItem = { id: string; name: string; unit_charge: number };
 const gbp = (n: number) => `£${Number(n || 0).toFixed(2)}`;
 const time = (s: string | null) => (s ? new Date(s).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
 
-/** Shrink a camera photo to ~1600px JPEG and return base64 (no prefix). */
-async function compress(file: File): Promise<string> {
-  const img = await new Promise<HTMLImageElement>((res, rej) => {
-    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file);
-  });
-  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-  const c = document.createElement("canvas");
-  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-  c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
-  URL.revokeObjectURL(img.src);
-  return c.toDataURL("image/jpeg", 0.8).split(",")[1];
-}
 
 export function StatusPill({ job }: { job: Pick<BJob, "status" | "alert_status"> }) {
   const map: Record<string, [string, string]> = {
@@ -57,28 +45,88 @@ function PhotoCapture({ staffId, jobId, kind, photos, setPhotos, itemId }: {
   staffId: string; jobId: string; kind: "load" | "contamination"; photos: Photo[];
   setPhotos: (fn: (p: Photo[]) => Photo[]) => void; itemId?: string | null;
 }) {
-  const input = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement>(null); // fallback file picker
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [busy, setBusy] = useState(0);
   const [err, setErr] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  }, []);
+
+  // Attach the stream once the <video> is on screen.
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraOpen]);
+
+  // Stop the camera if the capture strip unmounts.
+  useEffect(() => () => { streamRef.current?.getTracks().forEach((t) => t.stop()); }, []);
+
+  const openCamera = async () => {
+    setErr("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+    } catch {
+      // No camera / permission denied — fall back to the file picker.
+      input.current?.click();
+    }
+  };
+
+  const upload = async (file_base64: string) => {
+    setBusy((b) => b + 1);
+    try {
+      const r = await driverAction<{ url: string; taken_at: string }>("banksman_upload_photo", { staff_id: staffId, job_id: jobId, kind, file_base64 });
+      setPhotos((p) => [...p, { url: r.url, taken_at: r.taken_at, item_id: itemId ?? null }]);
+    } catch (e) { setErr((e as Error).message || "Photo failed to upload — try again"); }
+    setBusy((b) => b - 1);
+  };
+
+  /** Capture the current video frame — stays in the app, never saved to the phone's camera roll. */
+  const shoot = async () => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth || busy > 0) return;
+    const scale = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(v.videoWidth * scale);
+    c.height = Math.round(v.videoHeight * scale);
+    c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+    await upload(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+  };
+
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     setErr("");
     for (const f of Array.from(files)) {
-      setBusy((b) => b + 1);
-      try {
-        const file_base64 = await compress(f);
-        const r = await driverAction<{ url: string; taken_at: string }>("banksman_upload_photo", { staff_id: staffId, job_id: jobId, kind, file_base64 });
-        setPhotos((p) => [...p, { url: r.url, taken_at: r.taken_at, item_id: itemId ?? null }]);
-      } catch (e) { setErr((e as Error).message || "Photo failed to upload — try again"); }
-      setBusy((b) => b - 1);
+      const img = await new Promise<HTMLImageElement>((res, rej) => {
+        const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(f);
+      });
+      const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      await upload(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
     }
     if (input.current) input.current.value = "";
   };
+
   return (
     <div className="space-y-3">
-      <input ref={input} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
-      <Button onClick={() => input.current?.click()} className="h-20 w-full gap-3 text-xl font-extrabold">
+      <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => onFiles(e.target.files)} />
+      <Button onClick={openCamera} className="h-20 w-full gap-3 text-xl font-extrabold">
         {busy > 0 ? <Loader2 className="h-7 w-7 animate-spin" /> : <Camera className="h-8 w-8" />}
         {busy > 0 ? "Saving photo…" : photos.length ? "TAKE ANOTHER PHOTO" : "TAKE PHOTO"}
       </Button>
@@ -98,6 +146,28 @@ function PhotoCapture({ staffId, jobId, kind, photos, setPhotos, itemId }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/90 p-3" onClick={() => setPreview(null)}>
           <img src={preview} alt="" className="max-h-full max-w-full rounded-lg" />
           <button aria-label="Close" className="absolute right-4 top-4 rounded-full bg-background p-3"><X className="h-6 w-6" /></button>
+        </div>
+      )}
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+          <video ref={videoRef} playsInline muted autoPlay className="min-h-0 w-full flex-1 object-cover" />
+          <div className="flex items-center justify-between gap-4 border-t border-white/10 bg-black p-4 pb-8">
+            <div className="flex min-w-[72px] flex-col items-center gap-1">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/10 text-lg font-extrabold text-white">{photos.length}</div>
+              <span className="text-xs font-bold uppercase tracking-wide text-white/70">Taken</span>
+            </div>
+            <button
+              aria-label="Take photo"
+              onClick={shoot}
+              disabled={busy > 0}
+              className="relative flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-white/20 disabled:opacity-50 active:scale-95"
+            >
+              <span className={cn("h-14 w-14 rounded-full bg-white", busy > 0 && "animate-pulse")} />
+            </button>
+            <Button onClick={stopCamera} className="h-12 min-w-[72px] gap-2 bg-white/10 text-lg font-extrabold text-white hover:bg-white/20">
+              DONE
+            </Button>
+          </div>
         </div>
       )}
     </div>
