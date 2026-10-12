@@ -1041,9 +1041,11 @@ export function buildWtnPdf(
   design: WtnDesign = "classic",
   logo?: string | null,
   options?: WtnOptions,
+  target?: jsPDF,
 ): jsPDF {
   const opts = options ?? getWtnOptions();
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const doc = target ?? new jsPDF({ unit: "mm", format: "a4" });
+  if (target) doc.addPage();
   const draw = (top: number, label: string) => {
     if (design === "modern") drawModernCopy(doc, job, top, label, logo, opts);
     else if (design === "field") drawFieldCopy(doc, job, top, label, logo, opts);
