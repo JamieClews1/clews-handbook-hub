@@ -1041,9 +1041,11 @@ export function buildWtnPdf(
   design: WtnDesign = "classic",
   logo?: string | null,
   options?: WtnOptions,
+  target?: jsPDF,
 ): jsPDF {
   const opts = options ?? getWtnOptions();
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const doc = target ?? new jsPDF({ unit: "mm", format: "a4" });
+  if (target) doc.addPage();
   const draw = (top: number, label: string) => {
     if (design === "modern") drawModernCopy(doc, job, top, label, logo, opts);
     else if (design === "field") drawFieldCopy(doc, job, top, label, logo, opts);
@@ -1158,3 +1160,14 @@ export async function printWtnPdf(job: WtnJob, design?: WtnDesign, options?: Wtn
   }
 }
 
+
+/** Builds one PDF holding a ticket for every job (read-only, nothing is saved). */
+export async function buildWtnBatch(jobs: WtnJob[]): Promise<jsPDF | null> {
+  if (!jobs.length) return null;
+  const design = getWtnDesign();
+  const opts = getWtnOptions();
+  const logo = opts.showLogo && (opts.brandStyle ?? "logo") === "logo" ? await loadLogoDataUrl() : null;
+  let doc: jsPDF | undefined;
+  for (const job of jobs) doc = buildWtnPdf(mapWasteOutSkip(job), design, logo, opts, doc);
+  return doc ?? null;
+}

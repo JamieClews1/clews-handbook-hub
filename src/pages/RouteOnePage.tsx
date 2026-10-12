@@ -35,6 +35,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DriverSettings } from "@/components/route-one/DriverSettings";
 import { DaySheetPrintDialog } from "@/components/route-one/DaySheetPrintDialog";
+import { FinaliseDayDialog } from "@/components/route-one/FinaliseDayDialog";
 import { skiptrakWtnJob } from "@/lib/imported-ticket-print";
 import { DriverVehicleBoard } from "@/components/route-one/DriverVehicleBoard";
 import { groupDriversByVehicle, dailyBoardVehicle } from "@/lib/route-one-vehicle-groups";
@@ -850,6 +851,7 @@ const RouteOnePage = () => {
             </DialogContent>
           </Dialog>
           <DaySheetPrintDialog date={dateStr} drivers={drivers} />
+          <FinaliseDayDialog date={format(addDays(selectedDate, 1), "yyyy-MM-dd")} drivers={drivers} vehicles={boardVehicles} />
           {/* Reorganise the day */}
           {viewMode === "day" && (
             <Button
