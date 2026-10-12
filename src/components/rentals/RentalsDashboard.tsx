@@ -21,7 +21,7 @@ import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { computeOverRentalBins, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
+import { computeOverRentalBins, daysOverFreePeriod, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
 import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
 import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
@@ -287,7 +287,7 @@ export default function RentalsDashboard() {
       const c = chases[b.binKey];
       const rate = b.category === "roro" ? settings.rental_roro_rate : settings.rental_skip_rate;
       const qty = b.netOnSite || 0;
-      const daysOver = Math.max(0, (b.daysSinceActivity ?? 0) - freeDays);
+      const daysOver = daysOverFreePeriod(b.daysSinceActivity, freeDays);
       const weeksOver = Math.ceil(daysOver / 7);
       const exVat = weeksOver * rate * (qty || 1);
       const vat = exVat * VAT;
@@ -437,7 +437,7 @@ export default function RentalsDashboard() {
                       <TableCell>{b.site}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
                       <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
-                      <TableCell className="text-center"><Badge variant="destructive">{b.daysSinceActivity}d</Badge></TableCell>
+                      <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="destructive">{daysOverFreePeriod(b.daysSinceActivity, settings.rental_free_days)}d</Badge></TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]}>
@@ -510,7 +510,7 @@ export default function RentalsDashboard() {
                     <TableCell>{b.site}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
                     <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
-                    <TableCell className="text-center"><Badge variant="secondary">{b.daysSinceActivity}d</Badge></TableCell>
+                    <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="secondary">{daysOverFreePeriod(b.daysSinceActivity, settings.rental_free_days)}d</Badge></TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                   </TableRow>
                 ))}
