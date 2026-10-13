@@ -1,3 +1,4 @@
+import { dwtRowIssues, isValidCarrierReg } from "@/lib/dwt-validation";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -190,7 +191,8 @@ const DigitalWasteTrackingPage = () => {
   });
 
   const isRowComplete = (m: any) =>
-    !!(receiverAuthNumber && m.customer && m.vehicle && m.carrierReg && m.carrierName && m.physicalForm && m.ewc && m.waste && m.container && m.weightT != null);
+    !!(receiverAuthNumber && m.customer && m.vehicle && m.carrierReg && m.carrierName && m.physicalForm && m.ewc && m.waste && m.container && m.weightT != null) &&
+    dwtRowIssues(m).length === 0;
 
   const uploadRows = async (rowsToSend: any[]) => {
     if (rowsToSend.length === 0) return;
@@ -283,7 +285,7 @@ const DigitalWasteTrackingPage = () => {
     [filtered]
   );
   const incompleteCount = useMemo(
-    () => filtered.filter((m) => !m.customer || !m.vehicle || !m.carrierReg || !m.carrierName || !m.physicalForm || !m.ewc || !m.waste || !m.container || m.weightT == null).length,
+    () => filtered.filter((m) => !m.customer || !m.vehicle || !m.carrierReg || !m.carrierName || !m.physicalForm || !m.ewc || !m.waste || !m.container || m.weightT == null || dwtRowIssues(m).length > 0).length,
     [filtered]
   );
 
@@ -434,14 +436,14 @@ const DigitalWasteTrackingPage = () => {
                             {m.site && <div className="text-xs text-muted-foreground">{m.site}</div>}
                           </td>
                           <td className={`px-3 py-2 font-mono ${!m.vehicle ? missingCls : ""}`}>{m.vehicle || "Missing"}</td>
-                          <td className={`px-3 py-2 font-mono ${!m.carrierReg ? missingCls : ""}`}>{m.carrierReg || "Missing"}</td>
+                          <td className={`px-3 py-2 font-mono ${!m.carrierReg || !isValidCarrierReg(m.carrierReg) ? missingCls : ""}`}>{m.carrierReg || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.carrierName ? missingCls : ""}`}>{m.carrierName || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.physicalForm ? missingCls : ""}`}>{m.physicalForm || "Missing"}</td>
                           <td className={`px-3 py-2 font-mono ${!m.ewc ? missingCls : ""}`}>{m.ewc || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.waste ? missingCls : ""}`}>{m.waste || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.container ? missingCls : ""}`}>{m.container || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.meansOfTransport ? missingCls : ""}`}>{m.meansOfTransport || "Missing"}</td>
-                          <td className={`px-3 py-2 text-right tabular-nums font-semibold ${m.weightT == null ? missingCls : ""}`}>
+                          <td className={`px-3 py-2 text-right tabular-nums font-semibold ${m.weightT == null || !(m.weightT > 0) ? missingCls : ""}`}>
                             {m.weightT != null ? m.weightT.toFixed(3) : "Missing"}
                           </td>
                           <td className="px-3 py-2">
@@ -451,7 +453,10 @@ const DigitalWasteTrackingPage = () => {
                               const complete = isRowComplete(m);
                               const done = s?.status === "submitted";
                               const failed = s?.status === "error";
+                              const issues = dwtRowIssues(m);
+                              const problem = issues[0] ?? (failed && !done ? s.error_message : null);
                               return (
+                                <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center gap-1.5 justify-end">
                                   {done ? (
                                     <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30">
@@ -491,6 +496,12 @@ const DigitalWasteTrackingPage = () => {
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
+                                </div>
+                                {problem && (
+                                  <div className="max-w-[260px] text-right text-[11px] leading-snug text-destructive font-medium">
+                                    {issues.length > 0 ? issues.join(" · ") : `DEFRA: ${problem}`}
+                                  </div>
+                                )}
                                 </div>
                               );
                             })()}
