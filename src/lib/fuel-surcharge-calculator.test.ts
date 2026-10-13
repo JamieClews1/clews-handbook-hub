@@ -23,7 +23,12 @@ describe("fuel surcharge calculator at £1.45/litre matches the 1 April rates", 
     expect(get(1.45, "Artic", "Zone 2")).toBe(9.46);
     expect(get(1.45, "Artic", "Zone 3")).toBe(14.41);
   });
-  test("at the £1.10 base price only Grade C + waste processing remain", () => {
-    expect(get(1.1, "Skips", "Zone 3")).toBe(0.9);
+  test("at the £1.10 base price the processing levy drops to £0", () => {
+    expect(get(1.1, "Weighbridge Tip", "NA")).toBe(0);
+    expect(get(1.1, "Skips", "Zone 3")).toBe(0);
+  });
+  test("the tip levy scales with the % increase (half the increase → half the levy)", () => {
+    // £1.275 is halfway between the £1.10 base and the £1.45 reference
+    expect(get(1.275, "Weighbridge Tip", "NA")).toBe(1.55);
   });
 });

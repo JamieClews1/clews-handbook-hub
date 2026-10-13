@@ -3,7 +3,8 @@
 //
 //   increase      = (price per litre − base price) / base price
 //   haulage       = round-trip km × base fuel cost per km × increase
-//   processing    = Grade C cost per job + waste haulage per job + yard diesel per job
+//   processing    = (Grade C + waste haulage + yard diesel per job) scaled by the
+//                   fuel increase, so the £3.10 tip levy moves with the % increase
 //   surcharge     = haulage + processing   (Weighbridge Tip = processing only)
 
 export type CalcVehicle = "Skips" | "RoRo" | "Artic";
@@ -22,6 +23,7 @@ export interface FuelCalcSettings {
   waste_jobs: number;
   yard_weekly_litres: number;
   yard_weekly_jobs: number;
+  processing_reference_price: number; // price per litre the processing levy was calibrated at (£1.45 → £3.10)
 }
 
 export const DEFAULT_FUEL_CALC_SETTINGS: FuelCalcSettings = {
@@ -38,6 +40,7 @@ export const DEFAULT_FUEL_CALC_SETTINGS: FuelCalcSettings = {
   waste_jobs: 250,
   yard_weekly_litres: 1600,
   yard_weekly_jobs: 255,
+  processing_reference_price: 1.45,
 };
 
 export interface CalcRow {
@@ -55,12 +58,16 @@ export function fuelIncrease(price: number, s: FuelCalcSettings): number {
   return (price - s.base_price_per_litre) / s.base_price_per_litre;
 }
 
+// Processing levy (£3.10 at the reference price) scaled in line with the fuel
+// % increase: at the base price it drops to 0, at double the reference it doubles.
 export function processingLevy(price: number, s: FuelCalcSettings): number {
   const inc = fuelIncrease(price, s);
+  const incRef = fuelIncrease(s.processing_reference_price, s);
   const gradeC = s.grade_c_jobs ? (s.grade_c_tonnes_per_load * s.grade_c_loads * s.grade_c_cost_per_tonne) / s.grade_c_jobs : 0;
   const waste = s.waste_jobs ? (s.waste_loads * s.waste_cost_per_load) / s.waste_jobs : 0;
-  const diesel = s.yard_weekly_jobs ? (s.yard_weekly_litres / s.yard_weekly_jobs) * s.base_price_per_litre * inc : 0;
-  return gradeC + waste + diesel;
+  const diesel = s.yard_weekly_jobs ? (s.yard_weekly_litres / s.yard_weekly_jobs) * s.base_price_per_litre * incRef : 0;
+  const atReference = gradeC + waste + diesel;
+  return incRef ? atReference * (inc / incRef) : atReference;
 }
 
 export function calculateFuelSurcharges(price: number, s: FuelCalcSettings): CalcRow[] {
