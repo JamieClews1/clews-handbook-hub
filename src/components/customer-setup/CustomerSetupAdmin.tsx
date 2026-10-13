@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
@@ -1206,6 +1207,26 @@ export function CustomerSetupAdmin() {
     const bytes = new Uint32Array(10);
     crypto.getRandomValues(bytes);
     return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  };
+
+  const buildAccessEmailText = ({ name, email, password, portalUrl }: { name: string; email: string; password: string | null; portalUrl: string }) => {
+    const lines = [
+      `Hi${name ? ` ${name}` : ""},`,
+      "",
+      "You now have access to the Clews Recycling customer portal. Here's how to get started:",
+      "",
+      `1. Go to ${portalUrl}`,
+      `2. Sign in with your email: ${email}`,
+    ];
+    if (password) {
+      lines.push(`3. Enter your password: ${password}`);
+      lines.push("4. You'll then see your sites, jobs, weights and documents.");
+    } else {
+      lines.push("3. Enter your password (the one already set for you — ask us if you need it reset).");
+      lines.push("4. You'll then see your sites, jobs, weights and documents.");
+    }
+    lines.push("", "If you have any trouble signing in, just reply to this email and we'll help.", "", "Kind regards,", "Clews Recycling");
+    return lines.join("\n");
   };
 
   const openAccessEmailDialog = (membershipId: string) => {
@@ -2767,6 +2788,41 @@ export function CustomerSetupAdmin() {
                 </div>
               </div>
             )}
+          </div>
+          <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+            <Label>Email text to copy into your own email</Label>
+            <Textarea
+              readOnly
+              className="min-h-[180px] text-sm"
+              value={buildAccessEmailText({
+                name: accessEmailName,
+                email: accessEmailTo,
+                password: includeTempPassword ? tempPassword : null,
+                portalUrl: `${window.location.origin}/auth`,
+              })}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() =>
+                copyText(
+                  buildAccessEmailText({
+                    name: accessEmailName,
+                    email: accessEmailTo,
+                    password: includeTempPassword ? tempPassword : null,
+                    portalUrl: `${window.location.origin}/auth`,
+                  }),
+                  "Email text"
+                )
+              }
+            >
+              <Copy className="h-4 w-4 mr-2" /> Copy email text
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Proofread this, then paste it into your own email. Nothing is sent until you press "Send email" below.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAccessEmailOpen(false)} disabled={sendingAccessEmail}>
