@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, test } from "node:test";
+import assert from "node:assert/strict";
+const expect = (a: unknown) => ({ toBe: (b: unknown) => assert.equal(a, b) });
 import { calculateFuelSurcharges, DEFAULT_FUEL_CALC_SETTINGS } from "./fuel-surcharge-calculator";
 
 const get = (price: number, v: string, z: string) =>
