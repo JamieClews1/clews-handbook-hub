@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // Update user password using admin API
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       user_id,
-      { password }
+      { password, email_confirm: true, ban_duration: 'none' }
     );
 
     if (updateError) {
@@ -118,8 +118,21 @@ Deno.serve(async (req) => {
 
     console.log('Password updated successfully for user:', user_id);
 
+    // Prove the login works: sign in with the new details using a throwaway client.
+    const { data: target } = await supabaseAdmin.auth.admin.getUserById(user_id);
+    const email = target?.user?.email ?? null;
+    let verified = false;
+    let verifyError: string | null = null;
+    if (email) {
+      const probe = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: signIn, error: signInErr } = await probe.auth.signInWithPassword({ email, password });
+      verified = !!signIn?.session && !signInErr;
+      verifyError = signInErr?.message ?? null;
+      if (signIn?.session) await probe.auth.signOut();
+    }
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, email, verified, verify_error: verifyError }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
