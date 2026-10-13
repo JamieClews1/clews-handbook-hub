@@ -1165,7 +1165,7 @@ export function CustomerSetupAdmin() {
   const openPasswordDialog = (userId: string, email: string) => {
     setPasswordUserId(userId);
     setPasswordUserEmail(email);
-    setNewPassword("");
+    setNewPassword(""); setSavedLogin(null);
     setPasswordDialogOpen(true);
   };
 
