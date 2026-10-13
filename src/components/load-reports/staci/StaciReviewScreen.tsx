@@ -15,6 +15,11 @@ import {
   resolveStaciPalletColour,
 } from "./types";
 import { formatLoadReportDate } from "@/lib/load-report-dates";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { STACI_COLOUR_CONFIG } from "./types";
 
 interface StaciReviewScreenProps {
   operatorName: string;
@@ -275,7 +280,34 @@ export const StaciReviewScreen = ({
     }
   };
 
+  const [colourChanges, setColourChanges] = useState<
+    { index: number; from: StaciPalletColour; to: StaciPalletColour; count: number; fromKg: number; toKg: number }[] | null
+  >(null);
+
+  const getColourChanges = () => {
+    if (!reconciledPreview) return [];
+    return reconciledPreview.flatMap((next, index) => {
+      const prev = palletEntries[index];
+      if (!prev) return [];
+      const from = resolveStaciPalletColour(prev.weight_kg, prev.waste_breakdown, prev.colour);
+      const to = resolveStaciPalletColour(next.weight_kg, next.waste_breakdown, next.colour);
+      return from !== to
+        ? [{ index, from, to, count: next.pallet_count || 1, fromKg: prev.weight_kg, toKg: next.weight_kg }]
+        : [];
+    });
+  };
+
   const handleAcceptReconciled = () => {
+    const changes = getColourChanges();
+    if (changes.length > 0) {
+      setColourChanges(changes);
+      return;
+    }
+    applyReconciled();
+  };
+
+  const applyReconciled = () => {
+    setColourChanges(null);
     if (reconciledPreview && onPalletEntriesChange) {
       onPalletEntriesChange(reconciledPreview);
       setReconciledPreview(null);
@@ -297,6 +329,30 @@ export const StaciReviewScreen = ({
 
   return (
     <div className="space-y-6 pb-32">
+      <AlertDialog open={!!colourChanges} onOpenChange={(o) => !o && setColourChanges(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reconciling changes pallet colours</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>Matching the weighbridge weight moves these pallets into a different colour bracket, which changes the charge:</p>
+                <ul className="space-y-1">
+                  {colourChanges?.map((c) => (
+                    <li key={c.index} className="font-medium text-foreground">
+                      Entry {c.index + 1}{c.count > 1 ? ` (${c.count} pallets)` : ""}: {STACI_COLOUR_CONFIG[c.from].label} ({c.fromKg} kg) → {STACI_COLOUR_CONFIG[c.to].label} ({c.toKg} kg)
+                    </li>
+                  ))}
+                </ul>
+                <p>Do you want to proceed?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={applyReconciled}>Proceed</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Report Details */}
       <Card className="border-2 shadow-lg">
         <CardHeader className="pb-3">
