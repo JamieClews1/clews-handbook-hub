@@ -64,8 +64,8 @@ interface LoadReport {
 
 // Returns the gross weight of the report (matches what hits the weighbridge).
 // - Non-Staci: total_weight_kg is already gross (sum of pallet_count × avg_weight_kg).
-// - Staci: pallet-entry weights are gross totals, while bale/dolav/loose weights are
-//   stored as per-unit gross weights. Good/scrap pallets contribute pallet tare only.
+// - Staci: total_weight_kg is saved already including pallet entries AND bales/dolavs/loose,
+//   so only good/scrap pallet tare is added here (adding bales again double-counts).
 const getDisplayTotalKg = (
   report: LoadReport,
   isStaci: boolean,
@@ -75,11 +75,6 @@ const getDisplayTotalKg = (
 
   return (
     (report.total_weight_kg || 0) +
-    (report.card_bales_count || 0) * (report.card_bales_weight_kg || 0) +
-    (report.films_bale_count || 0) * (report.films_bale_weight_kg || 0) +
-    (report.papers_dolav_count || 0) * (report.papers_dolav_weight_kg || 0) +
-    (report.glass_dolav_count || 0) * (report.glass_dolav_weight_kg || 0) +
-    (report.scrap_metal_loose_count || 0) * (report.scrap_metal_loose_weight_kg || 0) +
     ((report.pallets_out || 0) + (report.pallets_scrap_count || 0)) * (palletWeightKg || 0)
   );
 };
