@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, RotateCcw, Save, Calculator } from "lucide-react";
+import { Loader2, RotateCcw, Save, Calculator, Mail } from "lucide-react";
 import { toast } from "sonner";
 import {
   calculateFuelSurcharges, DEFAULT_FUEL_CALC_SETTINGS, fuelIncrease, type CalcVehicle, type FuelCalcSettings,
@@ -21,6 +21,8 @@ export default function FuelSurchargeCalculator({ canEdit }: { canEdit: boolean 
   const [price, setPrice] = useState("1.45");
   const [rates, setRates] = useState<FuelSurchargeRate[]>([]);
   const [saving, setSaving] = useState(false);
+  const [emailTo, setEmailTo] = useState("jamie@clewsrecycling.co.uk");
+  const [emailing, setEmailing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -63,6 +65,15 @@ export default function FuelSurchargeCalculator({ canEdit }: { canEdit: boolean 
 
   const inc = fuelIncrease(p, s);
 
+  const emailFigures = async () => {
+    setEmailing(true);
+    const { error } = await supabase.functions.invoke("send-fuel-surcharge-figures", {
+      body: { price_per_litre: p, to_email: emailTo.trim() },
+    });
+    setEmailing(false);
+    error ? toast.error("Couldn't send the email") : toast.success(`Figures emailed to ${emailTo.trim()}`);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -79,6 +90,16 @@ export default function FuelSurchargeCalculator({ canEdit }: { canEdit: boolean 
             <div className="text-sm">
               <div className="text-muted-foreground">Increase over £{s.base_price_per_litre.toFixed(2)} base</div>
               <div className="text-xl font-semibold">{(inc * 100).toFixed(2)}%</div>
+            </div>
+            <div className="ml-auto flex items-end gap-2">
+              <div className="space-y-1.5">
+                <Label>Email the figures to</Label>
+                <Input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} className="h-9 w-64" />
+              </div>
+              <Button variant="outline" onClick={emailFigures} disabled={emailing || !p || !emailTo.includes("@")}>
+                {emailing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                Email figures (rounded up)
+              </Button>
             </div>
           </div>
           <Table>
