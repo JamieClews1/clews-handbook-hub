@@ -2768,6 +2768,41 @@ export function CustomerSetupAdmin() {
               </div>
             )}
           </div>
+          <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+            <Label>Email text to copy into your own email</Label>
+            <Textarea
+              readOnly
+              className="min-h-[180px] text-sm"
+              value={buildAccessEmailText({
+                name: accessEmailName,
+                email: accessEmailTo,
+                password: includeTempPassword ? tempPassword : null,
+                portalUrl: `${window.location.origin}/auth`,
+              })}
+              onFocus={(e) => e.currentTarget.select()}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() =>
+                copyText(
+                  buildAccessEmailText({
+                    name: accessEmailName,
+                    email: accessEmailTo,
+                    password: includeTempPassword ? tempPassword : null,
+                    portalUrl: `${window.location.origin}/auth`,
+                  }),
+                  "Email text"
+                )
+              }
+            >
+              <Copy className="h-4 w-4 mr-2" /> Copy email text
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Proofread this, then paste it into your own email. Nothing is sent until you press "Send email" below.
+            </p>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAccessEmailOpen(false)} disabled={sendingAccessEmail}>
               Cancel
