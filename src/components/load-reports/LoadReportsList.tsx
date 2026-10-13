@@ -920,7 +920,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
             </DialogDescription>
           </DialogHeader>
           {photosReport && <JobTicketPhotos jobNumber={photosReport.notes} />}
-          <p className="text-xs text-muted-foreground">Driver photos and signed ticket photos for this job. Click a photo to enlarge.</p>
+          <p className="text-xs text-muted-foreground">Shows driver photos and signed ticket photos for this job — click one to enlarge. If none appear, no photos are attached to this job yet.</p>
         </DialogContent>
       </Dialog>
     </div>
