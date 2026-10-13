@@ -1215,7 +1215,8 @@ export function CustomerSetupAdmin() {
     setAccessEmailMembershipId(membershipId);
     setAccessEmailTo(profile?.email ?? contact?.email ?? "");
     setAccessEmailName(contact?.full_name ?? profile?.full_name ?? "");
-    setIncludeTempPassword(true);
+    // Off by default so re-sending the email never silently changes a working password.
+    setIncludeTempPassword(false);
     setTempPassword(generateTempPassword());
     setAccessEmailOpen(true);
   };
@@ -2717,6 +2718,15 @@ export function CustomerSetupAdmin() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Username (email)</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={accessEmailTo} onFocus={(e) => e.currentTarget.select()} className="font-mono" />
+                <Button type="button" variant="outline" size="icon" title="Copy email" onClick={() => copyText(accessEmailTo, "Email")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
             <div className="flex items-start gap-2">
               <Checkbox
                 id="include_temp_password"
@@ -2728,7 +2738,7 @@ export function CustomerSetupAdmin() {
                   Include a temporary password
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Sets this as their password now and includes it in the email. They can change it in My Profile.
+                  Only tick this to give them a NEW password — it replaces their current one. Leave unticked to resend the sign-in details without changing anything.
                 </p>
               </div>
             </div>
@@ -2750,6 +2760,9 @@ export function CustomerSetupAdmin() {
                     onClick={() => setTempPassword(generateTempPassword())}
                   >
                     <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon" title="Copy password" onClick={() => copyText(tempPassword, "Password")}>
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
