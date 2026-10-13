@@ -4,6 +4,8 @@ export const EMAIL_DOMAIN = "clewsrecycling.co.uk";
 export const usernameToEmail = (username: string): string => {
   // Remove any whitespace and convert to lowercase
   const cleanUsername = username.trim().toLowerCase();
+  // Customers and external users sign in with their full email address
+  if (cleanUsername.includes("@")) return cleanUsername;
   return `${cleanUsername}@${EMAIL_DOMAIN}`;
 };
 
