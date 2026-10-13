@@ -107,7 +107,7 @@ export default function FuelSurchargeCalculator({ canEdit }: { canEdit: boolean 
               })}
             </TableBody>
           </Table>
-          <p className="text-xs text-muted-foreground">Customer-specific flat fees (e.g. Go Green) aren't fuel-linked and aren't shown.</p>
+          <p className="text-xs text-muted-foreground">The processing column (weighbridge tip) rises and falls with the fuel % increase — it is £3.10 at £1.45/litre and drops to £0 at the £{s.base_price_per_litre.toFixed(2)} base price. Customer-specific flat fees (e.g. Go Green) aren't fuel-linked and aren't shown.</p>
         </CardContent>
       </Card>
 
@@ -120,6 +120,7 @@ export default function FuelSurchargeCalculator({ canEdit }: { canEdit: boolean 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-1.5"><Label>Base diesel price per litre (£)</Label>{num(s.base_price_per_litre, (n) => set("base_price_per_litre", n))}</div>
             <div className="space-y-1.5"><Label>Miles → km divisor</Label>{num(s.miles_to_km_divisor, (n) => set("miles_to_km_divisor", n))}</div>
+            <div className="space-y-1.5"><Label>Price the £3.10 tip levy was set at (£)</Label>{num(s.processing_reference_price, (n) => set("processing_reference_price", n))}</div>
           </div>
 
           <div>
