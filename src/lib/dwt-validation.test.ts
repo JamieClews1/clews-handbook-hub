@@ -1,12 +1,13 @@
-import { expect, test } from "bun:test";
+import { it } from "node:test";
+import assert from "node:assert/strict";
 import { dwtRowIssues, isValidCarrierReg } from "./dwt-validation";
 
-test("old-style carrier number is flagged", () => {
-  expect(isValidCarrierReg("CB/HM3443BB")).toBe(false);
-  expect(isValidCarrierReg("CBDU203180")).toBe(true);
+it("old-style carrier number is flagged", () => {
+  assert.equal(isValidCarrierReg("CB/HM3443BB"), false);
+  assert.equal(isValidCarrierReg("CBDU203180"), true);
 });
 
-test("zero weight is flagged", () => {
-  expect(dwtRowIssues({ carrierReg: "CBDU203180", weightT: 0 }).length).toBe(1);
-  expect(dwtRowIssues({ carrierReg: "CBDU203180", weightT: 0.3 }).length).toBe(0);
+it("zero weight is flagged", () => {
+  assert.equal(dwtRowIssues({ carrierReg: "CBDU203180", weightT: 0 }).length, 1);
+  assert.equal(dwtRowIssues({ carrierReg: "CBDU203180", weightT: 0.3 }).length, 0);
 });
