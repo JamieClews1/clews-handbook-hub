@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw, Eye } from "lucide-react";
+import { UserCheck, MapPin, Key, UserPlus, Pencil, Trash2, Users, Mail, RefreshCw, Eye, Copy, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
@@ -278,6 +278,15 @@ export function CustomerSetupAdmin() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
   const [passwordUserEmail, setPasswordUserEmail] = useState("");
+  const [savedLogin, setSavedLogin] = useState<{ email: string; password: string; verified: boolean; error: string | null } | null>(null);
+  const copyText = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: `${label} copied` });
+    } catch {
+      toast({ title: "Couldn't copy", description: "Select the text and copy it manually.", variant: "destructive" });
+    }
+  };
   const [newPassword, setNewPassword] = useState("");
   const [settingPassword, setSettingPassword] = useState(false);
 
@@ -1156,7 +1165,7 @@ export function CustomerSetupAdmin() {
   const openPasswordDialog = (userId: string, email: string) => {
     setPasswordUserId(userId);
     setPasswordUserEmail(email);
-    setNewPassword("");
+    setNewPassword(""); setSavedLogin(null);
     setPasswordDialogOpen(true);
   };
 
@@ -1178,9 +1187,13 @@ export function CustomerSetupAdmin() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      setSavedLogin({
+        email: data?.email ?? passwordUserEmail,
+        password: newPassword,
+        verified: !!data?.verified,
+        error: data?.verify_error ?? null,
+      });
       toast({ title: "Password updated", description: `Password set for ${passwordUserEmail}` });
-      setPasswordDialogOpen(false);
-      setNewPassword("");
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Failed to set password.", variant: "destructive" });
     } finally {
@@ -2614,7 +2627,7 @@ export function CustomerSetupAdmin() {
       </Dialog>
 
       {/* Set password dialog */}
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+      <Dialog open={passwordDialogOpen} onOpenChange={(o) => { setPasswordDialogOpen(o); if (!o) { setSavedLogin(null); setNewPassword(""); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Set password</DialogTitle>
@@ -2622,26 +2635,73 @@ export function CustomerSetupAdmin() {
               Set a new password for <span className="font-medium">{passwordUserEmail}</span>
             </DialogDescription>
           </DialogHeader>
+          {savedLogin ? (
+            <div className="space-y-4">
+              {savedLogin.verified ? (
+                <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/10 p-3 text-sm">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                  <span>Login tested and working — these details sign in successfully.</span>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+                  <span>Password saved, but a test sign-in failed{savedLogin.error ? `: ${savedLogin.error}` : ""}. Try setting it again.</span>
+                </div>
+              )}
+              {([["Email", savedLogin.email], ["Password", savedLogin.password]] as const).map(([label, value]) => (
+                <div key={label} className="space-y-1">
+                  <Label>{label}</Label>
+                  <div className="flex gap-2">
+                    <Input readOnly value={value} onFocus={(e) => e.currentTarget.select()} className="font-mono" />
+                    <Button type="button" variant="outline" size="icon" title={`Copy ${label.toLowerCase()}`} onClick={() => copyText(value, label)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => copyText(`Portal: ${window.location.origin}/auth\nEmail: ${savedLogin.email}\nPassword: ${savedLogin.password}`, "Login details")}
+              >
+                <Copy className="h-4 w-4 mr-2" /> Copy all login details
+              </Button>
+            </div>
+          ) : (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="new_password">New password</Label>
-              <Input
-                id="new_password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                autoComplete="new-password"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="new_password"
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  autoComplete="off"
+                  className="font-mono"
+                />
+                <Button type="button" variant="outline" size="icon" title="Generate a password" onClick={() => setNewPassword(generateTempPassword())}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)} disabled={settingPassword}>
-              Cancel
-            </Button>
-            <Button onClick={setUserPassword} disabled={settingPassword || newPassword.length < 6}>
-              {settingPassword ? "Setting..." : "Set Password"}
-            </Button>
+            {savedLogin ? (
+              <Button onClick={() => { setPasswordDialogOpen(false); setSavedLogin(null); setNewPassword(""); }}>Done</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setPasswordDialogOpen(false)} disabled={settingPassword}>
+                  Cancel
+                </Button>
+                <Button onClick={setUserPassword} disabled={settingPassword || newPassword.length < 6}>
+                  {settingPassword ? "Setting..." : "Set Password"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
