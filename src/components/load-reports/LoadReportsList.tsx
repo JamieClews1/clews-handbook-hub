@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2, MapPinCheck } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Download, Truck, Filter, Settings, AlertTriangle, FileText, Package, Clock, Wand2, MapPinCheck, Camera } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { LoadReportSettings } from "./LoadReportSettings";
@@ -24,6 +24,7 @@ import { MissingReportsAlert } from "./MissingReportsAlert";
 import { CertificateOfDestruction } from "./CertificateOfDestruction";
 import { reconcileLineItemsToTargetKg } from "@/lib/reconcile-load-line-items";
 import type { LineItem } from "./TallyScreen";
+import { JobTicketPhotos } from "./JobTicketPhotos";
 
 interface LoadReport {
   id: string;
@@ -100,6 +101,7 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [photosReport, setPhotosReport] = useState<LoadReport | null>(null);
   const [codReport, setCodReport] = useState<LoadReport | null>(null);
   const [codGeneratedIds, setCodGeneratedIds] = useState<Set<string>>(new Set());
   const [defaultPalletWeight, setDefaultPalletWeight] = useState<number>(20);
@@ -786,6 +788,23 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="mr-1"
+                              disabled={!report.notes?.trim()}
+                              onClick={() => setPhotosReport(report)}
+                              aria-label="Load photos"
+                            >
+                              <Camera className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{report.notes?.trim() ? "Load photos" : "No job number"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setCodReport(report)}
                               className={`mr-1 ${codGeneratedIds.has(report.id) ? "text-green-600 bg-green-50 hover:bg-green-100 hover:text-green-700" : ""}`}
                             >
@@ -890,6 +909,18 @@ export const LoadReportsList = ({ onNewReport, onViewReport, onEditReport, custo
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+          <Dialog open={!!photosReport} onOpenChange={(o) => !o && setPhotosReport(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Load photos — Job {photosReport?.notes}</DialogTitle>
+            <DialogDescription>
+              {photosReport?.site_name || ""} {photosReport ? formatLoadReportDate(photosReport.report_date, "dd/MM/yyyy") : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {photosReport && <JobTicketPhotos jobNumber={photosReport.notes} />}
+          <p className="text-xs text-muted-foreground">Shows driver photos and signed ticket photos for this job — click one to enlarge. If none appear, no photos are attached to this job yet.</p>
         </DialogContent>
       </Dialog>
     </div>
