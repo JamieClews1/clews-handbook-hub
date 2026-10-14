@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAllCustomers } from "@/lib/fetch-all";
+import { fetchAllCustomers, fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,12 +141,22 @@ export default function CRMPage() {
   const [connected, setConnected] = useState<boolean | null>(null);
 
   const loadTickets = async () => {
-    const { data } = await supabase
-      .from("crm_tickets")
-      .select("*")
-      .order("last_message_at", { ascending: false });
-    setTickets((data as unknown as Ticket[]) ?? []);
-    setLoading(false);
+    // Paged: PostgREST caps a single response at 1,000 rows, so a plain
+    // select silently drops everything older than the newest 1,000 threads.
+    try {
+      const rows = await fetchAllRows<Ticket>(
+        "crm_tickets",
+        "*",
+        "last_message_at",
+        (q) => q,
+        false,
+      );
+      setTickets(rows);
+    } catch {
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadTeam = async () => {
@@ -207,12 +217,18 @@ export default function CRMPage() {
   );
 
   const loadMessages = async (ticketId: string) => {
-    const { data } = await supabase
-      .from("crm_ticket_messages")
-      .select("*")
-      .eq("ticket_id", ticketId)
-      .order("sent_at", { ascending: true });
-    setMessages((data as Message[]) ?? []);
+    try {
+      const rows = await fetchAllRows<Message>(
+        "crm_ticket_messages",
+        "*",
+        "sent_at",
+        (q) => q.eq("ticket_id", ticketId),
+        true,
+      );
+      setMessages(rows);
+    } catch {
+      setMessages([]);
+    }
   };
 
   useEffect(() => {
