@@ -21,7 +21,7 @@ type HubJob = Database["public"]["Tables"]["data_hub_jobs"]["Row"];
 
 const dateLabel = (date: string | null) => parseLoadReportDate(date)?.toLocaleDateString("en-GB", { timeZone: "UTC" }) ?? "—";
 
-export function CombinedTicketList() {
+export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
   const now = new Date();
   const [start, setStart] = useState(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`);
   const [end, setEnd] = useState(now.toISOString().slice(0, 10));
@@ -102,7 +102,32 @@ export function CombinedTicketList() {
       </div>
       <p className="text-sm text-muted-foreground">{filtered.length.toLocaleString()} tickets · {tickets.filter(t => t.source !== "midweigh").length.toLocaleString()} RouteOne · {tickets.filter(t => t.source === "midweigh").length.toLocaleString()} Midweigh</p>
       {invalidDates ? <p role="alert" className="text-destructive">Choose a valid date range.</p> : error ? <div role="alert" className="text-destructive">Tickets could not be loaded. <Button variant="outline" onClick={() => refetch()}>Retry</Button></div> : isLoading ? <p className="py-10 text-center text-muted-foreground">Loading tickets…</p> : (
-        <Table>
+        <>
+        {tablet && <div className="divide-y divide-border border-y border-border">
+          {filtered.map(ticket => {
+            const key = `${ticket.source}:${ticket.id}`;
+            const open = expanded === key;
+            return <div key={key}>
+              <Button variant="ghost" aria-expanded={open} aria-label={`View ticket ${ticket.ticket}`} onClick={() => setExpanded(open ? null : key)} className="h-auto min-h-24 w-full justify-start gap-3 rounded-none p-3 text-left whitespace-normal">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1"><span className="font-mono text-lg font-bold">#{ticket.ticket}</span><span className="font-mono">{ticket.vehicle || "—"}</span><span className="ml-auto tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"} t</span></div>
+                  <p className="break-words text-base">{ticket.customer || "—"}</p>
+                  <p className="break-words text-sm text-muted-foreground">{ticket.site} · {ticket.waste} · {dateLabel(ticket.date)}</p>
+                </div>
+                {open ? <ChevronUp /> : <ChevronDown />}
+              </Button>
+              {open && <div className="space-y-3 bg-muted/30 p-3"><p>Driver: {ticket.driver || "—"}</p>
+                {ticket.source === "routeone" && <JobPhotosSection jobId={ticket.id} />}
+                {ticket.source === "midweigh" && <MidweighPrintButton id={ticket.id} />}
+                {ticket.source === "skiptrak" && <SkiptrakPrintButton id={ticket.id} />}
+                {ticket.transactionId && <WeighbridgeAttachments transactionId={ticket.transactionId} />}
+                {ticket.raw && typeof ticket.raw === "object" && !Array.isArray(ticket.raw) && <dl className="grid gap-3 sm:grid-cols-2">{Object.entries(ticket.raw).filter(([, value]) => value != null && value !== "").map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm">{typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}</dl>}
+              </div>}
+            </div>;
+          })}
+          {!filtered.length && <p className="py-12 text-center text-muted-foreground">No tickets found for this period.</p>}
+        </div>}
+        {!tablet && <Table>
           <TableHeader><TableRow><TableHead>Ticket</TableHead><TableHead>Source</TableHead><TableHead>Date</TableHead><TableHead>Customer / Site</TableHead><TableHead>Vehicle</TableHead><TableHead>Waste</TableHead><TableHead>Movement / Status</TableHead><TableHead className="text-right">Net (t)</TableHead><TableHead className="w-12">Details</TableHead></TableRow></TableHeader>
           <TableBody>
             {filtered.map(ticket => {
@@ -133,7 +158,8 @@ export function CombinedTicketList() {
             })}
             {!filtered.length && <TableRow><TableCell colSpan={9} className="py-12 text-center text-muted-foreground">No tickets found for this period.</TableCell></TableRow>}
           </TableBody>
-        </Table>
+        </Table>}
+        </>
       )}
     </div>
   );
