@@ -56,7 +56,7 @@ async function ensureAccessToken(admin: any, conn: any): Promise<string> {
       token_expires_at: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', conn.user_id);
+    .eq('id', conn.id);
   return tokens.access_token;
 }
 
