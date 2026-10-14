@@ -315,6 +315,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         graph_message_id: graphMessageId,
         sent_at: receivedAt,
         mailbox_user_id: userId,
+        mailbox_connection_id: conn.id,
       })
       .select('id')
       .maybeSingle();
@@ -355,6 +356,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
             from_email: conn.ms_email,
             sent_at: new Date().toISOString(),
             mailbox_user_id: userId,
+            mailbox_connection_id: conn.id,
           });
         }
       } catch (e) {
@@ -368,7 +370,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
   await admin
     .from('crm_mailbox_connections')
     .update({ last_synced_at: new Date().toISOString() })
-    .eq('user_id', userId);
+    .eq('id', conn.id);
 
   return { synced };
 }
