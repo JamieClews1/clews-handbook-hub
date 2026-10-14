@@ -103,7 +103,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative min-w-56 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input aria-label="Search combined tickets" placeholder="Search ticket, customer, vehicle, waste…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input aria-label="Search combined tickets" placeholder="Search ticket, customer, site, postcode, vehicle, waste…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Button variant="outline" size="sm" aria-label="Show previous day" title="Previous day" onClick={() => shiftDays(-1)} disabled={invalidDates}><ChevronLeft className="h-4 w-4" />Previous</Button>
         <label className="space-y-1 text-xs text-muted-foreground">From<Input aria-label="Tickets from date" type="date" value={start} onChange={e => setStart(e.target.value)} className="w-40" /></label>
