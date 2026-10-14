@@ -54,6 +54,8 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         routeJobs.map((job): CombinedTicket => ({
           id: job.id, source: "routeone", ticket: job.weighbridge_ticket_number || job.job_number,
           date: job.scheduled_date, customer: job.customer_name, site: job.site_name || job.site_address,
+          siteAddress: [job.site_address, job.site_address_2].filter(Boolean).join(", ") || null,
+          postcode: job.site_postcode,
           vehicle: job.vehicle_reg, driver: job.driver_signoff_name, waste: job.waste_type,
           ewc: job.ewc_code, movement: job.job_type, status: job.status,
           weightTonnes: ticketWeightTonnes(job.outbound_weight_t, "routeone"), transactionId: job.weighbridge_transaction_id,
