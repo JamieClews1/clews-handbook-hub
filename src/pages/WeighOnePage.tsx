@@ -1,6 +1,7 @@
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
+import { Link, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +121,28 @@ const STATUS_CONFIG: Record<WeighbridgeStatus, { label: string; color: string; i
 };
 
 const WeighOnePage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tablet = searchParams.get("tablet") === "1";
+  const setTablet = (enabled: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (enabled) next.set("tablet", "1"); else next.delete("tablet");
+    setSearchParams(next);
+  };
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const previousHref = link?.getAttribute("href");
+    const previousTitle = document.title;
+    const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    const previousApple = apple?.getAttribute("content");
+    link?.setAttribute("href", "/manifest-weighone.webmanifest");
+    document.title = "WasteOne WeighOne";
+    apple?.setAttribute("content", "WeighOne");
+    return () => {
+      if (previousHref) link?.setAttribute("href", previousHref);
+      document.title = previousTitle;
+      if (previousApple) apple?.setAttribute("content", previousApple);
+    };
+  }, []);
   const queryClient = useQueryClient();
   const [fullScreen, setFullScreen] = useState(false);
   useEffect(() => {
@@ -951,7 +974,7 @@ const WeighOnePage = () => {
     : null;
 
   return (
-    <div className={fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
+    <div className={tablet ? "p-3 sm:p-4 w-full min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -961,28 +984,32 @@ const WeighOnePage = () => {
             </div>
             WeighOne
           </h1>
-          <p className="text-muted-foreground mt-1">Weighbridge & waste measurement</p>
+          {!tablet && <p className="text-muted-foreground mt-1">Weighbridge & waste measurement</p>}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="gap-2" onClick={toggleFullScreen}>
+          <Button variant="outline" className="h-12 gap-2" onClick={() => setTablet(!tablet)}>
+            <Scale className="h-4 w-4" />{tablet ? "Exit tablet view" : "Tablet view"}
+          </Button>
+          <Button asChild variant="ghost" className="h-12"><Link to="/help?guide=weighone-tablet">Install WeighOne</Link></Button>
+          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={toggleFullScreen}>
             {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             {fullScreen ? "Exit full screen" : "Full screen"}
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => setCmsDialogOpen(true)}>
+          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setCmsDialogOpen(true)}>
             <Database className="h-4 w-4" /> Vehicles & Customers
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => setWasteTypesDialogOpen(true)}>
+          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setWasteTypesDialogOpen(true)}>
             <Settings className="h-4 w-4" /> Waste Types
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => setRatesDialogOpen(true)}>
+          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setRatesDialogOpen(true)}>
             <PoundSterling className="h-4 w-4" /> Prices & Rates
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => setWtnDialogOpen(true)}>
+          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setWtnDialogOpen(true)}>
             <FileText className="h-4 w-4" /> WTN Design
           </Button>
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="h-12 gap-2">
                 <Plus className="h-4 w-4" /> New Weigh-In
               </Button>
             </DialogTrigger>
@@ -1534,7 +1561,13 @@ const WeighOnePage = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {tablet && <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 border-y border-border py-3 text-sm">
+        <div>Awaiting 2nd weigh <b className="block text-lg">{pendingTransactions.length}</b></div>
+        <div>Completed today <b className="block text-lg">{todayCompleted.length}</b></div>
+        <div>Net weight today <b className="block text-lg">{todayTotalTonnes.toFixed(2)} t</b></div>
+        <div>Revenue today <b className="block text-lg">£{todayTotalRevenue.toFixed(2)}</b></div>
+      </div>}
+      <div className={tablet ? "hidden" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"}>
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -1686,14 +1719,14 @@ const WeighOnePage = () => {
 
       {/* Transaction Log */}
       <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : "tickets"}>
-        <TabsList className="h-auto flex flex-wrap justify-start">
+      <TabsList className={`h-auto flex flex-wrap justify-start ${tablet ? "[&>button]:min-h-12 [&>button]:text-base" : ""}`}>
           <TabsTrigger value="tickets" className="gap-2"><FileText className="h-4 w-4 text-primary" /> All Tickets</TabsTrigger>
-          <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4 text-warning" /> Live Alerts</TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4 text-warning" /> {tablet ? "Contamination & Photos" : "Live Alerts"}</TabsTrigger>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4 text-info" /> Transaction Log</TabsTrigger>
-          <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4 text-secondary" /> Midweigh Data</TabsTrigger>
-          <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4 text-warning" /> Banksman App</TabsTrigger>
+          {!tablet && <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4 text-secondary" /> Midweigh Data</TabsTrigger>}
+          {!tablet && <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4 text-warning" /> Banksman App</TabsTrigger>}
         </TabsList>
-        <TabsContent value="tickets" className="mt-4"><CombinedTicketList /></TabsContent>
+        <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
           <Card className="border-border/50">

@@ -22,7 +22,8 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const weighOneTablet = pathname === "/weigh-one" && new URLSearchParams(search).get("tablet") === "1";
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -36,6 +37,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   // If not logged in, render children without sidebar/header chrome
   if (!user) {
     return <div className="min-h-screen">{children}</div>;
+  }
+
+  if (weighOneTablet) {
+    return <div className="min-h-dvh bg-background"><UrgentContaminationPopup tablet /><main>{children}</main></div>;
   }
 
   return (
