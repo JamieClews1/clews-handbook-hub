@@ -40,6 +40,7 @@ import { CRMMailboxConnect, useMailboxConnection } from "@/components/crm/CRMMai
 import { CrmCustomerFolders } from "@/components/crm/CrmCustomerFolders";
 import { CrmTicketSidePanel } from "@/components/crm/CrmTicketSidePanel";
 import { useAuth } from "@/hooks/useAuth";
+import { Switch } from "@/components/ui/switch";
 
 type Status = "new" | "open" | "pending" | "resolved";
 type Priority = "low" | "normal" | "high" | "urgent";
@@ -60,7 +61,18 @@ interface Ticket {
   priority: Priority | null;
   category: string | null;
   due_at: string | null;
+  intent?: string | null;
+  is_filed?: boolean;
+  ai_summary?: string | null;
 }
+
+const INTENT_LABELS: Record<string, string> = {
+  booking: "New order / PO", quote: "Quote", exchange: "Exchange", collection: "Collection",
+  weight_paperwork: "Weight / WTN", invoice: "Invoice", cancellation: "Cancel / amend",
+  compliance: "Compliance docs", job_check: "Job check", complaint: "Service issue",
+  thank_you: "Thank-you", other: "Other", noise_spam: "Spam report", noise_system: "System mail",
+  noise_newsletter: "Newsletter", internal: "Internal",
+};
 
 interface Message {
   id: string;
@@ -292,11 +304,25 @@ export default function CRMPage() {
     [tickets, user?.id, myConnectionIds],
   );
   const [mailboxFilter, setMailboxFilter] = useState<string | "all">("all");
+  const [showFiled, setShowFiled] = useState(false);
+  const [triageOn, setTriageOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    supabase.from("crm_ai_settings").select("triage_enabled").maybeSingle()
+      .then(({ data }) => setTriageOn(data?.triage_enabled ?? true));
+  }, []);
+  const toggleTriage = async (v: boolean) => {
+    setTriageOn(v);
+    const { error } = await supabase.from("crm_ai_settings")
+      .update({ triage_enabled: v, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
+      .eq("id", true);
+    if (error) { setTriageOn(!v); toast({ title: "Couldn't save", description: error.message, variant: "destructive" }); }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return mine.filter((t) => {
       if (mailboxFilter !== "all" && t.mailbox_connection_id !== mailboxFilter) return false;
+      if (!!t.is_filed !== showFiled) return false;
       if (folder === "unassigned" && t.customer_id) return false;
       if (folder && folder !== "unassigned" && t.customer_id !== folder) return false;
       if (filter !== "all" && t.status !== filter) return false;
@@ -310,13 +336,14 @@ export default function CRMPage() {
         customerName.toLowerCase().includes(q)
       );
     });
-  }, [mine, folder, filter, search, customerNames, mailboxFilter]);
+  }, [mine, folder, filter, search, customerNames, mailboxFilter, showFiled]);
 
   const stats = useMemo(() => {
-    const open = mine.filter((t) => t.status === "new" || t.status === "open").length;
-    const unlinked = mine.filter((t) => !t.customer_id).length;
+    const open = mine.filter((t) => !t.is_filed && (t.status === "new" || t.status === "open")).length;
+    const unlinked = mine.filter((t) => !t.is_filed && !t.customer_id).length;
+    const filed = mine.filter((t) => t.is_filed).length;
     const resolved = mine.filter((t) => t.status === "resolved").length;
-    return { total: mine.length, open, unlinked, resolved };
+    return { total: mine.length, open, unlinked, resolved, filed };
   }, [mine]);
 
   const handleSync = async () => {
@@ -495,6 +522,14 @@ export default function CRMPage() {
                 {stats.resolved} resolved
               </Badge>
               <Badge variant="outline">{stats.unlinked} unlinked</Badge>
+              <Badge variant="outline">{stats.filed} filed</Badge>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <label className="flex items-center gap-2" title="Files spam, receipts and newsletters, links senders to customers, sets category and flags urgent issues. Never sends email.">
+                <Switch checked={!!triageOn} onCheckedChange={toggleTriage} disabled={triageOn === null} />
+                <span className="font-medium text-foreground">Auto-sort new emails</span>
+              </label>
+              <span className="text-muted-foreground">AI replies: <span className="font-medium text-foreground">Off</span></span>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={relinkAll}>
@@ -573,6 +608,14 @@ export default function CRMPage() {
                     {f.label}
                   </Button>
                 ))}
+                <Button
+                  size="sm"
+                  variant={showFiled ? "secondary" : "ghost"}
+                  className="h-7 px-2 text-xs ml-auto"
+                  onClick={() => setShowFiled((v) => !v)}
+                >
+                  {showFiled ? "Back to inbox" : `Filed (${stats.filed})`}
+                </Button>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-1">
                 {loading ? (
@@ -610,6 +653,11 @@ export default function CRMPage() {
                         <Badge variant="outline" className={cn("text-[10px]", STATUS_META[t.status].className)}>
                           {STATUS_META[t.status].label}
                         </Badge>
+                        {t.intent && INTENT_LABELS[t.intent] && (
+                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                            {INTENT_LABELS[t.intent]}
+                          </Badge>
+                        )}
                         {t.priority && t.priority !== "normal" && (
                           <Badge variant="outline" className={cn("text-[10px]", PRIORITY_META[t.priority].className)}>
                             {PRIORITY_META[t.priority].label}
