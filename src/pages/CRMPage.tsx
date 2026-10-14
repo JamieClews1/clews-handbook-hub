@@ -480,7 +480,7 @@ export default function CRMPage() {
 
         <TabsContent value="inbox" className="space-y-4">
           <CRMMailboxConnect
-            connection={mailbox}
+            connections={mailboxes}
             loading={mailboxLoading}
             onChange={reloadMailbox}
           />
@@ -538,6 +538,29 @@ export default function CRMPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              {mailboxes.length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    size="sm"
+                    variant={mailboxFilter === "all" ? "default" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setMailboxFilter("all")}
+                  >
+                    All mailboxes
+                  </Button>
+                  {mailboxes.map((m) => (
+                    <Button
+                      key={m.id}
+                      size="sm"
+                      variant={mailboxFilter === m.id ? "default" : "outline"}
+                      className="h-7 px-2 text-xs max-w-[160px] truncate"
+                      onClick={() => setMailboxFilter(m.id)}
+                    >
+                      {m.ms_email}
+                    </Button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap gap-1">
                 {STATUS_FILTERS.map((f) => (
                   <Button
@@ -595,6 +618,11 @@ export default function CRMPage() {
                         {t.customer_id && customerNames[t.customer_id] && (
                           <Badge variant="secondary" className="text-[10px] max-w-[150px] truncate">
                             {customerNames[t.customer_id]}
+                          </Badge>
+                        )}
+                        {t.mailbox_connection_id && mailboxEmailById[t.mailbox_connection_id] && mailboxes.length > 1 && (
+                          <Badge variant="outline" className="text-[10px] max-w-[150px] truncate border-primary/30 text-primary">
+                            {mailboxEmailById[t.mailbox_connection_id]}
                           </Badge>
                         )}
                       </div>
