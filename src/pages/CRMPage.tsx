@@ -275,15 +275,28 @@ export default function CRMPage() {
     return map;
   }, [customers]);
 
-  // Tickets belonging to this user's mailbox (plus legacy untagged ones).
+  // Tickets belonging to any of this user's linked mailboxes (plus legacy untagged ones).
+  const myConnectionIds = useMemo(() => new Set(mailboxes.map((m) => m.id)), [mailboxes]);
+  const mailboxEmailById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of mailboxes) map[m.id] = m.ms_email;
+    return map;
+  }, [mailboxes]);
   const mine = useMemo(
-    () => tickets.filter((t) => !t.mailbox_user_id || t.mailbox_user_id === user?.id),
-    [tickets, user?.id],
+    () =>
+      tickets.filter(
+        (t) =>
+          (t.mailbox_connection_id && myConnectionIds.has(t.mailbox_connection_id)) ||
+          (!t.mailbox_connection_id && (!t.mailbox_user_id || t.mailbox_user_id === user?.id)),
+      ),
+    [tickets, user?.id, myConnectionIds],
   );
+  const [mailboxFilter, setMailboxFilter] = useState<string | "all">("all");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return mine.filter((t) => {
+      if (mailboxFilter !== "all" && t.mailbox_connection_id !== mailboxFilter) return false;
       if (folder === "unassigned" && t.customer_id) return false;
       if (folder && folder !== "unassigned" && t.customer_id !== folder) return false;
       if (filter !== "all" && t.status !== filter) return false;
