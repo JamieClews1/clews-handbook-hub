@@ -84,7 +84,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
 
   const filtered = useMemo(() => tickets.filter(ticket => {
     const term = search.trim().toLowerCase();
-    return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
+    return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
   }), [tickets, search, source]);
 
   const shiftDays = (days: number) => {
