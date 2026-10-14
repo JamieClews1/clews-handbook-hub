@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
-import type { WtnJob } from "@/lib/route-one-wtn";
+import { downloadWtnPdf, printWtnPdf, type WtnJob } from "@/lib/route-one-wtn";
 
 export const escapePrintValue = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
 
