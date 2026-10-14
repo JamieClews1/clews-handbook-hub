@@ -30,48 +30,63 @@ function ruleIntent(email: string, subject: string): string | null {
 const URGENT_RE = /\b(urgent|asap|contaminat|missed|not emptied|not been emptied|dispute|on stop|complain)/i;
 const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
+const nullableStr = { type: ['string', 'null'] };
+const TRIAGE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    intent: { type: 'string', enum: INTENTS },
+    urgent: { type: 'boolean', description: 'Contamination, missed/not emptied lift, urgent/ASAP, dispute, account on stop' },
+    summary: { type: 'string', description: 'One short sentence' },
+    company_name: { ...nullableStr, description: 'Customer company the email is on behalf of (broker or end customer)' },
+    po_number: nullableStr, contract_number: nullableStr, job_reference: nullableStr,
+    site_name: nullableStr, postcode: nullableStr, container: nullableStr, waste_type: nullableStr,
+    service: { ...nullableStr, description: 'deliver, exchange or collect' },
+    requested_date: nullableStr,
+  },
+  required: ['intent', 'urgent', 'summary', 'company_name', 'po_number', 'contract_number', 'job_reference',
+    'site_name', 'postcode', 'container', 'waste_type', 'service', 'requested_date'],
+};
+
 async function aiClassify(apiKey: string, subject: string, from: string, body: string) {
-  const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: { 'Lovable-API-Key': apiKey, Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'X-Lovable-AIG-SDK': 'fetch' },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: 'You triage emails arriving at Clews Recycling, a UK skip hire, RoRo and waste management company. Brokers (Reconomy, Go Green, Biffa, Kenny, LB Waste, Opteco, Project Waste, YardLink, SPUD Now, MJ Church, Acorn) send purchase orders. Classify the email and extract fields. Use null when a field is not present.' },
-        { role: 'user', content: `From: ${from}\nSubject: ${subject}\n\n${body.slice(0, 4000)}` },
-      ],
-      tools: [{
-        type: 'function',
-        function: {
-          name: 'triage',
-          parameters: {
-            type: 'object',
-            properties: {
-              intent: { type: 'string', enum: INTENTS },
-              urgent: { type: 'boolean', description: 'Contamination, missed/not emptied lift, urgent/ASAP, dispute, account on stop' },
-              summary: { type: 'string', description: 'One short sentence' },
-              company_name: { type: ['string', 'null'], description: 'Customer company the email is on behalf of (broker or end customer)' },
-              po_number: { type: ['string', 'null'] },
-              contract_number: { type: ['string', 'null'] },
-              job_reference: { type: ['string', 'null'] },
-              site_name: { type: ['string', 'null'] },
-              postcode: { type: ['string', 'null'] },
-              container: { type: ['string', 'null'] },
-              waste_type: { type: ['string', 'null'] },
-              service: { type: ['string', 'null'], enum: ['deliver', 'exchange', 'collect', null] },
-              requested_date: { type: ['string', 'null'] },
-            },
-            required: ['intent', 'urgent', 'summary'],
-          },
-        },
-      }],
-      tool_choice: { type: 'function', function: { name: 'triage' } },
+      model: 'openai/gpt-6-astra',
+      stream: true,
+      store: false,
+      reasoning: { effort: 'low' },
+      instructions: 'You triage emails arriving at Clews Recycling, a UK skip hire, RoRo and waste management company. Brokers (Reconomy, Go Green, Biffa, Kenny, LB Waste, Opteco, Project Waste, YardLink, SPUD Now, MJ Church, Acorn) send purchase orders. Classify the email and extract fields. Use null when a field is not present.',
+      input: `From: ${from}\nSubject: ${subject}\n\n${body.slice(0, 4000)}`,
+      text: { format: { type: 'json_schema', name: 'triage', strict: true, schema: TRIAGE_SCHEMA } },
     }),
   });
-  if (!res.ok) throw new Error(`AI ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  return args ? JSON.parse(args) : null;
+  if (!res.ok || !res.body) throw new Error(`AI ${res.status}: ${await res.text()}`);
+  // Consume the SSE stream and collect the output text.
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', out = '', done = '';
+  while (true) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const d = line.slice(5).trim();
+      if (!d || d === '[DONE]') continue;
+      try {
+        const ev = JSON.parse(d);
+        if (ev.type === 'response.output_text.delta') out += ev.delta ?? '';
+        else if (ev.type === 'response.output_text.done') done = ev.text ?? '';
+        else if (ev.type === 'response.failed' || ev.type === 'error') throw new Error(JSON.stringify(ev));
+      } catch (e) { if (e instanceof Error && e.message.startsWith('{')) throw e; }
+    }
+  }
+  const text = done || out;
+  return text ? JSON.parse(text) : null;
 }
 
 async function linkCustomer(admin: any, email: string, ex: any): Promise<{ id: string | null; conf: number | null }> {
