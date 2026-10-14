@@ -374,11 +374,14 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
 
   if (newTicketIds.length) {
     try {
-      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/crm-ai-triage`, {
+      // Run in the background so the inbox sync isn't held up by sorting.
+      const p = fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/crm-ai-triage`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticket_ids: [...new Set(newTicketIds)].slice(0, 100) }),
-      });
+      }).catch((e) => console.error('Triage call failed', e));
+      // @ts-ignore EdgeRuntime is provided by the Supabase runtime
+      if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(p); else await p;
     } catch (e) { console.error('Triage call failed', e); }
   }
 
