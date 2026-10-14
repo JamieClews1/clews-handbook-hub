@@ -310,7 +310,7 @@ export default function CRMPage() {
         customerName.toLowerCase().includes(q)
       );
     });
-  }, [mine, folder, filter, search, customerNames]);
+  }, [mine, folder, filter, search, customerNames, mailboxFilter]);
 
   const stats = useMemo(() => {
     const open = mine.filter((t) => t.status === "new" || t.status === "open").length;
@@ -322,8 +322,8 @@ export default function CRMPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      // Use the user's own mailbox when connected, else the shared orders@ inbox.
-      const fn = mailbox ? "crm-mailbox-sync" : "crm-outlook-sync";
+      // Use the user's own mailboxes when connected, else the shared orders@ inbox.
+      const fn = mailboxes.length > 0 ? "crm-mailbox-sync" : "crm-outlook-sync";
       const { data, error } = await supabase.functions.invoke(fn);
       if (error) throw error;
       if (data?.reauth) {
@@ -338,7 +338,7 @@ export default function CRMPage() {
       if (data?.connected === false) {
         toast({
           title: "Mailbox not connected",
-          description: mailbox
+          description: mailboxes.length > 0
             ? "Reconnect your mailbox to sync."
             : data?.message ?? "Connect a mailbox to sync emails.",
         });
@@ -348,7 +348,7 @@ export default function CRMPage() {
           description: `${data?.synced ?? 0} new message(s) imported.`,
         });
         await loadTickets();
-        if (mailbox) reloadMailbox();
+        if (mailboxes.length > 0) reloadMailbox();
       }
     } catch (e: any) {
       toast({ title: "Sync failed", description: e.message ?? String(e), variant: "destructive" });
