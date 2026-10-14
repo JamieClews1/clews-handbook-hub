@@ -256,7 +256,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         .from('crm_tickets')
         .select('id')
         .eq('graph_conversation_id', conversationId)
-        .eq('mailbox_user_id', userId)
+        .eq('mailbox_connection_id', conn.id)
         .maybeSingle();
       ticketId = existingTicket?.id ?? null;
     }
@@ -294,6 +294,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
           is_read: false,
           last_message_at: receivedAt,
           mailbox_user_id: userId,
+          mailbox_connection_id: conn.id,
           customer_id: customerId,
         })
         .select('id')
