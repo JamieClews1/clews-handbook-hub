@@ -50,6 +50,8 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         hubJobs.filter(job => job.source !== "skiptrak" || !nativeNumbers.has(job.job_number.trim().toUpperCase())).map((job): CombinedTicket => ({
           id: job.id, source: job.source === "midweigh" ? "midweigh" : "skiptrak", ticket: job.job_number, date: job.job_date,
           customer: job.customer, site: job.site, vehicle: job.vehicle_registration,
+          siteAddress: rawStr(job.raw, "Address 1", "Address 2", "Address 3", "Address 4", "Address 5", "Address 2nd LIne"),
+          postcode: rawStr(job.raw, "Location Postc", "Location Postc_1", "Postcode"),
           driver: job.driver, waste: job.waste_description, ewc: job.ewc,
           movement: job.movement_type, status: null,
           weightTonnes: ticketWeightTonnes(job.weight_t, job.source === "midweigh" ? "midweigh" : "skiptrak"), raw: job.raw,
