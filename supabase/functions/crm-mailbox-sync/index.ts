@@ -47,7 +47,7 @@ async function ensureAccessToken(admin: any, conn: any): Promise<string> {
       token_expires_at: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', conn.user_id);
+    .eq('id', conn.id);
   return accessToken;
 }
 
@@ -246,7 +246,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
       .from('crm_ticket_messages')
       .select('id')
       .eq('graph_message_id', graphMessageId)
-      .eq('mailbox_user_id', userId)
+      .eq('mailbox_connection_id', conn.id)
       .maybeSingle();
     if (existingMsg) continue;
 
@@ -256,7 +256,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         .from('crm_tickets')
         .select('id')
         .eq('graph_conversation_id', conversationId)
-        .eq('mailbox_user_id', userId)
+        .eq('mailbox_connection_id', conn.id)
         .maybeSingle();
       ticketId = existingTicket?.id ?? null;
     }
@@ -294,6 +294,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
           is_read: false,
           last_message_at: receivedAt,
           mailbox_user_id: userId,
+          mailbox_connection_id: conn.id,
           customer_id: customerId,
         })
         .select('id')
@@ -314,6 +315,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         graph_message_id: graphMessageId,
         sent_at: receivedAt,
         mailbox_user_id: userId,
+        mailbox_connection_id: conn.id,
       })
       .select('id')
       .maybeSingle();
@@ -354,6 +356,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
             from_email: conn.ms_email,
             sent_at: new Date().toISOString(),
             mailbox_user_id: userId,
+            mailbox_connection_id: conn.id,
           });
         }
       } catch (e) {
@@ -367,7 +370,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
   await admin
     .from('crm_mailbox_connections')
     .update({ last_synced_at: new Date().toISOString() })
-    .eq('user_id', userId);
+    .eq('id', conn.id);
 
   return { synced };
 }
@@ -412,18 +415,27 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await authedClient.auth.getUser();
     if (userErr || !userData.user) return json({ error: 'Unauthorized' }, 401);
 
-    const { data: conn } = await admin
+    const { data: conns } = await admin
       .from('crm_mailbox_connections')
       .select('*')
       .eq('user_id', userData.user.id)
-      .maybeSingle();
+      .order('created_at');
 
-    if (!conn) {
+    if (!conns || conns.length === 0) {
       return json({ connected: false, synced: 0, message: 'No mailbox connected.' });
     }
 
-    const result = await syncMailbox(admin, conn);
-    return json({ connected: true, email: conn.ms_email, ...result });
+    // Sync every mailbox linked to this staff user.
+    const results: any[] = [];
+    let totalSynced = 0;
+    let reauth = false;
+    for (const conn of conns) {
+      const r = await syncMailbox(admin, conn);
+      totalSynced += r.synced;
+      if (r.reauth) reauth = true;
+      results.push({ email: conn.ms_email, ...r });
+    }
+    return json({ connected: true, synced: totalSynced, reauth, mailboxes: results });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

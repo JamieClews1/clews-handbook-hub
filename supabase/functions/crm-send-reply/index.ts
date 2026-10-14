@@ -56,7 +56,7 @@ async function ensureAccessToken(admin: any, conn: any): Promise<string> {
       token_expires_at: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', conn.user_id);
+    .eq('id', conn.id);
   return tokens.access_token;
 }
 
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
     const { data: ticket, error: ticketErr } = await supabase
       .from('crm_tickets')
-      .select('id, graph_message_id, sender_email, sender_name, subject, mailbox_user_id')
+      .select('id, graph_message_id, sender_email, sender_name, subject, mailbox_user_id, mailbox_connection_id')
       .eq('id', ticketId)
       .single();
     if (ticketErr || !ticket) return json({ error: 'Ticket not found' }, 404);
@@ -119,18 +119,26 @@ Deno.serve(async (req) => {
     let graphError: string | null = null;
     let fromEmail = 'orders@clewsrecycling.co.uk';
 
-    // Prefer sending from the logged-in user's own connected mailbox.
-    const { data: conn } = await supabase
+    // Send from the mailbox the thread belongs to when the caller has it
+    // linked; otherwise fall back to any of the caller's linked mailboxes.
+    const { data: userConns } = await supabase
       .from('crm_mailbox_connections')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle();
+      .order('created_at');
+    const conn =
+      (userConns ?? []).find((c: any) => c.id === ticket.mailbox_connection_id) ??
+      (userConns ?? [])[0] ??
+      null;
 
     if (conn) {
       try {
         const accessToken = await ensureAccessToken(supabase, conn);
         fromEmail = conn.ms_email;
-        const canReplyInThread = conn.user_id === ticket.mailbox_user_id && replyMessageId;
+        const ownsThread = ticket.mailbox_connection_id
+          ? conn.id === ticket.mailbox_connection_id
+          : conn.user_id === ticket.mailbox_user_id;
+        const canReplyInThread = ownsThread && replyMessageId;
         const graphUrl = canReplyInThread
           ? `https://graph.microsoft.com/v1.0/me/messages/${replyMessageId}/reply`
           : 'https://graph.microsoft.com/v1.0/me/sendMail';
@@ -221,6 +229,7 @@ Deno.serve(async (req) => {
       from_email: fromEmail,
       sent_at: new Date().toISOString(),
       mailbox_user_id: ticket.mailbox_user_id ?? userId,
+      mailbox_connection_id: ticket.mailbox_connection_id ?? conn?.id ?? null,
     });
 
     await supabase

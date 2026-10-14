@@ -55,6 +55,7 @@ interface Ticket {
   last_message_at: string;
   assigned_to: string | null;
   mailbox_user_id: string | null;
+  mailbox_connection_id: string | null;
   customer_id: string | null;
   priority: Priority | null;
   category: string | null;
@@ -121,7 +122,7 @@ export default function CRMPage() {
   const { user } = useAuth();
   const { templates, reload: reloadTemplates } = useCRMTemplates();
   const {
-    connection: mailbox,
+    connections: mailboxes,
     loading: mailboxLoading,
     reload: reloadMailbox,
   } = useMailboxConnection(user?.id);
@@ -158,7 +159,7 @@ export default function CRMPage() {
       clearTimeout(t);
       window.removeEventListener("resize", measure);
     };
-  }, [mailbox, connected, loading]);
+  }, [mailboxes.length, connected, loading]);
 
   const loadTickets = async () => {
     // Paged: PostgREST caps a single response at 1,000 rows, so a plain
@@ -274,15 +275,28 @@ export default function CRMPage() {
     return map;
   }, [customers]);
 
-  // Tickets belonging to this user's mailbox (plus legacy untagged ones).
+  // Tickets belonging to any of this user's linked mailboxes (plus legacy untagged ones).
+  const myConnectionIds = useMemo(() => new Set(mailboxes.map((m) => m.id)), [mailboxes]);
+  const mailboxEmailById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of mailboxes) map[m.id] = m.ms_email;
+    return map;
+  }, [mailboxes]);
   const mine = useMemo(
-    () => tickets.filter((t) => !t.mailbox_user_id || t.mailbox_user_id === user?.id),
-    [tickets, user?.id],
+    () =>
+      tickets.filter(
+        (t) =>
+          (t.mailbox_connection_id && myConnectionIds.has(t.mailbox_connection_id)) ||
+          (!t.mailbox_connection_id && (!t.mailbox_user_id || t.mailbox_user_id === user?.id)),
+      ),
+    [tickets, user?.id, myConnectionIds],
   );
+  const [mailboxFilter, setMailboxFilter] = useState<string | "all">("all");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return mine.filter((t) => {
+      if (mailboxFilter !== "all" && t.mailbox_connection_id !== mailboxFilter) return false;
       if (folder === "unassigned" && t.customer_id) return false;
       if (folder && folder !== "unassigned" && t.customer_id !== folder) return false;
       if (filter !== "all" && t.status !== filter) return false;
@@ -296,7 +310,7 @@ export default function CRMPage() {
         customerName.toLowerCase().includes(q)
       );
     });
-  }, [mine, folder, filter, search, customerNames]);
+  }, [mine, folder, filter, search, customerNames, mailboxFilter]);
 
   const stats = useMemo(() => {
     const open = mine.filter((t) => t.status === "new" || t.status === "open").length;
@@ -308,8 +322,8 @@ export default function CRMPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      // Use the user's own mailbox when connected, else the shared orders@ inbox.
-      const fn = mailbox ? "crm-mailbox-sync" : "crm-outlook-sync";
+      // Use the user's own mailboxes when connected, else the shared orders@ inbox.
+      const fn = mailboxes.length > 0 ? "crm-mailbox-sync" : "crm-outlook-sync";
       const { data, error } = await supabase.functions.invoke(fn);
       if (error) throw error;
       if (data?.reauth) {
@@ -324,7 +338,7 @@ export default function CRMPage() {
       if (data?.connected === false) {
         toast({
           title: "Mailbox not connected",
-          description: mailbox
+          description: mailboxes.length > 0
             ? "Reconnect your mailbox to sync."
             : data?.message ?? "Connect a mailbox to sync emails.",
         });
@@ -334,7 +348,7 @@ export default function CRMPage() {
           description: `${data?.synced ?? 0} new message(s) imported.`,
         });
         await loadTickets();
-        if (mailbox) reloadMailbox();
+        if (mailboxes.length > 0) reloadMailbox();
       }
     } catch (e: any) {
       toast({ title: "Sync failed", description: e.message ?? String(e), variant: "destructive" });
@@ -466,7 +480,7 @@ export default function CRMPage() {
 
         <TabsContent value="inbox" className="space-y-4">
           <CRMMailboxConnect
-            connection={mailbox}
+            connections={mailboxes}
             loading={mailboxLoading}
             onChange={reloadMailbox}
           />
@@ -524,6 +538,29 @@ export default function CRMPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              {mailboxes.length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                  <Button
+                    size="sm"
+                    variant={mailboxFilter === "all" ? "default" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setMailboxFilter("all")}
+                  >
+                    All mailboxes
+                  </Button>
+                  {mailboxes.map((m) => (
+                    <Button
+                      key={m.id}
+                      size="sm"
+                      variant={mailboxFilter === m.id ? "default" : "outline"}
+                      className="h-7 px-2 text-xs max-w-[160px] truncate"
+                      onClick={() => setMailboxFilter(m.id)}
+                    >
+                      {m.ms_email}
+                    </Button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap gap-1">
                 {STATUS_FILTERS.map((f) => (
                   <Button
@@ -581,6 +618,11 @@ export default function CRMPage() {
                         {t.customer_id && customerNames[t.customer_id] && (
                           <Badge variant="secondary" className="text-[10px] max-w-[150px] truncate">
                             {customerNames[t.customer_id]}
+                          </Badge>
+                        )}
+                        {t.mailbox_connection_id && mailboxEmailById[t.mailbox_connection_id] && mailboxes.length > 1 && (
+                          <Badge variant="outline" className="text-[10px] max-w-[150px] truncate border-primary/30 text-primary">
+                            {mailboxEmailById[t.mailbox_connection_id]}
                           </Badge>
                         )}
                       </div>
