@@ -32,6 +32,7 @@ export async function fetchAllRows<T = any>(
   columns: string,
   orderColumn: string,
   filters: (q: any) => any = (q) => q,
+  ascending = true,
 ): Promise<T[]> {
   const pageSize = 1000;
   let from = 0;
@@ -39,7 +40,10 @@ export async function fetchAllRows<T = any>(
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const q = filters(
-      supabase.from(table as any).select(columns).order(orderColumn),
+      supabase
+        .from(table as any)
+        .select(columns)
+        .order(orderColumn, { ascending }),
     ).range(from, from + pageSize - 1);
     const { data, error } = await q;
     if (error) throw error;

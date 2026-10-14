@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAllCustomers } from "@/lib/fetch-all";
+import { fetchAllCustomers, fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,14 +139,44 @@ export default function CRMPage() {
   const [syncing, setSyncing] = useState(false);
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [panelH, setPanelH] = useState(560);
+
+  // Size the three panes to the space actually left below the header, so the
+  // reply box and its buttons are never pushed out of the window.
+  useEffect(() => {
+    const measure = () => {
+      const el = gridRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setPanelH(Math.max(420, window.innerHeight - top - 16));
+    };
+    measure();
+    const t = setTimeout(measure, 300);
+    window.addEventListener("resize", measure);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", measure);
+    };
+  }, [mailbox, connected, loading]);
 
   const loadTickets = async () => {
-    const { data } = await supabase
-      .from("crm_tickets")
-      .select("*")
-      .order("last_message_at", { ascending: false });
-    setTickets((data as unknown as Ticket[]) ?? []);
-    setLoading(false);
+    // Paged: PostgREST caps a single response at 1,000 rows, so a plain
+    // select silently drops everything older than the newest 1,000 threads.
+    try {
+      const rows = await fetchAllRows<Ticket>(
+        "crm_tickets",
+        "*",
+        "last_message_at",
+        (q) => q,
+        false,
+      );
+      setTickets(rows);
+    } catch {
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadTeam = async () => {
@@ -207,12 +237,18 @@ export default function CRMPage() {
   );
 
   const loadMessages = async (ticketId: string) => {
-    const { data } = await supabase
-      .from("crm_ticket_messages")
-      .select("*")
-      .eq("ticket_id", ticketId)
-      .order("sent_at", { ascending: true });
-    setMessages((data as Message[]) ?? []);
+    try {
+      const rows = await fetchAllRows<Message>(
+        "crm_ticket_messages",
+        "*",
+        "sent_at",
+        (q) => q.eq("ticket_id", ticketId),
+        true,
+      );
+      setMessages(rows);
+    } catch {
+      setMessages([]);
+    }
   };
 
   useEffect(() => {
@@ -470,9 +506,9 @@ export default function CRMPage() {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[230px_340px_1fr] gap-4">
+          <div ref={gridRef} className="grid grid-cols-1 lg:grid-cols-[230px_340px_1fr] gap-4">
             {/* Customer folders */}
-            <Card className="p-3 h-[calc(100vh-260px)]">
+            <Card className="p-3 overflow-hidden" style={{ height: panelH }}>
               <CrmCustomerFolders
                 tickets={mine}
                 customerNames={customerNames}
@@ -482,7 +518,7 @@ export default function CRMPage() {
             </Card>
 
             {/* Ticket list */}
-            <Card className="p-3 space-y-3 h-[calc(100vh-260px)] flex flex-col">
+            <Card className="p-3 space-y-3 flex flex-col overflow-hidden" style={{ height: panelH }}>
               <Input
                 placeholder="Search subject, sender or customer…"
                 value={search}
@@ -501,7 +537,7 @@ export default function CRMPage() {
                   </Button>
                 ))}
               </div>
-              <div className="flex-1 overflow-y-auto -mx-1 px-1 space-y-1">
+              <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-1">
                 {loading ? (
                   <p className="text-sm text-muted-foreground p-4 text-center">Loading…</p>
                 ) : filtered.length === 0 ? (
@@ -517,7 +553,7 @@ export default function CRMPage() {
                       className={cn(
                         "w-full text-left rounded-lg p-3 transition-colors border",
                         selectedId === t.id
-                          ? "bg-accent border-border"
+                          ? "bg-primary/10 border-primary/30"
                           : "border-transparent hover:bg-muted/50",
                       )}
                     >
@@ -555,7 +591,7 @@ export default function CRMPage() {
             </Card>
 
             {/* Conversation */}
-            <Card className="p-0 h-[calc(100vh-260px)] flex overflow-hidden">
+            <Card className="p-0 flex overflow-hidden" style={{ height: panelH }}>
               {!selected ? (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
@@ -566,7 +602,7 @@ export default function CRMPage() {
               ) : (
                 <>
                   <div className="flex-1 flex flex-col min-w-0">
-                    <div className="border-b p-4 space-y-3">
+                    <div className="border-b p-4 space-y-3 shrink-0">
                       <div className="min-w-0">
                         <h2 className="font-semibold truncate">{selected.subject || "(no subject)"}</h2>
                         <p className="text-sm text-muted-foreground truncate">
@@ -643,7 +679,7 @@ export default function CRMPage() {
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
                       {messages.map((m) => (
                         <div
                           key={m.id}
@@ -675,7 +711,7 @@ export default function CRMPage() {
                       ))}
                     </div>
 
-                    <div className="border-t p-3 space-y-2">
+                    <div className="border-t p-3 space-y-2 shrink-0">
                       <Textarea
                         placeholder={
                           isNote
