@@ -18,6 +18,19 @@ type Guide = {
 
 const defaultGuides: Guide[] = [
   {
+    id: "weighone-tablet",
+    title: "How to install WeighOne on a tablet",
+    section: "WeighOne",
+    intro: "Use the tablet for weighbridge tickets and contamination review.",
+    steps: [
+      { title: "Open WeighOne and sign in", detail: "On the tablet, open https://portal.clewsrecycling.co.uk/weigh-one?tablet=1 in Safari on iPad or Chrome on Android. Sign in with a staff account, then return to WeighOne and select Tablet view if needed.", href: "/weigh-one?tablet=1", linkLabel: "Open WeighOne tablet view" },
+      { title: "Add the app icon", detail: "iPad: tap Share → Add to Home Screen → Add (leave Open as Web App on if shown). Android: tap the three-dot browser menu → Install app or Add to Home screen. Install while the WeighOne page is open." },
+      { title: "Open WeighOne from the icon", detail: "The icon opens straight into WeighOne without the portal sidebar. Portrait and landscape are both supported. Use All Tickets for ticket details or Contamination & Photos to review alerts and evidence." },
+      { title: "Review urgent contamination", detail: "Tap Review photos & charge on the red alert. Check the evidence and charges, then tap Acknowledge alert. The cross only hides the pop-up; it does not acknowledge the alert, and the job stays in Contamination & Photos." },
+    ],
+    note: "Requires an internet connection and staff access. Publish the latest version before installing on the tablet.",
+  },
+  {
     id: "monthly-rebates",
     title: "How to run rebates each month",
     section: "Rebates",

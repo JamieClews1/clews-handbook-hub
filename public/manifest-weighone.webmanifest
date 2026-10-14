@@ -1,0 +1,15 @@
+{
+  "id": "/weigh-one",
+  "name": "WasteOne WeighOne",
+  "short_name": "WeighOne",
+  "description": "WeighOne tickets and live contamination review.",
+  "theme_color": "#4ECB71",
+  "background_color": "#f7f9f8",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/weigh-one?tablet=1",
+  "icons": [
+    { "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
