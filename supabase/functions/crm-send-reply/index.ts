@@ -135,7 +135,10 @@ Deno.serve(async (req) => {
       try {
         const accessToken = await ensureAccessToken(supabase, conn);
         fromEmail = conn.ms_email;
-        const canReplyInThread = conn.user_id === ticket.mailbox_user_id && replyMessageId;
+        const ownsThread = ticket.mailbox_connection_id
+          ? conn.id === ticket.mailbox_connection_id
+          : conn.user_id === ticket.mailbox_user_id;
+        const canReplyInThread = ownsThread && replyMessageId;
         const graphUrl = canReplyInThread
           ? `https://graph.microsoft.com/v1.0/me/messages/${replyMessageId}/reply`
           : 'https://graph.microsoft.com/v1.0/me/sendMail';
@@ -226,6 +229,7 @@ Deno.serve(async (req) => {
       from_email: fromEmail,
       sent_at: new Date().toISOString(),
       mailbox_user_id: ticket.mailbox_user_id ?? userId,
+      mailbox_connection_id: ticket.mailbox_connection_id ?? conn?.id ?? null,
     });
 
     await supabase
