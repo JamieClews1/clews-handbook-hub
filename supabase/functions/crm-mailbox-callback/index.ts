@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         scope: SCOPES,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' },
+      { onConflict: 'user_id,ms_email' },
     );
 
     return json({ connected: true, email: msEmail });
