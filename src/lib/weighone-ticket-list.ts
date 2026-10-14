@@ -7,6 +7,8 @@ export interface CombinedTicket {
   date: string | null;
   customer: string | null;
   site: string | null;
+  siteAddress?: string | null;
+  postcode?: string | null;
   vehicle: string | null;
   driver: string | null;
   waste: string | null;
