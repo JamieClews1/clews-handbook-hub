@@ -130,8 +130,8 @@ export function CRMMailboxConnect({ connections, loading, onChange }: Props) {
 
   const handleDisconnect = async (conn: MailboxConnection) => {
     setDisconnectingId(conn.id);
-    const { error } = await supabase
-      .from("crm_mailbox_connections")
+    // Cast: generated types predate the multi-mailbox `id` column.
+    const { error } = await (supabase.from("crm_mailbox_connections") as any)
       .delete()
       .eq("id", conn.id);
     setDisconnectingId(null);
