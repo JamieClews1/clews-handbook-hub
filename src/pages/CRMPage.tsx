@@ -55,6 +55,7 @@ interface Ticket {
   last_message_at: string;
   assigned_to: string | null;
   mailbox_user_id: string | null;
+  mailbox_connection_id: string | null;
   customer_id: string | null;
   priority: Priority | null;
   category: string | null;
@@ -121,7 +122,7 @@ export default function CRMPage() {
   const { user } = useAuth();
   const { templates, reload: reloadTemplates } = useCRMTemplates();
   const {
-    connection: mailbox,
+    connections: mailboxes,
     loading: mailboxLoading,
     reload: reloadMailbox,
   } = useMailboxConnection(user?.id);
@@ -158,7 +159,7 @@ export default function CRMPage() {
       clearTimeout(t);
       window.removeEventListener("resize", measure);
     };
-  }, [mailbox, connected, loading]);
+  }, [mailboxes.length, connected, loading]);
 
   const loadTickets = async () => {
     // Paged: PostgREST caps a single response at 1,000 rows, so a plain
