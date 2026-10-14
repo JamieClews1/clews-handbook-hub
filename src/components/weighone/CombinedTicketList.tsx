@@ -21,6 +21,17 @@ type HubJob = Database["public"]["Tables"]["data_hub_jobs"]["Row"];
 
 const dateLabel = (date: string | null) => parseLoadReportDate(date)?.toLocaleDateString("en-GB", { timeZone: "UTC" }) ?? "—";
 
+/** First non-empty string among raw spreadsheet columns (used for postcode/address search). */
+const rawStr = (raw: unknown, ...keys: string[]) => {
+  const obj = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : null;
+  if (!obj) return null;
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+};
+
 export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
   const now = new Date();
   const [start, setStart] = useState(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`);
