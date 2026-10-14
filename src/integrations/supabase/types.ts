@@ -1572,6 +1572,7 @@ export type Database = {
           id: string
           name: string
           subject: string | null
+          template_key: string | null
           updated_at: string
         }
         Insert: {
@@ -1582,6 +1583,7 @@ export type Database = {
           id?: string
           name: string
           subject?: string | null
+          template_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -1592,6 +1594,7 @@ export type Database = {
           id?: string
           name?: string
           subject?: string | null
+          template_key?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1891,6 +1894,14 @@ export type Database = {
       }
       crm_tickets: {
         Row: {
+          ai_draft_body: string | null
+          ai_draft_edit_pct: number | null
+          ai_draft_found: Json | null
+          ai_draft_missing: string[] | null
+          ai_draft_sent_at: string | null
+          ai_draft_subject: string | null
+          ai_draft_template: string | null
+          ai_drafted_at: string | null
           ai_extracted: Json | null
           ai_link_confidence: number | null
           ai_summary: string | null
@@ -1920,6 +1931,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_draft_body?: string | null
+          ai_draft_edit_pct?: number | null
+          ai_draft_found?: Json | null
+          ai_draft_missing?: string[] | null
+          ai_draft_sent_at?: string | null
+          ai_draft_subject?: string | null
+          ai_draft_template?: string | null
+          ai_drafted_at?: string | null
           ai_extracted?: Json | null
           ai_link_confidence?: number | null
           ai_summary?: string | null
@@ -1949,6 +1968,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_draft_body?: string | null
+          ai_draft_edit_pct?: number | null
+          ai_draft_found?: Json | null
+          ai_draft_missing?: string[] | null
+          ai_draft_sent_at?: string | null
+          ai_draft_subject?: string | null
+          ai_draft_template?: string | null
+          ai_drafted_at?: string | null
           ai_extracted?: Json | null
           ai_link_confidence?: number | null
           ai_summary?: string | null
