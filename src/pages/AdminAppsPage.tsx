@@ -244,7 +244,26 @@ const loadReportSteps: Step[] = [
       </div>
     ),
   },
+  {
+    number: 4,
+    title: "Add Load Reports to a phone",
+    icon: Smartphone,
+    content: (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Open the URL below on the phone first and sign in, then add it to the home screen:
+        </p>
+        <UrlBox url="https://clewshandbook.lovable.app/load-reports" />
+        <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+          <li><strong>iPhone:</strong> in Safari tap <strong>Share</strong> → <strong>Add to Home Screen</strong> → <strong>Add</strong></li>
+          <li><strong>Android:</strong> in Chrome tap <strong>⋮</strong> → <strong>Install app</strong> (or <strong>Add to Home screen</strong>)</li>
+          <li>Open it from the home screen icon — it launches full screen straight into Load Reports</li>
+        </ol>
+      </div>
+    ),
+  },
 ];
+
 
 const loadReportFeatures: Feature[] = [
   { icon: Package, title: "Load Tallying", description: "Count items and pallets per waste type to build an accurate load." },

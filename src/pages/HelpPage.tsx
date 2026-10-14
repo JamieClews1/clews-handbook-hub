@@ -141,7 +141,38 @@ const defaultGuides: Guide[] = [
     ],
     note: "Only the approved container contact companies can be emailed. Use the settings button on the Container Loads page to manage contacts and the default email wording.",
   },
+  {
+    id: "load-reports-phone",
+    title: "How to add Load Reports to your phone",
+    section: "Load Reports",
+    intro: "Put a Load Reports icon on the phone home screen so it opens full screen like an app, straight back into Load Reports.",
+    steps: [
+      {
+        title: "Open Load Reports on the phone",
+        detail: "On the phone, open https://clewshandbook.lovable.app/load-reports. Use Safari on iPhone or Chrome on Android — the install option only appears in those browsers.",
+        href: "/load-reports", linkLabel: "Open Load Reports",
+      },
+      {
+        title: "Sign in first",
+        detail: "Load Reports is staff-only, so sign in with the staff account before adding the icon. Once signed in, the phone remembers the account and the icon opens straight back into Load Reports.",
+      },
+      {
+        title: "Add it to the home screen (iPhone)",
+        detail: "In Safari tap the Share button (the square with an arrow pointing up), scroll down and tap Add to Home Screen, then Add. A Load Reports icon appears on the home screen.",
+      },
+      {
+        title: "Install it (Android)",
+        detail: "In Chrome tap the three-dot menu at the top right, then Install app (on some phones Add to Home screen). Confirm the prompt and a Load Reports icon appears on the home screen.",
+      },
+      {
+        title: "Check it works",
+        detail: "Close the browser and open Load Reports from the home screen icon. It should open full screen with no browser bar. If it asks to sign in again, sign in once and the icon will keep the account.",
+      },
+    ],
+    note: "The icon is a shortcut to the live app, so it always opens the latest version — nothing needs updating on the phone. It needs a signal to load the page, but load reports entered while off the network are kept on the phone and sent when the signal returns.",
+  },
 ];
+
 
 export default function HelpPage() {
   const [params, setParams] = useSearchParams();
