@@ -1476,6 +1476,30 @@ export type Database = {
           },
         ]
       }
+      crm_ai_settings: {
+        Row: {
+          id: boolean
+          replies_enabled: boolean
+          triage_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          replies_enabled?: boolean
+          triage_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          replies_enabled?: boolean
+          triage_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       crm_assignment_log: {
         Row: {
           assigned_at: string
@@ -1867,6 +1891,10 @@ export type Database = {
       }
       crm_tickets: {
         Row: {
+          ai_extracted: Json | null
+          ai_link_confidence: number | null
+          ai_summary: string | null
+          ai_triaged_at: string | null
           assigned_to: string | null
           category: string | null
           created_at: string
@@ -1875,6 +1903,8 @@ export type Database = {
           graph_conversation_id: string | null
           graph_message_id: string | null
           id: string
+          intent: string | null
+          is_filed: boolean
           is_read: boolean
           last_message_at: string
           mailbox_connection_id: string | null
@@ -1890,6 +1920,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_extracted?: Json | null
+          ai_link_confidence?: number | null
+          ai_summary?: string | null
+          ai_triaged_at?: string | null
           assigned_to?: string | null
           category?: string | null
           created_at?: string
@@ -1898,6 +1932,8 @@ export type Database = {
           graph_conversation_id?: string | null
           graph_message_id?: string | null
           id?: string
+          intent?: string | null
+          is_filed?: boolean
           is_read?: boolean
           last_message_at?: string
           mailbox_connection_id?: string | null
@@ -1913,6 +1949,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_extracted?: Json | null
+          ai_link_confidence?: number | null
+          ai_summary?: string | null
+          ai_triaged_at?: string | null
           assigned_to?: string | null
           category?: string | null
           created_at?: string
@@ -1921,6 +1961,8 @@ export type Database = {
           graph_conversation_id?: string | null
           graph_message_id?: string | null
           id?: string
+          intent?: string | null
+          is_filed?: boolean
           is_read?: boolean
           last_message_at?: string
           mailbox_connection_id?: string | null
