@@ -1576,6 +1576,7 @@ export type Database = {
         Row: {
           access_token: string
           created_at: string
+          id: string
           last_synced_at: string | null
           ms_display_name: string | null
           ms_email: string
@@ -1588,6 +1589,7 @@ export type Database = {
         Insert: {
           access_token: string
           created_at?: string
+          id?: string
           last_synced_at?: string | null
           ms_display_name?: string | null
           ms_email: string
@@ -1600,6 +1602,7 @@ export type Database = {
         Update: {
           access_token?: string
           created_at?: string
+          id?: string
           last_synced_at?: string | null
           ms_display_name?: string | null
           ms_email?: string
@@ -1807,6 +1810,7 @@ export type Database = {
           graph_message_id: string | null
           id: string
           is_internal_note: boolean
+          mailbox_connection_id: string | null
           mailbox_user_id: string | null
           sent_at: string
           sent_by: string | null
@@ -1822,6 +1826,7 @@ export type Database = {
           graph_message_id?: string | null
           id?: string
           is_internal_note?: boolean
+          mailbox_connection_id?: string | null
           mailbox_user_id?: string | null
           sent_at?: string
           sent_by?: string | null
@@ -1837,6 +1842,7 @@ export type Database = {
           graph_message_id?: string | null
           id?: string
           is_internal_note?: boolean
+          mailbox_connection_id?: string | null
           mailbox_user_id?: string | null
           sent_at?: string
           sent_by?: string | null
@@ -1871,6 +1877,7 @@ export type Database = {
           id: string
           is_read: boolean
           last_message_at: string
+          mailbox_connection_id: string | null
           mailbox_user_id: string | null
           priority: string
           sender_email: string | null
@@ -1893,6 +1900,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           last_message_at?: string
+          mailbox_connection_id?: string | null
           mailbox_user_id?: string | null
           priority?: string
           sender_email?: string | null
@@ -1915,6 +1923,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           last_message_at?: string
+          mailbox_connection_id?: string | null
           mailbox_user_id?: string | null
           priority?: string
           sender_email?: string | null
