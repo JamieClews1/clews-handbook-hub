@@ -45,6 +45,26 @@ const LoadReportsPage = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
 
+  // Install from this page as the dedicated "WasteOne Load Reports" app
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const prevHref = link?.getAttribute("href") ?? null;
+    const prevTitle = document.title;
+    const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    const prevAppleTitle = appleMeta?.getAttribute("content") ?? null;
+
+    if (link) link.setAttribute("href", "/manifest-load-reports.webmanifest");
+    document.title = "WasteOne Load Reports";
+    appleMeta?.setAttribute("content", "Load Reports");
+
+    return () => {
+      if (link && prevHref) link.setAttribute("href", prevHref);
+      document.title = prevTitle;
+      if (prevAppleTitle) appleMeta?.setAttribute("content", prevAppleTitle);
+    };
+  }, []);
+
+
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
   const [originView, setOriginView] = useState<"list" | "all">("list");
