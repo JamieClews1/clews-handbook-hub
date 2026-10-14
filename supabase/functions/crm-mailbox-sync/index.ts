@@ -208,6 +208,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
   const data = await res.json();
   const messages: any[] = data.value ?? [];
   let synced = 0;
+  const newTicketIds: string[] = [];
 
   const isOrdersInbox = (conn.ms_email ?? '').toLowerCase().startsWith('orders@');
   // Never auto-reply to historic mail pulled in on a first sync.
@@ -270,8 +271,11 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
           sender_email: fromEmail,
           is_read: false,
           last_message_at: receivedAt,
+          // A new inbound message reopens a dealt-with/filed thread and re-sorts it.
+          ...(isInternal(fromEmail) ? {} : { status: 'new', is_filed: false, ai_triaged_at: null }),
         })
         .eq('id', ticketId);
+      if (!isInternal(fromEmail)) newTicketIds.push(ticketId);
     } else {
       // Link the thread to a customer account from the sender's address/domain.
       let customerId: string | null = null;
@@ -301,6 +305,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
         .single();
       if (ticketErr) continue;
       ticketId = newTicket.id;
+      newTicketIds.push(newTicket.id);
     }
 
     const { data: insertedMsg } = await admin
@@ -365,6 +370,16 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
     }
 
     synced++;
+  }
+
+  if (newTicketIds.length) {
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/crm-ai-triage`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_ids: [...new Set(newTicketIds)].slice(0, 100) }),
+      });
+    } catch (e) { console.error('Triage call failed', e); }
   }
 
   await admin
