@@ -415,18 +415,27 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await authedClient.auth.getUser();
     if (userErr || !userData.user) return json({ error: 'Unauthorized' }, 401);
 
-    const { data: conn } = await admin
+    const { data: conns } = await admin
       .from('crm_mailbox_connections')
       .select('*')
       .eq('user_id', userData.user.id)
-      .maybeSingle();
+      .order('created_at');
 
-    if (!conn) {
+    if (!conns || conns.length === 0) {
       return json({ connected: false, synced: 0, message: 'No mailbox connected.' });
     }
 
-    const result = await syncMailbox(admin, conn);
-    return json({ connected: true, email: conn.ms_email, ...result });
+    // Sync every mailbox linked to this staff user.
+    const results: any[] = [];
+    let totalSynced = 0;
+    let reauth = false;
+    for (const conn of conns) {
+      const r = await syncMailbox(admin, conn);
+      totalSynced += r.synced;
+      if (r.reauth) reauth = true;
+      results.push({ email: conn.ms_email, ...r });
+    }
+    return json({ connected: true, synced: totalSynced, reauth, mailboxes: results });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
