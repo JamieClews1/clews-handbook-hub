@@ -27,6 +27,20 @@ export function midweighPrintVars(job: Record<string, any>) {
   }).map(([key, value]) => [key, escapePrintValue(value)]));
 }
 
+async function fetchSkiptrakJob(id: string) {
+  const { data, error } = await supabase.from("data_hub_jobs").select("*").eq("id", id).eq("source", "skiptrak").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function printSkiptrakTicket(id: string) {
+  await printWtnPdf(skiptrakWtnJob(await fetchSkiptrakJob(id)));
+}
+
+export async function downloadSkiptrakTicket(id: string) {
+  await downloadWtnPdf(skiptrakWtnJob(await fetchSkiptrakJob(id)));
+}
+
 export async function printMidweighTicket(id: string) {
   const win = window.open("", "_blank", "width=900,height=1100");
   if (!win) throw new Error("Allow pop-ups to print this ticket.");
