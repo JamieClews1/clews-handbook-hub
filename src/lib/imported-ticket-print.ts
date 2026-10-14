@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
-import type { WtnJob } from "@/lib/route-one-wtn";
+import { downloadWtnPdf, printWtnPdf, type WtnJob } from "@/lib/route-one-wtn";
 
 export const escapePrintValue = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
 
@@ -25,6 +25,20 @@ export function midweighPrintVars(job: Record<string, any>) {
     gross_weight: weight(raw.Gross), tare_weight: weight(raw.Tare), net_weight: weight(net),
     net_tonnes: net == null || !Number.isFinite(Number(net)) ? "" : (Math.abs(Number(net)) / 1000).toFixed(3),
   }).map(([key, value]) => [key, escapePrintValue(value)]));
+}
+
+async function fetchSkiptrakJob(id: string) {
+  const { data, error } = await supabase.from("data_hub_jobs").select("*").eq("id", id).eq("source", "skiptrak").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function printSkiptrakTicket(id: string) {
+  await printWtnPdf(skiptrakWtnJob(await fetchSkiptrakJob(id)));
+}
+
+export async function downloadSkiptrakTicket(id: string) {
+  await downloadWtnPdf(skiptrakWtnJob(await fetchSkiptrakJob(id)));
 }
 
 export async function printMidweighTicket(id: string) {
