@@ -33,6 +33,7 @@ import {
   FileText,
   StickyNote,
   Building2,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
@@ -466,6 +467,13 @@ export default function CRMPage() {
           ? `Your reply was sent from ${data.from}.`
           : "Your reply was sent.",
       });
+      if (draftInfo) {
+        const editPct = draftEditPercent(draftInfo.body, reply);
+        await supabase.from("crm_tickets")
+          .update({ ai_draft_sent_at: new Date().toISOString(), ai_draft_edit_pct: editPct })
+          .eq("id", selected.id);
+        setDraftInfo(null);
+      }
       setReply("");
       await loadMessages(selected.id);
       setTickets((prev) =>
@@ -475,6 +483,31 @@ export default function CRMPage() {
       toast({ title: "Send failed", description: e.message ?? String(e), variant: "destructive" });
     } finally {
       setSending(false);
+    }
+  };
+
+  // AI draft: prepared for review only — nothing is sent until "Send reply" is pressed.
+  const [drafting, setDrafting] = useState(false);
+  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null } | null>(null);
+  useEffect(() => { setDraftInfo(null); }, [selectedId]);
+
+  const handleAiDraft = async () => {
+    if (!selected) return;
+    setDrafting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-draft", { body: { ticketId: selected.id } });
+      if (error) {
+        const details = await (error as any).context?.text?.().catch(() => "");
+        throw new Error(details || error.message);
+      }
+      if (data?.error) throw new Error(data.error);
+      setIsNote(false);
+      setReply(data.body ?? "");
+      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null });
+    } catch (e: any) {
+      toast({ title: "Couldn't draft a reply", description: e.message ?? String(e), variant: "destructive" });
+    } finally {
+      setDrafting(false);
     }
   };
 
@@ -802,6 +835,30 @@ export default function CRMPage() {
                     </div>
 
                     <div className="border-t p-3 space-y-2 shrink-0">
+                      {draftInfo && !isNote && (
+                        <div className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-foreground flex items-center gap-1">
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                              AI draft{draftInfo.template ? ` · ${INTENT_LABELS[draftInfo.template] ?? draftInfo.template}` : ""} — check before sending
+                            </span>
+                            <button className="text-muted-foreground hover:text-foreground" onClick={() => setDraftInfo(null)}>Hide</button>
+                          </div>
+                          {draftInfo.missing.length > 0 && (
+                            <p className="text-destructive">
+                              <span className="font-medium">Needs filling in:</span> {draftInfo.missing.join(" · ")}
+                            </p>
+                          )}
+                          {Object.keys(draftInfo.found).filter((k) => !["userName", "weightChecksUrl", "companyPhone"].includes(k)).length > 0 && (
+                            <p className="text-muted-foreground">
+                              <span className="font-medium text-foreground">Found in portal:</span>{" "}
+                              {Object.entries(draftInfo.found)
+                                .filter(([k]) => !["userName", "weightChecksUrl", "companyPhone"].includes(k))
+                                .map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <Textarea
                         placeholder={
                           isNote
@@ -814,6 +871,10 @@ export default function CRMPage() {
                       />
                       <div className="flex flex-wrap justify-between gap-2">
                         <div className="flex gap-2">
+                          <Button variant="secondary" onClick={handleAiDraft} disabled={drafting || isNote}>
+                            <Sparkles className={cn("h-4 w-4 text-primary", drafting && "animate-pulse")} />
+                            {drafting ? "Drafting…" : "AI draft"}
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="outline" disabled={templates.length === 0}>
@@ -877,4 +938,22 @@ export default function CRMPage() {
       </Tabs>
     </div>
   );
+}
+
+/** Percentage of the AI draft that was changed before sending (word-level). */
+export function draftEditPercent(draft: string, sent: string): number {
+  const a = draft.trim().split(/\s+/).filter(Boolean);
+  const b = sent.trim().split(/\s+/).filter(Boolean);
+  if (!a.length && !b.length) return 0;
+  const prev = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = 0;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = a[i - 1] === b[j - 1] ? diag + 1 : Math.max(prev[j], prev[j - 1]);
+      diag = tmp;
+    }
+  }
+  const lcs = prev[b.length];
+  return Math.round((1 - (2 * lcs) / (a.length + b.length)) * 100);
 }
