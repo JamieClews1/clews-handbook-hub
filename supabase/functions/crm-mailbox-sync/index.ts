@@ -47,7 +47,7 @@ async function ensureAccessToken(admin: any, conn: any): Promise<string> {
       token_expires_at: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', conn.user_id);
+    .eq('id', conn.id);
   return accessToken;
 }
 
@@ -246,7 +246,7 @@ async function syncMailbox(admin: any, conn: any): Promise<{ synced: number; err
       .from('crm_ticket_messages')
       .select('id')
       .eq('graph_message_id', graphMessageId)
-      .eq('mailbox_user_id', userId)
+      .eq('mailbox_connection_id', conn.id)
       .maybeSingle();
     if (existingMsg) continue;
 
