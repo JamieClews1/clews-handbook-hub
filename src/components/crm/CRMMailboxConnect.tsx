@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Mailbox, Link2, Link2Off, CheckCircle2, Loader2 } from "lucide-react";
+import { Mailbox, Link2, Link2Off, CheckCircle2, Loader2, Plus } from "lucide-react";
 
 export interface MailboxConnection {
+  id: string;
   user_id: string;
   ms_email: string;
   ms_display_name: string | null;
@@ -14,15 +15,15 @@ export interface MailboxConnection {
 }
 
 const CONNECTION_COLUMNS =
-  "user_id, ms_email, ms_display_name, last_synced_at, created_at, updated_at";
+  "id, user_id, ms_email, ms_display_name, last_synced_at, created_at, updated_at";
 
 export function useMailboxConnection(userId: string | null | undefined) {
-  const [connection, setConnection] = useState<MailboxConnection | null>(null);
+  const [connections, setConnections] = useState<MailboxConnection[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     if (!userId) {
-      setConnection(null);
+      setConnections([]);
       setLoading(false);
       return;
     }
@@ -30,8 +31,8 @@ export function useMailboxConnection(userId: string | null | undefined) {
       .from("crm_mailbox_connections")
       .select(CONNECTION_COLUMNS)
       .eq("user_id", userId)
-      .maybeSingle();
-    setConnection((data as MailboxConnection) ?? null);
+      .order("created_at");
+    setConnections((data as unknown as MailboxConnection[]) ?? []);
     setLoading(false);
   }, [userId]);
 
@@ -39,19 +40,19 @@ export function useMailboxConnection(userId: string | null | undefined) {
     reload();
   }, [reload]);
 
-  return { connection, loading, reload };
+  return { connections, loading, reload };
 }
 
 interface Props {
-  connection: MailboxConnection | null;
+  connections: MailboxConnection[];
   loading: boolean;
   onChange: () => void;
 }
 
-export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
+export function CRMMailboxConnect({ connections, loading, onChange }: Props) {
   const { toast } = useToast();
   const [connecting, setConnecting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -127,54 +128,74 @@ export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!connection) return;
-    setDisconnecting(true);
+  const handleDisconnect = async (conn: MailboxConnection) => {
+    setDisconnectingId(conn.id);
     const { error } = await supabase
       .from("crm_mailbox_connections")
       .delete()
-      .eq("user_id", connection.user_id);
-    setDisconnecting(false);
+      .eq("id", conn.id);
+    setDisconnectingId(null);
     if (error) {
       toast({ title: "Disconnect failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Mailbox disconnected" });
+    toast({ title: "Mailbox disconnected", description: conn.ms_email });
     onChange();
   };
 
   if (loading) {
     return (
       <Card className="p-4 flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Checking mailbox connection…
+        <Loader2 className="h-4 w-4 animate-spin" /> Checking mailbox connections…
       </Card>
     );
   }
 
-  if (connection) {
+  if (connections.length > 0) {
     return (
-      <Card className="p-4 flex flex-wrap items-center justify-between gap-3 border-emerald-500/30 bg-emerald-500/5">
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-          <div className="text-sm">
-            <p className="font-medium flex items-center gap-2">
-              Mailbox connected
-              <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-400">
-                {connection.ms_email}
-              </Badge>
-            </p>
-            <p className="text-muted-foreground">
-              Replies will be sent from your own address.
-              {connection.last_synced_at
-                ? ` Last synced ${new Date(connection.last_synced_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.`
-                : " Not synced yet — click Sync inbox."}
-            </p>
+      <Card className="p-4 space-y-3 border-emerald-500/30 bg-emerald-500/5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            {connections.length === 1 ? "1 mailbox connected" : `${connections.length} mailboxes connected`}
           </div>
+          <Button variant="outline" size="sm" onClick={handleConnect} disabled={connecting}>
+            {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {connecting ? "Redirecting…" : "Add another mailbox"}
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={disconnecting}>
-          <Link2Off className="h-4 w-4" />
-          {disconnecting ? "Disconnecting…" : "Disconnect"}
-        </Button>
+        <div className="space-y-2">
+          {connections.map((conn) => (
+            <div
+              key={conn.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-emerald-500/20 bg-background/60 px-3 py-2"
+            >
+              <div className="text-sm min-w-0">
+                <p className="font-medium flex items-center gap-2 flex-wrap">
+                  <Mailbox className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span className="truncate">{conn.ms_email}</span>
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {conn.last_synced_at
+                    ? `Last synced ${new Date(conn.last_synced_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}.`
+                    : "Not synced yet — click Sync inbox."}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDisconnect(conn)}
+                disabled={disconnectingId === conn.id}
+              >
+                <Link2Off className="h-4 w-4" />
+                {disconnectingId === conn.id ? "Disconnecting…" : "Disconnect"}
+              </Button>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Replies are sent from the mailbox each conversation belongs to.
+        </p>
       </Card>
     );
   }
@@ -184,9 +205,10 @@ export function CRMMailboxConnect({ connection, loading, onChange }: Props) {
       <div className="flex items-center gap-3">
         <Mailbox className="h-5 w-5 text-primary shrink-0" />
         <div className="text-sm">
-          <p className="font-medium">Connect your Outlook mailbox</p>
+          <p className="font-medium">Connect your Outlook mailboxes</p>
           <p className="text-muted-foreground">
-            Sign in with your Microsoft 365 account to read your own inbox and reply from your own address.
+            Sign in with each Microsoft 365 account you want to see here — for example your own
+            address and orders@clewsrecycling.co.uk. You can add more than one.
           </p>
         </div>
       </div>
