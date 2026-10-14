@@ -21,6 +21,17 @@ type HubJob = Database["public"]["Tables"]["data_hub_jobs"]["Row"];
 
 const dateLabel = (date: string | null) => parseLoadReportDate(date)?.toLocaleDateString("en-GB", { timeZone: "UTC" }) ?? "—";
 
+/** First non-empty string among raw spreadsheet columns (used for postcode/address search). */
+const rawStr = (raw: unknown, ...keys: string[]) => {
+  const obj = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : null;
+  if (!obj) return null;
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+};
+
 export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
   const now = new Date();
   const [start, setStart] = useState(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`);
@@ -43,6 +54,8 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         routeJobs.map((job): CombinedTicket => ({
           id: job.id, source: "routeone", ticket: job.weighbridge_ticket_number || job.job_number,
           date: job.scheduled_date, customer: job.customer_name, site: job.site_name || job.site_address,
+          siteAddress: [job.site_address, job.site_address_2].filter(Boolean).join(", ") || null,
+          postcode: job.site_postcode,
           vehicle: job.vehicle_reg, driver: job.driver_signoff_name, waste: job.waste_type,
           ewc: job.ewc_code, movement: job.job_type, status: job.status,
           weightTonnes: ticketWeightTonnes(job.outbound_weight_t, "routeone"), transactionId: job.weighbridge_transaction_id,
@@ -50,6 +63,8 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         hubJobs.filter(job => job.source !== "skiptrak" || !nativeNumbers.has(job.job_number.trim().toUpperCase())).map((job): CombinedTicket => ({
           id: job.id, source: job.source === "midweigh" ? "midweigh" : "skiptrak", ticket: job.job_number, date: job.job_date,
           customer: job.customer, site: job.site, vehicle: job.vehicle_registration,
+          siteAddress: rawStr(job.raw, "Address 1", "Address 2", "Address 3", "Address 4", "Address 5", "Address 2nd LIne"),
+          postcode: rawStr(job.raw, "Location Postc", "Location Postc_1", "Postcode"),
           driver: job.driver, waste: job.waste_description, ewc: job.ewc,
           movement: job.movement_type, status: null,
           weightTonnes: ticketWeightTonnes(job.weight_t, job.source === "midweigh" ? "midweigh" : "skiptrak"), raw: job.raw,
@@ -69,7 +84,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
 
   const filtered = useMemo(() => tickets.filter(ticket => {
     const term = search.trim().toLowerCase();
-    return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
+    return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
   }), [tickets, search, source]);
 
   const shiftDays = (days: number) => {
@@ -88,7 +103,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative min-w-56 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input aria-label="Search combined tickets" placeholder="Search ticket, customer, vehicle, waste…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input aria-label="Search combined tickets" placeholder="Search ticket, customer, site, postcode, vehicle, waste…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Button variant="outline" size="sm" aria-label="Show previous day" title="Previous day" onClick={() => shiftDays(-1)} disabled={invalidDates}><ChevronLeft className="h-4 w-4" />Previous</Button>
         <label className="space-y-1 text-xs text-muted-foreground">From<Input aria-label="Tickets from date" type="date" value={start} onChange={e => setStart(e.target.value)} className="w-40" /></label>
