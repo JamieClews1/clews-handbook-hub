@@ -84,7 +84,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${tablet ? "[&_input]:h-12 [&_button]:min-h-12 [&_[role=combobox]]:min-h-12" : ""}`}>
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative min-w-56 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

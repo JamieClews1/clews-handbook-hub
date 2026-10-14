@@ -1561,7 +1561,13 @@ const WeighOnePage = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {tablet && <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 border-y border-border py-3 text-sm">
+        <div>Awaiting 2nd weigh <b className="block text-lg">{pendingTransactions.length}</b></div>
+        <div>Completed today <b className="block text-lg">{todayCompleted.length}</b></div>
+        <div>Net weight today <b className="block text-lg">{todayTotalTonnes.toFixed(2)} t</b></div>
+        <div>Revenue today <b className="block text-lg">£{todayTotalRevenue.toFixed(2)}</b></div>
+      </div>}
+      <div className={tablet ? "hidden" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"}>
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">

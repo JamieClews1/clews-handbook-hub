@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Bell, CheckCircle2, ClipboardList, Loader2, Maximize2, Minimize2, Search, Timer } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, ClipboardList, Loader2, Search, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusPill, type BJob } from "./BanksmanWorkflow";
 import { useBanksmanJobs } from "./useBanksmanJobs";
