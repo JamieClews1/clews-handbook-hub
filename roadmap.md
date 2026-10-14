@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Correct WeighOne tablet screen filling and retain tablet view when reopening; verify landscape and portrait.
+- [x] Correct WeighOne tablet screen filling and retain tablet view when reopening; verify landscape and portrait.
 
 - [x] Add installable WeighOne tablet view, touch-friendly contamination review and staff installation guide; verify tablet layouts.
 
