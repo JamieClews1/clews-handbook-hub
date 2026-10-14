@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
     const { data: ticket, error: ticketErr } = await supabase
       .from('crm_tickets')
-      .select('id, graph_message_id, sender_email, sender_name, subject, mailbox_user_id')
+      .select('id, graph_message_id, sender_email, sender_name, subject, mailbox_user_id, mailbox_connection_id')
       .eq('id', ticketId)
       .single();
     if (ticketErr || !ticket) return json({ error: 'Ticket not found' }, 404);
@@ -119,12 +119,17 @@ Deno.serve(async (req) => {
     let graphError: string | null = null;
     let fromEmail = 'orders@clewsrecycling.co.uk';
 
-    // Prefer sending from the logged-in user's own connected mailbox.
-    const { data: conn } = await supabase
+    // Send from the mailbox the thread belongs to when the caller has it
+    // linked; otherwise fall back to any of the caller's linked mailboxes.
+    const { data: userConns } = await supabase
       .from('crm_mailbox_connections')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle();
+      .order('created_at');
+    const conn =
+      (userConns ?? []).find((c: any) => c.id === ticket.mailbox_connection_id) ??
+      (userConns ?? [])[0] ??
+      null;
 
     if (conn) {
       try {
