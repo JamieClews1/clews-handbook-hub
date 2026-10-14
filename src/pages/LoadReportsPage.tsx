@@ -19,6 +19,8 @@ import { OfflineIndicator } from "@/components/load-reports/OfflineIndicator";
 import { useOfflineLoadReports } from "@/hooks/useOfflineLoadReports";
 import { initAutoSync } from "@/lib/sync-service";
 import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
+import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
+
 
 // Staci-specific components
 import { StaciTallyScreen, StaciReviewScreen, StaciPalletEntry } from "@/components/load-reports/staci";
