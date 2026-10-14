@@ -40,7 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   if (weighOneTablet) {
-    return <div className="min-h-dvh bg-background"><UrgentContaminationPopup tablet /><main>{children}</main></div>;
+    return <div className="fixed inset-0 w-full overflow-y-auto bg-background"><UrgentContaminationPopup tablet /><main className="min-h-full w-full min-w-0">{children}</main></div>;
   }
 
   return (

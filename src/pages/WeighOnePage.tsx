@@ -124,10 +124,22 @@ const WeighOnePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tablet = searchParams.get("tablet") === "1";
   const setTablet = (enabled: boolean) => {
+    localStorage.setItem("weighone-tablet-view", enabled ? "1" : "0");
     const next = new URLSearchParams(searchParams);
     if (enabled) next.set("tablet", "1"); else next.delete("tablet");
     setSearchParams(next);
   };
+  useEffect(() => {
+    if (searchParams.has("tablet")) return;
+    const saved = localStorage.getItem("weighone-tablet-view");
+    const installed = window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator && navigator.standalone === true);
+    if (saved === "1" || (saved !== "0" && installed)) {
+      const next = new URLSearchParams(searchParams);
+      next.set("tablet", "1");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   useEffect(() => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     const previousHref = link?.getAttribute("href");
@@ -974,7 +986,7 @@ const WeighOnePage = () => {
     : null;
 
   return (
-    <div className={tablet ? "p-3 sm:p-4 w-full min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
+    <div className={tablet ? "p-3 sm:p-4 w-full max-w-none min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -991,7 +1003,7 @@ const WeighOnePage = () => {
             <Scale className="h-4 w-4" />{tablet ? "Exit tablet view" : "Tablet view"}
           </Button>
           <Button asChild variant="ghost" className="h-12"><Link to="/help?guide=weighone-tablet">Install WeighOne</Link></Button>
-          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={toggleFullScreen}>
+          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={toggleFullScreen}>
             {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             {fullScreen ? "Exit full screen" : "Full screen"}
           </Button>
