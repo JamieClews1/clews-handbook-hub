@@ -68,6 +68,10 @@ const LoadReportsPage = () => {
 
 
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
+  const [installHintDismissed, setInstallHintDismissed] = useState(
+    () => localStorage.getItem("w1-load-reports-install-dismissed") === "1",
+  );
+
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
   const [originView, setOriginView] = useState<"list" | "all">("list");
   const [wasteTypes, setWasteTypes] = useState<WasteType[]>([]);
@@ -1206,12 +1210,25 @@ const LoadReportsPage = () => {
       <main className="container mx-auto px-4 py-6">
         <div className={`${viewMode === "all" || viewMode === "list" ? "max-w-screen-2xl" : "max-w-5xl"} mx-auto`}>
           {viewMode === "customer" && (
-            <CustomerTypeSelector
-              onSelect={handleCustomerSelect}
-              onViewAll={handleViewAll}
-              onContainer={() => navigate("/container-loads")}
-            />
+            <>
+              {!installHintDismissed && (
+                <div className="mb-6">
+                  <LoadReportsInstallCard
+                    onDismiss={() => {
+                      setInstallHintDismissed(true);
+                      localStorage.setItem("w1-load-reports-install-dismissed", "1");
+                    }}
+                  />
+                </div>
+              )}
+              <CustomerTypeSelector
+                onSelect={handleCustomerSelect}
+                onViewAll={handleViewAll}
+                onContainer={() => navigate("/container-loads")}
+              />
+            </>
           )}
+
 
           {viewMode === "list" && (
             <>
