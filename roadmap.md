@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Non-ferrous metal tracking: PIN yard phone app + office section (dashboard, stock with 500 kg alerts, dispatches, prices, reports, audit). No storage locations.
+
 - [x] Correct WeighOne tablet screen filling and retain tablet view when reopening; verify landscape and portrait.
 
 - [x] Add installable WeighOne tablet view, touch-friendly contamination review and staff installation guide; verify tablet layouts.
