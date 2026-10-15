@@ -523,6 +523,34 @@ export default function CRMPage() {
     setReply((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${body}` : body));
   };
 
+  // One-click action: open RouteOne's New Job form filled in with the details
+  // the AI extracted from this email. Nothing is created until staff save it.
+  const openPrefilledJob = () => {
+    if (!selected) return;
+    const ex = selected.ai_extracted ?? {};
+    const params = new URLSearchParams({ newjob: "1" });
+    const set = (k: string, v: unknown) => { if (v) params.set(k, String(v)); };
+    set("customer", selected.customer_id ? customerNames[selected.customer_id] : ex.company_name);
+    set("site", ex.site_name);
+    set("postcode", ex.postcode);
+    set("po", ex.po_number ?? ex.contract_number);
+    set("container", ex.container);
+    set("waste", ex.waste_type);
+    set("date", ex.requested_date);
+    set("type", ex.service === "collect" ? "collection" : ex.service === "exchange" ? "exchange" : "delivery");
+    set("notes", `From email: ${selected.subject ?? ""}`.trim());
+    navigate(`/route-one?${params.toString()}`);
+  };
+
+  const applySuggestedAssignee = async () => {
+    if (!selected?.ai_suggested_assignee) return;
+    const member = team.find((m) => m.name === selected.ai_suggested_assignee);
+    if (!member) return;
+    await updateAssignee(member.id);
+    await supabase.from("crm_tickets").update({ ai_suggested_assignee: null }).eq("id", selected.id);
+    setTickets((prev) => prev.map((t) => (t.id === selected.id ? { ...t, ai_suggested_assignee: null } : t)));
+  };
+
   return (
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
