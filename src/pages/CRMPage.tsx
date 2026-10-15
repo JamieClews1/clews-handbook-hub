@@ -836,6 +836,46 @@ export default function CRMPage() {
                           className="h-8 w-[140px] text-xs"
                         />
                       </div>
+                      {/* Extracted details + one-click actions (pipeline steps 4 & 7) */}
+                      {(() => {
+                        const ex = (selected.ai_extracted ?? {}) as Record<string, any>;
+                        const bits: Array<[string, string]> = [
+                          ["PO", ex.po_number], ["Contract", ex.contract_number], ["Job ref", ex.job_reference],
+                          ["Site", ex.site_name], ["Postcode", ex.postcode], ["Container", ex.container],
+                          ["Waste", ex.waste_type], ["Service", ex.service], ["Date", ex.requested_date],
+                        ].filter(([, v]) => v) as Array<[string, string]>;
+                        const isJobIntent = ["booking", "exchange", "collection"].includes(selected.intent ?? "");
+                        if (bits.length === 0 && !selected.ai_suggested_assignee && !isJobIntent) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                            {bits.map(([k, v]) => (
+                              <Badge key={k} variant="secondary" className="text-[10px] font-normal">
+                                <span className="text-muted-foreground mr-1">{k}:</span>{v}
+                              </Badge>
+                            ))}
+                            {selected.ai_suggested_assignee && (
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={applySuggestedAssignee}>
+                                <UserCheck className="h-3.5 w-3.5 text-primary" /> Assign to {selected.ai_suggested_assignee}
+                              </Button>
+                            )}
+                            {isJobIntent && (
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={openPrefilledJob}>
+                                <Plus className="h-3.5 w-3.5 text-primary" /> New job from this email
+                              </Button>
+                            )}
+                            {selected.status !== "pending" && (
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => patchTicket({ status: "pending" })}>
+                                <Clock className="h-3.5 w-3.5" /> Awaiting customer
+                              </Button>
+                            )}
+                            {selected.status !== "resolved" && (
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => patchTicket({ status: "resolved" })}>
+                                <CheckCheck className="h-3.5 w-3.5 text-emerald-600" /> Mark resolved
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
