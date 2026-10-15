@@ -148,6 +148,8 @@ Deno.serve(async (req) => {
     q = parsed.data.ticket_ids?.length ? q.in('id', parsed.data.ticket_ids) : q.limit(25);
     const { data: tickets } = await q;
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const { data: teamRows } = await admin.from('crm_team_members').select('name, role').eq('is_active', true);
+    const team = (teamRows ?? []).map((m: any) => (m.role ? `${m.name} (${m.role})` : m.name));
     let triaged = 0;
 
     for (const t of tickets ?? []) {
@@ -157,16 +159,25 @@ Deno.serve(async (req) => {
       let intent = ruleIntent(t.sender_email ?? '', t.subject ?? '');
       let ex: any = null;
       if (!intent && apiKey) {
-        try { ex = await aiClassify(apiKey, t.subject ?? '', `${t.sender_name ?? ''} <${t.sender_email ?? ''}>`, body); intent = ex?.intent ?? null; }
+        try { ex = await aiClassify(apiKey, t.subject ?? '', `${t.sender_name ?? ''} <${t.sender_email ?? ''}>`, body, team); intent = ex?.intent ?? null; }
         catch (e) { console.error('AI triage failed', t.id, e); continue; }
       }
       intent = intent ?? 'other';
       const filed = intent.startsWith('noise_') || intent === 'internal';
       const urgent = !filed && (ex?.urgent === true || URGENT_RE.test(`${t.subject} ${body.slice(0, 1500)}`));
 
+      // Only keep a suggested assignee that is a real team member name.
+      let suggested: string | null = null;
+      if (!filed && ex?.suggested_assignee) {
+        const s = String(ex.suggested_assignee).toLowerCase();
+        const hit = (teamRows ?? []).find((m: any) => s.includes(String(m.name).toLowerCase()));
+        if (hit) suggested = hit.name;
+      }
+
       const patch: Record<string, unknown> = {
         intent, is_filed: filed, ai_triaged_at: new Date().toISOString(),
         ai_summary: ex?.summary ?? null, ai_extracted: ex,
+        ai_suggested_assignee: suggested,
       };
       if (!t.category && CATEGORY[intent]) patch.category = CATEGORY[intent];
       if (urgent && (!t.priority || t.priority === 'normal' || t.priority === 'low')) patch.priority = 'high';
