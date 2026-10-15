@@ -213,6 +213,9 @@ export function EmailPriceLookup() {
   const gross = totalNet != null ? totalNet + vat : null;
   const gbp = (n: number) => `£${n.toFixed(2)}`;
 
+  const { settings: rental } = useLiveJobsSettings();
+  const rentalRate = (n: number) => (Number.isInteger(n) ? `£${n}` : `£${n.toFixed(2)}`);
+
   // Plain-text email reply draft
   const wasteLabel =
     parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood/green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
