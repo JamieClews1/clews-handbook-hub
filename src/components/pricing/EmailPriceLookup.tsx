@@ -10,6 +10,7 @@ import { Mail, Sparkles, Fuel, AlertTriangle, Copy, Check } from "lucide-react";
 import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/components/pricing/useRateCard";
 import { usePostcodeZones } from "@/hooks/usePostcodeZones";
 import type { FuelSurchargeRate, PostcodeZoneRow } from "@/lib/fuel-surcharge";
+import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 /* ── Email parsing ────────────────────────────────────────────────── */
 
@@ -213,6 +214,9 @@ export function EmailPriceLookup() {
   const gross = totalNet != null ? totalNet + vat : null;
   const gbp = (n: number) => `£${n.toFixed(2)}`;
 
+  const { settings: rental } = useLiveJobsSettings();
+  const rentalRate = (n: number) => (Number.isInteger(n) ? `£${n}` : `£${n.toFixed(2)}`);
+
   // Plain-text email reply draft
   const wasteLabel =
     parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood/green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
@@ -243,13 +247,13 @@ export function EmailPriceLookup() {
     lines.push(
       "",
       "Please note the following charges which may apply. All quotes are subject to VAT.",
-      "Containers that have no collections or exchanges within 4 weeks will be subject to rental charges. Contamination charges may apply for non-acceptable materials.",
+      `Containers kept beyond the ${rental.rental_free_days}-day free rental period are charged at ${rentalRate(rental.rental_skip_rate)} per week for a skip or ${rentalRate(rental.rental_roro_rate)} per week for a RoRo, plus VAT. Contamination charges may apply for non-acceptable materials.`,
       "",
       "Kind regards,",
       "Clews Recycling",
     );
     return lines.filter((l) => l !== null).join("\n");
-  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel]);
+  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental]);
 
   const [copied, setCopied] = useState(false);
   const copyDraft = async () => {

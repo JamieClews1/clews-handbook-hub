@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] State the rental charges in pricing quote emails: £18/week skip, £42/week RoRo plus VAT after the saved free period.
+
+
 - [x] Non-ferrous metal tracking: PIN yard phone app + office section (dashboard, stock with 500 kg alerts, dispatches, prices, reports, audit). No storage locations.
 
 - [x] Correct WeighOne tablet screen filling and retain tablet view when reopening; verify landscape and portrait.
