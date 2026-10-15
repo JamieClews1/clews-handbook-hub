@@ -43,12 +43,13 @@ const TRIAGE_SCHEMA = {
     site_name: nullableStr, postcode: nullableStr, container: nullableStr, waste_type: nullableStr,
     service: { ...nullableStr, description: 'deliver, exchange or collect' },
     requested_date: nullableStr,
+    suggested_assignee: { ...nullableStr, description: 'Name of the team member best placed to handle this, chosen from the TEAM list, or null' },
   },
   required: ['intent', 'urgent', 'summary', 'company_name', 'po_number', 'contract_number', 'job_reference',
-    'site_name', 'postcode', 'container', 'waste_type', 'service', 'requested_date'],
+    'site_name', 'postcode', 'container', 'waste_type', 'service', 'requested_date', 'suggested_assignee'],
 };
 
-async function aiClassify(apiKey: string, subject: string, from: string, body: string) {
+async function aiClassify(apiKey: string, subject: string, from: string, body: string, team: string[]) {
   const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
     method: 'POST',
     headers: { 'Lovable-API-Key': apiKey, Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'X-Lovable-AIG-SDK': 'fetch' },
@@ -57,7 +58,7 @@ async function aiClassify(apiKey: string, subject: string, from: string, body: s
       stream: true,
       store: false,
       reasoning: { effort: 'low' },
-      instructions: 'You triage emails arriving at Clews Recycling, a UK skip hire, RoRo and waste management company. Brokers (Reconomy, Go Green, Biffa, Kenny, LB Waste, Opteco, Project Waste, YardLink, SPUD Now, MJ Church, Acorn) send purchase orders. Classify the email and extract fields. Use null when a field is not present.',
+      instructions: `You triage emails arriving at Clews Recycling, a UK skip hire, RoRo and waste management company. Brokers (Reconomy, Go Green, Biffa, Kenny, LB Waste, Opteco, Project Waste, YardLink, SPUD Now, MJ Church, Acorn) send purchase orders. Classify the email and extract fields. Use null when a field is not present.\nTEAM (pick suggested_assignee from these names only, matching the work: invoices/payment queries to accounts staff, complaints/urgent service issues to management, everything else to whoever handles bookings; null if unsure): ${team.join(', ') || 'none listed'}`,
       input: `From: ${from}\nSubject: ${subject}\n\n${body.slice(0, 4000)}`,
       text: { format: { type: 'json_schema', name: 'triage', strict: true, schema: TRIAGE_SCHEMA } },
     }),
@@ -100,6 +101,14 @@ async function linkCustomer(admin: any, email: string, ex: any): Promise<{ id: s
     if (data?.length === 1) return { id: data[0].id, conf: 0.85 };
     if (data?.length > 1) return { id: data[0].id, conf: 0.6 };
   }
+  // Broker contract numbers (e.g. Reconomy "contract 12345") often match a customer code.
+  if (ex?.contract_number) {
+    const cn = String(ex.contract_number).replace(/[%_,]/g, ' ').trim();
+    if (cn.length >= 3) {
+      const { data } = await admin.from('customers').select('id').ilike('customer_code', `%${cn}%`).limit(2);
+      if (data?.length === 1) return { id: data[0].id, conf: 0.85 };
+    }
+  }
   if (ex?.postcode) {
     const pc = String(ex.postcode).toUpperCase().replace(/\s+/g, '');
     const { data } = await admin.from('customer_sites').select('customer_id, postcode').limit(50).ilike('postcode', `%${pc.slice(0, -3)}%`);
@@ -139,6 +148,8 @@ Deno.serve(async (req) => {
     q = parsed.data.ticket_ids?.length ? q.in('id', parsed.data.ticket_ids) : q.limit(25);
     const { data: tickets } = await q;
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const { data: teamRows } = await admin.from('crm_team_members').select('name, role').eq('is_active', true);
+    const team = (teamRows ?? []).map((m: any) => (m.role ? `${m.name} (${m.role})` : m.name));
     let triaged = 0;
 
     for (const t of tickets ?? []) {
@@ -148,16 +159,25 @@ Deno.serve(async (req) => {
       let intent = ruleIntent(t.sender_email ?? '', t.subject ?? '');
       let ex: any = null;
       if (!intent && apiKey) {
-        try { ex = await aiClassify(apiKey, t.subject ?? '', `${t.sender_name ?? ''} <${t.sender_email ?? ''}>`, body); intent = ex?.intent ?? null; }
+        try { ex = await aiClassify(apiKey, t.subject ?? '', `${t.sender_name ?? ''} <${t.sender_email ?? ''}>`, body, team); intent = ex?.intent ?? null; }
         catch (e) { console.error('AI triage failed', t.id, e); continue; }
       }
       intent = intent ?? 'other';
       const filed = intent.startsWith('noise_') || intent === 'internal';
       const urgent = !filed && (ex?.urgent === true || URGENT_RE.test(`${t.subject} ${body.slice(0, 1500)}`));
 
+      // Only keep a suggested assignee that is a real team member name.
+      let suggested: string | null = null;
+      if (!filed && ex?.suggested_assignee) {
+        const s = String(ex.suggested_assignee).toLowerCase();
+        const hit = (teamRows ?? []).find((m: any) => s.includes(String(m.name).toLowerCase()));
+        if (hit) suggested = hit.name;
+      }
+
       const patch: Record<string, unknown> = {
         intent, is_filed: filed, ai_triaged_at: new Date().toISOString(),
         ai_summary: ex?.summary ?? null, ai_extracted: ex,
+        ai_suggested_assignee: suggested,
       };
       if (!t.category && CATEGORY[intent]) patch.category = CATEGORY[intent];
       if (urgent && (!t.priority || t.priority === 'normal' || t.priority === 'low')) patch.priority = 'high';

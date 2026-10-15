@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllCustomers, fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,10 @@ import {
   StickyNote,
   Building2,
   Sparkles,
+  Plus,
+  CheckCheck,
+  Clock,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
@@ -65,6 +70,8 @@ interface Ticket {
   intent?: string | null;
   is_filed?: boolean;
   ai_summary?: string | null;
+  ai_extracted?: Record<string, any> | null;
+  ai_suggested_assignee?: string | null;
 }
 
 const INTENT_LABELS: Record<string, string> = {
@@ -133,6 +140,7 @@ function formatDate(iso: string) {
 export default function CRMPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { templates, reload: reloadTemplates } = useCRMTemplates();
   const {
     connections: mailboxes,
@@ -515,6 +523,34 @@ export default function CRMPage() {
     setReply((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${body}` : body));
   };
 
+  // One-click action: open RouteOne's New Job form filled in with the details
+  // the AI extracted from this email. Nothing is created until staff save it.
+  const openPrefilledJob = () => {
+    if (!selected) return;
+    const ex = selected.ai_extracted ?? {};
+    const params = new URLSearchParams({ newjob: "1" });
+    const set = (k: string, v: unknown) => { if (v) params.set(k, String(v)); };
+    set("customer", selected.customer_id ? customerNames[selected.customer_id] : ex.company_name);
+    set("site", ex.site_name);
+    set("postcode", ex.postcode);
+    set("po", ex.po_number ?? ex.contract_number);
+    set("container", ex.container);
+    set("waste", ex.waste_type);
+    set("date", ex.requested_date);
+    set("type", ex.service === "collect" ? "collection" : ex.service === "exchange" ? "exchange" : "delivery");
+    set("notes", `From email: ${selected.subject ?? ""}`.trim());
+    navigate(`/route-one?${params.toString()}`);
+  };
+
+  const applySuggestedAssignee = async () => {
+    if (!selected?.ai_suggested_assignee) return;
+    const member = team.find((m) => m.name === selected.ai_suggested_assignee);
+    if (!member) return;
+    await updateAssignee(member.id);
+    await supabase.from("crm_tickets").update({ ai_suggested_assignee: null }).eq("id", selected.id);
+    setTickets((prev) => prev.map((t) => (t.id === selected.id ? { ...t, ai_suggested_assignee: null } : t)));
+  };
+
   return (
     <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -800,6 +836,46 @@ export default function CRMPage() {
                           className="h-8 w-[140px] text-xs"
                         />
                       </div>
+                      {/* Extracted details + one-click actions (pipeline steps 4 & 7) */}
+                      {(() => {
+                        const ex = (selected.ai_extracted ?? {}) as Record<string, any>;
+                        const bits: Array<[string, string]> = [
+                          ["PO", ex.po_number], ["Contract", ex.contract_number], ["Job ref", ex.job_reference],
+                          ["Site", ex.site_name], ["Postcode", ex.postcode], ["Container", ex.container],
+                          ["Waste", ex.waste_type], ["Service", ex.service], ["Date", ex.requested_date],
+                        ].filter(([, v]) => v) as Array<[string, string]>;
+                        const isJobIntent = ["booking", "exchange", "collection"].includes(selected.intent ?? "");
+                        if (bits.length === 0 && !selected.ai_suggested_assignee && !isJobIntent) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                            {bits.map(([k, v]) => (
+                              <Badge key={k} variant="secondary" className="text-[10px] font-normal">
+                                <span className="text-muted-foreground mr-1">{k}:</span>{v}
+                              </Badge>
+                            ))}
+                            {selected.ai_suggested_assignee && (
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={applySuggestedAssignee}>
+                                <UserCheck className="h-3.5 w-3.5 text-primary" /> Assign to {selected.ai_suggested_assignee}
+                              </Button>
+                            )}
+                            {isJobIntent && (
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={openPrefilledJob}>
+                                <Plus className="h-3.5 w-3.5 text-primary" /> New job from this email
+                              </Button>
+                            )}
+                            {selected.status !== "pending" && (
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => patchTicket({ status: "pending" })}>
+                                <Clock className="h-3.5 w-3.5" /> Awaiting customer
+                              </Button>
+                            )}
+                            {selected.status !== "resolved" && (
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => patchTicket({ status: "resolved" })}>
+                                <CheckCheck className="h-3.5 w-3.5 text-emerald-600" /> Mark resolved
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">

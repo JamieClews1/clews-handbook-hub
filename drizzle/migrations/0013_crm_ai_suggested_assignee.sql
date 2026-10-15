@@ -1,0 +1,2 @@
+ALTER TABLE public.crm_tickets ADD COLUMN IF NOT EXISTS ai_suggested_assignee text;
+COMMENT ON COLUMN public.crm_tickets.ai_suggested_assignee IS 'Team member name suggested by AI triage (staff must confirm); never auto-applied.';

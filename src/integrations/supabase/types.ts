@@ -1904,6 +1904,7 @@ export type Database = {
           ai_drafted_at: string | null
           ai_extracted: Json | null
           ai_link_confidence: number | null
+          ai_suggested_assignee: string | null
           ai_summary: string | null
           ai_triaged_at: string | null
           assigned_to: string | null
@@ -1941,6 +1942,7 @@ export type Database = {
           ai_drafted_at?: string | null
           ai_extracted?: Json | null
           ai_link_confidence?: number | null
+          ai_suggested_assignee?: string | null
           ai_summary?: string | null
           ai_triaged_at?: string | null
           assigned_to?: string | null
@@ -1978,6 +1980,7 @@ export type Database = {
           ai_drafted_at?: string | null
           ai_extracted?: Json | null
           ai_link_confidence?: number | null
+          ai_suggested_assignee?: string | null
           ai_summary?: string | null
           ai_triaged_at?: string | null
           assigned_to?: string | null

@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -302,6 +302,31 @@ const RouteOnePage = () => {
   const weekStart = format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEnd = format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const search = (searchParams.get("search") ?? "").trim().toLowerCase();
+
+  // Open New Job pre-filled from a CRM email ("New job from this email" action).
+  const prefillDone = useRef(false);
+  useEffect(() => {
+    if (prefillDone.current) return;
+    if (searchParams.get("newjob") !== "1") return;
+    prefillDone.current = true;
+    const g = (k: string) => searchParams.get(k) ?? "";
+    const type = g("type");
+    setJobForm((prev) => ({
+      ...prev,
+      customer_name: g("customer") || prev.customer_name,
+      site_name: g("site") || prev.site_name,
+      site_address: g("address") || prev.site_address,
+      site_postcode: g("postcode") || prev.site_postcode,
+      po_number: g("po") || prev.po_number,
+      container_size: g("container") || prev.container_size,
+      waste_type: g("waste") || prev.waste_type,
+      scheduled_date: g("date") || prev.scheduled_date,
+      job_type: (["delivery", "exchange", "collection"].includes(type) ? type : prev.job_type) as JobType,
+      notes: g("notes") || prev.notes,
+    }));
+    setNewJobOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   // Only a full job number (5+ digits) uses the indexed exact match; partial
   // numeric fragments still run a normal contains search.
   const isExactTicketSearch = /^\d{5,}$/.test(search);
