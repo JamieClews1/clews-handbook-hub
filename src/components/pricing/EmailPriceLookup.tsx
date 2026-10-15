@@ -272,7 +272,7 @@ export function EmailPriceLookup() {
       "Clews Recycling",
     );
     return lines.filter((l) => l !== null).join("\n");
-  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental]);
+  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental, includedLabel]);
 
   const [copied, setCopied] = useState(false);
   const copyDraft = async () => {
