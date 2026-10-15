@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Sparkles, Fuel, AlertTriangle } from "lucide-react";
+import { Mail, Sparkles, Fuel, AlertTriangle, Copy, Check } from "lucide-react";
 import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/components/pricing/useRateCard";
 import { usePostcodeZones } from "@/hooks/usePostcodeZones";
 import type { FuelSurchargeRate, PostcodeZoneRow } from "@/lib/fuel-surcharge";
@@ -384,6 +384,27 @@ export function EmailPriceLookup() {
               )}
               {value == null && selectedRow && (
                 <p className="text-sm text-muted-foreground">No price on this card for that service and zone.</p>
+              )}
+
+              {emailDraft && (
+                <div className="space-y-2 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Email reply draft</Label>
+                    <Button size="sm" variant="outline" onClick={copyDraft}>
+                      {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                      {copied ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={emailDraft}
+                    readOnly
+                    className="min-h-[260px] text-sm font-mono"
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Edit the wording in your email client after pasting — nothing is sent from here.
+                  </p>
+                </div>
               )}
             </>
           )}
