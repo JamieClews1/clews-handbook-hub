@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         if (job.job_date) found.jobDate = ukDate(job.job_date)!;
         if (job.weight_t != null) found.weightTonnes = Number(job.weight_t).toFixed(2);
         if (job.site) found.siteName = job.site;
-        if (job.container_type) found.container_type = job.container_type;
+        if (job.container_type) found.containerSize = job.container_type;
         if (job.waste_description) found.wasteType = job.waste_description;
       }
     }
