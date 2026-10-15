@@ -385,7 +385,7 @@ export function EmailPriceLookup() {
                   </div>
                   {perTonne && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Disposal after first tonne — {perTonne.label}</span>
+                      <span className="text-muted-foreground">Disposal after {includedLabel} — {perTonne.label}</span>
                       <span className="font-medium">{gbp(perTonne.price)}/t</span>
                     </div>
                   )}
