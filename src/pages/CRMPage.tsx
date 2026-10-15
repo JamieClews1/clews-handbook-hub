@@ -136,6 +136,7 @@ function formatDate(iso: string) {
 export default function CRMPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { templates, reload: reloadTemplates } = useCRMTemplates();
   const {
     connections: mailboxes,
