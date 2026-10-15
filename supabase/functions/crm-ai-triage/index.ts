@@ -101,6 +101,14 @@ async function linkCustomer(admin: any, email: string, ex: any): Promise<{ id: s
     if (data?.length === 1) return { id: data[0].id, conf: 0.85 };
     if (data?.length > 1) return { id: data[0].id, conf: 0.6 };
   }
+  // Broker contract numbers (e.g. Reconomy "contract 12345") often match a customer code.
+  if (ex?.contract_number) {
+    const cn = String(ex.contract_number).replace(/[%_,]/g, ' ').trim();
+    if (cn.length >= 3) {
+      const { data } = await admin.from('customers').select('id').ilike('customer_code', `%${cn}%`).limit(2);
+      if (data?.length === 1) return { id: data[0].id, conf: 0.85 };
+    }
+  }
   if (ex?.postcode) {
     const pc = String(ex.postcode).toUpperCase().replace(/\s+/g, '');
     const { data } = await admin.from('customer_sites').select('customer_id, postcode').limit(50).ilike('postcode', `%${pc.slice(0, -3)}%`);
