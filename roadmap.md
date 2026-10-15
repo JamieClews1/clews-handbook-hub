@@ -27,3 +27,4 @@
 
 - [x] Tidy RouteOne controls into one row; keep New Job prominent; move Driver App and Add Driver into Setup; remove the page Full Screen control.
 - [x] Strengthen portal text contrast and refresh shared buttons, tabs, toggles, and key WeighOne icons with WasteOne and semantic colours.
+- [x] CRM pipeline steps 3–7: suggested assignee, contract-number linking, price/fuel-surcharge lookups in drafts, extracted-details strip, one-click actions (prefilled New Job, awaiting customer, mark resolved).
