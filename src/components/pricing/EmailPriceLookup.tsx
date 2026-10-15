@@ -194,6 +194,8 @@ export function EmailPriceLookup() {
   };
   const perTonne = useMemo(() => {
     if (!parsed) return null;
+    // General waste skips include disposal in the lift price — no per-tonne charge
+    if (parsed.waste === "general" && !parsed.isRoRo) return null;
     const flatZone = zones.find((z) => z.zone_code === "FLAT");
     if (!flatZone) return null;
     const row = rows.find(
@@ -229,6 +231,9 @@ export function EmailPriceLookup() {
         `  • ${selectedRow.label}: ${gbp(net!)} + VAT`,
         surcharge ? `  • Fuel surcharge: ${gbp(surchargeAmt)} + VAT` : null,
         perTonne ? `  • Disposal rate thereafter: ${gbp(perTonne.price)} per tonne + VAT` : null,
+        parsed.waste === "general" && !parsed.isRoRo
+          ? "  • Price includes disposal — strictly no soils, hardcore or plasterboard to be placed in the skip."
+          : null,
         "",
         `Total: ${gbp(totalNet)} + VAT (${gbp(gross!)} inc. VAT)`,
       );
