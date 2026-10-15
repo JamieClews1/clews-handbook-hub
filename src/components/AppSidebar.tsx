@@ -5,6 +5,7 @@ import {
   Container, Calendar, CalendarCheck, Inbox, Users, HardHat, Flame, MessageSquare,
   FileText, Gauge, TrendingUp, BarChart3, Upload, Fuel, Package, Building2,
   Smartphone, DollarSign, Settings, ChevronDown,
+  Gem,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -32,6 +33,7 @@ const operations: NavItem[] = [
   { label: "Load Reports", path: "/load-reports", icon: Truck, key: "load-reports" },
   { label: "Container Loads", path: "/container-loads", icon: Container, key: "container-loads" },
   { label: "Stock Check", path: "/performance-hub/stock-check", icon: Box, key: "performance-stock-check" },
+  { label: "Non-Ferrous Metals", path: "/metals", icon: Gem, key: "metals" },
   { label: "Permits", path: "/permits", icon: FileCheck, key: "permits" },
   { label: "Digital Waste Tracking", path: "/digital-waste-tracking", icon: Radio, key: "digital-waste-tracking" },
   { label: "Diary", path: "/diary", icon: Calendar, key: "diary" },

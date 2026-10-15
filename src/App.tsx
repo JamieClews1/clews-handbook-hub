@@ -66,6 +66,8 @@ import WeighOnePage from "./pages/WeighOnePage";
 import DigitalWasteTrackingPage from "./pages/DigitalWasteTrackingPage";
 import DriverAppPage from "./pages/DriverAppPage";
 import BanksmanAppPage from "./pages/BanksmanAppPage";
+import MetalsYardPage from "./pages/MetalsYardPage";
+import MetalsPage from "./pages/MetalsPage";
 import ProjectionsPage from "./pages/ProjectionsPage";
 import FuelSurchargesPage from "./pages/FuelSurchargesPage";
 import DiaryPage from "./pages/DiaryPage";
@@ -110,6 +112,7 @@ const App = () => (
             <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
             <Route path="/driver" element={<DriverAppPage />} />
             <Route path="/banksman" element={<BanksmanAppPage />} />
+            <Route path="/metals-yard" element={<MetalsYardPage />} />
             <Route path="/book" element={<PublicBookingPage />} />
             <Route path="/weightchecks" element={<WeightChecksPage />} />
             <Route path="/Weightchecks" element={<WeightChecksPage />} />
@@ -123,6 +126,7 @@ const App = () => (
 
             {/* Staff-only routes with sidebar layout */}
             <Route path="/portal" element={<Staff><Index /></Staff>} />
+            <Route path="/metals" element={<Staff><MetalsPage /></Staff>} />
             <Route path="/help" element={<Staff><HelpPage /></Staff>} />
             <Route path="/assistant" element={<Staff><AssistantPage /></Staff>} />
             <Route path="/Assistant" element={<Staff><AssistantPage /></Staff>} />

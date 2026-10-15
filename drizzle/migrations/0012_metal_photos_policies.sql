@@ -1,0 +1,2 @@
+CREATE POLICY "Staff read metal photos" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'metal-photos' AND public.is_staff(auth.uid()));
+CREATE POLICY "Staff upload metal photos" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'metal-photos' AND public.is_staff(auth.uid()));

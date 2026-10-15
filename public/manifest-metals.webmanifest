@@ -1,0 +1,14 @@
+{
+  "id": "/metals-yard",
+  "name": "Non-Ferrous Yard",
+  "short_name": "Metals",
+  "start_url": "/metals-yard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "icons": [
+    { "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

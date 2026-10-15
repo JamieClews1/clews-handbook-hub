@@ -112,3 +112,6 @@ verify_jwt = false
 
 [functions.permit-inbox-match]
 verify_jwt = false
+
+[functions.metals-yard]
+verify_jwt = false
