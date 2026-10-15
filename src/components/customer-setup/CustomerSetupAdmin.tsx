@@ -1664,6 +1664,7 @@ export function CustomerSetupAdmin() {
                   <CustomerSkipRebatesEditor
                     customerId={selectedCustomerId!}
                     customerName={selectedCustomer?.customer_name ?? ""}
+                    rebateContact={contacts.find((c) => c.id === selectedCustomer?.midweigh_rebate_contact_id) ?? null}
                   />
                 </TabsContent>
 
@@ -1691,6 +1692,9 @@ export function CustomerSetupAdmin() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <h4 className="font-semibold text-foreground">{c.full_name}</h4>
+                                  {selectedCustomer?.midweigh_rebate_contact_id === c.id && (
+                                    <Badge className="text-xs">Midweigh rebate contact</Badge>
+                                  )}
                                   {hasPortalAccess && (
                                     <Badge variant="secondary" className="text-xs gap-1">
                                       <UserCheck className="h-3 w-3" />
