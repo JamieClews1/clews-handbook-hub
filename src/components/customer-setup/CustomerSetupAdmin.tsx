@@ -49,6 +49,7 @@ type Customer = {
   is_broker: boolean;
   all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
+  midweigh_rebate_contact_id: string | null;
   is_active: boolean;
   data_hub_customer: string | null;
   created_at: string;
@@ -158,7 +159,8 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "" });
+  const [editCustomerContacts, setEditCustomerContacts] = useState<CustomerContact[]>([]);
 
   const customerCreateSchema = useMemo(
     () =>
@@ -444,7 +446,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,all_data_hub_sites,midweigh_rebates_enabled,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -954,10 +956,10 @@ export function CustomerSetupAdmin() {
     }
   };
 
-  const openEditCustomer = (customer: Customer) => {
+  const openEditCustomer = async (customer: Customer) => {
     setEditingCustomer(customer);
-    setEditCustomerForm({ 
-      customer_code: customer.customer_code, 
+    setEditCustomerForm({
+      customer_code: customer.customer_code,
       customer_name: customer.customer_name,
       po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk",
       pod_email: customer.pod_email || "",
@@ -967,8 +969,15 @@ export function CustomerSetupAdmin() {
       is_broker: customer.is_broker ?? false,
       all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
+      midweigh_rebate_contact_id: customer.midweigh_rebate_contact_id ?? "",
     });
     setEditCustomerOpen(true);
+    const { data: contactRows } = await supabase
+      .from("customer_contacts")
+      .select("id,customer_id,full_name,email,phone,created_at,updated_at")
+      .eq("customer_id", customer.id)
+      .order("full_name");
+    setEditCustomerContacts((contactRows ?? []) as CustomerContact[]);
   };
 
   const saveCustomer = async () => {
@@ -998,6 +1007,7 @@ export function CustomerSetupAdmin() {
           is_broker: editCustomerForm.is_broker,
           all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
+          midweigh_rebate_contact_id: editCustomerForm.midweigh_rebates_enabled && editCustomerForm.midweigh_rebate_contact_id ? editCustomerForm.midweigh_rebate_contact_id : null,
         })
         .eq("id", editingCustomer.id);
       if (error) throw error;
@@ -2130,6 +2140,35 @@ export function CustomerSetupAdmin() {
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, midweigh_rebates_enabled: v }))}
               />
             </div>
+            {editCustomerForm.midweigh_rebates_enabled && (
+              <div className="space-y-2 pl-1">
+                <Label>Midweigh rebates contact</Label>
+                <p className="text-xs text-muted-foreground">
+                  The contact at this customer who handles the Midweigh rebate reports (e.g. Sarah Rozier for Biffa Coventry).
+                </p>
+                <Select
+                  value={editCustomerForm.midweigh_rebate_contact_id || "none"}
+                  onValueChange={(v) => setEditCustomerForm((p) => ({ ...p, midweigh_rebate_contact_id: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No contact set</SelectItem>
+                    {editCustomerContacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name}{c.email ? ` (${c.email})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editCustomerContacts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No contacts on this customer yet — add one in the Contacts tab first.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter className="shrink-0 border-t border-border pt-4">
             <Button variant="outline" onClick={() => setEditCustomerOpen(false)} disabled={savingCustomer}>

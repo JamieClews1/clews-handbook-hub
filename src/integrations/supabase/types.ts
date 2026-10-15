@@ -2620,6 +2620,7 @@ export type Database = {
           is_active: boolean
           is_broker: boolean
           is_container_load_customer: boolean
+          midweigh_rebate_contact_id: string | null
           midweigh_rebates_enabled: boolean
           po_notification_email: string | null
           po_spans_periods: boolean
@@ -2638,6 +2639,7 @@ export type Database = {
           is_active?: boolean
           is_broker?: boolean
           is_container_load_customer?: boolean
+          midweigh_rebate_contact_id?: string | null
           midweigh_rebates_enabled?: boolean
           po_notification_email?: string | null
           po_spans_periods?: boolean
@@ -2656,13 +2658,22 @@ export type Database = {
           is_active?: boolean
           is_broker?: boolean
           is_container_load_customer?: boolean
+          midweigh_rebate_contact_id?: string | null
           midweigh_rebates_enabled?: boolean
           po_notification_email?: string | null
           po_spans_periods?: boolean
           pod_email?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_midweigh_rebate_contact_id_fkey"
+            columns: ["midweigh_rebate_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       data_hub_jobs: {
         Row: {

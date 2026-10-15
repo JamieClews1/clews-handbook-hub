@@ -64,6 +64,13 @@
       "when": 1791963680600,
       "tag": "0008_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792058569092,
+      "tag": "0009_add_midweigh_rebate_contact",
+      "breakpoints": true
     }
   ]
 }
