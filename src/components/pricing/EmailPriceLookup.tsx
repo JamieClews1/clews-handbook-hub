@@ -311,6 +311,12 @@ export function EmailPriceLookup() {
                     </span>
                     <span className="font-medium">{gbp(net!)}</span>
                   </div>
+                  {perTonne && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Disposal rate — {perTonne.label}</span>
+                      <span className="font-medium">{gbp(perTonne.price)}/t</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Fuel className="h-3.5 w-3.5" /> Fuel surcharge ({vehicle})
