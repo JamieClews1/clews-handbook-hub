@@ -1,4 +1,5 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
@@ -121,6 +122,18 @@ export function MonthlyRebateGenerationV2() {
   const [emailRecipient, setEmailRecipient] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [midweighContactByCustomer, setMidweighContactByCustomer] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase
+      .from("customers")
+      .select("id, midweigh_rebate_contact_id")
+      .not("midweigh_rebate_contact_id", "is", null)
+      .then(({ data }) => {
+        const m: Record<string, string> = {};
+        (data ?? []).forEach((r) => { if (r.midweigh_rebate_contact_id) m[r.id] = r.midweigh_rebate_contact_id; });
+        setMidweighContactByCustomer(m);
+      });
+  }, []);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingSiteId, setSendingSiteId] = useState<string | null>(null);
 
@@ -1045,7 +1058,28 @@ export function MonthlyRebateGenerationV2() {
     const owner = sb.site.owner_contact_id
       ? summary.contacts.find((c) => c.id === sb.site.owner_contact_id && c.email)
       : undefined;
-    return owner ?? summary.contacts.find((c) => c.email);
+    const midweighId = midweighContactByCustomer[summary.customer.id];
+    const midweigh = midweighId ? summary.contacts.find((c) => c.id === midweighId && c.email) : undefined;
+    return owner ?? midweigh ?? summary.contacts.find((c) => c.email);
+  };
+
+  // Picker of every contact with an email on the customer — fills the recipient field.
+  const ContactPicker = ({ summary, onPick }: { summary: CustomerRebateSummary | null; onPick: (email: string, name: string) => void }) => {
+    const options = (summary?.contacts ?? []).filter((c) => c.email);
+    if (options.length === 0) return null;
+    const midweighId = summary ? midweighContactByCustomer[summary.customer.id] : undefined;
+    return (
+      <Select onValueChange={(id) => { const c = options.find((o) => o.id === id); if (c) onPick(c.email!, c.full_name ?? ""); }}>
+        <SelectTrigger className="h-9"><SelectValue placeholder="Choose a set contact…" /></SelectTrigger>
+        <SelectContent>
+          {options.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.full_name} — {c.email}{c.id === midweighId ? " (Midweigh rebate contact)" : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
   };
 
   const buildSiteBody = (contactName: string | undefined, sb: SiteBreakdown) =>
@@ -1808,6 +1842,7 @@ export function MonthlyRebateGenerationV2() {
                   <div className="space-y-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Recipient</Label>
+                      <ContactPicker summary={bulkSummary} onPick={(email) => updateDraft(i, { recipient: email, include: true })} />
                       <Input
                         type="email"
                         value={draft.recipient}
@@ -1870,6 +1905,7 @@ export function MonthlyRebateGenerationV2() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="v2-email-to">Recipient Email</Label>
+              <ContactPicker summary={selectedCustomer} onPick={(email) => setEmailRecipient(email)} />
               <Input id="v2-email-to" type="email" value={emailRecipient} onChange={(e) => setEmailRecipient(e.target.value)} placeholder="customer@example.com" />
             </div>
             <div className="space-y-2">

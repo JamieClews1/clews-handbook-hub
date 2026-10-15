@@ -64,6 +64,7 @@ type CustomerSkipRebate = {
 type Props = {
   customerId: string;
   customerName: string;
+  rebateContact?: { full_name: string; email: string | null } | null;
 };
 
 const MATERIAL_OPTIONS = [
@@ -71,7 +72,7 @@ const MATERIAL_OPTIONS = [
   { value: "scrap_metal", label: "Scrap Metal" },
 ];
 
-export function CustomerSkipRebatesEditor({ customerId, customerName }: Props) {
+export function CustomerSkipRebatesEditor({ customerId, customerName, rebateContact }: Props) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -338,6 +339,16 @@ export function CustomerSkipRebatesEditor({ customerId, customerName }: Props) {
           <Label className="text-base font-medium">Midweigh Rebates for "{customerName}"</Label>
           <p className="text-xs text-muted-foreground mt-1">
             Customer-level rebates for Midweigh data (where site is always blank)
+          </p>
+          <p className="text-sm mt-2">
+            <span className="text-muted-foreground">Rebate contact: </span>
+            {rebateContact ? (
+              <span className="font-medium text-foreground">
+                {rebateContact.full_name}{rebateContact.email ? ` (${rebateContact.email})` : ""}
+              </span>
+            ) : (
+              <span className="text-muted-foreground italic">None set — choose one in Edit customer</span>
+            )}
           </p>
         </div>
         <Badge variant="secondary" className="flex items-center gap-1">

@@ -103,6 +103,7 @@ export function SiteRebateReportGenerator() {
   const [emailRecipient, setEmailRecipient] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailContacts, setEmailContacts] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
@@ -1287,11 +1288,18 @@ export function SiteRebateReportGenerator() {
     let contactName = "";
     const { data: contacts } = await supabase
       .from("customer_contacts")
-      .select("full_name, email")
+      .select("id, full_name, email")
       .eq("customer_id", selectedCustomerId)
       .not("email", "is", null)
       .order("created_at", { ascending: true });
-    const contactWithEmail = contacts?.find((c) => c.email);
+    const { data: custRow } = await supabase
+      .from("customers")
+      .select("midweigh_rebate_contact_id")
+      .eq("id", selectedCustomerId)
+      .maybeSingle();
+    setEmailContacts(contacts ?? []);
+    const contactWithEmail =
+      contacts?.find((c) => c.id === custRow?.midweigh_rebate_contact_id && c.email) ?? contacts?.find((c) => c.email);
     if (contactWithEmail) {
       prefillEmail = contactWithEmail.email ?? "";
       contactName = contactWithEmail.full_name ?? "";
@@ -1808,6 +1816,16 @@ Clews Recycling Limited`
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="rebate-email-to">Recipient Email</Label>
+              {emailContacts.length > 0 && (
+                <Select onValueChange={(id) => { const c = emailContacts.find((o) => o.id === id); if (c?.email) setEmailRecipient(c.email); }}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Choose a set contact…" /></SelectTrigger>
+                  <SelectContent>
+                    {emailContacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.full_name} — {c.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Input
                 id="rebate-email-to"
                 type="email"
