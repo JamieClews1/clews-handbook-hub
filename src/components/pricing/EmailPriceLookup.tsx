@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Sparkles, Fuel, AlertTriangle } from "lucide-react";
+import { Mail, Sparkles, Fuel, AlertTriangle, Copy, Check } from "lucide-react";
 import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/components/pricing/useRateCard";
 import { usePostcodeZones } from "@/hooks/usePostcodeZones";
 import type { FuelSurchargeRate, PostcodeZoneRow } from "@/lib/fuel-surcharge";
@@ -211,6 +211,48 @@ export function EmailPriceLookup() {
   const gross = totalNet != null ? totalNet + vat : null;
   const gbp = (n: number) => `£${n.toFixed(2)}`;
 
+  // Plain-text email reply draft
+  const wasteLabel =
+    parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood/green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
+  const serviceDesc = selectedRow
+    ? `${selectedRow.label}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
+    : null;
+  const emailDraft = useMemo(() => {
+    if (!parsed || !selectedRow) return "";
+    const lines: string[] = ["Good morning,", "", "Thank you for your enquiry."];
+    if (value?.status === "call_for_quote") {
+      lines.push("", `For ${serviceDesc} (${wasteLabel}), please give us a call on 01788 555111 and we'll put a price together for you.`);
+    } else if (totalNet != null) {
+      lines.push(
+        "",
+        `Price for ${serviceDesc} (${wasteLabel}):`,
+        `  • ${selectedRow.label}: ${gbp(net!)} + VAT`,
+        surcharge ? `  • Fuel surcharge: ${gbp(surchargeAmt)} + VAT` : null,
+        perTonne ? `  • Disposal rate thereafter: ${gbp(perTonne.price)} per tonne + VAT` : null,
+        "",
+        `Total: ${gbp(totalNet)} + VAT (${gbp(gross!)} inc. VAT)`,
+      );
+    }
+    lines.push(
+      "",
+      "Please note the following charges which may apply. All quotes are subject to VAT.",
+      "Containers that have no collections or exchanges within 4 weeks will be subject to rental charges. Contamination charges may apply for non-acceptable materials.",
+      "",
+      "Kind regards,",
+      "Clews Recycling",
+    );
+    return lines.filter((l) => l !== null).join("\n");
+  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel]);
+
+  const [copied, setCopied] = useState(false);
+  const copyDraft = async () => {
+    try {
+      await navigator.clipboard.writeText(emailDraft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard unavailable */ }
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
@@ -342,6 +384,27 @@ export function EmailPriceLookup() {
               )}
               {value == null && selectedRow && (
                 <p className="text-sm text-muted-foreground">No price on this card for that service and zone.</p>
+              )}
+
+              {emailDraft && (
+                <div className="space-y-2 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Email reply draft</Label>
+                    <Button size="sm" variant="outline" onClick={copyDraft}>
+                      {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                      {copied ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={emailDraft}
+                    readOnly
+                    className="min-h-[260px] text-sm font-mono"
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Edit the wording in your email client after pasting — nothing is sent from here.
+                  </p>
+                </div>
               )}
             </>
           )}
