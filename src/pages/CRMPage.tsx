@@ -35,6 +35,10 @@ import {
   StickyNote,
   Building2,
   Sparkles,
+  Plus,
+  CheckCheck,
+  Clock,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
