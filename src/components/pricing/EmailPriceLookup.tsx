@@ -230,7 +230,9 @@ export function EmailPriceLookup() {
         `Price for ${serviceDesc} (${wasteLabel}):`,
         `  • ${selectedRow.label}: ${gbp(net!)} + VAT`,
         surcharge ? `  • Fuel surcharge: ${gbp(surchargeAmt)} + VAT` : null,
-        perTonne ? `  • Disposal rate thereafter: ${gbp(perTonne.price)} per tonne + VAT` : null,
+        perTonne
+          ? `  • Price includes the first tonne — disposal thereafter at ${gbp(perTonne.price)} per tonne + VAT`
+          : null,
         parsed.waste === "general" && !parsed.isRoRo
           ? "  • Price includes disposal — strictly no soils, hardcore or plasterboard to be placed in the skip."
           : null,
@@ -360,7 +362,7 @@ export function EmailPriceLookup() {
                   </div>
                   {perTonne && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Disposal rate — {perTonne.label}</span>
+                      <span className="text-muted-foreground">Disposal after first tonne — {perTonne.label}</span>
                       <span className="font-medium">{gbp(perTonne.price)}/t</span>
                     </div>
                   )}
