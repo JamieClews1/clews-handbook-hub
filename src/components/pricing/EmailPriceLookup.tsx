@@ -185,6 +185,25 @@ export function EmailPriceLookup() {
     );
   }, [value, zoneCode, surchargeRates, vehicle, emailText]);
 
+  // Per-tonne disposal rate for the detected waste type (FLAT zone, "Tonnage & Material Rates")
+  const TONNAGE_LABEL: Record<ParsedEmail["waste"], RegExp> = {
+    general: /^general waste$/i,
+    plasterboard: /^plasterboard$/i,
+    wood: /grade a wood/i,
+    inert: /mixed inert/i,
+  };
+  const perTonne = useMemo(() => {
+    if (!parsed) return null;
+    const flatZone = zones.find((z) => z.zone_code === "FLAT");
+    if (!flatZone) return null;
+    const row = rows.find(
+      (r) => (r.section ?? "").includes("Tonnage") && TONNAGE_LABEL[parsed.waste].test(r.label)
+    );
+    if (!row) return null;
+    const v = values.find((x) => x.row_id === row.id && x.zone_id === flatZone.id);
+    return v?.status === "price" && v.price != null ? { label: row.label, price: Number(v.price) } : null;
+  }, [parsed, zones, rows, values]);
+
   const net = value?.status === "price" ? Number(value.price) : null;
   const surchargeAmt = surcharge ? Number(surcharge.surcharge_amount) : 0;
   const totalNet = net != null ? net + surchargeAmt : null;
@@ -292,6 +311,12 @@ export function EmailPriceLookup() {
                     </span>
                     <span className="font-medium">{gbp(net!)}</span>
                   </div>
+                  {perTonne && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Disposal rate — {perTonne.label}</span>
+                      <span className="font-medium">{gbp(perTonne.price)}/t</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Fuel className="h-3.5 w-3.5" /> Fuel surcharge ({vehicle})
