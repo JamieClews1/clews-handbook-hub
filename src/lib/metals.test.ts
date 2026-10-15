@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "bun:test";
 import { computeStock } from "./metals";
 
 const lead = { id: "l", name: "Lead", price_per_tonne: 1000, stock_limit_kg: 500, warn_at_kg: 400, is_active: true };
