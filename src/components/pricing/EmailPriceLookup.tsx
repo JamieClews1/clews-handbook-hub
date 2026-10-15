@@ -62,7 +62,10 @@ function parseEmail(text: string): ParsedEmail {
 
 function pickCard(cards: RateCard[], p: ParsedEmail): RateCard | null {
   const current = cards.filter((c) => c.is_active);
-  const byName = (frag: string) => current.find((c) => c.name.toLowerCase().includes(frag));
+  // Match the start of the card name only — a loose "includes" match picks the
+  // wrong card (e.g. "trade rates" also matches "Papilo … — Trade Rates 2026",
+  // and "reconomy" matches "Allen Ford (UK) Ltd (Reconomy) — Bespoke Rates").
+  const byName = (frag: string) => current.find((c) => c.name.toLowerCase().startsWith(frag));
   if (p.broker === "papilo") return byName("papilo") ?? null;
   if (p.broker === "reconomy") return byName("reconomy") ?? null;
   if (p.residential) return current.find((c) => c.customer_type === "residential") ?? byName("trade rates") ?? null;
@@ -144,15 +147,17 @@ export function EmailPriceLookup() {
     setRowKey(""); // re-picked once card data loads
   };
 
-  // pick the row once card rows are loaded
+  // pick the row once card rows are loaded — only match rows belonging to the
+  // currently selected card, otherwise a stale previous card's rows can win
   useEffect(() => {
-    if (!parsed || !rows.length || rowKey) return;
+    if (!parsed || !rows.length || rowKey || !cardId) return;
+    if (rows[0]?.card_id !== cardId) return;
     const choice = pickRow(parsed);
     const row = rows.find(
       (r) => (r.section ?? "").includes(choice.sectionMatch) && choice.labelMatch.test(r.label)
     );
     if (row) setRowKey(row.id);
-  }, [parsed, rows, rowKey]);
+  }, [parsed, rows, rowKey, cardId]);
 
   const selectedRow = rows.find((r) => r.id === rowKey) ?? null;
   const value: RateValue | null = useMemo(() => {
