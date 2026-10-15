@@ -2140,6 +2140,35 @@ export function CustomerSetupAdmin() {
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, midweigh_rebates_enabled: v }))}
               />
             </div>
+            {editCustomerForm.midweigh_rebates_enabled && (
+              <div className="space-y-2 pl-1">
+                <Label>Midweigh rebates contact</Label>
+                <p className="text-xs text-muted-foreground">
+                  The contact at this customer who handles the Midweigh rebate reports (e.g. Sarah Rozier for Biffa Coventry).
+                </p>
+                <Select
+                  value={editCustomerForm.midweigh_rebate_contact_id || "none"}
+                  onValueChange={(v) => setEditCustomerForm((p) => ({ ...p, midweigh_rebate_contact_id: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a contact" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No contact set</SelectItem>
+                    {editCustomerContacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name}{c.email ? ` (${c.email})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editCustomerContacts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No contacts on this customer yet — add one in the Contacts tab first.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter className="shrink-0 border-t border-border pt-4">
             <Button variant="outline" onClick={() => setEditCustomerOpen(false)} disabled={savingCustomer}>
