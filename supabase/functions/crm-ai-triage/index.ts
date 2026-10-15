@@ -43,12 +43,13 @@ const TRIAGE_SCHEMA = {
     site_name: nullableStr, postcode: nullableStr, container: nullableStr, waste_type: nullableStr,
     service: { ...nullableStr, description: 'deliver, exchange or collect' },
     requested_date: nullableStr,
+    suggested_assignee: { ...nullableStr, description: 'Name of the team member best placed to handle this, chosen from the TEAM list, or null' },
   },
   required: ['intent', 'urgent', 'summary', 'company_name', 'po_number', 'contract_number', 'job_reference',
-    'site_name', 'postcode', 'container', 'waste_type', 'service', 'requested_date'],
+    'site_name', 'postcode', 'container', 'waste_type', 'service', 'requested_date', 'suggested_assignee'],
 };
 
-async function aiClassify(apiKey: string, subject: string, from: string, body: string) {
+async function aiClassify(apiKey: string, subject: string, from: string, body: string, team: string[]) {
   const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
     method: 'POST',
     headers: { 'Lovable-API-Key': apiKey, Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'X-Lovable-AIG-SDK': 'fetch' },
