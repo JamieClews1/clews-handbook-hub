@@ -154,7 +154,7 @@ export default function MetalsYardPage() {
           <Button variant="ghost" size="icon" className="h-12 w-12" onClick={() => { localStorage.removeItem(SESSION_KEY); setUser(null); }} aria-label="Sign out"><LogOut /></Button>
         </div>
       </header>
-      {queue.length > 0 && <div className="bg-warning/15 text-foreground px-4 py-3 flex items-center gap-2 font-medium"><CloudOff className="h-5 w-5" />{queue.length} entr{queue.length === 1 ? "y" : "ies"} waiting to sync — not saved yet</div>}
+      {queue.length > 0 && <div className="bg-[hsl(var(--warning)/0.15)] text-foreground px-4 py-3 flex items-center gap-2 font-medium"><CloudOff className="h-5 w-5" />{queue.length} entr{queue.length === 1 ? "y" : "ies"} waiting to sync — not saved yet</div>}
       {flash && <div className={cn("mx-4 mt-4 rounded-xl p-4 text-lg font-semibold flex gap-2", flash.startsWith("Saved") ? "bg-primary/15 text-primary" : "bg-destructive/10 text-destructive")}><CheckCircle2 />{flash}</div>}
 
       <main className="max-w-lg mx-auto p-4 space-y-4">
@@ -183,7 +183,7 @@ export default function MetalsYardPage() {
               <Big label="Entries" value={String(data.collections.length + data.sorts.length)} />
               <Big label="Difference" value={kg(collected - sorted)} warn={collected > 0 && Math.abs(collected - sorted) > collected * 0.1} />
             </div>
-            {collected > 0 && Math.abs(collected - sorted) > collected * 0.1 && <p className="rounded-xl bg-warning/15 p-4 font-medium flex gap-2"><AlertTriangle />Collected and sorted weights differ by more than 10% — check with the office.</p>}
+            {collected > 0 && Math.abs(collected - sorted) > collected * 0.1 && <p className="rounded-xl bg-[hsl(var(--warning)/0.15)] p-4 font-medium flex gap-2"><AlertTriangle />Collected and sorted weights differ by more than 10% — check with the office.</p>}
             <div className="rounded-2xl bg-card border divide-y">
               {data.grades.map((g) => { const w = data.sorts.filter((s) => s.grade_id === g.id).reduce((a, r) => a + Number(r.weight_kg), 0); return w > 0 ? <div key={g.id} className="flex justify-between p-4 text-xl"><span>{g.name}</span><span className="font-bold">{kg(w)}</span></div> : null; })}
               {data.sorts.length === 0 && <p className="p-4 text-muted-foreground">Nothing sorted yet today.</p>}
@@ -197,7 +197,7 @@ export default function MetalsYardPage() {
 }
 
 const Big = ({ label, value, warn }: { label: string; value: string; warn?: boolean }) => (
-  <div className={cn("rounded-2xl border p-4 bg-card", warn && "border-warning")}><p className="text-muted-foreground">{label}</p><p className="text-3xl font-bold">{value}</p></div>
+  <div className={cn("rounded-2xl border p-4 bg-card", warn && "border-[hsl(var(--warning))]")}><p className="text-muted-foreground">{label}</p><p className="text-3xl font-bold">{value}</p></div>
 );
 
 function CollectForm({ onSave }: { onSave: (p: Record<string, unknown>, label: string) => Promise<void> }) {
