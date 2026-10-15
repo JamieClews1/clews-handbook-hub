@@ -243,13 +243,13 @@ export function EmailPriceLookup() {
     lines.push(
       "",
       "Please note the following charges which may apply. All quotes are subject to VAT.",
-      "Containers that have no collections or exchanges within 4 weeks will be subject to rental charges. Contamination charges may apply for non-acceptable materials.",
+      `Containers kept beyond the ${rental.rental_free_days}-day free rental period are charged at ${rentalRate(rental.rental_skip_rate)} per week for a skip or ${rentalRate(rental.rental_roro_rate)} per week for a RoRo, plus VAT. Contamination charges may apply for non-acceptable materials.`,
       "",
       "Kind regards,",
       "Clews Recycling",
     );
     return lines.filter((l) => l !== null).join("\n");
-  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel]);
+  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental]);
 
   const [copied, setCopied] = useState(false);
   const copyDraft = async () => {
