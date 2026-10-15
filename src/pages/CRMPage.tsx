@@ -65,6 +65,8 @@ interface Ticket {
   intent?: string | null;
   is_filed?: boolean;
   ai_summary?: string | null;
+  ai_extracted?: Record<string, any> | null;
+  ai_suggested_assignee?: string | null;
 }
 
 const INTENT_LABELS: Record<string, string> = {
