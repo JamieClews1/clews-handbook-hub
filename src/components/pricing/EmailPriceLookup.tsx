@@ -211,6 +211,48 @@ export function EmailPriceLookup() {
   const gross = totalNet != null ? totalNet + vat : null;
   const gbp = (n: number) => `£${n.toFixed(2)}`;
 
+  // Plain-text email reply draft
+  const wasteLabel =
+    parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood/green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
+  const serviceDesc = selectedRow
+    ? `${selectedRow.label}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
+    : null;
+  const emailDraft = useMemo(() => {
+    if (!parsed || !selectedRow) return "";
+    const lines: string[] = ["Good morning,", "", "Thank you for your enquiry."];
+    if (value?.status === "call_for_quote") {
+      lines.push("", `For ${serviceDesc} (${wasteLabel}), please give us a call on 01788 555111 and we'll put a price together for you.`);
+    } else if (totalNet != null) {
+      lines.push(
+        "",
+        `Price for ${serviceDesc} (${wasteLabel}):`,
+        `  • ${selectedRow.label}: ${gbp(net!)} + VAT`,
+        surcharge ? `  • Fuel surcharge: ${gbp(surchargeAmt)} + VAT` : null,
+        perTonne ? `  • Disposal rate thereafter: ${gbp(perTonne.price)} per tonne + VAT` : null,
+        "",
+        `Total: ${gbp(totalNet)} + VAT (${gbp(gross!)} inc. VAT)`,
+      );
+    }
+    lines.push(
+      "",
+      "Please note the following charges which may apply. All quotes are subject to VAT.",
+      "Containers that have no collections or exchanges within 4 weeks will be subject to rental charges. Contamination charges may apply for non-acceptable materials.",
+      "",
+      "Kind regards,",
+      "Clews Recycling",
+    );
+    return lines.filter((l) => l !== null).join("\n");
+  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel]);
+
+  const [copied, setCopied] = useState(false);
+  const copyDraft = async () => {
+    try {
+      await navigator.clipboard.writeText(emailDraft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard unavailable */ }
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
