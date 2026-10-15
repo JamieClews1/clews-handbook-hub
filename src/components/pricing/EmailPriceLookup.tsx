@@ -219,6 +219,20 @@ export function EmailPriceLookup() {
   const gross = totalNet != null ? totalNet + vat : null;
   const gbp = (n: number) => `£${n.toFixed(2)}`;
 
+  // Tonnes included in the price — the matrix is colour-coordinated by zone:
+  // RoRo general waste ("Inc 2 / Inc 3") includes 2t in Zone 2 and 3t in
+  // Zone 3 / RoRo-only zones; per-tonne skip materials include the first tonne.
+  const includedTonnes = useMemo(() => {
+    if (!parsed) return 1;
+    if (parsed.isRoRo && parsed.waste === "general") {
+      if (zoneCode === "Z1") return 1;
+      if (zoneCode === "Z2") return 2;
+      return 3; // Z3 / Z3R / Z4R
+    }
+    return 1;
+  }, [parsed, zoneCode]);
+  const includedLabel = includedTonnes === 1 ? "the first tonne" : `the first ${includedTonnes} tonnes`;
+
   const { settings: rental } = useLiveJobsSettings();
   const rentalRate = (n: number) => (Number.isInteger(n) ? `£${n}` : `£${n.toFixed(2)}`);
 
