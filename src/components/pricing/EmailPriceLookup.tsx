@@ -24,15 +24,24 @@ type ParsedEmail = {
 };
 
 function parseEmail(text: string): ParsedEmail {
-  const t = text.toLowerCase();
-  const pcMatch = text.toUpperCase().match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})\b/);
-  const sizeMatch = t.match(/(\d{1,2})\s*(?:yd|yard|yrd)/);
-  const isRoRo = /roro|ro-ro|ro ro|roll.?on.?roll.?off/.test(t) || (sizeMatch ? Number(sizeMatch[1]) >= 20 : false);
+  // Strip signature / disclaimer / footer so keywords there (e.g. "RORO" in a
+  // surcharge notice) don't drive the detection.
+  const body = text.split(/kind regards|best regards|regards,|many thanks|confidentiality notice|sign into our|customer portal at/i)[0] ?? text;
+  // Normalise dash-separated postcodes like "CV22 – 7DH" / "CV22-7DH".
+  const norm = body.replace(/[‐‑‒–—]/g, " ");
+  const t = norm.toLowerCase();
+  const pcMatch = norm.toUpperCase().match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})\b/);
+  const sizeMatch = t.match(/(\d{1,2})\s*(?:yd|yard|yrd)\b/);
+  // Only a RoRo when the word sits near a size, or the size itself is 20yd+
+  const roroNearSize =
+    /(\d{1,2})\s*(?:yd|yard|yrd)[^.\n]{0,40}(roro|ro-ro|ro ro|roll.?on.?roll.?off)/.test(t) ||
+    /(roro|ro-ro|ro ro|roll.?on.?roll.?off)[^.\n]{0,40}(\d{1,2})\s*(?:yd|yard|yrd)/.test(t);
+  const isRoRo = roroNearSize || (sizeMatch ? Number(sizeMatch[1]) >= 20 : false);
   const enclosed = /enclosed|lockable|covered skip/.test(t);
   let waste: ParsedEmail["waste"] = "general";
   if (/plasterboard|gypsum/.test(t)) waste = "plasterboard";
   else if (/hardcore|inert|soil|rubble|brick|concrete|muck/.test(t)) waste = "inert";
-  else if (/wood|green|garden|timber/.test(t)) waste = "wood";
+  else if (/\bwood\b|\bgreen\b|garden|timber/.test(t)) waste = "wood";
   let broker: ParsedEmail["broker"] = null;
   if (/papilo|allwood|project waste|kenny/.test(t)) broker = "papilo";
   else if (/reconomy|biffa|go green|suez|select a skip/.test(t)) broker = "reconomy";
