@@ -62,7 +62,10 @@ function parseEmail(text: string): ParsedEmail {
 
 function pickCard(cards: RateCard[], p: ParsedEmail): RateCard | null {
   const current = cards.filter((c) => c.is_active);
-  const byName = (frag: string) => current.find((c) => c.name.toLowerCase().includes(frag));
+  // Match the start of the card name only — a loose "includes" match picks the
+  // wrong card (e.g. "trade rates" also matches "Papilo … — Trade Rates 2026",
+  // and "reconomy" matches "Allen Ford (UK) Ltd (Reconomy) — Bespoke Rates").
+  const byName = (frag: string) => current.find((c) => c.name.toLowerCase().startsWith(frag));
   if (p.broker === "papilo") return byName("papilo") ?? null;
   if (p.broker === "reconomy") return byName("reconomy") ?? null;
   if (p.residential) return current.find((c) => c.customer_type === "residential") ?? byName("trade rates") ?? null;
