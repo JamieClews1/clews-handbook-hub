@@ -254,7 +254,7 @@ export function EmailPriceLookup() {
         `  • ${selectedRow.label}: ${gbp(net!)} + VAT`,
         surcharge ? `  • Fuel surcharge: ${gbp(surchargeAmt)} + VAT` : null,
         perTonne
-          ? `  • Price includes the first tonne — disposal thereafter at ${gbp(perTonne.price)} per tonne + VAT`
+          ? `  • Price includes ${includedLabel} — disposal thereafter at ${gbp(perTonne.price)} per tonne + VAT`
           : null,
         parsed.waste === "general" && !parsed.isRoRo
           ? "  • Price includes disposal — strictly no soils, hardcore or plasterboard to be placed in the skip."
