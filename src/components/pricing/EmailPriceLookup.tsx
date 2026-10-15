@@ -147,15 +147,17 @@ export function EmailPriceLookup() {
     setRowKey(""); // re-picked once card data loads
   };
 
-  // pick the row once card rows are loaded
+  // pick the row once card rows are loaded — only match rows belonging to the
+  // currently selected card, otherwise a stale previous card's rows can win
   useEffect(() => {
-    if (!parsed || !rows.length || rowKey) return;
+    if (!parsed || !rows.length || rowKey || !cardId) return;
+    if (rows[0]?.card_id !== cardId) return;
     const choice = pickRow(parsed);
     const row = rows.find(
       (r) => (r.section ?? "").includes(choice.sectionMatch) && choice.labelMatch.test(r.label)
     );
     if (row) setRowKey(row.id);
-  }, [parsed, rows, rowKey]);
+  }, [parsed, rows, rowKey, cardId]);
 
   const selectedRow = rows.find((r) => r.id === rowKey) ?? null;
   const value: RateValue | null = useMemo(() => {
