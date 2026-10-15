@@ -10,6 +10,7 @@ import { Mail, Sparkles, Fuel, AlertTriangle, Copy, Check } from "lucide-react";
 import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/components/pricing/useRateCard";
 import { usePostcodeZones } from "@/hooks/usePostcodeZones";
 import type { FuelSurchargeRate, PostcodeZoneRow } from "@/lib/fuel-surcharge";
+import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 /* ── Email parsing ────────────────────────────────────────────────── */
 
