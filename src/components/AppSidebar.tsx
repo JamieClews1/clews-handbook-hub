@@ -5,6 +5,7 @@ import {
   Container, Calendar, CalendarCheck, Inbox, Users, HardHat, Flame, MessageSquare,
   FileText, Gauge, TrendingUp, BarChart3, Upload, Fuel, Package, Building2,
   Smartphone, DollarSign, Settings, ChevronDown,
+  Gem,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
