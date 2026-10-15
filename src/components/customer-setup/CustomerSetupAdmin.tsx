@@ -956,10 +956,10 @@ export function CustomerSetupAdmin() {
     }
   };
 
-  const openEditCustomer = (customer: Customer) => {
+  const openEditCustomer = async (customer: Customer) => {
     setEditingCustomer(customer);
-    setEditCustomerForm({ 
-      customer_code: customer.customer_code, 
+    setEditCustomerForm({
+      customer_code: customer.customer_code,
       customer_name: customer.customer_name,
       po_notification_email: customer.po_notification_email || "orders@clewsrecycling.co.uk",
       pod_email: customer.pod_email || "",
@@ -969,8 +969,15 @@ export function CustomerSetupAdmin() {
       is_broker: customer.is_broker ?? false,
       all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
+      midweigh_rebate_contact_id: customer.midweigh_rebate_contact_id ?? "",
     });
     setEditCustomerOpen(true);
+    const { data: contactRows } = await supabase
+      .from("customer_contacts")
+      .select("id,customer_id,full_name,email,phone,created_at,updated_at")
+      .eq("customer_id", customer.id)
+      .order("full_name");
+    setEditCustomerContacts((contactRows ?? []) as CustomerContact[]);
   };
 
   const saveCustomer = async () => {
@@ -1000,6 +1007,7 @@ export function CustomerSetupAdmin() {
           is_broker: editCustomerForm.is_broker,
           all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
+          midweigh_rebate_contact_id: editCustomerForm.midweigh_rebates_enabled && editCustomerForm.midweigh_rebate_contact_id ? editCustomerForm.midweigh_rebate_contact_id : null,
         })
         .eq("id", editingCustomer.id);
       if (error) throw error;
