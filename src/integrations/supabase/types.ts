@@ -5145,6 +5145,349 @@ export type Database = {
         }
         Relationships: []
       }
+      nf_adjustments: {
+        Row: {
+          adjustment_kg: number
+          authorised_by: string | null
+          authorised_name: string | null
+          created_at: string
+          grade_id: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          adjustment_kg: number
+          authorised_by?: string | null
+          authorised_name?: string | null
+          created_at?: string
+          grade_id: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          adjustment_kg?: number
+          authorised_by?: string | null
+          authorised_name?: string | null
+          created_at?: string
+          grade_id?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nf_adjustments_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "nf_grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nf_amendments: {
+        Row: {
+          amended_by: string | null
+          amended_by_name: string | null
+          created_at: string
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          reason: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          amended_by?: string | null
+          amended_by_name?: string | null
+          created_at?: string
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          amended_by?: string | null
+          amended_by_name?: string | null
+          created_at?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      nf_buyers: {
+        Row: {
+          contact: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      nf_collections: {
+        Row: {
+          client_ref: string | null
+          created_at: string
+          id: string
+          is_voided: boolean
+          notes: string | null
+          photo_path: string | null
+          recorded_at: string
+          staff_name: string
+          user_id: string | null
+          weight_kg: number
+          yard_staff_id: string | null
+        }
+        Insert: {
+          client_ref?: string | null
+          created_at?: string
+          id?: string
+          is_voided?: boolean
+          notes?: string | null
+          photo_path?: string | null
+          recorded_at?: string
+          staff_name: string
+          user_id?: string | null
+          weight_kg: number
+          yard_staff_id?: string | null
+        }
+        Update: {
+          client_ref?: string | null
+          created_at?: string
+          id?: string
+          is_voided?: boolean
+          notes?: string | null
+          photo_path?: string | null
+          recorded_at?: string
+          staff_name?: string
+          user_id?: string | null
+          weight_kg?: number
+          yard_staff_id?: string | null
+        }
+        Relationships: []
+      }
+      nf_dispatches: {
+        Row: {
+          buyer_id: string | null
+          created_at: string
+          created_by: string | null
+          dispatch_date: string
+          grade_id: string
+          id: string
+          notes: string | null
+          price_per_tonne: number
+          sales_ref: string | null
+          total_value: number | null
+          weighbridge_ticket: string | null
+          weight_kg: number
+        }
+        Insert: {
+          buyer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dispatch_date?: string
+          grade_id: string
+          id?: string
+          notes?: string | null
+          price_per_tonne?: number
+          sales_ref?: string | null
+          total_value?: number | null
+          weighbridge_ticket?: string | null
+          weight_kg: number
+        }
+        Update: {
+          buyer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dispatch_date?: string
+          grade_id?: string
+          id?: string
+          notes?: string | null
+          price_per_tonne?: number
+          sales_ref?: string | null
+          total_value?: number | null
+          weighbridge_ticket?: string | null
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nf_dispatches_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "nf_buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_dispatches_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "nf_grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nf_grades: {
+        Row: {
+          created_at: string
+          display_order: number
+          guidance: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price_per_tonne: number
+          stock_limit_kg: number | null
+          storage_location: string | null
+          warn_at_kg: number | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          guidance?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_per_tonne?: number
+          stock_limit_kg?: number | null
+          storage_location?: string | null
+          warn_at_kg?: number | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          guidance?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_per_tonne?: number
+          stock_limit_kg?: number | null
+          storage_location?: string | null
+          warn_at_kg?: number | null
+        }
+        Relationships: []
+      }
+      nf_prices: {
+        Row: {
+          buyer_id: string | null
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          grade_id: string
+          id: string
+          notes: string | null
+          price_per_tonne: number
+        }
+        Insert: {
+          buyer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          grade_id: string
+          id?: string
+          notes?: string | null
+          price_per_tonne: number
+        }
+        Update: {
+          buyer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          grade_id?: string
+          id?: string
+          notes?: string | null
+          price_per_tonne?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nf_prices_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "nf_buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_prices_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "nf_grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nf_sort_entries: {
+        Row: {
+          client_ref: string | null
+          created_at: string
+          grade_id: string
+          id: string
+          is_voided: boolean
+          notes: string | null
+          recorded_at: string
+          session_ref: string | null
+          staff_name: string
+          user_id: string | null
+          weight_kg: number
+          yard_staff_id: string | null
+        }
+        Insert: {
+          client_ref?: string | null
+          created_at?: string
+          grade_id: string
+          id?: string
+          is_voided?: boolean
+          notes?: string | null
+          recorded_at?: string
+          session_ref?: string | null
+          staff_name: string
+          user_id?: string | null
+          weight_kg: number
+          yard_staff_id?: string | null
+        }
+        Update: {
+          client_ref?: string | null
+          created_at?: string
+          grade_id?: string
+          id?: string
+          is_voided?: boolean
+          notes?: string | null
+          recorded_at?: string
+          session_ref?: string | null
+          staff_name?: string
+          user_id?: string | null
+          weight_kg?: number
+          yard_staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nf_sort_entries_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "nf_grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_document_requirements: {
         Row: {
           created_at: string

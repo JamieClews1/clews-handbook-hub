@@ -71,6 +71,20 @@
       "when": 1792058569092,
       "tag": "0009_add_midweigh_rebate_contact",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792064867511,
+      "tag": "0010_non_ferrous_metals",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792064888780,
+      "tag": "0011_nf_grade_guidance",
+      "breakpoints": true
     }
   ]
 }
