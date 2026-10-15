@@ -1,0 +1,1 @@
+ALTER TABLE public.nf_grades ADD COLUMN guidance text;

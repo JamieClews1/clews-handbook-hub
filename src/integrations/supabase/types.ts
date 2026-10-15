@@ -5352,6 +5352,7 @@ export type Database = {
         Row: {
           created_at: string
           display_order: number
+          guidance: string | null
           id: string
           is_active: boolean
           name: string
@@ -5363,6 +5364,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_order?: number
+          guidance?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -5374,6 +5376,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_order?: number
+          guidance?: string | null
           id?: string
           is_active?: boolean
           name?: string
