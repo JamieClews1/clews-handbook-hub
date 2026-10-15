@@ -58,7 +58,7 @@ async function aiClassify(apiKey: string, subject: string, from: string, body: s
       stream: true,
       store: false,
       reasoning: { effort: 'low' },
-      instructions: 'You triage emails arriving at Clews Recycling, a UK skip hire, RoRo and waste management company. Brokers (Reconomy, Go Green, Biffa, Kenny, LB Waste, Opteco, Project Waste, YardLink, SPUD Now, MJ Church, Acorn) send purchase orders. Classify the email and extract fields. Use null when a field is not present.',
+      instructions: `You triage emails arriving at Clews Recycling, a UK skip hire, RoRo and waste management company. Brokers (Reconomy, Go Green, Biffa, Kenny, LB Waste, Opteco, Project Waste, YardLink, SPUD Now, MJ Church, Acorn) send purchase orders. Classify the email and extract fields. Use null when a field is not present.\nTEAM (pick suggested_assignee from these names only, matching the work: invoices/payment queries to accounts staff, complaints/urgent service issues to management, everything else to whoever handles bookings; null if unsure): ${team.join(', ') || 'none listed'}`,
       input: `From: ${from}\nSubject: ${subject}\n\n${body.slice(0, 4000)}`,
       text: { format: { type: 'json_schema', name: 'triage', strict: true, schema: TRIAGE_SCHEMA } },
     }),
