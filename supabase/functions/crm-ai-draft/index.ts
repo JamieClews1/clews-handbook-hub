@@ -74,8 +74,58 @@ Deno.serve(async (req) => {
         if (job.job_date) found.jobDate = ukDate(job.job_date)!;
         if (job.weight_t != null) found.weightTonnes = Number(job.weight_t).toFixed(2);
         if (job.site) found.siteName = job.site;
-        if (job.container_type) found.containerSize = job.container_type;
+        if (job.container_type) found.container_type = job.container_type;
         if (job.waste_description) found.wasteType = job.waste_description;
+      }
+    }
+
+    // Price + fuel surcharge lookup for quotes: postcode -> zone -> rate card entry.
+    const containerText = `${ex.container ?? ''} ${found.containerSize ?? ''}`;
+    const wasteText = `${ex.waste_type ?? ''} ${found.wasteType ?? ''}`;
+    if (ex.postcode && containerText.trim()) {
+      const pc = String(ex.postcode).toUpperCase().replace(/\s+/g, '');
+      const { data: prefixes } = await admin.from('pricing_zone_postcodes').select('postcode_prefix, zone_code');
+      const match = (prefixes ?? [])
+        .filter((p: any) => pc.startsWith(String(p.postcode_prefix).toUpperCase().replace(/\s+/g, '')))
+        .sort((a: any, b: any) => b.postcode_prefix.length - a.postcode_prefix.length)[0];
+      let zoneId: string | null = null;
+      let zoneName: string | null = null;
+      if (match) {
+        const { data: zone } = await admin.from('postcode_zones').select('id, zone_name').ilike('zone_name', match.zone_code).limit(1).maybeSingle();
+        zoneId = zone?.id ?? null;
+        zoneName = zone?.zone_name ?? match.zone_code;
+      }
+      const isRoRo = /roro|roll|2[05]\s*yd|3[05]\s*yd|40\s*yd/i.test(containerText);
+      if (zoneId) {
+        const { data: sizes } = await admin.from('pricing_skip_sizes').select('id, display_name, size_code').eq('is_active', true);
+        const sizeHit = (sizes ?? []).find((s: any) => {
+          const label = `${s.display_name} ${s.size_code}`.toLowerCase();
+          const want = containerText.toLowerCase();
+          const num = want.match(/(\d+)\s*(yd|yard)/)?.[1];
+          return num ? label.includes(num) : label.split(/\s+/).some((w2: string) => w2.length > 2 && want.includes(w2));
+        });
+        const { data: wastes } = await admin.from('pricing_waste_types').select('id, waste_type_name').eq('is_active', true);
+        const wasteHit = (wastes ?? []).find((w2: any) => {
+          const a = w2.waste_type_name.toLowerCase();
+          const b = wasteText.toLowerCase();
+          return b && (b.includes(a) || a.includes(b));
+        }) ?? (wastes ?? []).find((w2: any) => /general/i.test(w2.waste_type_name));
+        if (sizeHit) {
+          let q = admin.from('pricing_entries').select('price_ex_vat, status, tier')
+            .eq('zone_id', zoneId).eq('skip_size_id', sizeHit.id).eq('status', 'price');
+          if (wasteHit) q = q.eq('waste_type_id', wasteHit.id);
+          const { data: entries } = await q;
+          const entry = (entries ?? [])[0];
+          if (entry?.price_ex_vat != null) {
+            found.price = `£${Number(entry.price_ex_vat).toFixed(2)} + VAT (${sizeHit.display_name}${wasteHit ? `, ${wasteHit.waste_type_name}` : ''}, ${zoneName})`;
+          }
+        }
+      }
+      if (zoneName) {
+        const { data: fs } = await admin.from('fuel_surcharge_rates').select('surcharge_amount')
+          .eq('zone', zoneName).eq('vehicle_category', isRoRo ? 'RoRo' : 'Skips').eq('active', true)
+          .order('effective_from_date', { ascending: false }).limit(1).maybeSingle();
+        if (fs?.surcharge_amount != null) found.fuelSurcharge = `£${Number(fs.surcharge_amount).toFixed(2)} per movement (${zoneName})`;
       }
     }
 
