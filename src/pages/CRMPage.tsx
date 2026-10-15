@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllCustomers, fetchAllRows } from "@/lib/fetch-all";
 import { Card } from "@/components/ui/card";
