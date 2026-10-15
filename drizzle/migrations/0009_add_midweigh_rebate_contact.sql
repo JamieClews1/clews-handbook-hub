@@ -1,0 +1,2 @@
+ALTER TABLE public.customers ADD COLUMN midweigh_rebate_contact_id uuid REFERENCES public.customer_contacts(id) ON DELETE SET NULL;
+COMMENT ON COLUMN public.customers.midweigh_rebate_contact_id IS 'Contact who receives/handles Midweigh rebate reports for this customer';
