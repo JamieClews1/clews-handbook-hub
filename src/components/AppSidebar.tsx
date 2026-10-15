@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Gem, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Bot, Route, Scale, Radio, Truck, PoundSterling, FileCheck,
   AlertTriangle, Box, ShieldCheck, ClipboardList, ScrollText, BookOpen, Recycle,
@@ -32,6 +32,7 @@ const operations: NavItem[] = [
   { label: "Load Reports", path: "/load-reports", icon: Truck, key: "load-reports" },
   { label: "Container Loads", path: "/container-loads", icon: Container, key: "container-loads" },
   { label: "Stock Check", path: "/performance-hub/stock-check", icon: Box, key: "performance-stock-check" },
+  { label: "Non-Ferrous Metals", path: "/metals", icon: Gem, key: "metals" },
   { label: "Permits", path: "/permits", icon: FileCheck, key: "permits" },
   { label: "Digital Waste Tracking", path: "/digital-waste-tracking", icon: Radio, key: "digital-waste-tracking" },
   { label: "Diary", path: "/diary", icon: Calendar, key: "diary" },
