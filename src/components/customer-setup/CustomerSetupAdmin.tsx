@@ -49,6 +49,7 @@ type Customer = {
   is_broker: boolean;
   all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
+  midweigh_rebate_contact_id: string | null;
   is_active: boolean;
   data_hub_customer: string | null;
   created_at: string;
