@@ -816,6 +816,24 @@ function StatCard({ icon: Icon, label, value, tone }: { icon: any; label: string
   );
 }
 
+// The Notes entry point on a bin's row: plain while everything there has been
+// read, highlighted with a count while notes are still waiting.
+function NotesButton({ unread, onClick }: { unread: number; onClick: () => void }) {
+  if (!unread) return <Button variant="ghost" size="sm" onClick={onClick}>Notes</Button>;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-1.5 border-primary/60 bg-primary/10 font-semibold"
+      onClick={onClick}
+      title={`${unread} note${unread > 1 ? "s" : ""} to read`}
+    >
+      <MessageSquare className="h-4 w-4 text-primary" /> Notes
+      <Badge className="px-1.5 py-0 text-[10px]">{notesBadgeLabel(unread)}</Badge>
+    </Button>
+  );
+}
+
 async function ensureChase(bin: OverRentalBin, userId: string | null): Promise<string | null> {
   const { data: existing } = await supabase.from("rental_chases").select("id").eq("bin_key", bin.binKey).maybeSingle();
   if (existing) return existing.id;
