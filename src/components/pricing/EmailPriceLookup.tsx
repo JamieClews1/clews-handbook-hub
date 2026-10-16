@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Mail, Sparkles, Fuel, AlertTriangle, Copy, Check } from "lucide-react";
 import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/components/pricing/useRateCard";
 import { usePostcodeZones } from "@/hooks/usePostcodeZones";
-import type { FuelSurchargeRate, PostcodeZoneRow } from "@/lib/fuel-surcharge";
+import type { FuelSurchargeRate } from "@/lib/fuel-surcharge";
+import { matchQuotePostcodeZone } from "@/lib/quote-postcode-zone";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 /* ── Email parsing ────────────────────────────────────────────────── */
@@ -91,34 +92,20 @@ function pickRow(p: ParsedEmail): RowChoice {
 }
 
 function zoneCodeForName(zoneName: string | null): string {
-  if (!zoneName) return "Z3";
+  if (!zoneName) return "";
   if (/^zone\s*1/i.test(zoneName)) return "Z1";
   if (/^zone\s*2/i.test(zoneName)) return "Z2";
   if (/^zone\s*3\s*roro/i.test(zoneName)) return "Z3R";
   if (/^zone\s*4\s*roro/i.test(zoneName)) return "Z4R";
-  return "Z3";
-}
-
-function matchPostcodeZone(postcode: string | null, zones: PostcodeZoneRow[]): string | null {
-  if (!postcode) return null;
-  const pc = postcode.toUpperCase().replace(/\s+/g, " ").trim();
-  const variants = new Set<string>([pc, pc.replace(/\s+/g, "")]);
-  const m = pc.match(/^([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d)/);
-  if (m) variants.add(`${m[1]} ${m[2]}`);
-  const outward = pc.split(" ")[0];
-  if (outward) variants.add(outward);
-  for (const z of zones) {
-    const setU = new Set(z.postcodes.map((x) => x.toUpperCase().trim()));
-    for (const v of variants) if (setU.has(v) || setU.has(v.replace(/\s+/g, ""))) return z.zone_name;
-  }
-  return null;
+  if (/^zone\s*3$/i.test(zoneName)) return "Z3";
+  return "";
 }
 
 /* ── Component ────────────────────────────────────────────────────── */
 
 export function EmailPriceLookup() {
   const { cards } = useRateCards();
-  const { zones: postcodeZones } = usePostcodeZones();
+  const { zones: postcodeZones, loading: postcodeZonesLoading } = usePostcodeZones();
   const [emailText, setEmailText] = useState("");
   const [parsed, setParsed] = useState<ParsedEmail | null>(null);
   const [cardId, setCardId] = useState("");
@@ -142,7 +129,7 @@ export function EmailPriceLookup() {
     setParsed(p);
     const c = pickCard(cards, p);
     setCardId(c?.id ?? "");
-    const zoneName = matchPostcodeZone(p.postcode, postcodeZones as PostcodeZoneRow[]);
+    const zoneName = matchQuotePostcodeZone(p.postcode, postcodeZones);
     setZoneCode(zoneCodeForName(zoneName));
     setRowKey(""); // re-picked once card data loads
   };
@@ -243,7 +230,7 @@ export function EmailPriceLookup() {
     ? `${selectedRow.label}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
     : null;
   const emailDraft = useMemo(() => {
-    if (!parsed || !selectedRow) return "";
+    if (!parsed || !selectedRow || !zoneCode || !value) return "";
     const lines: string[] = ["Good morning,", "", "Thank you for your enquiry."];
     if (value?.status === "call_for_quote") {
       lines.push("", `For ${serviceDesc} (${wasteLabel}), please give us a call on 01788 555111 and we'll put a price together for you.`);
@@ -272,7 +259,7 @@ export function EmailPriceLookup() {
       "Clews Recycling",
     );
     return lines.filter((l) => l !== null).join("\n");
-  }, [parsed, selectedRow, value, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental, includedLabel]);
+  }, [parsed, selectedRow, value, zoneCode, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental, includedLabel]);
 
   const [copied, setCopied] = useState(false);
   const copyDraft = async () => {
@@ -301,7 +288,7 @@ export function EmailPriceLookup() {
             placeholder={"e.g. Hi, can I get a price for an 8 yard skip for general waste to CV21 2AB please — thanks, Papilo"}
             className="min-h-[220px]"
           />
-          <Button onClick={analyse} disabled={!emailText.trim()}>
+          <Button onClick={analyse} disabled={!emailText.trim() || postcodeZonesLoading}>
             <Sparkles className="h-4 w-4 mr-1" /> Work out price
           </Button>
           {parsed && (
@@ -412,7 +399,12 @@ export function EmailPriceLookup() {
                   <p className="text-xs text-muted-foreground">From: {card?.name}</p>
                 </div>
               )}
-              {value == null && selectedRow && (
+              {!zoneCode && (
+                <p role="alert" className="text-sm text-destructive">
+                  {parsed.postcode ? `${parsed.postcode} is not in the configured postcode zones.` : "No postcode found."} Check the postcode or select a confirmed zone before quoting.
+                </p>
+              )}
+              {value == null && selectedRow && zoneCode && (
                 <p className="text-sm text-muted-foreground">No price on this card for that service and zone.</p>
               )}
 
