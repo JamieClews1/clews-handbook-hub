@@ -33,6 +33,7 @@ import {
   type RateZone,
 } from "./useRateCard";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
+import { matchMatrixPostcode, type MatrixPostcode } from "@/lib/matrix-postcode-zone";
 
 type CustomerType = RateCard["customer_type"];
 const TYPE_ORDER: CustomerType[] = ["residential", "trade", "broker", "bespoke"];
@@ -823,22 +824,25 @@ function PostcodeResolver({
   const [searching, setSearching] = useState(false);
 
   const search = async () => {
-    const q = query.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ");
+    const q = query.trim();
     if (!q) return;
     setSearching(true);
-    const outward = q.split(" ")[0];
     const { data } = await supabase
       .from("pricing_zone_postcodes")
-      .select("postcode_prefix,zone_code,area")
-      .or(`postcode_prefix.ilike.${q}%,postcode_prefix.ilike.${outward}%`)
-      .order("postcode_prefix")
-      .limit(1);
+      .select("postcode_prefix,zone_code,area");
     setSearching(false);
-    const match = (data || [])[0];
-    if (!match) {
-      setResult("No zone found — likely a phone-for-quote area.");
+    const m = matchMatrixPostcode(q, (data || []) as MatrixPostcode[]);
+    if (m.status === "none") {
+      onResolved(null);
+      setResult("Not on the pricing matrix — phone for quote / confirm the zone before pricing.");
       return;
     }
+    if (m.status === "ambiguous") {
+      onResolved(null);
+      setResult(`Split sector — ${m.matches.map((x) => `${x.zone_code}${x.area ? ` (${x.area})` : ""}`).join(" or ")}. Pick the zone manually.`);
+      return;
+    }
+    const match = m.matches[0];
     const code = ZONE_CODE_MAP[match.zone_code] ?? match.zone_code;
     const zone = matrixZones.find((z) => z.zone_code === code);
     if (zone) {
