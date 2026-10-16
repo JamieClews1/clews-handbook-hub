@@ -1,3 +1,4 @@
+import { roroIncludedTonnes } from "@/lib/roro-tonnage";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -215,11 +216,7 @@ export function EmailPriceLookup() {
   // Zone 3 / RoRo-only zones; per-tonne skip materials include the first tonne.
   const includedTonnes = useMemo(() => {
     if (!parsed) return 1;
-    if (parsed.isRoRo && parsed.waste === "general") {
-      if (zoneCode === "Z1") return 1;
-      if (zoneCode === "Z2") return 2;
-      return 3; // Z3 / Z3R / Z4R
-    }
+    if (parsed.isRoRo && parsed.waste === "general") return roroIncludedTonnes(zoneCode);
     return 1;
   }, [parsed, zoneCode]);
   const includedLabel = includedTonnes === 1 ? "the first tonne" : `the first ${includedTonnes} tonnes`;
@@ -377,6 +374,11 @@ export function EmailPriceLookup() {
                     </span>
                     <span className="font-medium">{gbp(net!)}</span>
                   </div>
+                  {perTonne && parsed?.isRoRo && (
+                    <div className="rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium text-foreground">
+                      RoRo price includes {includedLabel}. Every tonne over {includedTonnes}t is charged at {gbp(perTonne.price)} per tonne + VAT.
+                    </div>
+                  )}
                   {perTonne && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Disposal after {includedLabel} — {perTonne.label}</span>

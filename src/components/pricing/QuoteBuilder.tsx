@@ -1,3 +1,4 @@
+import { roroIncludedTonnes, isRoRoInclusiveRow } from "@/lib/roro-tonnage";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -609,7 +610,9 @@ function EmailQuoteDialog({
 
     const lineLines = lines.map((l) => {
       const detail = [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · ");
-      return `• ${l.label}${detail ? ` (${detail})` : ""} — ${l.qty} × ${money(l.unitPrice)} = ${money(lineTotal(l))}`;
+      const inc = isRoRoInclusiveRow(l.label) ? roroIncludedTonnes(l.zoneLabel) : null;
+      const incNote = inc ? `\n    Includes the first ${inc === 1 ? "tonne" : `${inc} tonnes`}; each tonne over ${inc}t is charged at the general waste per-tonne rate + VAT.` : "";
+      return `• ${l.label}${detail ? ` (${detail})` : ""} — ${l.qty} × ${money(l.unitPrice)} = ${money(lineTotal(l))}${incNote}`;
     });
 
     const totalsLines: string[] = [];

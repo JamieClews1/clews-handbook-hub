@@ -152,6 +152,16 @@ Deno.serve(async (req) => {
           const { data: v } = await admin.from('pricing_rate_card_values').select('status, price').eq('row_id', row.id).eq('zone_id', zone.id).maybeSingle();
           if (v?.status === 'price' && v.price != null) {
             prices.push(`£${Number(v.price).toFixed(2)} ${card.vat_inclusive ? 'inc VAT' : '+ VAT'} (${row.label}, ${zoneLabel}, ${card.name})`);
+            if (/inc\s*2\s*\/\s*inc\s*3/i.test(row.label)) {
+              const inc = /roro/i.test(zoneLabel) ? 3 : /zone\s*1\b/i.test(zoneLabel) ? 1 : /zone\s*2\b/i.test(zoneLabel) ? 2 : 3;
+              const gw = (rows ?? []).find((r: any) => /tonnage/i.test(r.section) && /^general waste$/i.test(String(r.label).trim()));
+              let rate = '';
+              if (gw) {
+                const { data: gv } = await admin.from('pricing_rate_card_values').select('price').eq('row_id', gw.id).not('price', 'is', null).limit(1).maybeSingle();
+                if (gv?.price != null) rate = `£${Number(gv.price).toFixed(2)} per tonne + VAT`;
+              }
+              found.tonnage = `RoRo price INCLUDES the first ${inc === 1 ? 'tonne' : `${inc} tonnes`}. Each tonne over ${inc}t is charged at ${rate || '[general waste per-tonne rate]'}. State this clearly on its own line in the reply.`;
+            }
           } else if (v) prices.push(`Call for quote (${row.label}, ${zoneLabel})`);
         }
       }
@@ -248,6 +258,7 @@ Deno.serve(async (req) => {
         'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers.',
         'If a placeholder cannot be filled, write [square brackets describing what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
+        'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
         'price, fuelSurcharge, availableDate and zone come from PORTAL FACTS only. If price says "inc VAT" (residential), write it as inc VAT rather than "+ VAT".',
         'permitNote: if it starts with "ASK:", turn it into a short friendly question to the customer instead of stating a permit is or isn\'t needed.',
         'firstName is the sender\'s first name if known, otherwise use "there". Sign off with userName.',
