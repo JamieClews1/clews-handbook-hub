@@ -280,10 +280,7 @@ export default function RentalAgreements() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-1.5">
-              <Label>Notes</Label>
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} />
-            </div>
+            {!editing && <div className="col-span-2 space-y-1.5"><Label>First note</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} /></div>}
           </div>
           {editing && <RentalNotes agreementId={editing.id} legacyNotes={editing.notes} />}
           <DialogFooter>
