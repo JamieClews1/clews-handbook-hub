@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
           : isRoRo
             ? { plaster: /roro.*general/i, wood: /roro.*general/i, green: /roro.*general/i, inert: /roro.*inert/i, general: /roro.*general/i }
             : { plaster: /plasterboard/i, wood: /wood/i, green: /wood|green/i, inert: /inert/i, general: /skip hire.*general/i };
-        const size = containerText.match(/(\d+)\s*(yd|yard|cubic)/i)?.[1];
+        const size = containerText.match(/(\d+)\s*-?\s*(yd|yard|cubic)/i)?.[1];
         const enclosed = /enclosed|lockable|lid/i.test(containerText);
         const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(isResidential ? r.label : r.section) && !/haulage/i.test(r.section))
           .filter((r: any) => !size || isRoRo || new RegExp(`\\b${size}\\b`).test(r.label))
