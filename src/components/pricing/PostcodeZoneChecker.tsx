@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Search } from "lucide-react";
+import { matchMatrixPostcode } from "@/lib/matrix-postcode-zone";
 
 export type PostcodeMatch = {
   postcode_prefix: string;
@@ -34,22 +35,16 @@ export function PostcodeZoneChecker({
     const q = query.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ");
     if (!q) return;
     setSearching(true);
-    // try exact "AB12 3" prefix then broader outward code
-    const outward = q.split(" ")[0];
     const { data } = await supabase
       .from("pricing_zone_postcodes")
       .select("postcode_prefix,zone_code,area,services")
-      .or(`postcode_prefix.ilike.${q}%,postcode_prefix.ilike.${outward}%`)
-      .order("postcode_prefix")
-      .limit(15);
-    const results = (data as PostcodeMatch[]) || [];
-    setMatches(results);
+      .order("postcode_prefix");
+    const all = (data as PostcodeMatch[]) || [];
+    // Only exact matrix matches (postcode → sector → district) count; never a near neighbour.
+    const m = matchMatrixPostcode(q, all);
+    setMatches(m.matches as PostcodeMatch[]);
     setSearching(false);
-    if (results.length && onZoneResolved) {
-      onZoneResolved(ZONE_CODE_MAP[results[0].zone_code] ?? null);
-    } else if (onZoneResolved) {
-      onZoneResolved(null);
-    }
+    onZoneResolved?.(m.status === "matched" ? ZONE_CODE_MAP[m.zone] ?? null : null);
   };
 
   return (
