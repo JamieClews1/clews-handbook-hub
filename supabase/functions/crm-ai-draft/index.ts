@@ -11,6 +11,7 @@ const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').rep
 const ukDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : null;
 const PERSONAL_DOMAINS = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|btinternet|btopenworld|sky|talktalk|virginmedia|ntlworld|blueyonder|tiscali|plusnet|protonmail|proton|gmx|mail)\./;
 const DAYS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+const LOW_STOCK = 2;
 const RORO_RE = /ro\s*-?\s*ro|roll[- ]?on|\b(20|25|30|35|40)\s*-?\s*(yd|yds|yrd|yard)/i;
 /** Next date for a booking-board day code (today counts), e.g. "Monday 19 October". */
 function bookingDate(day: string | null | undefined): string | null {
@@ -173,6 +174,65 @@ Deno.serve(async (req) => {
       else if (day) found.availableDate = 'to be confirmed';
     }
 
+    // Stock: same "Bookings Allowed" sum as Stock Check (last yard tally, adjusted by
+    // completed movements since, plus outstanding collections minus deliveries for 5 days, minus runners).
+    let stock: { type: string; available: number; tallyDate: string; low: boolean } | null = null;
+    try {
+      const size = containerText.match(/(\d+)\s*-?\s*(yd|yds|yrd|yard|cubic)/i)?.[1];
+      if (size) {
+        const { data: types } = await admin.from('stock_check_container_types').select('id, name, category, data_hub_keywords').eq('is_active', true);
+        const enclosed = /enclosed|lockable|lid/i.test(containerText);
+        const cat = isRoRo ? 'roro' : 'skip';
+        const type = (types ?? [])
+          .filter((x: any) => x.category === cat && new RegExp(`(^|\\D)${size}(\\D|$)`).test(x.name) && !/compactor|walk|asbestos/i.test(x.name))
+          .sort((a: any, b: any) => Number(/enclosed/i.test(a.name) !== enclosed) - Number(/enclosed/i.test(b.name) !== enclosed))[0];
+        const { data: check } = await admin.from('stock_checks').select('id, check_date').eq('status', 'submitted').order('check_date', { ascending: false }).limit(1).maybeSingle();
+        if (type && check) {
+          const { data: item } = await admin.from('stock_check_items').select('in_yard, runner').eq('stock_check_id', check.id).eq('container_type_id', type.id).maybeSingle();
+          if (item) {
+            const { data: excl } = await admin.from('stock_check_excluded_sites').select('site_name');
+            const ex2 = (excl ?? []).map((e: any) => String(e.site_name).toLowerCase());
+            const today = new Date().toISOString().slice(0, 10);
+            const end = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
+            const kws: string[] = type.data_hub_keywords ?? [];
+            const esc = (k: string) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const bestType = (ct: string) => {
+              let best: any = null, len = 0;
+              for (const ty of types ?? []) for (const kw of ty.data_hub_keywords ?? []) {
+                if (kw.length > len && new RegExp(`(^|\\W)${esc(kw)}(\\W|$)`, 'i').test(ct)) { len = kw.length; best = ty; }
+              }
+              return best;
+            };
+            const count = (jobs: any[], skipDone: boolean) => {
+              let n = 0;
+              for (const j of jobs) {
+                if (!j.container_type || ex2.some((x) => String(j.site ?? '').toLowerCase().includes(x))) continue;
+                if (skipDone && j.raw?.Status === 'Y') continue;
+                if (bestType(j.container_type)?.id !== type.id) continue;
+                const mt = String(j.movement_type ?? '').toLowerCase();
+                if (mt.includes('exchange')) continue;
+                if (mt.includes('collect')) n++; else if (mt.includes('deliver')) n--;
+              }
+              return n;
+            };
+            let adj = 0;
+            if (check.check_date < today) {
+              const { data: past } = await admin.from('data_hub_jobs').select('container_type, movement_type, site, raw')
+                .eq('source', 'skiptrak').gt('job_date', check.check_date).lt('job_date', today).limit(5000);
+              adj = count(past ?? [], false);
+            }
+            const { data: next } = await admin.from('data_hub_jobs').select('container_type, movement_type, site, raw')
+              .eq('source', 'skiptrak').gte('job_date', today).lte('job_date', end).limit(5000);
+            const available = item.in_yard + adj + count(next ?? [], true) - item.runner;
+            stock = { type: type.name, available, tallyDate: check.check_date, low: available <= LOW_STOCK };
+            found.stock = available <= 0
+              ? `No ${type.name} available to book in the next 5 days — do NOT promise a date; say staff will confirm availability.`
+              : `${available} × ${type.name} available to book${available <= LOW_STOCK ? ' (low stock)' : ''}.`;
+          }
+        }
+      }
+    } catch (e) { console.error('stock check failed', e); }
+
     // Permit: only state it if the customer said it goes on the road; otherwise ask.
     const allText = inboundText.toLowerCase();
     found.permitNote = /permit/.test(allText)
@@ -185,6 +245,7 @@ Deno.serve(async (req) => {
       instructions: [
         'You draft email replies for Clews Recycling, a UK skip hire, RoRo and waste management company. A member of staff will review and edit your draft before sending.',
         'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
+        'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers.',
         'If a placeholder cannot be filled, write [square brackets describing what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'price, fuelSurcharge, availableDate and zone come from PORTAL FACTS only. If price says "inc VAT" (residential), write it as inc VAT rather than "+ VAT".',
@@ -203,7 +264,7 @@ Deno.serve(async (req) => {
       ai_draft_sent_at: null, ai_draft_edit_pct: null,
     };
     await admin.from('crm_tickets').update(patch).eq('id', t.id);
-    return json({ ...draft, found });
+    return json({ ...draft, found, stock });
   } catch (e) {
     console.error(e);
     return json({ error: String(e) }, 500);
