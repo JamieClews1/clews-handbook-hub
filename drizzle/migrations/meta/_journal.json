@@ -99,6 +99,13 @@
       "when": 1792070072881,
       "tag": "0013_crm_ai_suggested_assignee",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792136113191,
+      "tag": "0014_rental_notes_and_no_rental",
+      "breakpoints": true
     }
   ]
 }
