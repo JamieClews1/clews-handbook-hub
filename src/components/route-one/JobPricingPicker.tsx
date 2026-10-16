@@ -105,13 +105,14 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
 
   const matrixZones = useMemo(() => zones.filter((z) => z.zone_code !== FLAT_ZONE), [zones]);
 
-  /* Default the zone to the detected one (or the first) whenever the card changes. */
+  /* Default the zone to the detected one whenever the card changes — never guess
+     a zone for a postcode that isn't on the pricing matrix. */
   useEffect(() => {
     if (!matrixZones.length) { setZoneCode(""); return; }
     setZoneCode((prevCode) => {
       if (prevCode && matrixZones.some((z) => z.zone_code === prevCode)) return prevCode;
       if (detectedZone && matrixZones.some((z) => z.zone_code === detectedZone)) return detectedZone;
-      return matrixZones[0].zone_code;
+      return matrixZones.length === 1 ? matrixZones[0].zone_code : "";
     });
   }, [matrixZones, detectedZone]);
 
