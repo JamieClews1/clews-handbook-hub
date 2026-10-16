@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Correct shared postcode settings so all CV21 postcodes use Zone 1; verify CV21 7DT and postcode matching tests.
+- [x] Correct shared postcode settings so all CV21 postcodes use Zone 1; verified saved coverage and CV21 7DT matching tests.
 
 - [x] Stop unmatched email-quote postcodes such as CV21 7DT silently receiving Zone 3 prices; require a confirmed zone and test postcode matching.
 
