@@ -30,6 +30,7 @@ import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
+import { cleanEmail } from "@/lib/email-clean";
 
 type Chase = {
   id: string;
@@ -746,6 +747,7 @@ export default function RentalsDashboard() {
           bin={emailBin}
           chase={chases[emailBin.binKey]}
           defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? ""}
+          customerId={customerIdMap[emailBin.customer.toLowerCase().trim()]}
           freeDays={settings.rental_free_days}
           draftBody={renderChaseTemplate(
             settings.rental_chase_email_template,
@@ -755,7 +757,7 @@ export default function RentalsDashboard() {
           )}
           userId={user?.id ?? null}
           onClose={() => setEmailBin(null)}
-          onSent={() => { setEmailBin(null); fetchChases(); }}
+          onSent={() => { setEmailBin(null); fetchChases(); void loadCustomerEmails(); }}
           toast={toast}
         />
       )}
@@ -1209,8 +1211,8 @@ function ManageDialog({ bin, chase, profiles, userId, onRead, onClose, onSaved, 
   );
 }
 
-function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, onClose, onSent, toast }: {
-  bin: OverRentalBin; chase?: Chase; defaultEmail: string; freeDays: number; draftBody: string; userId: string | null;
+function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody, userId, onClose, onSent, toast }: {
+  bin: OverRentalBin; chase?: Chase; defaultEmail: string; customerId?: string; freeDays: number; draftBody: string; userId: string | null;
   onClose: () => void; onSent: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [to, setTo] = useState(defaultEmail);
@@ -1237,7 +1239,20 @@ function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, on
           await supabase.from("rental_chases").update({ chase_status: "chased" }).eq("id", chaseId);
         }
       }
-      toast({ title: "Chase email sent", description: `Sent to ${to.trim()}` });
+      // A changed address is kept on the customer's profile as a contact, so it is
+      // offered next time. Saving it must never undo a sent email, so failures only warn.
+      let savedNote = "";
+      const sentTo = cleanEmail(to);
+      if (customerId && sentTo && sentTo.toLowerCase() !== defaultEmail.trim().toLowerCase()) {
+        const { data: existing } = await supabase.from("customer_contacts").select("id").eq("customer_id", customerId).ilike("email", sentTo).limit(1);
+        if (!existing?.length) {
+          const { error: contactError } = await supabase.from("customer_contacts").insert({ customer_id: customerId, full_name: sentTo.split("@")[0], email: sentTo });
+          savedNote = contactError ? " — couldn't save the address to the customer" : " — address saved to the customer's contacts";
+        }
+      } else if (!customerId && sentTo.toLowerCase() !== defaultEmail.trim().toLowerCase()) {
+        savedNote = " — no matching customer profile to save the address to";
+      }
+      toast({ title: "Chase email sent", description: `Sent to ${to.trim()}${savedNote}` });
       onSent();
     } catch (e: any) {
       toast({ title: "Failed to send", description: e?.message ?? "Unknown error", variant: "destructive" });
