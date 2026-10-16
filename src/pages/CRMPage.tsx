@@ -552,64 +552,53 @@ export default function CRMPage() {
   };
 
   return (
-    <div className="max-w-screen-2xl mx-auto p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Mail className="h-6 w-6 text-primary" /> CRM Inbox
+    <div className="w-full px-4 md:px-6 py-4 space-y-3">
+      <Tabs defaultValue="inbox" className="space-y-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" /> CRM Inbox
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Customer emails as tickets, filed under the account they belong to.
-          </p>
-        </div>
-      </div>
-
-      <Tabs defaultValue="inbox" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="inbox" className="gap-1.5">
-            <Inbox className="h-4 w-4" /> Inbox
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-1.5">
-            <FileText className="h-4 w-4" /> Templates
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="inbox" className="space-y-4">
-          <CRMMailboxConnect
-            connections={mailboxes}
-            loading={mailboxLoading}
-            onChange={reloadMailbox}
-          />
-
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Badge variant="outline">{stats.total} threads</Badge>
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
-                {stats.open} open
-              </Badge>
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                {stats.resolved} resolved
-              </Badge>
-              <Badge variant="outline">{stats.unlinked} unlinked</Badge>
-              <Badge variant="outline">{stats.filed} filed</Badge>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <label className="flex items-center gap-2" title="Files spam, receipts and newsletters, links senders to customers, sets category and flags urgent issues. Never sends email.">
-                <Switch checked={!!triageOn} onCheckedChange={toggleTriage} disabled={triageOn === null} />
-                <span className="font-medium text-foreground">Auto-sort new emails</span>
-              </label>
-              <span className="text-muted-foreground">AI replies: <span className="font-medium text-foreground">Off</span></span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={relinkAll}>
-                <Building2 className="h-4 w-4" /> Match customers
-              </Button>
-              <Button onClick={handleSync} disabled={syncing}>
-                <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-                {syncing ? "Syncing…" : "Sync inbox"}
-              </Button>
-            </div>
+          <TabsList>
+            <TabsTrigger value="inbox" className="gap-1.5">
+              <Inbox className="h-4 w-4" /> Inbox
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="gap-1.5">
+              <FileText className="h-4 w-4" /> Templates
+            </TabsTrigger>
+          </TabsList>
+          <div className="hidden xl:flex items-center gap-3 text-xs text-muted-foreground">
+            <span><span className="font-semibold text-foreground">{stats.total}</span> threads</span>
+            <span><span className="font-semibold text-amber-600">{stats.open}</span> open</span>
+            <span><span className="font-semibold text-emerald-600">{stats.resolved}</span> resolved</span>
+            <span><span className="font-semibold text-foreground">{stats.unlinked}</span> unlinked</span>
           </div>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-xs" title="Files spam, receipts and newsletters, links senders to customers, sets category and flags urgent issues. Never sends email.">
+              <Switch checked={!!triageOn} onCheckedChange={toggleTriage} disabled={triageOn === null} />
+              <span className="font-medium text-foreground">Auto-sort</span>
+            </label>
+            <span className="text-xs text-muted-foreground">AI replies: <span className="font-medium text-foreground">Off</span></span>
+            <Button variant="ghost" size="sm" onClick={() => setShowMailboxes((v) => !v)}>
+              <Settings2 className="h-4 w-4" /> Mailboxes ({mailboxes.length})
+            </Button>
+            <Button variant="outline" size="sm" onClick={relinkAll}>
+              <Building2 className="h-4 w-4" /> Match customers
+            </Button>
+            <Button size="sm" onClick={handleSync} disabled={syncing}>
+              <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+              {syncing ? "Syncing…" : "Sync inbox"}
+            </Button>
+          </div>
+        </div>
+
+        <TabsContent value="inbox" className="space-y-3 mt-0">
+          {(showMailboxes || mailboxes.length === 0) && (
+            <CRMMailboxConnect
+              connections={mailboxes}
+              loading={mailboxLoading}
+              onChange={reloadMailbox}
+            />
+          )}
 
           {connected === false && (
             <Card className="p-4 border-amber-500/40 bg-amber-500/5 flex items-start gap-3">
@@ -624,69 +613,98 @@ export default function CRMPage() {
             </Card>
           )}
 
-          <div ref={gridRef} className="grid grid-cols-1 lg:grid-cols-[230px_340px_1fr] gap-4">
+          <div ref={gridRef} className={cn("grid grid-cols-1 gap-3", showFolders ? "lg:grid-cols-[240px_1fr]" : "")}>
             {/* Customer folders */}
-            <Card className="p-3 overflow-hidden" style={{ height: panelH }}>
-              <CrmCustomerFolders
-                tickets={mine}
-                customerNames={customerNames}
-                value={folder}
-                onChange={setFolder}
-              />
-            </Card>
+            {showFolders && (
+              <Card className="p-3 overflow-hidden" style={{ height: panelH }}>
+                <CrmCustomerFolders
+                  tickets={mine}
+                  customerNames={customerNames}
+                  value={folder}
+                  onChange={setFolder}
+                />
+              </Card>
+            )}
 
-            {/* Ticket list */}
-            <Card className="p-3 space-y-3 flex flex-col overflow-hidden" style={{ height: panelH }}>
-              <Input
-                placeholder="Search subject, sender or customer…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {mailboxes.length > 1 && (
-                <div className="flex flex-wrap gap-1">
+            {/* Ticket list — full width, opens tickets in a side window */}
+            <Card className="flex flex-col overflow-hidden" style={{ height: panelH }}>
+              <div className="border-b p-3 space-y-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9"
+                    onClick={() => setShowFolders((v) => !v)}
+                    title={showFolders ? "Hide customer folders" : "Show customer folders"}
+                    aria-label="Toggle customer folders"
+                  >
+                    {showFolders ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+                  </Button>
+                  <div className="relative flex-1 min-w-[220px] max-w-xl">
+                    <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search subject, sender or customer…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {STATUS_FILTERS.map((f) => (
+                      <Button
+                        key={f.value}
+                        size="sm"
+                        variant={filter === f.value ? "default" : "ghost"}
+                        className="h-8 px-2.5 text-xs"
+                        onClick={() => setFilter(f.value)}
+                      >
+                        {f.label}
+                      </Button>
+                    ))}
+                  </div>
                   <Button
                     size="sm"
-                    variant={mailboxFilter === "all" ? "default" : "outline"}
-                    className="h-7 px-2 text-xs"
-                    onClick={() => setMailboxFilter("all")}
+                    variant={showFiled ? "secondary" : "outline"}
+                    className="h-8 px-2.5 text-xs ml-auto"
+                    onClick={() => setShowFiled((v) => !v)}
                   >
-                    All mailboxes
+                    {showFiled ? "Back to inbox" : `Filed (${stats.filed})`}
                   </Button>
-                  {mailboxes.map((m) => (
-                    <Button
-                      key={m.id}
-                      size="sm"
-                      variant={mailboxFilter === m.id ? "default" : "outline"}
-                      className="h-7 px-2 text-xs max-w-[160px] truncate"
-                      onClick={() => setMailboxFilter(m.id)}
-                    >
-                      {m.ms_email}
-                    </Button>
-                  ))}
                 </div>
-              )}
-              <div className="flex flex-wrap gap-1">
-                {STATUS_FILTERS.map((f) => (
-                  <Button
-                    key={f.value}
-                    size="sm"
-                    variant={filter === f.value ? "default" : "outline"}
-                    className="h-7 px-2 text-xs"
-                    onClick={() => setFilter(f.value)}
-                  >
-                    {f.label}
-                  </Button>
-                ))}
-                <Button
-                  size="sm"
-                  variant={showFiled ? "secondary" : "ghost"}
-                  className="h-7 px-2 text-xs ml-auto"
-                  onClick={() => setShowFiled((v) => !v)}
-                >
-                  {showFiled ? "Back to inbox" : `Filed (${stats.filed})`}
-                </Button>
+                {mailboxes.length > 1 && (
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      size="sm"
+                      variant={mailboxFilter === "all" ? "secondary" : "ghost"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setMailboxFilter("all")}
+                    >
+                      All mailboxes
+                    </Button>
+                    {mailboxes.map((m) => (
+                      <Button
+                        key={m.id}
+                        size="sm"
+                        variant={mailboxFilter === m.id ? "secondary" : "ghost"}
+                        className="h-7 px-2 text-xs max-w-[200px] truncate"
+                        onClick={() => setMailboxFilter(m.id)}
+                      >
+                        {m.ms_email}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-1">
+
+              <div className="hidden md:grid grid-cols-[14px_200px_1fr_auto_80px] gap-3 px-4 py-2 border-b text-[11px] uppercase tracking-wide text-muted-foreground shrink-0">
+                <span />
+                <span>Requester</span>
+                <span>Subject</span>
+                <span>Tags</span>
+                <span className="text-right">Updated</span>
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 {loading ? (
                   <p className="text-sm text-muted-foreground p-4 text-center">Loading…</p>
                 ) : filtered.length === 0 ? (
@@ -700,25 +718,29 @@ export default function CRMPage() {
                       key={t.id}
                       onClick={() => setSelectedId(t.id)}
                       className={cn(
-                        "w-full text-left rounded-lg p-3 transition-colors border",
-                        selectedId === t.id
-                          ? "bg-primary/10 border-primary/30"
-                          : "border-transparent hover:bg-muted/50",
+                        "w-full text-left grid grid-cols-[14px_1fr] md:grid-cols-[14px_200px_1fr_auto_80px] items-center gap-x-3 gap-y-1 px-4 py-2.5 border-b border-border/60 transition-colors",
+                        selectedId === t.id ? "bg-primary/10" : "hover:bg-muted/50",
                       )}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={cn("text-sm truncate", !t.is_read && "font-semibold")}>
+                      <span
+                        className={cn("h-2 w-2 rounded-full", !t.is_read ? "bg-primary" : "bg-transparent")}
+                        aria-label={!t.is_read ? "Unread" : undefined}
+                      />
+                      <div className="min-w-0">
+                        <p className={cn("text-sm truncate", !t.is_read ? "font-semibold text-foreground" : "text-foreground")}>
                           {t.sender_name || t.sender_email || "Unknown"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {formatDate(t.last_message_at)}
-                        </span>
+                        </p>
+                        {t.customer_id && customerNames[t.customer_id] && (
+                          <p className="text-xs text-muted-foreground truncate">{customerNames[t.customer_id]}</p>
+                        )}
                       </div>
-                      <p className={cn("text-sm truncate", !t.is_read && "font-medium")}>
-                        {t.subject || "(no subject)"}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">{t.snippet}</p>
-                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      <div className="min-w-0 col-start-2 md:col-start-auto">
+                        <p className={cn("text-sm truncate", !t.is_read && "font-semibold")}>
+                          {t.subject || "(no subject)"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{t.snippet}</p>
+                      </div>
+                      <div className="flex flex-wrap md:flex-nowrap items-center gap-1 col-start-2 md:col-start-auto">
                         <Badge variant="outline" className={cn("text-[10px]", STATUS_META[t.status].className)}>
                           {STATUS_META[t.status].label}
                         </Badge>
@@ -732,41 +754,55 @@ export default function CRMPage() {
                             {PRIORITY_META[t.priority].label}
                           </Badge>
                         )}
-                        {t.customer_id && customerNames[t.customer_id] && (
-                          <Badge variant="secondary" className="text-[10px] max-w-[150px] truncate">
-                            {customerNames[t.customer_id]}
-                          </Badge>
-                        )}
                         {t.mailbox_connection_id && mailboxEmailById[t.mailbox_connection_id] && mailboxes.length > 1 && (
-                          <Badge variant="outline" className="text-[10px] max-w-[150px] truncate border-primary/30 text-primary">
+                          <Badge variant="outline" className="text-[10px] max-w-[140px] truncate">
                             {mailboxEmailById[t.mailbox_connection_id]}
                           </Badge>
                         )}
                       </div>
+                      <span className="hidden md:block text-xs text-muted-foreground text-right">
+                        {formatDate(t.last_message_at)}
+                      </span>
                     </button>
                   ))
                 )}
               </div>
             </Card>
+          </div>
 
-            {/* Conversation */}
-            <Card className="p-0 flex overflow-hidden" style={{ height: panelH }}>
-              {!selected ? (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <Mail className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">Select a ticket to view the conversation.</p>
-                  </div>
-                </div>
-              ) : (
+          {/* Ticket window */}
+          <Sheet open={!!selected} onOpenChange={(o) => !o && setSelectedId(null)}>
+            <SheetContent
+              side="right"
+              className="w-full sm:max-w-none lg:w-[min(1320px,90vw)] p-0 flex gap-0"
+            >
+              {selected && (
                 <>
-                  <div className="flex-1 flex flex-col min-w-0">
-                    <div className="border-b p-4 space-y-3 shrink-0">
-                      <div className="min-w-0">
-                        <h2 className="font-semibold truncate">{selected.subject || "(no subject)"}</h2>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {selected.sender_name} &lt;{selected.sender_email}&gt;
-                        </p>
+                  <div className="flex-1 flex flex-col min-w-0 h-full">
+                    <div className="border-b px-5 py-4 space-y-3 shrink-0">
+                      <div className="flex items-start gap-3 pr-10">
+                        <div className="min-w-0 flex-1">
+                          <SheetTitle className="text-lg font-semibold truncate">{selected.subject || "(no subject)"}</SheetTitle>
+                          <SheetDescription className="text-sm truncate">
+                            {selected.sender_name} &lt;{selected.sender_email}&gt;
+                            {selected.customer_id && customerNames[selected.customer_id] && (
+                              <> · <span className="text-foreground font-medium">{customerNames[selected.customer_id]}</span></>
+                            )}
+                          </SheetDescription>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs text-muted-foreground mr-1">
+                            {selectedIndex + 1} of {filtered.length}
+                          </span>
+                          <Button size="icon" variant="outline" className="h-8 w-8" disabled={selectedIndex <= 0}
+                            onClick={() => setSelectedId(filtered[selectedIndex - 1]?.id ?? null)} aria-label="Previous ticket" title="Previous ticket">
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="outline" className="h-8 w-8" disabled={selectedIndex < 0 || selectedIndex >= filtered.length - 1}
+                            onClick={() => setSelectedId(filtered[selectedIndex + 1]?.id ?? null)} aria-label="Next ticket" title="Next ticket">
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Select
@@ -1004,8 +1040,8 @@ export default function CRMPage() {
                   </div>
                 </>
               )}
-            </Card>
-          </div>
+            </SheetContent>
+          </Sheet>
         </TabsContent>
 
         <TabsContent value="templates">
