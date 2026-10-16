@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const { data: msgs } = await admin.from('crm_ticket_messages')
       .select('direction, from_name, body, body_preview, sent_at, is_internal_note')
       .eq('ticket_id', t.id).order('sent_at', { ascending: false }).limit(6);
-    const thread = (msgs ?? []).reverse().map((m: any) =>
+    const thread = [...(msgs ?? [])].reverse().map((m: any) =>
       `[${m.is_internal_note ? 'INTERNAL NOTE' : m.direction === 'inbound' ? 'CUSTOMER' : 'CLEWS'} ${m.from_name ?? ''} ${m.sent_at?.slice(0, 16)}]\n${stripHtml(m.body ?? m.body_preview ?? '').slice(0, 2500)}`,
     ).join('\n\n');
 
