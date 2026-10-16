@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Download, Link2, Paperclip, MapPin } from "lucide-react";
+import { Building2, Download, FileSearch, Link2, Paperclip, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CrmPoReaderDialog } from "./CrmPoReaderDialog";
 
 interface Attachment {
   id: string;
@@ -49,6 +50,8 @@ export function CrmTicketSidePanel({
   const [sites, setSites] = useState<Array<{ id: string; site_name: string }>>([]);
   const [picking, setPicking] = useState(false);
   const [q, setQ] = useState("");
+  const [poAttachment, setPoAttachment] = useState<string | null>(null);
+  const [poOpen, setPoOpen] = useState(false);
 
   const customer = useMemo(
     () => customers.find((c) => c.id === customerId) ?? null,
