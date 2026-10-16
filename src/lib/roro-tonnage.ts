@@ -1,12 +1,13 @@
 /**
  * RoRo general waste prices ("Inc 2 / Inc 3") include tonnage by zone:
- * Zones 1–2 include the first 2 tonnes, Zone 3 and the RoRo-only zones the first 3.
+ * Zone 1 includes the first tonne, Zone 2 the first 2, Zone 3 and the RoRo-only zones the first 3.
  * Anything over is charged at the General Waste per-tonne rate.
  * Keep in sync with supabase/functions/crm-ai-draft (roroIncludedTonnes).
  */
 export function roroIncludedTonnes(zone: string | null | undefined): number {
   const z = String(zone ?? "").toUpperCase();
-  if (/^Z[12]$/.test(z) || /ZONE\s*[12]\b(?!.*RORO)/.test(z)) return 2;
+  if (z === "Z1" || /ZONE\s*1\b(?!.*RORO)/.test(z)) return 1;
+  if (z === "Z2" || /ZONE\s*2\b(?!.*RORO)/.test(z)) return 2;
   return 3;
 }
 

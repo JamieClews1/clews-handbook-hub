@@ -153,14 +153,14 @@ Deno.serve(async (req) => {
           if (v?.status === 'price' && v.price != null) {
             prices.push(`£${Number(v.price).toFixed(2)} ${card.vat_inclusive ? 'inc VAT' : '+ VAT'} (${row.label}, ${zoneLabel}, ${card.name})`);
             if (/inc\s*2\s*\/\s*inc\s*3/i.test(row.label)) {
-              const inc = /zone\s*[12]\b/i.test(zoneLabel) && !/roro/i.test(zoneLabel) ? 2 : 3;
+              const inc = /roro/i.test(zoneLabel) ? 3 : /zone\s*1\b/i.test(zoneLabel) ? 1 : /zone\s*2\b/i.test(zoneLabel) ? 2 : 3;
               const gw = (rows ?? []).find((r: any) => /tonnage/i.test(r.section) && /^general waste$/i.test(String(r.label).trim()));
               let rate = '';
               if (gw) {
                 const { data: gv } = await admin.from('pricing_rate_card_values').select('price').eq('row_id', gw.id).not('price', 'is', null).limit(1).maybeSingle();
                 if (gv?.price != null) rate = `£${Number(gv.price).toFixed(2)} per tonne + VAT`;
               }
-              found.tonnage = `RoRo price INCLUDES the first ${inc} tonnes. Each tonne over ${inc}t is charged at ${rate || '[general waste per-tonne rate]'}. State this clearly on its own line in the reply.`;
+              found.tonnage = `RoRo price INCLUDES the first ${inc === 1 ? 'tonne' : `${inc} tonnes`}. Each tonne over ${inc}t is charged at ${rate || '[general waste per-tonne rate]'}. State this clearly on its own line in the reply.`;
             }
           } else if (v) prices.push(`Call for quote (${row.label}, ${zoneLabel})`);
         }

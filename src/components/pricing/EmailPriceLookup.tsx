@@ -374,9 +374,9 @@ export function EmailPriceLookup() {
                     </span>
                     <span className="font-medium">{gbp(net!)}</span>
                   </div>
-                  {perTonne && includedTonnes > 1 && (
+                  {perTonne && parsed?.isRoRo && (
                     <div className="rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium text-foreground">
-                      RoRo price includes the first {includedTonnes} tonnes. Every tonne over {includedTonnes}t is charged at {gbp(perTonne.price)} per tonne + VAT.
+                      RoRo price includes {includedLabel}. Every tonne over {includedTonnes}t is charged at {gbp(perTonne.price)} per tonne + VAT.
                     </div>
                   )}
                   {perTonne && (
