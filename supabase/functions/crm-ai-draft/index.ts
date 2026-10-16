@@ -11,6 +11,7 @@ const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').rep
 const ukDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : null;
 const PERSONAL_DOMAINS = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|btinternet|btopenworld|sky|talktalk|virginmedia|ntlworld|blueyonder|tiscali|plusnet|protonmail|proton|gmx|mail)\./;
 const DAYS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+const RORO_RE = /ro\s*-?\s*ro|roll[- ]?on|\b(20|25|30|35|40)\s*-?\s*(yd|yds|yrd|yard)/i;
 /** Next date for a booking-board day code (today counts), e.g. "Monday 19 October". */
 function bookingDate(day: string | null | undefined): string | null {
   const target = DAYS[String(day ?? '').trim().toUpperCase()];
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
       .map((m: any) => stripHtml(m.body ?? m.body_preview ?? '')).join(' ');
     if (!ex.postcode) ex.postcode = inboundText.match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0]?.toUpperCase() ?? null;
     if (!ex.container) {
-      const c = inboundText.match(/\b\d{1,2}\s*-?\s*(?:yd|yard|yards|cubic yard)s?\b(?:\s*(?:skip|ro\s*-?ro|roll[- ]on))?/i)?.[0];
+      const c = inboundText.match(/\b\d{1,2}\s*-?\s*(?:yd|yds|yrd|yard|yards|yarder|cubic yard)s?\b(?:\s*(?:skip|ro\s*-?ro|roll[- ]on))?/i)?.[0];
       ex.container = c ?? (/ro\s*-?ro/i.test(inboundText) ? 'RoRo' : null);
     }
     if (!ex.waste_type) ex.waste_type = inboundText.match(/\b(mixed waste|general waste|general|plasterboard|wood|green waste|garden waste|hardcore|inert|rubble|soil|concrete|mixed)\b/i)?.[0] ?? null;
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
     // Zone from the pricing matrix only (same matcher as the Pricing section).
     const containerText = `${ex.container ?? ''} ${found.containerSize ?? ''}`;
     const wasteText = `${ex.waste_type ?? ''} ${found.wasteType ?? ''}`.toLowerCase();
-    const isRoRo = /ro\s*-?ro|roll|\b(20|25|30|35|40)\s*(yd|yard)/i.test(containerText);
+    const isRoRo = RORO_RE.test(containerText);
     let zoneLabel: string | null = null;
     if (ex.postcode) {
       const { data: rows } = await admin.from('pricing_zone_postcodes').select('postcode_prefix, zone_code, area');
@@ -134,14 +135,14 @@ Deno.serve(async (req) => {
         const { data: zones } = await admin.from('pricing_rate_card_zones').select('id, zone_code').eq('card_id', card.id);
         const cat = !wasteText.trim() ? 'general' : /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
           : /inert|hardcore|rubble|soil|concrete|brick/.test(wasteText) ? 'inert' : 'general';
-        const sectionRe: Record<string, RegExp> = isResidential
+        const sectionRe: Record<string, RegExp> = useResidential
           ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste/i }
           : isRoRo
             ? { plaster: /roro.*general/i, wood: /roro.*general/i, green: /roro.*general/i, inert: /roro.*inert/i, general: /roro.*general/i }
             : { plaster: /plasterboard/i, wood: /wood/i, green: /wood|green/i, inert: /inert/i, general: /skip hire.*general/i };
-        const size = containerText.match(/(\d+)\s*-?\s*(yd|yard|cubic)/i)?.[1];
+        const size = containerText.match(/(\d+)\s*-?\s*(yd|yrd|yard|cubic)/i)?.[1];
         const enclosed = /enclosed|lockable|lid/i.test(containerText);
-        const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(isResidential ? r.label : r.section) && !/haulage/i.test(r.section))
+        const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(useResidential ? r.label : r.section) && !/haulage/i.test(r.section))
           .filter((r: any) => !size || isRoRo || new RegExp(`\\b${size}\\b`).test(r.label))
           .sort((a: any, b: any) => Number(/enclosed/i.test(a.label) !== enclosed) - Number(/enclosed/i.test(b.label) !== enclosed));
         const row = cands[0];
