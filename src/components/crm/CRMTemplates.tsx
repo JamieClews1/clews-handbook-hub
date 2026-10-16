@@ -114,7 +114,7 @@ export function CRMTemplates({ onChange }: { onChange?: () => void }) {
             <FileText className="h-4 w-4 text-primary" /> Canned Responses
           </h2>
           <p className="text-sm text-muted-foreground">
-            Reusable replies staff can insert into CRM conversations.
+            Reusable replies staff can insert into inbox conversations.
           </p>
         </div>
         <Button onClick={openNew}>

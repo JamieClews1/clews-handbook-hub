@@ -366,7 +366,7 @@ const RebateValuesPage = () => {
             <TabsContent value="tracking">
               <Card>
                 <CardHeader>
-                  <CardTitle>Report Tracking (CRM)</CardTitle>
+                  <CardTitle>Report Tracking (Inbox)</CardTitle>
                   <CardDescription>
                     See which rebate reports have been generated and sent each month, by which user, and which are still
                     outstanding.

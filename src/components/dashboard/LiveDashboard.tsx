@@ -82,7 +82,7 @@ export function LiveDashboard() {
   }
 
   const attention = data ? [
-    { n: data.crm_unassigned, label: "unassigned CRM tickets", to: "/crm" },
+    { n: data.crm_unassigned, label: "unassigned inbox tickets", to: "/inbox" },
     { n: data.contaminations_no_charge, label: "open contaminations with no charge set", to: "/performance-hub/contaminations" },
     { n: data.permits_expiring, label: "permits expiring in the next 30 days", to: "/permits" },
     ...(!data.skiptrak_last_sync || differenceInHours(new Date(), new Date(data.skiptrak_last_sync)) > 24
@@ -113,7 +113,7 @@ export function LiveDashboard() {
             <Kpi label="Tonnes in today (weighbridge)" value={`${Number(data.tonnes_in_today).toFixed(1)} t`} sub={<Delta now={Number(data.tonnes_in_today)} prev={Number(data.tonnes_in_prev)} suffix=" t" />} to="/weigh-one" />
             <Kpi label="Drivers on jobs today" value={data.drivers_today.toLocaleString("en-GB")} sub={<Delta now={data.drivers_today} prev={data.drivers_prev} />} to="/route-one" />
             <Kpi label="Open queries" value={(data.crm_open + data.contaminations_open).toLocaleString("en-GB")}
-              sub={<span className="text-xs text-muted-foreground">{data.crm_open.toLocaleString("en-GB")} CRM · {data.contaminations_open.toLocaleString("en-GB")} contaminations</span>} to="/crm" />
+              sub={<span className="text-xs text-muted-foreground">{data.crm_open.toLocaleString("en-GB")} inbox · {data.contaminations_open.toLocaleString("en-GB")} contaminations</span>} to="/inbox" />
           </>
         )}
       </div>

@@ -23,7 +23,7 @@ const pages: PageEntry[] = [
   { name: "Digital Waste Tracking", path: "/digital-waste-tracking", key: "digital-waste-tracking" },
   { name: "Diary", path: "/diary", key: "diary" },
   { name: "Bookings", path: "/bookings", key: "bookings" },
-  { name: "CRM Inbox", path: "/crm", key: "crm" },
+  { name: "Inbox", path: "/inbox", key: "crm" },
   { name: "Pricing", path: "/pricing", key: "pricing" },
   { name: "Rentals", path: "/performance-hub/rentals", key: "performance-rentals" },
   { name: "Contaminations", path: "/performance-hub/contaminations", key: "performance-contaminations" },

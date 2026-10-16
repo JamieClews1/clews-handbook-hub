@@ -33,7 +33,7 @@ type SavedPrompt = { id: string; user_id: string; name: string; prompt: string; 
 const SUGGESTIONS = [
   "CEO daily brief",
   "Contaminations without charges",
-  "Unassigned CRM tickets",
+  "Unassigned inbox tickets",
   "Rentals with no rate",
   "Top 10 customers by tonnage this month",
   "Today's jobs",
@@ -358,7 +358,7 @@ export function ClaudeAssistant() {
               <div className="flex flex-col items-center pt-12 text-center">
                 <Bot className="mb-3 h-10 w-10 text-primary/50" />
                 <p className="max-w-md text-sm text-muted-foreground">
-                  Ask about jobs, weights, rentals, stock, pricing, customers or CRM. I can also draft emails and
+                  Ask about jobs, weights, rentals, stock, pricing, customers or the inbox. I can also draft emails and
                   prepare changes for you to approve.
                 </p>
                 <div className="mt-6 flex max-w-lg flex-wrap justify-center gap-2">
