@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Sparkles, Fuel, AlertTriangle, Copy, Check } from "lucide-react";
 import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/components/pricing/useRateCard";
-import { usePostcodeZones } from "@/hooks/usePostcodeZones";
+import { useMatrixPostcodes } from "@/hooks/useMatrixPostcodes";
 import type { FuelSurchargeRate } from "@/lib/fuel-surcharge";
-import { matchQuotePostcodeZone } from "@/lib/quote-postcode-zone";
+import { matchMatrixPostcode, MATRIX_ZONE_TO_CODE, type MatrixMatch } from "@/lib/matrix-postcode-zone";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 /* ── Email parsing ────────────────────────────────────────────────── */
@@ -32,7 +32,11 @@ function parseEmail(text: string): ParsedEmail {
   // Normalise dash-separated postcodes like "CV22 – 7DH" / "CV22-7DH".
   const norm = body.replace(/[‐‑‒–—]/g, " ");
   const t = norm.toLowerCase();
-  const pcMatch = norm.toUpperCase().match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})\b/);
+  const upper = norm.toUpperCase();
+  const fullPc = upper.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d[A-Z]{2})\b/);
+  // Sector-only postcodes such as "NN6 7" (no trailing letters)
+  const sectorPc = fullPc ? null : upper.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s+(\d)\b(?!\s*(?:YD|YARD|YRD|T\b|TON))/);
+  const pcMatch = fullPc ?? sectorPc;
   const sizeMatch = t.match(/(\d{1,2})\s*(?:yd|yard|yrd)\b/);
   // Only a RoRo when the word sits near a size, or the size itself is 20yd+
   const roroNearSize =
@@ -91,26 +95,20 @@ function pickRow(p: ParsedEmail): RowChoice {
   return { sectionMatch: "General Waste", labelMatch: sizeRe, vehicle: "Skips" };
 }
 
-function zoneCodeForName(zoneName: string | null): string {
-  if (!zoneName) return "";
-  if (/^zone\s*1/i.test(zoneName)) return "Z1";
-  if (/^zone\s*2/i.test(zoneName)) return "Z2";
-  if (/^zone\s*3\s*roro/i.test(zoneName)) return "Z3R";
-  if (/^zone\s*4\s*roro/i.test(zoneName)) return "Z4R";
-  if (/^zone\s*3$/i.test(zoneName)) return "Z3";
-  return "";
-}
+const zoneCodeForName = (zoneName: string | null): string => (zoneName ? MATRIX_ZONE_TO_CODE[zoneName] ?? "" : "");
+const isRoRoOnlyZone = (code: string) => code === "Z3R" || code === "Z4R";
 
 /* ── Component ────────────────────────────────────────────────────── */
 
 export function EmailPriceLookup() {
   const { cards } = useRateCards();
-  const { zones: postcodeZones, loading: postcodeZonesLoading } = usePostcodeZones();
+  const { rows: matrixPostcodes, loading: postcodeZonesLoading } = useMatrixPostcodes();
   const [emailText, setEmailText] = useState("");
   const [parsed, setParsed] = useState<ParsedEmail | null>(null);
   const [cardId, setCardId] = useState("");
   const [rowKey, setRowKey] = useState("");
   const [zoneCode, setZoneCode] = useState("");
+  const [zoneMatch, setZoneMatch] = useState<MatrixMatch | null>(null);
   const [surchargeRates, setSurchargeRates] = useState<FuelSurchargeRate[]>([]);
 
   useEffect(() => {
@@ -129,8 +127,10 @@ export function EmailPriceLookup() {
     setParsed(p);
     const c = pickCard(cards, p);
     setCardId(c?.id ?? "");
-    const zoneName = matchQuotePostcodeZone(p.postcode, postcodeZones);
-    setZoneCode(zoneCodeForName(zoneName));
+    // Only postcodes on the pricing matrix are priced — no Zone 3 default.
+    const m = matchMatrixPostcode(p.postcode, matrixPostcodes);
+    setZoneMatch(m);
+    setZoneCode(m.status === "matched" ? zoneCodeForName(m.zone) : "");
     setRowKey(""); // re-picked once card data loads
   };
 
@@ -147,19 +147,23 @@ export function EmailPriceLookup() {
   }, [parsed, rows, rowKey, cardId]);
 
   const selectedRow = rows.find((r) => r.id === rowKey) ?? null;
+  const rowIsRoRo = /^RoRo/i.test(selectedRow?.section ?? "");
+  // RoRo-only zones on the matrix offer no skips
+  const skipNotOffered = !!selectedRow && isRoRoOnlyZone(zoneCode) && !rowIsRoRo;
   const value: RateValue | null = useMemo(() => {
     if (!selectedRow || !zoneCode) return null;
     const zone = zones.find((z) => z.zone_code === zoneCode);
     if (!zone) return null;
     const direct = values.find((v) => v.row_id === selectedRow.id && v.zone_id === zone.id);
     if (direct) return direct;
-    // RoRo-only zones fall back to Zone 3 pricing
-    if (zoneCode === "Z3R" || zoneCode === "Z4R") {
+    if (skipNotOffered) return null;
+    // Zone 3 RoRo Only shares the Zone 3 RoRo column on the matrix
+    if (zoneCode === "Z3R" && rowIsRoRo) {
       const z3 = zones.find((z) => z.zone_code === "Z3");
       return values.find((v) => v.row_id === selectedRow.id && v.zone_id === z3?.id) ?? null;
     }
     return null;
-  }, [selectedRow, zoneCode, zones, values]);
+  }, [selectedRow, zoneCode, zones, values, skipNotOffered, rowIsRoRo]);
 
   const vehicle: "Skips" | "RoRo" = parsed?.isRoRo ? "RoRo" : "Skips";
   const surcharge = useMemo(() => {
@@ -294,6 +298,9 @@ export function EmailPriceLookup() {
           {parsed && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               <Badge variant="secondary">{parsed.postcode ?? "No postcode found"}</Badge>
+              <Badge variant={zoneMatch?.status === "matched" ? "secondary" : "destructive"}>
+                {zoneMatch?.status === "matched" ? zoneMatch.zone : zoneMatch?.status === "ambiguous" ? "Zone needs choosing" : "Not on matrix"}
+              </Badge>
               <Badge variant="secondary">{parsed.sizeYd ? `${parsed.sizeYd} yd` : "Size not found"}</Badge>
               <Badge variant="secondary">{parsed.isRoRo ? "RoRo" : parsed.enclosed ? "Enclosed skip" : "Skip"}</Badge>
               <Badge variant="secondary">
@@ -399,13 +406,30 @@ export function EmailPriceLookup() {
                   <p className="text-xs text-muted-foreground">From: {card?.name}</p>
                 </div>
               )}
-              {!zoneCode && (
+              {!zoneCode && zoneMatch?.status === "ambiguous" && (
+                <div role="alert" className="space-y-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm">
+                  <p className="font-medium">{parsed.postcode} is split between zones on the matrix — pick the right area:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {zoneMatch.matches.map((m) => (
+                      <Button key={`${m.zone_code}-${m.area}`} size="sm" variant="outline" onClick={() => setZoneCode(zoneCodeForName(m.zone_code))}>
+                        {m.zone_code}{m.area ? ` — ${m.area}` : ""}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!zoneCode && zoneMatch?.status !== "ambiguous" && (
                 <p role="alert" className="text-sm text-destructive">
-                  {parsed.postcode ? `${parsed.postcode} is not in the configured postcode zones.` : "No postcode found."} Check the postcode or select a confirmed zone before quoting.
+                  {parsed.postcode ? `${parsed.postcode} is not on the pricing matrix, so it can't be priced automatically.` : "No postcode found."} Check the postcode, or pick a zone only if you've confirmed it.
                 </p>
               )}
-              {value == null && selectedRow && zoneCode && (
-                <p className="text-sm text-muted-foreground">No price on this card for that service and zone.</p>
+              {skipNotOffered && (
+                <p role="alert" className="text-sm text-destructive">
+                  This postcode is in a RoRo-only zone — skips aren't offered there on the matrix.
+                </p>
+              )}
+              {value == null && selectedRow && zoneCode && !skipNotOffered && (
+                <p className="text-sm text-muted-foreground">No price on this card for that service and zone — call for quote.</p>
               )}
 
               {emailDraft && (

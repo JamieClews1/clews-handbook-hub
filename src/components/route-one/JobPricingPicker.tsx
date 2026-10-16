@@ -14,6 +14,7 @@ import {
   TONNAGE_SECTION,
   type RateCard,
 } from "@/components/pricing/useRateCard";
+import { matchMatrixPostcode, type MatrixPostcode } from "@/lib/matrix-postcode-zone";
 
 /** Rate-card zone codes keyed by the zone label held on pricing_zone_postcodes. */
 const POSTCODE_ZONE_TO_CODE: Record<string, string> = {
@@ -88,17 +89,15 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
     const run = async () => {
       const q = postcode.toUpperCase().replace(/[^A-Z0-9 ]/g, "").trim();
       if (q.length < 2) { setDetectedZone(null); setZoneArea(null); return; }
-      const outward = q.split(" ")[0];
       const { data } = await supabase
         .from("pricing_zone_postcodes")
-        .select("postcode_prefix, zone_code, area")
-        .or(`postcode_prefix.ilike.${q}%,postcode_prefix.ilike.${outward}%`)
-        .order("postcode_prefix")
-        .limit(5);
+        .select("postcode_prefix, zone_code, area");
       if (cancelled) return;
-      const hit = (data || [])[0] as any;
+      // Only matrix postcodes resolve; split sectors are left for the booker to choose.
+      const m = matchMatrixPostcode(q, (data || []) as MatrixPostcode[]);
+      const hit = m.status === "matched" ? m.matches[0] : null;
       setDetectedZone(hit ? POSTCODE_ZONE_TO_CODE[hit.zone_code] ?? null : null);
-      setZoneArea(hit?.area ?? null);
+      setZoneArea(hit?.area ?? (m.status === "ambiguous" ? `Split sector: ${m.matches.map((x) => `${x.zone_code} (${x.area ?? ""})`).join(" / ")}` : null));
     };
     run();
     return () => { cancelled = true; };
@@ -106,13 +105,14 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
 
   const matrixZones = useMemo(() => zones.filter((z) => z.zone_code !== FLAT_ZONE), [zones]);
 
-  /* Default the zone to the detected one (or the first) whenever the card changes. */
+  /* Default the zone to the detected one whenever the card changes — never guess
+     a zone for a postcode that isn't on the pricing matrix. */
   useEffect(() => {
     if (!matrixZones.length) { setZoneCode(""); return; }
     setZoneCode((prevCode) => {
       if (prevCode && matrixZones.some((z) => z.zone_code === prevCode)) return prevCode;
       if (detectedZone && matrixZones.some((z) => z.zone_code === detectedZone)) return detectedZone;
-      return matrixZones[0].zone_code;
+      return matrixZones.length === 1 ? matrixZones[0].zone_code : "";
     });
   }, [matrixZones, detectedZone]);
 
