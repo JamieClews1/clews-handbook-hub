@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllCustomers } from "@/lib/fetch-all";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,6 +9,7 @@ import {
   daysOverdue,
   fmtDate,
   money,
+  pluralize,
   STATUS_LABEL,
   statusBadgeClass,
   type Invoice,
@@ -53,12 +55,12 @@ export function FinanceDashboard() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: inv }, { data: cust }] = await Promise.all([
+    const [inv, cust] = await Promise.all([
       supabase.from("invoices").select("*").neq("status", "cancelled").order("due_date"),
-      supabase.from("customers").select("id, customer_name"),
+      fetchAllCustomers<{ id: string; customer_name: string }>("id, customer_name"),
     ]);
-    setInvoices((inv ?? []) as unknown as Invoice[]);
-    setNames(Object.fromEntries((cust ?? []).map((c: any) => [c.id, c.customer_name])));
+    setInvoices((inv.data ?? []) as unknown as Invoice[]);
+    setNames(Object.fromEntries(cust.map((c) => [c.id, c.customer_name])));
     setLoading(false);
   };
 
@@ -96,13 +98,13 @@ export function FinanceDashboard() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-4">
-        <Kpi label="Total owed" value={money(totalOwed)} icon={PoundSterling} sub={`${outstanding.length} open invoices`} />
+        <Kpi label="Total owed" value={money(totalOwed)} icon={PoundSterling} sub={pluralize(outstanding.length, "open invoice")} />
         <Kpi
           label="Overdue"
           value={money(overdueTotal)}
           icon={AlertTriangle}
           tone="danger"
-          sub={`${overdue.length} invoices past due`}
+          sub={pluralize(overdue.length, "invoice past due")}
         />
         <Kpi
           label="Due next 30 days"

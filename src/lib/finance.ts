@@ -170,6 +170,11 @@ export function computeLine(line: Partial<InvoiceLine>): InvoiceLine {
   };
 }
 
+/** "1 invoice past due" / "3 invoices past due". */
+export function pluralize(n: number, singular: string): string {
+  return `${n} ${singular}${n === 1 ? "" : "s"}`;
+}
+
 /** Simple {{token}} substitution for email templates. */
 export function renderTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, k) => vars[k] ?? "");

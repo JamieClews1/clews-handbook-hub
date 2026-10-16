@@ -25,6 +25,7 @@ import {
 import InvoiceCreateDialog from "./InvoiceCreateDialog";
 import InvoiceDetailDialog from "./InvoiceDetailDialog";
 import { downloadCsv, fetchInvoiceWithLines, sage50CsvForInvoices } from "@/lib/invoice-service";
+import { fetchAllCustomers } from "@/lib/fetch-all";
 
 export function InvoicesTab() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -37,12 +38,12 @@ export function InvoicesTab() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: inv }, { data: cust }] = await Promise.all([
-      supabase.from("invoices").select("*").order("created_at", { ascending: false }).limit(500),
-      supabase.from("customers").select("id, customer_name"),
+    const [inv, cust] = await Promise.all([
+      supabase.from("invoices").select("*").order("invoice_number", { ascending: false }).limit(500),
+      fetchAllCustomers<{ id: string; customer_name: string }>("id, customer_name"),
     ]);
-    setInvoices((inv ?? []) as unknown as Invoice[]);
-    setNames(Object.fromEntries((cust ?? []).map((c: any) => [c.id, c.customer_name])));
+    setInvoices((inv.data ?? []) as unknown as Invoice[]);
+    setNames(Object.fromEntries(cust.map((c) => [c.id, c.customer_name])));
     setLoading(false);
   };
 
