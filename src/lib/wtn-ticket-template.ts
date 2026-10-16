@@ -1,3 +1,4 @@
+import { getBrandLogoUrl } from "./brand-logo";
 /**
  * Waste Transfer Note (A4) design used by WeighOne.
  *
