@@ -52,6 +52,10 @@ import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
 import { CRMMailboxConnect, useMailboxConnection } from "@/components/crm/CRMMailboxConnect";
 import { CrmCustomerFolders } from "@/components/crm/CrmCustomerFolders";
 import { CrmTicketSidePanel } from "@/components/crm/CrmTicketSidePanel";
+import { CrmDealCard } from "@/components/crm/CrmDealCard";
+import { CrmSalesBoard } from "@/components/crm/CrmSalesBoard";
+import { Briefcase } from "lucide-react";
+import { type Deal, loadDeals, syncCompletedDeals, stageMeta, needsFollowUp, formatMoney, extractQuotedValue } from "@/lib/crm-deals";
 import { useAuth } from "@/hooks/useAuth";
 import { Switch } from "@/components/ui/switch";
 
@@ -163,6 +167,17 @@ export default function CRMPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [filter, setFilter] = useState<Status | "all">("all");
   const [onlyMine, setOnlyMine] = useState(false);
+  const [salesView, setSalesView] = useState(false);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const dealByTicket = useMemo(() => {
+    const m: Record<string, Deal> = {};
+    for (const d of deals) if (d.ticket_id) m[d.ticket_id] = d;
+    return m;
+  }, [deals]);
+  const openDeals = useMemo(() => deals.filter((d) => d.stage === "new" || d.stage === "quoted").length, [deals]);
+  useEffect(() => {
+    loadDeals().then(syncCompletedDeals).then(setDeals).catch(() => setDeals([]));
+  }, []);
   const [folder, setFolder] = useState<string | null>(null);
   const [showFolders, setShowFolders] = useState(true);
   const [showMailboxes, setShowMailboxes] = useState(false);
@@ -512,6 +527,15 @@ export default function CRMPage() {
           .eq("id", selected.id);
         setDraftInfo(null);
       }
+      {
+        // Sending a reply on a new quote enquiry moves its deal to Quoted.
+        const deal = dealByTicket[selected.id];
+        if (deal && deal.stage === "new") {
+          const patch = { stage: "quoted" as const, quoted_at: new Date().toISOString(), value_net: deal.value_net ?? extractQuotedValue(reply) };
+          await supabase.from("crm_deals").update(patch).eq("id", deal.id);
+          setDeals((all) => all.map((d) => (d.id === deal.id ? { ...d, ...patch } : d)));
+        }
+      }
       setReply("");
       await loadMessages(selected.id);
       setTickets((prev) =>
@@ -715,6 +739,16 @@ export default function CRMPage() {
                       Assigned to me{stats.mineCount ? ` (${stats.mineCount})` : ""}
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant={salesView ? "secondary" : "outline"}
+                    className="h-8 px-2.5 text-xs"
+                    onClick={() => setSalesView((v) => !v)}
+                    title="Show quote requests as a sales board"
+                  >
+                    <Briefcase className="h-3.5 w-3.5 text-primary" />
+                    {salesView ? "Back to emails" : `Sales${openDeals ? ` (${openDeals})` : ""}`}
+                  </Button>
                   <div className="flex flex-wrap gap-1">
                     {STATUS_FILTERS.map((f) => (
                       <Button
@@ -762,6 +796,19 @@ export default function CRMPage() {
                 )}
               </div>
 
+              {salesView ? (
+                <div className="flex-1 min-h-0">
+                  <CrmSalesBoard
+                    deals={deals}
+                    setDeals={setDeals}
+                    team={team}
+                    customerNames={customerNames}
+                    onlyMineId={onlyMine ? myTeamId : null}
+                    onOpenTicket={(id) => setSelectedId(id)}
+                  />
+                </div>
+              ) : (
+              <>
               <div className="hidden md:grid grid-cols-[14px_200px_1fr_auto_80px] gap-3 px-4 py-2 border-b text-[11px] uppercase tracking-wide text-muted-foreground shrink-0">
                 <span />
                 <span>Requester</span>
@@ -815,6 +862,12 @@ export default function CRMPage() {
                             {INTENT_LABELS[t.intent]}
                           </Badge>
                         )}
+                        {dealByTicket[t.id] && (
+                          <Badge variant="outline" className={cn("text-[10px]", stageMeta(dealByTicket[t.id].stage).className)}>
+                            {needsFollowUp(dealByTicket[t.id]) ? "Follow up" : stageMeta(dealByTicket[t.id].stage).label}
+                            {dealByTicket[t.id].value_net != null ? ` · ${formatMoney(dealByTicket[t.id].value_net)}` : ""}
+                          </Badge>
+                        )}
                         {t.priority && t.priority !== "normal" && (
                           <Badge variant="outline" className={cn("text-[10px]", PRIORITY_META[t.priority].className)}>
                             {PRIORITY_META[t.priority].label}
@@ -838,6 +891,8 @@ export default function CRMPage() {
                   ))
                 )}
               </div>
+              </>
+              )}
             </Card>
           </div>
 
@@ -1096,7 +1151,15 @@ export default function CRMPage() {
                     </div>
                   </div>
 
-                  <div className="hidden lg:block">
+                  <div className="hidden lg:flex flex-col gap-3">
+                    <div className="px-3 pt-3 lg:w-[300px]">
+                      <CrmDealCard
+                        ticket={selected}
+                        deal={dealByTicket[selected.id] ?? null}
+                        userId={user?.id}
+                        onChange={(d) => setDeals((all) => [d, ...all.filter((x) => x.id !== d.id)])}
+                      />
+                    </div>
                     <CrmTicketSidePanel
                       ticketId={selected.id}
                       customerId={selected.customer_id}
