@@ -1087,6 +1087,16 @@ export default function CRMPage() {
                               <span className="font-medium">Needs filling in:</span> {draftInfo.missing.join(" · ")}
                             </p>
                           )}
+                          {draftInfo.stock && (
+                            <p className={cn("font-medium", draftInfo.stock.low ? "text-destructive" : "text-primary")}>
+                              {draftInfo.stock.available <= 0
+                                ? `Out of stock: no ${draftInfo.stock.type} free to book in the next 5 days — check before confirming a date.`
+                                : draftInfo.stock.low
+                                  ? `Low stock: only ${draftInfo.stock.available} × ${draftInfo.stock.type} free to book.`
+                                  : `In stock: ${draftInfo.stock.available} × ${draftInfo.stock.type} free to book.`}
+                              <span className="font-normal text-muted-foreground"> (yard count {new Date(draftInfo.stock.tallyDate).toLocaleDateString("en-GB")})</span>
+                            </p>
+                          )}
                           {Object.keys(draftInfo.found).filter((k) => !["userName", "weightChecksUrl", "companyPhone"].includes(k)).length > 0 && (
                             <p className="text-muted-foreground">
                               <span className="font-medium text-foreground">Found in portal:</span>{" "}
