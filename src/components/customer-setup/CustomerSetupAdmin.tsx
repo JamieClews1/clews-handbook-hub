@@ -894,7 +894,7 @@ export function CustomerSetupAdmin() {
       const payload = {
         customer_id: selectedCustomerId,
         full_name: contactForm.full_name.trim(),
-        email: contactForm.email.trim() ? contactForm.email.trim() : null,
+        email: contactForm.email.trim() ? (cleanEmail(contactForm.email) ?? contactForm.email.trim()) : null,
         phone: contactForm.phone.trim() ? contactForm.phone.trim() : null,
       };
 
