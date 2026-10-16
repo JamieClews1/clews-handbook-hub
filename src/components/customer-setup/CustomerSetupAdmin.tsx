@@ -34,6 +34,16 @@ import { SitePriceSetScheduleEditor } from "./SitePriceSetScheduleEditor";
 import { selectActivePriceSetLink } from "@/lib/rebate-price-set";
 import { SiteHistoryDialog } from "./SiteHistoryDialog";
 import { GdprCleanup } from "./GdprCleanup";
+import { cleanEmail } from "@/lib/email-clean";
+
+/** Read the real error message from a failed backend function call. */
+async function functionErrorMessage(e: any, fallback: string): Promise<string> {
+  try {
+    const body = await e?.context?.json?.();
+    if (body?.error) return String(body.error);
+  } catch { /* not JSON */ }
+  return e?.message ?? fallback;
+}
 
 
 
@@ -1065,9 +1075,9 @@ export function CustomerSetupAdmin() {
 
   const inviteAndLink = async () => {
     if (!selectedCustomerId) return;
-    const email = inviteForm.email.trim();
+    const email = cleanEmail(inviteForm.email);
     if (!email) {
-      toast({ title: "Missing email", description: "Email is required.", variant: "destructive" });
+      toast({ title: "Invalid email", description: "Enter a valid email address, e.g. name@company.com.", variant: "destructive" });
       return;
     }
     if (!inviteForm.contact_id) {
@@ -1106,8 +1116,10 @@ export function CustomerSetupAdmin() {
       });
       setInviteOpen(false);
       await loadCustomerDetails(selectedCustomerId);
+      // Go straight to setting a password + the copyable login details email
+      openPasswordDialog(userId, email);
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to invite and link portal user.", variant: "destructive" });
+      toast({ title: "Error", description: await functionErrorMessage(e, "Failed to invite and link portal user."), variant: "destructive" });
     } finally {
       setInviting(false);
     }
@@ -1281,7 +1293,8 @@ export function CustomerSetupAdmin() {
 
   // Create a portal login for a contact who doesn't have one yet
   const createPortalLoginForContact = async (contact: CustomerContact) => {
-    if (!selectedCustomerId || !contact.email) {
+    const contactEmail = cleanEmail(contact.email);
+    if (!selectedCustomerId || !contactEmail) {
       toast({ 
         title: "Missing email", 
         description: "Contact must have an email address to create portal login.", 
@@ -1295,7 +1308,7 @@ export function CustomerSetupAdmin() {
       // Create the auth user via edge function
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
-          email: contact.email.trim(),
+          email: contactEmail,
           full_name: contact.full_name.trim() || null,
           user_types: [],
         },
@@ -1316,15 +1329,15 @@ export function CustomerSetupAdmin() {
       });
       if (membershipError) throw membershipError;
 
-      toast({ title: "Portal login created", description: `Login created for ${contact.email}. You can now set their password.` });
+      toast({ title: "Portal login created", description: `Login created for ${contactEmail}. You can now set their password.` });
       
       // Reload to get the new membership
       await loadCustomerDetails(selectedCustomerId);
       
       // Open password dialog for the new user
-      openPasswordDialog(userId, contact.email);
+      openPasswordDialog(userId, contactEmail);
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message ?? "Failed to create portal login.", variant: "destructive" });
+      toast({ title: "Error", description: await functionErrorMessage(e, "Failed to create portal login."), variant: "destructive" });
     } finally {
       setCreatingPortalLogin(false);
     }
