@@ -23,6 +23,7 @@ export interface CRMTemplate {
   category: string | null;
   subject: string | null;
   body: string | null;
+  template_key?: string | null;
 }
 
 const empty = { name: "", category: "", subject: "", body: "" };
@@ -32,7 +33,7 @@ export function useCRMTemplates() {
   const load = async () => {
     const { data } = await supabase
       .from("crm_email_templates")
-      .select("id, name, category, subject, body")
+      .select("id, name, category, subject, body, template_key")
       .order("name");
     setTemplates((data as CRMTemplate[]) ?? []);
   };
