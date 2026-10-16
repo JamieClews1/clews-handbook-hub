@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Download, Link2, Paperclip, MapPin } from "lucide-react";
+import { Building2, Download, FileSearch, Link2, Paperclip, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CrmPoReaderDialog } from "./CrmPoReaderDialog";
 
 interface Attachment {
   id: string;
@@ -49,6 +50,8 @@ export function CrmTicketSidePanel({
   const [sites, setSites] = useState<Array<{ id: string; site_name: string }>>([]);
   const [picking, setPicking] = useState(false);
   const [q, setQ] = useState("");
+  const [poAttachment, setPoAttachment] = useState<string | null>(null);
+  const [poOpen, setPoOpen] = useState(false);
 
   const customer = useMemo(
     () => customers.find((c) => c.id === customerId) ?? null,
@@ -218,19 +221,39 @@ export function CrmTicketSidePanel({
           <p className="text-xs text-muted-foreground">No attachments.</p>
         ) : (
           attachments.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => download(a)}
-              className="w-full flex items-center gap-1.5 text-xs px-1 py-1 rounded hover:bg-muted text-left"
-            >
-              <Paperclip className="h-3 w-3 shrink-0" />
-              <span className="truncate flex-1">{a.file_name}</span>
-              <span className="text-[10px] text-muted-foreground">{formatSize(a.size_bytes)}</span>
-              <Download className="h-3 w-3 shrink-0 opacity-60" />
-            </button>
+            <div key={a.id} className="flex items-center gap-1">
+              <button
+                onClick={() => download(a)}
+                className="flex-1 flex items-center gap-1.5 text-xs px-1 py-1 rounded hover:bg-muted text-left min-w-0"
+              >
+                <Paperclip className="h-3 w-3 shrink-0" />
+                <span className="truncate flex-1">{a.file_name}</span>
+                <span className="text-[10px] text-muted-foreground">{formatSize(a.size_bytes)}</span>
+                <Download className="h-3 w-3 shrink-0 opacity-60" />
+              </button>
+              {a.content_type?.includes("pdf") && (
+                <button
+                  title="Read PO"
+                  onClick={() => {
+                    setPoAttachment(a.id);
+                    setPoOpen(true);
+                  }}
+                  className="shrink-0 p-1 rounded text-primary hover:bg-primary/10"
+                >
+                  <FileSearch className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           ))
         )}
       </div>
+
+      <CrmPoReaderDialog
+        attachmentId={poAttachment}
+        ticketId={ticketId}
+        open={poOpen}
+        onOpenChange={setPoOpen}
+      />
     </div>
   );
 }
