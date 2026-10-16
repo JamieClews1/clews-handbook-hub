@@ -98,13 +98,13 @@ export function FinanceDashboard() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-4">
-        <Kpi label="Total owed" value={money(totalOwed)} icon={PoundSterling} sub={`${outstanding.length} open invoices`} />
+        <Kpi label="Total owed" value={money(totalOwed)} icon={PoundSterling} sub={pluralize(outstanding.length, "open invoice")} />
         <Kpi
           label="Overdue"
           value={money(overdueTotal)}
           icon={AlertTriangle}
           tone="danger"
-          sub={`${overdue.length} invoices past due`}
+          sub={pluralize(overdue.length, "invoice past due")}
         />
         <Kpi
           label="Due next 30 days"
