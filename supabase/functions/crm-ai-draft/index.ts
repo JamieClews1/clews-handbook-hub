@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     const ex: Record<string, any> = { ...(t.ai_extracted ?? {}) };
     // Emails that skipped auto-sorting (e.g. internal) have no extracted details: read them from the customer's own messages.
     const inboundText = (msgs ?? []).filter((m: any) => m.direction === 'inbound' && !m.is_internal_note)
-      .map((m: any) => stripHtml(m.body ?? m.body_preview ?? '')).join(' ');
+      .map((m: any) => stripHtml(m.body ?? m.body_preview ?? '').split(/\bOn [^\n]{5,120}? wrote:|-----Original Message-----|\bFrom: [^\n]{3,80}Sent:/i)[0]).join(' ');
     if (!ex.postcode) ex.postcode = inboundText.match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0]?.toUpperCase() ?? null;
     if (!ex.container) {
       const c = inboundText.match(/\b\d{1,2}\s*-?\s*(?:yd|yds|yrd|yard|yards|yarder|cubic yard)s?\b(?:\s*(?:skip|ro\s*-?ro|roll[- ]on))?/i)?.[0];
