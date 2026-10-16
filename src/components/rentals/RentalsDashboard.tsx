@@ -787,10 +787,6 @@ function AgreementDialog({ bin, chase, userId, onClose, onSaved, toast }: {
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if (assignedTo !== "unassigned" && assignedTo !== chase?.assigned_to && !profiles.some(p => p.id === assignedTo)) {
-      toast({ title: "Only Clews Recycling Office users can be assigned", variant: "destructive" });
-      return;
-    }
     setSaving(true);
     const { error } = await supabase.from("rental_agreements").insert({
       customer: bin.customer,
@@ -917,6 +913,10 @@ function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
   };
 
   const save = async () => {
+    if (assignedTo !== "unassigned" && assignedTo !== chase?.assigned_to && !profiles.some(p => p.id === assignedTo)) {
+      toast({ title: "Only Clews Recycling Office users can be assigned", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     const id = await ensureChase(bin, userId);
     if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
