@@ -69,7 +69,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const normalizedEmail = String(email).trim().toLowerCase();
+    // Tolerate pasted "Name <email>" or stray brackets/spaces from Outlook.
+    const emailMatch = String(email).match(/[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/);
+    if (!emailMatch) {
+      return new Response(JSON.stringify({ error: `"${String(email).slice(0, 80)}" is not a valid email address` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const normalizedEmail = emailMatch[0].toLowerCase();
 
     // Generate a random temporary password
     const tempPassword = crypto.randomUUID();
