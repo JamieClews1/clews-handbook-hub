@@ -171,7 +171,13 @@ export function renderWtnSheet(
   options: { includePrices?: boolean } = {},
 ): string {
   const includePrices = options.includePrices ?? true;
-  const preparedTemplate = template;
+  const logo = getBrandLogoUrl();
+  const logoImg = logo
+    ? `<img src="${logo}" alt="{{company_name}}" style="display:block;max-height:13mm;max-width:60mm;margin-bottom:1mm;" />`
+    : "<strong>{{company_name}}</strong>";
+  const preparedTemplate = template
+    .replace(/<strong>\s*\{\{\s*company_name\s*\}\}\s*<\/strong>(\s*<br\s*\/?>)?/, logo ? logoImg : "$&")
+    .replace(/\{\{\s*company_logo\s*\}\}/g, logoImg);
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "" };

@@ -4,6 +4,7 @@ import { hexToRgb, resolveTemplate, type InvoiceTemplate } from "./invoice-templ
 
 export interface CompanyBranding {
   company_name?: string | null;
+  brand_logo_url?: string | null;
   registered_address?: string | null;
   operational_address?: string | null;
   telephone?: string | null;
@@ -52,7 +53,7 @@ export function buildInvoicePdf(
   }
 
   // Logo
-  const logo = t.invoice_show_logo ? t.invoice_logo_url : null;
+  const logo = t.invoice_show_logo ? t.invoice_logo_url || (company.brand_logo_url?.startsWith("data:") ? company.brand_logo_url : null) : null;
   if (logo) {
     try {
       const w = Number(t.invoice_logo_width_mm) || 40;
