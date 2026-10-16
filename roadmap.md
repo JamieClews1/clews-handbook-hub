@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Correct shared postcode settings so all CV21 postcodes use Zone 1; verify CV21 7DT and postcode matching tests.
+
 - [x] Stop unmatched email-quote postcodes such as CV21 7DT silently receiving Zone 3 prices; require a confirmed zone and test postcode matching.
 
 - [x] State the rental charges in pricing quote emails: £18/week skip, £42/week RoRo plus VAT after the saved free period.
