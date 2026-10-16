@@ -53,12 +53,12 @@ export function FinanceDashboard() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: inv }, { data: cust }] = await Promise.all([
+    const [inv, cust] = await Promise.all([
       supabase.from("invoices").select("*").neq("status", "cancelled").order("due_date"),
-      supabase.from("customers").select("id, customer_name"),
+      fetchAllCustomers<{ id: string; customer_name: string }>("id, customer_name"),
     ]);
-    setInvoices((inv ?? []) as unknown as Invoice[]);
-    setNames(Object.fromEntries((cust ?? []).map((c: any) => [c.id, c.customer_name])));
+    setInvoices((inv.data ?? []) as unknown as Invoice[]);
+    setNames(Object.fromEntries(cust.map((c) => [c.id, c.customer_name])));
     setLoading(false);
   };
 
