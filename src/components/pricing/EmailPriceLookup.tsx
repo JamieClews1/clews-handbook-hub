@@ -298,6 +298,9 @@ export function EmailPriceLookup() {
           {parsed && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               <Badge variant="secondary">{parsed.postcode ?? "No postcode found"}</Badge>
+              <Badge variant={zoneMatch?.status === "matched" ? "secondary" : "destructive"}>
+                {zoneMatch?.status === "matched" ? zoneMatch.zone : zoneMatch?.status === "ambiguous" ? "Zone needs choosing" : "Not on matrix"}
+              </Badge>
               <Badge variant="secondary">{parsed.sizeYd ? `${parsed.sizeYd} yd` : "Size not found"}</Badge>
               <Badge variant="secondary">{parsed.isRoRo ? "RoRo" : parsed.enclosed ? "Enclosed skip" : "Skip"}</Badge>
               <Badge variant="secondary">
@@ -403,13 +406,30 @@ export function EmailPriceLookup() {
                   <p className="text-xs text-muted-foreground">From: {card?.name}</p>
                 </div>
               )}
-              {!zoneCode && (
+              {!zoneCode && zoneMatch?.status === "ambiguous" && (
+                <div role="alert" className="space-y-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm">
+                  <p className="font-medium">{parsed.postcode} is split between zones on the matrix — pick the right area:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {zoneMatch.matches.map((m) => (
+                      <Button key={`${m.zone_code}-${m.area}`} size="sm" variant="outline" onClick={() => setZoneCode(zoneCodeForName(m.zone_code))}>
+                        {m.zone_code}{m.area ? ` — ${m.area}` : ""}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!zoneCode && zoneMatch?.status !== "ambiguous" && (
                 <p role="alert" className="text-sm text-destructive">
-                  {parsed.postcode ? `${parsed.postcode} is not in the configured postcode zones.` : "No postcode found."} Check the postcode or select a confirmed zone before quoting.
+                  {parsed.postcode ? `${parsed.postcode} is not on the pricing matrix, so it can't be priced automatically.` : "No postcode found."} Check the postcode, or pick a zone only if you've confirmed it.
                 </p>
               )}
-              {value == null && selectedRow && zoneCode && (
-                <p className="text-sm text-muted-foreground">No price on this card for that service and zone.</p>
+              {skipNotOffered && (
+                <p role="alert" className="text-sm text-destructive">
+                  This postcode is in a RoRo-only zone — skips aren't offered there on the matrix.
+                </p>
+              )}
+              {value == null && selectedRow && zoneCode && !skipNotOffered && (
+                <p className="text-sm text-muted-foreground">No price on this card for that service and zone — call for quote.</p>
               )}
 
               {emailDraft && (
