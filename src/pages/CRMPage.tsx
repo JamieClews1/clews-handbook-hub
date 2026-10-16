@@ -703,6 +703,18 @@ export default function CRMPage() {
                       className="pl-8 h-9"
                     />
                   </div>
+                  {myTeamId && (
+                    <Button
+                      size="sm"
+                      variant={onlyMine ? "secondary" : "outline"}
+                      className="h-8 px-2.5 text-xs"
+                      onClick={() => setOnlyMine((v) => !v)}
+                      title="Show only the emails assigned to you"
+                    >
+                      <UserCheck className="h-3.5 w-3.5" />
+                      Assigned to me{stats.mineCount ? ` (${stats.mineCount})` : ""}
+                    </Button>
+                  )}
                   <div className="flex flex-wrap gap-1">
                     {STATUS_FILTERS.map((f) => (
                       <Button
