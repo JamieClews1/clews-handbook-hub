@@ -75,3 +75,18 @@ export async function syncCompletedDeals(deals: Deal[]): Promise<Deal[]> {
   await supabase.from("crm_deals").update({ stage: "completed", closed_at: now }).in("id", ids);
   return deals.map((d) => (ids.includes(d.id) ? { ...d, stage: "completed", closed_at: now } : d));
 }
+
+/** Every distinct £ amount in a conversation (newest first), skipping small surcharge-sized figures under £20. */
+export function extractAllValues(texts: string[], max = 6): number[] {
+  const out: number[] = [];
+  for (const t of texts) {
+    const re = /£\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(t))) {
+      const v = Number(m[1].replace(/,/g, ""));
+      if (v >= 20 && !out.includes(v)) out.push(v);
+      if (out.length >= max) return out;
+    }
+  }
+  return out;
+}

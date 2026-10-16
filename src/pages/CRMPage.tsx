@@ -55,7 +55,7 @@ import { CrmTicketSidePanel } from "@/components/crm/CrmTicketSidePanel";
 import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmSalesBoard } from "@/components/crm/CrmSalesBoard";
 import { Briefcase } from "lucide-react";
-import { type Deal, loadDeals, syncCompletedDeals, stageMeta, needsFollowUp, formatMoney, extractQuotedValue } from "@/lib/crm-deals";
+import { type Deal, loadDeals, syncCompletedDeals, stageMeta, needsFollowUp, formatMoney, extractQuotedValue, extractAllValues } from "@/lib/crm-deals";
 import { useAuth } from "@/hooks/useAuth";
 import { Switch } from "@/components/ui/switch";
 
@@ -1167,6 +1167,12 @@ export default function CRMPage() {
                         ticket={selected}
                         deal={dealByTicket[selected.id] ?? null}
                         userId={user?.id}
+                        suggestedValues={extractAllValues(
+                          [...messages]
+                            .filter((m) => !m.is_internal_note)
+                            .sort((a, b) => (a.sent_at < b.sent_at ? 1 : -1))
+                            .map((m) => (m.body ?? "").replace(/<[^>]+>/g, " ").replace(/&pound;/g, "£").split(/\bOn [^\n]{5,120}? wrote:|-----Original Message-----/i)[0]),
+                        )}
                         onChange={(d) => setDeals((all) => [d, ...all.filter((x) => x.id !== d.id)])}
                       />
                     </div>
