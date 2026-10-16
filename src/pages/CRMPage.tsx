@@ -102,6 +102,8 @@ interface Message {
 interface TeamMember {
   id: string;
   name: string;
+  user_id?: string | null;
+  personal_email?: string | null;
 }
 
 interface CustomerOption {
@@ -160,6 +162,7 @@ export default function CRMPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [filter, setFilter] = useState<Status | "all">("all");
+  const [onlyMine, setOnlyMine] = useState(false);
   const [folder, setFolder] = useState<string | null>(null);
   const [showFolders, setShowFolders] = useState(true);
   const [showMailboxes, setShowMailboxes] = useState(false);
@@ -213,7 +216,7 @@ export default function CRMPage() {
   const loadTeam = async () => {
     const { data } = await supabase
       .from("crm_team_members")
-      .select("id, name")
+      .select("id, name, user_id, personal_email")
       .eq("is_active", true)
       .order("name");
     setTeam((data as TeamMember[]) ?? []);
