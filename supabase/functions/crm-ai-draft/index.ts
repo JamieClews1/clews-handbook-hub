@@ -122,10 +122,12 @@ Deno.serve(async (req) => {
     const prices: string[] = [];
     for (const part of containerText.split(/;|\band\b|,/).map((x) => x.trim()).filter((x) => /\d|skip|ro\s*-?ro/i.test(x))) {
       if (!zoneLabel) break;
-      const isRoRo = /ro\s*-?ro|roll|\b(20|25|30|35|40)\s*-?\s*(yd|yard)/i.test(part);
+      const isRoRo = RORO_RE.test(part);
       const containerText = part;
       const zoneCode = MATRIX_ZONE_TO_CODE[zoneLabel];
-      const cardName = isResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
+      // The residential card has skips only — RoRos are always priced from the Trade card.
+      const useResidential = isResidential && !isRoRo;
+      const cardName = useResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
       const { data: card } = await admin.from('pricing_rate_cards').select('id, name, vat_inclusive').eq('name', cardName).eq('is_active', true).maybeSingle();
       if (card && zoneCode) {
         const { data: rows } = await admin.from('pricing_rate_card_rows').select('id, section, label').eq('card_id', card.id);
