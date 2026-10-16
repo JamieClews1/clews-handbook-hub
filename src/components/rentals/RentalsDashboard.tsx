@@ -229,9 +229,13 @@ export default function RentalsDashboard() {
     setAgreements((data ?? []) as Agreement[]);
   };
 
+  // Each person's read point lives on their own device.
+  useEffect(() => { setSeenMap(loadSeenMap(user?.id)); }, [user?.id]);
+
   useEffect(() => {
     fetchChases();
     fetchAgreements();
+    void fetchNoteStamps();
     Promise.all([
       supabase.from("profiles").select("id,full_name,email,user_types,is_archived").order("full_name"),
       supabase.from("user_roles").select("user_id"),
@@ -311,9 +315,17 @@ export default function RentalsDashboard() {
     return bins.filter((b) => {
       if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
       if (sizeFilter !== "all" && b.containerType !== sizeFilter) return false;
+      if (notesOnly && unreadFor(b.binKey) === 0) return false;
       return true;
     });
-  }, [bins, categoryFilter, sizeFilter]);
+  }, [bins, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
+
+  // Bins holding notes this person has not opened yet — drives the highlight and
+  // the "notes to read" filter.
+  const unreadNotesBins = useMemo(
+    () => bins.reduce((total, b) => total + (unreadFor(b.binKey) > 0 ? 1 : 0), 0),
+    [bins, noteStamps, seenMap],
+  );
 
   const stats = useMemo(() => {
     let chased = 0, agreed = 0, unchased = 0;
@@ -469,8 +481,20 @@ export default function RentalsDashboard() {
                 {sizeOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
-            {(categoryFilter !== "all" || sizeFilter !== "all") && (
-              <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSizeFilter("all"); }}>
+            {unreadNotesBins > 0 && (
+              <Button
+                variant={notesOnly ? "default" : "outline"}
+                size="sm"
+                className="h-9 gap-1.5"
+                onClick={() => setNotesOnly((v) => !v)}
+                title="Show only bins with notes you have not read yet"
+              >
+                <MessageSquare className="h-4 w-4" />
+                {unreadNotesBins} with notes to read
+              </Button>
+            )}
+            {(categoryFilter !== "all" || sizeFilter !== "all" || notesOnly) && (
+              <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSizeFilter("all"); setNotesOnly(false); }}>
                 Clear
               </Button>
             )}
@@ -565,7 +589,7 @@ export default function RentalsDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => setNotesBin(b)}>Notes</Button>
+                          <NotesButton unread={unreadFor(b.binKey)} onClick={() => setNotesBin(b)} />
                           <Button variant="outline" size="sm" onClick={() => setEmailBin(b)}>
                             <Mail className="h-4 w-4 mr-1" /> Chase
                           </Button>
@@ -626,7 +650,7 @@ export default function RentalsDashboard() {
                     <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
                     <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="secondary">{b.daysSinceActivity ?? 0}d</Badge></TableCell>
                     <TableCell><Badge variant="outline">{agreements.find(a => agreementCoversBin(a, b))?.rental_mode === "no_rental" ? "No Rental" : "Rental"}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => setNotesBin(b)}>Notes</Button></TableCell>
+                    <TableCell><NotesButton unread={unreadFor(b.binKey)} onClick={() => setNotesBin(b)} /></TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                   </TableRow>
                 ))}
@@ -695,7 +719,7 @@ export default function RentalsDashboard() {
         </Card>
       )}
 
-      {notesBin && <Dialog open onOpenChange={open => !open && setNotesBin(null)}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Rental Notes</DialogTitle><DialogDescription>{notesBin.customer} — {notesBin.site} — {notesBin.containerType}</DialogDescription></DialogHeader><RentalNotes binKey={notesBin.binKey} legacyNotes={chases[notesBin.binKey]?.notes} /></DialogContent></Dialog>}
+      {notesBin && <Dialog open onOpenChange={open => !open && setNotesBin(null)}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Rental Notes</DialogTitle><DialogDescription>{notesBin.customer} — {notesBin.site} — {notesBin.containerType}</DialogDescription></DialogHeader><RentalNotes binKey={notesBin.binKey} legacyNotes={chases[notesBin.binKey]?.notes} userId={user?.id ?? null} onRead={refreshNotesRead} /></DialogContent></Dialog>}
 
       {manageBin && (
         <ManageDialog
@@ -703,6 +727,7 @@ export default function RentalsDashboard() {
           chase={chases[manageBin.binKey]}
           profiles={officeProfiles}
           userId={user?.id ?? null}
+          onRead={refreshNotesRead}
           onClose={() => setManageBin(null)}
           onSaved={() => { setManageBin(null); fetchChases(); fetchAgreements(); }}
           toast={toast}
@@ -1018,8 +1043,9 @@ function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
   );
 }
 
-function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }: {
+function ManageDialog({ bin, chase, profiles, userId, onRead, onClose, onSaved, toast }: {
   bin: OverRentalBin; chase?: Chase; profiles: Profile[]; userId: string | null;
+  onRead?: () => void;
   onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [status, setStatus] = useState(chase?.chase_status ?? "not_chased");
@@ -1127,7 +1153,7 @@ function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }:
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
 
-          <RentalNotes binKey={bin.binKey} legacyNotes={chase?.notes} />
+          <RentalNotes binKey={bin.binKey} legacyNotes={chase?.notes} userId={userId} onRead={onRead} />
 
           {agreed && (
             <Button variant="outline" className="w-full" onClick={promoteToAgreement}>
