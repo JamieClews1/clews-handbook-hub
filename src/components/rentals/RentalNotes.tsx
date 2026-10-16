@@ -8,6 +8,7 @@ import { MessageSquare, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { userColour } from "@/lib/user-colour";
 import { loadSeenMap, markNotesSeen, notesBadgeLabel, notesKeyFor, unreadNotes } from "@/lib/rental-notes-unread";
 
 type Note = { id: string; body: string; author_name: string; created_at: string };
@@ -91,7 +92,11 @@ export default function RentalNotes({ binKey, agreementId, legacyNotes, userId, 
           )}>
             <p className="text-sm whitespace-pre-wrap break-words">{note.body}</p>
             <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{note.author_name} · {format(new Date(note.created_at), "dd MMM yyyy HH:mm")}</span>
+              <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: userColour(note.author_name) }}>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColour(note.author_name) }} />
+                {note.author_name}
+              </span>
+              <span>· {format(new Date(note.created_at), "dd MMM yyyy HH:mm")}</span>
               {isNew && <Badge variant="outline" className="text-[10px]">New</Badge>}
             </p>
           </div>;

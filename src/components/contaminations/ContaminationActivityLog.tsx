@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { userColour } from "@/lib/user-colour";
 import { Activity } from "lucide-react";
 
 interface Props {
@@ -68,7 +69,11 @@ const ContaminationActivityLog = ({ queryId }: Props) => {
                   <div className="flex-1">
                     <p>{formatAction(log)}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {log.user_name} · {format(new Date(log.created_at), "dd/MM/yy HH:mm")}
+                      <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: userColour(log.user_id ?? log.user_name) }}>
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColour(log.user_id ?? log.user_name) }} />
+                        {log.user_name}
+                      </span>
+                      · {format(new Date(log.created_at), "dd/MM/yy HH:mm")}
                     </p>
                   </div>
                 </div>
