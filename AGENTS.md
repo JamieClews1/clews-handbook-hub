@@ -17,3 +17,4 @@ Keep printing read-only: daily sheets fetch the selected day's native and non-du
 
 - Non-ferrous metals: office at /metals reads nf_* tables directly (staff RLS); the PIN yard app at /metals-yard writes only through the metals-yard function with client_ref de-duplication, and stock is derived (sorted + adjustments − dispatches) rather than stored, so collections never count as stock.
 - Email quotes resolve postcode zones through a pure, specificity-first matcher and require a confirmed zone before pricing unmatched postcodes, so missing coverage cannot silently produce a Zone 3 quote.
+- Rental note history is append-only and authors are stamped from the authenticated user in database triggers, including edits to legacy notes; No Rental is an agreement mode with a server-enforced zero rate, and covered-container tracking reuses the shared physical-balance calculator without the chase free-period threshold.

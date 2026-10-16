@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Add author-attributed rental notes and No Rental agreements, retaining on-site duration tracking; verify saved changes.
+
 - [x] Correct shared postcode settings so all CV21 postcodes use Zone 1; verified saved coverage and CV21 7DT matching tests.
 
 - [x] Stop unmatched email-quote postcodes such as CV21 7DT silently receiving Zone 3 prices; require a confirmed zone and test postcode matching.

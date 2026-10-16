@@ -7812,6 +7812,7 @@ export type Database = {
           id: string
           notes: string | null
           rate_period: string
+          rental_mode: string
           site: string | null
           source: string
           start_date: string | null
@@ -7829,6 +7830,7 @@ export type Database = {
           id?: string
           notes?: string | null
           rate_period?: string
+          rental_mode?: string
           site?: string | null
           source?: string
           start_date?: string | null
@@ -7846,6 +7848,7 @@ export type Database = {
           id?: string
           notes?: string | null
           rate_period?: string
+          rental_mode?: string
           site?: string | null
           source?: string
           start_date?: string | null
@@ -7970,6 +7973,44 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_notes: {
+        Row: {
+          agreement_id: string | null
+          author_name: string
+          bin_key: string | null
+          body: string
+          created_at: string
+          created_by: string
+          id: string
+        }
+        Insert: {
+          agreement_id?: string | null
+          author_name?: string
+          bin_key?: string | null
+          body: string
+          created_at?: string
+          created_by?: string
+          id?: string
+        }
+        Update: {
+          agreement_id?: string | null
+          author_name?: string
+          bin_key?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_notes_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "rental_agreements"
             referencedColumns: ["id"]
           },
         ]
