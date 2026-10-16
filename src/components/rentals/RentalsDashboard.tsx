@@ -22,6 +22,8 @@ import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { computeOverRentalBins, daysOverFreePeriod, type OverRentalBin, type OverRentalJob } from "@/lib/overRental";
+import RentalNotes from "./RentalNotes";
+import { agreementCoversBin, trackedAgreementBins, agreedRentalRate } from "@/lib/rental-agreements";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
 import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
 import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
@@ -52,23 +54,8 @@ type Agreement = {
   start_date: string | null;
   end_date: string | null;
   status: string;
+  rental_mode: string;
 };
-
-const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().trim();
-
-// An active agreement covers a bin when the customer matches and the
-// site / container_type either match or are left blank (blank = applies to all).
-// "Without any time frame" = no end_date (open-ended), so it stays covered indefinitely.
-function agreementCoversBin(a: Agreement, bin: OverRentalBin): boolean {
-  if (a.status !== "active") return false;
-  const today = format(new Date(), "yyyy-MM-dd");
-  if (a.start_date && a.start_date > today) return false;
-  if (a.end_date && a.end_date < today) return false;
-  if (norm(a.customer) !== norm(bin.customer)) return false;
-  if (a.site && norm(a.site) !== norm(bin.site)) return false;
-  if (a.container_type && norm(a.container_type) !== norm(bin.containerType)) return false;
-  return true;
-}
 
 // Weekly rental cost label for a bin, based on its category and the configured rates.
 function rentalRateLabel(bin: OverRentalBin, skipRate: number, roroRate: number): string {
@@ -127,6 +114,7 @@ export default function RentalsDashboard() {
   const [emailBin, setEmailBin] = useState<OverRentalBin | null>(null);
   const [collectBin, setCollectBin] = useState<OverRentalBin | null>(null);
   const [agreementBin, setAgreementBin] = useState<OverRentalBin | null>(null);
+  const [notesBin, setNotesBin] = useState<OverRentalBin | null>(null);
   const [ownSkipBin, setOwnSkipBin] = useState<OverRentalBin | null>(null);
 
   useEffect(() => {
@@ -174,7 +162,7 @@ export default function RentalsDashboard() {
   const fetchAgreements = async () => {
     const { data } = await supabase
       .from("rental_agreements")
-      .select("id,customer,site,container_type,start_date,end_date,status")
+      .select("id,customer,site,container_type,start_date,end_date,status,rental_mode")
       .eq("status", "active");
     setAgreements((data ?? []) as Agreement[]);
   };
@@ -227,8 +215,8 @@ export default function RentalsDashboard() {
   // of the main Over Rental list — they are no longer being chased — but we still track
   // how long they've been over so they remain visible.
   const coveredBins = useMemo(
-    () => allBins.filter((b) => agreements.some((a) => agreementCoversBin(a, b))),
-    [allBins, agreements],
+    () => trackedAgreementBins(jobs, settings).filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip && agreements.some((a) => agreementCoversBin(a, b))),
+    [jobs, settings, chases, agreements],
   );
 
   const bins = useMemo(
@@ -454,6 +442,7 @@ export default function RentalsDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => setNotesBin(b)}>Notes</Button>
                           <Button variant="outline" size="sm" onClick={() => setEmailBin(b)}>
                             <Mail className="h-4 w-4 mr-1" /> Chase
                           </Button>
@@ -488,7 +477,7 @@ export default function RentalsDashboard() {
               Under Rental Agreement ({coveredBins.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              These bins are over the {settings.rental_free_days}-day free period but covered by an active rental agreement, so they are excluded from chasing. Days over is still tracked below.
+              These bins are over the {settings.rental_free_days}-day free period but covered by an active rental agreement, so they are excluded from chasing. Time on site is still tracked below, including No Rental agreements.
             </p>
           </CardHeader>
           <CardContent className="p-0">
@@ -499,7 +488,9 @@ export default function RentalsDashboard() {
                   <TableHead>Site</TableHead>
                   <TableHead>Container</TableHead>
                   <TableHead className="text-center">On-Site</TableHead>
-                  <TableHead className="text-center">Days Over</TableHead>
+                  <TableHead className="text-center">Days On Site</TableHead>
+                  <TableHead>Agreement</TableHead>
+                  <TableHead>Notes</TableHead>
                   <TableHead>Last Ticket</TableHead>
                 </TableRow>
               </TableHeader>
@@ -510,7 +501,9 @@ export default function RentalsDashboard() {
                     <TableCell>{b.site}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
                     <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
-                    <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="secondary">{daysOverFreePeriod(b.daysSinceActivity, settings.rental_free_days)}d</Badge></TableCell>
+                    <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="secondary">{b.daysSinceActivity ?? 0}d</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{agreements.find(a => agreementCoversBin(a, b))?.rental_mode === "no_rental" ? "No Rental" : "Rental"}</Badge></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => setNotesBin(b)}>Notes</Button></TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                   </TableRow>
                 ))}
@@ -579,6 +572,8 @@ export default function RentalsDashboard() {
         </Card>
       )}
 
+      {notesBin && <Dialog open onOpenChange={open => !open && setNotesBin(null)}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Rental Notes</DialogTitle><DialogDescription>{notesBin.customer} — {notesBin.site} — {notesBin.containerType}</DialogDescription></DialogHeader><RentalNotes binKey={notesBin.binKey} legacyNotes={chases[notesBin.binKey]?.notes} /></DialogContent></Dialog>}
+
       {manageBin && (
         <ManageDialog
           bin={manageBin}
@@ -586,7 +581,7 @@ export default function RentalsDashboard() {
           profiles={profiles}
           userId={user?.id ?? null}
           onClose={() => setManageBin(null)}
-          onSaved={() => { setManageBin(null); fetchChases(); }}
+          onSaved={() => { setManageBin(null); fetchChases(); fetchAgreements(); }}
           toast={toast}
         />
       )}
@@ -693,6 +688,7 @@ function AgreementDialog({ bin, chase, userId, onClose, onSaved, toast }: {
   onClose: () => void; onSaved: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [agreedRate, setAgreedRate] = useState(chase?.agreed_amount != null ? String(chase.agreed_amount) : "");
+  const [rentalMode, setRentalMode] = useState("charged");
   const [ratePeriod, setRatePeriod] = useState("week");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState("");
@@ -705,7 +701,8 @@ function AgreementDialog({ bin, chase, userId, onClose, onSaved, toast }: {
       customer: bin.customer,
       site: bin.site || null,
       container_type: bin.containerType || null,
-      agreed_rate: agreedRate ? Number(agreedRate) : null,
+      agreed_rate: agreedRentalRate(rentalMode, agreedRate ? Number(agreedRate) : null),
+      rental_mode: rentalMode,
       rate_period: ratePeriod,
       start_date: startDate || null,
       end_date: endDate || null,
@@ -736,9 +733,10 @@ function AgreementDialog({ bin, chase, userId, onClose, onSaved, toast }: {
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="col-span-2 space-y-1.5"><Label>Rental Option</Label><Select value={rentalMode} onValueChange={setRentalMode}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="charged">Rental</SelectItem><SelectItem value="no_rental">No Rental</SelectItem></SelectContent></Select></div>
           <div className="space-y-1.5">
             <Label>Agreed Rate (£)</Label>
-            <Input type="number" step="0.01" value={agreedRate} onChange={(e) => setAgreedRate(e.target.value)} />
+            <Input type="number" step="0.01" disabled={rentalMode === "no_rental"} value={rentalMode === "no_rental" ? "0" : agreedRate} onChange={(e) => setAgreedRate(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Per</Label>
@@ -1005,6 +1003,8 @@ function ManageDialog({ bin, chase, profiles, userId, onClose, onSaved, toast }:
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
+
+          <RentalNotes binKey={bin.binKey} legacyNotes={chase?.notes} />
 
           {agreed && (
             <Button variant="outline" className="w-full" onClick={promoteToAgreement}>

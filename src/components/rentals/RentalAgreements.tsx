@@ -1,3 +1,6 @@
+import RentalNotes from "./RentalNotes";
+import { agreedRentalRate } from "@/lib/rental-agreements";
+import { parseLoadReportDate } from "@/lib/load-report-dates";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +32,7 @@ export type RentalAgreement = {
   container_type: string | null;
   agreed_rate: number | null;
   rate_period: string;
+  rental_mode: string;
   start_date: string | null;
   end_date: string | null;
   status: string;
@@ -43,6 +47,7 @@ const EMPTY = {
   container_type: "",
   agreed_rate: "",
   rate_period: "week",
+  rental_mode: "charged",
   start_date: "",
   end_date: "",
   status: "active",
@@ -86,6 +91,7 @@ export default function RentalAgreements() {
       container_type: a.container_type ?? "",
       agreed_rate: a.agreed_rate != null ? String(a.agreed_rate) : "",
       rate_period: a.rate_period ?? "week",
+      rental_mode: a.rental_mode ?? "charged",
       start_date: a.start_date ?? "",
       end_date: a.end_date ?? "",
       status: a.status ?? "active",
@@ -104,7 +110,8 @@ export default function RentalAgreements() {
       customer: form.customer.trim(),
       site: form.site.trim() || null,
       container_type: form.container_type.trim() || null,
-      agreed_rate: form.agreed_rate ? Number(form.agreed_rate) : null,
+      agreed_rate: agreedRentalRate(form.rental_mode, form.agreed_rate ? Number(form.agreed_rate) : null),
+      rental_mode: form.rental_mode,
       rate_period: form.rate_period,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
@@ -179,9 +186,9 @@ export default function RentalAgreements() {
                   <TableCell>{a.site || "—"}</TableCell>
                   <TableCell>{a.container_type || "—"}</TableCell>
                   <TableCell className="text-right">
-                    {a.agreed_rate != null ? `£${a.agreed_rate.toFixed(2)} / ${a.rate_period}` : "—"}
+                    {a.rental_mode === "no_rental" ? <Badge variant="outline">No Rental</Badge> : a.agreed_rate != null ? `£${a.agreed_rate.toFixed(2)} / ${a.rate_period}` : "—"}
                   </TableCell>
-                  <TableCell>{a.start_date ? format(new Date(a.start_date), "dd MMM yyyy") : "—"}</TableCell>
+                  <TableCell>{a.start_date ? format(parseLoadReportDate(a.start_date), "dd MMM yyyy") : "—"}</TableCell>
                   <TableCell>
                     <Badge variant={a.status === "active" ? "default" : "secondary"} className="capitalize">{a.status}</Badge>
                   </TableCell>
@@ -222,7 +229,7 @@ export default function RentalAgreements() {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Rental Agreement" : "Add Rental Agreement"}</DialogTitle>
           </DialogHeader>
@@ -239,9 +246,10 @@ export default function RentalAgreements() {
               <Label>Container Type</Label>
               <Input value={form.container_type} onChange={(e) => setForm({ ...form, container_type: e.target.value })} />
             </div>
+            <div className="col-span-2 space-y-1.5"><Label>Rental Option</Label><Select value={form.rental_mode} onValueChange={rental_mode => setForm({ ...form, rental_mode })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="charged">Rental</SelectItem><SelectItem value="no_rental">No Rental</SelectItem></SelectContent></Select></div>
             <div className="space-y-1.5">
               <Label>Agreed Rate (£)</Label>
-              <Input type="number" step="0.01" value={form.agreed_rate} onChange={(e) => setForm({ ...form, agreed_rate: e.target.value })} />
+              <Input type="number" step="0.01" disabled={form.rental_mode === "no_rental"} value={form.rental_mode === "no_rental" ? "0" : form.agreed_rate} onChange={(e) => setForm({ ...form, agreed_rate: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label>Per</Label>
@@ -277,6 +285,7 @@ export default function RentalAgreements() {
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} />
             </div>
           </div>
+          {editing && <RentalNotes agreementId={editing.id} legacyNotes={editing.notes} />}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
