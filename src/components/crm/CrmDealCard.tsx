@@ -15,10 +15,12 @@ interface Props {
   deal: Deal | null;
   userId?: string;
   onChange: (deal: Deal) => void;
+  /** £ amounts found in the email conversation, offered as one-click values. */
+  suggestedValues?: number[];
 }
 
 /** Sales deal attached to an Inbox email: stage, quoted value and Route One link. */
-export function CrmDealCard({ ticket, deal, userId, onChange }: Props) {
+export function CrmDealCard({ ticket, deal, userId, onChange, suggestedValues = [] }: Props) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [jobNo, setJobNo] = useState("");
@@ -86,7 +88,7 @@ export function CrmDealCard({ ticket, deal, userId, onChange }: Props) {
         ))}
       </div>
       <label className="block text-xs text-muted-foreground">
-        Quoted value (net)
+        Quoted value (net) <span className="text-muted-foreground/80">— optional</span>
         <Input
           type="number"
           step="0.01"
@@ -99,6 +101,25 @@ export function CrmDealCard({ ticket, deal, userId, onChange }: Props) {
           }}
         />
       </label>
+      {suggestedValues.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="text-[11px] text-muted-foreground">From emails:</span>
+          {suggestedValues.map((v) => (
+            <button
+              key={v}
+              type="button"
+              disabled={busy}
+              onClick={() => save({ value_net: v })}
+              className={cn("rounded-full border px-2 py-0.5 text-[11px] transition-colors", deal.value_net === v ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/50 text-foreground")}
+            >
+              {formatMoney(v)}
+            </button>
+          ))}
+          {deal.value_net != null && (
+            <button type="button" className="text-[11px] text-muted-foreground underline" onClick={() => save({ value_net: null })}>Clear</button>
+          )}
+        </div>
+      )}
       {(deal.postcode || deal.container || deal.waste_type) && (
         <p className="text-xs text-muted-foreground">{[deal.container, deal.waste_type, deal.postcode].filter(Boolean).join(" · ")}</p>
       )}
