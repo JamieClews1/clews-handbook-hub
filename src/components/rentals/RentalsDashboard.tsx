@@ -97,6 +97,19 @@ const STATUS_VARIANT: Record<string, "secondary" | "default" | "destructive" | "
   resolved: "secondary",
 };
 
+// Distinct colour per staff user so the rental list visually groups rows by who
+// is handling each chase. Colours are stable per user (hashed from their id).
+const USER_COLOURS = [
+  "#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed",
+  "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5",
+];
+function userColour(key: string | null | undefined): string {
+  if (!key) return USER_COLOURS[0];
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return USER_COLOURS[hash % USER_COLOURS.length];
+}
+
 export default function RentalsDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -257,6 +270,19 @@ export default function RentalsDashboard() {
     return { total: filteredBins.length, chased, agreed, unchased };
   }, [filteredBins, chases]);
 
+  // Colour legend: staff users with at least one chase assigned in the current filter.
+  const legendUsers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; colour: string }>();
+    for (const b of filteredBins) {
+      const c = chases[b.binKey];
+      const p = c?.assigned_to ? profiles.find((x) => x.id === c.assigned_to) : null;
+      if (p && !map.has(p.id)) {
+        map.set(p.id, { id: p.id, name: p.full_name || p.email || "Staff", colour: userColour(p.id) });
+      }
+    }
+    return map;
+  }, [filteredBins, chases, profiles]);
+
   const loading = jobsLoading || settingsLoading;
 
   function downloadExcel() {
@@ -392,6 +418,17 @@ export default function RentalsDashboard() {
                 Clear
               </Button>
             )}
+            {legendUsers.size > 0 && (
+              <div className="flex flex-wrap items-center gap-3 w-full">
+                <span className="text-xs text-muted-foreground">Colours show who each chase is assigned to:</span>
+                {Array.from(legendUsers.values()).map((u) => (
+                  <span key={u.id} className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: u.colour }}>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: u.colour }} />
+                    {u.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -419,8 +456,13 @@ export default function RentalsDashboard() {
                 {filteredBins.map((b) => {
                   const c = chases[b.binKey];
                   const assignee = c?.assigned_to ? profiles.find((p) => p.id === c.assigned_to) : null;
+                  const assigneeColour = assignee ? userColour(assignee.id) : null;
                   return (
-                    <TableRow key={b.binKey} className="bg-destructive/5">
+                    <TableRow
+                      key={b.binKey}
+                      className="bg-destructive/5"
+                      style={assigneeColour ? { boxShadow: `inset 4px 0 0 ${assigneeColour}` } : undefined}
+                    >
                       <TableCell className="font-medium">{b.customer}</TableCell>
                       <TableCell>{b.site}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
@@ -437,8 +479,18 @@ export default function RentalsDashboard() {
                           ? <Badge className="bg-green-600 hover:bg-green-600">Agreed{c.agreed_amount != null ? ` £${c.agreed_amount}` : ""}</Badge>
                           : <span className="text-muted-foreground text-xs">—</span>}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {assignee ? (assignee.full_name || assignee.email) : "—"}
+                      <TableCell>
+                        {assignee ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 text-xs font-medium"
+                            style={{ color: assigneeColour }}
+                          >
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: assigneeColour }} />
+                            {assignee.full_name || assignee.email}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
