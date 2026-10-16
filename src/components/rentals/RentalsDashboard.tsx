@@ -270,6 +270,19 @@ export default function RentalsDashboard() {
     return { total: filteredBins.length, chased, agreed, unchased };
   }, [filteredBins, chases]);
 
+  // Colour legend: staff users with at least one chase assigned in the current filter.
+  const legendUsers = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; colour: string }>();
+    for (const b of filteredBins) {
+      const c = chases[b.binKey];
+      const p = c?.assigned_to ? profiles.find((x) => x.id === c.assigned_to) : null;
+      if (p && !map.has(p.id)) {
+        map.set(p.id, { id: p.id, name: p.full_name || p.email || "Staff", colour: userColour(p.id) });
+      }
+    }
+    return map;
+  }, [filteredBins, chases, profiles]);
+
   const loading = jobsLoading || settingsLoading;
 
   function downloadExcel() {
@@ -443,6 +456,7 @@ export default function RentalsDashboard() {
                 {filteredBins.map((b) => {
                   const c = chases[b.binKey];
                   const assignee = c?.assigned_to ? profiles.find((p) => p.id === c.assigned_to) : null;
+                  const assigneeColour = assignee ? userColour(assignee.id) : null;
                   return (
                     <TableRow
                       key={b.binKey}
