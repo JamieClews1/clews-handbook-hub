@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database, Package, MessageSquare } from "lucide-react";
-import { userColour } from "@/lib/user-colour";
+import { assignUserColours } from "@/lib/user-colour";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -112,6 +112,11 @@ export default function RentalsDashboard() {
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
+  // One distinct colour per office staff member, so no two people share one.
+  const staffColours = useMemo(
+    () => assignUserColours([...officeProfiles].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")).map((p) => p.id)),
+    [officeProfiles],
+  );
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
   const [customerIdMap, setCustomerIdMap] = useState<Record<string, string>>({});
   const [agreements, setAgreements] = useState<Agreement[]>([]);
@@ -342,7 +347,7 @@ export default function RentalsDashboard() {
       const c = chases[b.binKey];
       const p = c?.assigned_to ? profiles.find((x) => x.id === c.assigned_to) : null;
       if (p && !map.has(p.id)) {
-        map.set(p.id, { id: p.id, name: p.full_name || p.email || "Staff", colour: userColour(p.id) });
+        map.set(p.id, { id: p.id, name: p.full_name || p.email || "Staff", colour: staffColours.get(p.id) ?? "#2563eb" });
       }
     }
     return map;
@@ -533,7 +538,7 @@ export default function RentalsDashboard() {
                 {filteredBins.map((b) => {
                   const c = chases[b.binKey];
                   const assignee = c?.assigned_to ? profiles.find((p) => p.id === c.assigned_to) : null;
-                  const assigneeColour = assignee ? userColour(assignee.id) : null;
+                  const assigneeColour = assignee ? staffColours.get(assignee.id) ?? null : null;
                   return (
                     <TableRow
                       key={b.binKey}
@@ -547,7 +552,7 @@ export default function RentalsDashboard() {
                       <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="destructive">{daysOverFreePeriod(b.daysSinceActivity, settings.rental_free_days)}d</Badge></TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]}>
+                        <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]} className="whitespace-nowrap">
                           {STATUS_LABELS[c?.chase_status ?? "not_chased"]}
                         </Badge>
                       </TableCell>
@@ -566,9 +571,6 @@ export default function RentalsDashboard() {
                             style={assigneeColour ? { color: assigneeColour, borderColor: assigneeColour } : undefined}
                             title="Assign to a team member"
                           >
-                            {assigneeColour && (
-                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: assigneeColour }} />
-                            )}
                             <SelectValue placeholder="Assign to…" />
                           </SelectTrigger>
                           <SelectContent>
@@ -576,7 +578,7 @@ export default function RentalsDashboard() {
                             {officeProfiles.map((p) => (
                               <SelectItem key={p.id} value={p.id}>
                                 <span className="inline-flex items-center gap-1.5">
-                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColour(p.id) }} />
+                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: staffColours.get(p.id) ?? "#2563eb" }} />
                                   {p.full_name || p.email}
                                 </span>
                               </SelectItem>
