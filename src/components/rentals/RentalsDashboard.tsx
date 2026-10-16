@@ -123,6 +123,7 @@ export default function RentalsDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
+  const [customerIdMap, setCustomerIdMap] = useState<Record<string, string>>({});
   const [agreements, setAgreements] = useState<Agreement[]>([]);
 
   // dialogs
@@ -245,8 +246,33 @@ export default function RentalsDashboard() {
       setOfficeProfiles(eligibleRentalAssignees(all, (roleResult.data ?? []).map(r => r.user_id)));
     });
     void loadCustomerEmails();
-    })();
   }, []);
+
+  // Customer name -> email and customer id. The most recently added contact wins,
+  // so an address saved from a chase email becomes the next default.
+  async function loadCustomerEmails() {
+    const [{ data: customers }, { data: contacts }] = await Promise.all([
+      supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email"),
+      supabase.from("customer_contacts").select("customer_id,email,created_at").order("created_at", { ascending: false }),
+    ]);
+    const emailByCustomerId: Record<string, string> = {};
+    for (const ct of contacts ?? []) {
+      if (ct.email && ct.customer_id && !emailByCustomerId[ct.customer_id]) emailByCustomerId[ct.customer_id] = ct.email;
+    }
+    const map: Record<string, string> = {};
+    const ids: Record<string, string> = {};
+    for (const c of customers ?? []) {
+      for (const name of [c.customer_name, c.data_hub_customer]) {
+        if (!name) continue;
+        const key = name.toLowerCase().trim();
+        ids[key] = c.id;
+        const email = emailByCustomerId[c.id] || c.po_notification_email || "";
+        if (email) map[key] = email;
+      }
+    }
+    setEmailMap(map);
+    setCustomerIdMap(ids);
+  }
 
   const allBins = useMemo(() => {
     if (settingsLoading) return [];
