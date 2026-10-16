@@ -147,19 +147,23 @@ export function EmailPriceLookup() {
   }, [parsed, rows, rowKey, cardId]);
 
   const selectedRow = rows.find((r) => r.id === rowKey) ?? null;
+  const rowIsRoRo = /^RoRo/i.test(selectedRow?.section ?? "");
+  // RoRo-only zones on the matrix offer no skips
+  const skipNotOffered = !!selectedRow && isRoRoOnlyZone(zoneCode) && !rowIsRoRo;
   const value: RateValue | null = useMemo(() => {
     if (!selectedRow || !zoneCode) return null;
     const zone = zones.find((z) => z.zone_code === zoneCode);
     if (!zone) return null;
     const direct = values.find((v) => v.row_id === selectedRow.id && v.zone_id === zone.id);
     if (direct) return direct;
-    // RoRo-only zones fall back to Zone 3 pricing
-    if (zoneCode === "Z3R" || zoneCode === "Z4R") {
+    if (skipNotOffered) return null;
+    // Zone 3 RoRo Only shares the Zone 3 RoRo column on the matrix
+    if (zoneCode === "Z3R" && rowIsRoRo) {
       const z3 = zones.find((z) => z.zone_code === "Z3");
       return values.find((v) => v.row_id === selectedRow.id && v.zone_id === z3?.id) ?? null;
     }
     return null;
-  }, [selectedRow, zoneCode, zones, values]);
+  }, [selectedRow, zoneCode, zones, values, skipNotOffered, rowIsRoRo]);
 
   const vehicle: "Skips" | "RoRo" = parsed?.isRoRo ? "RoRo" : "Skips";
   const surcharge = useMemo(() => {
