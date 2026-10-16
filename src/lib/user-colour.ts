@@ -21,3 +21,12 @@ export function userColour(key: string | null | undefined): string {
   }
   return USER_COLOURS[hash % USER_COLOURS.length];
 }
+
+// Gives each id in a known set (e.g. the office staff list) its own palette
+// colour, so two people on the same screen never share one. Stable as long as
+// the set is sorted the same way — sort by name before calling.
+export function assignUserColours(ids: string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  ids.forEach((id, i) => map.set(id, USER_COLOURS[i % USER_COLOURS.length]));
+  return map;
+}
