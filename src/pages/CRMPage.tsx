@@ -1017,7 +1017,7 @@ export default function CRMPage() {
                       />
                       <div className="flex flex-wrap justify-between gap-2">
                         <div className="flex gap-2">
-                          <Button variant="secondary" onClick={handleAiDraft} disabled={drafting || isNote}>
+                          <Button variant="secondary" onClick={() => handleAiDraft()} disabled={drafting || isNote}>
                             <Sparkles className={cn("h-4 w-4 text-primary", drafting && "animate-pulse")} />
                             {drafting ? "Drafting…" : "AI draft"}
                           </Button>
@@ -1033,7 +1033,7 @@ export default function CRMPage() {
                               {templates.map((t) => (
                                 <DropdownMenuItem
                                   key={t.id}
-                                  onSelect={() => insertTemplate(t.body ?? "")}
+                                  onSelect={() => insertTemplate(t)}
                                   className="flex flex-col items-start gap-0.5"
                                 >
                                   <span className="text-sm font-medium">{t.name}</span>
