@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database, Package, MessageSquare } from "lucide-react";
+import { userColour } from "@/lib/user-colour";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -100,18 +101,6 @@ const STATUS_VARIANT: Record<string, "secondary" | "default" | "destructive" | "
   resolved: "secondary",
 };
 
-// Distinct colour per staff user so the rental list visually groups rows by who
-// is handling each chase. Colours are stable per user (hashed from their id).
-const USER_COLOURS = [
-  "#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed",
-  "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5",
-];
-function userColour(key: string | null | undefined): string {
-  if (!key) return USER_COLOURS[0];
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  return USER_COLOURS[hash % USER_COLOURS.length];
-}
 
 export default function RentalsDashboard() {
   const { user } = useAuth();
