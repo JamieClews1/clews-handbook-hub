@@ -102,6 +102,8 @@ interface Message {
 interface TeamMember {
   id: string;
   name: string;
+  user_id?: string | null;
+  personal_email?: string | null;
 }
 
 interface CustomerOption {
@@ -160,6 +162,7 @@ export default function CRMPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [filter, setFilter] = useState<Status | "all">("all");
+  const [onlyMine, setOnlyMine] = useState(false);
   const [folder, setFolder] = useState<string | null>(null);
   const [showFolders, setShowFolders] = useState(true);
   const [showMailboxes, setShowMailboxes] = useState(false);
@@ -213,7 +216,7 @@ export default function CRMPage() {
   const loadTeam = async () => {
     const { data } = await supabase
       .from("crm_team_members")
-      .select("id, name")
+      .select("id, name, user_id, personal_email")
       .eq("is_active", true)
       .order("name");
     setTeam((data as TeamMember[]) ?? []);
@@ -336,11 +339,25 @@ export default function CRMPage() {
     if (error) { setTriageOn(!v); toast({ title: "Couldn't save", description: error.message, variant: "destructive" }); }
   };
 
+  // The signed-in person's crm_team_members row — tickets store assigned_to as
+  // a team-member id, so match on user_id first, then email.
+  const myTeamId = useMemo(() => {
+    if (!user?.id) return null;
+    const byId = team.find((m) => m.user_id === user.id);
+    if (byId) return byId.id;
+    const email = (user.email ?? "").trim().toLowerCase();
+    return (
+      (email && team.find((m) => (m.personal_email ?? "").trim().toLowerCase() === email)?.id) ||
+      null
+    );
+  }, [team, user?.id, user?.email]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return mine.filter((t) => {
       if (mailboxFilter !== "all" && t.mailbox_connection_id !== mailboxFilter) return false;
       if (!!t.is_filed !== showFiled) return false;
+      if (onlyMine && t.assigned_to !== myTeamId) return false;
       if (folder === "unassigned" && t.customer_id) return false;
       if (folder && folder !== "unassigned" && t.customer_id !== folder) return false;
       if (filter !== "all" && t.status !== filter) return false;
@@ -354,7 +371,7 @@ export default function CRMPage() {
         customerName.toLowerCase().includes(q)
       );
     });
-  }, [mine, folder, filter, search, customerNames, mailboxFilter, showFiled]);
+  }, [mine, folder, filter, search, customerNames, mailboxFilter, showFiled, onlyMine, myTeamId]);
   const selectedIndex = filtered.findIndex((t) => t.id === selectedId);
 
   const stats = useMemo(() => {
@@ -362,8 +379,11 @@ export default function CRMPage() {
     const unlinked = mine.filter((t) => !t.is_filed && !t.customer_id).length;
     const filed = mine.filter((t) => t.is_filed).length;
     const resolved = mine.filter((t) => t.status === "resolved").length;
-    return { total: mine.length, open, unlinked, resolved, filed };
-  }, [mine]);
+    const mineCount = myTeamId
+      ? mine.filter((t) => !t.is_filed && t.assigned_to === myTeamId).length
+      : 0;
+    return { total: mine.length, open, unlinked, resolved, filed, mineCount };
+  }, [mine, myTeamId]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -683,6 +703,18 @@ export default function CRMPage() {
                       className="pl-8 h-9"
                     />
                   </div>
+                  {myTeamId && (
+                    <Button
+                      size="sm"
+                      variant={onlyMine ? "secondary" : "outline"}
+                      className="h-8 px-2.5 text-xs"
+                      onClick={() => setOnlyMine((v) => !v)}
+                      title="Show only the emails assigned to you"
+                    >
+                      <UserCheck className="h-3.5 w-3.5" />
+                      Assigned to me{stats.mineCount ? ` (${stats.mineCount})` : ""}
+                    </Button>
+                  )}
                   <div className="flex flex-wrap gap-1">
                     {STATUS_FILTERS.map((f) => (
                       <Button
