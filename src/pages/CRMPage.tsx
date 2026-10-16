@@ -507,7 +507,11 @@ export default function CRMPage() {
   // AI draft: prepared for review only — nothing is sent until "Send reply" is pressed.
   const [drafting, setDrafting] = useState(false);
   const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null } | null>(null);
-  useEffect(() => { setDraftInfo(null); }, [selectedId]);
+  // Fresh reply box on every ticket: any carried-over text (typed or AI-drafted) would read as this ticket's reply.
+  useEffect(() => {
+    setDraftInfo(null);
+    setReply("");
+  }, [selectedId]);
 
   const handleAiDraft = async () => {
     if (!selected) return;
