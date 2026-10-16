@@ -120,6 +120,13 @@
       "when": 1792152382431,
       "tag": "0016_restrict_rental_assignees_to_office_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792166571169,
+      "tag": "0017_migration",
+      "breakpoints": true
     }
   ]
 }
