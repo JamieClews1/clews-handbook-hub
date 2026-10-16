@@ -6956,6 +6956,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          included_tonnes: number | null
           price: number | null
           row_id: string
           status: string
@@ -6966,6 +6967,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          included_tonnes?: number | null
           price?: number | null
           row_id: string
           status?: string
@@ -6976,6 +6978,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          included_tonnes?: number | null
           price?: number | null
           row_id?: string
           status?: string

@@ -134,6 +134,13 @@
       "when": 1792170318067,
       "tag": "0018_crm_deals",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792171672381,
+      "tag": "0019_rate_card_included_tonnes",
+      "breakpoints": true
     }
   ]
 }
