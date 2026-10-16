@@ -67,7 +67,7 @@ export function CrmDealCard({ ticket, deal, userId, onChange }: Props) {
 
   return (
     <div className="rounded-lg border p-3 space-y-2.5 bg-card">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 pr-5">
         <span className="flex items-center gap-1.5 text-sm font-semibold"><Briefcase className="h-4 w-4 text-primary" />Deal</span>
         <Badge variant="outline" className={cn("text-[10px]", meta.className)}>{meta.label}</Badge>
       </div>
