@@ -39,7 +39,14 @@ import {
   CheckCheck,
   Clock,
   UserCheck,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  Settings2,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
 import { CRMMailboxConnect, useMailboxConnection } from "@/components/crm/CRMMailboxConnect";
@@ -154,6 +161,8 @@ export default function CRMPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [filter, setFilter] = useState<Status | "all">("all");
   const [folder, setFolder] = useState<string | null>(null);
+  const [showFolders, setShowFolders] = useState(true);
+  const [showMailboxes, setShowMailboxes] = useState(false);
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
   const [isNote, setIsNote] = useState(false);
@@ -346,6 +355,7 @@ export default function CRMPage() {
       );
     });
   }, [mine, folder, filter, search, customerNames, mailboxFilter, showFiled]);
+  const selectedIndex = filtered.findIndex((t) => t.id === selectedId);
 
   const stats = useMemo(() => {
     const open = mine.filter((t) => !t.is_filed && (t.status === "new" || t.status === "open")).length;
