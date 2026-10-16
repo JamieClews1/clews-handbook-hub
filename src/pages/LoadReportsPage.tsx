@@ -19,7 +19,6 @@ import { OfflineIndicator } from "@/components/load-reports/OfflineIndicator";
 import { useOfflineLoadReports } from "@/hooks/useOfflineLoadReports";
 import { initAutoSync } from "@/lib/sync-service";
 import { cacheWasteTypes, cacheSites } from "@/lib/offline-db";
-import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
 
 
 // Staci-specific components
@@ -1211,16 +1210,6 @@ const LoadReportsPage = () => {
         <div className={`${viewMode === "all" || viewMode === "list" ? "max-w-screen-2xl" : "max-w-5xl"} mx-auto`}>
           {viewMode === "customer" && (
             <>
-              {!installHintDismissed && (
-                <div className="mb-6">
-                  <LoadReportsInstallCard
-                    onDismiss={() => {
-                      setInstallHintDismissed(true);
-                      localStorage.setItem("w1-load-reports-install-dismissed", "1");
-                    }}
-                  />
-                </div>
-              )}
               <CustomerTypeSelector
                 onSelect={handleCustomerSelect}
                 onViewAll={handleViewAll}
