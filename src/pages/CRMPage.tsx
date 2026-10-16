@@ -513,11 +513,13 @@ export default function CRMPage() {
     setReply("");
   }, [selectedId]);
 
-  const handleAiDraft = async () => {
+  const handleAiDraft = async (templateKey?: string) => {
     if (!selected) return;
     setDrafting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-draft", { body: { ticketId: selected.id } });
+      const { data, error } = await supabase.functions.invoke("crm-ai-draft", {
+        body: templateKey ? { ticketId: selected.id, templateKey } : { ticketId: selected.id },
+      });
       if (error) {
         const details = await (error as any).context?.text?.().catch(() => "");
         throw new Error(details || error.message);
@@ -533,7 +535,25 @@ export default function CRMPage() {
     }
   };
 
-  const insertTemplate = (body: string) => {
+  // Fill the details the portal already knows; anything unknown becomes a visible [gap].
+  const fillTemplate = (body: string) => {
+    const ex = (selected?.ai_extracted ?? {}) as Record<string, any>;
+    const first = (selected?.sender_name ?? "").trim().split(/\s+/)[0];
+    const meta = (user?.user_metadata ?? {}) as Record<string, any>;
+    const known: Record<string, string | undefined> = {
+      firstName: first && !first.includes("@") ? first : "there",
+      userName: meta.full_name || meta.name || user?.email || undefined,
+      postcode: ex.postcode, containerSize: ex.container, wasteType: ex.waste_type,
+      poNumber: ex.po_number, jobNumber: ex.job_reference,
+    };
+    return body.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, k: string) =>
+      known[k] ? String(known[k]) : `[${k.replace(/([A-Z])/g, " $1").toLowerCase()}]`);
+  };
+
+  const insertTemplate = (t: { body: string | null; template_key?: string | null }) => {
+    // Built-in templates go through the AI so prices, dates and phone come from the portal.
+    if (t.template_key && !isNote && !reply.trim()) return void handleAiDraft(t.template_key);
+    const body = fillTemplate(t.body ?? "");
     setReply((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${body}` : body));
   };
 

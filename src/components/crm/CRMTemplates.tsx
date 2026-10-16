@@ -23,6 +23,7 @@ export interface CRMTemplate {
   category: string | null;
   subject: string | null;
   body: string | null;
+  template_key?: string | null;
 }
 
 const empty = { name: "", category: "", subject: "", body: "" };
