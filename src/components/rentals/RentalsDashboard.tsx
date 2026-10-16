@@ -172,6 +172,17 @@ export default function RentalsDashboard() {
     setChases(map);
   };
 
+  // Quick-assign a chase to a team member straight from the list row.
+  const assignChase = async (bin: OverRentalBin, profileId: string | null) => {
+    const id = await ensureChase(bin, user?.id ?? null);
+    if (!id) { toast({ title: "Failed to assign", variant: "destructive" }); return; }
+    const { error } = await supabase.from("rental_chases").update({ assigned_to: profileId }).eq("id", id);
+    if (error) { toast({ title: "Failed to assign", description: error.message, variant: "destructive" }); return; }
+    const name = profileId ? (profiles.find((p) => p.id === profileId)?.full_name || "team member") : null;
+    toast({ title: name ? `Assigned to ${name}` : "Assignment cleared" });
+    fetchChases();
+  };
+
   const fetchAgreements = async () => {
     const { data } = await supabase
       .from("rental_agreements")
@@ -480,17 +491,32 @@ export default function RentalsDashboard() {
                           : <span className="text-muted-foreground text-xs">—</span>}
                       </TableCell>
                       <TableCell>
-                        {assignee ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 text-xs font-medium"
-                            style={{ color: assigneeColour }}
+                        <Select
+                          value={c?.assigned_to ?? "unassigned"}
+                          onValueChange={(v) => assignChase(b, v === "unassigned" ? null : v)}
+                        >
+                          <SelectTrigger
+                            className="h-8 w-auto min-w-[8rem] border-dashed text-xs font-medium gap-1.5"
+                            style={assigneeColour ? { color: assigneeColour, borderColor: assigneeColour } : undefined}
+                            title="Assign to a team member"
                           >
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: assigneeColour }} />
-                            {assignee.full_name || assignee.email}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                            {assigneeColour && (
+                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: assigneeColour }} />
+                            )}
+                            <SelectValue placeholder="Assign to…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            {profiles.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColour(p.id) }} />
+                                  {p.full_name || p.email}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
