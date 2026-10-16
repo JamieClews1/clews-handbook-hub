@@ -30,6 +30,7 @@ import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
+import { cleanEmail } from "@/lib/email-clean";
 
 type Chase = {
   id: string;
@@ -123,6 +124,7 @@ export default function RentalsDashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
+  const [customerIdMap, setCustomerIdMap] = useState<Record<string, string>>({});
   const [agreements, setAgreements] = useState<Agreement[]>([]);
 
   // dialogs
@@ -244,28 +246,34 @@ export default function RentalsDashboard() {
       setProfiles(all);
       setOfficeProfiles(eligibleRentalAssignees(all, (roleResult.data ?? []).map(r => r.user_id)));
     });
-    // Build customer name -> email lookup
-    (async () => {
-      const [{ data: customers }, { data: contacts }] = await Promise.all([
-        supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email"),
-        supabase.from("customer_contacts").select("customer_id,email"),
-      ]);
-      const emailByCustomerId: Record<string, string> = {};
-      for (const ct of contacts ?? []) {
-        if (ct.email && ct.customer_id && !emailByCustomerId[ct.customer_id]) {
-          emailByCustomerId[ct.customer_id] = ct.email;
-        }
-      }
-      const map: Record<string, string> = {};
-      for (const c of customers ?? []) {
-        const email = emailByCustomerId[c.id] || c.po_notification_email || "";
-        if (!email) continue;
-        if (c.customer_name) map[c.customer_name.toLowerCase().trim()] = email;
-        if (c.data_hub_customer) map[c.data_hub_customer.toLowerCase().trim()] = email;
-      }
-      setEmailMap(map);
-    })();
+    void loadCustomerEmails();
   }, []);
+
+  // Customer name -> email and customer id. The most recently added contact wins,
+  // so an address saved from a chase email becomes the next default.
+  async function loadCustomerEmails() {
+    const [{ data: customers }, { data: contacts }] = await Promise.all([
+      supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email"),
+      supabase.from("customer_contacts").select("customer_id,email,created_at").order("created_at", { ascending: false }),
+    ]);
+    const emailByCustomerId: Record<string, string> = {};
+    for (const ct of contacts ?? []) {
+      if (ct.email && ct.customer_id && !emailByCustomerId[ct.customer_id]) emailByCustomerId[ct.customer_id] = ct.email;
+    }
+    const map: Record<string, string> = {};
+    const ids: Record<string, string> = {};
+    for (const c of customers ?? []) {
+      for (const name of [c.customer_name, c.data_hub_customer]) {
+        if (!name) continue;
+        const key = name.toLowerCase().trim();
+        ids[key] = c.id;
+        const email = emailByCustomerId[c.id] || c.po_notification_email || "";
+        if (email) map[key] = email;
+      }
+    }
+    setEmailMap(map);
+    setCustomerIdMap(ids);
+  }
 
   const allBins = useMemo(() => {
     if (settingsLoading) return [];
@@ -739,6 +747,7 @@ export default function RentalsDashboard() {
           bin={emailBin}
           chase={chases[emailBin.binKey]}
           defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? ""}
+          customerId={customerIdMap[emailBin.customer.toLowerCase().trim()]}
           freeDays={settings.rental_free_days}
           draftBody={renderChaseTemplate(
             settings.rental_chase_email_template,
@@ -748,7 +757,7 @@ export default function RentalsDashboard() {
           )}
           userId={user?.id ?? null}
           onClose={() => setEmailBin(null)}
-          onSent={() => { setEmailBin(null); fetchChases(); }}
+          onSent={() => { setEmailBin(null); fetchChases(); void loadCustomerEmails(); }}
           toast={toast}
         />
       )}
@@ -1202,8 +1211,8 @@ function ManageDialog({ bin, chase, profiles, userId, onRead, onClose, onSaved, 
   );
 }
 
-function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, onClose, onSent, toast }: {
-  bin: OverRentalBin; chase?: Chase; defaultEmail: string; freeDays: number; draftBody: string; userId: string | null;
+function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody, userId, onClose, onSent, toast }: {
+  bin: OverRentalBin; chase?: Chase; defaultEmail: string; customerId?: string; freeDays: number; draftBody: string; userId: string | null;
   onClose: () => void; onSent: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [to, setTo] = useState(defaultEmail);
@@ -1230,7 +1239,20 @@ function EmailDialog({ bin, chase, defaultEmail, freeDays, draftBody, userId, on
           await supabase.from("rental_chases").update({ chase_status: "chased" }).eq("id", chaseId);
         }
       }
-      toast({ title: "Chase email sent", description: `Sent to ${to.trim()}` });
+      // A changed address is kept on the customer's profile as a contact, so it is
+      // offered next time. Saving it must never undo a sent email, so failures only warn.
+      let savedNote = "";
+      const sentTo = cleanEmail(to);
+      if (customerId && sentTo && sentTo.toLowerCase() !== defaultEmail.trim().toLowerCase()) {
+        const { data: existing } = await supabase.from("customer_contacts").select("id").eq("customer_id", customerId).ilike("email", sentTo).limit(1);
+        if (!existing?.length) {
+          const { error: contactError } = await supabase.from("customer_contacts").insert({ customer_id: customerId, full_name: sentTo.split("@")[0], email: sentTo });
+          savedNote = contactError ? " — couldn't save the address to the customer" : " — address saved to the customer's contacts";
+        }
+      } else if (!customerId && sentTo.toLowerCase() !== defaultEmail.trim().toLowerCase()) {
+        savedNote = " — no matching customer profile to save the address to";
+      }
+      toast({ title: "Chase email sent", description: `Sent to ${to.trim()}${savedNote}` });
       onSent();
     } catch (e: any) {
       toast({ title: "Failed to send", description: e?.message ?? "Unknown error", variant: "destructive" });
