@@ -547,7 +547,7 @@ export default function RentalsDashboard() {
                       <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="destructive">{daysOverFreePeriod(b.daysSinceActivity, settings.rental_free_days)}d</Badge></TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]}>
+                        <Badge variant={STATUS_VARIANT[c?.chase_status ?? "not_chased"]} className="whitespace-nowrap">
                           {STATUS_LABELS[c?.chase_status ?? "not_chased"]}
                         </Badge>
                       </TableCell>
@@ -566,9 +566,6 @@ export default function RentalsDashboard() {
                             style={assigneeColour ? { color: assigneeColour, borderColor: assigneeColour } : undefined}
                             title="Assign to a team member"
                           >
-                            {assigneeColour && (
-                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: assigneeColour }} />
-                            )}
                             <SelectValue placeholder="Assign to…" />
                           </SelectTrigger>
                           <SelectContent>
