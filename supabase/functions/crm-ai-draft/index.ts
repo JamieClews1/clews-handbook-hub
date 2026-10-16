@@ -79,55 +79,74 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Price + fuel surcharge lookup for quotes: postcode -> zone -> rate card entry.
+    // Customer type: no linked customer + personal email domain => residential.
+    const domain = String(t.sender_email ?? '').split('@')[1]?.toLowerCase() ?? '';
+    const isResidential = !t.customer_id && PERSONAL_DOMAINS.test(domain);
+    found.customerType = isResidential ? 'Residential (personal email, no company account)' : 'Trade';
+
+    // Zone from the pricing matrix only (same matcher as the Pricing section).
     const containerText = `${ex.container ?? ''} ${found.containerSize ?? ''}`;
-    const wasteText = `${ex.waste_type ?? ''} ${found.wasteType ?? ''}`;
-    if (ex.postcode && containerText.trim()) {
-      const pc = String(ex.postcode).toUpperCase().replace(/\s+/g, '');
-      const { data: prefixes } = await admin.from('pricing_zone_postcodes').select('postcode_prefix, zone_code');
-      const match = (prefixes ?? [])
-        .filter((p: any) => pc.startsWith(String(p.postcode_prefix).toUpperCase().replace(/\s+/g, '')))
-        .sort((a: any, b: any) => b.postcode_prefix.length - a.postcode_prefix.length)[0];
-      let zoneId: string | null = null;
-      let zoneName: string | null = null;
-      if (match) {
-        const { data: zone } = await admin.from('postcode_zones').select('id, zone_name').ilike('zone_name', match.zone_code).limit(1).maybeSingle();
-        zoneId = zone?.id ?? null;
-        zoneName = zone?.zone_name ?? match.zone_code;
-      }
-      const isRoRo = /roro|roll|2[05]\s*yd|3[05]\s*yd|40\s*yd/i.test(containerText);
-      if (zoneId) {
-        const { data: sizes } = await admin.from('pricing_skip_sizes').select('id, display_name, size_code').eq('is_active', true);
-        const sizeHit = (sizes ?? []).find((s: any) => {
-          const label = `${s.display_name} ${s.size_code}`.toLowerCase();
-          const want = containerText.toLowerCase();
-          const num = want.match(/(\d+)\s*(yd|yard)/)?.[1];
-          return num ? label.includes(num) : label.split(/\s+/).some((w2: string) => w2.length > 2 && want.includes(w2));
-        });
-        const { data: wastes } = await admin.from('pricing_waste_types').select('id, waste_type_name').eq('is_active', true);
-        const wasteHit = (wastes ?? []).find((w2: any) => {
-          const a = w2.waste_type_name.toLowerCase();
-          const b = wasteText.toLowerCase();
-          return b && (b.includes(a) || a.includes(b));
-        }) ?? (wastes ?? []).find((w2: any) => /general/i.test(w2.waste_type_name));
-        if (sizeHit) {
-          let q = admin.from('pricing_entries').select('price_ex_vat, status, tier')
-            .eq('zone_id', zoneId).eq('skip_size_id', sizeHit.id).eq('status', 'price');
-          if (wasteHit) q = q.eq('waste_type_id', wasteHit.id);
-          const { data: entries } = await q;
-          const entry = (entries ?? [])[0];
-          if (entry?.price_ex_vat != null) {
-            found.price = `£${Number(entry.price_ex_vat).toFixed(2)} + VAT (${sizeHit.display_name}${wasteHit ? `, ${wasteHit.waste_type_name}` : ''}, ${zoneName})`;
-          }
+    const wasteText = `${ex.waste_type ?? ''} ${found.wasteType ?? ''}`.toLowerCase();
+    const isRoRo = /ro\s*-?ro|roll|\b(20|25|30|35|40)\s*(yd|yard)/i.test(containerText);
+    let zoneLabel: string | null = null;
+    if (ex.postcode) {
+      const { data: rows } = await admin.from('pricing_zone_postcodes').select('postcode_prefix, zone_code, area');
+      const m = matchMatrixPostcode(String(ex.postcode), (rows ?? []) as any);
+      if (m.status === 'matched') { zoneLabel = m.zone; found.zone = m.zone; }
+    }
+
+    // Price from the Pricing section's rate cards.
+    if (zoneLabel && containerText.trim()) {
+      const zoneCode = MATRIX_ZONE_TO_CODE[zoneLabel];
+      const cardName = isResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
+      const { data: card } = await admin.from('pricing_rate_cards').select('id, name, vat_inclusive').eq('name', cardName).eq('is_active', true).maybeSingle();
+      if (card && zoneCode) {
+        const { data: rows } = await admin.from('pricing_rate_card_rows').select('id, section, label').eq('card_id', card.id);
+        const { data: zones } = await admin.from('pricing_rate_card_zones').select('id, zone_code').eq('card_id', card.id);
+        const cat = /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
+          : /inert|hardcore|rubble|soil/.test(wasteText) ? 'inert' : 'general';
+        const sectionRe: Record<string, RegExp> = isResidential
+          ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste/i }
+          : isRoRo
+            ? { plaster: /roro.*general/i, wood: /roro.*general/i, green: /roro.*general/i, inert: /roro.*inert/i, general: /roro.*general/i }
+            : { plaster: /plasterboard/i, wood: /wood/i, green: /wood|green/i, inert: /inert/i, general: /skip hire.*general/i };
+        const size = containerText.match(/(\d+)\s*(yd|yard|cubic)/i)?.[1];
+        const enclosed = /enclosed|lockable|lid/i.test(containerText);
+        const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(isResidential ? r.label : r.section) && !/haulage/i.test(r.section))
+          .filter((r: any) => !size || isRoRo || new RegExp(`\\b${size}\\b`).test(r.label))
+          .sort((a: any, b: any) => Number(/enclosed/i.test(a.label) !== enclosed) - Number(/enclosed/i.test(b.label) !== enclosed));
+        const row = cands[0];
+        const zone = (zones ?? []).find((z: any) => z.zone_code === zoneCode);
+        if (row && zone) {
+          const { data: v } = await admin.from('pricing_rate_card_values').select('status, price').eq('row_id', row.id).eq('zone_id', zone.id).maybeSingle();
+          if (v?.status === 'price' && v.price != null) {
+            found.price = `£${Number(v.price).toFixed(2)} ${card.vat_inclusive ? 'inc VAT' : '+ VAT'} (${row.label}, ${zoneLabel}, ${card.name})`;
+          } else if (v) found.price = `Call for quote (${row.label}, ${zoneLabel})`;
         }
       }
-      if (zoneName) {
-        const { data: fs } = await admin.from('fuel_surcharge_rates').select('surcharge_amount')
-          .eq('zone', zoneName).eq('vehicle_category', isRoRo ? 'RoRo' : 'Skips').eq('active', true)
-          .order('effective_from_date', { ascending: false }).limit(1).maybeSingle();
-        if (fs?.surcharge_amount != null) found.fuelSurcharge = `£${Number(fs.surcharge_amount).toFixed(2)} per movement (${zoneName})`;
-      }
     }
+    if (zoneLabel) {
+      const fsZone = /zone\s*1/i.test(zoneLabel) ? 'Zone 1' : /zone\s*2/i.test(zoneLabel) ? 'Zone 2' : 'Zone 3';
+      const { data: fs } = await admin.from('fuel_surcharge_rates').select('surcharge_amount')
+        .eq('zone', fsZone).eq('vehicle_category', isRoRo ? 'RoRo' : 'Skips').eq('active', true).is('customer_match', null)
+        .order('effective_from_date', { ascending: false }).limit(1).maybeSingle();
+      if (fs?.surcharge_amount != null) found.fuelSurcharge = `£${Number(fs.surcharge_amount).toFixed(2)} + VAT per movement (${fsZone})`;
+
+      // Earliest delivery from Route One's "Taking bookings for" board.
+      const { data: wins } = await admin.from('route_one_booking_windows').select('zone_label, skip_day, roro_day');
+      const n = zoneLabel.match(/zone\s*(\d)/i)?.[1];
+      const win = (wins ?? []).find((w: any) => n && new RegExp(`\\b${n}\\b`).test(w.zone_label));
+      const day = win ? (isRoRo ? win.roro_day : win.skip_day) : null;
+      const date = bookingDate(day);
+      if (date) found.availableDate = date;
+      else if (day) found.availableDate = 'to be confirmed';
+    }
+
+    // Permit: only state it if the customer said it goes on the road; otherwise ask.
+    const allText = `${thread} ${JSON.stringify(ex)}`.toLowerCase();
+    found.permitNote = /permit/.test(allText)
+      ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
+      : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
 
     const draft = await aiJson(apiKey, {
       name: 'reply_draft',
