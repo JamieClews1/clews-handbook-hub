@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
 
     // Customer type: no linked customer + personal email domain => residential.
     const domain = String(t.sender_email ?? '').split('@')[1]?.toLowerCase() ?? '';
-    const isResidential = !t.customer_id && PERSONAL_DOMAINS.test(domain);
+    const addr = `${ex.site_name ?? ''} ${ex.address ?? ''}`;
+    const businessAddr = /\b(ltd|limited|plc|llp|unit|industrial|estate|business|trading|depot|works|warehouse|park|centre|center|site)\b/i.test(addr);
+    const isResidential = !t.customer_id && !ex.company_name && !ex.contract_number && (PERSONAL_DOMAINS.test(domain) || (addr.trim() !== '' && !businessAddr));
     found.customerType = isResidential ? 'Residential (personal email, no company account)' : 'Trade';
 
     // Zone from the pricing matrix only (same matcher as the Pricing section).
@@ -104,6 +106,7 @@ Deno.serve(async (req) => {
       const { data: rows } = await admin.from('pricing_zone_postcodes').select('postcode_prefix, zone_code, area');
       const m = matchMatrixPostcode(String(ex.postcode), (rows ?? []) as any);
       if (m.status === 'matched') { zoneLabel = m.zone; found.zone = m.zone; }
+      else found.zone = m.status === 'ambiguous' ? 'postcode sector split between zones — staff to confirm zone' : 'postcode not on pricing matrix — staff to confirm';
     }
 
     // Price from the Pricing section's rate cards.
@@ -114,7 +117,7 @@ Deno.serve(async (req) => {
       if (card && zoneCode) {
         const { data: rows } = await admin.from('pricing_rate_card_rows').select('id, section, label').eq('card_id', card.id);
         const { data: zones } = await admin.from('pricing_rate_card_zones').select('id, zone_code').eq('card_id', card.id);
-        const cat = /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
+        const cat = !wasteText.trim() ? 'general' : /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
           : /inert|hardcore|rubble|soil/.test(wasteText) ? 'inert' : 'general';
         const sectionRe: Record<string, RegExp> = isResidential
           ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste/i }
