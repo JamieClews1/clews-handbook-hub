@@ -41,3 +41,4 @@
 - [x] Highlight rental notes waiting to be read.
 - [x] Save changed rental chase email addresses to the customer contacts.
 - [x] Finance review: show every customer name on invoice lists and in the New invoice list; verify all 18 rows and the full active customer list.
+- [x] Show the date beside each Route One booking day (MON 19) on the bookings board; verify live board and day pickers.
