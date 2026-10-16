@@ -95,6 +95,12 @@ const Staff = ({ children }: { children: React.ReactNode }) => (
   </StaffRoute>
 );
 
+/** Old /crm bookmarks and links land on the renamed Inbox, keeping any query params. */
+const RedirectToInbox = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/inbox${search}`} replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
