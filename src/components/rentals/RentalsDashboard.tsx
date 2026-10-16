@@ -244,26 +244,7 @@ export default function RentalsDashboard() {
       setProfiles(all);
       setOfficeProfiles(eligibleRentalAssignees(all, (roleResult.data ?? []).map(r => r.user_id)));
     });
-    // Build customer name -> email lookup
-    (async () => {
-      const [{ data: customers }, { data: contacts }] = await Promise.all([
-        supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email"),
-        supabase.from("customer_contacts").select("customer_id,email"),
-      ]);
-      const emailByCustomerId: Record<string, string> = {};
-      for (const ct of contacts ?? []) {
-        if (ct.email && ct.customer_id && !emailByCustomerId[ct.customer_id]) {
-          emailByCustomerId[ct.customer_id] = ct.email;
-        }
-      }
-      const map: Record<string, string> = {};
-      for (const c of customers ?? []) {
-        const email = emailByCustomerId[c.id] || c.po_notification_email || "";
-        if (!email) continue;
-        if (c.customer_name) map[c.customer_name.toLowerCase().trim()] = email;
-        if (c.data_hub_customer) map[c.data_hub_customer.toLowerCase().trim()] = email;
-      }
-      setEmailMap(map);
+    void loadCustomerEmails();
     })();
   }, []);
 
