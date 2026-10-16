@@ -550,7 +550,7 @@ export default function CRMPage() {
 
   // AI draft: prepared for review only — nothing is sent until "Send reply" is pressed.
   const [drafting, setDrafting] = useState(false);
-  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null } | null>(null);
+  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null; stock?: { type: string; available: number; tallyDate: string; low: boolean } | null } | null>(null);
   // Fresh reply box on every ticket: any carried-over text (typed or AI-drafted) would read as this ticket's reply.
   useEffect(() => {
     setDraftInfo(null);
@@ -571,7 +571,7 @@ export default function CRMPage() {
       if (data?.error) throw new Error(data.error);
       setIsNote(false);
       setReply(data.body ?? "");
-      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null });
+      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null, stock: data.stock ?? null });
     } catch (e: any) {
       toast({ title: "Couldn't draft a reply", description: e.message ?? String(e), variant: "destructive" });
     } finally {
