@@ -172,6 +172,17 @@ export default function RentalsDashboard() {
     setChases(map);
   };
 
+  // Quick-assign a chase to a team member straight from the list row.
+  const assignChase = async (bin: OverRentalBin, profileId: string | null) => {
+    const id = await ensureChase(bin, user?.id ?? null);
+    if (!id) { toast({ title: "Failed to assign", variant: "destructive" }); return; }
+    const { error } = await supabase.from("rental_chases").update({ assigned_to: profileId }).eq("id", id);
+    if (error) { toast({ title: "Failed to assign", description: error.message, variant: "destructive" }); return; }
+    const name = profileId ? (profiles.find((p) => p.id === profileId)?.full_name || "team member") : null;
+    toast({ title: name ? `Assigned to ${name}` : "Assignment cleared" });
+    fetchChases();
+  };
+
   const fetchAgreements = async () => {
     const { data } = await supabase
       .from("rental_agreements")
