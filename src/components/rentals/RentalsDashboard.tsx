@@ -28,6 +28,7 @@ import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
 import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
 import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
+import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 
 type Chase = {
   id: string;
@@ -44,7 +45,7 @@ type Chase = {
   own_skip: boolean;
 };
 
-type Profile = { id: string; full_name: string | null; email: string | null };
+type Profile = { id: string; full_name: string | null; email: string | null; user_types: string[] | null; is_archived: boolean | null };
 type ChaseEmail = { id: string; to_email: string; subject: string | null; created_at: string };
 type Agreement = {
   id: string;
@@ -119,6 +120,7 @@ export default function RentalsDashboard() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
   const [agreements, setAgreements] = useState<Agreement[]>([]);
 
@@ -174,6 +176,10 @@ export default function RentalsDashboard() {
 
   // Quick-assign a chase to a team member straight from the list row.
   const assignChase = async (bin: OverRentalBin, profileId: string | null) => {
+    if (profileId && !officeProfiles.some(p => p.id === profileId)) {
+      toast({ title: "Only Clews Recycling Office users can be assigned", variant: "destructive" });
+      return;
+    }
     const id = await ensureChase(bin, user?.id ?? null);
     if (!id) { toast({ title: "Failed to assign", variant: "destructive" }); return; }
     const { error } = await supabase.from("rental_chases").update({ assigned_to: profileId }).eq("id", id);
@@ -194,7 +200,14 @@ export default function RentalsDashboard() {
   useEffect(() => {
     fetchChases();
     fetchAgreements();
-    supabase.from("profiles").select("id,full_name,email").then(({ data }) => setProfiles((data ?? []) as Profile[]));
+    Promise.all([
+      supabase.from("profiles").select("id,full_name,email,user_types,is_archived").order("full_name"),
+      supabase.from("user_roles").select("user_id"),
+    ]).then(([profileResult, roleResult]) => {
+      const all = (profileResult.data ?? []) as Profile[];
+      setProfiles(all);
+      setOfficeProfiles(eligibleRentalAssignees(all, (roleResult.data ?? []).map(r => r.user_id)));
+    });
     // Build customer name -> email lookup
     (async () => {
       const [{ data: customers }, { data: contacts }] = await Promise.all([
@@ -507,7 +520,7 @@ export default function RentalsDashboard() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="unassigned">Unassigned</SelectItem>
-                            {profiles.map((p) => (
+                            {officeProfiles.map((p) => (
                               <SelectItem key={p.id} value={p.id}>
                                 <span className="inline-flex items-center gap-1.5">
                                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColour(p.id) }} />
@@ -656,7 +669,7 @@ export default function RentalsDashboard() {
         <ManageDialog
           bin={manageBin}
           chase={chases[manageBin.binKey]}
-          profiles={profiles}
+          profiles={officeProfiles}
           userId={user?.id ?? null}
           onClose={() => setManageBin(null)}
           onSaved={() => { setManageBin(null); fetchChases(); fetchAgreements(); }}
@@ -774,6 +787,10 @@ function AgreementDialog({ bin, chase, userId, onClose, onSaved, toast }: {
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
+    if (assignedTo !== "unassigned" && assignedTo !== chase?.assigned_to && !profiles.some(p => p.id === assignedTo)) {
+      toast({ title: "Only Clews Recycling Office users can be assigned", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("rental_agreements").insert({
       customer: bin.customer,
