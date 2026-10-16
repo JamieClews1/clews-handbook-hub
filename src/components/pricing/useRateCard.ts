@@ -27,6 +27,7 @@ export type RateValue = {
   status: "price" | "call_for_quote" | "na" | "text";
   price: number | null;
   text_value: string | null;
+  included_tonnes?: number | null;
 };
 
 export type RateCard = {
@@ -265,7 +266,7 @@ export async function duplicateRateCard(
         const nr = rowIdMap.get(v.row_id);
         const nz = zoneIdMap.get(v.zone_id);
         if (!nr || !nz) return null;
-        return { row_id: nr, zone_id: nz, status: v.status, price: v.price, text_value: v.text_value };
+        return { row_id: nr, zone_id: nz, status: v.status, price: v.price, text_value: v.text_value, included_tonnes: (v as any).included_tonnes ?? null };
       })
       .filter(Boolean);
     if (newValues.length) {
@@ -282,3 +283,7 @@ export function nextAprilYear(effectiveDate: string | null): number {
   return base + 1;
 }
 
+
+/** RoRo sections (excluding haulage) carry an "includes N tonnes" allowance per price. */
+export const isRoRoSection = (section: string | null | undefined) =>
+  /ro\s*-?\s*ro/i.test(String(section ?? "")) && !/haulage/i.test(String(section ?? ""));

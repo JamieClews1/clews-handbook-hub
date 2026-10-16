@@ -15,6 +15,7 @@ import {
   type RateValue,
   type RateZone,
   useRateCardData,
+  isRoRoSection,
 } from "./useRateCard";
 
 type Props = { cardId: string; highlightZoneCode?: string | null };
@@ -72,11 +73,12 @@ export function RateCardEditor({ cardId, highlightZoneCode }: Props) {
     status: string,
     price: number | null,
     text: string | null,
+    includedTonnes: number | null = null,
   ) => {
     const { error } = await supabase
       .from("pricing_rate_card_values")
       .upsert(
-        { row_id: rowId, zone_id: zoneId, status, price, text_value: text },
+        { row_id: rowId, zone_id: zoneId, status, price, text_value: text, included_tonnes: includedTonnes },
         { onConflict: "row_id,zone_id" },
       );
     if (error) {
@@ -163,7 +165,8 @@ export function RateCardEditor({ cardId, highlightZoneCode }: Props) {
                         >
                           <PriceCell
                             value={valueMap.get(`${row.id}:${z.id}`)}
-                            onSave={(s, p, t) => saveValue(row.id, z.id, s, p, t)}
+                            showIncludes={isRoRoSection(section)}
+                            onSave={(s, p, t, inc) => saveValue(row.id, z.id, s, p, t, inc)}
                           />
                         </TableCell>
                       ))}
@@ -232,10 +235,13 @@ export function RateCardEditor({ cardId, highlightZoneCode }: Props) {
 function PriceCell({
   value,
   onSave,
+  showIncludes = false,
 }: {
   value: RateValue | undefined;
-  onSave: (status: string, price: number | null, text: string | null) => void;
+  onSave: (status: string, price: number | null, text: string | null, includedTonnes: number | null) => void;
+  showIncludes?: boolean;
 }) {
+  const [inc, setInc] = useState(value?.included_tonnes?.toString() || "");
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<string>(value?.status || "na");
   const [price, setPrice] = useState(value?.price?.toString() || "");
@@ -245,13 +251,15 @@ function PriceCell({
     setStatus(value?.status || "na");
     setPrice(value?.price?.toString() || "");
     setText(value?.text_value || "");
+    setInc(value?.included_tonnes?.toString() || "");
     setEditing(true);
   };
 
   const save = () => {
     const p = status === "price" ? parseFloat(price) || 0 : null;
     const t = status === "text" ? text : null;
-    onSave(status, p, t);
+    const n = showIncludes && inc.trim() !== "" ? Number(inc) : null;
+    onSave(status, p, t, n != null && Number.isFinite(n) ? n : (showIncludes ? null : value?.included_tonnes ?? null));
     setEditing(false);
   };
 
@@ -280,6 +288,21 @@ function PriceCell({
             placeholder="0.00"
           />
         )}
+        {status === "price" && showIncludes && (
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            Includes
+            <Input
+              className="h-8 text-xs w-16"
+              type="number"
+              step="0.5"
+              min="0"
+              value={inc}
+              onChange={(e) => setInc(e.target.value)}
+              placeholder="0"
+            />
+            tonnes
+          </label>
+        )}
         {status === "text" && (
           <Input
             className="h-8 text-xs"
@@ -307,7 +330,15 @@ function PriceCell({
       className="w-full text-center cursor-pointer hover:bg-muted/50 rounded p-1 transition-colors"
     >
       {value?.status === "price" && value.price != null ? (
-        <span className="font-semibold text-sm">£{value.price.toFixed(2)}</span>
+        <span className="flex flex-col items-center leading-tight">
+          <span className="font-semibold text-sm">£{value.price.toFixed(2)}</span>
+          {showIncludes && value.included_tonnes != null && value.included_tonnes > 0 && (
+            <span className="text-[11px] font-medium text-primary">inc {value.included_tonnes}t</span>
+          )}
+          {showIncludes && !(value.included_tonnes && value.included_tonnes > 0) && (
+            <span className="text-[11px] text-destructive">set tonnes</span>
+          )}
+        </span>
       ) : value?.status === "call_for_quote" ? (
         <Badge variant="secondary" className="text-xs">
           Call for Quote
