@@ -127,6 +127,13 @@
       "when": 1792166571169,
       "tag": "0017_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792170318067,
+      "tag": "0018_crm_deals",
+      "breakpoints": true
     }
   ]
 }

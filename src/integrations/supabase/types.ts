@@ -1566,6 +1566,87 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_deals: {
+        Row: {
+          assigned_to: string | null
+          closed_at: string | null
+          container: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          lost_reason: string | null
+          notes: string | null
+          postcode: string | null
+          quoted_at: string | null
+          route_one_job_number: string | null
+          stage: string
+          ticket_id: string | null
+          title: string | null
+          updated_at: string
+          value_net: number | null
+          waste_type: string | null
+          won_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          closed_at?: string | null
+          container?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          lost_reason?: string | null
+          notes?: string | null
+          postcode?: string | null
+          quoted_at?: string | null
+          route_one_job_number?: string | null
+          stage?: string
+          ticket_id?: string | null
+          title?: string | null
+          updated_at?: string
+          value_net?: number | null
+          waste_type?: string | null
+          won_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          closed_at?: string | null
+          container?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          lost_reason?: string | null
+          notes?: string | null
+          postcode?: string | null
+          quoted_at?: string | null
+          route_one_job_number?: string | null
+          stage?: string
+          ticket_id?: string | null
+          title?: string | null
+          updated_at?: string
+          value_net?: number | null
+          waste_type?: string | null
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "crm_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: true
+            referencedRelation: "crm_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_email_templates: {
         Row: {
           body: string | null
