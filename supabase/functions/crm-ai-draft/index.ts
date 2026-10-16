@@ -11,6 +11,8 @@ const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').rep
 const ukDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : null;
 const PERSONAL_DOMAINS = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|btinternet|btopenworld|sky|talktalk|virginmedia|ntlworld|blueyonder|tiscali|plusnet|protonmail|proton|gmx|mail)\./;
 const DAYS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+const LOW_STOCK = 2;
+const RORO_RE = /ro\s*-?\s*ro|roll[- ]?on|\b(20|25|30|35|40)\s*-?\s*(yd|yds|yrd|yard)/i;
 /** Next date for a booking-board day code (today counts), e.g. "Monday 19 October". */
 function bookingDate(day: string | null | undefined): string | null {
   const target = DAYS[String(day ?? '').trim().toUpperCase()];
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
     const { data: msgs } = await admin.from('crm_ticket_messages')
       .select('direction, from_name, body, body_preview, sent_at, is_internal_note')
       .eq('ticket_id', t.id).order('sent_at', { ascending: false }).limit(6);
-    const thread = (msgs ?? []).reverse().map((m: any) =>
+    const thread = [...(msgs ?? [])].reverse().map((m: any) =>
       `[${m.is_internal_note ? 'INTERNAL NOTE' : m.direction === 'inbound' ? 'CUSTOMER' : 'CLEWS'} ${m.from_name ?? ''} ${m.sent_at?.slice(0, 16)}]\n${stripHtml(m.body ?? m.body_preview ?? '').slice(0, 2500)}`,
     ).join('\n\n');
 
@@ -63,10 +65,10 @@ Deno.serve(async (req) => {
     const ex: Record<string, any> = { ...(t.ai_extracted ?? {}) };
     // Emails that skipped auto-sorting (e.g. internal) have no extracted details: read them from the customer's own messages.
     const inboundText = (msgs ?? []).filter((m: any) => m.direction === 'inbound' && !m.is_internal_note)
-      .map((m: any) => stripHtml(m.body ?? m.body_preview ?? '')).join(' ');
+      .map((m: any) => stripHtml(m.body ?? m.body_preview ?? '').split(/\bOn [^\n]{5,120}? wrote:|-----Original Message-----|\bFrom: [^\n]{3,80}Sent:/i)[0]).join(' ');
     if (!ex.postcode) ex.postcode = inboundText.match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0]?.toUpperCase() ?? null;
     if (!ex.container) {
-      const c = inboundText.match(/\b\d{1,2}\s*-?\s*(?:yd|yard|yards|cubic yard)s?\b(?:\s*(?:skip|ro\s*-?ro|roll[- ]on))?/i)?.[0];
+      const c = inboundText.match(/\b\d{1,2}\s*-?\s*(?:yd|yds|yrd|yard|yards|yarder|cubic yard)s?\b(?:\s*(?:skip|ro\s*-?ro|roll[- ]on))?/i)?.[0];
       ex.container = c ?? (/ro\s*-?ro/i.test(inboundText) ? 'RoRo' : null);
     }
     if (!ex.waste_type) ex.waste_type = inboundText.match(/\b(mixed waste|general waste|general|plasterboard|wood|green waste|garden waste|hardcore|inert|rubble|soil|concrete|mixed)\b/i)?.[0] ?? null;
@@ -109,7 +111,7 @@ Deno.serve(async (req) => {
     // Zone from the pricing matrix only (same matcher as the Pricing section).
     const containerText = `${ex.container ?? ''} ${found.containerSize ?? ''}`;
     const wasteText = `${ex.waste_type ?? ''} ${found.wasteType ?? ''}`.toLowerCase();
-    const isRoRo = /ro\s*-?ro|roll|\b(20|25|30|35|40)\s*(yd|yard)/i.test(containerText);
+    const isRoRo = RORO_RE.test(containerText);
     let zoneLabel: string | null = null;
     if (ex.postcode) {
       const { data: rows } = await admin.from('pricing_zone_postcodes').select('postcode_prefix, zone_code, area');
@@ -122,24 +124,26 @@ Deno.serve(async (req) => {
     const prices: string[] = [];
     for (const part of containerText.split(/;|\band\b|,/).map((x) => x.trim()).filter((x) => /\d|skip|ro\s*-?ro/i.test(x))) {
       if (!zoneLabel) break;
-      const isRoRo = /ro\s*-?ro|roll|\b(20|25|30|35|40)\s*-?\s*(yd|yard)/i.test(part);
+      const isRoRo = RORO_RE.test(part);
       const containerText = part;
       const zoneCode = MATRIX_ZONE_TO_CODE[zoneLabel];
-      const cardName = isResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
+      // The residential card has skips only — RoRos are always priced from the Trade card.
+      const useResidential = isResidential && !isRoRo;
+      const cardName = useResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
       const { data: card } = await admin.from('pricing_rate_cards').select('id, name, vat_inclusive').eq('name', cardName).eq('is_active', true).maybeSingle();
       if (card && zoneCode) {
         const { data: rows } = await admin.from('pricing_rate_card_rows').select('id, section, label').eq('card_id', card.id);
         const { data: zones } = await admin.from('pricing_rate_card_zones').select('id, zone_code').eq('card_id', card.id);
         const cat = !wasteText.trim() ? 'general' : /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
           : /inert|hardcore|rubble|soil|concrete|brick/.test(wasteText) ? 'inert' : 'general';
-        const sectionRe: Record<string, RegExp> = isResidential
+        const sectionRe: Record<string, RegExp> = useResidential
           ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste/i }
           : isRoRo
             ? { plaster: /roro.*general/i, wood: /roro.*general/i, green: /roro.*general/i, inert: /roro.*inert/i, general: /roro.*general/i }
             : { plaster: /plasterboard/i, wood: /wood/i, green: /wood|green/i, inert: /inert/i, general: /skip hire.*general/i };
-        const size = containerText.match(/(\d+)\s*-?\s*(yd|yard|cubic)/i)?.[1];
+        const size = containerText.match(/(\d+)\s*-?\s*(yd|yrd|yard|cubic)/i)?.[1];
         const enclosed = /enclosed|lockable|lid/i.test(containerText);
-        const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(isResidential ? r.label : r.section) && !/haulage/i.test(r.section))
+        const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(useResidential ? r.label : r.section) && !/haulage/i.test(r.section))
           .filter((r: any) => !size || isRoRo || new RegExp(`\\b${size}\\b`).test(r.label))
           .sort((a: any, b: any) => Number(/enclosed/i.test(a.label) !== enclosed) - Number(/enclosed/i.test(b.label) !== enclosed));
         const row = cands[0];
@@ -170,6 +174,65 @@ Deno.serve(async (req) => {
       else if (day) found.availableDate = 'to be confirmed';
     }
 
+    // Stock: same "Bookings Allowed" sum as Stock Check (last yard tally, adjusted by
+    // completed movements since, plus outstanding collections minus deliveries for 5 days, minus runners).
+    let stock: { type: string; available: number; tallyDate: string; low: boolean } | null = null;
+    try {
+      const size = containerText.match(/(\d+)\s*-?\s*(yd|yds|yrd|yard|cubic)/i)?.[1];
+      if (size) {
+        const { data: types } = await admin.from('stock_check_container_types').select('id, name, category, data_hub_keywords').eq('is_active', true);
+        const enclosed = /enclosed|lockable|lid/i.test(containerText);
+        const cat = isRoRo ? 'roro' : 'skip';
+        const type = (types ?? [])
+          .filter((x: any) => x.category === cat && new RegExp(`(^|\\D)${size}(\\D|$)`).test(x.name) && !/compactor|walk|asbestos/i.test(x.name))
+          .sort((a: any, b: any) => Number(/enclosed/i.test(a.name) !== enclosed) - Number(/enclosed/i.test(b.name) !== enclosed))[0];
+        const { data: check } = await admin.from('stock_checks').select('id, check_date').eq('status', 'submitted').order('check_date', { ascending: false }).limit(1).maybeSingle();
+        if (type && check) {
+          const { data: item } = await admin.from('stock_check_items').select('in_yard, runner').eq('stock_check_id', check.id).eq('container_type_id', type.id).maybeSingle();
+          if (item) {
+            const { data: excl } = await admin.from('stock_check_excluded_sites').select('site_name');
+            const ex2 = (excl ?? []).map((e: any) => String(e.site_name).toLowerCase());
+            const today = new Date().toISOString().slice(0, 10);
+            const end = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
+            const kws: string[] = type.data_hub_keywords ?? [];
+            const esc = (k: string) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const bestType = (ct: string) => {
+              let best: any = null, len = 0;
+              for (const ty of types ?? []) for (const kw of ty.data_hub_keywords ?? []) {
+                if (kw.length > len && new RegExp(`(^|\\W)${esc(kw)}(\\W|$)`, 'i').test(ct)) { len = kw.length; best = ty; }
+              }
+              return best;
+            };
+            const count = (jobs: any[], skipDone: boolean) => {
+              let n = 0;
+              for (const j of jobs) {
+                if (!j.container_type || ex2.some((x) => String(j.site ?? '').toLowerCase().includes(x))) continue;
+                if (skipDone && j.raw?.Status === 'Y') continue;
+                if (bestType(j.container_type)?.id !== type.id) continue;
+                const mt = String(j.movement_type ?? '').toLowerCase();
+                if (mt.includes('exchange')) continue;
+                if (mt.includes('collect')) n++; else if (mt.includes('deliver')) n--;
+              }
+              return n;
+            };
+            let adj = 0;
+            if (check.check_date < today) {
+              const { data: past } = await admin.from('data_hub_jobs').select('container_type, movement_type, site, raw')
+                .eq('source', 'skiptrak').gt('job_date', check.check_date).lt('job_date', today).limit(5000);
+              adj = count(past ?? [], false);
+            }
+            const { data: next } = await admin.from('data_hub_jobs').select('container_type, movement_type, site, raw')
+              .eq('source', 'skiptrak').gte('job_date', today).lte('job_date', end).limit(5000);
+            const available = item.in_yard + adj + count(next ?? [], true) - item.runner;
+            stock = { type: type.name, available, tallyDate: check.check_date, low: available <= LOW_STOCK };
+            found.stock = available <= 0
+              ? `No ${type.name} available to book in the next 5 days — do NOT promise a date; say staff will confirm availability.`
+              : `${available} × ${type.name} available to book${available <= LOW_STOCK ? ' (low stock)' : ''}.`;
+          }
+        }
+      }
+    } catch (e) { console.error('stock check failed', e); }
+
     // Permit: only state it if the customer said it goes on the road; otherwise ask.
     const allText = inboundText.toLowerCase();
     found.permitNote = /permit/.test(allText)
@@ -182,6 +245,7 @@ Deno.serve(async (req) => {
       instructions: [
         'You draft email replies for Clews Recycling, a UK skip hire, RoRo and waste management company. A member of staff will review and edit your draft before sending.',
         'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
+        'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers.',
         'If a placeholder cannot be filled, write [square brackets describing what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'price, fuelSurcharge, availableDate and zone come from PORTAL FACTS only. If price says "inc VAT" (residential), write it as inc VAT rather than "+ VAT".',
@@ -200,7 +264,7 @@ Deno.serve(async (req) => {
       ai_draft_sent_at: null, ai_draft_edit_pct: null,
     };
     await admin.from('crm_tickets').update(patch).eq('id', t.id);
-    return json({ ...draft, found });
+    return json({ ...draft, found, stock });
   } catch (e) {
     console.error(e);
     return json({ error: String(e) }, 500);

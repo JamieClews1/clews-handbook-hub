@@ -550,7 +550,7 @@ export default function CRMPage() {
 
   // AI draft: prepared for review only — nothing is sent until "Send reply" is pressed.
   const [drafting, setDrafting] = useState(false);
-  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null } | null>(null);
+  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null; stock?: { type: string; available: number; tallyDate: string; low: boolean } | null } | null>(null);
   // Fresh reply box on every ticket: any carried-over text (typed or AI-drafted) would read as this ticket's reply.
   useEffect(() => {
     setDraftInfo(null);
@@ -571,7 +571,7 @@ export default function CRMPage() {
       if (data?.error) throw new Error(data.error);
       setIsNote(false);
       setReply(data.body ?? "");
-      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null });
+      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null, stock: data.stock ?? null });
     } catch (e: any) {
       toast({ title: "Couldn't draft a reply", description: e.message ?? String(e), variant: "destructive" });
     } finally {
@@ -1085,6 +1085,16 @@ export default function CRMPage() {
                           {draftInfo.missing.length > 0 && (
                             <p className="text-destructive">
                               <span className="font-medium">Needs filling in:</span> {draftInfo.missing.join(" · ")}
+                            </p>
+                          )}
+                          {draftInfo.stock && (
+                            <p className={cn("font-medium", draftInfo.stock.low ? "text-destructive" : "text-primary")}>
+                              {draftInfo.stock.available <= 0
+                                ? `Out of stock: no ${draftInfo.stock.type} free to book in the next 5 days — check before confirming a date.`
+                                : draftInfo.stock.low
+                                  ? `Low stock: only ${draftInfo.stock.available} × ${draftInfo.stock.type} free to book.`
+                                  : `In stock: ${draftInfo.stock.available} × ${draftInfo.stock.type} free to book.`}
+                              <span className="font-normal text-muted-foreground"> (yard count {new Date(draftInfo.stock.tallyDate).toLocaleDateString("en-GB")})</span>
                             </p>
                           )}
                           {Object.keys(draftInfo.found).filter((k) => !["userName", "weightChecksUrl", "companyPhone"].includes(k)).length > 0 && (
