@@ -110,7 +110,11 @@ Deno.serve(async (req) => {
     }
 
     // Price from the Pricing section's rate cards.
-    if (zoneLabel && containerText.trim()) {
+    const prices: string[] = [];
+    for (const part of containerText.split(/;|\band\b|,/).map((x) => x.trim()).filter((x) => /\d|skip|ro\s*-?ro/i.test(x))) {
+      if (!zoneLabel) break;
+      const isRoRo = /ro\s*-?ro|roll|\b(20|25|30|35|40)\s*-?\s*(yd|yard)/i.test(part);
+      const containerText = part;
       const zoneCode = MATRIX_ZONE_TO_CODE[zoneLabel];
       const cardName = isResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
       const { data: card } = await admin.from('pricing_rate_cards').select('id, name, vat_inclusive').eq('name', cardName).eq('is_active', true).maybeSingle();
@@ -118,7 +122,7 @@ Deno.serve(async (req) => {
         const { data: rows } = await admin.from('pricing_rate_card_rows').select('id, section, label').eq('card_id', card.id);
         const { data: zones } = await admin.from('pricing_rate_card_zones').select('id, zone_code').eq('card_id', card.id);
         const cat = !wasteText.trim() ? 'general' : /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
-          : /inert|hardcore|rubble|soil/.test(wasteText) ? 'inert' : 'general';
+          : /inert|hardcore|rubble|soil|concrete|brick/.test(wasteText) ? 'inert' : 'general';
         const sectionRe: Record<string, RegExp> = isResidential
           ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste/i }
           : isRoRo
@@ -134,11 +138,12 @@ Deno.serve(async (req) => {
         if (row && zone) {
           const { data: v } = await admin.from('pricing_rate_card_values').select('status, price').eq('row_id', row.id).eq('zone_id', zone.id).maybeSingle();
           if (v?.status === 'price' && v.price != null) {
-            found.price = `£${Number(v.price).toFixed(2)} ${card.vat_inclusive ? 'inc VAT' : '+ VAT'} (${row.label}, ${zoneLabel}, ${card.name})`;
-          } else if (v) found.price = `Call for quote (${row.label}, ${zoneLabel})`;
+            prices.push(`£${Number(v.price).toFixed(2)} ${card.vat_inclusive ? 'inc VAT' : '+ VAT'} (${row.label}, ${zoneLabel}, ${card.name})`);
+          } else if (v) prices.push(`Call for quote (${row.label}, ${zoneLabel})`);
         }
       }
     }
+    if (prices.length) found.price = prices.join(' | ');
     if (zoneLabel) {
       const fsZone = /zone\s*1/i.test(zoneLabel) ? 'Zone 1' : /zone\s*2/i.test(zoneLabel) ? 'Zone 2' : 'Zone 3';
       const { data: fs } = await admin.from('fuel_surcharge_rates').select('surcharge_amount')
