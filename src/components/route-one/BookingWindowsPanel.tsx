@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarClock, Plus, Save, Trash2 } from "lucide-react";
+import { BOOKING_DAY_CODES, bookingDayFull, bookingDayLabel } from "@/lib/booking-day-date";
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN", "TBC"];
+const DAYS = BOOKING_DAY_CODES;
 
 type Row = {
   id: string;
@@ -110,6 +111,9 @@ export function BookingWindowsPanel() {
     null,
   );
 
+  // Day names always carry the date of the next matching day from today.
+  const today = new Date();
+
   return (
     <div className="p-4 space-y-4">
       <Card>
@@ -139,8 +143,9 @@ export function BookingWindowsPanel() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-3">
-            The day each zone is currently taking new RoRo and Skip bookings for. Keep this up to date — the
-            office team works from it when booking jobs in.
+            The day each zone is currently taking new RoRo and Skip bookings for — the number beside each day is
+            its date, counted from today ({format(today, "EEE d MMM")}). Keep this up to date — the office team
+            works from it when booking jobs in.
           </p>
           <div className="rounded-lg border border-border overflow-hidden">
             <Table>
@@ -183,12 +188,17 @@ export function BookingWindowsPanel() {
                           value={row[field] ?? "TBC"}
                           onValueChange={v => setField(row.id, field, v)}
                         >
-                          <SelectTrigger className={`h-8 text-sm font-semibold ${dayClass(row[field])}`}>
+                          <SelectTrigger
+                            className={`h-8 text-sm font-semibold ${dayClass(row[field])}`}
+                            title={bookingDayFull(row[field], today)}
+                          >
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {DAYS.map(d => (
-                              <SelectItem key={d} value={d}>{d}</SelectItem>
+                              <SelectItem key={d} value={d}>
+                                {bookingDayLabel(d, today)}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
