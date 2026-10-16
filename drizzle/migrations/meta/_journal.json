@@ -113,6 +113,13 @@
       "when": 1792145336810,
       "tag": "0015_matrix_cv21_zone1",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792152382431,
+      "tag": "0016_restrict_rental_assignees_to_office_staff",
+      "breakpoints": true
     }
   ]
 }
