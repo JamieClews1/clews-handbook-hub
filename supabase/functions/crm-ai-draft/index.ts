@@ -60,7 +60,16 @@ Deno.serve(async (req) => {
     ).join('\n\n');
 
     const { data: templates } = await admin.from('crm_email_templates').select('template_key, name, subject, body').not('template_key', 'is', null);
-    const ex = t.ai_extracted ?? {};
+    const ex: Record<string, any> = { ...(t.ai_extracted ?? {}) };
+    // Emails that skipped auto-sorting (e.g. internal) have no extracted details: read them from the customer's own messages.
+    const inboundText = (msgs ?? []).filter((m: any) => m.direction === 'inbound' && !m.is_internal_note)
+      .map((m: any) => stripHtml(m.body ?? m.body_preview ?? '')).join(' ');
+    if (!ex.postcode) ex.postcode = inboundText.match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0]?.toUpperCase() ?? null;
+    if (!ex.container) {
+      const c = inboundText.match(/\b\d{1,2}\s*-?\s*(?:yd|yard|yards|cubic yard)s?\b(?:\s*(?:skip|ro\s*-?ro|roll[- ]on))?/i)?.[0];
+      ex.container = c ?? (/ro\s*-?ro/i.test(inboundText) ? 'RoRo' : null);
+    }
+    if (!ex.waste_type) ex.waste_type = inboundText.match(/\b(mixed waste|general waste|general|plasterboard|wood|green waste|garden waste|hardcore|inert|rubble|soil|concrete|mixed)\b/i)?.[0] ?? null;
     const intent = parsed.data.templateKey ?? t.intent;
 
     // Facts from the portal — the AI may only use these, never invent prices or dates.
@@ -162,7 +171,7 @@ Deno.serve(async (req) => {
     }
 
     // Permit: only state it if the customer said it goes on the road; otherwise ask.
-    const allText = `${thread} ${JSON.stringify(ex)}`.toLowerCase();
+    const allText = inboundText.toLowerCase();
     found.permitNote = /permit/.test(allText)
       ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
       : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
