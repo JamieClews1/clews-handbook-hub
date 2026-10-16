@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/fetch-all";
 import {
   computeLine,
   missingFinanceFields,
@@ -79,11 +80,16 @@ export function InvoiceCreateDialog({ open, onOpenChange, onCreated, presetJobNu
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const [{ data: cust }, s] = await Promise.all([
-        supabase.from("customers").select("id, customer_name").eq("is_active", true).order("customer_name"),
+      const [cust, s] = await Promise.all([
+        fetchAllRows<{ id: string; customer_name: string }>(
+          "customers",
+          "id, customer_name",
+          "customer_name",
+          (q) => q.eq("is_active", true),
+        ),
         fetchFinanceSettings(),
       ]);
-      setCustomers((cust ?? []) as any);
+      setCustomers(cust as any);
       setSettings(s);
       if (s?.default_payment_terms_days) setDueDate(addDays(todayISO(), s.default_payment_terms_days));
     })();
