@@ -4,10 +4,21 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { aiJson } from '../_shared/ai-responses.ts';
+import { matchMatrixPostcode, MATRIX_ZONE_TO_CODE } from '../_shared/matrix-postcode-zone.ts';
 
 const WEIGHT_CHECKS_URL = 'https://portal.clewsrecycling.co.uk/weightchecks';
 const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 const ukDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : null;
+const PERSONAL_DOMAINS = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|aol|btinternet|btopenworld|sky|talktalk|virginmedia|ntlworld|blueyonder|tiscali|plusnet|protonmail|proton|gmx|mail)\./;
+const DAYS: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+/** Next date for a booking-board day code (today counts), e.g. "Monday 19 October". */
+function bookingDate(day: string | null | undefined): string | null {
+  const target = DAYS[String(day ?? '').trim().toUpperCase()];
+  if (target === undefined) return null;
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+  now.setDate(now.getDate() + ((target - now.getDay() + 7) % 7));
+  return now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
 
 const Body = z.object({ ticketId: z.string().uuid(), templateKey: z.string().max(40).optional() });
 
