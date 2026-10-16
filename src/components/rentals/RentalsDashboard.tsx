@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database, Package } from "lucide-react";
+import { AlertTriangle, Mail, Settings2, CheckCircle2, Clock, History, FileCheck, Download, Filter, PackageCheck, Database, Package, MessageSquare } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import * as XLSX from "xlsx";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -29,6 +29,7 @@ import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
 import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
+import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
 
 type Chase = {
   id: string;
@@ -132,6 +133,12 @@ export default function RentalsDashboard() {
   const [notesBin, setNotesBin] = useState<OverRentalBin | null>(null);
   const [ownSkipBin, setOwnSkipBin] = useState<OverRentalBin | null>(null);
 
+  // Notes waiting to be read. When each person last opened a bin's notes is kept
+  // on their own device; the note timestamps come from the database.
+  const [noteStamps, setNoteStamps] = useState<Record<string, NoteStamp[]>>({});
+  const [seenMap, setSeenMap] = useState<SeenMap>({});
+  const [notesOnly, setNotesOnly] = useState(false);
+
   useEffect(() => {
     const fetchJobs = async () => {
       setJobsLoading(true);
@@ -173,6 +180,31 @@ export default function RentalsDashboard() {
     for (const c of (data ?? []) as Chase[]) map[c.bin_key] = c;
     setChases(map);
   };
+
+  // When each bin last had a note written, so rows can show what is unread.
+  const fetchNoteStamps = async () => {
+    const { data } = await supabase
+      .from("rental_notes")
+      .select("created_at,bin_key")
+      .not("bin_key", "is", null)
+      .order("created_at", { ascending: true });
+    const map: Record<string, NoteStamp[]> = {};
+    for (const row of (data ?? []) as { created_at: string; bin_key: string }[]) {
+      (map[row.bin_key] ??= []).push({ created_at: row.created_at });
+    }
+    setNoteStamps(map);
+  };
+
+  // Opening a bin's notes marks them read on this device — refresh the counts.
+  const refreshNotesRead = () => {
+    setSeenMap(loadSeenMap(user?.id));
+    void fetchNoteStamps();
+  };
+
+  // Notes this person has not opened yet. The older single-field note kept on the
+  // chase was always shown inline, so only notes-history entries count here.
+  const unreadFor = (binKey: string) =>
+    unreadNoteCount(noteStamps[binKey] ?? [], seenMap[`bin:${binKey}`] ?? null);
 
   // Quick-assign a chase to a team member straight from the list row.
   const assignChase = async (bin: OverRentalBin, profileId: string | null) => {
