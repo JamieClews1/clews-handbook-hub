@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { StaffRoute } from "./components/StaffRoute";
 import { AppLayout } from "./components/AppLayout";
@@ -95,6 +95,12 @@ const Staff = ({ children }: { children: React.ReactNode }) => (
   </StaffRoute>
 );
 
+/** Old /crm bookmarks and links land on the renamed Inbox, keeping any query params. */
+const RedirectToInbox = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/inbox${search}`} replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -186,7 +192,8 @@ const App = () => (
             <Route path="/performance-hub/fuel-surcharges" element={<Staff><FuelSurchargesPage /></Staff>} />
             <Route path="/diary" element={<Staff><DiaryPage /></Staff>} />
             <Route path="/bookings" element={<Staff><BookingsPage /></Staff>} />
-            <Route path="/crm" element={<Staff><CRMPage /></Staff>} />
+            <Route path="/inbox" element={<Staff><CRMPage /></Staff>} />
+            <Route path="/crm" element={<RedirectToInbox />} />
             <Route path="/crm/mailbox-callback" element={<MailboxCallbackPage />} />
             <Route path="/pricing" element={<Staff><PricingPage /></Staff>} />
             <Route path="/pricing/builder" element={<Navigate to="/pricing" replace />} />

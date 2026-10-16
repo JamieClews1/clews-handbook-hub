@@ -43,7 +43,7 @@ const operations: NavItem[] = [
   { label: "Handbook", path: "/handbook", icon: BookOpen, key: "handbook" },
 ];
 const customers: NavItem[] = [
-  { label: "CRM Inbox", path: "/crm", icon: Inbox, key: "crm" },
+  { label: "Inbox", path: "/inbox", icon: Inbox, key: "crm" },
   { label: "Pricing", path: "/pricing", icon: PoundSterling, key: "pricing" },
   { label: "Rentals", path: "/performance-hub/rentals", icon: PoundSterling, key: "performance-rentals" },
   { label: "Contaminations", path: "/performance-hub/contaminations", icon: AlertTriangle, key: "performance-contaminations" },

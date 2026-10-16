@@ -32,7 +32,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "container-loads", label: "Container Loads", category: "OnePortal", path: "/container-loads" },
   { key: "diary", label: "Diary", category: "OnePortal", path: "/diary" },
   { key: "bookings", label: "Bookings", category: "OnePortal", path: "/bookings" },
-  { key: "crm", label: "CRM Inbox", category: "OnePortal", path: "/crm" },
+  { key: "crm", label: "Inbox", category: "OnePortal", path: "/inbox" },
   { key: "pricing", label: "Pricing", category: "OnePortal", path: "/pricing" },
   { key: "finance", label: "Finance", category: "OnePortal", path: "/finance" },
 

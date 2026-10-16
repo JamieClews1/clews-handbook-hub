@@ -13,7 +13,7 @@ const SUGGESTIONS = [
   "Which skips are over-rental right now?",
   "Show last 10 load reports for Amazon",
   "What's our residential pricing for Zone 1?",
-  "List open CRM tickets",
+  "List open inbox tickets",
 ];
 
 const AssistantPage = () => {
@@ -108,7 +108,7 @@ const AssistantPage = () => {
           isLoading={isLoading}
           onConfirm={confirmAction}
           onCancel={cancelAction}
-          emptyHint="Ask about jobs, weights, rentals, stock, pricing, customers or CRM — or ask me to update load reports and more. I read your live data and propose any changes for you to confirm."
+          emptyHint="Ask about jobs, weights, rentals, stock, pricing, customers or the inbox — or ask me to update load reports and more. I read your live data and propose any changes for you to confirm."
         />
 
         {messages.length === 0 && (

@@ -590,7 +590,7 @@ export default function CRMPage() {
       <Tabs defaultValue="inbox" className="space-y-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <Mail className="h-5 w-5 text-primary" /> CRM Inbox
+            <Mail className="h-5 w-5 text-primary" /> Inbox
           </h1>
           <TabsList>
             <TabsTrigger value="inbox" className="gap-1.5">
@@ -640,7 +640,7 @@ export default function CRMPage() {
               <div className="text-sm">
                 <p className="font-medium">Outlook mailbox not connected yet</p>
                 <p className="text-muted-foreground">
-                  The CRM is ready. Once the orders@clewsrecycling.co.uk mailbox is linked,
+                  The inbox is ready. Once the orders@clewsrecycling.co.uk mailbox is linked,
                   click “Sync inbox” to start importing emails and sending replies.
                 </p>
               </div>

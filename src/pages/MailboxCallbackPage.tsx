@@ -41,14 +41,14 @@ export default function MailboxCallbackPage() {
         }, 800);
         return;
       }
-      // Not a popup — navigate back to the CRM page.
+      // Not a popup — navigate back to the inbox page.
       if (result.status === "connected") {
         navigate(
-          `/crm?mailbox=connected${result.email ? `&email=${encodeURIComponent(result.email)}` : ""}`,
+          `/inbox?mailbox=connected${result.email ? `&email=${encodeURIComponent(result.email)}` : ""}`,
           { replace: true },
         );
       } else {
-        navigate(`/crm?mailbox=error&reason=${encodeURIComponent(result.reason)}`, {
+        navigate(`/inbox?mailbox=error&reason=${encodeURIComponent(result.reason)}`, {
           replace: true,
         });
       }
