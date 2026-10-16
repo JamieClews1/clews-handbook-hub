@@ -1,3 +1,4 @@
+import { toDataUrl } from "./brand-logo";
 import { supabase } from "@/integrations/supabase/client";
 import { invoicePdfBlob, type CompanyBranding } from "./invoice-pdf";
 import {
@@ -10,7 +11,9 @@ import {
 
 export async function fetchCompanyBranding(): Promise<CompanyBranding> {
   const { data } = await supabase.from("company_profile").select("*").limit(1).maybeSingle();
-  return (data ?? {}) as CompanyBranding;
+  const company = (data ?? {}) as CompanyBranding;
+  if (company.brand_logo_url) company.brand_logo_url = await toDataUrl(company.brand_logo_url);
+  return company;
 }
 
 export async function fetchFinanceSettings(): Promise<any> {

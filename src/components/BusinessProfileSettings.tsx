@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, ShieldCheck, ExternalLink, Radio } from "lucide-react";
+import { loadBrandLogo } from "@/lib/brand-logo";
+import { Loader2, ImagePlus, Trash2, Save, ShieldCheck, ExternalLink, Radio } from "lucide-react";
 
 type Profile = {
   id?: string;
@@ -29,6 +30,7 @@ type Profile = {
   dwt_client_id: string | null;
   dwt_api_code: string | null;
   dwt_client_secret_updated_at: string | null;
+  brand_logo_url?: string | null;
 };
 
 const EMPTY: Profile = {
@@ -87,7 +89,26 @@ export const BusinessProfileSettings = () => {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Saved", description: "Business profile updated." });
+      loadBrandLogo().catch(() => undefined);
     }
+  };
+
+  const onLogo = (file?: File | null) => {
+    if (!file) return;
+    if (!/^image\/(png|jpe?g)$/.test(file.type)) {
+      toast({ title: "Use a PNG or JPG logo", variant: "destructive" });
+      return;
+    }
+    if (file.size > 1_500_000) {
+      toast({ title: "Logo must be under 1.5 MB", variant: "destructive" });
+      return;
+    }
+    const r = new FileReader();
+    r.onload = () => {
+      set("brand_logo_url", r.result as string);
+      toast({ title: "Logo added", description: "Press Save to keep it." });
+    };
+    r.readAsDataURL(file);
   };
 
   if (loading) {
@@ -152,6 +173,38 @@ export const BusinessProfileSettings = () => {
           <div className="space-y-1.5">
             <Label>VAT Number</Label>
             <Input value={profile.vat_number ?? ""} onChange={(e) => set("vat_number", e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Brand Details</CardTitle>
+          <CardDescription>
+            Your logo replaces the company name at the top of waste transfer tickets and invoices.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-4">
+          <div className="flex h-24 w-72 items-center justify-center rounded-md border bg-background p-3">
+            {profile.brand_logo_url ? (
+              <img src={profile.brand_logo_url} alt="Company logo" className="max-h-full max-w-full object-contain" />
+            ) : (
+              <span className="text-sm text-muted-foreground">No logo uploaded</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <label className="cursor-pointer">
+                <ImagePlus className="h-4 w-4" />
+                {profile.brand_logo_url ? "Replace logo" : "Upload logo"}
+                <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => onLogo(e.target.files?.[0])} />
+              </label>
+            </Button>
+            {profile.brand_logo_url && (
+              <Button variant="ghost" onClick={() => set("brand_logo_url", null)}>
+                <Trash2 className="h-4 w-4" /> Remove
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

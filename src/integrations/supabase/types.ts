@@ -549,6 +549,7 @@ export type Database = {
           bank_name: string | null
           bank_sort_code: string | null
           bank_swift_bic: string | null
+          brand_logo_url: string | null
           company_name: string
           company_registration_number: string | null
           created_at: string
@@ -588,6 +589,7 @@ export type Database = {
           bank_name?: string | null
           bank_sort_code?: string | null
           bank_swift_bic?: string | null
+          brand_logo_url?: string | null
           company_name?: string
           company_registration_number?: string | null
           created_at?: string
@@ -627,6 +629,7 @@ export type Database = {
           bank_name?: string | null
           bank_sort_code?: string | null
           bank_swift_bic?: string | null
+          brand_logo_url?: string | null
           company_name?: string
           company_registration_number?: string | null
           created_at?: string
