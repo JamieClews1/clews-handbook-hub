@@ -149,12 +149,12 @@ Deno.serve(async (req) => {
         const row = cands[0];
         const zone = (zones ?? []).find((z: any) => z.zone_code === zoneCode);
         if (row && zone) {
-          const { data: v } = await admin.from('pricing_rate_card_values').select('status, price').eq('row_id', row.id).eq('zone_id', zone.id).maybeSingle();
+          const { data: v } = await admin.from('pricing_rate_card_values').select('status, price, included_tonnes').eq('row_id', row.id).eq('zone_id', zone.id).maybeSingle();
           if (v?.status === 'price' && v.price != null) {
             prices.push(`£${Number(v.price).toFixed(2)} ${card.vat_inclusive ? 'inc VAT' : '+ VAT'} (${row.label}, ${zoneLabel}, ${card.name})`);
-            if (/inc\s*2\s*\/\s*inc\s*3/i.test(row.label)) {
-              const inc = /roro/i.test(zoneLabel) ? 3 : /zone\s*1\b/i.test(zoneLabel) ? 1 : /zone\s*2\b/i.test(zoneLabel) ? 2 : 3;
-              const gw = (rows ?? []).find((r: any) => /tonnage/i.test(r.section) && /^general waste$/i.test(String(r.label).trim()));
+            if (isRoRo && (Number(v.included_tonnes) > 0 || /inc\s*2\s*\/\s*inc\s*3/i.test(row.label))) {
+              const inc = Number(v.included_tonnes) > 0 ? Number(v.included_tonnes) : /roro/i.test(zoneLabel) ? 3 : /zone\s*1\b/i.test(zoneLabel) ? 1 : /zone\s*2\b/i.test(zoneLabel) ? 2 : 3;
+              const gw = (rows ?? []).find((r: any) => /tonnage/i.test(r.section) && (cat === 'inert' ? /mixed inert|hardcore/i : cat === 'plaster' ? /plasterboard/i : /^general waste$/i).test(String(r.label).trim()));
               let rate = '';
               if (gw) {
                 const { data: gv } = await admin.from('pricing_rate_card_values').select('price').eq('row_id', gw.id).not('price', 'is', null).limit(1).maybeSingle();

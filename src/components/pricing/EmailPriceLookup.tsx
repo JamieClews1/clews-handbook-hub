@@ -216,9 +216,10 @@ export function EmailPriceLookup() {
   // Zone 3 / RoRo-only zones; per-tonne skip materials include the first tonne.
   const includedTonnes = useMemo(() => {
     if (!parsed) return 1;
+    if (parsed.isRoRo && value?.included_tonnes && value.included_tonnes > 0) return Number(value.included_tonnes);
     if (parsed.isRoRo && parsed.waste === "general") return roroIncludedTonnes(zoneCode);
     return 1;
-  }, [parsed, zoneCode]);
+  }, [parsed, zoneCode, value]);
   const includedLabel = includedTonnes === 1 ? "the first tonne" : `the first ${includedTonnes} tonnes`;
 
   const { settings: rental } = useLiveJobsSettings();

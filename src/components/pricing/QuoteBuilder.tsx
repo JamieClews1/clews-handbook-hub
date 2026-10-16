@@ -60,6 +60,7 @@ type QuoteLine = {
   unit: string | null;
   unitPrice: number;
   qty: number;
+  includedTonnes?: number | null;
 };
 
 /** Classify a rate-card line into a fuel-surcharge vehicle category from its label. */
@@ -208,6 +209,7 @@ export function QuoteBuilder() {
           unit: row.unit,
           unitPrice: value.price || 0,
           qty: 1,
+          includedTonnes: value.included_tonnes ?? null,
         },
       ];
     });
@@ -610,8 +612,8 @@ function EmailQuoteDialog({
 
     const lineLines = lines.map((l) => {
       const detail = [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · ");
-      const inc = isRoRoInclusiveRow(l.label) ? roroIncludedTonnes(l.zoneLabel) : null;
-      const incNote = inc ? `\n    Includes the first ${inc === 1 ? "tonne" : `${inc} tonnes`}; each tonne over ${inc}t is charged at the general waste per-tonne rate + VAT.` : "";
+      const inc = l.includedTonnes && l.includedTonnes > 0 ? l.includedTonnes : isRoRoInclusiveRow(l.label) ? roroIncludedTonnes(l.zoneLabel) : null;
+      const incNote = inc ? `\n    Includes the first ${inc === 1 ? "tonne" : `${inc} tonnes`}; each tonne over ${inc}t is charged at the per-tonne material rate + VAT.` : "";
       return `• ${l.label}${detail ? ` (${detail})` : ""} — ${l.qty} × ${money(l.unitPrice)} = ${money(lineTotal(l))}${incNote}`;
     });
 
