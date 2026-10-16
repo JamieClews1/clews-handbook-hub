@@ -788,6 +788,11 @@ export default function CRMPage() {
                             {PRIORITY_META[t.priority].label}
                           </Badge>
                         )}
+                        {t.assigned_to && team.find((m) => m.id === t.assigned_to) && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {team.find((m) => m.id === t.assigned_to)!.name}
+                          </Badge>
+                        )}
                         {t.mailbox_connection_id && mailboxEmailById[t.mailbox_connection_id] && mailboxes.length > 1 && (
                           <Badge variant="outline" className="text-[10px] max-w-[140px] truncate">
                             {mailboxEmailById[t.mailbox_connection_id]}
