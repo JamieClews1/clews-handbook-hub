@@ -101,6 +101,50 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Site history: what this customer has on site, so exchanges/collections can name the containers and postcode.
+    try {
+      const stems = [found.customer, ex.company_name, ex.customer_name].filter(Boolean).map((s: string) => s.split(/\s+/)[0]);
+      const dom = String(t.sender_email ?? '').split('@')[1]?.split('.')[0] ?? '';
+      if (dom && !PERSONAL_DOMAINS.test(`${dom}.`) && dom.length >= 3) stems.push(dom);
+      const stem = stems.find((s) => s && s.length >= 3)?.replace(/[%,()]/g, '');
+      if (stem) {
+        const since = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+        const { data: jobs } = await admin.from('data_hub_jobs')
+          .select('job_date, site, container_type, movement_type, waste_description, postcode')
+          .ilike('customer', `%${stem}%`).gte('job_date', since).order('job_date', { ascending: false }).limit(1000);
+        const moves = (jobs ?? []).filter((j: any) => /exchange|deliver|collect|tip/i.test(j.movement_type ?? '') && j.site);
+        if (moves.length) {
+          const text = `${ex.site_name ?? ''} ${ex.address ?? ''} ${inboundText} ${t.subject ?? ''}`.toLowerCase();
+          const bySite = new Map<string, any[]>();
+          for (const j of moves) bySite.set(j.site, [...(bySite.get(j.site) ?? []), j]);
+          const sites = [...bySite.keys()];
+          const site = sites.find((s) => s.toLowerCase().split(/\W+/).some((w) => w.length >= 4 && !/^(ltd|limited|site|recycling)$/.test(w) && text.includes(w)))
+            ?? (sites.length === 1 ? sites[0] : null);
+          if (site) {
+            const sj = bySite.get(site)!;
+            const today = new Date().toISOString().slice(0, 10);
+            // Count = most of one container/waste moved on a single day (e.g. 2 exchanged together = 2 on site).
+            const groups = new Map<string, { perDay: Map<string, number>; last: string }>();
+            for (const j of sj) {
+              const k = `${j.container_type} — ${j.waste_description ?? 'waste'}`;
+              const g = groups.get(k) ?? { perDay: new Map(), last: '' };
+              g.perDay.set(j.job_date, (g.perDay.get(j.job_date) ?? 0) + 1);
+              if (j.job_date <= today && j.job_date > g.last) g.last = j.job_date;
+              groups.set(k, g);
+            }
+            const lines = [...groups.entries()].map(([k, g]) => `${Math.max(...g.perDay.values())} × ${k}${g.last ? ` (last serviced ${ukDate(g.last)})` : ''}`);
+            const booked = sj.filter((j: any) => j.job_date > today).map((j: any) => `${ukDate(j.job_date)} ${j.movement_type} ${j.container_type}`);
+            found.siteName = site;
+            found.onSite = lines.join('; ');
+            if (booked.length) found.alreadyBooked = booked.slice(0, 5).join('; ');
+            const pc = sj.find((j: any) => j.postcode)?.postcode;
+            if (pc) { found.sitePostcode = pc; ex.postcode = pc; } // site postcode beats a signature postcode
+            if (!ex.container) ex.container = [...groups.keys()].map((k) => k.split(' — ')[0]).join('; ');
+          }
+        }
+      }
+    } catch (e) { console.error('site history failed', e); }
+
     // Customer type: no linked customer + personal email domain => residential.
     const domain = String(t.sender_email ?? '').split('@')[1]?.toLowerCase() ?? '';
     const addr = `${ex.site_name ?? ''} ${ex.address ?? ''}`;
@@ -177,7 +221,9 @@ Deno.serve(async (req) => {
       // Earliest delivery from Route One's "Taking bookings for" board.
       const { data: wins } = await admin.from('route_one_booking_windows').select('zone_label, skip_day, roro_day');
       const n = zoneLabel.match(/zone\s*(\d)/i)?.[1];
-      const win = (wins ?? []).find((w: any) => n && new RegExp(`\\b${n}\\b`).test(w.zone_label));
+      // RoRo-only / outer zones without their own row use the furthest zone's board day.
+      const win = (wins ?? []).find((w: any) => n && new RegExp(`\\b${n}\\b`).test(w.zone_label))
+        ?? (/roro/i.test(zoneLabel) ? [...(wins ?? [])].sort((a: any, b: any) => String(b.zone_label).localeCompare(String(a.zone_label)))[0] : undefined);
       const day = win ? (isRoRo ? win.roro_day : win.skip_day) : null;
       const date = bookingDate(day);
       if (date) found.availableDate = date;
@@ -245,7 +291,10 @@ Deno.serve(async (req) => {
 
     // Permit: only state it if the customer said it goes on the road; otherwise ask.
     const allText = inboundText.toLowerCase();
-    found.permitNote = /permit/.test(allText)
+    const isServiceOnSite = /exchange|collect/i.test(String(intent ?? '')) || (!!found.onSite && /exchange|swap|empty|collect|full/i.test(allText));
+    if (isServiceOnSite) found.jobType = 'Service on containers already on site — state the date as booked, no permit question, no new-delivery pricing.';
+    if (isServiceOnSite) { delete found.stock; delete found.price; delete found.tonnage; stock = null; }
+    found.permitNote = isServiceOnSite ? 'Not needed — containers already on site.' : /permit/.test(allText)
       ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
       : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
 
@@ -276,6 +325,9 @@ Deno.serve(async (req) => {
           ? 'Pick the template that matches the latest customer request and use it for what must be covered and its {{placeholders}}, but WRITE IN THE PERSONA\'S VOICE below (greeting, sign-off, line style, length, phrases). Plain text, no markdown, British English.'
           : 'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
         'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
+        'If the latest customer message is only a thank-you or acknowledgement, reply to the most recent request in the thread that we have not yet answered.',
+        'Be definite, not tentative: when PORTAL FACTS has availableDate, state it as fact (e.g. "We will do the exchange on Monday 26 October." / "Booked on for Monday as requested."). Never write "we will confirm a date" when a date is available. availableDate is the next day we are taking bookings for, so it applies to exchanges and collections too.',
+        'When PORTAL FACTS has onSite, name the containers from it (e.g. "both 40YD RoRos (plastics) at Munster Joinery") instead of asking the customer what they have. Only say something is already booked if PORTAL FACTS alreadyBooked lists it; never invent dates.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers. The persona examples are for style only — never copy numbers from them.',
         'If a placeholder or fact cannot be filled, write [CHECK: what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
