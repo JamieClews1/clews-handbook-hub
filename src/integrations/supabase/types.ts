@@ -1479,6 +1479,56 @@ export type Database = {
           },
         ]
       }
+      crm_ai_personas: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          persona: string
+          reviewed_at: string | null
+          team_member_id: string | null
+          test_status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          persona: string
+          reviewed_at?: string | null
+          team_member_id?: string | null
+          test_status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          persona?: string
+          reviewed_at?: string | null
+          team_member_id?: string | null
+          test_status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_ai_personas_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: true
+            referencedRelation: "crm_team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_ai_settings: {
         Row: {
           id: boolean
@@ -1982,6 +2032,8 @@ export type Database = {
           ai_draft_edit_pct: number | null
           ai_draft_found: Json | null
           ai_draft_missing: string[] | null
+          ai_draft_persona: string | null
+          ai_draft_score: string | null
           ai_draft_sent_at: string | null
           ai_draft_subject: string | null
           ai_draft_template: string | null
@@ -2020,6 +2072,8 @@ export type Database = {
           ai_draft_edit_pct?: number | null
           ai_draft_found?: Json | null
           ai_draft_missing?: string[] | null
+          ai_draft_persona?: string | null
+          ai_draft_score?: string | null
           ai_draft_sent_at?: string | null
           ai_draft_subject?: string | null
           ai_draft_template?: string | null
@@ -2058,6 +2112,8 @@ export type Database = {
           ai_draft_edit_pct?: number | null
           ai_draft_found?: Json | null
           ai_draft_missing?: string[] | null
+          ai_draft_persona?: string | null
+          ai_draft_score?: string | null
           ai_draft_sent_at?: string | null
           ai_draft_subject?: string | null
           ai_draft_template?: string | null

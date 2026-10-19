@@ -141,6 +141,13 @@
       "when": 1792171672381,
       "tag": "0019_rate_card_included_tonnes",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792394355708,
+      "tag": "0020_migration",
+      "breakpoints": true
     }
   ]
 }
