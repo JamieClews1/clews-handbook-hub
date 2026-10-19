@@ -61,6 +61,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
         to: [to],
+        cc: ["orders@clewsrecycling.co.uk"],
         subject,
         html: htmlBody,
         attachments: (photos || []).slice(0, 15).map((url: string, i: number) => {

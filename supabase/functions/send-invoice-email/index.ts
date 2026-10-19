@@ -83,7 +83,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: FROM,
         to: [to],
-        ...(cc ? { cc: [cc] } : {}),
+        cc: cc ? [cc, "orders@clewsrecycling.co.uk"] : ["orders@clewsrecycling.co.uk"],
         reply_to: "accounts@clewsrecycling.co.uk",
         subject,
         html: htmlBody(body || ""),
