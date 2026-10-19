@@ -221,7 +221,9 @@ Deno.serve(async (req) => {
       // Earliest delivery from Route One's "Taking bookings for" board.
       const { data: wins } = await admin.from('route_one_booking_windows').select('zone_label, skip_day, roro_day');
       const n = zoneLabel.match(/zone\s*(\d)/i)?.[1];
-      const win = (wins ?? []).find((w: any) => n && new RegExp(`\\b${n}\\b`).test(w.zone_label));
+      // RoRo-only / outer zones without their own row use the furthest zone's board day.
+      const win = (wins ?? []).find((w: any) => n && new RegExp(`\\b${n}\\b`).test(w.zone_label))
+        ?? (/roro/i.test(zoneLabel) ? [...(wins ?? [])].sort((a: any, b: any) => String(b.zone_label).localeCompare(String(a.zone_label)))[0] : undefined);
       const day = win ? (isRoRo ? win.roro_day : win.skip_day) : null;
       const date = bookingDate(day);
       if (date) found.availableDate = date;
@@ -289,7 +291,10 @@ Deno.serve(async (req) => {
 
     // Permit: only state it if the customer said it goes on the road; otherwise ask.
     const allText = inboundText.toLowerCase();
-    found.permitNote = /permit/.test(allText)
+    const isServiceOnSite = /exchange|collect/i.test(String(intent ?? '')) || (!!found.onSite && /exchange|swap|empty|collect|full/i.test(allText));
+    if (isServiceOnSite) found.jobType = 'Service on containers already on site — state the date as booked, no permit question, no new-delivery pricing.';
+    if (isServiceOnSite) delete found.stock;
+    found.permitNote = isServiceOnSite ? 'Not needed — containers already on site.' : /permit/.test(allText)
       ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
       : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
 
@@ -320,6 +325,8 @@ Deno.serve(async (req) => {
           ? 'Pick the template that matches the latest customer request and use it for what must be covered and its {{placeholders}}, but WRITE IN THE PERSONA\'S VOICE below (greeting, sign-off, line style, length, phrases). Plain text, no markdown, British English.'
           : 'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
         'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
+        'Be definite, not tentative: when PORTAL FACTS has availableDate, state it as fact (e.g. "We will do the exchange on Monday 26 October." / "Booked on for Monday as requested."). Never write "we will confirm a date" when a date is available. availableDate is the next day we are taking bookings for, so it applies to exchanges and collections too.',
+        'When PORTAL FACTS has onSite, name the containers from it (e.g. "both 40YD RoRos (plastics) at Munster Joinery") instead of asking the customer what they have. If alreadyBooked covers the request, say it is already booked for that date.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers. The persona examples are for style only — never copy numbers from them.',
         'If a placeholder or fact cannot be filled, write [CHECK: what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
