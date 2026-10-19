@@ -12,6 +12,7 @@ import { useRateCards, useRateCardData, type RateCard, type RateValue } from "@/
 import { useMatrixPostcodes } from "@/hooks/useMatrixPostcodes";
 import type { FuelSurchargeRate } from "@/lib/fuel-surcharge";
 import { matchMatrixPostcode, MATRIX_ZONE_TO_CODE, type MatrixMatch } from "@/lib/matrix-postcode-zone";
+import { isResidentialEnquiry, quoteTotals, residentialRowMatches } from "@/lib/residential-pricing";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 /* ── Email parsing ────────────────────────────────────────────────── */
@@ -21,7 +22,7 @@ type ParsedEmail = {
   sizeYd: number | null;
   isRoRo: boolean;
   enclosed: boolean;
-  waste: "general" | "plasterboard" | "wood" | "inert";
+  waste: "general" | "plasterboard" | "wood" | "green" | "inert";
   broker: "papilo" | "reconomy" | null;
   residential: boolean;
 };
@@ -48,11 +49,12 @@ function parseEmail(text: string): ParsedEmail {
   let waste: ParsedEmail["waste"] = "general";
   if (/plasterboard|gypsum/.test(t)) waste = "plasterboard";
   else if (/hardcore|inert|soil|rubble|brick|concrete|muck/.test(t)) waste = "inert";
-  else if (/\bwood\b|\bgreen\b|garden|timber/.test(t)) waste = "wood";
+  else if (/\bgreen\b|garden/.test(t)) waste = "green";
+  else if (/\bwood\b|timber/.test(t)) waste = "wood";
   let broker: ParsedEmail["broker"] = null;
   if (/papilo|allwood|project waste|kenny/.test(t)) broker = "papilo";
   else if (/reconomy|biffa|go green|suez|select a skip/.test(t)) broker = "reconomy";
-  const residential = !broker && /driveway|my house|home|domestic|garden clearance/.test(t);
+  const residential = !broker && isResidentialEnquiry({ text });
   return {
     postcode: pcMatch ? `${pcMatch[1]} ${pcMatch[2]}` : null,
     sizeYd: sizeMatch ? Number(sizeMatch[1]) : null,
@@ -74,7 +76,7 @@ function pickCard(cards: RateCard[], p: ParsedEmail): RateCard | null {
   const byName = (frag: string) => current.find((c) => c.name.toLowerCase().startsWith(frag));
   if (p.broker === "papilo") return byName("papilo") ?? null;
   if (p.broker === "reconomy") return byName("reconomy") ?? null;
-  if (p.residential) return current.find((c) => c.customer_type === "residential") ?? byName("trade rates") ?? null;
+  if (p.residential && !p.isRoRo) return current.find((c) => c.customer_type === "residential") ?? null;
   return byName("trade rates") ?? current.find((c) => c.customer_type === "trade") ?? null;
 }
 
@@ -91,7 +93,7 @@ function pickRow(p: ParsedEmail): RowChoice {
     size <= 8 ? /8 YD open/i : size <= 12 ? (p.enclosed ? /12 YD enclosed/i : /12 YD open/i) : /14 \/ 16 YD open/i;
   if (p.waste === "plasterboard")
     return { sectionMatch: "Plasterboard", labelMatch: size <= 8 ? /8 YD open/i : p.enclosed ? /12 YD enclosed/i : /12 \/ 14 \/ 16 YD open/i, vehicle: "Skips" };
-  if (p.waste === "wood") return { sectionMatch: "Wood / Green", labelMatch: sizeRe, vehicle: "Skips" };
+  if (p.waste === "wood" || p.waste === "green") return { sectionMatch: "Wood / Green", labelMatch: sizeRe, vehicle: "Skips" };
   if (p.waste === "inert") return { sectionMatch: "Mixed Inert", labelMatch: /6 YD inc 6T/i, vehicle: "Skips" };
   return { sectionMatch: "General Waste", labelMatch: sizeRe, vehicle: "Skips" };
 }
@@ -141,11 +143,11 @@ export function EmailPriceLookup() {
     if (!parsed || !rows.length || rowKey || !cardId) return;
     if (rows[0]?.card_id !== cardId) return;
     const choice = pickRow(parsed);
-    const row = rows.find(
-      (r) => (r.section ?? "").includes(choice.sectionMatch) && choice.labelMatch.test(r.label)
-    );
+    const row = card?.customer_type === "residential"
+      ? rows.find((r) => residentialRowMatches(r.label, parsed.sizeYd, parsed.waste))
+      : rows.find((r) => (r.section ?? "").includes(choice.sectionMatch) && choice.labelMatch.test(r.label));
     if (row) setRowKey(row.id);
-  }, [parsed, rows, rowKey, cardId]);
+  }, [parsed, rows, rowKey, cardId, card?.customer_type]);
 
   const selectedRow = rows.find((r) => r.id === rowKey) ?? null;
   const rowIsRoRo = /^RoRo/i.test(selectedRow?.section ?? "");
@@ -188,6 +190,7 @@ export function EmailPriceLookup() {
     general: /^general waste$/i,
     plasterboard: /^plasterboard$/i,
     wood: /grade a wood/i,
+    green: /grade a wood/i,
     inert: /mixed inert/i,
   };
   const perTonne = useMemo(() => {
@@ -204,11 +207,13 @@ export function EmailPriceLookup() {
     return v?.status === "price" && v.price != null ? { label: row.label, price: Number(v.price) } : null;
   }, [parsed, zones, rows, values]);
 
-  const net = value?.status === "price" ? Number(value.price) : null;
+  const price = value?.status === "price" && value.price != null ? Number(value.price) : null;
   const surchargeAmt = surcharge ? Number(surcharge.surcharge_amount) : 0;
-  const totalNet = net != null ? net + surchargeAmt : null;
-  const vat = totalNet != null && !card?.vat_inclusive ? totalNet * 0.2 : 0;
-  const gross = totalNet != null ? totalNet + vat : null;
+  const totals = price != null ? quoteTotals(price, !!card?.vat_inclusive, surchargeAmt) : null;
+  const net = totals?.net ?? null;
+  const totalNet = totals?.totalNet ?? null;
+  const vat = totals?.vat ?? 0;
+  const gross = totals?.gross ?? null;
   const gbp = (n: number) => `£${n.toFixed(2)}`;
 
   // Tonnes included in the price — the matrix is colour-coordinated by zone:
@@ -227,7 +232,7 @@ export function EmailPriceLookup() {
 
   // Plain-text email reply draft
   const wasteLabel =
-    parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood/green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
+    parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood waste" : parsed?.waste === "green" ? "green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
   const serviceDesc = selectedRow
     ? `${selectedRow.label}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
     : null;
@@ -236,12 +241,12 @@ export function EmailPriceLookup() {
     const lines: string[] = ["Good morning,", "", "Thank you for your enquiry."];
     if (value?.status === "call_for_quote") {
       lines.push("", `For ${serviceDesc} (${wasteLabel}), please give us a call on 01788 555111 and we'll put a price together for you.`);
-    } else if (totalNet != null) {
+    } else if (totalNet != null && net != null && gross != null && price != null) {
       lines.push(
         "",
         `Price for ${serviceDesc} (${wasteLabel}):`,
-        `  • ${selectedRow.label}: ${gbp(net!)} + VAT`,
-        surcharge ? `  • Fuel surcharge: ${gbp(surchargeAmt)} + VAT` : null,
+        `  • ${selectedRow.label}: ${gbp(card?.vat_inclusive ? price : net)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}`,
+        surcharge ? `  • Fuel surcharge: ${gbp(card?.vat_inclusive ? surchargeAmt * 1.2 : surchargeAmt)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}` : null,
         perTonne
           ? `  • Price includes ${includedLabel} — disposal thereafter at ${gbp(perTonne.price)} per tonne + VAT`
           : null,
@@ -249,19 +254,19 @@ export function EmailPriceLookup() {
           ? "  • Price includes disposal — strictly no soils, hardcore or plasterboard to be placed in the skip."
           : null,
         "",
-        `Total: ${gbp(totalNet)} + VAT (${gbp(gross!)} inc. VAT)`,
+        card?.vat_inclusive ? `Total: ${gbp(gross)} inc. VAT` : `Total: ${gbp(totalNet)} + VAT (${gbp(gross)} inc. VAT)`,
       );
     }
     lines.push(
       "",
-      "Please note the following charges which may apply. All quotes are subject to VAT.",
-      `Containers kept beyond the ${rental.rental_free_days}-day free rental period are charged at ${rentalRate(rental.rental_skip_rate)} per week for a skip or ${rentalRate(rental.rental_roro_rate)} per week for a RoRo, plus VAT. Contamination charges may apply for non-acceptable materials.`,
+      card?.customer_type === "residential" ? "Two weeks hire; collection 14 days after delivery. Extension £22 per week, arranged before collection. Prices assume customer premises. Load level 100mm below top; unsafe or overloaded loads may be refused. Permits require five full working days notice." : "Please note the following charges which may apply. All quotes are subject to VAT.",
+      card?.customer_type === "residential" ? null : `Containers kept beyond the ${rental.rental_free_days}-day free rental period are charged at ${rentalRate(rental.rental_skip_rate)} per week for a skip or ${rentalRate(rental.rental_roro_rate)} per week for a RoRo, plus VAT. Contamination charges may apply for non-acceptable materials.`,
       "",
       "Kind regards,",
       "Clews Recycling",
     );
     return lines.filter((l) => l !== null).join("\n");
-  }, [parsed, selectedRow, value, zoneCode, totalNet, net, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental, includedLabel]);
+  }, [parsed, selectedRow, value, zoneCode, totalNet, net, price, card, surcharge, surchargeAmt, perTonne, gross, serviceDesc, wasteLabel, rental, includedLabel]);
 
   const [copied, setCopied] = useState(false);
   const copyDraft = async () => {
@@ -302,7 +307,7 @@ export function EmailPriceLookup() {
               <Badge variant="secondary">{parsed.sizeYd ? `${parsed.sizeYd} yd` : "Size not found"}</Badge>
               <Badge variant="secondary">{parsed.isRoRo ? "RoRo" : parsed.enclosed ? "Enclosed skip" : "Skip"}</Badge>
               <Badge variant="secondary">
-                {parsed.waste === "general" ? "General waste" : parsed.waste === "plasterboard" ? "Plasterboard" : parsed.waste === "wood" ? "Wood / Green" : "Inert / Hardcore"}
+                {parsed.waste === "general" ? "General waste" : parsed.waste === "plasterboard" ? "Plasterboard" : parsed.waste === "wood" ? "Wood" : parsed.waste === "green" ? "Green waste" : "Inert / Hardcore"}
               </Badge>
               {parsed.broker && <Badge>{parsed.broker === "papilo" ? "Papilo group" : "Major broker"}</Badge>}
             </div>
@@ -367,13 +372,13 @@ export function EmailPriceLookup() {
                 <p className="text-sm font-medium">{value.text_value}</p>
               )}
 
-              {totalNet != null && (
+              {totalNet != null && net != null && gross != null && price != null && (
                 <div className="rounded-lg border p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
                       {selectedRow?.label} ({zones.find((z) => z.zone_code === zoneCode)?.zone_name})
                     </span>
-                    <span className="font-medium">{gbp(net!)}</span>
+                    <span className="font-medium">{gbp(card?.vat_inclusive ? price : net)} {card?.vat_inclusive ? "inc. VAT" : "+ VAT"}</span>
                   </div>
                   {perTonne && parsed?.isRoRo && (
                     <div className="rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-medium text-foreground">
@@ -390,21 +395,21 @@ export function EmailPriceLookup() {
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Fuel className="h-3.5 w-3.5" /> Fuel surcharge ({vehicle})
                     </span>
-                    <span className="font-medium">{surcharge ? gbp(surchargeAmt) : "—"}</span>
+                    <span className="font-medium">{surcharge ? `${gbp(card?.vat_inclusive ? surchargeAmt * 1.2 : surchargeAmt)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}` : "—"}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t pt-2">
                     <span className="text-muted-foreground">Total net</span>
                     <span className="font-semibold">{gbp(totalNet)}</span>
                   </div>
-                  {!card?.vat_inclusive && (
+                  {(
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">VAT (20%)</span>
                       <span className="font-medium">{gbp(vat)}</span>
                     </div>
                   )}
                   <div className="flex justify-between border-t pt-2">
-                    <span className="font-semibold">Total {card?.vat_inclusive ? "(card prices include VAT)" : "inc. VAT"}</span>
-                    <span className="text-lg font-bold text-primary">{gbp(gross!)}</span>
+                    <span className="font-semibold">Total inc. VAT</span>
+                    <span className="text-lg font-bold text-primary">{gbp(gross)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">From: {card?.name}</p>
                 </div>

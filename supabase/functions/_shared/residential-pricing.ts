@@ -2,7 +2,7 @@ export const PERSONAL_EMAIL_DOMAIN = /^(gmail|googlemail|hotmail|outlook|live|ms
 
 export function isResidentialEnquiry(input: { email?: string | null; text: string; subject?: string | null; website?: boolean; company?: string | null; customerId?: string | null; contract?: string | null }): boolean {
   const text = `${input.subject ?? ''} ${input.text}`;
-  const website = input.website || /website enquiry|website inquiry|web(?:site)? (?:contact|enquiry) form|new (?:submission|enquiry) from.*(?:website|contact form)/i.test(text);
+  const website = input.website || /website enquiry|website inquiry|web(?:site)? (?:contact|enquiry) form|new (?:submission|enquiry) from.*(?:website|contact form)|quote enquiry[\s\S]*customer[\s\S]*job details[\s\S]*skip size:/i.test(text);
   if (website) return true;
   const business = !!(input.company || input.customerId || input.contract) || /\b(ltd|limited|plc|llp|company|business|trading|warehouse|industrial|construction|builders?|contractors?|reconomy|biffa|papilo|allwood|project\s*waste|kenny|go\s*green|suez)\b/i.test(text);
   if (business) return false;
