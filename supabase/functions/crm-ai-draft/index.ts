@@ -6,6 +6,8 @@ import { z } from 'npm:zod@3';
 import { aiJson } from '../_shared/ai-responses.ts';
 import { matchMatrixPostcode, MATRIX_ZONE_TO_CODE } from '../_shared/matrix-postcode-zone.ts';
 
+import { isResidentialEnquiry, residentialRowMatches } from '../_shared/residential-pricing.ts';
+
 const WEIGHT_CHECKS_URL = 'https://portal.clewsrecycling.co.uk/weightchecks';
 const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 const ukDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : null;
@@ -145,12 +147,8 @@ Deno.serve(async (req) => {
       }
     } catch (e) { console.error('site history failed', e); }
 
-    // Customer type: no linked customer + personal email domain => residential.
-    const domain = String(t.sender_email ?? '').split('@')[1]?.toLowerCase() ?? '';
-    const addr = `${ex.site_name ?? ''} ${ex.address ?? ''}`;
-    const businessAddr = /\b(ltd|limited|plc|llp|unit|industrial|estate|business|trading|depot|works|warehouse|park|centre|center|site)\b/i.test(addr);
-    const isResidential = !t.customer_id && !ex.company_name && !ex.contract_number && (PERSONAL_DOMAINS.test(domain) || (addr.trim() !== '' && !businessAddr));
-    found.customerType = isResidential ? 'Residential (personal email, no company account)' : 'Trade';
+    const isResidential = isResidentialEnquiry({ email: t.sender_email, text: inboundText, subject: t.subject, company: ex.company_name, customerId: t.customer_id, contract: ex.contract_number });
+    found.customerType = isResidential ? 'Residential (website or personal email without a business)' : 'Trade';
 
     // Zone from the pricing matrix only (same matcher as the Pricing section).
     const containerText = `${ex.container ?? ''} ${found.containerSize ?? ''}`;
@@ -187,7 +185,7 @@ Deno.serve(async (req) => {
             : { plaster: /plasterboard/i, wood: /wood/i, green: /wood|green/i, inert: /inert/i, general: /skip hire.*general/i };
         const size = containerText.match(/(\d+)\s*-?\s*(yd|yrd|yard|cubic)/i)?.[1];
         const enclosed = /enclosed|lockable|lid/i.test(containerText);
-        const cands = (rows ?? []).filter((r: any) => sectionRe[cat].test(useResidential ? r.label : r.section) && !/haulage/i.test(r.section))
+        const cands = (rows ?? []).filter((r: any) => (useResidential ? residentialRowMatches(r.label, size ? Number(size) : null, cat) : sectionRe[cat].test(r.section)) && !/haulage/i.test(r.section))
           .filter((r: any) => !size || isRoRo || new RegExp(`\\b${size}\\b`).test(r.label))
           .sort((a: any, b: any) => Number(/enclosed/i.test(a.label) !== enclosed) - Number(/enclosed/i.test(b.label) !== enclosed));
         const row = cands[0];
@@ -211,12 +209,13 @@ Deno.serve(async (req) => {
       }
     }
     if (prices.length) found.price = prices.join(' | ');
+    if (isResidential && !isRoRo) found.hireTerms = 'Two weeks hire, collected 14 days after delivery. Extension £22 per week arranged before collection. Prices assume customer premises; load level 100mm below top; unsafe or overloaded loads may be refused. Permits require five full working days notice.';
     if (zoneLabel) {
       const fsZone = /zone\s*1/i.test(zoneLabel) ? 'Zone 1' : /zone\s*2/i.test(zoneLabel) ? 'Zone 2' : 'Zone 3';
       const { data: fs } = await admin.from('fuel_surcharge_rates').select('surcharge_amount')
         .eq('zone', fsZone).eq('vehicle_category', isRoRo ? 'RoRo' : 'Skips').eq('active', true).is('customer_match', null)
         .order('effective_from_date', { ascending: false }).limit(1).maybeSingle();
-      if (fs?.surcharge_amount != null) found.fuelSurcharge = `£${Number(fs.surcharge_amount).toFixed(2)} + VAT per movement (${fsZone})`;
+      if (fs?.surcharge_amount != null) found.fuelSurcharge = isResidential && !isRoRo ? `£${(Number(fs.surcharge_amount) * 1.2).toFixed(2)} inc VAT per movement (${fsZone})` : `£${Number(fs.surcharge_amount).toFixed(2)} + VAT per movement (${fsZone})`;
 
       // Earliest delivery from Route One's "Taking bookings for" board.
       const { data: wins } = await admin.from('route_one_booking_windows').select('zone_label, skip_day, roro_day');
@@ -332,6 +331,7 @@ Deno.serve(async (req) => {
         'If a placeholder or fact cannot be filled, write [CHECK: what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
         'price, fuelSurcharge, availableDate and zone come from PORTAL FACTS only. If price says "inc VAT" (residential), write it as inc VAT rather than "+ VAT".',
+        'For residential quotes use hireTerms instead of trade rental terms. Residential skip and fuel prices include VAT; do not add VAT again. If the requested residential size/material has no price, ask staff to check, never substitute mixed waste or a different size.',
         'permitNote: if it starts with "ASK:", turn it into a short friendly question to the customer instead of stating a permit is or isn\'t needed.',
         'firstName is the sender\'s first name if known, otherwise use "there".',
         'Always: never include passwords, bank details or card numbers; never admit liability or offer compensation (write [CHECK: remedy needs approval]); spell correctly.',
