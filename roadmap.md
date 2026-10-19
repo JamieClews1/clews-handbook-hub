@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Verify residential matrix and apply residential enquiry selection in Pricing and Inbox drafts.
+- [x] Apply residential selection in Pricing and Inbox drafts; VAT and material tests pass, personal-email quote verified in preview. Inbox draft end-to-end remains unverified because function authentication rejected the test request.
 
 - [x] Add author-attributed rental notes and No Rental agreements, retaining on-site duration tracking; verify saved changes.
 
