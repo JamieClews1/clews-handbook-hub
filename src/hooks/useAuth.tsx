@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/lib/with-timeout";
 
 interface AuthContextType {
   user: User | null;
@@ -39,20 +40,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        enforceNotArchived(session.user.id);
-        checkAdminRole(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    // Then check for existing session. A failed or stalled session restore
+    // (e.g. token refresh during a connection drop) must never leave the app
+    // on an endless loading spinner.
+    withTimeout(supabase.auth.getSession(), 12000, "Session restore")
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
 
-    return () => subscription.unsubscribe();
+        if (session?.user) {
+          enforceNotArchived(session.user.id);
+          checkAdminRole(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Error restoring session:", err);
+        setLoading(false);
+      });
+
+    // Final safety net: never keep the app in a loading state for more than 15s.
+    const safety = setTimeout(() => setLoading(false), 15000);
+
+    return () => {
+      clearTimeout(safety);
+      subscription.unsubscribe();
+    };
   }, []);
 
   /** Archived staff must not retain access — sign them straight back out. */
@@ -74,12 +88,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAdminRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("role", "admin")
+          .maybeSingle(),
+        12000,
+        "Admin check",
+      );
 
       if (!error && data) {
         setIsAdmin(true);
