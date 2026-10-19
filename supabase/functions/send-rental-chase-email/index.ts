@@ -55,6 +55,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
         to: [to],
+        cc: ["orders@clewsrecycling.co.uk"],
         subject,
         html: htmlBody,
       }),

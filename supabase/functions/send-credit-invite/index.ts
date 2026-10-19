@@ -52,6 +52,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "accounts@noreply.clewsrecycling.co.uk",
         to: [email],
+        cc: ["orders@clewsrecycling.co.uk"],
         subject: "Clews Recycling – Credit Account Application",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "WasteOne Portal <noreply@noreply.clewsrecycling.co.uk>",
         to: [loginEmail],
+        cc: ["orders@clewsrecycling.co.uk"],
         reply_to: "orders@clewsrecycling.co.uk",
         subject: `Your WasteOne customer portal access${customer?.customer_name ? ` — ${customer.customer_name}` : ""}`,
         html,

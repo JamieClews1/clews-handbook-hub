@@ -133,6 +133,8 @@ serve(async (req) => {
         body: JSON.stringify({
           from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
           to: [p.to],
+        cc: ["orders@clewsrecycling.co.uk"],
+          cc: ["orders@clewsrecycling.co.uk"],
           subject: subjectText,
           html: htmlText,
           ...(attachments.length ? { attachments } : {}),
@@ -279,6 +281,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Clews Recycling <noreply@noreply.clewsrecycling.co.uk>",
         to: [p.to],
+        cc: ["orders@clewsrecycling.co.uk"],
         subject,
         html: htmlBody,
         ...(legacyAttachments.length ? { attachments: legacyAttachments } : {}),

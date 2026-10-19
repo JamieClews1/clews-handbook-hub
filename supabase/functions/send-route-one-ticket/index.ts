@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
     };
     if (payload.cc) {
       const list = payload.cc.split(",").map((s) => s.trim()).filter(Boolean);
-      if (list.length) emailPayload.cc = list;
+      if (!list.some((c) => c.toLowerCase() === "orders@clewsrecycling.co.uk")) list.push("orders@clewsrecycling.co.uk");
+      emailPayload.cc = list;
     }
 
     const resp = await fetch("https://api.resend.com/emails", {
