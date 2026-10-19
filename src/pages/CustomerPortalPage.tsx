@@ -67,104 +67,114 @@ const CustomerPortalPage = () => {
         setLoadingMembership(false);
         return;
       }
-      
+
       setLoadingMembership(true);
-      
-      // If admin, load all customers for selection
-      if (isAdmin) {
-        const { data: customersData } = await supabase
-          .from("customers")
-          .select("id, customer_name, customer_code, is_broker")
-          .order("customer_name");
-        
-        if (customersData && customersData.length > 0) {
-          setCustomers(customersData);
-          setSelectedCustomerId(customersData[0].id);
-        }
-        setLoadingMembership(false);
-        return;
-      }
-      
-      // For non-admins, check membership
-      const { data, error } = await supabase
-        .from("customer_portal_memberships")
-        .select(`
-          id,
-          customer_id,
-          contact_id,
-          customers (
-            id,
-            customer_name,
-            customer_code,
-            is_broker
-          )
-        `)
-        .eq(viewAsId ? "id" : "user_id", viewAsId ?? user.id)
-        .maybeSingle();
+      setLoadError(null);
 
-      if (viewAsId && data) {
-        await supabase.from("portal_view_as_log").insert({
-          admin_user_id: user.id,
-          membership_id: viewAsId,
-          customer_id: data.customer_id,
-        } as never);
-        if (data.contact_id) {
-          const { data: c } = await supabase.from("customer_contacts").select("full_name").eq("id", data.contact_id).maybeSingle();
-          setViewAsName((c as { full_name?: string } | null)?.full_name || "");
-        }
-      }
+      try {
+        // If admin, load all customers for selection
+        if (isAdmin) {
+          const { data: customersData, error: customersError } = await supabase
+            .from("customers")
+            .select("id, customer_name, customer_code, is_broker")
+            .order("customer_name");
 
-      if (!error && data) {
-        setMembership(data as unknown as PortalMembership);
-        const isBroker = !!(data as any).customers?.is_broker;
+          if (customersError) throw customersError;
 
-        if (isBroker) {
-          const { data: brokerSitesData } = await supabase
-            .from("customer_sites")
-            .select("id, site_name, broker_subclient")
-            .eq("customer_id", data.customer_id)
-            .order("site_name");
-
-          const sitesArr = (brokerSitesData ?? []) as PortalSite[];
-          setAccessibleSites(sitesArr);
-          setAccessibleSiteIds(sitesArr.map((site) => site.id));
-        } else {
-          // Non-broker: explicit site access + owner contact
-          const siteIdSet = new Set<string>();
-          const { data: explicitAccess } = await supabase
-            .from("customer_portal_site_access")
-            .select("site_id")
-            .eq("membership_id", data.id);
-          (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
-
-          if (data.contact_id) {
-            const { data: ownerSites } = await supabase
-              .from("customer_sites")
-              .select("id")
-              .eq("customer_id", data.customer_id)
-              .eq("owner_contact_id", data.contact_id);
-            (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
+          if (customersData && customersData.length > 0) {
+            setCustomers(customersData);
+            setSelectedCustomerId(customersData[0].id);
           }
+          return;
+        }
 
-          const siteIdArray = Array.from(siteIdSet);
-          setAccessibleSiteIds(siteIdArray);
+        // For non-admins, check membership
+        const { data, error } = await supabase
+          .from("customer_portal_memberships")
+          .select(`
+            id,
+            customer_id,
+            contact_id,
+            customers (
+              id,
+              customer_name,
+              customer_code,
+              is_broker
+            )
+          `)
+          .eq(viewAsId ? "id" : "user_id", viewAsId ?? user.id)
+          .maybeSingle();
 
-          if (siteIdArray.length > 0) {
-            const { data: sitesData } = await supabase
+        if (error) throw error;
+
+        if (viewAsId && data) {
+          await supabase.from("portal_view_as_log").insert({
+            admin_user_id: user.id,
+            membership_id: viewAsId,
+            customer_id: data.customer_id,
+          } as never);
+          if (data.contact_id) {
+            const { data: c } = await supabase.from("customer_contacts").select("full_name").eq("id", data.contact_id).maybeSingle();
+            setViewAsName((c as { full_name?: string } | null)?.full_name || "");
+          }
+        }
+
+        if (data) {
+          setMembership(data as unknown as PortalMembership);
+          const isBroker = !!(data as any).customers?.is_broker;
+
+          if (isBroker) {
+            const { data: brokerSitesData } = await supabase
               .from("customer_sites")
               .select("id, site_name, broker_subclient")
-              .in("id", siteIdArray);
-            setAccessibleSites((sitesData ?? []) as PortalSite[]);
+              .eq("customer_id", data.customer_id)
+              .order("site_name");
+
+            const sitesArr = (brokerSitesData ?? []) as PortalSite[];
+            setAccessibleSites(sitesArr);
+            setAccessibleSiteIds(sitesArr.map((site) => site.id));
           } else {
-            setAccessibleSites([]);
+            // Non-broker: explicit site access + owner contact
+            const siteIdSet = new Set<string>();
+            const { data: explicitAccess } = await supabase
+              .from("customer_portal_site_access")
+              .select("site_id")
+              .eq("membership_id", data.id);
+            (explicitAccess ?? []).forEach(a => siteIdSet.add(a.site_id));
+
+            if (data.contact_id) {
+              const { data: ownerSites } = await supabase
+                .from("customer_sites")
+                .select("id")
+                .eq("customer_id", data.customer_id)
+                .eq("owner_contact_id", data.contact_id);
+              (ownerSites ?? []).forEach(s => siteIdSet.add(s.id));
+            }
+
+            const siteIdArray = Array.from(siteIdSet);
+            setAccessibleSiteIds(siteIdArray);
+
+            if (siteIdArray.length > 0) {
+              const { data: sitesData } = await supabase
+                .from("customer_sites")
+                .select("id, site_name, broker_subclient")
+                .in("id", siteIdArray);
+              setAccessibleSites((sitesData ?? []) as PortalSite[]);
+            } else {
+              setAccessibleSites([]);
+            }
           }
         }
+      } catch (err) {
+        console.error("Portal load failed:", err);
+        setLoadError("We couldn't load your portal. This is usually a brief connection problem — please try again.");
+      } finally {
+        setLoadingMembership(false);
       }
-      setLoadingMembership(false);
     };
 
     loadData();
-  }, [user, isAdmin, viewAsId]);
+  }, [user, isAdmin, viewAsId, reloadTick]);
 
   // For admin viewing a broker customer, load broker's sites for the dropdown
   useEffect(() => {
