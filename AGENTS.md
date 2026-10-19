@@ -20,3 +20,4 @@ Keep printing read-only: daily sheets fetch the selected day's native and non-du
 - Rental note history is append-only and authors are stamped from the authenticated user in database triggers, including edits to legacy notes; No Rental is an agreement mode with a server-enforced zero rate, and covered-container tracking reuses the shared physical-balance calculator without the chase free-period threshold.
 - Rental assignment menus share a profiles/staff-role eligibility helper; a database trigger validates new assignees to prevent alternate writes bypassing eligibility.
 - Rental job pagination must succeed in full before publishing results; failed reads show a retry state, never an empty or partial rental count.
+- Sign-in and staff-role checks run under a time limit (withTimeout) and show a Try again / Sign out screen on failure, so a stalled request can never leave the portal on an endless spinner.
