@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Verify residential matrix and apply residential enquiry selection in Pricing and Inbox drafts.
 
 - [x] Add author-attributed rental notes and No Rental agreements, retaining on-site duration tracking; verify saved changes.
 
