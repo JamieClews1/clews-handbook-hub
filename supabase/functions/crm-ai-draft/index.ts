@@ -101,6 +101,50 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Site history: what this customer has on site, so exchanges/collections can name the containers and postcode.
+    try {
+      const stems = [found.customer, ex.company_name, ex.customer_name].filter(Boolean).map((s: string) => s.split(/\s+/)[0]);
+      const dom = String(t.sender_email ?? '').split('@')[1]?.split('.')[0] ?? '';
+      if (dom && !PERSONAL_DOMAINS.test(`${dom}.`) && dom.length >= 3) stems.push(dom);
+      const stem = stems.find((s) => s && s.length >= 3)?.replace(/[%,()]/g, '');
+      if (stem) {
+        const since = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+        const { data: jobs } = await admin.from('data_hub_jobs')
+          .select('job_date, site, container_type, movement_type, waste_description, postcode')
+          .ilike('customer', `%${stem}%`).gte('job_date', since).order('job_date', { ascending: false }).limit(1000);
+        const moves = (jobs ?? []).filter((j: any) => /exchange|deliver|collect|tip/i.test(j.movement_type ?? '') && j.site);
+        if (moves.length) {
+          const text = `${ex.site_name ?? ''} ${ex.address ?? ''} ${inboundText} ${t.subject ?? ''}`.toLowerCase();
+          const bySite = new Map<string, any[]>();
+          for (const j of moves) bySite.set(j.site, [...(bySite.get(j.site) ?? []), j]);
+          const sites = [...bySite.keys()];
+          const site = sites.find((s) => s.toLowerCase().split(/\W+/).some((w) => w.length >= 4 && !/^(ltd|limited|site|recycling)$/.test(w) && text.includes(w)))
+            ?? (sites.length === 1 ? sites[0] : null);
+          if (site) {
+            const sj = bySite.get(site)!;
+            const today = new Date().toISOString().slice(0, 10);
+            // Count = most of one container/waste moved on a single day (e.g. 2 exchanged together = 2 on site).
+            const groups = new Map<string, { perDay: Map<string, number>; last: string }>();
+            for (const j of sj) {
+              const k = `${j.container_type} — ${j.waste_description ?? 'waste'}`;
+              const g = groups.get(k) ?? { perDay: new Map(), last: '' };
+              g.perDay.set(j.job_date, (g.perDay.get(j.job_date) ?? 0) + 1);
+              if (j.job_date <= today && j.job_date > g.last) g.last = j.job_date;
+              groups.set(k, g);
+            }
+            const lines = [...groups.entries()].map(([k, g]) => `${Math.max(...g.perDay.values())} × ${k}${g.last ? ` (last serviced ${ukDate(g.last)})` : ''}`);
+            const booked = sj.filter((j: any) => j.job_date > today).map((j: any) => `${ukDate(j.job_date)} ${j.movement_type} ${j.container_type}`);
+            found.siteName = site;
+            found.onSite = lines.join('; ');
+            if (booked.length) found.alreadyBooked = booked.slice(0, 5).join('; ');
+            const pc = sj.find((j: any) => j.postcode)?.postcode;
+            if (pc) { found.sitePostcode = pc; if (!ex.postcode) ex.postcode = pc; }
+            if (!ex.container) ex.container = [...groups.keys()].map((k) => k.split(' — ')[0]).join('; ');
+          }
+        }
+      }
+    } catch (e) { console.error('site history failed', e); }
+
     // Customer type: no linked customer + personal email domain => residential.
     const domain = String(t.sender_email ?? '').split('@')[1]?.toLowerCase() ?? '';
     const addr = `${ex.site_name ?? ''} ${ex.address ?? ''}`;
