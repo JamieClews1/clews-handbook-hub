@@ -8,6 +8,9 @@ it('uses residential rates for website enquiries', () => {
 it('uses residential rates for personal email with no business', () => {
   assert.equal(isResidentialEnquiry({ text: '8 yard mixed waste CV21 1EA', email: 'customer@gmail.com' }), true);
 });
+it('uses residential rates when no business is found, whatever the email domain', () => {
+  assert.equal(isResidentialEnquiry({ text: '8 yard mixed waste CV21 1EA', email: 'j.smith@smithandsons.co.uk' }), true);
+});
 it('does not give a business residential rates just for using Gmail', () => {
   assert.equal(isResidentialEnquiry({ text: 'For Smith Construction Ltd, 8 yard mixed waste', email: 'customer@gmail.com' }), false);
 });
