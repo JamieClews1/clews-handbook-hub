@@ -293,7 +293,7 @@ Deno.serve(async (req) => {
     const allText = inboundText.toLowerCase();
     const isServiceOnSite = /exchange|collect/i.test(String(intent ?? '')) || (!!found.onSite && /exchange|swap|empty|collect|full/i.test(allText));
     if (isServiceOnSite) found.jobType = 'Service on containers already on site — state the date as booked, no permit question, no new-delivery pricing.';
-    if (isServiceOnSite) delete found.stock;
+    if (isServiceOnSite) { delete found.stock; stock = null; }
     found.permitNote = isServiceOnSite ? 'Not needed — containers already on site.' : /permit/.test(allText)
       ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
       : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
