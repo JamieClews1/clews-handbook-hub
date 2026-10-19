@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
             found.onSite = lines.join('; ');
             if (booked.length) found.alreadyBooked = booked.slice(0, 5).join('; ');
             const pc = sj.find((j: any) => j.postcode)?.postcode;
-            if (pc) { found.sitePostcode = pc; if (!ex.postcode) ex.postcode = pc; }
+            if (pc) { found.sitePostcode = pc; ex.postcode = pc; } // site postcode beats a signature postcode
             if (!ex.container) ex.container = [...groups.keys()].map((k) => k.split(' — ')[0]).join('; ');
           }
         }
@@ -326,7 +326,7 @@ Deno.serve(async (req) => {
           : 'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
         'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
         'Be definite, not tentative: when PORTAL FACTS has availableDate, state it as fact (e.g. "We will do the exchange on Monday 26 October." / "Booked on for Monday as requested."). Never write "we will confirm a date" when a date is available. availableDate is the next day we are taking bookings for, so it applies to exchanges and collections too.',
-        'When PORTAL FACTS has onSite, name the containers from it (e.g. "both 40YD RoRos (plastics) at Munster Joinery") instead of asking the customer what they have. If alreadyBooked covers the request, say it is already booked for that date.',
+        'When PORTAL FACTS has onSite, name the containers from it (e.g. "both 40YD RoRos (plastics) at Munster Joinery") instead of asking the customer what they have. Only say something is already booked if PORTAL FACTS alreadyBooked lists it; never invent dates.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers. The persona examples are for style only — never copy numbers from them.',
         'If a placeholder or fact cannot be filled, write [CHECK: what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
