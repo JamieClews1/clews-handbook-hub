@@ -6,9 +6,8 @@ export function isResidentialEnquiry(input: { email?: string | null; text: strin
   if (website) return true;
   const business = !!(input.company || input.customerId || input.contract) || /\b(ltd|limited|plc|llp|company|business|trading|warehouse|industrial|construction|builders?|contractors?|reconomy|biffa|papilo|allwood|project\s*waste|kenny|go\s*green|suez)\b/i.test(text);
   if (business) return false;
-  const email = input.email || text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || '';
-  const domain = email.split('@')[1] ?? '';
-  return PERSONAL_EMAIL_DOMAIN.test(domain) || /\b(my house|my home|domestic|garden clearance|my driveway)\b/i.test(text);
+  // No business identified anywhere → treat as residential, whatever the email domain.
+  return true;
 }
 
 export function quoteTotals(price: number, vatInclusive: boolean, surchargeNet: number) {
