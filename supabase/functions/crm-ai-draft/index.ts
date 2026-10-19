@@ -293,7 +293,7 @@ Deno.serve(async (req) => {
     const allText = inboundText.toLowerCase();
     const isServiceOnSite = /exchange|collect/i.test(String(intent ?? '')) || (!!found.onSite && /exchange|swap|empty|collect|full/i.test(allText));
     if (isServiceOnSite) found.jobType = 'Service on containers already on site — state the date as booked, no permit question, no new-delivery pricing.';
-    if (isServiceOnSite) { delete found.stock; stock = null; }
+    if (isServiceOnSite) { delete found.stock; delete found.price; delete found.tonnage; stock = null; }
     found.permitNote = isServiceOnSite ? 'Not needed — containers already on site.' : /permit/.test(allText)
       ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
       : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
@@ -325,6 +325,7 @@ Deno.serve(async (req) => {
           ? 'Pick the template that matches the latest customer request and use it for what must be covered and its {{placeholders}}, but WRITE IN THE PERSONA\'S VOICE below (greeting, sign-off, line style, length, phrases). Plain text, no markdown, British English.'
           : 'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
         'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
+        'If the latest customer message is only a thank-you or acknowledgement, reply to the most recent request in the thread that we have not yet answered.',
         'Be definite, not tentative: when PORTAL FACTS has availableDate, state it as fact (e.g. "We will do the exchange on Monday 26 October." / "Booked on for Monday as requested."). Never write "we will confirm a date" when a date is available. availableDate is the next day we are taking bookings for, so it applies to exchanges and collections too.',
         'When PORTAL FACTS has onSite, name the containers from it (e.g. "both 40YD RoRos (plastics) at Munster Joinery") instead of asking the customer what they have. Only say something is already booked if PORTAL FACTS alreadyBooked lists it; never invent dates.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers. The persona examples are for style only — never copy numbers from them.',
