@@ -221,6 +221,21 @@ const CustomerPortalPage = () => {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center max-w-sm">
+          <p className="text-foreground font-medium mb-2">Something went wrong</p>
+          <p className="text-muted-foreground text-sm mb-4">{loadError}</p>
+          <div className="flex items-center justify-center gap-2">
+            <Button onClick={() => setReloadTick((t) => t + 1)}>Try again</Button>
+            <Button variant="outline" onClick={handleLogout}>Sign out</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Get customer info based on admin or regular user
   const currentCustomer = isAdmin && selectedCustomerId
     ? customers.find(c => c.id === selectedCustomerId)
