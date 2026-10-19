@@ -49,6 +49,7 @@ import {
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CRMTemplates, useCRMTemplates } from "@/components/crm/CRMTemplates";
+import { CrmPersonas } from "@/components/crm/CrmPersonas";
 import { CRMMailboxConnect, useMailboxConnection } from "@/components/crm/CRMMailboxConnect";
 import { CrmCustomerFolders } from "@/components/crm/CrmCustomerFolders";
 import { CrmTicketSidePanel } from "@/components/crm/CrmTicketSidePanel";
@@ -550,7 +551,7 @@ export default function CRMPage() {
 
   // AI draft: prepared for review only — nothing is sent until "Send reply" is pressed.
   const [drafting, setDrafting] = useState(false);
-  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null; stock?: { type: string; available: number; tallyDate: string; low: boolean } | null } | null>(null);
+  const [draftInfo, setDraftInfo] = useState<{ body: string; missing: string[]; found: Record<string, string>; template: string | null; stock?: { type: string; available: number; tallyDate: string; low: boolean } | null; persona?: string | null; score?: string | null } | null>(null);
   // Fresh reply box on every ticket: any carried-over text (typed or AI-drafted) would read as this ticket's reply.
   useEffect(() => {
     setDraftInfo(null);
@@ -571,7 +572,7 @@ export default function CRMPage() {
       if (data?.error) throw new Error(data.error);
       setIsNote(false);
       setReply(data.body ?? "");
-      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null, stock: data.stock ?? null });
+      setDraftInfo({ body: data.body ?? "", missing: data.missing ?? [], found: data.found ?? {}, template: data.template_key ?? null, stock: data.stock ?? null, persona: data.persona ?? null, score: null });
     } catch (e: any) {
       toast({ title: "Couldn't draft a reply", description: e.message ?? String(e), variant: "destructive" });
     } finally {
@@ -642,6 +643,9 @@ export default function CRMPage() {
             </TabsTrigger>
             <TabsTrigger value="templates" className="gap-1.5">
               <FileText className="h-4 w-4" /> Templates
+            </TabsTrigger>
+            <TabsTrigger value="personas" className="gap-1.5">
+              <Sparkles className="h-4 w-4" /> AI voices
             </TabsTrigger>
           </TabsList>
           <div className="hidden xl:flex items-center gap-3 text-xs text-muted-foreground">
@@ -1078,7 +1082,7 @@ export default function CRMPage() {
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-medium text-foreground flex items-center gap-1">
                               <Sparkles className="h-3.5 w-3.5 text-primary" />
-                              AI draft{draftInfo.template ? ` · ${INTENT_LABELS[draftInfo.template] ?? draftInfo.template}` : ""} — check before sending
+                              AI draft{draftInfo.template ? ` · ${INTENT_LABELS[draftInfo.template] ?? draftInfo.template}` : ""}{draftInfo.persona ? ` · ${draftInfo.persona} voice` : ""} — check before sending
                             </span>
                             <button className="text-muted-foreground hover:text-foreground" onClick={() => setDraftInfo(null)}>Hide</button>
                           </div>
@@ -1086,6 +1090,19 @@ export default function CRMPage() {
                             <p className="text-destructive">
                               <span className="font-medium">Needs filling in:</span> {draftInfo.missing.join(" · ")}
                             </p>
+                          )}
+                          {draftInfo.persona && selected && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-muted-foreground">Rate this draft:</span>
+                              {([["send", "Send as is"], ["light", "Light edit"], ["rewrite", "Rewrite"]] as const).map(([k, l]) => (
+                                <button key={k}
+                                  className={cn("rounded border px-1.5 py-0.5", draftInfo.score === k ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted")}
+                                  onClick={async () => {
+                                    await supabase.from("crm_tickets").update({ ai_draft_score: k }).eq("id", selected.id);
+                                    setDraftInfo((d) => d ? { ...d, score: k } : d);
+                                  }}>{l}</button>
+                              ))}
+                            </div>
                           )}
                           {draftInfo.stock && (
                             <p className={cn("font-medium", draftInfo.stock.low ? "text-destructive" : "text-primary")}>
@@ -1196,6 +1213,10 @@ export default function CRMPage() {
 
         <TabsContent value="templates">
           <CRMTemplates onChange={reloadTemplates} />
+        </TabsContent>
+
+        <TabsContent value="personas">
+          <CrmPersonas />
         </TabsContent>
       </Tabs>
     </div>

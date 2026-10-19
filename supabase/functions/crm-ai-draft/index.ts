@@ -249,20 +249,42 @@ Deno.serve(async (req) => {
       ? 'Customer mentioned a permit — confirm the council permit cost/lead time.'
       : 'ASK: Will the skip be placed on your driveway/private land, or on the road? If on the road, a council permit is needed.';
 
+    // Persona: the assignee's own voice, else the drafting user's, else the generic team voice.
+    // Personas shape tone only — facts still come from PORTAL FACTS.
+    let persona: { name: string; persona: string } | null = null;
+    const memberIds: string[] = [];
+    if (t.assigned_to) memberIds.push(t.assigned_to);
+    const { data: me } = await admin.from('crm_team_members').select('id')
+      .or(`user_id.eq.${u.user.id},personal_email.ilike.${u.user.email ?? '-'}`).eq('is_active', true).limit(1).maybeSingle();
+    if (me?.id) memberIds.push(me.id);
+    for (const id of memberIds) {
+      const { data: p } = await admin.from('crm_ai_personas').select('name, persona').eq('team_member_id', id).eq('is_active', true).maybeSingle();
+      if (p) { persona = p; break; }
+    }
+    if (!persona) {
+      const { data: p } = await admin.from('crm_ai_personas').select('name, persona').eq('is_default', true).eq('is_active', true).maybeSingle();
+      persona = p ?? null;
+    }
+    const ukHour = Number(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', hour12: false }));
+
     const draft = await aiJson(apiKey, {
       name: 'reply_draft',
       effort: 'medium',
       instructions: [
         'You draft email replies for Clews Recycling, a UK skip hire, RoRo and waste management company. A member of staff will review and edit your draft before sending.',
-        'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
+        persona
+          ? 'Pick the template that matches the latest customer request and use it for what must be covered and its {{placeholders}}, but WRITE IN THE PERSONA\'S VOICE below (greeting, sign-off, line style, length, phrases). Plain text, no markdown, British English.'
+          : 'Pick the template that matches the latest customer request and fill its {{placeholders}}. Keep the template wording and tone: short, friendly, British English. Write plain text, no markdown.',
         'If PORTAL FACTS stock says none available, do not offer the earliest delivery date; say we will confirm availability. Never mention stock counts to the customer.',
-        'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers.',
-        'If a placeholder cannot be filled, write [square brackets describing what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
+        'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers. The persona examples are for style only — never copy numbers from them.',
+        'If a placeholder or fact cannot be filled, write [CHECK: what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
         'price, fuelSurcharge, availableDate and zone come from PORTAL FACTS only. If price says "inc VAT" (residential), write it as inc VAT rather than "+ VAT".',
         'permitNote: if it starts with "ASK:", turn it into a short friendly question to the customer instead of stating a permit is or isn\'t needed.',
-        'firstName is the sender\'s first name if known, otherwise use "there". Sign off with userName.',
-        'If no template fits, write a brief helpful reply in the same style and set template_key to null.',
+        'firstName is the sender\'s first name if known, otherwise use "there".',
+        'Always: never include passwords, bank details or card numbers; never admit liability or offer compensation (write [CHECK: remedy needs approval]); spell correctly.',
+        'If no template fits, write a brief helpful reply in the persona\'s style and set template_key to null.',
+        persona ? `\nPERSONA (${persona.name}):\n${persona.persona}\n\nCurrent UK hour: ${ukHour}. Sign off as the persona says; for the generic team persona use userName's first name.` : 'Sign off with userName.',
       ].join('\n'),
       input: `TEMPLATES:\n${(templates ?? []).map((x: any) => `--- key=${x.template_key} (${x.name})\nSubject: ${x.subject}\n${x.body}`).join('\n\n')}\n\nSUGGESTED TEMPLATE: ${intent ?? 'none'}\n\nPORTAL FACTS:\n${JSON.stringify(found, null, 1)}\n\nEXTRACTED FROM EMAIL:\n${JSON.stringify(ex)}\n\nSENDER: ${t.sender_name ?? ''} <${t.sender_email ?? ''}>\nORIGINAL SUBJECT: ${t.subject ?? ''}\n\nTHREAD (oldest first):\n${thread}`,
       schema: SCHEMA,
@@ -272,10 +294,10 @@ Deno.serve(async (req) => {
     const patch = {
       ai_draft_subject: draft.subject, ai_draft_body: draft.body, ai_draft_template: draft.template_key,
       ai_draft_found: found, ai_draft_missing: draft.missing ?? [], ai_drafted_at: new Date().toISOString(),
-      ai_draft_sent_at: null, ai_draft_edit_pct: null,
+      ai_draft_sent_at: null, ai_draft_edit_pct: null, ai_draft_persona: persona?.name ?? null, ai_draft_score: null,
     };
     await admin.from('crm_tickets').update(patch).eq('id', t.id);
-    return json({ ...draft, found, stock });
+    return json({ ...draft, found, stock, persona: persona?.name ?? null });
   } catch (e) {
     console.error(e);
     return json({ error: String(e) }, 500);
