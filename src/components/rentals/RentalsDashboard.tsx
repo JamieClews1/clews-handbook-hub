@@ -32,6 +32,7 @@ import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
 import { cleanEmail } from "@/lib/email-clean";
+import { loadRentalJobPages } from "@/lib/rental-job-loading";
 
 type Chase = {
   id: string;
@@ -109,6 +110,8 @@ export default function RentalsDashboard() {
 
   const [jobs, setJobs] = useState<OverRentalJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState(false);
+  const [jobsReload, setJobsReload] = useState(0);
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
@@ -138,16 +141,13 @@ export default function RentalsDashboard() {
   useEffect(() => {
     const fetchJobs = async () => {
       setJobsLoading(true);
+      setJobsError(false);
       // Use the EXACT same data source and window as the Live Jobs / Over Rental
       // dashboard so the two stay perfectly in sync: last 12 months of skiptrak
       // movements, then computeOverRentalBins (the shared logic Live Jobs also uses).
       const since = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
-      const all: OverRentalJob[] = [];
-      const pageSize = 1000;
-      let from = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await supabase
+      try {
+        const all = await loadRentalJobPages((from, to) => supabase
           .from("data_hub_jobs")
           .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc")
           .eq("source", "skiptrak")
@@ -155,17 +155,17 @@ export default function RentalsDashboard() {
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .order("id", { ascending: true })
-          .range(from, from + pageSize - 1);
-        if (error) { console.error(error); break; }
-        all.push(...((data ?? []) as OverRentalJob[]));
-        hasMore = (data?.length ?? 0) === pageSize;
-        from += pageSize;
+          .range(from, to));
+        setJobs(all);
+      } catch (error) {
+        console.error("Failed to load rental jobs", error);
+        setJobsError(true);
+      } finally {
+        setJobsLoading(false);
       }
-      setJobs(all);
-      setJobsLoading(false);
     };
     fetchJobs();
-  }, []);
+  }, [jobsReload]);
 
 
 
@@ -427,6 +427,19 @@ export default function RentalsDashboard() {
           {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
         </div>
         <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (jobsError) {
+    return (
+      <div role="alert" className="flex flex-wrap items-center gap-3 border border-destructive rounded-lg p-5">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+        <div className="flex-1">
+          <p className="font-semibold">Rentals could not be loaded</p>
+          <p className="text-sm text-muted-foreground">This does not mean your rentals have been cleared. Retry to load the full list.</p>
+        </div>
+        <Button variant="outline" onClick={() => setJobsReload(value => value + 1)}>Retry</Button>
       </div>
     );
   }
