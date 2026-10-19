@@ -50,6 +50,8 @@ const CustomerPortalPage = () => {
   const [viewAsName, setViewAsName] = useState<string>("");
   const [membership, setMembership] = useState<PortalMembership | null>(null);
   const [loadingMembership, setLoadingMembership] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [accessibleSites, setAccessibleSites] = useState<PortalSite[]>([]);
