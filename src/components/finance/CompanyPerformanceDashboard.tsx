@@ -60,11 +60,11 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
       splitGap: clewsDiv && rfsDiv ? t1.netProfit - clewsDiv.cur.netProfit - rfsDiv.cur.netProfit : null,
       marginPoint: t1.sales * 0.01,
     };
-  }, [records]);
+  }, [records, source]);
 
   if (error) return <p role="alert" className="text-destructive">Performance analysis could not load. Refresh to try again.</p>;
   if (!records) return <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Analysing P&amp;L…</p>;
-  if (!a) return <p className="text-muted-foreground">Import at least two years of Full set worksheets to see performance analysis.</p>;
+  if (!a) return <p className="text-muted-foreground">At least two years of “{source}” worksheets are needed for performance analysis. Import more years, or choose a different worksheet in Settings.</p>;
 
   const views: [View, string][] = [["overview", "CEO Overview"], ["trends", "Long-term Trends"], ["drivers", "Profit Drivers"], ["divisions", "Clews vs RFS"], ["costs", "Cost Watch"]];
   const risingCosts = [...a.costs].filter((c) => c.change > 0 && c.shareAfter > c.shareBefore).sort((x, y) => y.change - x.change);
