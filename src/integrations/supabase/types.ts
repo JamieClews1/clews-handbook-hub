@@ -10525,6 +10525,7 @@ export type Database = {
       }
       crm_match_customer_by_email: { Args: { _email: string }; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
+      get_company_pl_operational_trends: { Args: never; Returns: Json }
       get_customer_activity_summary: {
         Args: never
         Returns: {

@@ -162,6 +162,13 @@
       "when": 1792514828857,
       "tag": "0022_private_company_profit_loss",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792530330884,
+      "tag": "0023_company_pl_operational_trends",
+      "breakpoints": true
     }
   ]
 }
