@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { withTimeout } from "@/lib/with-timeout";
-import type { PlSheets } from "@/lib/company-pl";
+import type { PlSheetName, PlSheets } from "@/lib/company-pl";
 import { costWatch, monthlyNet, parsePlSheet, periodTotals, profitBridge, type PlYear } from "@/lib/company-pl-analysis";
 
 type View = "overview" | "trends" | "drivers" | "divisions" | "costs";
@@ -28,7 +28,7 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub: s
   return <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p><p className={`text-xs ${tone === "bad" ? "text-destructive" : tone === "good" ? "text-primary" : "text-muted-foreground"}`}>{sub}</p></CardContent></Card>;
 }
 
-export default function CompanyPerformanceDashboard() {
+export default function CompanyPerformanceDashboard({ source = "Full set" }: { source?: PlSheetName }) {
   const [records, setRecords] = useState<{ imported_at: string; sheets: PlSheets }[] | null>(null);
   const [error, setError] = useState(false);
   const [view, setView] = useState<View>("overview");
@@ -40,7 +40,7 @@ export default function CompanyPerformanceDashboard() {
 
   const a = useMemo(() => {
     if (!records) return null;
-    const full = latestPerYear(records, "Full set");
+    const full = latestPerYear(records, source);
     if (full.length < 2) return null;
     const cur = full[full.length - 1];
     const prev = full[full.length - 2];
@@ -60,11 +60,11 @@ export default function CompanyPerformanceDashboard() {
       splitGap: clewsDiv && rfsDiv ? t1.netProfit - clewsDiv.cur.netProfit - rfsDiv.cur.netProfit : null,
       marginPoint: t1.sales * 0.01,
     };
-  }, [records]);
+  }, [records, source]);
 
   if (error) return <p role="alert" className="text-destructive">Performance analysis could not load. Refresh to try again.</p>;
   if (!records) return <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Analysing P&amp;L…</p>;
-  if (!a) return <p className="text-muted-foreground">Import at least two years of Full set worksheets to see performance analysis.</p>;
+  if (!a) return <p className="text-muted-foreground">At least two years of “{source}” worksheets are needed for performance analysis. Import more years, or choose a different worksheet in Settings.</p>;
 
   const views: [View, string][] = [["overview", "CEO Overview"], ["trends", "Long-term Trends"], ["drivers", "Profit Drivers"], ["divisions", "Clews vs RFS"], ["costs", "Cost Watch"]];
   const risingCosts = [...a.costs].filter((c) => c.change > 0 && c.shareAfter > c.shareBefore).sort((x, y) => y.change - x.change);
@@ -113,7 +113,7 @@ export default function CompanyPerformanceDashboard() {
         {([["Higher/lower sales at last year's margin", a.bridge.sales], ["Change in gross margin", a.bridge.margin], ["Change in overheads", a.bridge.overheads], ["Other / rounding", a.bridge.other]] as const).map(([label, v]) => (
           <div key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 text-sm"><div><p>{label}</p><div className="mt-1 h-2 rounded bg-muted"><div className={`h-2 rounded ${v >= 0 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${Math.min(100, (Math.abs(v) / Math.max(1, Math.abs(a.bridge.sales), Math.abs(a.bridge.margin), Math.abs(a.bridge.overheads))) * 100)}%` }} /></div></div><span className="font-semibold tabular-nums">{gbp(v)}</span></div>
         ))}
-        <p className="text-sm text-muted-foreground">An approximation from the Full set worksheet. One percentage point of gross margin ≈ {gbp(a.marginPoint)}.</p>
+        <p className="text-sm text-muted-foreground">An approximation from the selected worksheet. One percentage point of gross margin ≈ {gbp(a.marginPoint)}.</p>
       </CardContent></Card>}
 
       {view === "divisions" && (a.clewsDiv && a.rfsDiv ? <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>{a.period}</TableHead><TableHead className="text-right">Clews {a.prev.year}</TableHead><TableHead className="text-right">Clews {a.cur.year}</TableHead><TableHead className="text-right">RFS {a.prev.year}</TableHead><TableHead className="text-right">RFS {a.cur.year}</TableHead></TableRow></TableHeader><TableBody>

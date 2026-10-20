@@ -1,13 +1,22 @@
+import { useState } from "react";
 import { Loader2, LockKeyhole } from "lucide-react";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
 import CompanyPerformanceDashboard from "@/components/finance/CompanyPerformanceDashboard";
+import CompanyPlSettingsTab, { PL_SOURCE_STORAGE_KEY, readPlSourcePreference } from "@/components/finance/CompanyPlSettingsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { PlSheetName } from "@/lib/company-pl";
 
 export default function CompanyProfitLossPage() {
   const { canAccess, loading } = useFinanceAccess();
   const { canAccessPl, loading: plLoading } = useCompanyPlAccess();
+  const [source, setSource] = useState<PlSheetName>(readPlSourcePreference);
+
+  const changeSource = (value: PlSheetName) => {
+    setSource(value);
+    try { localStorage.setItem(PL_SOURCE_STORAGE_KEY, value); } catch { /* preference is best-effort */ }
+  };
 
   if (loading || plLoading) {
     return (
@@ -40,9 +49,11 @@ export default function CompanyProfitLossPage() {
         <TabsList>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="source">Source worksheets</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
-        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard /></TabsContent>
+        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard source={source} /></TabsContent>
         <TabsContent value="source" className="mt-4"><CompanyProfitLossTab /></TabsContent>
+        <TabsContent value="settings" className="mt-4"><CompanyPlSettingsTab value={source} onChange={changeSource} /></TabsContent>
       </Tabs>
     </div>
   );
