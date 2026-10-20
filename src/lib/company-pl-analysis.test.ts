@@ -87,6 +87,27 @@ it("rest-of-year forecast follows the prior year's seasonal shape, including a D
   assert.equal(Math.round(forecast.reduce((s, m) => s + m.netProfit, 0)), Math.round(seasonal!.remaining.netProfit));
 });
 
+it("flat growth model applies matched-period sales growth to every remaining month", () => {
+  const cur = parsePlSheet(sheet("26", Array(8).fill("120"), Array(8).fill("48"), Array(8).fill("30"), Array(8).fill("18")));
+  const prev = parsePlSheet(sheet("25", [...Array(8).fill("100"), ...Array(4).fill("200")], Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10")));
+  assert.ok(cur); assert.ok(prev);
+  const p = yearEndProjections(cur, prev).find((v) => v.key === "growth");
+  // Growth = 960/800 = 1.2; remaining = 120 × 1.2 × 4 = 576 sales, 576 × 0.4 = 230.4 GP, 30 × 4 = 120 OH.
+  assert.equal(p?.remaining.sales, 576);
+  assert.equal(Math.round(p!.projected.netProfit), Math.round(144 + 230.4 - 120 + 0));
+  // The monthly forecast for the growth model ignores the prior year's monthly shape.
+  const forecast = monthlyForecast(cur, prev, "growth");
+  assert.ok(forecast.every((m) => !m.seasonal && m.sales === 144));
+});
+
+it("recent model forecasts from the latest three months only", () => {
+  const cur = parsePlSheet(sheet("26", [...Array(5).fill("100"), "200", "200", "200"], Array(8).fill("40"), Array(8).fill("30"), Array(8).fill("10")));
+  const prev = parsePlSheet(sheet("25", Array(12).fill("100"), Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10")));
+  assert.ok(cur); assert.ok(prev);
+  const forecast = monthlyForecast(cur, prev, "recent");
+  assert.ok(forecast.every((m) => m.sales === 200));
+});
+
 it("rest-of-year forecast falls back to year-to-date averages without a complete prior year", () => {
   const cur = parsePlSheet(sheet("26", Array(8).fill("100"), Array(8).fill("40"), Array(8).fill("30"), Array(8).fill("10")));
   const prev = parsePlSheet(sheet("25", ["100"], ["40"], ["30"], ["10"]));
