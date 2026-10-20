@@ -169,6 +169,13 @@
       "when": 1792530330884,
       "tag": "0023_company_pl_operational_trends",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792530889844,
+      "tag": "0024_optimize_company_pl_trading_reads",
+      "breakpoints": true
     }
   ]
 }
