@@ -113,7 +113,7 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
         {([["Higher/lower sales at last year's margin", a.bridge.sales], ["Change in gross margin", a.bridge.margin], ["Change in overheads", a.bridge.overheads], ["Other / rounding", a.bridge.other]] as const).map(([label, v]) => (
           <div key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 text-sm"><div><p>{label}</p><div className="mt-1 h-2 rounded bg-muted"><div className={`h-2 rounded ${v >= 0 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${Math.min(100, (Math.abs(v) / Math.max(1, Math.abs(a.bridge.sales), Math.abs(a.bridge.margin), Math.abs(a.bridge.overheads))) * 100)}%` }} /></div></div><span className="font-semibold tabular-nums">{gbp(v)}</span></div>
         ))}
-        <p className="text-sm text-muted-foreground">An approximation from the Full set worksheet. One percentage point of gross margin ≈ {gbp(a.marginPoint)}.</p>
+        <p className="text-sm text-muted-foreground">An approximation from the selected worksheet. One percentage point of gross margin ≈ {gbp(a.marginPoint)}.</p>
       </CardContent></Card>}
 
       {view === "divisions" && (a.clewsDiv && a.rfsDiv ? <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>{a.period}</TableHead><TableHead className="text-right">Clews {a.prev.year}</TableHead><TableHead className="text-right">Clews {a.cur.year}</TableHead><TableHead className="text-right">RFS {a.prev.year}</TableHead><TableHead className="text-right">RFS {a.cur.year}</TableHead></TableRow></TableHeader><TableBody>
