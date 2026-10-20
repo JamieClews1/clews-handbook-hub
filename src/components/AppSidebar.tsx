@@ -19,6 +19,7 @@ import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 import { useSidebarGroupState } from "@/hooks/useSidebarGroupState";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
+import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 
 type NavItem = { label: string; path: string; icon: LucideIcon; key?: string };
 const home: NavItem[] = [

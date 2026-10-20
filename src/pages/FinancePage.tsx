@@ -4,8 +4,7 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import FinanceDashboard from "@/components/finance/FinanceDashboard";
 import InvoicesTab from "@/components/finance/InvoicesTab";
 import FinanceSettingsTab from "@/components/finance/FinanceSettingsTab";
-import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
-import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
+
 
 
 
