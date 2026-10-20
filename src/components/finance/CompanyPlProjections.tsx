@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { yearEndProjections, type PlYear } from "@/lib/company-pl-analysis";
+import { monthlyForecast, yearEndProjections, type PlYear } from "@/lib/company-pl-analysis";
 import { plSheetLabel, type PlSheetName } from "@/lib/company-pl";
 
 const gbp = (n: number) => `${n < 0 ? "−" : ""}£${Math.abs(Math.round(n)).toLocaleString("en-GB")}`;
@@ -15,6 +15,7 @@ export default function CompanyPlProjections({ cur, prev, source }: { cur: PlYea
   const selected = projections.find((p) => p.key === method) ?? projections[0];
   if (!selected) return <p role="alert" className="text-muted-foreground">Projections are unavailable: reported months contain missing or invalid sales, gross profit, overheads or net profit figures. Check Source worksheets.</p>;
   const remainingMonths = 12 - cur.reportedMonths;
+  const forecast = monthlyForecast(cur, prev);
   const end = cur.monthLabels[cur.reportedMonths - 1]?.slice(0, 3);
   const recentStart = cur.monthLabels[Math.max(0, cur.reportedMonths - 3)]?.slice(0, 3);
   return <section className="space-y-5">
