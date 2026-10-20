@@ -7,6 +7,7 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
 import CompanyPerformanceDashboard from "@/components/finance/CompanyPerformanceDashboard";
+import CompanyPlSales from "@/components/finance/CompanyPlSales";
 import CompanyPlSettingsTab, { PL_SOURCE_STORAGE_KEY, PL_METHOD_STORAGE_KEY, readPlSourcePreference, readPlMethodPreference } from "@/components/finance/CompanyPlSettingsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PlSheetName } from "@/lib/company-pl";
@@ -73,10 +74,12 @@ export default function CompanyProfitLossPage() {
       <Tabs defaultValue="performance">
         <TabsList>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="source">Source worksheets</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard source={source} method={method} onMethodChange={changeMethod} trading={trading} useTrading={useTrading} /></TabsContent>
+        <TabsContent value="sales" className="mt-4"><CompanyPlSales source={source} trading={trading} tradingError={tradingError} retry={() => setRetry(v => v + 1)} /></TabsContent>
         <TabsContent value="source" className="mt-4"><CompanyProfitLossTab /></TabsContent>
         <TabsContent value="settings" className="mt-4"><CompanyPlSettingsTab value={source} onChange={changeSource} method={method} onMethodChange={changeMethod} trading={trading} tradingError={tradingError} retry={() => setRetry((v) => v + 1)} useTrading={useTrading} onTradingChange={changeTrading} /></TabsContent>
       </Tabs>
