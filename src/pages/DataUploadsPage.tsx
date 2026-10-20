@@ -926,10 +926,16 @@ const DataUploadsPage = () => {
           }
 
           const orphanIds = orphans.map((o) => o.id);
+          let removed = 0;
           for (const idChunk of chunk(orphanIds, 200)) {
-            const { error: delErr } = await supabase.from("data_hub_jobs").delete().in("id", idChunk);
+            const { data: gone, error: delErr } = await supabase.from("data_hub_jobs").delete().in("id", idChunk).select("id");
             if (delErr) throw delErr;
+            removed += gone?.length ?? 0;
           }
+          if (removed < orphanIds.length) {
+            throw new Error(`${orphanIds.length - removed} archived job(s) could not be removed from Data Uploads. Please upload the file again.`);
+          }
+
 
           toast({
             title: "Archived missing jobs",
