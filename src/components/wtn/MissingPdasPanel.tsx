@@ -49,7 +49,7 @@ export const MissingPdasPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [jobs, docs] = await Promise.all([
+      const [jobs, docs, voids] = await Promise.all([
         fetchAllRows<any>((from, to) =>
           supabase
             .from("data_hub_jobs")
@@ -67,10 +67,21 @@ export const MissingPdasPanel = () => {
             .not("job_number", "is", null)
             .range(from, to),
         ),
+        fetchAllRows<any>((from, to) =>
+          supabase
+            .from("data_hub_void_jobs")
+            .select("job_number")
+            .eq("source", "skiptrak")
+            .range(from, to),
+        ),
       ]);
 
       const uploaded = new Set(
         docs.map((d) => String(d.job_number ?? "").trim().replace(/^0+/, "")).filter(Boolean),
+      );
+      // Voided Skiptrak jobs never get a ticket, so never list them as missing.
+      const voided = new Set(
+        voids.map((v) => String(v.job_number ?? "").trim().replace(/^0+/, "")).filter(Boolean),
       );
 
       const seen = new Set<string>();
@@ -79,7 +90,7 @@ export const MissingPdasPanel = () => {
         const num = String(j.job_number ?? "").trim();
         if (!num) continue;
         const key = num.replace(/^0+/, "");
-        if (uploaded.has(key) || seen.has(key)) continue;
+        if (uploaded.has(key) || voided.has(key) || seen.has(key)) continue;
         seen.add(key);
         rows.push(j as MissingJob);
       }
