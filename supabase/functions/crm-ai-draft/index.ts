@@ -6,7 +6,8 @@ import { z } from 'npm:zod@3';
 import { aiJson } from '../_shared/ai-responses.ts';
 import { matchMatrixPostcode, MATRIX_ZONE_TO_CODE } from '../_shared/matrix-postcode-zone.ts';
 
-import { isResidentialEnquiry, residentialRowMatches } from '../_shared/residential-pricing.ts';
+import { residentialRowMatches } from '../_shared/residential-pricing.ts';
+import { inboxDraftRateCard } from '../_shared/inbox-pricing-policy.ts';
 
 const WEIGHT_CHECKS_URL = 'https://portal.clewsrecycling.co.uk/weightchecks';
 const stripHtml = (h: string) => h.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
@@ -147,8 +148,9 @@ Deno.serve(async (req) => {
       }
     } catch (e) { console.error('site history failed', e); }
 
-    const isResidential = isResidentialEnquiry({ email: t.sender_email, text: inboundText, subject: t.subject, company: ex.company_name, customerId: t.customer_id, contract: ex.contract_number });
-    found.customerType = isResidential ? 'Residential (website or personal email without a business)' : 'Trade';
+    const isResidential = inboxDraftRateCard(`${t.subject ?? ''} ${inboundText}`, false) === 'Residential Skip Rates 2026';
+    found.customerType = isResidential ? 'Residential (explicitly requested)' : 'Trade';
+    found.pricingPolicy = 'Trade Rates are the standard for Inbox drafts, including website and personal-email enquiries. Use residential skip rates only when explicitly requested. Never guess an unlisted postcode zone.';
 
     // Zone from the pricing matrix only (same matcher as the Pricing section).
     const containerText = `${ex.container ?? ''} ${found.containerSize ?? ''}`;
@@ -170,8 +172,8 @@ Deno.serve(async (req) => {
       const containerText = part;
       const zoneCode = MATRIX_ZONE_TO_CODE[zoneLabel];
       // The residential card has skips only — RoRos are always priced from the Trade card.
-      const useResidential = isResidential && !isRoRo;
-      const cardName = useResidential ? 'Residential Skip Rates 2026' : 'Trade Rates 2026';
+      const cardName = inboxDraftRateCard(`${t.subject ?? ''} ${inboundText}`, isRoRo);
+      const useResidential = cardName === 'Residential Skip Rates 2026';
       const { data: card } = await admin.from('pricing_rate_cards').select('id, name, vat_inclusive').eq('name', cardName).eq('is_active', true).maybeSingle();
       if (card && zoneCode) {
         const { data: rows } = await admin.from('pricing_rate_card_rows').select('id, section, label').eq('card_id', card.id);
@@ -328,6 +330,7 @@ Deno.serve(async (req) => {
         'Be definite, not tentative: when PORTAL FACTS has availableDate, state it as fact (e.g. "We will do the exchange on Monday 26 October." / "Booked on for Monday as requested."). Never write "we will confirm a date" when a date is available. availableDate is the next day we are taking bookings for, so it applies to exchanges and collections too.',
         'When PORTAL FACTS has onSite, name the containers from it (e.g. "both 40YD RoRos (plastics) at Munster Joinery") instead of asking the customer what they have. Only say something is already booked if PORTAL FACTS alreadyBooked lists it; never invent dates.',
         'Use only facts from the email thread and the PORTAL FACTS. Never invent prices, dates, weights, availability or reference numbers. The persona examples are for style only — never copy numbers from them.',
+        'Trade Rates are the standard pricing response. Follow PORTAL FACTS pricingPolicy even if extracted customerType or a template suggests residential pricing. Give all matching Trade prices available in PORTAL FACTS; if the postcode is missing, split or unlisted, ask for confirmation rather than guessing a zone or price.',
         'If a placeholder or fact cannot be filled, write [CHECK: what is needed] in the body and list it in "missing". Drop optional lines like {{poLine}} or {{weightLine}} cleanly when empty.',
         'If PORTAL FACTS has tonnage, add it as its own clear line under the price (e.g. "- Includes the first 3 tonnes, then £182.00 per tonne + VAT").',
         'price, fuelSurcharge, availableDate and zone come from PORTAL FACTS only. If price says "inc VAT" (residential), write it as inc VAT rather than "+ VAT".',
