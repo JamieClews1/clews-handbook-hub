@@ -49,9 +49,11 @@ export default function CompanyProfitLossPage() {
         <TabsList>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="source">Source worksheets</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
-        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard /></TabsContent>
+        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard source={source} /></TabsContent>
         <TabsContent value="source" className="mt-4"><CompanyProfitLossTab /></TabsContent>
+        <TabsContent value="settings" className="mt-4"><CompanyPlSettingsTab value={source} onChange={changeSource} /></TabsContent>
       </Tabs>
     </div>
   );

@@ -40,7 +40,7 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
 
   const a = useMemo(() => {
     if (!records) return null;
-    const full = latestPerYear(records, "Full set");
+    const full = latestPerYear(records, source);
     if (full.length < 2) return null;
     const cur = full[full.length - 1];
     const prev = full[full.length - 2];
