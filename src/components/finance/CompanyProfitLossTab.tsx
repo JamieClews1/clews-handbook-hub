@@ -100,9 +100,9 @@ export default function CompanyProfitLossTab() {
       </div>
       {preview && <div className="space-y-3 border-y border-border bg-muted/40 p-4">
         <p className="font-medium break-words">Pending import: {preview.fileName}</p>
-        <p className="text-sm">{names.join(" · ")}</p>
+        <p className="text-sm">{names.map(plSheetLabel).join(" · ")}</p>
         {preview.ignored.length > 0 && <p className="text-sm text-muted-foreground">{preview.ignored.length} other {preview.ignored.length === 1 ? "tab" : "tabs"} excluded.</p>}
-        {PL_SHEET_NAMES.some((name) => !preview.sheets[name]) && <p className="text-sm text-destructive">Missing or empty: {PL_SHEET_NAMES.filter((name) => !preview.sheets[name]).join(", ")}</p>}
+        {PL_SHEET_NAMES.some((name) => !preview.sheets[name]) && <p className="text-sm text-destructive">Missing or empty: {PL_SHEET_NAMES.filter((name) => !preview.sheets[name]).map(plSheetLabel).join(", ")}</p>}
         <div className="flex gap-2"><Button onClick={() => void save()} disabled={busy}><Upload className="mr-2 h-4 w-4" />Save import</Button><Button variant="outline" onClick={() => setPreview(null)} disabled={busy}><X className="mr-2 h-4 w-4" />Cancel</Button></div>
       </div>}
       {error && <div role="alert" className="flex items-center gap-3 text-destructive">{error}<Button variant="outline" onClick={() => void load()}>Try again</Button></div>}
@@ -110,7 +110,7 @@ export default function CompanyProfitLossTab() {
       {(loading || busy) && <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />{busy ? "Reading workbook…" : "Loading P&L…"}</p>}
       {!loading && !busy && !error && names.length === 0 && <div className="py-12 text-center"><FileSpreadsheet className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><p className="font-medium">No company P&amp;L imported yet</p></div>}
       {names.length > 0 && <Tabs key={preview?.fileName ?? selected} defaultValue={names[0]}>
-        <TabsList className="h-auto flex-wrap">{names.map((name) => <TabsTrigger key={name} value={name}>{name}</TabsTrigger>)}</TabsList>
+        <TabsList className="h-auto flex-wrap">{names.map((name) => <TabsTrigger key={name} value={name}>{plSheetLabel(name)}</TabsTrigger>)}</TabsList>
         {names.map((name) => {
           const rows = displayed[name] ?? [];
           const columns = Math.max(0, ...rows.map((row) => row.length));

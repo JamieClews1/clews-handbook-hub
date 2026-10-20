@@ -62,7 +62,7 @@ export function readPlWorkbook(bytes: ArrayBuffer) {
     if (!rows.some((row) => row.some((value) => String(value).trim()))) continue;
     sheets[canonical] = rows.map((row) => row.map((value) => String(value)));
   }
-  if (!Object.keys(sheets).length) throw new Error("No populated Full set, Clews EBITDA or RFS EBITDA tabs were found.");
+  if (!Object.keys(sheets).length) throw new Error(`No populated ${PL_SHEET_NAMES.map(plSheetLabel).join(", ")} tabs were found.`);
   if (uncachedFormulas) throw new Error("Some formulas have no saved results. Open the workbook in Excel, recalculate and save it, then import again.");
   return { sheets, ignored: workbook.SheetNames.filter((name) => !canonicalPlSheetName(name)) };
 }

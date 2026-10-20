@@ -64,7 +64,7 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
 
   if (error) return <p role="alert" className="text-destructive">Performance analysis could not load. Refresh to try again.</p>;
   if (!records) return <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Analysing P&amp;L…</p>;
-  if (!a) return <p className="text-muted-foreground">At least two years of “{source}” worksheets are needed for performance analysis. Import more years, or choose a different worksheet in Settings.</p>;
+  if (!a) return <p className="text-muted-foreground">At least two years of “{plSheetLabel(source)}” worksheets are needed for performance analysis. Import more years, or choose a different worksheet in Settings.</p>;
 
   const views: [View, string][] = [["overview", "CEO Overview"], ["trends", "Long-term Trends"], ["drivers", "Profit Drivers"], ["divisions", "Clews vs RFS"], ["costs", "Cost Watch"]];
   const risingCosts = [...a.costs].filter((c) => c.change > 0 && c.shareAfter > c.shareBefore).sort((x, y) => y.change - x.change);
@@ -121,7 +121,7 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
       </TableBody></Table>
         <p className="p-4 text-sm text-muted-foreground">Divisions use the workbook's allocated costs. Clews + RFS differs from Full set by {gbp(a.splitGap ?? 0)} — confirm allocations with finance before treating this as a reconciled split.</p>
         {a.rfsDiv.costs.filter((c) => c.change !== 0).sort((x, y) => y.change - x.change).slice(0, 5).length > 0 && <div className="border-t border-border p-4 text-sm"><p className="mb-2 font-medium">Biggest RFS line changes</p><ul className="list-disc space-y-1 pl-5">{a.rfsDiv.costs.filter((c) => c.change !== 0).sort((x, y) => Math.abs(y.change) - Math.abs(x.change)).slice(0, 5).map((c) => <li key={c.label}>{c.label}: {gbp(c.before)} → {gbp(c.after)} ({pct(c.shareAfter)} of RFS sales vs {pct(c.shareBefore)})</li>)}</ul></div>}
-      </CardContent></Card> : <p className="text-muted-foreground">Clews EBITDA and RFS EBITDA tabs are needed for both {a.prev.year} and {a.cur.year}.</p>)}
+      </CardContent></Card> : <p className="text-muted-foreground">{plSheetLabel("Clews EBITDA")} and {plSheetLabel("RFS EBITDA")} tabs are needed for both {a.prev.year} and {a.cur.year}.</p>)}
 
       {view === "costs" && <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Line ({a.period})</TableHead><TableHead className="text-right">{a.prev.year}</TableHead><TableHead className="text-right">{a.cur.year}</TableHead><TableHead className="text-right">Change</TableHead><TableHead className="text-right">% of sales</TableHead></TableRow></TableHeader><TableBody>
         {[...a.costs].filter((c) => !income.includes(c)).sort((x, y) => y.change - x.change).map((c) => <TableRow key={c.label}><TableCell className="font-medium">{c.label}</TableCell><TableCell className="text-right tabular-nums">{gbp(c.before)}</TableCell><TableCell className="text-right tabular-nums">{gbp(c.after)}</TableCell><TableCell className={`text-right tabular-nums ${c.change > 0 && c.shareAfter > c.shareBefore ? "text-destructive" : ""}`}>{gbp(c.change)}{c.pct !== null ? ` (${change(c.before, c.after)})` : ""}</TableCell><TableCell className="text-right tabular-nums">{pct(c.shareBefore)} → {pct(c.shareAfter)}</TableCell></TableRow>)}
