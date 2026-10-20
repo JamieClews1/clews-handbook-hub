@@ -112,6 +112,22 @@ it("recent model forecasts from the latest three months only", () => {
   assert.ok(forecast.every((m) => m.sales === 200));
 });
 
+it("seasonal forecast varies overheads by month following the prior year's shape", () => {
+  const cur = parsePlSheet(sheet("26", Array(8).fill("120"), Array(8).fill("48"), Array(8).fill("30"), Array(8).fill("18")));
+  const prev = parsePlSheet(sheet("25", Array(12).fill("100"), Array(12).fill("40"), [...Array(8).fill("30"), "30", "30", "30", "60"], Array(12).fill("10")));
+  assert.ok(cur); assert.ok(prev);
+  const forecast = monthlyForecast(cur, prev);
+  // Prior Dec overheads (60) are double the other months; scaled by this year's overhead level (240/270).
+  const dec = forecast[3];
+  assert.equal(dec.label, "Dec-26");
+  assert.ok(dec.overheads > forecast[2].overheads, "December overheads should exceed November's");
+  assert.equal(Math.round(dec.overheads), Math.round(60 * (240 / 270)));
+  // Monthly forecast totals still match the seasonal projection.
+  const seasonal = yearEndProjections(cur, prev).find((p) => p.key === "seasonal");
+  assert.equal(Math.round(forecast.reduce((s, m) => s + m.overheads, 0)), Math.round(seasonal!.remaining.overheads));
+  assert.equal(Math.round(forecast.reduce((s, m) => s + m.netProfit, 0)), Math.round(seasonal!.remaining.netProfit));
+});
+
 it("rest-of-year forecast falls back to year-to-date averages without a complete prior year", () => {
   const cur = parsePlSheet(sheet("26", Array(8).fill("100"), Array(8).fill("40"), Array(8).fill("30"), Array(8).fill("10")));
   const prev = parsePlSheet(sheet("25", ["100"], ["40"], ["30"], ["10"]));
