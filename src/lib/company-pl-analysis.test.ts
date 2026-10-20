@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { parsePlSheet, periodTotals, profitBridge, parseAmount, yearEndProjections } from "./company-pl-analysis";
+import { parsePlSheet, periodTotals, profitBridge, parseAmount, yearEndProjections, monthlyForecast } from "./company-pl-analysis";
 
 const sheet = (yy: string, sales: string[], gp: string[], oh: string[], net: string[]) => [
   ["Clews Recycling"], ["", "", "", "Total", "", ...["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m) => `${m}-${yy}`)],
