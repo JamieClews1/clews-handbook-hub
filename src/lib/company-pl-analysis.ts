@@ -84,8 +84,45 @@ export function monthlyNet(y: PlYear) {
   return y.monthLabels.slice(0, y.reportedMonths).map((label, i) => ({ label, value: net[i] ?? 0 }));
 }
 
-export type PlProjection = { key: "seasonal" | "average" | "recent"; label: string; actual: PlPeriodTotals; remaining: PlPeriodTotals; projected: PlPeriodTotals };
+export type PlProjectionMethod = "seasonal" | "growth" | "average" | "recent";
+export type PlProjection = { key: PlProjectionMethod; label: string; actual: PlPeriodTotals; remaining: PlPeriodTotals; projected: PlPeriodTotals };
 export type PlForecastMonth = { label: string; sales: number; grossProfit: number; overheads: number; netProfit: number; seasonal: boolean };
+
+/** Plain-English documentation of each projection model, shown in Settings. */
+export const PL_PROJECTION_METHODS: { key: PlProjectionMethod; label: string; summary: string; calculation: string; bestFor: string; caution: string }[] = [
+  {
+    key: "seasonal",
+    label: "Prior-year seasonality",
+    summary: "Follows last year's monthly pattern — busy and quiet months, including any year-end slowdown — scaled by this year's growth.",
+    calculation: "Remaining sales = last year's sales for each remaining month × (this year's sales so far ÷ last year's sales for the same months). Gross margin stays at this year's year-to-date level; overheads continue at their year-to-date monthly average.",
+    bestFor: "Businesses with a repeating yearly rhythm, when a complete previous year is available.",
+    caution: "Assumes this year keeps last year's shape. A one-off event last year (e.g. a lost contract) is carried into the forecast.",
+  },
+  {
+    key: "growth",
+    label: "Flat growth rate",
+    summary: "Every remaining month equals this year's average month, grown by the same rate sales have grown versus last year.",
+    calculation: "Remaining sales per month = (this year's average monthly sales) × (this year's sales so far ÷ last year's sales for the same months). Gross margin and overheads as for the seasonal model.",
+    bestFor: "Steadily growing businesses without a strong monthly pattern.",
+    caution: "Ignores seasonality entirely — a December slowdown or summer peak will not appear.",
+  },
+  {
+    key: "average",
+    label: "Year-to-date average",
+    summary: "Every remaining month repeats this year's average month so far.",
+    calculation: "Remaining sales per month = this year's sales so far ÷ months reported. The same average applies to gross profit, overheads and net profit.",
+    bestFor: "A quick, stable baseline when the year so far looks typical.",
+    caution: "Repeats any one-off income (e.g. a single large sale) in every remaining month, and ignores seasonality.",
+  },
+  {
+    key: "recent",
+    label: "Latest 3 months",
+    summary: "Every remaining month repeats the average of the most recent three reported months.",
+    calculation: "Remaining sales per month = average monthly sales over the latest three reported months. The same applies to gross profit, overheads and net profit.",
+    bestFor: "When trading has recently shifted — up or down — and earlier months no longer reflect the run-rate.",
+    caution: "Reacts strongly to a single unusual recent month and ignores seasonality.",
+  },
+];
 
 /**
  * Month-by-month forecast for the unreported remainder of the year.
