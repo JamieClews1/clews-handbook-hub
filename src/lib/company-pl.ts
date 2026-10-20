@@ -39,7 +39,7 @@ export function readPlWorkbook(bytes: ArrayBuffer) {
   for (const name of workbook.SheetNames) {
     const canonical = canonicalPlSheetName(name);
     if (!canonical) continue;
-    if (sheets[canonical]) throw new Error(`Duplicate ${canonical} tabs. Rename or remove the duplicate before importing.`);
+    if (sheets[canonical]) throw new Error(`Duplicate ${plSheetLabel(canonical)} tabs. Rename or remove the duplicate before importing.`);
     const sheet = workbook.Sheets[name];
     if (!sheet) continue;
     for (const [address, cell] of Object.entries(sheet)) {

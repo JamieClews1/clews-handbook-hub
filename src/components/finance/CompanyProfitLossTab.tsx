@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { PL_SHEET_NAMES, readPlWorkbook, type PlSheets } from "@/lib/company-pl";
+import { PL_SHEET_NAMES, plSheetLabel, readPlWorkbook, type PlSheets } from "@/lib/company-pl";
 import { withTimeout } from "@/lib/with-timeout";
 import { useToast } from "@/hooks/use-toast";
 

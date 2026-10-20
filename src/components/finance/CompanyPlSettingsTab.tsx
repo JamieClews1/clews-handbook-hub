@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PL_SHEET_NAMES, type PlSheetName } from "@/lib/company-pl";
+import { PL_SHEET_NAMES, plSheetLabel, type PlSheetName } from "@/lib/company-pl";
 
 export const PL_SOURCE_STORAGE_KEY = "company-pl-source-tab";
 
