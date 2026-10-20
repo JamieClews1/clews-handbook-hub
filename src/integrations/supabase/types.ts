@@ -541,6 +541,30 @@ export type Database = {
           },
         ]
       }
+      company_pl_workbooks: {
+        Row: {
+          file_name: string
+          id: string
+          imported_at: string
+          imported_by: string
+          sheets: Json
+        }
+        Insert: {
+          file_name: string
+          id?: string
+          imported_at?: string
+          imported_by?: string
+          sheets: Json
+        }
+        Update: {
+          file_name?: string
+          id?: string
+          imported_at?: string
+          imported_by?: string
+          sheets?: Json
+        }
+        Relationships: []
+      }
       company_profile: {
         Row: {
           bank_account_name: string | null
@@ -10546,6 +10570,7 @@ export type Database = {
           tipreturn: number
         }[]
       }
+      has_company_pl_access: { Args: { _user_id?: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
