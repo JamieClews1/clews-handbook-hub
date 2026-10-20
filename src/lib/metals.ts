@@ -5,6 +5,15 @@ export type StockInputs = {
   adjustments: { grade_id: string; adjustment_kg: number }[];
 };
 
+export function preferredMetalDestination(grades: { id: string; preferred_destination?: string | null }[], gradeId: string): string {
+  return grades.find((grade) => grade.id === gradeId)?.preferred_destination ?? "";
+}
+
+export function metalDispatchDestination(destination: string, remember: boolean) {
+  const site = destination.trim();
+  return { destination_site: site || null, remember_destination: remember && site.length > 0 };
+}
+
 /** Stock = sorted (once, non-voided) + adjustments − dispatches. Collections never count as stock. */
 export function computeStock(d: StockInputs) {
   return d.grades.map((grade) => {
