@@ -4,14 +4,13 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import FinanceDashboard from "@/components/finance/FinanceDashboard";
 import InvoicesTab from "@/components/finance/InvoicesTab";
 import FinanceSettingsTab from "@/components/finance/FinanceSettingsTab";
-import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
-import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
+
 
 
 
 export default function FinancePage() {
   const { canAccess, loading } = useFinanceAccess();
-  const { canAccessPl } = useCompanyPlAccess();
+
 
   if (loading) {
     return <div className="p-8 text-muted-foreground">Loading…</div>;
@@ -47,7 +46,6 @@ export default function FinancePage() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="settings">Settings &amp; Sage</TabsTrigger>
-          {canAccessPl && <TabsTrigger value="profit-loss">Company P&amp;L</TabsTrigger>}
         </TabsList>
         <TabsContent value="dashboard" className="mt-4">
           <FinanceDashboard />
@@ -58,7 +56,6 @@ export default function FinancePage() {
         <TabsContent value="settings" className="mt-4">
           <FinanceSettingsTab />
         </TabsContent>
-        {canAccessPl && <TabsContent value="profit-loss" className="mt-4"><CompanyProfitLossTab /></TabsContent>}
       </Tabs>
 
     </div>
