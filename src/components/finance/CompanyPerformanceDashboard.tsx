@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { withTimeout } from "@/lib/with-timeout";
 import { plSheetLabel, type PlSheetName, type PlSheets } from "@/lib/company-pl";
 import { costWatch, monthlyNet, parsePlSheet, periodTotals, profitBridge, type PlYear } from "@/lib/company-pl-analysis";
+import CompanyPlProjections from "./CompanyPlProjections";
 
-type View = "overview" | "trends" | "drivers" | "divisions" | "costs";
+type View = "overview" | "trends" | "drivers" | "divisions" | "costs" | "projections";
 const gbp = (n: number) => `${n < 0 ? "−" : ""}£${Math.abs(Math.round(n)).toLocaleString("en-GB")}`;
 const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
 const change = (a: number, b: number) => (a ? `${b >= a ? "+" : "−"}${Math.abs(((b - a) / Math.abs(a)) * 100).toFixed(1)}%` : "—");
@@ -66,7 +67,7 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
   if (!records) return <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Analysing P&amp;L…</p>;
   if (!a) return <p className="text-muted-foreground">At least two years of “{plSheetLabel(source)}” worksheets are needed for performance analysis. Import more years, or choose a different worksheet in Settings.</p>;
 
-  const views: [View, string][] = [["overview", "CEO Overview"], ["trends", "Long-term Trends"], ["drivers", "Profit Drivers"], ["divisions", "Clews vs RFS"], ["costs", "Cost Watch"]];
+  const views: [View, string][] = [["overview", "CEO Overview"], ["trends", "Long-term Trends"], ["drivers", "Profit Drivers"], ["divisions", "Clews vs RFS"], ["costs", "Cost Watch"], ["projections", "Projections"]];
   const risingCosts = [...a.costs].filter((c) => c.change > 0 && c.shareAfter > c.shareBefore).sort((x, y) => y.change - x.change);
   const income = a.costs.filter((c) => /sales|income|recyclables/i.test(c.label));
 
@@ -74,6 +75,8 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">{views.map(([key, label]) => <Button key={key} size="sm" variant={view === key ? "default" : "outline"} onClick={() => setView(key)}>{label}</Button>)}</div>
       <p className="text-sm text-muted-foreground">Compared on matched months: <strong className="text-foreground">{a.period} {a.cur.year}</strong> vs the same months in earlier years. Later {a.cur.year} months are treated as not yet reported, not as zero. “Net profit” is as reported and still includes depreciation and bank charges/interest — it is not EBITDA.</p>
+
+      {view === "projections" && <CompanyPlProjections cur={a.cur} prev={a.prev} source={source} />}
 
       {view === "overview" && <>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
