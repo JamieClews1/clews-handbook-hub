@@ -10,7 +10,7 @@ import FinanceSettingsTab from "@/components/finance/FinanceSettingsTab";
 
 export default function FinancePage() {
   const { canAccess, loading } = useFinanceAccess();
-  const { canAccessPl } = useCompanyPlAccess();
+
 
   if (loading) {
     return <div className="p-8 text-muted-foreground">Loading…</div>;
@@ -57,7 +57,6 @@ export default function FinancePage() {
         <TabsContent value="settings" className="mt-4">
           <FinanceSettingsTab />
         </TabsContent>
-        {canAccessPl && <TabsContent value="profit-loss" className="mt-4"><CompanyProfitLossTab /></TabsContent>}
       </Tabs>
 
     </div>
