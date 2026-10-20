@@ -1,6 +1,6 @@
 # Roadmap
 - [x] Add Jamie-only P&L within Finance; restricted worksheet tests pass, Jamie import/save/reload and anonymous restrictions verified; synthetic verification data removed.
-- [ ] Import supplied 2023–2026 company P&L workbooks, keeping only permitted tabs and verifying saved figures; flag missing EBITDA tabs and source spreadsheet errors.
+- [x] Import supplied 2023–2026 company P&L; every saved worksheet matches source, 2023–2024 contain Full set only, 2025–2026 include both EBITDA tabs; 2026 source errors preserved and flagged. Four tests pass and signed-in reload verified.
 - [x] Simplify non-ferrous dispatch date/time and destination recording; save grade preferences atomically and include destinations in stock, history and reports. Five metals tests pass; preview builds clean.
 - [ ] Verify metal dispatch saving and preference reuse through a signed-in screen (blocked: no preview session; requesting user has no matching account).
 - [x] Apply residential selection in Pricing and Inbox drafts; VAT and material tests pass, personal-email quote verified in preview. Inbox draft end-to-end remains unverified because function authentication rejected the test request.
