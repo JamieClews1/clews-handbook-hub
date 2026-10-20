@@ -51,6 +51,7 @@ const customers: NavItem[] = [
 ];
 const finance: NavItem[] = [
   { label: "Invoicing", path: "/finance", icon: PoundSterling, key: "finance" },
+  { label: "Company P&L", path: "/finance/company-pl", icon: FileSpreadsheet },
   { label: "Rebates", path: "/rebate-values", icon: DollarSign, key: "rebate-values" },
   { label: "Fuel Surcharges", path: "/performance-hub/fuel-surcharges", icon: Fuel, key: "performance-fuel-surcharges" },
   { label: "Payroll & Time", path: "/payroll", icon: PoundSterling, key: "payroll" },

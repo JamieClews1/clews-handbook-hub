@@ -81,6 +81,7 @@ import CRMPage from "./pages/CRMPage";
 import MailboxCallbackPage from "./pages/MailboxCallbackPage";
 import PricingPage from "./pages/PricingPage";
 import FinancePage from "./pages/FinancePage";
+import CompanyProfitLossPage from "./pages/CompanyProfitLossPage";
 import PayrollPage from "./pages/PayrollPage";
 import PoChecksPage from "./pages/PoChecksPage";
 
@@ -199,6 +200,7 @@ const App = () => (
             <Route path="/pricing/builder" element={<Navigate to="/pricing" replace />} />
             <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
             <Route path="/finance" element={<Staff><FinancePage /></Staff>} />
+            <Route path="/finance/company-pl" element={<Staff><CompanyProfitLossPage /></Staff>} />
             <Route path="/payroll" element={<Staff><PayrollPage /></Staff>} />
 
             {/* Catch-all */}
