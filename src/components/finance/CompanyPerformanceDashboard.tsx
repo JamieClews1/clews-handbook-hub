@@ -28,7 +28,7 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub: s
   return <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p><p className={`text-xs ${tone === "bad" ? "text-destructive" : tone === "good" ? "text-primary" : "text-muted-foreground"}`}>{sub}</p></CardContent></Card>;
 }
 
-export default function CompanyPerformanceDashboard() {
+export default function CompanyPerformanceDashboard({ source = "Full set" }: { source?: PlSheetName }) {
   const [records, setRecords] = useState<{ imported_at: string; sheets: PlSheets }[] | null>(null);
   const [error, setError] = useState(false);
   const [view, setView] = useState<View>("overview");

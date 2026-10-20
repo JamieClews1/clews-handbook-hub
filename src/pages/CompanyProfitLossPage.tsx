@@ -11,6 +11,12 @@ import type { PlSheetName } from "@/lib/company-pl";
 export default function CompanyProfitLossPage() {
   const { canAccess, loading } = useFinanceAccess();
   const { canAccessPl, loading: plLoading } = useCompanyPlAccess();
+  const [source, setSource] = useState<PlSheetName>(readPlSourcePreference);
+
+  const changeSource = (value: PlSheetName) => {
+    setSource(value);
+    try { localStorage.setItem(PL_SOURCE_STORAGE_KEY, value); } catch { /* preference is best-effort */ }
+  };
 
   if (loading || plLoading) {
     return (
