@@ -22,6 +22,18 @@ export function readPlWorkbook(bytes: ArrayBuffer) {
       if (!address.startsWith("!") && cell.f && cell.v === undefined) uncachedFormulas++;
     }
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "", blankrows: true });
+    // SheetJS omits error cells in JSON; preserve them so missing results
+    // cannot be mistaken for zero or a genuinely empty source cell.
+    const start = XLSX.utils.decode_range(sheet["!ref"] ?? "A1").s.r;
+    for (const [address, cell] of Object.entries(sheet)) {
+      if (address.startsWith("!") || cell.t !== "e") continue;
+      const position = XLSX.utils.decode_cell(address);
+      const rowIndex = position.r - start;
+      if (rowIndex < 0) continue;
+      const row = rows[rowIndex] ?? [];
+      row[position.c] = cell.w || "#ERROR!";
+      rows[rowIndex] = row;
+    }
     while (rows.length && rows[rows.length - 1]?.every((value) => !String(value).trim())) rows.pop();
     if (!rows.some((row) => row.some((value) => String(value).trim()))) continue;
     sheets[canonical] = rows.map((row) => row.map((value) => String(value)));

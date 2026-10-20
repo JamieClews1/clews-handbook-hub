@@ -80,6 +80,7 @@ export default function CompanyProfitLossTab() {
 
   const displayed = preview?.sheets ?? sheets;
   const names = PL_SHEET_NAMES.filter((name) => displayed[name]);
+  const sourceErrorCount = Object.values(displayed).reduce((total, rows) => total + (rows?.flat().filter((cell) => /^#(DIV\/0!|REF!|VALUE!|N\/A|NAME\?|NUM!|NULL!|ERROR!)/.test(cell)).length ?? 0), 0);
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -105,6 +106,7 @@ export default function CompanyProfitLossTab() {
         <div className="flex gap-2"><Button onClick={() => void save()} disabled={busy}><Upload className="mr-2 h-4 w-4" />Save import</Button><Button variant="outline" onClick={() => setPreview(null)} disabled={busy}><X className="mr-2 h-4 w-4" />Cancel</Button></div>
       </div>}
       {error && <div role="alert" className="flex items-center gap-3 text-destructive">{error}<Button variant="outline" onClick={() => void load()}>Try again</Button></div>}
+      {sourceErrorCount > 0 && <p role="alert" className="border-l-2 border-destructive pl-3 text-sm text-destructive">Source workbook contains {sourceErrorCount} calculation errors. These are shown as supplied, not treated as zero.</p>}
       {(loading || busy) && <p className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />{busy ? "Reading workbook…" : "Loading P&L…"}</p>}
       {!loading && !busy && !error && names.length === 0 && <div className="py-12 text-center"><FileSpreadsheet className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><p className="font-medium">No company P&amp;L imported yet</p></div>}
       {names.length > 0 && <Tabs key={preview?.fileName ?? selected} defaultValue={names[0]}>

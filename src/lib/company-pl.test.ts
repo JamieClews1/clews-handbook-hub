@@ -25,3 +25,11 @@ it("rejects files with no permitted populated tabs", () => {
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([["Secret", 99]]), "Payroll");
   assert.throws(() => readPlWorkbook(XLSX.write(workbook, { type: "array", bookType: "xlsx" })), /No populated/);
 });
+
+it("preserves source formula errors rather than importing blank values", () => {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([["Margin", 1]]);
+  sheet.B1 = { t: "e", v: 7, w: "#DIV/0!", f: "1/0" };
+  XLSX.utils.book_append_sheet(workbook, sheet, "Full set");
+  assert.equal(readPlWorkbook(XLSX.write(workbook, { type: "array", bookType: "xlsx" })).sheets["Full set"]?.[0]?.[1], "#DIV/0!");
+});
