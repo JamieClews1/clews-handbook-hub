@@ -5436,11 +5436,14 @@ export type Database = {
           buyer_id: string | null
           created_at: string
           created_by: string | null
+          destination_site: string | null
           dispatch_date: string
+          dispatch_time: string | null
           grade_id: string
           id: string
           notes: string | null
           price_per_tonne: number
+          remember_destination: boolean
           sales_ref: string | null
           total_value: number | null
           weighbridge_ticket: string | null
@@ -5450,11 +5453,14 @@ export type Database = {
           buyer_id?: string | null
           created_at?: string
           created_by?: string | null
+          destination_site?: string | null
           dispatch_date?: string
+          dispatch_time?: string | null
           grade_id: string
           id?: string
           notes?: string | null
           price_per_tonne?: number
+          remember_destination?: boolean
           sales_ref?: string | null
           total_value?: number | null
           weighbridge_ticket?: string | null
@@ -5464,11 +5470,14 @@ export type Database = {
           buyer_id?: string | null
           created_at?: string
           created_by?: string | null
+          destination_site?: string | null
           dispatch_date?: string
+          dispatch_time?: string | null
           grade_id?: string
           id?: string
           notes?: string | null
           price_per_tonne?: number
+          remember_destination?: boolean
           sales_ref?: string | null
           total_value?: number | null
           weighbridge_ticket?: string | null
@@ -5499,6 +5508,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          preferred_destination: string | null
           price_per_tonne: number
           stock_limit_kg: number | null
           storage_location: string | null
@@ -5511,6 +5521,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          preferred_destination?: string | null
           price_per_tonne?: number
           stock_limit_kg?: number | null
           storage_location?: string | null
@@ -5523,6 +5534,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          preferred_destination?: string | null
           price_per_tonne?: number
           stock_limit_kg?: number | null
           storage_location?: string | null
