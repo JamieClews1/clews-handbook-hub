@@ -15,7 +15,7 @@ Keep printing read-only: daily sheets fetch the selected day's native and non-du
 - WeighOne tablet mode (URL parameter) omits portal chrome but keeps urgent alerts and staff protection; installed WeighOne defaults to it, so the tablet stays dedicated without a separate workflow.
 - Metals: /metals uses staff-protected nf_* tables; PIN yard writes use metals-yard with client_ref deduplication. Stock = sorted + adjustments − dispatches, never collections. Dispatches snapshot destinations; an invoker trigger saves opted-in grade preferences atomically, so history stays unchanged.
 - Pricing tools use the shared specificity-first matrix matcher; unmatched/split postcodes require staff confirmation to prevent guessed prices.
-- Inbox and Email Quote share residential classification, exact size/material matching and VAT-normalisation helpers to prevent inconsistent prices.
+- Inbox drafts use their explicit-request rate-card policy; Email Quote retains enquiry classification. Both reuse exact residential matching and VAT helpers so changing draft defaults cannot change manual quotes.
 - Rental note history is append-only and authors are stamped from the authenticated user in database triggers, including edits to legacy notes; No Rental is an agreement mode with a server-enforced zero rate, and covered-container tracking reuses the shared physical-balance calculator without the chase free-period threshold.
 - Rental assignment menus share a profiles/staff-role eligibility helper; a database trigger validates new assignees to prevent alternate writes bypassing eligibility.
 - Rental job pagination must succeed in full before publishing results; failed reads show a retry state, never an empty or partial rental count.
