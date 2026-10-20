@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { parsePlSheet, periodTotals, profitBridge, parseAmount, yearEndProjections } from "./company-pl-analysis";
+import { parsePlSheet, periodTotals, profitBridge, parseAmount, yearEndProjections, monthlyForecast } from "./company-pl-analysis";
 
 const sheet = (yy: string, sales: string[], gp: string[], oh: string[], net: string[]) => [
   ["Clews Recycling"], ["", "", "", "Total", "", ...["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m) => `${m}-${yy}`)],
@@ -68,4 +68,31 @@ it("a completed year adds no estimated income or profit", () => {
   const y = parsePlSheet(sheet("26", Array(12).fill("100"), Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10")));
   assert.ok(y);
   for (const p of yearEndProjections(y, y)) { assert.equal(p.remaining.sales, 0); assert.equal(p.projected.netProfit, 120); }
+});
+
+it("rest-of-year forecast follows the prior year's seasonal shape, including a December slowdown", () => {
+  const cur = parsePlSheet(sheet("26", Array(8).fill("120"), Array(8).fill("48"), Array(8).fill("30"), Array(8).fill("18")));
+  const prev = parsePlSheet(sheet("25", [...Array(8).fill("100"), "150", "160", "140", "60"], Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10")));
+  assert.ok(cur); assert.ok(prev);
+  const forecast = monthlyForecast(cur, prev);
+  assert.equal(forecast.length, 4);
+  assert.ok(forecast.every((m) => m.seasonal));
+  // Prior-year Dec (60) is well below Nov (140); the forecast must keep that slowdown.
+  assert.equal(forecast[3].label, "Dec-26");
+  assert.ok(forecast[2].sales > forecast[3].sales, "November forecast should exceed December");
+  assert.equal(Math.round(forecast[3].sales), 72); // 60 × 1.2 growth
+  // Monthly sales sum to the same remaining total as the seasonal projection.
+  const seasonal = yearEndProjections(cur, prev).find((p) => p.key === "seasonal");
+  assert.equal(Math.round(forecast.reduce((s, m) => s + m.sales, 0)), Math.round(seasonal!.remaining.sales));
+  assert.equal(Math.round(forecast.reduce((s, m) => s + m.netProfit, 0)), Math.round(seasonal!.remaining.netProfit));
+});
+
+it("rest-of-year forecast falls back to year-to-date averages without a complete prior year", () => {
+  const cur = parsePlSheet(sheet("26", Array(8).fill("100"), Array(8).fill("40"), Array(8).fill("30"), Array(8).fill("10")));
+  const prev = parsePlSheet(sheet("25", ["100"], ["40"], ["30"], ["10"]));
+  assert.ok(cur); assert.ok(prev);
+  const forecast = monthlyForecast(cur, prev);
+  assert.equal(forecast.length, 4);
+  assert.ok(forecast.every((m) => !m.seasonal && m.sales === 100 && m.netProfit === 10));
+  assert.deepEqual(monthlyForecast(parsePlSheet(sheet("26", Array(12).fill("100"), Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10")))!, prev), []);
 });

@@ -1,5 +1,6 @@
 # Roadmap
 - [x] Add read-only Company P&L year-end projections using the selected worksheet; 14 tests pass, Jamie's actual figures and RFS selection verified, preview clean.
+- [x] Add month-by-month rest-of-year forecast to Projections, following the prior year's seasonal shape scaled by this year's growth; 10 tests pass, real-figure run verified (Dec follows 2025's pattern), preview clean.
 - [x] Add Jamie-only P&L within Finance; restricted worksheet tests pass, Jamie import/save/reload and anonymous restrictions verified; synthetic verification data removed.
 - [x] Import supplied 2023–2026 company P&L; every saved worksheet matches source, 2023–2024 contain Full set only, 2025–2026 include both EBITDA tabs; 2026 source errors preserved and flagged. Four tests pass and signed-in reload verified.
 - [x] Simplify non-ferrous dispatch date/time and destination recording; save grade preferences atomically and include destinations in stock, history and reports. Five metals tests pass; preview builds clean.

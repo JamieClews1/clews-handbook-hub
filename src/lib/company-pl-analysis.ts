@@ -85,6 +85,37 @@ export function monthlyNet(y: PlYear) {
 }
 
 export type PlProjection = { key: "seasonal" | "average" | "recent"; label: string; actual: PlPeriodTotals; remaining: PlPeriodTotals; projected: PlPeriodTotals };
+export type PlForecastMonth = { label: string; sales: number; grossProfit: number; overheads: number; netProfit: number; seasonal: boolean };
+
+/**
+ * Month-by-month forecast for the unreported remainder of the year.
+ * With a complete prior year, each month's sales follow that year's seasonal shape
+ * (e.g. a December slowdown) scaled by this year's matched-period sales growth;
+ * otherwise months repeat this year's monthly averages. Gross margin stays at the
+ * year-to-date level; overheads and the reported-net residual continue at their
+ * year-to-date monthly averages. Read-only: source worksheets stay unchanged.
+ */
+export function monthlyForecast(cur: PlYear, prev: PlYear): PlForecastMonth[] {
+  const months = cur.reportedMonths;
+  if (months < 1 || months >= 12) return [];
+  const actual = periodTotals(cur, months);
+  if (!actual.sales) return [];
+  const overheadPerMonth = actual.overheads / months;
+  const residualPerMonth = (actual.netProfit - actual.grossProfit + actual.overheads) / months;
+  const build = (label: string, sales: number, seasonal: boolean): PlForecastMonth => {
+    const grossProfit = sales * actual.grossMargin;
+    return { label, sales, grossProfit, overheads: overheadPerMonth, netProfit: grossProfit - overheadPerMonth + residualPerMonth, seasonal };
+  };
+  const labels = cur.monthLabels;
+  const prevSales = prev.year === cur.year - 1 && prev.reportedMonths === 12 ? line(prev, "sales") : undefined;
+  const matchedPrev = sumTo(prevSales, months);
+  if (prevSales && prevSales.slice(0, 12).every((v) => v !== null) && matchedPrev > 0) {
+    const growth = actual.sales / matchedPrev;
+    return labels.slice(months, 12).map((label, i) => build(label, (prevSales[months + i] ?? 0) * growth, true));
+  }
+  const avgSales = actual.sales / months;
+  return labels.slice(months, 12).map((label) => build(label, avgSales, false));
+}
 
 /** Indicative year-end estimates only; source worksheets and reported totals stay unchanged. */
 export function yearEndProjections(cur: PlYear, prev: PlYear): PlProjection[] {
