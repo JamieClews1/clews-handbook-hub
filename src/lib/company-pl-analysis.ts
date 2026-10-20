@@ -179,7 +179,11 @@ export function yearEndProjections(cur: PlYear, prev: PlYear): PlProjection[] {
   const matchedPrev = prev.year === cur.year - 1 ? periodTotals(prev, Math.min(months, prev.reportedMonths)) : null;
   if (matchedPrev && matchedPrev.sales > 0 && prev.reportedMonths >= months) {
     const growth = actual.sales / matchedPrev.sales;
-    results.unshift(make("growth", "Flat growth rate", totals((actual.sales / months) * growth * remainingMonths, (actual.sales / months) * growth * remainingMonths * actual.grossMargin, actual.overheads / months * remainingMonths, (actual.netProfit / months) * remainingMonths)));
+    const growthSales = (actual.sales / months) * growth * remainingMonths;
+    const growthGp = growthSales * actual.grossMargin;
+    const growthOh = (actual.overheads / months) * remainingMonths;
+    const growthResidual = ((actual.netProfit - actual.grossProfit + actual.overheads) / months) * remainingMonths;
+    results.unshift(make("growth", "Flat growth rate", totals(growthSales, growthGp, growthOh, growthGp - growthOh + growthResidual)));
     if (prev.reportedMonths === 12 && complete(prev, 12)) {
       const full = periodTotals(prev, 12);
       const sales = (full.sales - matchedPrev.sales) * growth;
