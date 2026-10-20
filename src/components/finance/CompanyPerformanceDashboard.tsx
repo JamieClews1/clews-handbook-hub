@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { withTimeout } from "@/lib/with-timeout";
-import type { PlSheets } from "@/lib/company-pl";
+import type { PlSheetName, PlSheets } from "@/lib/company-pl";
 import { costWatch, monthlyNet, parsePlSheet, periodTotals, profitBridge, type PlYear } from "@/lib/company-pl-analysis";
 
 type View = "overview" | "trends" | "drivers" | "divisions" | "costs";

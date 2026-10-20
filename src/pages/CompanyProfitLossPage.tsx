@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Loader2, LockKeyhole } from "lucide-react";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
 import CompanyPerformanceDashboard from "@/components/finance/CompanyPerformanceDashboard";
+import CompanyPlSettingsTab, { PL_SOURCE_STORAGE_KEY, readPlSourcePreference } from "@/components/finance/CompanyPlSettingsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { PlSheetName } from "@/lib/company-pl";
 
 export default function CompanyProfitLossPage() {
   const { canAccess, loading } = useFinanceAccess();
