@@ -5,7 +5,7 @@ import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
 
 export default function CompanyProfitLossPage() {
   const { canAccess, loading } = useFinanceAccess();
-  const { canAccessPl, loading: plLoading } = useCompanyPlAccess() as { canAccessPl: boolean; loading?: boolean };
+  const { canAccessPl, loading: plLoading } = useCompanyPlAccess();
 
   if (loading || plLoading) {
     return (
