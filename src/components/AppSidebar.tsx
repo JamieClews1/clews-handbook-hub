@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Bot, Route, Scale, Radio, Truck, PoundSterling, FileCheck,
-  AlertTriangle, Box, ShieldCheck, ClipboardList, ScrollText, BookOpen, Recycle,
+  FileSpreadsheet, AlertTriangle, Box, ShieldCheck, ClipboardList, ScrollText, BookOpen, Recycle,
   Container, Calendar, CalendarCheck, Inbox, Users, HardHat, Flame, MessageSquare,
   FileText, Gauge, TrendingUp, BarChart3, Upload, Fuel, Package, Building2,
   Smartphone, DollarSign, Settings, ChevronDown,
@@ -131,10 +131,12 @@ export function AppSidebar() {
   const { hidden } = usePortalSectionVisibility();
   const isSuperAdmin = isSuperAdminEmail(user?.email);
   const { canAccess: canAccessFinance } = useFinanceAccess();
+  const { canAccessPl } = useCompanyPlAccess();
+  const financeItems = canAccessPl ? finance : finance.filter((item) => item.path !== "/finance/company-pl");
   const groups = [
     { title: "Operations", icon: Route, items: operations, key: "nav-operations" },
     { title: "Customers & Sales", icon: Users, items: customers, key: "nav-customers" },
-    ...(canAccessFinance ? [{ title: "Finance", icon: PoundSterling, items: finance, key: "nav-finance" }] : []),
+    ...(canAccessFinance ? [{ title: "Finance", icon: PoundSterling, items: financeItems, key: "nav-finance" }] : []),
     { title: "Insights", icon: BarChart3, items: insights, key: "nav-insights" },
     { title: "Health & Safety", icon: ShieldCheck, items: safety, key: "nav-safety" },
     ...(isAdmin ? [{ title: "Admin", icon: Settings, items: admin, key: "nav-admin" }] : []),
