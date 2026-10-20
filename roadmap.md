@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Simplify non-ferrous dispatch date/time and destination recording; save grade preferences atomically and include destinations in stock, history and reports. Five metals tests pass; preview builds clean.
+- [ ] Verify metal dispatch saving and preference reuse through a signed-in screen (blocked: no preview session; requesting user has no matching account).
 - [x] Apply residential selection in Pricing and Inbox drafts; VAT and material tests pass, personal-email quote verified in preview. Inbox draft end-to-end remains unverified because function authentication rejected the test request.
 
 - [x] Add author-attributed rental notes and No Rental agreements, retaining on-site duration tracking; verify saved changes.
