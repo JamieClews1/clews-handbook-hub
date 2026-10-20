@@ -20,7 +20,9 @@ export function parsePlSheet(rows: string[][]): PlYear | null {
   if (headerIndex < 0) return null;
   const header = rows[headerIndex];
   const columns = header.map((cell, i) => (MONTH.test(cell.trim()) ? i : -1)).filter((i) => i >= 0);
-  const year = 2000 + Number(header[columns[0]].trim().match(MONTH)![2]);
+  const yearMatch = header[columns[0]].trim().match(MONTH);
+  if (!yearMatch) return null;
+  const year = 2000 + Number(yearMatch[2]);
   const lines = new Map<string, (number | null)[]>();
   const order: string[] = [];
   for (const row of rows.slice(headerIndex + 1)) {
@@ -80,4 +82,37 @@ export function costWatch(prev: PlYear, cur: PlYear, months: number) {
 export function monthlyNet(y: PlYear) {
   const net = line(y, "net profit", "net profit/loss", "net profit/(loss)") ?? [];
   return y.monthLabels.slice(0, y.reportedMonths).map((label, i) => ({ label, value: net[i] ?? 0 }));
+}
+
+export type PlProjection = { key: "seasonal" | "average" | "recent"; label: string; actual: PlPeriodTotals; remaining: PlPeriodTotals; projected: PlPeriodTotals };
+
+/** Indicative year-end estimates only; source worksheets and reported totals stay unchanged. */
+export function yearEndProjections(cur: PlYear, prev: PlYear): PlProjection[] {
+  const months = cur.reportedMonths;
+  if (months < 1 || months > 12) return [];
+  const complete = (y: PlYear, count: number) => [line(y, "sales"), line(y, "gross profit"), line(y, "overheads"), line(y, "net profit", "net profit/loss", "net profit/(loss)")]
+    .every((values) => values && values.slice(0, count).length === count && values.slice(0, count).every((v) => v !== null));
+  if (!complete(cur, months)) return [];
+  const actual = periodTotals(cur, months);
+  const remainingMonths = 12 - months;
+  const totals = (sales: number, grossProfit: number, overheads: number, netProfit: number): PlPeriodTotals => ({ year: cur.year, sales, grossProfit, overheads, netProfit, grossMargin: sales ? grossProfit / sales : 0, netMargin: sales ? netProfit / sales : 0 });
+  const make = (key: PlProjection["key"], label: string, remaining: PlPeriodTotals): PlProjection => ({ key, label, actual, remaining, projected: totals(actual.sales + remaining.sales, actual.grossProfit + remaining.grossProfit, actual.overheads + remaining.overheads, actual.netProfit + remaining.netProfit) });
+  const scale = (t: PlPeriodTotals, factor: number) => totals(t.sales * factor, t.grossProfit * factor, t.overheads * factor, t.netProfit * factor);
+  const results: PlProjection[] = [make("average", "Year-to-date average", scale(actual, remainingMonths / months))];
+  const recentMonths = Math.min(3, months);
+  const earlier = periodTotals(cur, months - recentMonths);
+  const recent = totals(actual.sales - earlier.sales, actual.grossProfit - earlier.grossProfit, actual.overheads - earlier.overheads, actual.netProfit - earlier.netProfit);
+  results.push(make("recent", `Latest ${recentMonths} months`, scale(recent, remainingMonths / recentMonths)));
+  if (prev.year === cur.year - 1 && prev.reportedMonths === 12 && complete(prev, 12)) {
+    const matched = periodTotals(prev, months);
+    const full = periodTotals(prev, 12);
+    if (matched.sales > 0) {
+      const sales = (full.sales - matched.sales) * (actual.sales / matched.sales);
+      const grossProfit = sales * actual.grossMargin;
+      const overheads = actual.overheads / months * remainingMonths;
+      const residual = (actual.netProfit - actual.grossProfit + actual.overheads) / months * remainingMonths;
+      results.unshift(make("seasonal", "Prior-year sales seasonality", totals(sales, grossProfit, overheads, grossProfit - overheads + residual)));
+    }
+  }
+  return results;
 }
