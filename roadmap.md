@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Add private P&L Sales view with portal waste values and uploaded other revenue, keeping accounting totals distinct; test and verify signed-in.
 - [x] Recognise Lee.Gane and Lee Gane as one RouteOne driver; 9 tests pass and signed-in Wednesday proposal shows 6 drivers working with Lee's 6 jobs. No plan applied.
 - [x] Add read-only Skiptrak/Midweigh evidence and optional forecasts in P&L Settings; Clews January alignment fixed, 26 tests pass and Jamie views verified. Missing June completed-status evidence safely blocks adjustments.
 - [x] Add read-only Company P&L year-end projections using the selected worksheet; 14 tests pass, Jamie's actual figures and RFS selection verified, preview clean.
