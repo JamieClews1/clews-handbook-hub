@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PL_SHEET_NAMES, type PlSheetName } from "@/lib/company-pl";
+import { PL_SHEET_NAMES, plSheetLabel, type PlSheetName } from "@/lib/company-pl";
 
 export const PL_SOURCE_STORAGE_KEY = "company-pl-source-tab";
 
@@ -24,7 +24,7 @@ export default function CompanyPlSettingsTab({ value, onChange }: Props) {
       <CardHeader>
         <CardTitle className="text-lg">Performance data source</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Choose which worksheet the Performance tab analyses. The Clews vs RFS view always uses both division tabs.
+          Choose which worksheet the Performance tab analyses. The Clews Only vs RFS Only view always uses both division tabs.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -33,7 +33,7 @@ export default function CompanyPlSettingsTab({ value, onChange }: Props) {
           <Select value={value} onValueChange={(v) => onChange(v as PlSheetName)}>
             <SelectTrigger id="pl-source" className="w-64 max-w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {PL_SHEET_NAMES.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+              {PL_SHEET_NAMES.map((name) => <SelectItem key={name} value={name}>{plSheetLabel(name)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
