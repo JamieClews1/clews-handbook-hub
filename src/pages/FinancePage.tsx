@@ -46,7 +46,6 @@ export default function FinancePage() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="settings">Settings &amp; Sage</TabsTrigger>
-          {canAccessPl && <TabsTrigger value="profit-loss">Company P&amp;L</TabsTrigger>}
         </TabsList>
         <TabsContent value="dashboard" className="mt-4">
           <FinanceDashboard />
