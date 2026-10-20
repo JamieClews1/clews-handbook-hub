@@ -9,7 +9,7 @@ import { AlertTriangle, ArrowRight, Loader2, Truck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { planDay, type PlannerDriver, type PlannerJob } from "@/lib/route-planner";
+import { driverNameKey, planDay, sameDriverName, type PlannerDriver, type PlannerJob } from "@/lib/route-planner";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
 import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
@@ -57,9 +57,8 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
   }, [open]);
 
   const hasWorkToday = useMemo(() => {
-    const n = (v: string | null) => (v ?? "").toLowerCase().trim();
     return (d: PlannerDriver) =>
-      jobs.some(j => j.currentDriverId === d.id || (j.currentDriverName && n(j.currentDriverName) === n(d.name)));
+      jobs.some(j => j.currentDriverId === d.id || sameDriverName(j.currentDriverName, d.name));
   }, [jobs]);
 
   const effectiveDrivers = useMemo(
@@ -82,7 +81,7 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
   const currentByDriver = useMemo(() => {
     const map = new Map<string, PlannerJob[]>();
     for (const j of jobs) {
-      const key = j.currentDriverId || (j.currentDriverName ? `name:${j.currentDriverName.toLowerCase().trim()}` : "unassigned");
+      const key = j.currentDriverId || (j.currentDriverName ? `name:${driverNameKey(j.currentDriverName)}` : "unassigned");
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(j);
     }
@@ -90,7 +89,7 @@ export const RoutingProposalDialog = ({ open, onOpenChange, jobs, drivers, dateL
   }, [jobs]);
 
   const currentCountFor = (d: PlannerDriver) =>
-    (currentByDriver.get(d.id)?.length ?? 0) + (currentByDriver.get(`name:${d.name.toLowerCase().trim()}`)?.length ?? 0);
+    (currentByDriver.get(d.id)?.length ?? 0) + (currentByDriver.get(`name:${driverNameKey(d.name)}`)?.length ?? 0);
 
   const movedCount = plan.drivers.reduce((n, p) => n + p.jobs.filter(j => j.movedFrom !== null).length, 0);
 

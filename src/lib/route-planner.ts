@@ -50,6 +50,15 @@ export type Lane = "skip" | "roro" | "artic";
 
 const norm = (v: unknown) => String(v ?? "").toLowerCase().trim();
 
+/** Driver name key that treats "Lee.Gane", "lee_gane" and "Lee  Gane" as the same person. */
+export const driverNameKey = (v: unknown) => norm(v).replace(/[.\-_]+/g, " ").replace(/\s+/g, " ").trim();
+export const sameDriverName = (a: unknown, b: unknown) => !!driverNameKey(a) && driverNameKey(a) === driverNameKey(b);
+
+/** Find the set-up driver an imported job's free-text driver name belongs to. */
+export function resolveDriverId(name: string | null | undefined, drivers: { id: string; name: string }[]): string | null {
+  return drivers.find(d => sameDriverName(d.name, name))?.id ?? null;
+}
+
 /** Which kind of work a job represents, from its container type. */
 export function laneForJob(job: PlannerJob, rules: RoutingRules): Lane | null {
   const t = norm(job.containerType) + " " + norm(job.containerSize) + " " + norm(job.movement);
@@ -231,7 +240,7 @@ export function planDay(
   }
 
   const hasWork = (d: PlannerDriver) =>
-    jobs.some(j => j.currentDriverId === d.id || (j.currentDriverName && norm(j.currentDriverName) === norm(d.name)));
+    jobs.some(j => j.currentDriverId === d.id || sameDriverName(j.currentDriverName, d.name));
 
   const working = rules.idle_drivers_not_working ? drivers.filter(hasWork) : drivers.slice();
   const notWorking = drivers.filter(d => !working.includes(d));
@@ -286,7 +295,7 @@ export function planDay(
         const start = target.totalMinutes + travel;
         const end = start + work;
         const movedFromName = job.currentDriverName || null;
-        const moved = norm(movedFromName) !== norm(target.driver.name);
+        const moved = job.currentDriverId ? job.currentDriverId !== target.driver.id : !sameDriverName(movedFromName, target.driver.name);
         const travelNote = `${travel} min travel (${leg.basis})`;
         target.jobs.push({
           job,

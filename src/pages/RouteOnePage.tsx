@@ -43,7 +43,7 @@ import { VehicleSettings } from "@/components/route-one/VehicleSettings";
 import { RoutingRulesSettings } from "@/components/route-one/RoutingRulesSettings";
 import { useRoutingRules } from "@/hooks/useRoutingRules";
 import { RoutingProposalDialog } from "@/components/route-one/RoutingProposalDialog";
-import type { PlannerJob, PlannerDriver } from "@/lib/route-planner";
+import { resolveDriverId, type PlannerJob, type PlannerDriver } from "@/lib/route-planner";
 import { DriverAppManagement } from "@/components/route-one/DriverAppManagement";
 import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
@@ -768,7 +768,7 @@ const RouteOnePage = () => {
       customer: String(j.customer ?? ""),
       site: String(j.site ?? ""),
       postcode: String(j.postcode ?? ""),
-      currentDriverId: null,
+      currentDriverId: resolveDriverId(j.driver, drivers.map((d: any) => ({ id: d.id, name: d.driver_name }))),
       currentDriverName: j.driver ? String(j.driver) : null,
     })),
   ];
