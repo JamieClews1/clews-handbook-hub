@@ -132,7 +132,7 @@ export const PL_PROJECTION_METHODS: { key: PlProjectionMethod; label: string; su
  * year-to-date level; overheads and the reported-net residual continue at their
  * year-to-date monthly averages. Read-only: source worksheets stay unchanged.
  */
-export function monthlyForecast(cur: PlYear, prev: PlYear): PlForecastMonth[] {
+export function monthlyForecast(cur: PlYear, prev: PlYear, method: PlProjectionMethod = "seasonal"): PlForecastMonth[] {
   const months = cur.reportedMonths;
   if (months < 1 || months >= 12) return [];
   const actual = periodTotals(cur, months);
@@ -146,11 +146,16 @@ export function monthlyForecast(cur: PlYear, prev: PlYear): PlForecastMonth[] {
   const labels = cur.monthLabels;
   const prevSales = prev.year === cur.year - 1 && prev.reportedMonths === 12 ? line(prev, "sales") : undefined;
   const matchedPrev = sumTo(prevSales, months);
-  if (prevSales && prevSales.slice(0, 12).every((v) => v !== null) && matchedPrev > 0) {
-    const growth = actual.sales / matchedPrev;
+  const growth = prevSales && matchedPrev > 0 ? actual.sales / matchedPrev : 1;
+  if (method === "seasonal" && prevSales && prevSales.slice(0, 12).every((v) => v !== null) && matchedPrev > 0) {
     return labels.slice(months, 12).map((label, i) => build(label, (prevSales[months + i] ?? 0) * growth, true));
   }
-  const avgSales = actual.sales / months;
+  if (method === "recent") {
+    const recentMonths = Math.min(3, months);
+    const recentAvg = sumTo(line(cur, "sales"), months) - sumTo(line(cur, "sales"), months - recentMonths);
+    return labels.slice(months, 12).map((label) => build(label, recentAvg / recentMonths, false));
+  }
+  const avgSales = (actual.sales / months) * (method === "growth" ? growth : 1);
   return labels.slice(months, 12).map((label) => build(label, avgSales, false));
 }
 
