@@ -4,9 +4,33 @@ export const PL_SHEET_NAMES = ["Full set", "Clews EBITDA", "RFS EBITDA"] as cons
 export type PlSheetName = (typeof PL_SHEET_NAMES)[number];
 export type PlSheets = Partial<Record<PlSheetName, string[][]>>;
 
-export function canonicalPlSheetName(name: string): PlSheetName | undefined {
-  return PL_SHEET_NAMES.find((allowed) => allowed.toLowerCase() === name.trim().toLowerCase());
+/**
+ * Storage keys stay the workbook tab names (the imported files literally say
+ * "Clews EBITDA" / "RFS EBITDA"), but staff-facing wording never calls a
+ * division "EBITDA" — the reported net profit still includes depreciation and
+ * bank charges, so the honest name is the division itself.
+ */
+export const PL_SHEET_LABELS: Record<PlSheetName, string> = {
+  "Full set": "Full set",
+  "Clews EBITDA": "Clews Only",
+  "RFS EBITDA": "RFS Only",
+};
+
+export function plSheetLabel(name: PlSheetName): string {
+  return PL_SHEET_LABELS[name];
 }
+
+/** Workbooks renamed to the staff-facing wording still import correctly. */
+const PL_SHEET_ALIASES: Record<string, PlSheetName> = {
+  "clews only": "Clews EBITDA",
+  "rfs only": "RFS EBITDA",
+};
+
+export function canonicalPlSheetName(name: string): PlSheetName | undefined {
+  const key = name.trim().toLowerCase();
+  return PL_SHEET_NAMES.find((allowed) => allowed.toLowerCase() === key) ?? PL_SHEET_ALIASES[key];
+}
+
 
 export function readPlWorkbook(bytes: ArrayBuffer) {
   const workbook = XLSX.read(bytes, { type: "array", cellFormula: true });
