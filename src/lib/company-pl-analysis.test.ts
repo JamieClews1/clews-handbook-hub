@@ -13,6 +13,27 @@ it("treats trailing zero months as unreported, not zero performance", () => {
   assert.equal(y.reportedMonths, 2);
   assert.equal(periodTotals(y, 2).netProfit, 60);
 });
+it("recovers the Clews January Excel serial without shifting months", () => {
+  const rows = sheet("25", ["282463", ...Array(11).fill("100")], Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10"));
+  rows[1][5] = "45,658";
+  const y = parsePlSheet(rows);
+  assert.ok(y);
+  assert.equal(y.year, 2025);
+  assert.equal(y.monthLabels[0], "Jan-25");
+  assert.equal(y.reportedMonths, 12);
+  assert.equal(periodTotals(y, 8).sales, 283163);
+  const cur = parsePlSheet(sheet("26", Array(8).fill("120"), Array(8).fill("48"), Array(8).fill("30"), Array(8).fill("18")));
+  assert.ok(cur);
+  assert.equal(yearEndProjections(cur, y).some((p) => p.key === "seasonal"), true);
+});
+it("rejects malformed or inconsistent calendar headers instead of shifting months", () => {
+  const rows = sheet("25", Array(12).fill("100"), Array(12).fill("40"), Array(12).fill("30"), Array(12).fill("10"));
+  rows[1][5] = "12345";
+  assert.equal(parsePlSheet(rows), null);
+  rows[1][5] = "45,658";
+  rows[1][7] = "Mar-26";
+  assert.equal(parsePlSheet(rows), null);
+});
 
 it("keeps spreadsheet errors as missing and reads negatives", () => {
   assert.equal(parseAmount("#DIV/0!"), null);

@@ -5,18 +5,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { monthlyActuals, monthlyForecast, yearEndProjections, PL_PROJECTION_METHODS, type PlProjectionMethod, type PlYear } from "@/lib/company-pl-analysis";
 import { plSheetLabel, type PlSheetName } from "@/lib/company-pl";
 
+import { adjustTradingForecast, tradingFactor, type TradingEvidence } from "@/lib/company-pl-trading";
+
 const gbp = (n: number) => `${n < 0 ? "−" : ""}£${Math.abs(Math.round(n)).toLocaleString("en-GB")}`;
 const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
 
-type Props = { cur: PlYear; prev: PlYear; source: PlSheetName; method: PlProjectionMethod; onMethodChange: (method: PlProjectionMethod) => void };
+type Props = { cur: PlYear; prev: PlYear; source: PlSheetName; method: PlProjectionMethod; onMethodChange: (method: PlProjectionMethod) => void; trading: TradingEvidence | null; useTrading: boolean };
 
-export default function CompanyPlProjections({ cur, prev, source, method, onMethodChange }: Props) {
-  const projections = yearEndProjections(cur, prev);
+export default function CompanyPlProjections({ cur, prev, source, method, onMethodChange, trading, useTrading }: Props) {
+  const applyTrading = useTrading && source !== "RFS EBITDA";
+  const projections = yearEndProjections(cur, prev).map((p) => {
+    if (!applyTrading || !Array.from({ length: 12 - cur.reportedMonths }, (_, i) => tradingFactor(trading, cur.year, cur.reportedMonths, cur.reportedMonths + i + 1)).some((factor) => factor !== null)) return p;
+    const rows = adjustTradingForecast(monthlyForecast(cur, prev, p.key), trading, cur.year, cur.reportedMonths);
+    const remaining = { ...p.remaining, sales: 0, grossProfit: 0, overheads: 0, netProfit: 0 };
+    for (const m of rows) { remaining.sales += m.sales; remaining.grossProfit += m.grossProfit; remaining.overheads += m.overheads; remaining.netProfit += m.netProfit; }
+    remaining.grossMargin = remaining.sales ? remaining.grossProfit / remaining.sales : 0;
+    remaining.netMargin = remaining.sales ? remaining.netProfit / remaining.sales : 0;
+    const projected = { ...p.projected, sales: p.actual.sales + remaining.sales, grossProfit: p.actual.grossProfit + remaining.grossProfit, overheads: p.actual.overheads + remaining.overheads, netProfit: p.actual.netProfit + remaining.netProfit };
+    projected.grossMargin = projected.sales ? projected.grossProfit / projected.sales : 0;
+    projected.netMargin = projected.sales ? projected.netProfit / projected.sales : 0;
+    return { ...p, remaining, projected };
+  });
   const requested = projections.find((p) => p.key === method);
   const selected = requested ?? projections[0];
   if (!selected) return <p role="alert" className="text-muted-foreground">Projections are unavailable: reported months contain missing or invalid sales, gross profit, overheads or net profit figures. Check Source worksheets.</p>;
   const remainingMonths = 12 - cur.reportedMonths;
-  const forecast = monthlyForecast(cur, prev, selected.key);
+  const baseForecast = monthlyForecast(cur, prev, selected.key);
+  const forecast = applyTrading ? adjustTradingForecast(baseForecast, trading, cur.year, cur.reportedMonths) : baseForecast;
+  const adjusted = applyTrading && forecast.some((_, i) => tradingFactor(trading, cur.year, cur.reportedMonths, cur.reportedMonths + i + 1) !== null);
   const actualRows = monthlyActuals(cur);
   const meta = PL_PROJECTION_METHODS.find((m) => m.key === selected.key);
   const end = cur.monthLabels[cur.reportedMonths - 1]?.slice(0, 3);
@@ -26,6 +42,7 @@ export default function CompanyPlProjections({ cur, prev, source, method, onMeth
       <span className="text-sm font-medium text-muted-foreground">Indicative estimates · not a budget or cash forecast</span>
     </div>
     {!requested && <p className="text-sm text-muted-foreground">The model chosen in Settings is unavailable for this data (it needs a complete previous year), so “{selected.label}” is shown instead.</p>}
+    {applyTrading && <p className="text-sm text-muted-foreground">{adjusted ? `Operational momentum scenario applied using matched uploads through ${trading?.cutoff}. Accounting actuals and forecast overheads remain unchanged; this is a company-level proxy, not reconciled revenue.` : "Operational scenario selected but matched trading evidence is unavailable; the unadjusted forecast is shown."}</p>}
     <div className="flex flex-wrap gap-2">{projections.map((p) => <Button key={p.key} size="sm" variant={selected.key === p.key ? "default" : "outline"} onClick={() => onMethodChange(p.key)}>{p.label}</Button>)}</div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{([
       ["Projected sales", gbp(selected.projected.sales)], ["Projected gross margin", pct(selected.projected.grossMargin)], ["Projected overheads", gbp(selected.projected.overheads)], ["Projected net profit", gbp(selected.projected.netProfit)],
@@ -46,7 +63,7 @@ export default function CompanyPlProjections({ cur, prev, source, method, onMeth
       <p className="text-sm text-muted-foreground">{meta?.calculation} Months under “Actual” are recorded results; forecast months are estimates, not recorded results.</p>
     </CardContent></Card>
     <div className="space-y-2 text-sm"><h3 className="font-semibold">How this projection is calculated</h3><p className="text-muted-foreground">{meta?.calculation}</p>
-      <p className="text-muted-foreground">No adjustments for one-off income, future price changes, new contracts or unexpected costs. Unreported months remain estimates, not recorded results. Net profit is not EBITDA or cash. You can change the model in Settings.</p>
+      <p className="text-muted-foreground">No adjustments for one-off income, future price changes, new contracts or unexpected costs. Unreported months remain estimates, not recorded results. Net profit is not EBITDA or cash. {adjusted ? "Operational momentum scales forecast sales and gross profit relative to year-to-date job-value growth; overheads stay unchanged." : "An optional operational momentum scenario is available in Settings."}</p>
     </div>
     <div className="space-y-2"><h3 className="font-semibold">Compare projection methods</h3><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Method</TableHead><TableHead className="text-right">Full-year sales</TableHead><TableHead className="text-right">Full-year net profit</TableHead><TableHead className="text-right">Net margin</TableHead></TableRow></TableHeader><TableBody>{projections.map((p) => <TableRow key={p.key} className={p.key === selected.key ? "bg-muted/50" : undefined}><TableCell>{p.label}</TableCell><TableCell className="text-right tabular-nums">{gbp(p.projected.sales)}</TableCell><TableCell className="text-right tabular-nums">{gbp(p.projected.netProfit)}</TableCell><TableCell className="text-right">{pct(p.projected.netMargin)}</TableCell></TableRow>)}</TableBody></Table></div><p className="text-xs text-muted-foreground">These are alternative assumptions, not a statistical confidence range or best/worst-case forecast.</p></div>
   </section>;

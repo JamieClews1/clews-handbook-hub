@@ -3,6 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PL_SHEET_NAMES, plSheetLabel, type PlSheetName } from "@/lib/company-pl";
 import { PL_PROJECTION_METHODS, type PlProjectionMethod } from "@/lib/company-pl-analysis";
+import CompanyPlTradingEvidence from "./CompanyPlTradingEvidence";
+import type { TradingEvidence } from "@/lib/company-pl-trading";
 
 export const PL_SOURCE_STORAGE_KEY = "company-pl-source-tab";
 export const PL_METHOD_STORAGE_KEY = "company-pl-projection-method";
@@ -32,13 +34,18 @@ type Props = {
   onChange: (value: PlSheetName) => void;
   method: PlProjectionMethod;
   onMethodChange: (method: PlProjectionMethod) => void;
+  trading: TradingEvidence | null;
+  tradingError: boolean;
+  retry: () => void;
+  useTrading: boolean;
+  onTradingChange: (value: boolean) => void;
 };
 
 /** Jamie-only preferences for the Company P&L performance analysis. */
-export default function CompanyPlSettingsTab({ value, onChange, method, onMethodChange }: Props) {
+export default function CompanyPlSettingsTab({ value, onChange, method, onMethodChange, trading, tradingError, retry, useTrading, onTradingChange }: Props) {
   const selected = PL_PROJECTION_METHODS.find((m) => m.key === method) ?? PL_PROJECTION_METHODS[0];
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Performance data source</CardTitle>
@@ -94,7 +101,7 @@ export default function CompanyPlSettingsTab({ value, onChange, method, onMethod
         <CardHeader>
           <CardTitle className="text-lg">All projection models</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Every model uses only the imported worksheets — actual months stay untouched and only unreported months are estimated. Gross margin is held at this year's year-to-date level and overheads continue at their year-to-date monthly average in all models.
+            Base models use the imported worksheets — actual months stay untouched and only unreported months are estimated. Gross margin stays at this year's year-to-date level. Seasonal overheads follow the previous year's monthly pattern; other models use this year's average overheads. The optional operational scenario below adjusts estimates only.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -106,6 +113,7 @@ export default function CompanyPlSettingsTab({ value, onChange, method, onMethod
           ))}
         </CardContent>
       </Card>
+      <CompanyPlTradingEvidence data={trading} error={tradingError} retry={retry} enabled={useTrading} onChange={onTradingChange} source={value} />
     </div>
   );
 }
