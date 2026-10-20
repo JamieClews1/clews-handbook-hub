@@ -15,7 +15,7 @@ type Props = { cur: PlYear; prev: PlYear; source: PlSheetName; method: PlProject
 export default function CompanyPlProjections({ cur, prev, source, method, onMethodChange, trading, useTrading }: Props) {
   const applyTrading = useTrading && source !== "RFS EBITDA";
   const projections = yearEndProjections(cur, prev).map((p) => {
-    if (!applyTrading) return p;
+    if (!applyTrading || !Array.from({ length: 12 - cur.reportedMonths }, (_, i) => tradingFactor(trading, cur.year, cur.reportedMonths, cur.reportedMonths + i + 1)).some((factor) => factor !== null)) return p;
     const rows = adjustTradingForecast(monthlyForecast(cur, prev, p.key), trading, cur.year, cur.reportedMonths);
     const remaining = { ...p.remaining, sales: 0, grossProfit: 0, overheads: 0, netProfit: 0 };
     for (const m of rows) { remaining.sales += m.sales; remaining.grossProfit += m.grossProfit; remaining.overheads += m.overheads; remaining.netProfit += m.netProfit; }
