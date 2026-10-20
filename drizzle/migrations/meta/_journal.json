@@ -183,6 +183,13 @@
       "when": 1792531043003,
       "tag": "0025_reduce_company_pl_trading_payload",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792531123287,
+      "tag": "0026_stabilize_company_pl_trading_plan",
+      "breakpoints": true
     }
   ]
 }
