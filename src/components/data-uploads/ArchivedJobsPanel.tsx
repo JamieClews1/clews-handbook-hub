@@ -51,9 +51,14 @@ export const ArchivedJobsPanel = ({ source, canManage, refreshKey, onRestored }:
         q = q.or(`job_number.ilike.%${term}%,customer.ilike.%${term}%,site.ilike.%${term}%`);
       }
 
-      const { data, error } = await q;
+      const [{ data, error }, { data: voids }] = await Promise.all([
+        q,
+        supabase.from("data_hub_void_jobs").select("job_number").eq("source", source).limit(5000),
+      ]);
       if (error) throw error;
-      setJobs((data ?? []) as ArchivedJob[]);
+      // Voided jobs are gone for good — don't offer them in the archive.
+      const voided = new Set((voids ?? []).map((v: any) => String(v.job_number).trim()));
+      setJobs(((data ?? []) as ArchivedJob[]).filter((j) => !voided.has(String(j.job_number).trim())));
     } catch (e: any) {
       console.error(e);
       toast({ title: "Could not load archive", description: e?.message, variant: "destructive" });
