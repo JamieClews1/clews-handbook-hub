@@ -14,11 +14,14 @@ export function salesMonths(year: PlYear, trading: TradingEvidence | null, allow
     const waste = recorded ? year.lines.get("waste income")?.[i] ?? null : null;
     const accounting = recorded ? year.lines.get("sales")?.[i] ?? null : null;
     const partial = i + 1 === cutoffMonth && Number(trading?.cutoff?.slice(8, 10)) < new Date(Date.UTC(year.year, cutoffMonth, 0)).getUTCDate();
+    const partialLabel = partial && trading?.cutoff
+      ? `to ${Number(trading.cutoff.slice(8, 10))} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(trading.cutoff.slice(5, 7)) - 1]}`
+      : null;
     return { label, skip: skip ? Number(skip.value) : null, mid: mid ? Number(mid.value) : null, portal, other, waste, accounting, categories,
       combined: allowCombined && !partial && portal !== null && other !== null ? portal + other : null,
       gap: !partial && portal !== null && waste !== null ? portal - waste : null,
       reconciliation: waste !== null && other !== null && accounting !== null ? waste + other - accounting : null,
-      unpriced: (skip?.unpriced ?? 0) + (mid?.unpriced ?? 0), partial };
+      unpriced: (skip?.unpriced ?? 0) + (mid?.unpriced ?? 0), partial, partialLabel };
   });
 }
 
