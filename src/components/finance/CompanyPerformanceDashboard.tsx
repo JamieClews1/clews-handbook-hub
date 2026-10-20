@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { withTimeout } from "@/lib/with-timeout";
 import { plSheetLabel, type PlSheetName, type PlSheets } from "@/lib/company-pl";
-import { costWatch, monthlyNet, parsePlSheet, periodTotals, profitBridge, type PlYear } from "@/lib/company-pl-analysis";
+import { costWatch, monthlyNet, parsePlSheet, periodTotals, profitBridge, type PlProjectionMethod, type PlYear } from "@/lib/company-pl-analysis";
 import CompanyPlProjections from "./CompanyPlProjections";
 
 type View = "overview" | "trends" | "drivers" | "divisions" | "costs" | "projections";
@@ -29,7 +29,7 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub: s
   return <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p><p className={`text-xs ${tone === "bad" ? "text-destructive" : tone === "good" ? "text-primary" : "text-muted-foreground"}`}>{sub}</p></CardContent></Card>;
 }
 
-export default function CompanyPerformanceDashboard({ source = "Full set" }: { source?: PlSheetName }) {
+export default function CompanyPerformanceDashboard({ source = "Full set", method, onMethodChange }: { source?: PlSheetName; method: PlProjectionMethod; onMethodChange: (method: PlProjectionMethod) => void }) {
   const [records, setRecords] = useState<{ imported_at: string; sheets: PlSheets }[] | null>(null);
   const [error, setError] = useState(false);
   const [view, setView] = useState<View>("overview");
@@ -76,7 +76,7 @@ export default function CompanyPerformanceDashboard({ source = "Full set" }: { s
       <div className="flex flex-wrap gap-2">{views.map(([key, label]) => <Button key={key} size="sm" variant={view === key ? "default" : "outline"} onClick={() => setView(key)}>{label}</Button>)}</div>
       <p className="text-sm text-muted-foreground">Compared on matched months: <strong className="text-foreground">{a.period} {a.cur.year}</strong> vs the same months in earlier years. Later {a.cur.year} months are treated as not yet reported, not as zero. “Net profit” is as reported and still includes depreciation and bank charges/interest — it is not EBITDA.</p>
 
-      {view === "projections" && <CompanyPlProjections cur={a.cur} prev={a.prev} source={source} />}
+      {view === "projections" && <CompanyPlProjections cur={a.cur} prev={a.prev} source={source} method={method} onMethodChange={onMethodChange} />}
 
       {view === "overview" && <>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

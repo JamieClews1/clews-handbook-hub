@@ -4,18 +4,25 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
 import CompanyPerformanceDashboard from "@/components/finance/CompanyPerformanceDashboard";
-import CompanyPlSettingsTab, { PL_SOURCE_STORAGE_KEY, readPlSourcePreference } from "@/components/finance/CompanyPlSettingsTab";
+import CompanyPlSettingsTab, { PL_SOURCE_STORAGE_KEY, PL_METHOD_STORAGE_KEY, readPlSourcePreference, readPlMethodPreference } from "@/components/finance/CompanyPlSettingsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PlSheetName } from "@/lib/company-pl";
+import type { PlProjectionMethod } from "@/lib/company-pl-analysis";
 
 export default function CompanyProfitLossPage() {
   const { canAccess, loading } = useFinanceAccess();
   const { canAccessPl, loading: plLoading } = useCompanyPlAccess();
   const [source, setSource] = useState<PlSheetName>(readPlSourcePreference);
+  const [method, setMethod] = useState<PlProjectionMethod>(readPlMethodPreference);
 
   const changeSource = (value: PlSheetName) => {
     setSource(value);
     try { localStorage.setItem(PL_SOURCE_STORAGE_KEY, value); } catch { /* preference is best-effort */ }
+  };
+
+  const changeMethod = (value: PlProjectionMethod) => {
+    setMethod(value);
+    try { localStorage.setItem(PL_METHOD_STORAGE_KEY, value); } catch { /* preference is best-effort */ }
   };
 
   if (loading || plLoading) {
@@ -51,9 +58,9 @@ export default function CompanyProfitLossPage() {
           <TabsTrigger value="source">Source worksheets</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
-        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard source={source} /></TabsContent>
+        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard source={source} method={method} onMethodChange={changeMethod} /></TabsContent>
         <TabsContent value="source" className="mt-4"><CompanyProfitLossTab /></TabsContent>
-        <TabsContent value="settings" className="mt-4"><CompanyPlSettingsTab value={source} onChange={changeSource} /></TabsContent>
+        <TabsContent value="settings" className="mt-4"><CompanyPlSettingsTab value={source} onChange={changeSource} method={method} onMethodChange={changeMethod} /></TabsContent>
       </Tabs>
     </div>
   );
