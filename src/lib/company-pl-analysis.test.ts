@@ -148,7 +148,7 @@ it("monthlyActuals returns only reported months with per-month values matching t
   assert.equal(actuals[0].label, "Jan-26");
   assert.equal(actuals[7].label, "Aug-26");
   assert.equal(actuals[7].sales, 200);
-  assert.ok(actuals.every((m) => m.sales === 100 ? m.netProfit === 10 : m.netProfit === 10));
+  assert.ok(actuals.every((m) => m.netProfit === 10 && m.overheads === 30));
   // Totals match the year-to-date period totals used by the projections.
   const totals = periodTotals(cur!, 8);
   assert.equal(actuals.reduce((s, m) => s + m.sales, 0), totals.sales);
