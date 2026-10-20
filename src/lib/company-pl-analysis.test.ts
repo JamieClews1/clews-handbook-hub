@@ -33,7 +33,11 @@ it("projects only remaining months and keeps actuals unchanged", () => {
   const prev = parsePlSheet(sheet("25", Array(12).fill("80"), Array(12).fill("30"), Array(12).fill("25"), Array(12).fill("5")));
   assert.ok(cur); assert.ok(prev);
   const result = yearEndProjections(cur, prev);
-  for (const p of result) { assert.equal(p.actual.sales, 800); assert.equal(p.remaining.sales, 400); assert.equal(p.projected.sales, 1200); assert.equal(p.projected.netProfit, 120); }
+  for (const p of result.filter((p) => p.key !== "growth")) { assert.equal(p.actual.sales, 800); assert.equal(p.remaining.sales, 400); assert.equal(p.projected.sales, 1200); assert.equal(p.projected.netProfit, 120); }
+  const growth = result.find((p) => p.key === "growth")!;
+  assert.equal(growth.actual.sales, 800);
+  assert.equal(growth.remaining.sales, 500); // 100 avg × 1.25 growth × 4 months
+  assert.equal(growth.projected.netProfit, 160);
   assert.equal(cur.reportedMonths, 8);
   assert.equal(periodTotals(cur, 8).netProfit, 80);
 });
