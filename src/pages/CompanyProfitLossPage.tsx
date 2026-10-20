@@ -2,6 +2,8 @@ import { Loader2, LockKeyhole } from "lucide-react";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
+import CompanyPerformanceDashboard from "@/components/finance/CompanyPerformanceDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CompanyProfitLossPage() {
   const { canAccess, loading } = useFinanceAccess();
@@ -34,7 +36,14 @@ export default function CompanyProfitLossPage() {
           Private company profit & loss workbooks. Only you can see this section.
         </p>
       </header>
-      <CompanyProfitLossTab />
+      <Tabs defaultValue="performance">
+        <TabsList>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="source">Source worksheets</TabsTrigger>
+        </TabsList>
+        <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard /></TabsContent>
+        <TabsContent value="source" className="mt-4"><CompanyProfitLossTab /></TabsContent>
+      </Tabs>
     </div>
   );
 }
