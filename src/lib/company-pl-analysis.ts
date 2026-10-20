@@ -175,6 +175,22 @@ export function monthlyForecast(cur: PlYear, prev: PlYear, method: PlProjectionM
   return labels.slice(months, 12).map((label) => build(label, avgSales, false));
 }
 
+/** Per-month actuals for the reported part of the year (sales, gross profit, overheads, net profit). */
+export function monthlyActuals(y: PlYear): PlForecastMonth[] {
+  const sales = line(y, "sales") ?? [];
+  const grossProfit = line(y, "gross profit") ?? [];
+  const overheads = line(y, "overheads") ?? [];
+  const net = line(y, "net profit", "net profit/loss", "net profit/(loss)") ?? [];
+  return y.monthLabels.slice(0, y.reportedMonths).map((label, i) => ({
+    label,
+    sales: sales[i] ?? 0,
+    grossProfit: grossProfit[i] ?? 0,
+    overheads: overheads[i] ?? 0,
+    netProfit: net[i] ?? 0,
+    seasonal: false,
+  }));
+}
+
 /** Indicative year-end estimates only; source worksheets and reported totals stay unchanged. */
 export function yearEndProjections(cur: PlYear, prev: PlYear): PlProjection[] {
   const months = cur.reportedMonths;
