@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, Download, Gem, Printer, Smartphone } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { computeStock, type StockInputs } from "@/lib/metals";
+import { MetalDispatchForm } from "@/components/metals/MetalDispatchForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Truck } from "lucide-react";
 
 const db = supabase as any;
 const kg = (n: number) => `${Math.round(n).toLocaleString("en-GB")} kg`;
@@ -56,6 +59,7 @@ export default function MetalsPage() {
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(today());
   const [gradeFilter, setGradeFilter] = useState("all");
+  const [dispatchGrade, setDispatchGrade] = useState<string | null>(null);
 
   if (isLoading || !data) return <div className="p-8 text-muted-foreground">Loading…</div>;
   const gName = (id: string) => data.grades.find((g: any) => g.id === id)?.name ?? "—";
@@ -76,6 +80,7 @@ export default function MetalsPage() {
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">All grades</SelectItem>{data.grades.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
           </Select>
+          <Button className="gap-2" onClick={() => setDispatchGrade("")}><Truck className="h-4 w-4" />Record metal leaving site</Button>
           <Button asChild variant="outline" className="gap-2"><a href="/metals-yard" target="_blank" rel="noreferrer"><Smartphone className="h-4 w-4" />Yard app</a></Button>
         </div>
       </div>
@@ -96,13 +101,14 @@ export default function MetalsPage() {
         </TabsList>
         <TabsContent value="dashboard"><Dashboard data={data} stock={stock} from={from} to={to} gName={gName} /></TabsContent>
         <TabsContent value="records"><Records data={data} from={from} to={to} grade={gradeFilter} gName={gName} /></TabsContent>
-        <TabsContent value="stock"><StockTab data={data} stock={stock} /></TabsContent>
-        <TabsContent value="sales"><Sales data={data} from={from} to={to} grade={gradeFilter} gName={gName} bName={bName} /></TabsContent>
+        <TabsContent value="stock"><StockTab data={data} stock={stock} onDispatch={setDispatchGrade} /></TabsContent>
+        <TabsContent value="sales"><Sales data={data} from={from} to={to} grade={gradeFilter} gName={gName} bName={bName} onDispatch={() => setDispatchGrade(gradeFilter === "all" ? "" : gradeFilter)} /></TabsContent>
         <TabsContent value="prices"><Prices data={data} gName={gName} bName={bName} /></TabsContent>
         <TabsContent value="reports"><Reports data={data} stock={stock} from={from} to={to} grade={gradeFilter} gName={gName} bName={bName} /></TabsContent>
         <TabsContent value="settings"><Settings data={data} /></TabsContent>
         <TabsContent value="audit"><Audit data={data} /></TabsContent>
       </Tabs>
+      <Dialog open={dispatchGrade !== null} onOpenChange={open => { if (!open) setDispatchGrade(null); }}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl" aria-describedby={undefined}><DialogHeader><DialogTitle>Record metal leaving site</DialogTitle></DialogHeader>{dispatchGrade !== null && <MetalDispatchForm data={data} initialGradeId={dispatchGrade} onSaved={() => setDispatchGrade(null)} />}</DialogContent></Dialog>
     </div>
   );
 }
@@ -217,7 +223,7 @@ function PhotoLink({ path }: { path: string }) {
   return <Button size="sm" variant="link" className="h-auto p-0 ml-1" onClick={async () => { const { data } = await supabase.storage.from("metal-photos").createSignedUrl(path, 600); if (data?.signedUrl) window.open(data.signedUrl, "_blank"); }}>photo</Button>;
 }
 
-function StockTab({ data, stock }: any) {
+function StockTab({ data, stock, onDispatch }: any) {
   const { user } = useAuth(); const qc = useQueryClient(); const { toast } = useToast();
   const [gradeId, setGradeId] = useState(""); const [amount, setAmount] = useState(""); const [reason, setReason] = useState("");
   const save = async () => {
@@ -227,9 +233,9 @@ function StockTab({ data, stock }: any) {
   };
   return (
     <div className="space-y-4">
-      <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Grade</TableHead><TableHead className="text-right">Sorted in</TableHead><TableHead className="text-right">Adjustments</TableHead><TableHead className="text-right">Dispatched</TableHead><TableHead className="text-right">In stock</TableHead><TableHead className="text-right">£/t</TableHead><TableHead className="text-right">Est. value</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+      <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Grade</TableHead><TableHead className="text-right">Sorted in</TableHead><TableHead className="text-right">Adjustments</TableHead><TableHead className="text-right">Dispatched</TableHead><TableHead className="text-right">In stock</TableHead><TableHead className="text-right">£/t</TableHead><TableHead className="text-right">Est. value</TableHead><TableHead>Status</TableHead><TableHead>Preferred destination</TableHead><TableHead /></TableRow></TableHeader>
         <TableBody>{stock.map((s: any) => <TableRow key={s.grade.id}><TableCell className="font-medium">{s.grade.name}{!s.grade.is_active && " (inactive)"}</TableCell><TableCell className="text-right">{kg(s.sorted)}</TableCell><TableCell className="text-right">{kg(s.adjusted)}</TableCell><TableCell className="text-right">{kg(s.dispatched)}</TableCell><TableCell className="text-right font-bold">{kg(s.kg)}</TableCell><TableCell className="text-right">{gbp(Number(s.grade.price_per_tonne))}</TableCell><TableCell className="text-right">{gbp(s.value)}</TableCell>
-          <TableCell>{s.kg < 0 ? <Badge variant="destructive">Negative — check</Badge> : s.alert === "over" ? <Badge variant="destructive">Over limit</Badge> : s.alert === "warn" ? <Badge variant="outline">Near limit</Badge> : <Badge variant="secondary">OK</Badge>}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+          <TableCell>{s.kg < 0 ? <Badge variant="destructive">Negative — check</Badge> : s.alert === "over" ? <Badge variant="destructive">Over limit</Badge> : s.alert === "warn" ? <Badge variant="outline">Near limit</Badge> : <Badge variant="secondary">OK</Badge>}</TableCell><TableCell>{s.grade.preferred_destination || "—"}</TableCell><TableCell><Button size="sm" variant="outline" disabled={!s.grade.is_active} onClick={() => onDispatch(s.grade.id)}>Record dispatch</Button></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Opening stock / authorised adjustment</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2 items-end">
         <Select value={gradeId} onValueChange={setGradeId}><SelectTrigger className="w-56"><SelectValue placeholder="Grade" /></SelectTrigger><SelectContent>{data.grades.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select>
         <Input type="number" placeholder="kg (+ add / − remove)" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-48" />
@@ -240,37 +246,15 @@ function StockTab({ data, stock }: any) {
   );
 }
 
-function Sales({ data, from, to, grade, gName, bName }: any) {
-  const { user } = useAuth(); const qc = useQueryClient(); const { toast } = useToast();
-  const [f, setF] = useState<any>({ dispatch_date: today() });
-  const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
-  const onGrade = (id: string) => { const g = data.grades.find((x: any) => x.id === id); const bp = data.prices.find((p: any) => p.grade_id === id && p.buyer_id === f.buyer_id); setF((p: any) => ({ ...p, grade_id: id, price_per_tonne: bp?.price_per_tonne ?? g?.price_per_tonne ?? 0 })); };
-  const save = async () => {
-    const { error } = await db.from("nf_dispatches").insert({ ...f, weight_kg: Number(f.weight_kg), price_per_tonne: Number(f.price_per_tonne || 0), created_by: user?.id });
-    if (error) return toast({ title: "Not saved", description: error.message, variant: "destructive" });
-    toast({ title: "Dispatch recorded" }); setF({ dispatch_date: today() }); qc.invalidateQueries({ queryKey: ["nf-all"] });
-  };
+function Sales({ data, from, to, grade, gName, bName, onDispatch }: any) {
   const rows = data.dispatches.filter((d: any) => d.dispatch_date >= from && d.dispatch_date <= to && (grade === "all" || d.grade_id === grade));
   const totalKg = rows.reduce((a: number, d: any) => a + Number(d.weight_kg), 0), totalV = rows.reduce((a: number, d: any) => a + Number(d.total_value), 0);
-  return (
-    <div className="space-y-4">
-      <Card><CardHeader><CardTitle className="text-base">Record dispatch / sale</CardTitle></CardHeader><CardContent className="grid md:grid-cols-4 gap-2">
-        <Input type="date" value={f.dispatch_date} onChange={(e) => set("dispatch_date", e.target.value)} />
-        <Select value={f.buyer_id ?? ""} onValueChange={(v) => set("buyer_id", v)}><SelectTrigger><SelectValue placeholder="Buyer" /></SelectTrigger><SelectContent>{data.buyers.filter((b: any) => b.is_active).map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select>
-        <Select value={f.grade_id ?? ""} onValueChange={onGrade}><SelectTrigger><SelectValue placeholder="Grade" /></SelectTrigger><SelectContent>{data.grades.filter((g: any) => g.is_active).map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select>
-        <Input type="number" placeholder="Weight kg" value={f.weight_kg ?? ""} onChange={(e) => set("weight_kg", e.target.value)} />
-        <Input type="number" placeholder="£ per tonne" value={f.price_per_tonne ?? ""} onChange={(e) => set("price_per_tonne", e.target.value)} />
-        <Input placeholder="Sales reference" value={f.sales_ref ?? ""} onChange={(e) => set("sales_ref", e.target.value)} />
-        <Input placeholder="Weighbridge ticket no." value={f.weighbridge_ticket ?? ""} onChange={(e) => set("weighbridge_ticket", e.target.value)} />
-        <Input placeholder="Notes" value={f.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
-        <div className="md:col-span-4 flex items-center justify-between"><span className="text-lg font-semibold">Sale value: {gbp((Number(f.weight_kg) || 0) / 1000 * (Number(f.price_per_tonne) || 0))}</span><Button disabled={!f.grade_id || !(Number(f.weight_kg) > 0)} onClick={save}>Save dispatch</Button></div>
-      </CardContent></Card>
-      <Card><CardHeader><CardTitle className="text-base">Dispatches — {kg(totalKg)}, {gbp(totalV)}{totalKg > 0 && `, avg ${gbp(totalV / (totalKg / 1000))}/t`}</CardTitle></CardHeader><CardContent className="p-0">
-        <Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Buyer</TableHead><TableHead>Grade</TableHead><TableHead className="text-right">Weight</TableHead><TableHead className="text-right">£/t</TableHead><TableHead className="text-right">Value</TableHead><TableHead>Sales ref</TableHead><TableHead>Ticket</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
-          <TableBody>{rows.map((d: any) => <TableRow key={d.id}><TableCell>{d.dispatch_date}</TableCell><TableCell>{bName(d.buyer_id)}</TableCell><TableCell>{gName(d.grade_id)}</TableCell><TableCell className="text-right">{kg(d.weight_kg)}</TableCell><TableCell className="text-right">{gbp(Number(d.price_per_tonne))}</TableCell><TableCell className="text-right font-semibold">{gbp(Number(d.total_value))}</TableCell><TableCell>{d.sales_ref}</TableCell><TableCell>{d.weighbridge_ticket}</TableCell><TableCell>{d.notes}</TableCell></TableRow>)}</TableBody></Table>
-      </CardContent></Card>
-    </div>
-  );
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Dispatches — {kg(totalKg)}, {gbp(totalV)}</h2><Button className="gap-2" onClick={onDispatch}><Truck className="h-4 w-4" />Record metal leaving site</Button></div>
+    <div className="overflow-x-auto border rounded-lg"><Table><TableHeader><TableRow><TableHead>Date / time</TableHead><TableHead>Destination site</TableHead><TableHead>Buyer</TableHead><TableHead>Metal type</TableHead><TableHead className="text-right">Weight</TableHead><TableHead className="text-right">£/t</TableHead><TableHead className="text-right">Value</TableHead><TableHead>Sales ref</TableHead><TableHead>Ticket</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
+      <TableBody>{rows.length === 0 ? <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">No dispatches for these dates.</TableCell></TableRow> : rows.map((d: any) => <TableRow key={d.id}><TableCell className="whitespace-nowrap">{d.dispatch_date}{d.dispatch_time && <span className="block text-muted-foreground">{d.dispatch_time.slice(0, 5)}</span>}</TableCell><TableCell className="font-medium">{d.destination_site || "—"}</TableCell><TableCell>{bName(d.buyer_id)}</TableCell><TableCell>{gName(d.grade_id)}</TableCell><TableCell className="text-right">{kg(d.weight_kg)}</TableCell><TableCell className="text-right">{gbp(Number(d.price_per_tonne))}</TableCell><TableCell className="text-right font-semibold">{gbp(Number(d.total_value))}</TableCell><TableCell>{d.sales_ref}</TableCell><TableCell>{d.weighbridge_ticket}</TableCell><TableCell>{d.notes}</TableCell></TableRow>)}</TableBody>
+    </Table></div>
+  </div>;
 }
 
 function Prices({ data, gName, bName }: any) {
@@ -333,7 +317,7 @@ function Reports({ data, stock, from, to, grade, gName, bName }: any) {
       case "Metal-grade breakdown": { const days = Math.max(1, (new Date(to).getTime() - new Date(from).getTime()) / 864e5 + 1); return data.grades.map((g: any) => { const w = sorts.filter((r: any) => r.grade_id === g.id).reduce((a: number, r: any) => a + Number(r.weight_kg), 0); return { Grade: g.name, "Sorted kg": w, "Avg kg/day": +(w / days).toFixed(1), "Est value £": +(w / 1000 * g.price_per_tonne).toFixed(2) }; }); }
       case "Current stock": return stock.map((s: any) => ({ Grade: s.grade.name, "In stock kg": s.kg, "Limit kg": s.grade.stock_limit_kg ?? "" }));
       case "Stock valuation": return stock.map((s: any) => ({ Grade: s.grade.name, "In stock kg": s.kg, "£ per tonne": s.grade.price_per_tonne, "Value £": +s.value.toFixed(2) }));
-      case "Dispatch": case "Sales revenue": return disp.map((d: any) => ({ Date: d.dispatch_date, Buyer: bName(d.buyer_id), Grade: gName(d.grade_id), "Weight kg": d.weight_kg, "£ per tonne": d.price_per_tonne, "Value £": d.total_value, "Sales ref": d.sales_ref ?? "", Ticket: d.weighbridge_ticket ?? "" }));
+      case "Dispatch": case "Sales revenue": return disp.map((d: any) => ({ Date: d.dispatch_date, Time: d.dispatch_time?.slice(0, 5) ?? "", "Destination site": d.destination_site ?? "", Buyer: bName(d.buyer_id), Grade: gName(d.grade_id), "Weight kg": d.weight_kg, "£ per tonne": d.price_per_tonne, "Value £": d.total_value, "Sales ref": d.sales_ref ?? "", Ticket: d.weighbridge_ticket ?? "" }));
       case "Buyer performance": { const m: Record<string, { kg: number; v: number; n: number }> = {}; disp.forEach((d: any) => { const k = bName(d.buyer_id); m[k] ??= { kg: 0, v: 0, n: 0 }; m[k].kg += Number(d.weight_kg); m[k].v += Number(d.total_value); m[k].n++; }); return Object.entries(m).map(([b, x]) => ({ Buyer: b, Loads: x.n, "Weight kg": x.kg, "Revenue £": +x.v.toFixed(2), "Avg £/t": x.kg ? +(x.v / (x.kg / 1000)).toFixed(2) : 0 })); }
       case "Staff activity": { const m: Record<string, { c: number; ck: number; s: number; sk: number }> = {}; cols.forEach((r: any) => { m[r.staff_name] ??= { c: 0, ck: 0, s: 0, sk: 0 }; m[r.staff_name].c++; m[r.staff_name].ck += Number(r.weight_kg); }); sorts.forEach((r: any) => { m[r.staff_name] ??= { c: 0, ck: 0, s: 0, sk: 0 }; m[r.staff_name].s++; m[r.staff_name].sk += Number(r.weight_kg); }); return Object.entries(m).map(([n, x]) => ({ Staff: n, Collections: x.c, "Collected kg": x.ck, "Sort entries": x.s, "Sorted kg": x.sk })); }
       case "Collection-to-sorting reconciliation": { const c = group(cols, (r) => day(r.recorded_at), (r) => Number(r.weight_kg)), s = group(sorts, (r) => day(r.recorded_at), (r) => Number(r.weight_kg)); return [...new Set([...Object.keys(c), ...Object.keys(s)])].sort().map((d) => { const diff = (c[d] ?? 0) - (s[d] ?? 0); return { Date: d, "Collected kg": c[d] ?? 0, "Sorted kg": s[d] ?? 0, "Difference kg": +diff.toFixed(1), Flag: (c[d] ?? 0) > 0 && Math.abs(diff) > (c[d] ?? 0) * 0.1 ? "Investigate" : "" }; }); }
@@ -373,10 +357,11 @@ function Settings({ data }: any) {
     <div className="grid xl:grid-cols-3 gap-4">
       <Card className="xl:col-span-2"><CardHeader><CardTitle className="text-base">Metal grades</CardTitle></CardHeader><CardContent className="space-y-2">
         <p className="text-sm text-muted-foreground">Renaming or deactivating keeps all historical records. Stock limit triggers alerts (warning level shows first).</p>
-        <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Identification guidance</TableHead><TableHead>Warn at kg</TableHead><TableHead>Limit kg</TableHead><TableHead>Order</TableHead><TableHead>Active</TableHead></TableRow></TableHeader>
+        <Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Identification guidance</TableHead><TableHead>Preferred destination</TableHead><TableHead>Warn at kg</TableHead><TableHead>Limit kg</TableHead><TableHead>Order</TableHead><TableHead>Active</TableHead></TableRow></TableHeader>
           <TableBody>{data.grades.map((g: any) => <TableRow key={g.id}>
             <TableCell><Input defaultValue={g.name} onBlur={(e) => e.target.value !== g.name && upd("nf_grades", g.id, { name: e.target.value })} /></TableCell>
             <TableCell><Input defaultValue={g.guidance ?? ""} onBlur={(e) => e.target.value !== (g.guidance ?? "") && upd("nf_grades", g.id, { guidance: e.target.value || null })} /></TableCell>
+            <TableCell><Input aria-label={`Preferred destination for ${g.name}`} key={g.preferred_destination ?? ""} defaultValue={g.preferred_destination ?? ""} onBlur={(e) => e.target.value.trim() !== (g.preferred_destination ?? "") && upd("nf_grades", g.id, { preferred_destination: e.target.value.trim() || null })} /></TableCell>
             <TableCell><Input type="number" className="w-24" defaultValue={g.warn_at_kg ?? ""} onBlur={(e) => upd("nf_grades", g.id, { warn_at_kg: e.target.value ? Number(e.target.value) : null })} /></TableCell>
             <TableCell><Input type="number" className="w-24" defaultValue={g.stock_limit_kg ?? ""} onBlur={(e) => upd("nf_grades", g.id, { stock_limit_kg: e.target.value ? Number(e.target.value) : null })} /></TableCell>
             <TableCell><Input type="number" className="w-16" defaultValue={g.display_order} onBlur={(e) => upd("nf_grades", g.id, { display_order: Number(e.target.value) })} /></TableCell>
