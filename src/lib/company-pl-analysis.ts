@@ -176,15 +176,17 @@ export function yearEndProjections(cur: PlYear, prev: PlYear): PlProjection[] {
   const earlier = periodTotals(cur, months - recentMonths);
   const recent = totals(actual.sales - earlier.sales, actual.grossProfit - earlier.grossProfit, actual.overheads - earlier.overheads, actual.netProfit - earlier.netProfit);
   results.push(make("recent", `Latest ${recentMonths} months`, scale(recent, remainingMonths / recentMonths)));
-  if (prev.year === cur.year - 1 && prev.reportedMonths === 12 && complete(prev, 12)) {
-    const matched = periodTotals(prev, months);
-    const full = periodTotals(prev, 12);
-    if (matched.sales > 0) {
-      const sales = (full.sales - matched.sales) * (actual.sales / matched.sales);
+  const matchedPrev = prev.year === cur.year - 1 ? periodTotals(prev, Math.min(months, prev.reportedMonths)) : null;
+  if (matchedPrev && matchedPrev.sales > 0 && prev.reportedMonths >= months) {
+    const growth = actual.sales / matchedPrev.sales;
+    results.unshift(make("growth", "Flat growth rate", totals((actual.sales / months) * growth * remainingMonths, (actual.sales / months) * growth * remainingMonths * actual.grossMargin, actual.overheads / months * remainingMonths, (actual.netProfit / months) * remainingMonths)));
+    if (prev.reportedMonths === 12 && complete(prev, 12)) {
+      const full = periodTotals(prev, 12);
+      const sales = (full.sales - matchedPrev.sales) * growth;
       const grossProfit = sales * actual.grossMargin;
       const overheads = actual.overheads / months * remainingMonths;
       const residual = (actual.netProfit - actual.grossProfit + actual.overheads) / months * remainingMonths;
-      results.unshift(make("seasonal", "Prior-year sales seasonality", totals(sales, grossProfit, overheads, grossProfit - overheads + residual)));
+      results.unshift(make("seasonal", "Prior-year seasonality", totals(sales, grossProfit, overheads, grossProfit - overheads + residual)));
     }
   }
   return results;
