@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Recognise Lee.Gane and Lee Gane as one RouteOne driver; verify the real proposed day without applying changes.
 - [x] Add read-only Skiptrak/Midweigh evidence and optional forecasts in P&L Settings; Clews January alignment fixed, 26 tests pass and Jamie views verified. Missing June completed-status evidence safely blocks adjustments.
 - [x] Add read-only Company P&L year-end projections using the selected worksheet; 14 tests pass, Jamie's actual figures and RFS selection verified, preview clean.
 - [x] Add month-by-month rest-of-year forecast to Projections, following the prior year's seasonal shape scaled by this year's growth; 10 tests pass, real-figure run verified (Dec follows 2025's pattern), preview clean.
