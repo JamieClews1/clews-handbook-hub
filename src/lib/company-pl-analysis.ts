@@ -94,7 +94,7 @@ export const PL_PROJECTION_METHODS: { key: PlProjectionMethod; label: string; su
     key: "seasonal",
     label: "Prior-year seasonality",
     summary: "Follows last year's monthly pattern — busy and quiet months, including any year-end slowdown — scaled by this year's growth.",
-    calculation: "Remaining sales = last year's sales for each remaining month × (this year's sales so far ÷ last year's sales for the same months). Gross margin stays at this year's year-to-date level; overheads continue at their year-to-date monthly average.",
+    calculation: "Remaining sales = last year's sales for each remaining month × (this year's sales so far ÷ last year's sales for the same months). Overheads follow last year's monthly overhead pattern, scaled the same way. Gross margin stays at this year's year-to-date level.",
     bestFor: "Businesses with a repeating yearly rhythm, when a complete previous year is available.",
     caution: "Assumes this year keeps last year's shape. A one-off event last year (e.g. a lost contract) is carried into the forecast.",
   },
@@ -144,11 +144,27 @@ export function monthlyForecast(cur: PlYear, prev: PlYear, method: PlProjectionM
     return { label, sales, grossProfit, overheads: overheadPerMonth, netProfit: grossProfit - overheadPerMonth + residualPerMonth, seasonal };
   };
   const labels = cur.monthLabels;
-  const prevSales = prev.year === cur.year - 1 && prev.reportedMonths === 12 ? line(prev, "sales") : undefined;
+  const prevComplete = prev.year === cur.year - 1 && prev.reportedMonths === 12;
+  const prevSales = prevComplete ? line(prev, "sales") : undefined;
   const matchedPrev = sumTo(prevSales, months);
   const growth = prevSales && matchedPrev > 0 ? actual.sales / matchedPrev : 1;
   if (method === "seasonal" && prevSales && prevSales.slice(0, 12).every((v) => v !== null) && matchedPrev > 0) {
-    return labels.slice(months, 12).map((label, i) => build(label, (prevSales[months + i] ?? 0) * growth, true));
+    const prevOh = line(prev, "overheads");
+    const prevGp = line(prev, "gross profit");
+    const prevNet = line(prev, "net profit", "net profit/loss", "net profit/(loss)");
+    const matchedOh = sumTo(prevOh, months);
+    const ohGrowth = prevOh && matchedOh > 0 ? actual.overheads / matchedOh : null;
+    const prevResiduals = prevNet && prevGp && prevOh ? prevNet.map((n, i) => (n ?? 0) - (prevGp[i] ?? 0) + (prevOh[i] ?? 0)) : null;
+    const matchedResidual = prevResiduals ? prevResiduals.slice(0, months).reduce((s, v) => s + v, 0) : 0;
+    const residualGrowth = prevResiduals && matchedResidual !== 0 ? (actual.netProfit - actual.grossProfit + actual.overheads) / matchedResidual : null;
+    return labels.slice(months, 12).map((label, i) => {
+      const mi = months + i;
+      const sales = (prevSales[mi] ?? 0) * growth;
+      const grossProfit = sales * actual.grossMargin;
+      const overheads = ohGrowth !== null && prevOh![mi] !== null ? prevOh![mi]! * ohGrowth : overheadPerMonth;
+      const residual = residualGrowth !== null ? prevResiduals![mi] * residualGrowth : residualPerMonth;
+      return { label, sales, grossProfit, overheads, netProfit: grossProfit - overheads + residual, seasonal: true };
+    });
   }
   if (method === "recent") {
     const recentMonths = Math.min(3, months);
@@ -188,8 +204,20 @@ export function yearEndProjections(cur: PlYear, prev: PlYear): PlProjection[] {
       const full = periodTotals(prev, 12);
       const sales = (full.sales - matchedPrev.sales) * growth;
       const grossProfit = sales * actual.grossMargin;
-      const overheads = actual.overheads / months * remainingMonths;
-      const residual = (actual.netProfit - actual.grossProfit + actual.overheads) / months * remainingMonths;
+      // Overheads and the net-profit residual follow the prior year's monthly shape, scaled to this year's level.
+      const prevOh = line(prev, "overheads")!;
+      const prevGp = line(prev, "gross profit")!;
+      const prevNet = line(prev, "net profit", "net profit/loss", "net profit/(loss)")!;
+      const ohGrowth = matchedPrev && sumTo(prevOh, months) > 0 ? actual.overheads / sumTo(prevOh, months) : null;
+      const prevResiduals = prevNet.map((n, i) => (n ?? 0) - (prevGp[i] ?? 0) + (prevOh[i] ?? 0));
+      const matchedResidual = prevResiduals.slice(0, months).reduce((s, v) => s + v, 0);
+      const residualGrowth = matchedResidual !== 0 ? (actual.netProfit - actual.grossProfit + actual.overheads) / matchedResidual : null;
+      let overheads = 0;
+      let residual = 0;
+      for (let mi = months; mi < 12; mi++) {
+        overheads += ohGrowth !== null && prevOh[mi] !== null ? prevOh[mi]! * ohGrowth : actual.overheads / months;
+        residual += residualGrowth !== null ? prevResiduals[mi] * residualGrowth : (actual.netProfit - actual.grossProfit + actual.overheads) / months;
+      }
       results.unshift(make("seasonal", "Prior-year seasonality", totals(sales, grossProfit, overheads, grossProfit - overheads + residual)));
     }
   }
