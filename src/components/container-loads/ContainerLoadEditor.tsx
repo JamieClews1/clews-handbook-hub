@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import annexExample from "@/assets/annex-7-example.pdf.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1047,6 +1048,24 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               ).map(({ kind, label, file }) => (
                 <div key={kind} className="rounded-lg border p-3 space-y-2">
                   <div className="font-semibold text-sm">{label}</div>
+                  {kind === "annex7" && (
+                    <div className="rounded border border-dashed bg-muted/30 p-2 text-xs space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Example only</Badge>
+                        <a
+                          href={annexExample.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline font-medium"
+                        >
+                          View example Annex 7
+                        </a>
+                      </div>
+                      <p className="text-muted-foreground">
+                        Shows what a completed Annex 7 looks like. It is not this load's paperwork — upload this container's own Annex 7 below.
+                      </p>
+                    </div>
+                  )}
                   {file ? (
                     <div className="flex items-center justify-between gap-2 rounded bg-muted/40 p-2">
                       <a
