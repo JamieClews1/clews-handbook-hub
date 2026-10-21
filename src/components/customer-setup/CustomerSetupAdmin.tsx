@@ -35,6 +35,8 @@ import { selectActivePriceSetLink } from "@/lib/rebate-price-set";
 import { SiteHistoryDialog } from "./SiteHistoryDialog";
 import { GdprCleanup } from "./GdprCleanup";
 import { cleanEmail } from "@/lib/email-clean";
+import { publicUrl } from "@/lib/public-url";
+
 
 /** Read the real error message from a failed backend function call. */
 async function functionErrorMessage(e: any, fallback: string): Promise<string> {
@@ -2741,7 +2743,7 @@ export function CustomerSetupAdmin() {
                 type="button"
                 variant="secondary"
                 className="w-full"
-                onClick={() => copyText(`Portal: ${window.location.origin}/auth\nEmail: ${savedLogin.email}\nPassword: ${savedLogin.password}`, "Login details")}
+                onClick={() => copyText(`Portal: ${publicUrl("/my-portal")}\nEmail: ${savedLogin.email}\nPassword: ${savedLogin.password}`, "Login details")}
               >
                 <Copy className="h-4 w-4 mr-2" /> Copy all login details
               </Button>
@@ -2854,7 +2856,7 @@ export function CustomerSetupAdmin() {
                 name: accessEmailName,
                 email: accessEmailTo,
                 password: includeTempPassword ? tempPassword : null,
-                portalUrl: `${window.location.origin}/auth`,
+                portalUrl: publicUrl("/my-portal"),
               })}
               onFocus={(e) => e.currentTarget.select()}
             />
@@ -2868,7 +2870,7 @@ export function CustomerSetupAdmin() {
                     name: accessEmailName,
                     email: accessEmailTo,
                     password: includeTempPassword ? tempPassword : null,
-                    portalUrl: `${window.location.origin}/auth`,
+                    portalUrl: publicUrl("/my-portal"),
                   }),
                   "Email text"
                 )
