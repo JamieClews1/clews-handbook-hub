@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/lib/with-timeout";
 import type { TradingEvidence } from "@/lib/company-pl-trading";
 import { Loader2, LockKeyhole } from "lucide-react";
-import { useFinanceAccess } from "@/hooks/useFinanceAccess";
+import CompanyPlAccessSettings from "@/components/finance/CompanyPlAccessSettings";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import CompanyProfitLossTab from "@/components/finance/CompanyProfitLossTab";
 import CompanyPerformanceDashboard from "@/components/finance/CompanyPerformanceDashboard";
@@ -16,8 +16,7 @@ import { PL_SHEET_NAMES, plSheetLabel } from "@/lib/company-pl";
 import type { PlProjectionMethod } from "@/lib/company-pl-analysis";
 
 export default function CompanyProfitLossPage() {
-  const { canAccess, loading } = useFinanceAccess();
-  const { canAccessPl, loading: plLoading } = useCompanyPlAccess();
+  const { canAccessPl, canManagePl, loading: plLoading } = useCompanyPlAccess();
   const [source, setSource] = useState<PlSheetName>(readPlSourcePreference);
   const [method, setMethod] = useState<PlProjectionMethod>(readPlMethodPreference);
   const [trading, setTrading] = useState<TradingEvidence | null>(null);
@@ -25,7 +24,7 @@ export default function CompanyProfitLossPage() {
   const [retry, setRetry] = useState(0);
   const [useTrading, setUseTrading] = useState(() => { try { return localStorage.getItem("company-pl-trading") === "true"; } catch { return false; } });
   useEffect(() => {
-    if (!canAccess || !canAccessPl) return;
+    if (!canAccessPl) return;
     let active = true;
     setTradingError(false);
     withTimeout(supabase.rpc("get_company_pl_operational_trends"), 25000, "Trading trends").then(({ data, error }) => {
@@ -33,7 +32,7 @@ export default function CompanyProfitLossPage() {
       if (error) { setTrading(null); setTradingError(true); } else setTrading(data as unknown as TradingEvidence);
     }).catch(() => { if (active) { setTrading(null); setTradingError(true); } });
     return () => { active = false; };
-  }, [canAccess, canAccessPl, retry]);
+  }, [canAccessPl, retry]);
   const changeTrading = (value: boolean) => { setUseTrading(value); try { localStorage.setItem("company-pl-trading", String(value)); } catch { /* best effort */ } };
 
   const changeSource = (value: PlSheetName) => {
@@ -46,7 +45,7 @@ export default function CompanyProfitLossPage() {
     try { localStorage.setItem(PL_METHOD_STORAGE_KEY, value); } catch { /* preference is best-effort */ }
   };
 
-  if (loading || plLoading) {
+  if (plLoading) {
     return (
       <div className="flex items-center gap-2 p-8 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading…
@@ -54,7 +53,7 @@ export default function CompanyProfitLossPage() {
     );
   }
 
-  if (!canAccess || !canAccessPl) {
+  if (!canAccessPl) {
     return (
       <div className="mx-auto max-w-screen-2xl p-6">
         <h1 className="text-xl font-semibold">Company P&L</h1>
@@ -71,7 +70,7 @@ export default function CompanyProfitLossPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Company P&L</h1>
           <p className="text-sm text-muted-foreground">
-            Private company profit & loss workbooks. Only you can see this section.
+            Private company profit & loss workbooks. Access controlled by Jamie.
           </p>
         </div>
         <div
@@ -111,8 +110,8 @@ export default function CompanyProfitLossPage() {
         <TabsContent value="performance" className="mt-4"><CompanyPerformanceDashboard source={source} method={method} onMethodChange={changeMethod} trading={trading} useTrading={useTrading} /></TabsContent>
         <TabsContent value="sales" className="mt-4"><CompanyPlSales source={source} trading={trading} tradingError={tradingError} retry={() => setRetry(v => v + 1)} /></TabsContent>
         <TabsContent value="year-on-year" className="mt-4"><CompanyPlYearOnYear key={source} source={source} /></TabsContent>
-        <TabsContent value="source" className="mt-4"><CompanyProfitLossTab /></TabsContent>
-        <TabsContent value="settings" className="mt-4"><CompanyPlSettingsTab value={source} onChange={changeSource} method={method} onMethodChange={changeMethod} trading={trading} tradingError={tradingError} retry={() => setRetry((v) => v + 1)} useTrading={useTrading} onTradingChange={changeTrading} /></TabsContent>
+        <TabsContent value="source" className="mt-4"><CompanyProfitLossTab canImport={canManagePl} /></TabsContent>
+        <TabsContent value="settings" className="mt-4 space-y-6">{canManagePl && <CompanyPlAccessSettings />}<CompanyPlSettingsTab value={source} onChange={changeSource} method={method} onMethodChange={changeMethod} trading={trading} tradingError={tradingError} retry={() => setRetry((v) => v + 1)} useTrading={useTrading} onTradingChange={changeTrading} /></TabsContent>
       </Tabs>
     </div>
   );

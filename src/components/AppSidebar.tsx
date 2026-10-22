@@ -134,10 +134,11 @@ export function AppSidebar() {
   const { canAccess: canAccessFinance } = useFinanceAccess();
   const { canAccessPl } = useCompanyPlAccess();
   const financeItems = canAccessPl ? finance : finance.filter((item) => item.path !== "/finance/company-pl");
+  const visibleFinanceItems = canAccessFinance ? financeItems : financeItems.filter(item => item.path === "/finance/company-pl");
   const groups = [
     { title: "Operations", icon: Route, items: operations, key: "nav-operations" },
     { title: "Customers & Sales", icon: Users, items: customers, key: "nav-customers" },
-    ...(canAccessFinance ? [{ title: "Finance", icon: PoundSterling, items: financeItems, key: "nav-finance" }] : []),
+    ...(canAccessFinance || canAccessPl ? [{ title: "Finance", icon: PoundSterling, items: visibleFinanceItems, key: "nav-finance" }] : []),
     { title: "Insights", icon: BarChart3, items: insights, key: "nav-insights" },
     { title: "Health & Safety", icon: ShieldCheck, items: safety, key: "nav-safety" },
     ...(isAdmin ? [{ title: "Admin", icon: Settings, items: admin, key: "nav-admin" }] : []),

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
+import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ export function PageCommandPalette() {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const { canAccess } = useFinanceAccess();
+  const { canAccessPl } = useCompanyPlAccess();
   const { hidden } = usePortalSectionVisibility();
   const superAdmin = isSuperAdminEmail(user?.email);
 
@@ -76,7 +78,7 @@ export function PageCommandPalette() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const available = [...pages, ...(canAccess ? financePages : []), ...(isAdmin ? adminPages : [])]
+  const available = [...pages, ...(canAccess ? financePages : []), ...(canAccessPl ? [{ name: "Company P&L", path: "/finance/company-pl" }] : []), ...(isAdmin ? adminPages : [])]
     .filter((page) => !page.key || !hidden.has(page.key) || superAdmin);
 
   return <>
