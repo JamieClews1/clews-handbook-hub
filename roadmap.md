@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Limit the P&L access list to active office staff; retain Jamie-only management and existing grants.
 - [x] Add Jamie-only P&L access management; signed-in grant/revoke save and reload verified, original permissions restored; staff read only, Jamie imports.
 - [x] Add private P&L Year-on-Year tracker with revenue/cost selection, matched months and bar charts; 25 tests pass and signed-in Waste Income/Diesel, complete-year and missing-month controls verified against real worksheets.
 - [x] Add private P&L Sales view with portal waste values and uploaded other revenue, keeping accounting totals distinct; 30 tests pass and signed-in actuals verified. Missing June Skiptrak evidence leaves complete combined totals unavailable.
