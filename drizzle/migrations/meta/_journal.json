@@ -211,6 +211,13 @@
       "when": 1792670752845,
       "tag": "0029_company_pl_access_explicit_write_restrictions",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792674947074,
+      "tag": "0030_company_pl_office_staff_list",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,22 @@ it("Jamie can manage P&L access", { skip: !enabled }, async () => {
   assert.equal(result.data, true);
 });
 
+it("P&L access lists only active office staff", { skip: !enabled }, async () => {
+  assert.ok(client);
+  const list = await client.rpc("list_company_pl_access");
+  assert.equal(list.error, null);
+  const profiles = await client.from("profiles").select("id, user_types, is_archived");
+  assert.equal(profiles.error, null);
+  assert.ok(profiles.data?.some(profile => !profile.user_types?.includes("office")), "Include non-office profiles to test exclusion");
+  assert.ok(list.data?.length > 0);
+  for (const user of list.data) {
+    const profile = profiles.data?.find(profile => profile.id === user.user_id);
+    assert.ok(profile);
+    assert.ok(profile.user_types?.includes("office"));
+    assert.notEqual(profile.is_archived, true);
+  }
+});
+
 it("other staff cannot become P&L access managers", { skip: !enabled }, async () => {
   assert.ok(client);
   const list = await client.rpc("list_company_pl_access");
