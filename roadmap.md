@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Add a private P&L Year-on-Year tracker with stream selection, matched-period totals and monthly bar charts; verify actual worksheets and controls.
+- [x] Add private P&L Year-on-Year tracker with revenue/cost selection, matched months and bar charts; 25 tests pass and signed-in Waste Income/Diesel, complete-year and missing-month controls verified against real worksheets.
 - [x] Add private P&L Sales view with portal waste values and uploaded other revenue, keeping accounting totals distinct; 30 tests pass and signed-in actuals verified. Missing June Skiptrak evidence leaves complete combined totals unavailable.
 - [x] Recognise Lee.Gane and Lee Gane as one RouteOne driver; 9 tests pass and signed-in Wednesday proposal shows 6 drivers working with Lee's 6 jobs. No plan applied.
 - [x] Add read-only Skiptrak/Midweigh evidence and optional forecasts in P&L Settings; Clews January alignment fixed, 26 tests pass and Jamie views verified. Missing June completed-status evidence safely blocks adjustments.
