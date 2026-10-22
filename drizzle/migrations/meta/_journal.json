@@ -197,6 +197,13 @@
       "when": 1792659654195,
       "tag": "0027_crm_tickets_conversation_uniq_per_mailbox",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792670718872,
+      "tag": "0028_company_pl_jamie_access_manager",
+      "breakpoints": true
     }
   ]
 }

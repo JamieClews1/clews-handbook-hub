@@ -541,6 +541,39 @@ export type Database = {
           },
         ]
       }
+      company_pl_access: {
+        Row: {
+          granted_at: string
+          granted_by: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_pl_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_pl_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_pl_workbooks: {
         Row: {
           file_name: string
@@ -10519,6 +10552,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_company_pl_access: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
       can_portal_user_access_data_hub_job: {
         Args: { _job_customer: string; _job_site: string; _user_id: string }
         Returns: boolean
@@ -10582,6 +10619,16 @@ export type Database = {
       is_finance_user: { Args: { _user_id: string }; Returns: boolean }
       is_management: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      list_company_pl_access: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          has_access: boolean
+          is_manager: boolean
+          user_id: string
+        }[]
+      }
       lookup_job_weights: {
         Args: { pairs: Json }
         Returns: {
@@ -10598,6 +10645,10 @@ export type Database = {
         }[]
       }
       next_invoice_number: { Args: never; Returns: string }
+      set_company_pl_access: {
+        Args: { _enabled: boolean; _user_id: string }
+        Returns: undefined
+      }
       user_has_reconomy_membership: {
         Args: { _user_id: string }
         Returns: boolean
