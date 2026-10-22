@@ -12,6 +12,7 @@ import CompanyPlYearOnYear from "@/components/finance/CompanyPlYearOnYear";
 import CompanyPlSettingsTab, { PL_SOURCE_STORAGE_KEY, PL_METHOD_STORAGE_KEY, readPlSourcePreference, readPlMethodPreference } from "@/components/finance/CompanyPlSettingsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PlSheetName } from "@/lib/company-pl";
+import { PL_SHEET_NAMES, plSheetLabel } from "@/lib/company-pl";
 import type { PlProjectionMethod } from "@/lib/company-pl-analysis";
 
 export default function CompanyProfitLossPage() {
