@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 type ImportRecord = { id: string; file_name: string; imported_at: string };
 type Preview = { fileName: string; sheets: PlSheets; ignored: string[] };
 
-export default function CompanyProfitLossTab() {
+export default function CompanyProfitLossTab({ canImport = false }: { canImport?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [imports, setImports] = useState<ImportRecord[]>([]);
@@ -66,7 +66,7 @@ export default function CompanyProfitLossTab() {
   };
 
   const save = async () => {
-    if (!preview) return;
+    if (!preview || !canImport) return;
     setBusy(true);
     try {
       const { error: saveError } = await withTimeout(supabase.from("company_pl_workbooks").insert({ file_name: preview.fileName, sheets: preview.sheets }), 20000, "P&L import");
@@ -86,7 +86,7 @@ export default function CompanyProfitLossTab() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold"><LockKeyhole className="h-4 w-4 text-primary" /> Company P&amp;L</h2>
-          <p className="text-sm text-muted-foreground">Private · Jamie only</p>
+          <p className="text-sm text-muted-foreground">Private · approved access only</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {imports.length > 0 && <Select value={selected} onValueChange={(value) => { setPreview(null); setSelected(value); }} disabled={busy}>
@@ -94,7 +94,7 @@ export default function CompanyProfitLossTab() {
             <SelectContent>{imports.map((record) => <SelectItem key={record.id} value={record.id}>{record.file_name} · {new Date(record.imported_at).toLocaleDateString("en-GB", { timeZone: "UTC" })}</SelectItem>)}</SelectContent>
           </Select>}
           <Button variant="outline" size="icon" onClick={() => void load()} disabled={busy || loading} aria-label="Refresh P&L" title="Refresh P&L"><RefreshCw className="h-4 w-4" /></Button>
-          <Button onClick={() => input.current?.click()} disabled={busy}><Upload className="mr-2 h-4 w-4" />Import workbook</Button>
+          {canImport && <Button onClick={() => input.current?.click()} disabled={busy}><Upload className="mr-2 h-4 w-4" />Import workbook</Button>}
           <input ref={input} type="file" accept=".xlsx,.xls,.xlsm" className="hidden" aria-label="P&L workbook" onChange={(event) => void chooseFile(event.target.files?.[0])} />
         </div>
       </div>
