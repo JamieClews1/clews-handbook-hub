@@ -204,6 +204,13 @@
       "when": 1792670718872,
       "tag": "0028_company_pl_jamie_access_manager",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792670752845,
+      "tag": "0029_company_pl_access_explicit_write_restrictions",
+      "breakpoints": true
     }
   ]
 }
