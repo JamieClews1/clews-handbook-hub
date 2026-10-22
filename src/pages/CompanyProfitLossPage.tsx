@@ -66,11 +66,38 @@ export default function CompanyProfitLossPage() {
 
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Company P&L</h1>
-        <p className="text-sm text-muted-foreground">
-          Private company profit & loss workbooks. Only you can see this section.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Company P&L</h1>
+          <p className="text-sm text-muted-foreground">
+            Private company profit & loss workbooks. Only you can see this section.
+          </p>
+        </div>
+        <div
+          role="radiogroup"
+          aria-label="Worksheet selection"
+          className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm"
+        >
+          {PL_SHEET_NAMES.map((name) => {
+            const active = source === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => changeSource(name)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-info text-info-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {plSheetLabel(name)}
+              </button>
+            );
+          })}
+        </div>
       </header>
       <Tabs defaultValue="performance">
         <TabsList className="h-auto flex-wrap justify-start">
