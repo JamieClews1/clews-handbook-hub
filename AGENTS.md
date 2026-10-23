@@ -22,3 +22,4 @@ Keep printing read-only: daily sheets fetch the selected day's native and non-du
 - Rental job pagination must succeed in full before publishing results; failed reads show a retry state, never an empty or partial rental count.
 - Sign-in and staff-role checks use withTimeout and show Try again / Sign out on failure, so a stalled request never leaves an endless spinner.
 - Customer recovery uses the public /reset-password page and Auth recovery emails; recovery events bypass staff landing pages so links cannot skip password entry.
+- Data Uploads write only new or changed rows (rowNeedsWrite) and list orphans by id first; repeat full-file uploads must not rewrite unchanged data, which exhausted the database disk budget.

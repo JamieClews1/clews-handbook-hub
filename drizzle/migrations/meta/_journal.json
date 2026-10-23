@@ -218,6 +218,13 @@
       "when": 1792674947074,
       "tag": "0030_company_pl_office_staff_list",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792765351667,
+      "tag": "0031_purge_cron_run_history",
+      "breakpoints": true
     }
   ]
 }

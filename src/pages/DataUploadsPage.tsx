@@ -28,6 +28,7 @@ import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
 import { PodsPanel } from "@/components/data-uploads/PodsPanel";
 import { JobWtnDocuments } from "@/components/wtn";
+import { rowNeedsWrite } from "@/lib/upload-diff";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -701,21 +702,7 @@ const DataUploadsPage = () => {
       const voidedInFile = new Set<string>();
       const parsedJobs = await parseFileToJobs(file, source, voidedInFile);
 
-      // Tickets marked Void in this Skiptrak file: remember them as void and remove
-      // any copy already in Data Uploads, so voided jobs stop showing straight away.
-      if (voidedInFile.size > 0) {
-        const voidList = Array.from(voidedInFile);
-        for (const part of chunk(voidList, 200)) {
-          const { error: voidErr } = await supabase
-            .from("data_hub_void_jobs")
-            .upsert(part.map((job_number) => ({ job_number, source, reason: "Voided on Skiptrak" })) as any, { onConflict: "job_number,source" });
-          if (voidErr) throw voidErr;
-          const { error: delErr } = await supabase.from("data_hub_jobs").delete().eq("source", source).in("job_number", part);
-          if (delErr) throw delErr;
-        }
-      }
-
-      // Skip tickets that were previously voided/deleted so uploads can't resurrect them.
+      // Tickets previously voided/deleted, so uploads can't resurrect them.
       const voidedKeys = new Set<string>();
       {
         const { data: voided, error: voidErr } = await supabase
@@ -725,6 +712,24 @@ const DataUploadsPage = () => {
         if (voidErr) console.error("Could not load void job list:", voidErr);
         (voided ?? []).forEach((v: any) => voidedKeys.add(String(v.job_number)));
       }
+
+      // Tickets marked Void in this Skiptrak file: remember newly voided ones and remove
+      // any copy already in Data Uploads, so voided jobs stop showing straight away.
+      // Already-known voids are skipped so repeat uploads don't rewrite them.
+      const newlyVoided = Array.from(voidedInFile).filter((n) => !voidedKeys.has(String(n)));
+      if (newlyVoided.length > 0) {
+        for (const part of chunk(newlyVoided, 200)) {
+          const { error: voidErr } = await supabase
+            .from("data_hub_void_jobs")
+            .upsert(part.map((job_number) => ({ job_number, source, reason: "Voided on Skiptrak" })) as any, { onConflict: "job_number,source" });
+          if (voidErr) throw voidErr;
+          const { error: delErr } = await supabase.from("data_hub_jobs").delete().eq("source", source).in("job_number", part);
+          if (delErr) throw delErr;
+        }
+        newlyVoided.forEach((n) => voidedKeys.add(String(n)));
+      }
+      voidedInFile.forEach((n) => voidedKeys.add(String(n)));
+
       const jobsToUpsert = parsedJobs.filter((j) => !voidedKeys.has(String(j.job_number)));
       const skippedVoid = parsedJobs.length - jobsToUpsert.length;
       const totalRows = jobsToUpsert.length;
@@ -755,6 +760,7 @@ const DataUploadsPage = () => {
       const BATCH_SIZE = 500;
       const jobBatches = chunk(jobsToUpsert, BATCH_SIZE);
       let processedCount = 0;
+      let changedCount = 0;
 
       for (let batchIndex = 0; batchIndex < jobBatches.length; batchIndex++) {
         const batch = jobBatches[batchIndex];
@@ -764,7 +770,7 @@ const DataUploadsPage = () => {
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
-          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,weight_t,vehicle_registration,job_date,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job")
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,job_type,weight_t,vehicle_registration,job_date,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,raw")
           .in("job_number", jobNumbers)
           .eq("source", source);
         
@@ -822,12 +828,18 @@ const DataUploadsPage = () => {
           }
         }
 
-        // Upsert this batch using composite key (job_number + source)
-        const { error: upsertError } = await supabase
-          .from("data_hub_jobs")
-          .upsert(mergedBatch as any, { onConflict: "job_number,source" });
-        
-        if (upsertError) throw upsertError;
+        // Only write new or changed rows — rewriting unchanged rows on every upload
+        // exhausted the database's disk budget and stalled the portal.
+        const changedRows = mergedBatch.filter((row) =>
+          rowNeedsWrite(row as unknown as Record<string, unknown>, existingByJob.get(row.job_number) as unknown as Record<string, unknown> | undefined),
+        );
+        if (changedRows.length > 0) {
+          const { error: upsertError } = await supabase
+            .from("data_hub_jobs")
+            .upsert(changedRows as any, { onConflict: "job_number,source" });
+          if (upsertError) throw upsertError;
+        }
+        changedCount += changedRows.length;
 
         processedCount += batch.length;
         setUploadProgress({ 
@@ -840,7 +852,7 @@ const DataUploadsPage = () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
-      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)` +
+      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket) — ${changedCount.toLocaleString()} new or changed` +
         (skippedVoid > 0 ? ` — skipped ${skippedVoid.toLocaleString()} voided ticket(s)` : "");
 
       setLastUploadSummary(summary);
@@ -873,25 +885,37 @@ const DataUploadsPage = () => {
       if (minUploadDate) {
         const uploadedJobNumbers = new Set(jobsToUpsert.map((j) => j.job_number));
 
-        // Fetch all existing DB jobs (full rows) for this source from minUploadDate onward
-        const allExisting: any[] = [];
+        // List existing job numbers for this source from minUploadDate onward (ids only —
+        // reading full rows on every upload put heavy load on the database).
+        const allExisting: { id: string; job_number: string }[] = [];
         let fetchFrom = 0;
         const fetchBatch = 1000;
+        let listComplete = true;
         while (true) {
           const { data: existingBatch, error: fetchErr } = await supabase
             .from("data_hub_jobs")
-            .select("*")
+            .select("id,job_number")
             .eq("source", source)
             .gte("job_date", minUploadDate)
+            .order("id")
             .range(fetchFrom, fetchFrom + fetchBatch - 1);
-          if (fetchErr) { console.error("Orphan check fetch error:", fetchErr); break; }
+          if (fetchErr) { console.error("Orphan check fetch error:", fetchErr); listComplete = false; break; }
           if (!existingBatch || existingBatch.length === 0) break;
-          allExisting.push(...existingBatch);
+          allExisting.push(...(existingBatch as any));
           if (existingBatch.length < fetchBatch) break;
           fetchFrom += fetchBatch;
         }
 
-        const orphans = allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number));
+        const orphanIdList = listComplete
+          ? allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number)).map((e) => e.id)
+          : [];
+        // Full rows are only needed for the (usually few) jobs being archived.
+        const orphans: any[] = [];
+        for (const idPart of chunk(orphanIdList, 200)) {
+          const { data: fullRows, error: fullErr } = await supabase.from("data_hub_jobs").select("*").in("id", idPart);
+          if (fullErr) throw fullErr;
+          orphans.push(...(fullRows ?? []));
+        }
         if (orphans.length > 0) {
           const { data: { user: currentUser } } = await supabase.auth.getUser();
           const archiveRows = orphans.map((o) => ({
