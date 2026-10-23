@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { rowNeedsWrite } from "./upload-diff";
 
 describe("rowNeedsWrite", () => {
@@ -14,23 +15,23 @@ describe("rowNeedsWrite", () => {
   };
 
   it("skips a re-uploaded row that has not changed", () => {
-    expect(
+    assert.equal(
       rowNeedsWrite(
         { job_number: "51399", source: "skiptrak", weight_t: 3.22, customer: "Papilo", site: undefined, raw: { Customer: "Papilo", Ticket: "51399", Price: "120.00" } },
         stored,
       ),
-    ).toBe(false);
+    , false);
   });
 
   it("writes a row whose weight changed", () => {
-    expect(rowNeedsWrite({ job_number: "51399", source: "skiptrak", weight_t: 3.5, raw: stored.raw }, stored)).toBe(true);
+    assert.equal(rowNeedsWrite({ job_number: "51399", source: "skiptrak", weight_t: 3.5, raw: stored.raw }, stored), true);
   });
 
   it("writes a row whose spreadsheet values changed", () => {
-    expect(rowNeedsWrite({ job_number: "51399", raw: { ...stored.raw, Price: "150.00" } }, stored)).toBe(true);
+    assert.equal(rowNeedsWrite({ job_number: "51399", raw: { ...stored.raw, Price: "150.00" } }, stored), true);
   });
 
   it("writes a brand new row", () => {
-    expect(rowNeedsWrite({ job_number: "60000", source: "skiptrak", raw: {} }, undefined)).toBe(true);
+    assert.equal(rowNeedsWrite({ job_number: "60000", source: "skiptrak", raw: {} }, undefined), true);
   });
 });
