@@ -157,15 +157,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Send password reset email so user can set their own password
-    await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
-      email: normalizedEmail,
+    // generateLink only creates a link; the recovery API actually sends the email.
+    const { error: recoveryError } = await supabaseClient.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: "https://portal.clewsrecycling.co.uk/reset-password",
     });
 
     return new Response(
       JSON.stringify({
         success: true,
+        reset_email_sent: !recoveryError,
+        reset_email_error: recoveryError?.message ?? null,
         already_existed: alreadyExisted,
         user: {
           id: userId,

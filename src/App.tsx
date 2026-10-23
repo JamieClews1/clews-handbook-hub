@@ -19,6 +19,7 @@ import ToolboxTalksPage from "./pages/ToolboxTalksPage";
 import ToolboxTalkDetailPage from "./pages/ToolboxTalkDetailPage";
 import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminPage from "./pages/AdminPage";
 import AdminHandbookPage from "./pages/AdminHandbookPage";
 import AdminRAMSPage from "./pages/AdminRAMSPage";
@@ -113,6 +114,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
