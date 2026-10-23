@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Repair customer reset email requests and public recovery page; verify requests, invalid links and password saving.
 - [x] Limit the P&L access list to active office staff; Jamie-only management and existing grants retained. Five authenticated tests pass and Jamie’s settings list verified.
 - [x] Add Jamie-only P&L access management; signed-in grant/revoke save and reload verified, original permissions restored; staff read only, Jamie imports.
 - [x] Add private P&L Year-on-Year tracker with revenue/cost selection, matched months and bar charts; 25 tests pass and signed-in Waste Income/Diesel, complete-year and missing-month controls verified against real worksheets.

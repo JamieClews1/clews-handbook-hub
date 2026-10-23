@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import w1Logo from "@/assets/w1-logo.png";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 interface CustomerPortalLoginProps {
   onLoginSuccess: () => void;
@@ -16,6 +17,7 @@ export const CustomerPortalLogin = ({ onLoginSuccess }: CustomerPortalLoginProps
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -79,13 +81,13 @@ export const CustomerPortalLogin = ({ onLoginSuccess }: CustomerPortalLoginProps
 
         <Card className="shadow-xl border-border/50">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Sign in</CardTitle>
+            <CardTitle className="text-xl">{forgotPassword ? "Forgot password" : "Sign in"}</CardTitle>
             <CardDescription>
-              Enter your email and password to access the portal
+              {forgotPassword ? "Request a link to set a new password" : "Enter your email and password to access the portal"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            {forgotPassword ? <ForgotPasswordForm initialEmail={email} onBack={() => setForgotPassword(false)} /> : <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -121,7 +123,8 @@ export const CustomerPortalLogin = ({ onLoginSuccess }: CustomerPortalLoginProps
                   "Sign in"
                 )}
               </Button>
-            </form>
+              <Button type="button" variant="link" className="w-full" onClick={() => setForgotPassword(true)}>Forgot password?</Button>
+            </form>}
 
             <div className="mt-6 pt-4 border-t border-border/50">
               <p className="text-xs text-muted-foreground text-center">
