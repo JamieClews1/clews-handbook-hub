@@ -701,21 +701,7 @@ const DataUploadsPage = () => {
       const voidedInFile = new Set<string>();
       const parsedJobs = await parseFileToJobs(file, source, voidedInFile);
 
-      // Tickets marked Void in this Skiptrak file: remember them as void and remove
-      // any copy already in Data Uploads, so voided jobs stop showing straight away.
-      if (voidedInFile.size > 0) {
-        const voidList = Array.from(voidedInFile);
-        for (const part of chunk(voidList, 200)) {
-          const { error: voidErr } = await supabase
-            .from("data_hub_void_jobs")
-            .upsert(part.map((job_number) => ({ job_number, source, reason: "Voided on Skiptrak" })) as any, { onConflict: "job_number,source" });
-          if (voidErr) throw voidErr;
-          const { error: delErr } = await supabase.from("data_hub_jobs").delete().eq("source", source).in("job_number", part);
-          if (delErr) throw delErr;
-        }
-      }
-
-      // Skip tickets that were previously voided/deleted so uploads can't resurrect them.
+      // Tickets previously voided/deleted, so uploads can't resurrect them.
       const voidedKeys = new Set<string>();
       {
         const { data: voided, error: voidErr } = await supabase
@@ -725,6 +711,24 @@ const DataUploadsPage = () => {
         if (voidErr) console.error("Could not load void job list:", voidErr);
         (voided ?? []).forEach((v: any) => voidedKeys.add(String(v.job_number)));
       }
+
+      // Tickets marked Void in this Skiptrak file: remember newly voided ones and remove
+      // any copy already in Data Uploads, so voided jobs stop showing straight away.
+      // Already-known voids are skipped so repeat uploads don't rewrite them.
+      const newlyVoided = Array.from(voidedInFile).filter((n) => !voidedKeys.has(String(n)));
+      if (newlyVoided.length > 0) {
+        for (const part of chunk(newlyVoided, 200)) {
+          const { error: voidErr } = await supabase
+            .from("data_hub_void_jobs")
+            .upsert(part.map((job_number) => ({ job_number, source, reason: "Voided on Skiptrak" })) as any, { onConflict: "job_number,source" });
+          if (voidErr) throw voidErr;
+          const { error: delErr } = await supabase.from("data_hub_jobs").delete().eq("source", source).in("job_number", part);
+          if (delErr) throw delErr;
+        }
+        newlyVoided.forEach((n) => voidedKeys.add(String(n)));
+      }
+      voidedInFile.forEach((n) => voidedKeys.add(String(n)));
+
       const jobsToUpsert = parsedJobs.filter((j) => !voidedKeys.has(String(j.job_number)));
       const skippedVoid = parsedJobs.length - jobsToUpsert.length;
       const totalRows = jobsToUpsert.length;
