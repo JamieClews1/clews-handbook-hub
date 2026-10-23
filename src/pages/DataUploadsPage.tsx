@@ -28,6 +28,7 @@ import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
 import { PodsPanel } from "@/components/data-uploads/PodsPanel";
 import { JobWtnDocuments } from "@/components/wtn";
+import { rowNeedsWrite } from "@/lib/upload-diff";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -759,6 +760,7 @@ const DataUploadsPage = () => {
       const BATCH_SIZE = 500;
       const jobBatches = chunk(jobsToUpsert, BATCH_SIZE);
       let processedCount = 0;
+      let changedCount = 0;
 
       for (let batchIndex = 0; batchIndex < jobBatches.length; batchIndex++) {
         const batch = jobBatches[batchIndex];
@@ -826,12 +828,18 @@ const DataUploadsPage = () => {
           }
         }
 
-        // Upsert this batch using composite key (job_number + source)
-        const { error: upsertError } = await supabase
-          .from("data_hub_jobs")
-          .upsert(mergedBatch as any, { onConflict: "job_number,source" });
-        
-        if (upsertError) throw upsertError;
+        // Only write new or changed rows — rewriting unchanged rows on every upload
+        // exhausted the database's disk budget and stalled the portal.
+        const changedRows = mergedBatch.filter((row) =>
+          rowNeedsWrite(row as unknown as Record<string, unknown>, existingByJob.get(row.job_number) as unknown as Record<string, unknown> | undefined),
+        );
+        if (changedRows.length > 0) {
+          const { error: upsertError } = await supabase
+            .from("data_hub_jobs")
+            .upsert(changedRows as any, { onConflict: "job_number,source" });
+          if (upsertError) throw upsertError;
+        }
+        changedCount += changedRows.length;
 
         processedCount += batch.length;
         setUploadProgress({ 
@@ -844,7 +852,7 @@ const DataUploadsPage = () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
-      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket)` +
+      const summary = `${source.toUpperCase()}: processed ${totalRows.toLocaleString()} rows (deduped by Ticket) — ${changedCount.toLocaleString()} new or changed` +
         (skippedVoid > 0 ? ` — skipped ${skippedVoid.toLocaleString()} voided ticket(s)` : "");
 
       setLastUploadSummary(summary);
