@@ -885,25 +885,37 @@ const DataUploadsPage = () => {
       if (minUploadDate) {
         const uploadedJobNumbers = new Set(jobsToUpsert.map((j) => j.job_number));
 
-        // Fetch all existing DB jobs (full rows) for this source from minUploadDate onward
-        const allExisting: any[] = [];
+        // List existing job numbers for this source from minUploadDate onward (ids only —
+        // reading full rows on every upload put heavy load on the database).
+        const allExisting: { id: string; job_number: string }[] = [];
         let fetchFrom = 0;
         const fetchBatch = 1000;
+        let listComplete = true;
         while (true) {
           const { data: existingBatch, error: fetchErr } = await supabase
             .from("data_hub_jobs")
-            .select("*")
+            .select("id,job_number")
             .eq("source", source)
             .gte("job_date", minUploadDate)
+            .order("id")
             .range(fetchFrom, fetchFrom + fetchBatch - 1);
-          if (fetchErr) { console.error("Orphan check fetch error:", fetchErr); break; }
+          if (fetchErr) { console.error("Orphan check fetch error:", fetchErr); listComplete = false; break; }
           if (!existingBatch || existingBatch.length === 0) break;
-          allExisting.push(...existingBatch);
+          allExisting.push(...(existingBatch as any));
           if (existingBatch.length < fetchBatch) break;
           fetchFrom += fetchBatch;
         }
 
-        const orphans = allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number));
+        const orphanIdList = listComplete
+          ? allExisting.filter((e) => !uploadedJobNumbers.has(e.job_number)).map((e) => e.id)
+          : [];
+        // Full rows are only needed for the (usually few) jobs being archived.
+        const orphans: any[] = [];
+        for (const idPart of chunk(orphanIdList, 200)) {
+          const { data: fullRows, error: fullErr } = await supabase.from("data_hub_jobs").select("*").in("id", idPart);
+          if (fullErr) throw fullErr;
+          orphans.push(...(fullRows ?? []));
+        }
         if (orphans.length > 0) {
           const { data: { user: currentUser } } = await supabase.auth.getUser();
           const archiveRows = orphans.map((o) => ({
