@@ -20,7 +20,8 @@ describe("rowNeedsWrite", () => {
         { job_number: "51399", source: "skiptrak", weight_t: 3.22, customer: "Papilo", site: undefined, raw: { Customer: "Papilo", Ticket: "51399", Price: "120.00" } },
         stored,
       ),
-    , false);
+      false,
+    );
   });
 
   it("writes a row whose weight changed", () => {
