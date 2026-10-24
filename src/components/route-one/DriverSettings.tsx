@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Truck, User, Phone, Hash } from "lucide-react";
 import { AppUserPicker, usernameFromEmail, type AppUserProfile } from "@/components/apps/AppUserPicker";
+import { DriverDayAssumptions } from "./DriverDayAssumptions";
 
 interface Driver {
   id: string;
@@ -252,6 +253,7 @@ export const DriverSettings = () => {
 
   return (
     <div className="space-y-4">
+      <DriverDayAssumptions />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">

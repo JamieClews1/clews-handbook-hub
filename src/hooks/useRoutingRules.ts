@@ -57,7 +57,7 @@ export const DEFAULT_ROUTING_RULES: RoutingRules = {
   mins_exchange: 35,
   mins_tipping: 20,
   mins_travel: 25,
-  mins_break: 30,
+  mins_break: 45,
   day_start: "07:00",
   day_length_hours: 10,
   artic_regs: ["FG61 SYV", "FJ18 FDM"],

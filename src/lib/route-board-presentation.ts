@@ -1,10 +1,3 @@
-/** Presentation-only capacity estimate. No routing or shift assignment decisions. */
-export const DEFAULT_BOARD_JOB_CAPACITY = 10;
-export function boardCapacity(jobs: number, limit = DEFAULT_BOARD_JOB_CAPACITY) {
-  const safeLimit = limit > 0 ? limit : DEFAULT_BOARD_JOB_CAPACITY;
-  const ratio = jobs / safeLimit;
-  return { percent: Math.min(100, ratio * 100), tone: ratio > 0.9 ? "over" : ratio >= 0.75 ? "busy" : "available", room: Math.max(0, safeLimit - jobs), showRoom: ratio < 0.6 };
-}
 export function boardRegistration(value?: string | null) {
   const reg = (value ?? "").toUpperCase().replace(/\s/g, "");
   return /^[A-Z]{2}\d{2}[A-Z]{3}$/.test(reg) ? `${reg.slice(0, 4)} ${reg.slice(4)}` : value ?? "";
