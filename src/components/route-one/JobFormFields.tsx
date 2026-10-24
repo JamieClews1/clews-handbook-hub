@@ -166,6 +166,7 @@ export function JobFormFields({
   const [bookingTab, setBookingTab] = useState("booking");
   const [siteLoadError, setSiteLoadError] = useState("");
   const [siteLoading, setSiteLoading] = useState(false);
+  const [siteRetry, setSiteRetry] = useState(0);
   const [setupSites, setSetupSites] = useState<KnownSite[]>([]);
   const [postcodeQuery, setPostcodeQuery] = useState("");
   const [postcodeMatches, setPostcodeMatches] = useState<PostcodeMatch[]>([]);
@@ -216,9 +217,11 @@ export function JobFormFields({
 
       setSetupSites([...known.values()].sort((a, b) => a.name.localeCompare(b.name)));
     };
-    load().catch(() => { if (!cancelled) { setSetupSites([]); setSiteLoadError("Unable to load established sites. Try again before selecting a site."); } }).finally(() => { if (!cancelled) setSiteLoading(false); });
-    return () => { cancelled = true; };
-  }, [customer]);
+    const timer = setTimeout(() => {
+      load().catch(() => { if (!cancelled) { setSetupSites([]); setSiteLoadError("Unable to load established sites. Try again before selecting a site."); } }).finally(() => { if (!cancelled) setSiteLoading(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [customer, siteRetry]);
 
 
   useEffect(() => {
@@ -584,9 +587,9 @@ export function JobFormFields({
 
           </div>
         </div>
-        {siteLoadError && <p role="alert" className="text-sm text-destructive">{siteLoadError}<Button type="button" variant="link" onClick={() => setForm({ ...form, customer_name: `${customer} ` })}>Try again</Button></p>}
+        {siteLoadError && <p role="alert" className="text-sm text-destructive">{siteLoadError}<Button type="button" variant="link" onClick={() => setSiteRetry(n => n + 1)}>Try again</Button></p>}
         <div className="flex items-start justify-between gap-3 border-t border-border pt-3">
-          <p className="text-sm whitespace-pre-line">{[form.site_address, form.site_postcode].filter(Boolean).join("\n") || "Site address not recorded"}</p>
+          <p className="text-sm whitespace-pre-line">{[form.site_address, form.site_address_2, form.site_postcode].filter(Boolean).join("\n") || "Site address not recorded"}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => setBookingTab("site")}>Full site details</Button>
         </div>
         </div>
@@ -604,6 +607,8 @@ export function JobFormFields({
               className="font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground mt-1">One line per address line.</p>
+            <Label className="text-xs">Additional address lines</Label>
+            <Textarea value={form.site_address_2 || ""} onChange={e => setForm({ ...form, site_address_2: e.target.value })} rows={2} placeholder="Additional site address details" />
           </div>
           <div className="space-y-3">
             <div>
@@ -645,10 +650,6 @@ export function JobFormFields({
           <div>
             <Label className="text-xs">Account Code</Label>
             <Input value={form.account_code || ""} onChange={(e) => setForm({ ...form, account_code: e.target.value })} placeholder="e.g. ZZWIL004" />
-          </div>
-          <div>
-            <Label className="text-xs">EWC Code</Label>
-            <EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} />
           </div>
           <div>
             <Label className="text-xs">Vehicle Registration</Label>
@@ -757,6 +758,7 @@ export function JobFormFields({
 
       <section className="space-y-3 border-t border-border pt-4">
         <h4 className="text-sm font-semibold">Additional considerations</h4>
+        <div><Label className="text-xs">EWC Code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} /></div>
         <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
         {/* Added items */}
         <div className="space-y-2">
