@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Replace driver job-count capacity with postcode travel, handling and break estimates; 10-hour day including 45-minute break, assumptions in Driver settings.
 - [x] Restyle RouteOne Day scheduler from uploaded tinted-block brief; signed-in Monday cards, job opening, print/finalise menu and unchanged Week verified; 13 tests pass. Capacity uses 10-job fallback. Current data has no confirmation/time-window fields, so neither is inferred; no jobs changed.
 - [x] Default exchanges to configured Skip/RoRo zone booking dates; four date-rule tests pass, signed-in RoRo selects 26 Oct and preserves manual 30 Oct across tabs, no job saved, preview clean.
 - [x] Copy imported exchange explicit booking prices and add optional fuel surcharge; 13 tests pass, signed-in £811 haulage and £4.95 fuel add/remove verified without saving, preview clean. Skiptrak exports without separate per-tonne rates prompt staff review rather than guessing.
