@@ -31,11 +31,11 @@ export function FinaliseDayDialog({ date: initialDate, drivers, vehicles }: { da
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (open) setDate(initialDate); }, [open, initialDate]);
 
-  const { data: jobs = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["route-finalise-day", date], enabled: open && !!date,
     queryFn: async (): Promise<DayJob[]> => {
       const [native, imported] = await Promise.all([
-        fetchAllRows<any>("route_one_jobs", "*", "id", q => q.eq("scheduled_date", date).order("display_order")),
+        fetchAllRows<any>("route_one_jobs", "*", "display_order", q => q.eq("scheduled_date", date).order("id")),
         fetchAllRows<any>("data_hub_jobs", "*", "id", q => q.eq("source", "skiptrak").eq("job_date", date)),
       ]);
       const numbers = new Set(native.map(j => String(j.job_number).trim().toUpperCase()));
@@ -52,6 +52,7 @@ export function FinaliseDayDialog({ date: initialDate, drivers, vehicles }: { da
     },
   });
 
+  const jobs = useMemo(() => data ?? [], [data]);
   const rows = useMemo(() => {
     const map = new Map<string, DayJob[]>();
     for (const j of jobs) map.set(j.sheet.driver, [...(map.get(j.sheet.driver) ?? []), j]);

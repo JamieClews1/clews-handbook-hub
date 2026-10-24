@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
       : `Customer Portal: ${subjectLabel} - ${customerName}`;
 
     const emailResponse = await resend.emails.send({
-      from: "Customer Portal <noreply@clewsrecycling.co.uk>",
+      from: "Customer Portal <noreply@noreply.clewsrecycling.co.uk>",
       to: ["orders@clewsrecycling.co.uk"],
       reply_to: userEmail,
       subject: emailSubject,
@@ -126,7 +126,11 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Customer portal email sent successfully:", emailResponse);
+    if ((emailResponse as any)?.error) {
+      console.error("Customer portal email failed:", (emailResponse as any).error);
+      throw new Error("Your message was saved but we couldn't notify the team. Please call us if it's urgent.");
+    }
+    console.log("Customer portal email sent:", (emailResponse as any)?.data?.id);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

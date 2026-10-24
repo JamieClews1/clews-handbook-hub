@@ -48,6 +48,7 @@ const PublicInductionPage = () => {
   const { token } = useParams<{ token: string }>();
   const [doc, setDoc] = useState<PublicDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [signError, setSignError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState("EN");
   const [name, setName] = useState("");
@@ -90,6 +91,7 @@ const PublicInductionPage = () => {
   const handleSign = async (signatureData: string) => {
     if (!doc) return;
     setSaving(true);
+    setSignError(null);
     try {
       const res = await fetch(FUNCTION_URL, {
         method: "POST",
@@ -109,7 +111,7 @@ const PublicInductionPage = () => {
       if (!res.ok) throw new Error(data.error || "Could not save your signature");
       setSigned(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save your signature");
+      setSignError(e instanceof Error ? e.message : "Could not save your signature");
     } finally {
       setSaving(false);
     }
@@ -269,7 +271,7 @@ const PublicInductionPage = () => {
             ) : (
               <SignaturePad onSave={handleSign} onCancel={() => setChecked({})} />
             )}
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {signError && <p className="text-sm text-destructive">{signError} Your details are kept — please try again.</p>}
           </CardContent>
         </Card>
       )}

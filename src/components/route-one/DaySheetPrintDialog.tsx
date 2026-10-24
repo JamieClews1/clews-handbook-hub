@@ -15,7 +15,7 @@ export function DaySheetPrintDialog({ date, drivers }: { date: string; drivers: 
     queryKey: ["route-day-print", date, drivers.map(d => d.id).join(",")], enabled: open,
     queryFn: async () => {
       const [native, imported] = await Promise.all([
-        fetchAllRows<any>("route_one_jobs", "*", "id", q => q.eq("scheduled_date", date).order("display_order")),
+        fetchAllRows<any>("route_one_jobs", "*", "display_order", q => q.eq("scheduled_date", date).order("id")),
         fetchAllRows<any>("data_hub_jobs", "*", "id", q => q.eq("source", "skiptrak").eq("job_date", date)),
       ]);
       const numbers = new Set(native.map(j => String(j.job_number).trim().toUpperCase()));
