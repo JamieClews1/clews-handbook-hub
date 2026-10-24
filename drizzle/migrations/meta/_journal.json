@@ -225,6 +225,13 @@
       "when": 1792765351667,
       "tag": "0031_purge_cron_run_history",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792854534718,
+      "tag": "0032_routeone_weighone_invoicing_link",
+      "breakpoints": true
     }
   ]
 }

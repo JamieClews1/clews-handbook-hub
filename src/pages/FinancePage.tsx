@@ -4,6 +4,7 @@ import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import FinanceDashboard from "@/components/finance/FinanceDashboard";
 import InvoicesTab from "@/components/finance/InvoicesTab";
 import FinanceSettingsTab from "@/components/finance/FinanceSettingsTab";
+import ReadyToInvoiceTab from "@/components/finance/ReadyToInvoiceTab";
 
 
 
@@ -44,11 +45,15 @@ export default function FinancePage() {
       <Tabs defaultValue="dashboard">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="ready">Ready to invoice</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="settings">Settings &amp; Sage</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4">
           <FinanceDashboard />
+        </TabsContent>
+        <TabsContent value="ready" className="mt-4">
+          <ReadyToInvoiceTab />
         </TabsContent>
         <TabsContent value="invoices" className="mt-4">
           <InvoicesTab />

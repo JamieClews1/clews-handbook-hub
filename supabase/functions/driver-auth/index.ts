@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { issueDriverPass, verifyDriverPass } from "../_shared/driver-session.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -40,13 +41,14 @@ Deno.serve(async (req) => {
         return json({ user: null });
       }
 
-      return json({ user: toUser(data) });
+      return json({ user: toUser(data), token: await issueDriverPass(data.id, "profile") });
     }
 
 
     if (action === "restore") {
-      const id = String(body?.id ?? "");
-      if (!id) return json({ error: "id is required" }, 400);
+      const pass = await verifyDriverPass(body?.token);
+      if (!pass || pass.src !== "profile") return json({ user: null });
+      const id = pass.d;
 
       const { data, error } = await supabase
         .from("profiles")
@@ -60,7 +62,7 @@ Deno.serve(async (req) => {
         return json({ user: null });
       }
 
-      return json({ user: toUser(data) });
+      return json({ user: toUser(data), token: await issueDriverPass(data.id, "profile") });
     }
 
     return json({ error: "Unknown action" }, 400);

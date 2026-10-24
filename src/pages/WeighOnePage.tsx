@@ -1,3 +1,4 @@
+import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -30,6 +31,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
 import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
+import { invoiceFromSource } from "@/components/finance/ReadyToInvoiceTab";
 import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -226,6 +228,29 @@ const WeighOnePage = () => {
 
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
+  const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
+  /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
+  const applyRouteOneJob = (job: ArrivingJob) => {
+    setArrivingJob(job);
+    const wt = activeWasteTypes.find(w => (w.waste_type || "").toLowerCase() === (job.waste_type || "").toLowerCase());
+    setFormData(p => ({
+      ...p,
+      job_type: "skip",
+      linked_job_number: job.job_number ?? "",
+      linked_job_source: "routeone",
+      linked_job_date: job.scheduled_date,
+      customer: job.customer_name || p.customer,
+      site: job.site_name || p.site,
+      driver_name: job.driver_name || p.driver_name,
+      vehicle_reg: (job.vehicle_reg || p.vehicle_reg || "").toUpperCase(),
+      container_type: [job.container_size, job.container_type].filter(Boolean).join(" ") || p.container_type,
+      waste_type_id: wt?.id ?? p.waste_type_id,
+      ewc_code: job.ewc_code || wt?.ewc_code || p.ewc_code,
+      notes: job.po_number && !p.notes ? `PO ${job.po_number}` : p.notes,
+      carrier_name: p.carrier_name || OWN_CARRIER_NAME,
+      carrier_registration: p.carrier_registration || ownCarrierLicence,
+    }));
+  };
   const [classification, setClassification] = useState<WasteClassification>({});
   const [editClassification, setEditClassification] = useState<WasteClassification>({});
 
@@ -547,12 +572,17 @@ const WeighOnePage = () => {
       const grossKg = parseFloat(formData.gross_weight_kg);
       const wasteType = activeWasteTypes.find(wt => wt.id === formData.waste_type_id);
 
-      const rate = formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
+      const tableRate = formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
+      // A RouteOne job's booked £/t wins over the weighbridge rate table.
+      const rate = arrivingJob?.charge_per_tonne != null
+        ? { price_per_tonne: Number(arrivingJob.charge_per_tonne), min_charge: tableRate?.min_charge ?? 0 }
+        : tableRate;
 
       // Optional second (tare) weight captured at the same time
       const tareRaw = (formData.tare_weight_kg ?? "").trim();
       const tareKg = tareRaw === "" ? NaN : parseFloat(tareRaw);
       const hasTare = !isNaN(tareKg) && !isNaN(grossKg);
+      if (hasTare && (grossKg <= 0 || tareKg <= 0)) throw new Error("Both weights must be above zero");
       const netKg = hasTare ? Math.abs(grossKg - tareKg) : null;
       const itemsTotal = newAdditionalItems
         .filter((i) => i.description && i.cost)
@@ -626,6 +656,13 @@ const WeighOnePage = () => {
           .eq("id", txData.id);
       }
 
+      // Link the ticket to its RouteOne job (a job can have several tickets)
+      if (txData && arrivingJob) {
+        const { error: linkErr } = await supabase.from("route_one_job_weighings").insert({ job_id: arrivingJob.id, weighbridge_transaction_id: txData.id });
+        if (linkErr) toast.error("Ticket saved but not linked to the RouteOne job: " + linkErr.message);
+        else if (hasTare) await supabase.from("route_one_jobs").update({ weighed_at: new Date().toISOString() }).eq("id", arrivingJob.id);
+      }
+
       if (stagedAttachments.length > 0 && txData) {
         try {
           await uploadWeighbridgeAttachments(txData.id, stagedAttachments, operatorName || formData.operator_name || null);
@@ -686,6 +723,8 @@ const WeighOnePage = () => {
       const tareKg = parseFloat(secondWeighKg);
       if (isNaN(tareKg)) throw new Error("Invalid tare weight");
       const grossKg = selectedTransaction.gross_weight_kg ?? 0;
+      if (grossKg <= 0) throw new Error("This ticket has no first weight — edit the ticket to add it");
+      if (tareKg <= 0) throw new Error("Enter a weight above zero");
       const netKg = Math.abs(grossKg - tareKg);
       const ppt = selectedTransaction.price_per_tonne ?? 0;
       const weightCharge = chargeFor(netKg, ppt, selectedTransaction.min_charge ?? 0);
@@ -713,7 +752,13 @@ const WeighOnePage = () => {
           status: "completed",
           completed_at: new Date().toISOString(),
         })
-        .eq("weighbridge_transaction_id", selectedTransaction.id);
+        .eq("weighbridge_transaction_id", selectedTransaction.id)
+        .eq("job_type", "waste_out_skip");
+
+      // Linked RouteOne collection: mark as weighed (never overwrite the driver's completion)
+      const { data: links } = await supabase.from("route_one_job_weighings").select("job_id").eq("weighbridge_transaction_id", selectedTransaction.id);
+      const jobIds = (links ?? []).map(l => l.job_id);
+      if (jobIds.length) await supabase.from("route_one_jobs").update({ weighed_at: new Date().toISOString() }).in("id", jobIds);
     },
     onSuccess: () => {
       toast.success("Transaction completed");
@@ -893,6 +938,7 @@ const WeighOnePage = () => {
   });
 
   const resetForm = () => {
+    setArrivingJob(null);
     setFormData({ ...emptyForm });
     setClassification({});
     setOperatorSignature(null);
@@ -954,6 +1000,11 @@ const WeighOnePage = () => {
       net_tonnes: t.net_weight_kg != null ? (t.net_weight_kg / 1000).toFixed(2) : "",
       price_per_tonne: t.price_per_tonne != null ? `£${t.price_per_tonne.toFixed(2)}` : "",
       total_price: fmtPrice(t.total_price),
+      vat_amount: t.total_price != null ? fmtPrice(Math.round(t.total_price * 20) / 100) : "",
+      total_inc_vat: t.total_price != null ? fmtPrice(Math.round(t.total_price * 120) / 100) : "",
+      payment: (t as any).payment_paid
+        ? `PAID${(t as any).payment_method ? ` – ${String((t as any).payment_method).toUpperCase()}` : ""}${(t as any).payment_reference ? ` ${(t as any).payment_reference}` : ""}`
+        : (t as any).payment_method === "account" ? "ON ACCOUNT – invoice to follow" : "NOT PAID",
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",
@@ -1039,6 +1090,12 @@ const WeighOnePage = () => {
                         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Job</span>
                       </div>
                       <div className="p-3 space-y-3">
+                      <RouteOneArrivalPicker
+                        selected={arrivingJob}
+                        vehicleReg={formData.vehicle_reg}
+                        onPick={applyRouteOneJob}
+                        onClear={() => { setArrivingJob(null); setFormData(p => ({ ...p, linked_job_number: "", linked_job_source: "", linked_job_date: "" })); }}
+                      />
                       <div className="space-y-1.5">
                         <Label className="text-xs">Job Type *</Label>
                         <Select
@@ -1083,7 +1140,7 @@ const WeighOnePage = () => {
                         </label>
                       )}
 
-                      {formData.job_type === "skip" && (
+                      {formData.job_type === "skip" && !arrivingJob && (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
                             <Label className="text-xs">Clews Driver</Label>
@@ -2017,6 +2074,11 @@ const WeighOnePage = () => {
                 transaction={selectedTransaction as any}
                 onSaved={(patch) => setSelectedTransaction({ ...selectedTransaction, ...patch } as WeighbridgeTransaction)}
               />
+              {selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
+                <Button variant="secondary" className="w-full gap-2" onClick={() => invoiceFromSource({ transactionId: selectedTransaction.id })}>
+                  <PoundSterling className="h-4 w-4" /> Create invoice (account customer)
+                </Button>
+              )}
 
               <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
                 <div>1st Weigh: {selectedTransaction.first_weigh_at ? format(new Date(selectedTransaction.first_weigh_at), "dd/MM/yyyy HH:mm:ss") : "-"}</div>

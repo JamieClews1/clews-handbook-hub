@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { issueDriverPass, verifyDriverPass, type DriverPass } from "../_shared/driver-session.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -44,6 +45,11 @@ function decodeBase64(b64: string): Uint8Array {
   return bytes;
 }
 
+const DRIVER_ACTIONS = new Set([
+  "update_location", "list_jobs", "update_job_status", "ensure_skiptrak_job",
+  "list_job_photos", "add_job_photo", "delete_job_photo",
+]);
+
 // Escape LIKE/ILIKE wildcards so a username can only match itself
 const escapeLike = (s: string) => s.replace(/([%_\\])/g, "\\$1");
 
@@ -57,6 +63,17 @@ Deno.serve(async (req) => {
     const action = String(body?.action ?? "");
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Driver job actions require a valid signed pass, and act only on that driver's jobs.
+    let pass: DriverPass | null = null;
+    if (DRIVER_ACTIONS.has(action)) {
+      pass = await verifyDriverPass(body?.token);
+      if (!pass) return json({ error: "Your driver session has expired. Please sign in again.", session_expired: true }, 401);
+    }
+    const ownsJob = async (jobId: string) => {
+      const { data } = await supabase.from("route_one_jobs").select("assigned_driver_id").eq("id", jobId).maybeSingle();
+      return !!data && data.assigned_driver_id === pass!.d;
+    };
+
     switch (action) {
       /* ─── Auth (PIN login / session restore) ─── */
       case "driver_login": {
@@ -65,23 +82,26 @@ Deno.serve(async (req) => {
         if (!username || !pin) return json({ error: "Missing credentials" }, 400);
         const { data } = await supabase
           .from("route_one_drivers")
-          .select("*, route_one_vehicles(registration, vehicle_type)")
+          .select("id, driver_name, driver_number, vehicle_id, username, route_one_vehicles(registration, vehicle_type)")
           .ilike("username", escapeLike(username))
           .eq("pin", pin)
           .eq("is_active", true)
           .maybeSingle();
-        return json({ driver: data ?? null });
+        if (!data) return json({ driver: null });
+        return json({ driver: { ...data, pin: null }, token: await issueDriverPass(data.id) });
       }
       case "driver_restore": {
-        const id = String(body?.id ?? "");
-        if (!id) return json({ error: "id required" }, 400);
+        // Restoring needs the signed pass from login; a bare driver id is not enough.
+        const pass = await verifyDriverPass(body?.token);
+        if (!pass || pass.src !== "driver") return json({ driver: null });
         const { data } = await supabase
           .from("route_one_drivers")
-          .select("*, route_one_vehicles(registration, vehicle_type)")
-          .eq("id", id)
+          .select("id, driver_name, driver_number, vehicle_id, username, route_one_vehicles(registration, vehicle_type)")
+          .eq("id", pass.d)
           .eq("is_active", true)
           .maybeSingle();
-        return json({ driver: data ?? null });
+        if (!data) return json({ driver: null });
+        return json({ driver: { ...data, pin: null }, token: await issueDriverPass(data.id) });
       }
       case "yard_login": {
         const username = String(body?.username ?? "").trim();
@@ -110,7 +130,7 @@ Deno.serve(async (req) => {
 
       /* ─── Live location tracking ─── */
       case "update_location": {
-        const driverId = String(body?.driver_id ?? "");
+        const driverId = pass!.d;
         const lat = Number(body?.latitude);
         const lng = Number(body?.longitude);
         if (!driverId) return json({ error: "driver_id required" }, 400);
@@ -149,9 +169,9 @@ Deno.serve(async (req) => {
 
       /* ─── Jobs ─── */
       case "list_jobs": {
-        const driverId = String(body?.driver_id ?? "");
+        const driverId = pass!.d;
         const date = String(body?.date ?? "");
-        if (!driverId || !date) return json({ error: "driver_id and date required" }, 400);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: "date required" }, 400);
         const { data, error } = await supabase
           .from("route_one_jobs")
           .select("*")
@@ -166,6 +186,7 @@ Deno.serve(async (req) => {
       case "update_job_status": {
         const jobId = String(body?.job_id ?? "");
         if (!jobId) return json({ error: "job_id required" }, 400);
+        if (!(await ownsJob(jobId))) return json({ error: "This job is not assigned to you" }, 403);
         const updates = pick({ status: body?.status, ...(body?.extra || {}) }, JOB_UPDATE_FIELDS);
         if (body?.status === "completed" && body?.extra?.waste_classification) {
           const { data: existing, error: readError } = await supabase.from("route_one_jobs").select("waste_classification").eq("id", jobId).single();
@@ -192,7 +213,14 @@ Deno.serve(async (req) => {
       case "ensure_skiptrak_job": {
         const jobNumber = String(body?.job_number ?? "").trim();
         if (!jobNumber) return json({ error: "job_number required" }, 400);
-        const driverId = body?.driver_id ? String(body.driver_id) : null;
+        const driverId = pass!.d;
+        // Only allow a Skiptrak ticket booked to this driver (exact name match).
+        const { data: me } = pass!.src === "profile"
+          ? await supabase.from("profiles").select("driver_name:full_name").eq("id", driverId).maybeSingle()
+          : await supabase.from("route_one_drivers").select("driver_name").eq("id", driverId).maybeSingle();
+        const { data: ticket } = await supabase.from("data_hub_jobs").select("driver").eq("source", "skiptrak").eq("job_number", jobNumber).limit(1).maybeSingle();
+        const key = (v: unknown) => String(v ?? "").toLowerCase().replace(/[.\-_]+/g, " ").replace(/\s+/g, " ").trim();
+        if (!me || !ticket || !key(ticket.driver) || key(ticket.driver) !== key((me as any).driver_name)) return json({ error: "This ticket is not booked to you" }, 403);
 
         const { data: existing, error: findErr } = await supabase
           .from("route_one_jobs")
@@ -202,7 +230,11 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
         if (findErr) throw findErr;
-        if (existing) return json({ job: existing, created: false });
+        if (existing) {
+          if (existing.assigned_driver_id && existing.assigned_driver_id !== driverId) return json({ error: "This ticket is not booked to you" }, 403);
+          if (!existing.assigned_driver_id) await supabase.from("route_one_jobs").update({ assigned_driver_id: driverId }).eq("id", existing.id);
+          return json({ job: { ...existing, assigned_driver_id: driverId }, created: false });
+        }
 
         const movement = String(body?.movement_type ?? "").toLowerCase();
         const jobType = movement.includes("deliver")
@@ -527,6 +559,7 @@ Deno.serve(async (req) => {
         const jobId = String(body?.job_id ?? "");
         const photoType = String(body?.photo_type ?? "");
         if (!jobId) return json({ error: "job_id required" }, 400);
+        if (!(await ownsJob(jobId))) return json({ error: "This job is not assigned to you" }, 403);
         let q = supabase.from("route_one_job_photos").select("*").eq("job_id", jobId);
         if (photoType) q = q.eq("photo_type", photoType);
         const { data, error } = await q.order("created_at");
@@ -539,6 +572,7 @@ Deno.serve(async (req) => {
         const fileName = String(body?.file_name ?? "photo.jpg");
         const b64 = String(body?.file_base64 ?? "");
         if (!jobId || !b64) return json({ error: "job_id and file required" }, 400);
+        if (!(await ownsJob(jobId))) return json({ error: "This job is not assigned to you" }, 403);
         const ext = fileName.split(".").pop() || "jpg";
         const path = `${jobId}/${photoType || "photo"}_${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage
@@ -558,8 +592,10 @@ Deno.serve(async (req) => {
       }
       case "delete_job_photo": {
         const id = String(body?.id ?? "");
-        const filePath = String(body?.file_path ?? "");
         if (!id) return json({ error: "id required" }, 400);
+        const { data: photo } = await supabase.from("route_one_job_photos").select("job_id, file_path").eq("id", id).maybeSingle();
+        if (!photo || !(await ownsJob(photo.job_id))) return json({ error: "This photo is not on your job" }, 403);
+        const filePath = photo.file_path;
         if (filePath) await supabase.storage.from("route-one-photos").remove([filePath]);
         const { error } = await supabase.from("route_one_job_photos").delete().eq("id", id);
         if (error) throw error;
