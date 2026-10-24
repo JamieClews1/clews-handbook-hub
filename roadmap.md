@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Streamline RouteOne job workspace: fixed identity/actions and price summary, searchable site table, safe separate New exchange, preserve schedule context and verify signed-in flows.
 - [x] Correct RouteOne established site addresses from customer and Skiptrak data; add 81 sites and fill 98 missing addresses; booking/site/future business-cost tabs with POPs and extras before pricing; signed-in selection and tab retention verified without creating jobs.
 ## RouteOne + WeighOne go-live (plan approved 24 Oct)
 - [x] 1. Driver app security: signed driver pass, job ownership checks, no PINs returned, exact imported-driver matching
