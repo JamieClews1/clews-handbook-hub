@@ -11,9 +11,3 @@ it("never guesses dates for unknown zones, vehicles or TBC", () => {
   assert.equal(nextExchangeBookingDate({ container_type: "Curtain trailer", site_postcode: "CV23 0XE" }, windows, zones, "2026-10-24"), null);
   assert.equal(nextExchangeBookingDate({ container_type: "Skip", site_postcode: "CV23 0XE" }, [{ zone_label: "Zone 1", skip_day: "TBC", roro_day: "MON" }], zones, "2026-10-24"), null);
 });
-it("does not replace a staff-selected date after defaulting", () => {
-  const form = { container_type: "Skip", site_postcode: "CV23 0XE", scheduled_date: "" };
-  form.scheduled_date = nextExchangeBookingDate(form, windows, zones, "2026-10-24") || "";
-  form.scheduled_date = "2026-10-30";
-  assert.equal(form.scheduled_date, "2026-10-30");
-});
