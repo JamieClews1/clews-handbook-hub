@@ -90,7 +90,7 @@ export function invoiceBlockers(opts: { jobCompleted: boolean; hasCustomer: bool
   const out: string[] = [];
   if (!opts.jobCompleted) out.push("Driver hasn't completed the job");
   if (!opts.hasCustomer) out.push("Customer not set up for invoicing");
-  if (opts.hasCustomer && opts.financeMissing.length) out.push(`Finance details missing: ${opts.financeMissing.join(", ")}`);
+  if (opts.hasCustomer && opts.financeMissing.length) out.push(opts.financeMissing[0].startsWith("Finance details have not") ? "Customer finance details not set up" : `Finance details missing: ${opts.financeMissing.join(", ")}`);
   if (opts.poRequired && !opts.po?.trim()) out.push("Customer needs a PO number");
   if (opts.pendingContamination) out.push("Contamination awaiting decision");
   if (!opts.lines.some(l => l.net_amount > 0)) out.push("No price on the job");
