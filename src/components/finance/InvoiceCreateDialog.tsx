@@ -149,7 +149,8 @@ export function InvoiceCreateDialog({ open, onOpenChange, onCreated, presetJobNu
     setLines([
       computeLine({
         description: `${desc || "Waste collection"} (Job ${j.job_number}${j.site ? `, ${j.site}` : ""})`,
-        quantity: Number(j.weight_t ?? 1) || 1,
+        // Midweigh stores kilograms, Skiptrak tonnes.
+        quantity: ticketWeightTonnes(j.weight_t == null ? null : Number(j.weight_t), j.source === "midweigh" ? "midweigh" : "skiptrak") || 1,
         unit: j.weight_t ? "t" : null,
         unit_price: 0,
         vat_rate: vat,
@@ -179,25 +180,22 @@ export function InvoiceCreateDialog({ open, onOpenChange, onCreated, presetJobNu
 
     setSaving(true);
     try {
-      const { data: numData, error: numErr } = await supabase.rpc("next_invoice_number" as any);
-      if (numErr) throw numErr;
-
-      const { data: inv, error } = await supabase
-        .from("invoices")
-        .insert({
-          invoice_number: String(numData),
+      let zeroReason: string | null = null;
+      if (totals.net <= 0) {
+        zeroReason = window.prompt("This invoice has no value. Why is it being raised at £0?")?.trim() || null;
+        if (!zeroReason) { setSaving(false); return toast.error("Enter a reason for a zero-value invoice"); }
+      }
+      const { data: invId, error } = await supabase.rpc("create_invoice_with_lines" as any, {
+        _header: {
           customer_id: customerId,
           site_id: siteId || null,
           job_number: job?.job_number ?? null,
           job_source: job?.source ?? null,
-          status: "draft",
           issue_date: issueDate,
           due_date: dueDate,
           purchase_order: po.trim() || null,
           notes: notes.trim() || null,
-          net_total: totals.net,
-          vat_total: totals.vat,
-          gross_total: totals.gross,
+          zero_price_reason: zeroReason,
           bill_to: {
             customer_name: customerName,
             finance_contact_name: finance?.finance_contact_name,
@@ -211,27 +209,14 @@ export function InvoiceCreateDialog({ open, onOpenChange, onCreated, presetJobNu
             vat_number: finance?.vat_number,
           },
           accounting_provider: settings.accounting_provider ?? "sage50",
-        } as any)
-        .select("id")
-        .single();
+        },
+        _lines: lines.filter((l) => l.description.trim()).map((l) => ({
+          description: l.description, quantity: l.quantity, unit: l.unit, unit_price: l.unit_price,
+          net_amount: l.net_amount, vat_rate: l.vat_rate, vat_amount: l.vat_amount, nominal_code: l.nominal_code,
+        })),
+      });
       if (error) throw error;
-
-      const payload = lines
-        .filter((l) => l.description.trim())
-        .map((l, i) => ({
-          invoice_id: (inv as any).id,
-          sort_order: i,
-          description: l.description,
-          quantity: l.quantity,
-          unit: l.unit,
-          unit_price: l.unit_price,
-          net_amount: l.net_amount,
-          vat_rate: l.vat_rate,
-          vat_amount: l.vat_amount,
-          nominal_code: l.nominal_code,
-        }));
-      const { error: lineErr } = await supabase.from("invoice_line_items").insert(payload as any);
-      if (lineErr) throw lineErr;
+      const inv = { id: invId as unknown as string };
 
       toast.success("Invoice created");
       onOpenChange(false);
