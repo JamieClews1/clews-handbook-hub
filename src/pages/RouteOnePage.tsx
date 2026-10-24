@@ -466,7 +466,7 @@ const RouteOnePage = () => {
 
   // Create job mutation
   const createJob = useMutation({
-    mutationFn: async (form: typeof jobForm) => {
+    mutationFn: async ({ form, send }: { form: typeof jobForm; send: boolean }) => {
       const { error } = await supabase.from("route_one_jobs").insert({
         customer_name: form.customer_name,
         site_name: form.site_name || null,
@@ -499,16 +499,16 @@ const RouteOnePage = () => {
         scheduled_date: form.scheduled_date,
         assigned_driver_id: form.assigned_driver_id || null,
         status: form.assigned_driver_id ? "assigned" : "unassigned",
-        is_live: form.job_type === "waste_out_skip",
+        is_live: form.job_type === "waste_out_skip" || (send && !!form.assigned_driver_id),
         ...costFields(form),
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, { send, form }) => {
       queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
       setNewJobOpen(false);
       resetJobForm();
-      toast({ title: "Job created" });
+      toast({ title: send && form.assigned_driver_id ? "Job created and sent to the driver" : "Job saved as draft", description: send && form.assigned_driver_id ? undefined : "Drivers won't see it until you send it." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -868,9 +868,12 @@ const RouteOnePage = () => {
                 <DialogTitle>Create Job</DialogTitle>
               </DialogHeader>
               <JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} />
-              <DialogFooter>
-                <Button onClick={() => createJob.mutate(jobForm)} disabled={!jobForm.customer_name || createJob.isPending} className="w-full">
-                  {createJob.isPending ? "Creating..." : "Create Job"}
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || createJob.isPending} className="sm:flex-1">
+                  Save as draft
+                </Button>
+                <Button onClick={() => createJob.mutate({ form: jobForm, send: true })} disabled={!jobForm.customer_name || !jobForm.assigned_driver_id || createJob.isPending} className="sm:flex-1" title={!jobForm.assigned_driver_id ? "Choose a driver to send the job" : undefined}>
+                  {createJob.isPending ? "Saving..." : "Save & send to driver"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -1641,7 +1644,7 @@ function JobCard({
       {/* Row 4: details */}
       <div className={`flex items-center gap-1.5 ${compact ? "mt-1.5" : "mt-2"} flex-wrap text-xs font-semibold`}>
         <span className={`rounded px-1.5 py-0.5 ${job.is_live ? "bg-white text-foreground" : "bg-black/25"}`}>
-          {job.is_live ? "LIVE" : "Draft"}
+          {job.is_live ? "SENT" : "DRAFT"}
         </span>
         <PermitBadge permit={permit} />
         {(job.container_size || job.container_type) && (
