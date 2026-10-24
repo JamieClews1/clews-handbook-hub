@@ -76,6 +76,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { JobPriceSummary } from "@/components/route-one/JobPriceSummary";
 import { newExchangeForm } from "@/lib/route-job-exchange";
+import { importedSiteDetails } from "@/lib/route-booking-sites";
 import { Save, Repeat2, X } from "lucide-react";
 import { Columns3 } from "lucide-react";
 
@@ -233,6 +234,7 @@ const RouteOnePage = () => {
   const [ticketJob, setTicketJob] = useState<any | null>(null);
   const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
   const [reorganiseOpen, setReorganiseOpen] = useState(false);
+  const [exchangeLoading, setExchangeLoading] = useState(false);
 
   // List view column selection, persisted per browser
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -692,6 +694,20 @@ const RouteOnePage = () => {
     if (JSON.stringify(editForm) !== editBaseline.current) { toast({ title: "Save your changes before printing", description: "The printed ticket uses the saved job details." }); return; }
     printWtnPdf({ ...editingJob, driver_name: drivers.find(d => d.id === editingJob.assigned_driver_id)?.driver_name });
   };
+  const startImportedExchange = async (job: any) => {
+    setExchangeLoading(true);
+    try {
+      const { data, error } = await supabase.from("data_hub_jobs").select("*").eq("source", "skiptrak").eq("id", job.id).single();
+      if (error) throw error;
+      const details = importedSiteDetails(data.raw, data.postcode || "");
+      const mapped = { ...skiptrakWtnJob(data), site_address: details.address, site_area: details.area, site_contact_name: details.contact, site_contact_phone: details.phone, sic_code: details.sic };
+      const fresh = newExchangeForm(blankForm.current, mapped, dateStr);
+      fresh.notes = `Exchange from Skiptrak job ${data.job_number}`;
+      setJobForm(fresh); newBaseline.current = JSON.stringify(fresh);
+      setViewingSkiptrakJob(null); setNewJobOpen(true);
+    } catch { toast({ title: "Could not load the original job", description: "Try again before creating an exchange.", variant: "destructive" }); }
+    finally { setExchangeLoading(false); }
+  };
 
 
   const navigateDate = (dir: number) => {
@@ -1015,8 +1031,10 @@ const RouteOnePage = () => {
             <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3">
               <TabsContent value="booking" className="mt-0"><JobFormFields form={editForm} setForm={setEditForm} drivers={drivers} allowPrevious={false} /></TabsContent>
               <TabsContent value="paperwork" className="space-y-4 mt-0">
-                {editingJob && <><WtnJobSignatures jobNumber={editingJob.job_number} /><JobPhotosSection jobId={editingJob.id} /><JobPodSection jobNumber={editingJob.job_number} />
-                <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => downloadWtnPdf(editingJob)}><FileDown className="h-4 w-4 mr-2" />Download WTN</Button><Button variant="outline" size="sm" onClick={() => setTicketJob(editingJob)}><Send className="h-4 w-4 mr-2" />Send ticket</Button></div></>}
+                {editingJob && <>
+                {(editingJob.customer_signature || editingJob.driver_signature) && <div className="grid grid-cols-2 gap-3">{[["Customer", editingJob.customer_signature], ["Driver", editingJob.driver_signature]].map(([label, signature]) => signature && <div key={label}><p className="text-xs text-muted-foreground">{label}</p><img src={signature} alt={`${label} signature`} className="h-16 w-full border border-border rounded bg-background object-contain" /></div>)}</div>}
+                <WtnJobSignatures jobNumber={editingJob.job_number} /><JobPhotosSection jobId={editingJob.id} /><JobPodSection jobNumber={editingJob.job_number} />
+                <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => downloadWtnPdf(editingJob)}><FileDown className="h-4 w-4 mr-2" />Download WTN</Button><Button variant="outline" size="sm" onClick={() => setTicketJob(editingJob)}><Send className="h-4 w-4 mr-2" />Send ticket</Button>{editingJob.status === "completed" && <Button variant="outline" size="sm" onClick={() => invoiceFromSource({ jobId: editingJob.id })}><PoundSterling className="h-4 w-4 mr-2" />Create invoice</Button>}</div></>}
               </TabsContent>
             </div>
           </Tabs>
@@ -1108,6 +1126,8 @@ const RouteOnePage = () => {
                 <DialogFooter>
                   <Button variant="outline" size="sm" onClick={() => printWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><Printer className="h-4 w-4 mr-2" />Print ticket</Button>
                   <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><FileDown className="h-4 w-4 mr-2" />Download ticket</Button>
+                  <Button variant="outline" size="sm" disabled={exchangeLoading} onClick={() => startImportedExchange(viewingSkiptrakJob)}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setViewingSkiptrakJob(null)}>Close</Button>
                 </DialogFooter>
               </div>
             );
