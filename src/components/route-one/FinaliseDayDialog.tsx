@@ -20,9 +20,11 @@ interface DayJob { sheet: DaySheetJob; ticket: WtnJob; nativeId?: string }
 
 const norm = (v: unknown) => String(v ?? "").toLowerCase().replace(/[^a-z]/g, "");
 
-export function FinaliseDayDialog({ date: initialDate, drivers, vehicles }: { date: string; drivers: Driver[]; vehicles: Vehicle[] }) {
+export function FinaliseDayDialog({ date: initialDate, drivers, vehicles, externalOpen, onExternalOpenChange, hideTrigger }: { date: string; drivers: Driver[]; vehicles: Vehicle[]; externalOpen?: boolean; onExternalOpenChange?: (open: boolean) => void; hideTrigger?: boolean }) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = externalOpen || localOpen;
+  const setOpen = (value: boolean) => { setLocalOpen(value); onExternalOpenChange?.(value); };
   const [date, setDate] = useState(initialDate);
   const [regs, setRegs] = useState<Record<string, string>>({});
   const [sheets, setSheets] = useState<Set<string>>(new Set());
@@ -106,7 +108,7 @@ export function FinaliseDayDialog({ date: initialDate, drivers, vehicles }: { da
 
   const section = "rounded-lg border p-3 space-y-2";
   return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger asChild><Button size="sm" variant="secondary" className="h-9 gap-1.5"><CheckCircle2 className="h-4 w-4" />Finalise Day</Button></DialogTrigger>
+    {!hideTrigger && <DialogTrigger asChild><Button size="sm" variant="secondary" className="h-9 gap-1.5"><CheckCircle2 className="h-4 w-4" />Finalise Day</Button></DialogTrigger>}
     <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Finalise day</DialogTitle></DialogHeader>
       <div className="flex items-center gap-2"><span className="text-sm font-medium">Day being finalised</span><Input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-44" /></div>

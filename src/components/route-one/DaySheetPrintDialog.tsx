@@ -7,8 +7,10 @@ import { Printer } from "lucide-react";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { buildDaySheet, type DaySheetJob } from "@/lib/route-day-sheet";
 
-export function DaySheetPrintDialog({ date, drivers }: { date: string; drivers: { id: string; driver_name: string }[] }) {
-  const [open, setOpen] = useState(false);
+export function DaySheetPrintDialog({ date, drivers, externalOpen, onExternalOpenChange, hideTrigger }: { date: string; drivers: { id: string; driver_name: string }[]; externalOpen?: boolean; onExternalOpenChange?: (open: boolean) => void; hideTrigger?: boolean }) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = externalOpen || localOpen;
+  const setOpen = (value: boolean) => { setLocalOpen(value); onExternalOpenChange?.(value); };
   const [driver, setDriver] = useState("all");
   const [error, setError] = useState("");
   const { data: jobs = [], isLoading, error: loadError } = useQuery({
@@ -38,7 +40,7 @@ export function DaySheetPrintDialog({ date, drivers }: { date: string; drivers: 
     doc.autoPrint();
     win.location.href = URL.createObjectURL(doc.output("blob"));
   };
-  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="outline" size="sm" className="h-9 gap-1.5"><Printer className="h-4 w-4" />Job sheets</Button></DialogTrigger>
+  return <Dialog open={open} onOpenChange={setOpen}>{!hideTrigger && <DialogTrigger asChild><Button variant="outline" size="sm" className="h-9 gap-1.5"><Printer className="h-4 w-4" />Job sheets</Button></DialogTrigger>}
     <DialogContent><DialogHeader><DialogTitle>Print daily job sheets — {date}</DialogTitle></DialogHeader>
       <Select value={driver} onValueChange={setDriver}><SelectTrigger aria-label="Job sheet driver"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All drivers</SelectItem>{names.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>
       <p className="text-sm text-foreground">{isLoading ? "Loading day's jobs…" : `${selected.length} jobs`}</p>
