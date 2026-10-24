@@ -82,7 +82,6 @@ export function buildJobInvoiceLines(job: JobForInvoice, tickets: TicketForInvoi
   }
   if (n(job.contamination_charge) > 0) lines.push(line("Contamination charge", 1, null, n(job.contamination_charge), vat));
 
-  // Tag the first line with each ticket so a ticket can never be billed on two invoices.
   return { lines, totalTonnes, chargeableTonnes };
 }
 
