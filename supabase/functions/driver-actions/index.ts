@@ -215,10 +215,12 @@ Deno.serve(async (req) => {
         if (!jobNumber) return json({ error: "job_number required" }, 400);
         const driverId = pass!.d;
         // Only allow a Skiptrak ticket booked to this driver (exact name match).
-        const { data: me } = await supabase.from("route_one_drivers").select("driver_name").eq("id", driverId).maybeSingle();
+        const { data: me } = pass!.src === "profile"
+          ? await supabase.from("profiles").select("driver_name:full_name").eq("id", driverId).maybeSingle()
+          : await supabase.from("route_one_drivers").select("driver_name").eq("id", driverId).maybeSingle();
         const { data: ticket } = await supabase.from("data_hub_jobs").select("driver").eq("source", "skiptrak").eq("job_number", jobNumber).limit(1).maybeSingle();
         const key = (v: unknown) => String(v ?? "").toLowerCase().replace(/[.\-_]+/g, " ").replace(/\s+/g, " ").trim();
-        if (!me || !ticket || !key(ticket.driver) || key(ticket.driver) !== key(me.driver_name)) return json({ error: "This ticket is not booked to you" }, 403);
+        if (!me || !ticket || !key(ticket.driver) || key(ticket.driver) !== key((me as any).driver_name)) return json({ error: "This ticket is not booked to you" }, 403);
 
         const { data: existing, error: findErr } = await supabase
           .from("route_one_jobs")
