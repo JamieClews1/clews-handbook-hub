@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Restyle RouteOne Day scheduler from uploaded tinted-block brief; preserve actions and other views, verify signed-in day board.
 - [x] Default exchanges to configured Skip/RoRo zone booking dates; four date-rule tests pass, signed-in RoRo selects 26 Oct and preserves manual 30 Oct across tabs, no job saved, preview clean.
 - [x] Copy imported exchange explicit booking prices and add optional fuel surcharge; 13 tests pass, signed-in £811 haulage and £4.95 fuel add/remove verified without saving, preview clean. Skiptrak exports without separate per-tonne rates prompt staff review rather than guessing.
 - [x] Streamline new exchanges: inherited-site summary, date/driver/PO first, optional considerations and rate lookup; signed-in imported exchange and tab retention verified without saving, shared native copying tests pass, preview clean.
