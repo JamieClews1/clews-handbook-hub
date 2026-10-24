@@ -16,6 +16,7 @@ interface Props {
     payment_method?: string | null;
     payment_paid?: boolean | null;
     payment_reference?: string | null;
+    payment_paid_at?: string | null;
   };
   onSaved?: (patch: Record<string, unknown>) => void;
 }
@@ -36,12 +37,15 @@ export function WeighOnePaymentPanel({ transaction, onSaved }: Props) {
   const needsRef = method === "card" || method === "cheque";
 
   const save = async () => {
+    if (paid && !method) return toast.error("Choose how it was paid");
+    if (paid && needsRef && !reference.trim()) return toast.error("Enter the card / cheque number");
     setSaving(true);
     const patch = {
       payment_method: method || null,
       payment_paid: paid,
       payment_reference: needsRef ? reference.trim() || null : null,
-      payment_paid_at: paid ? new Date().toISOString() : null,
+      // Keep the original paid time when the ticket is saved again.
+      payment_paid_at: paid ? (transaction.payment_paid && transaction.payment_paid_at ? transaction.payment_paid_at : new Date().toISOString()) : null,
     };
     const { error } = await supabase.from("weighbridge_transactions").update(patch).eq("id", transaction.id);
     setSaving(false);

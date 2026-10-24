@@ -31,6 +31,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
 import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
+import { invoiceFromSource } from "@/components/finance/ReadyToInvoiceTab";
 import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -2068,6 +2069,11 @@ const WeighOnePage = () => {
                 transaction={selectedTransaction as any}
                 onSaved={(patch) => setSelectedTransaction({ ...selectedTransaction, ...patch } as WeighbridgeTransaction)}
               />
+              {selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
+                <Button variant="secondary" className="w-full gap-2" onClick={() => invoiceFromSource({ transactionId: selectedTransaction.id })}>
+                  <PoundSterling className="h-4 w-4" /> Create invoice (account customer)
+                </Button>
+              )}
 
               <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
                 <div>1st Weigh: {selectedTransaction.first_weigh_at ? format(new Date(selectedTransaction.first_weigh_at), "dd/MM/yyyy HH:mm:ss") : "-"}</div>
