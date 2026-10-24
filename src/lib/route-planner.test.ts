@@ -4,6 +4,12 @@ import { planDay, resolveDriverId, sameDriverName } from "./route-planner";
 import { DEFAULT_ROUTING_RULES } from "@/hooks/useRoutingRules";
 
 describe("RouteOne driver name matching", () => {
+  it("assigns Grzegorz Nawrocki tickets once, not also to the short grzegorz entry", () => {
+    const drivers = [{ id: "greg", name: "Grzegorz Nawrocki" }, { id: "short", name: "grzegorz" }];
+    assert.equal(resolveDriverId("Grzegorz Nawrocki", drivers), "greg");
+    assert.equal(resolveDriverId("Grzegorz.Nawrocki", drivers), "greg");
+    assert.equal(resolveDriverId("Grzegorz Nawrocki", [{ id: "short", name: "grzegorz" }]), null);
+  });
   it("treats Skiptrak's Lee.Gane as the Lee Gane driver profile", () => {
     assert.equal(sameDriverName("Lee.Gane", "Lee Gane"), true);
     assert.equal(resolveDriverId("Lee.Gane", [{ id: "lee", name: "Lee Gane" }]), "lee");
