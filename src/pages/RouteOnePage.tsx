@@ -917,7 +917,7 @@ const RouteOnePage = () => {
                 <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
               </DialogHeader>
               <JobPriceSummary form={jobForm} />
-              <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} /></div>
+              <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} exchangeMode={jobForm.job_type === "exchange"} allowPrevious={jobForm.job_type !== "exchange"} /></div>
               <DialogFooter className="gap-2 sm:gap-2 p-4 border-t border-border shrink-0 bg-background">
                 <Button variant="ghost" onClick={closeNewJob}><X className="h-4 w-4 mr-2" />Cancel</Button>
                 <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || createJob.isPending} className="sm:flex-1">

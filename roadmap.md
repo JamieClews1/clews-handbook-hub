@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Streamline new exchanges: inherited-site summary, date/driver/PO first, optional considerations and rate lookup; signed-in imported exchange and tab retention verified without saving, shared native copying tests pass, preview clean.
 - [x] Streamline RouteOne job workspace: fixed identity/actions and price summary, searchable site table, safe separate New exchange. Eleven tests pass; signed-in existing-job save/reopen, site search, unsaved exchange and current screen-size actions verified; no new job dispatched.
 - [x] Correct RouteOne established site addresses from customer and Skiptrak data; add 81 sites and fill 98 missing addresses; booking/site/future business-cost tabs with POPs and extras before pricing; signed-in selection and tab retention verified without creating jobs.
 ## RouteOne + WeighOne go-live (plan approved 24 Oct)

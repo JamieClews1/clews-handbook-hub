@@ -160,11 +160,13 @@ export function JobFormFields({
   setForm,
   drivers,
   allowPrevious = true,
+  exchangeMode = false,
 }: {
   form: any;
   setForm: (f: any) => void;
   drivers: any[];
   allowPrevious?: boolean;
+  exchangeMode?: boolean;
 }) {
   const [bookingTab, setBookingTab] = useState("booking");
   const [siteLoadError, setSiteLoadError] = useState("");
@@ -455,13 +457,23 @@ export function JobFormFields({
     <div className="grid gap-4">
       <Tabs value={bookingTab} onValueChange={setBookingTab}>
         <TabsList className="sticky top-0 z-10 w-full justify-start bg-background border border-border">
-          <TabsTrigger value="booking">Booking</TabsTrigger>
+          <TabsTrigger value="booking">{exchangeMode ? "Exchange details" : "Booking"}</TabsTrigger>
           <TabsTrigger value="site">Site details</TabsTrigger>
           <TabsTrigger value="costs">Business costs</TabsTrigger>
         </TabsList>
-      <TabsContent value="booking" className="grid gap-5 lg:grid-cols-2">
+      <TabsContent value="booking" className={exchangeMode ? "grid gap-4" : "grid gap-5 lg:grid-cols-2"}>
+      {exchangeMode && (
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{form.site_name || "Site not selected"}</span>{siteZone && <Badge variant="secondary">{siteZone}</Badge>}</div>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{[form.site_address, form.site_address_2, form.site_postcode].filter(Boolean).join(" · ") || "Site address not recorded"}</p>
+            {(form.site_contact_name || form.site_contact_phone) && <p className="text-sm">{[form.site_contact_name, form.site_contact_phone].filter(Boolean).join(" · ")}</p>}
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setBookingTab("site")}>Change customer / site</Button>
+        </div>
+      )}
       {/* Customer & site */}
-      <section className="space-y-3">
+      {!exchangeMode && <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer &amp; Site</h4>
           {allowPrevious && <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={loadPreviousJobs}>
@@ -574,11 +586,16 @@ export function JobFormFields({
           <p className="text-sm whitespace-pre-line">{[form.site_address, form.site_address_2, form.site_postcode].filter(Boolean).join("\n") || "Site address not recorded"}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => setBookingTab("site")}>Full site details</Button>
         </div>
-        </section>
+        </section>}
       {/* Job details */}
       <section className="space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Details</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {exchangeMode && <>
+            <div><Label className="text-xs" htmlFor="exchange-date">Exchange date</Label><Input id="exchange-date" autoFocus type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} /></div>
+            <div className="col-span-2"><Label className="text-xs">Assign Driver</Label><Select value={form.assigned_driver_id || "unassigned"} onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}><SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label className="text-xs" htmlFor="exchange-po">PO Number</Label><Input id="exchange-po" value={form.po_number || ""} onChange={(e) => setForm({ ...form, po_number: e.target.value })} /></div>
+          </>}
           <div>
             <Label className="text-xs">Job Type *</Label>
             <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
@@ -622,7 +639,7 @@ export function JobFormFields({
             <EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} />
           </div>
 
-          <div>
+          {!exchangeMode && <><div>
             <Label className="text-xs">Date</Label>
             <Input type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
           </div>
@@ -644,7 +661,7 @@ export function JobFormFields({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </div></>}
         </div>
         <div>
           <Label className="text-xs">Notes</Label>
@@ -655,6 +672,11 @@ export function JobFormFields({
       </TabsContent>
         <TabsContent value="site" className="space-y-3">
         <h4 className="font-semibold">{form.customer_name || "Customer"} — {form.site_name || "Site details"}</h4>
+        {exchangeMode && <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><Label className="text-xs">Customer *</Label><AutocompleteInput value={form.customer_name || ""} onChange={(val) => { setManualSite(false); setForm({ ...applyBookingSite(form, { name: "", address: "", postcode: "" }), customer_name: normaliseCustomer(val) }); }} placeholder="Start typing customer..." fetchSuggestions={fetchCustomers} /></div>
+          <div><div className="flex items-center justify-between"><Label className="text-xs">Site</Label><Button type="button" variant="link" size="sm" onClick={() => setManualSite(m => !m)}>{manualSite ? "Pick from known sites" : "Enter manually"}</Button></div>{manualSite || setupSites.length === 0 ? <Input value={form.site_name || ""} onChange={e => setForm({ ...form, site_name: e.target.value })} placeholder={siteLoading ? "Loading established sites…" : "Site name"} /> : <EstablishedSitePicker sites={setupSites} value={form.site_name || ""} onSelect={site => setForm(applyBookingSite(form, site))} onNew={startNewSite} />}</div>
+          {siteLoadError && <p role="alert" className="text-sm text-destructive md:col-span-2">{siteLoadError}<Button type="button" variant="link" onClick={() => setSiteRetry(n => n + 1)}>Try again</Button></p>}
+        </div>}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
             <Label className="text-xs">Site Address</Label>
@@ -743,8 +765,8 @@ export function JobFormFields({
       <TabsContent value="booking" className="space-y-4">
       {form.job_type === "waste_out_skip" && <WasteOutSkipPanel form={form} setForm={setForm} />}
 
-      <section className="space-y-3 border-t border-border pt-4">
-        <h4 className="text-sm font-semibold">Additional considerations</h4>
+      <details open={exchangeMode ? undefined : true} className="space-y-3 border-t border-border pt-4">
+        <summary className="text-sm font-semibold cursor-pointer">Additional considerations · POPs &amp; added items{items.length ? ` (${items.length})` : ""}</summary>
         <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
         {/* Added items */}
         <div className="space-y-2">
@@ -816,9 +838,9 @@ export function JobFormFields({
           </Link>
         </div>
 
-      </section>
+      </details>
       {/* Pricing (Pricing CMS: tier × zone) */}
-      <JobPricingPicker form={form} setForm={setForm} />
+      {exchangeMode ? <details className="border-t border-border pt-3"><summary className="text-sm font-semibold cursor-pointer">Rate card lookup</summary><div className="pt-3"><JobPricingPicker form={form} setForm={setForm} /></div></details> : <JobPricingPicker form={form} setForm={setForm} />}
 
       {/* Costs */}
 
