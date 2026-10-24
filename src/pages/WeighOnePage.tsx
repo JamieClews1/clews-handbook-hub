@@ -1000,6 +1000,11 @@ const WeighOnePage = () => {
       net_tonnes: t.net_weight_kg != null ? (t.net_weight_kg / 1000).toFixed(2) : "",
       price_per_tonne: t.price_per_tonne != null ? `£${t.price_per_tonne.toFixed(2)}` : "",
       total_price: fmtPrice(t.total_price),
+      vat_amount: t.total_price != null ? fmtPrice(Math.round(t.total_price * 20) / 100) : "",
+      total_inc_vat: t.total_price != null ? fmtPrice(Math.round(t.total_price * 120) / 100) : "",
+      payment: (t as any).payment_paid
+        ? `PAID${(t as any).payment_method ? ` – ${String((t as any).payment_method).toUpperCase()}` : ""}${(t as any).payment_reference ? ` ${(t as any).payment_reference}` : ""}`
+        : (t as any).payment_method === "account" ? "ON ACCOUNT – invoice to follow" : "NOT PAID",
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",

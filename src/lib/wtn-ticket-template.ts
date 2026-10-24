@@ -36,6 +36,7 @@ export const WTN_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "total_price", label: "Total price (net of VAT)" },
   { key: "vat_amount", label: "VAT amount" },
   { key: "total_inc_vat", label: "Total including VAT" },
+  { key: "payment", label: "Payment taken (cash/card ticket)" },
   { key: "additional_items", label: "Additional items (rows)" },
   { key: "operator_name", label: "Weighbridge operator" },
   { key: "notes", label: "Notes / comments" },
@@ -149,6 +150,7 @@ export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
     <div><span>Net total (ex VAT)</span><strong>{{total_price}}</strong></div>
     <div><span>VAT @ 20%</span><strong>{{vat_amount}}</strong></div>
     <div class="total"><span>Total inc VAT</span><strong>{{total_inc_vat}}</strong></div>
+    <div><span>Payment</span><strong>{{payment}}</strong></div>
   </div>
 
   <div class="wtn-signs">
@@ -181,13 +183,13 @@ export function renderWtnSheet(
     .replace(/\{\{\s*company_logo\s*\}\}/g, logoImg);
   const printVars = includePrices
     ? vars
-    : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "" };
+    : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "", payment: "" };
   const top = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CUSTOMER COPY" });
   const bottom = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" });
   return `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>
 <style>${WTN_PRINT_STYLES}
   ${includePrices ? "" : "[data-wtn-pricing] { display: none !important; }"}
-  .wtn-pricing { display: grid; grid-template-columns: 1fr 1.4fr 1fr 0.9fr 1fr; border: 1px solid #000; margin-top: 2mm; }
+  .wtn-pricing { display: grid; grid-template-columns: 1fr 1.4fr 1fr 0.9fr 1fr 1fr; border: 1px solid #000; margin-top: 2mm; }
   .wtn-pricing > div { min-width: 0; padding: 1mm 2mm; border-right: 1px solid #000; }
   .wtn-pricing > div:last-child { border-right: 0; }
   .wtn-pricing span { display: block; color: #444; font-size: 6.5pt; text-transform: uppercase; }
