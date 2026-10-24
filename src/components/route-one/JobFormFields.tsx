@@ -18,6 +18,8 @@ import { useJobTypes } from "./jobTypes";
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
+import { BookingFuelSurcharge } from "./BookingFuelSurcharge";
+import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
 
@@ -442,6 +444,7 @@ export function JobFormFields({
         job_type: "exchange",
         container_type: j.container_type || "",
         waste_type: j.waste_description || "",
+        ...importedBookingPrices(j.raw || {}),
         notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),
       });
     }
@@ -846,6 +849,7 @@ export function JobFormFields({
 
       <section className="space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer pricing</h4>
+        <BookingFuelSurcharge form={form} setForm={setForm} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
             <Label className="text-xs">Haulage (£)</Label>

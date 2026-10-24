@@ -76,6 +76,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { JobPriceSummary } from "@/components/route-one/JobPriceSummary";
 import { newExchangeForm } from "@/lib/route-job-exchange";
+import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
 import { Save, Repeat2, X } from "lucide-react";
 import { Columns3 } from "lucide-react";
@@ -701,9 +702,10 @@ const RouteOnePage = () => {
       if (error) throw error;
       const raw = data.raw && typeof data.raw === "object" && !Array.isArray(data.raw) ? data.raw : {};
       const details = importedSiteDetails(raw, data.postcode || "");
-      const mapped = { ...skiptrakWtnJob(data), site_address: details.address, site_area: details.area, site_contact_name: details.contact, site_contact_phone: details.phone, sic_code: details.sic };
+      const mapped = { ...skiptrakWtnJob(data), ...importedBookingPrices(raw), site_address: details.address, site_area: details.area, site_contact_name: details.contact, site_contact_phone: details.phone, sic_code: details.sic };
       const fresh = newExchangeForm(blankForm.current, mapped, dateStr);
       fresh.notes = `Exchange from Skiptrak job ${data.job_number}`;
+      if (fresh.charge_per_tonne === "") toast({ title: "Previous haulage copied", description: "This Skiptrak upload has no separate per-tonne rate. Check and enter that rate before sending." });
       setJobForm(fresh); newBaseline.current = JSON.stringify(fresh);
       setViewingSkiptrakJob(null); setNewJobOpen(true);
     } catch { toast({ title: "Could not load the original job", description: "Try again before creating an exchange.", variant: "destructive" }); }
