@@ -300,3 +300,11 @@
   .routeone-empty-tick { color: hsl(var(--board-available)); }
   @media (prefers-reduced-motion: reduce) { .routeone-tinted-job { transition: none; } .routeone-tinted-job:hover { transform: none; } }
 }
+
+@layer components {
+  .routeone-day > div:first-child { flex-wrap: wrap; overflow: visible; gap: 8px; }
+  .routeone-day > div:first-child > div:nth-child(2) { min-width: 0; flex-wrap: wrap; gap: 6px; }
+  .routeone-day .routeone-toolbar-actions { gap: 4px; }
+  .routeone-day .routeone-toolbar-actions > [data-state] { order: 5; }
+  .routeone-day .routeone-toolbar-actions > [data-state].routeone-new-job { order: 10; }
+}

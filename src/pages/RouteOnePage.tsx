@@ -919,7 +919,7 @@ const RouteOnePage = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto order-2">
+          <div className="routeone-toolbar-actions flex items-center gap-2 shrink-0 ml-auto order-2">
           {viewMode === "day" && <>
             <Button variant="ghost" size="icon" aria-label="Search jobs" title="Search jobs" onClick={() => setBoardSearchOpen(v => !v)}><Search className="h-4 w-4" /></Button>
             <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More day actions" title="More day actions"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
