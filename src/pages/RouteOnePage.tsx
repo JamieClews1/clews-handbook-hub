@@ -849,7 +849,23 @@ const RouteOnePage = () => {
   // Stats
   const { rules: boardRules } = useRoutingRules();
   const { zoneFor: boardZoneFor } = usePostcodeZoneLookup();
-  const boardPostcodeKey = [boardRules.yard_postcode, ...plannerJobs.map(j => j.postcode)].sort().join("|");
+  // Search may span dates; capacity must still describe the selected full day.
+  const { data: fullEstimateDay, isLoading: fullEstimateLoading, isError: fullEstimateError } = useQuery({
+    queryKey: ["route-one-capacity-day", dateStr], enabled: viewMode === "day" && Boolean(search),
+    queryFn: async () => {
+      const [native, imported] = await Promise.all([
+        supabase.from("route_one_jobs").select("*").eq("scheduled_date", dateStr).order("display_order"),
+        supabase.from("data_hub_jobs").select("id, job_number, driver, postcode, movement_type").eq("source", "skiptrak").eq("job_date", dateStr).order("job_date"),
+      ]);
+      if (native.error) throw native.error;
+      if (imported.error) throw imported.error;
+      const nativeNumbers = new Set((native.data ?? []).map(j => String(j.job_number).trim().toUpperCase()));
+      return { native: native.data ?? [], imported: (imported.data ?? []).filter(j => !nativeNumbers.has(String(j.job_number).trim().toUpperCase())) };
+    },
+  });
+  const estimateNative = search ? fullEstimateDay?.native ?? [] : jobs;
+  const estimateImported = search ? fullEstimateDay?.imported ?? [] : skiptrakScheduledJobs;
+  const boardPostcodeKey = [boardRules.yard_postcode, ...estimateNative.map(j => j.site_postcode), ...estimateImported.map(j => j.postcode)].sort().join("|");
   const boardPostcodes = useMemo(() => boardPostcodeKey.split("|"), [boardPostcodeKey]);
   const { coords: boardCoords, loading: boardCoordsLoading } = usePostcodeCoords(boardPostcodes, viewMode === "day");
   const boardDrivers = boardRules.hide_unused_drivers
@@ -1413,9 +1429,13 @@ const RouteOnePage = () => {
             const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
             const totalCount = driverJobs.length + skiptrakJobs.length;
             const isDropTarget = dragOverDriverId === driver.id;
+            const dayNative = estimateNative.filter(j => j.assigned_driver_id === driver.id);
+            const identities = drivers.map(d => ({ id: d.id, name: d.driver_name }));
+            const dayImported = estimateImported.filter(j => resolveDriverId(j.driver, identities) === driver.id);
+            const estimateLoading = boardCoordsLoading || (Boolean(search) && fullEstimateLoading);
             const capacity = estimateDriverDay([
-              ...driverJobs.map((j: any) => ({ postcode: j.site_postcode || "", movement: j.job_type || "", durationMinutes: j.estimated_duration_mins })),
-              ...skiptrakJobs.map((j: any) => ({ postcode: j.postcode || "", movement: j.movement_type || "" })),
+              ...dayNative.map((j: any) => ({ postcode: j.site_postcode || "", movement: j.job_type || "", durationMinutes: j.estimated_duration_mins })),
+              ...dayImported.map((j: any) => ({ postcode: j.postcode || "", movement: j.movement_type || "" })),
             ], boardRules, { coords: boardCoords, zoneFor: boardZoneFor });
             return (
               <div
@@ -1433,8 +1453,8 @@ const RouteOnePage = () => {
                     <div className="min-w-0"><p className="text-[13px] font-semibold leading-tight break-words">{driver.driver_name}</p><p className="text-[11px] font-mono text-muted-foreground mt-1">{boardRegistration(driverDayVehicles.get(driver.id)?.registration)}</p></div>
                   </div>
                   <div className="routeone-capacity" aria-label={`${dayTime(capacity.totalMinutes)} estimated of ${boardRules.day_length_hours} hour day`}><div className="routeone-capacity-fill" data-tone={capacity.tone} style={{ "--capacity": `${capacity.percent}%` } as React.CSSProperties} /></div>
-                  <p className="text-[11px] text-muted-foreground mt-1.5">{totalCount} jobs · {boardCoordsLoading ? "Estimating travel…" : `~${dayTime(capacity.totalMinutes)} / ${boardRules.day_length_hours}h`}</p>
-                  {!boardCoordsLoading && <p className="text-[10px] text-muted-foreground mt-1" title={`${dayTime(capacity.travelMinutes)} travel · ${dayTime(capacity.handlingMinutes)} handling · ${capacity.breakMinutes}m break${capacity.fallbackLegs ? ` · ${capacity.fallbackLegs} travel legs use fallback allowances` : ""}`}>{dayTime(capacity.travelMinutes)} travel · {capacity.breakMinutes}m break{capacity.fallbackLegs > 0 ? " · fallback" : ""}</p>}
+                  <p className="text-[11px] text-muted-foreground mt-1.5">{totalCount} jobs · {search && fullEstimateError ? "Estimate unavailable" : estimateLoading ? "Estimating travel…" : `~${dayTime(capacity.totalMinutes)} / ${boardRules.day_length_hours}h`}</p>
+                  {!estimateLoading && !(search && fullEstimateError) && <p className="text-[10px] text-muted-foreground mt-1" title={`${dayTime(capacity.travelMinutes)} travel · ${dayTime(capacity.handlingMinutes)} handling · ${capacity.breakMinutes}m break${capacity.fallbackLegs ? ` · ${capacity.fallbackLegs} travel legs use fallback allowances` : ""}`}>{dayTime(capacity.travelMinutes)} travel · {capacity.breakMinutes}m break{capacity.fallbackLegs > 0 ? " · fallback" : ""}{search ? " · full day" : ""}</p>}
                 </div>
                 <div className="space-y-2">
                   {driverJobs.map((job: any) => (
@@ -1467,7 +1487,7 @@ const RouteOnePage = () => {
                   tinted
                     />
                   ))}
-                  {!boardCoordsLoading && capacity.showRoom && <div className="routeone-room">~{dayTime(capacity.remainingMinutes)} available</div>}
+                  {!estimateLoading && !(search && fullEstimateError) && capacity.showRoom && <div className="routeone-room">~{dayTime(capacity.remainingMinutes)} available</div>}
                 </div>
               </div>
             );
