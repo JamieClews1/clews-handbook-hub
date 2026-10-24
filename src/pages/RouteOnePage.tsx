@@ -699,7 +699,8 @@ const RouteOnePage = () => {
     try {
       const { data, error } = await supabase.from("data_hub_jobs").select("*").eq("source", "skiptrak").eq("id", job.id).single();
       if (error) throw error;
-      const details = importedSiteDetails(data.raw, data.postcode || "");
+      const raw = data.raw && typeof data.raw === "object" && !Array.isArray(data.raw) ? data.raw : {};
+      const details = importedSiteDetails(raw, data.postcode || "");
       const mapped = { ...skiptrakWtnJob(data), site_address: details.address, site_area: details.area, site_contact_name: details.contact, site_contact_phone: details.phone, sic_code: details.sic };
       const fresh = newExchangeForm(blankForm.current, mapped, dateStr);
       fresh.notes = `Exchange from Skiptrak job ${data.job_number}`;
