@@ -727,16 +727,12 @@ const RouteOnePage = () => {
   const getDriverJobs = (driverId: string) =>
     jobs.filter((j: any) => j.assigned_driver_id === driverId);
 
-  // Match Skiptrak jobs to drivers by name (fuzzy: lowercase trim)
+  // Resolve each imported job to one driver; substring matching duplicated short names.
   const getSkiptrakJobsForDriver = (driverName: string) => {
-    const normalized = driverName.toLowerCase().trim();
-    return skiptrakScheduledJobs.filter((j: any) => {
-      const d = (j.driver || "").toLowerCase().trim();
-      if (!d) return false;
-      const dNorm = d.replace(/[.\-_]/g, " ");
-      const nNorm = normalized.replace(/[.\-_]/g, " ");
-      return dNorm === nNorm || dNorm.includes(nNorm) || nNorm.includes(dNorm);
-    });
+    const identities = drivers.map((d: any) => ({ id: d.id, name: d.driver_name }));
+    const driverId = resolveDriverId(driverName, identities);
+    if (!driverId) return [];
+    return skiptrakScheduledJobs.filter((j: any) => resolveDriverId(j.driver, identities) === driverId);
   };
 
   const unassignedSkiptrakJobs = skiptrakScheduledJobs.filter((j: any) => !(j.driver || "").trim());
