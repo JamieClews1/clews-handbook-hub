@@ -10,7 +10,7 @@ Keep staff navigation in seven collapsible groups with a page-only command palet
 - Keep RouteOne dispatch controls on the toolbar and driver admin in Setup. Planner name matching uses shared punctuation/spacing keys and resolves imports to driver IDs to avoid duplicate identities.
 Use shared Button, Tabs and Toggle styles for consistent action hierarchy, text contrast and semantic icons.
 Keep daily driver grouping in focused presentation modules, resolving vehicle registration from the selected day's tickets before the usual driver vehicle, separate from routing mutations, so group display cannot reassign jobs.
-Day-board cards and capacity estimates use presentation-only helpers with CSS palette tokens; never infer confirmation or shift hours from dispatch/source, so visual refreshes cannot change operational state.
+Day-board cards use CSS palette tokens; read-only day estimates reuse postcode travel rules in displayed order with explicit shared driver assumptions and yard returns, never reassignment or confirmation inference, so estimates cannot alter operational records.
 Keep printing read-only: daily sheets fetch the selected day's native and non-duplicated imported jobs independently of board filters; Midweigh print actions read by source and row ID and reuse the shared WeighOne ticket template so printing cannot alter records.
 Driver day-sheet PDFs measure wrapped content and adapt type size and spacing before drawing, preserving all job details without adding overflow pages.
 RouteOne booking site resolution uses customer account aliases and explicit site mappings; shared service-address parsing ignores tipping locations, and customer pricing remains separate from future internal business costs.
