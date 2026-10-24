@@ -4686,6 +4686,7 @@ export type Database = {
           nominal_code: string | null
           quantity: number
           sort_order: number
+          source_transaction_id: string | null
           unit: string | null
           unit_price: number
           updated_at: string
@@ -4701,6 +4702,7 @@ export type Database = {
           nominal_code?: string | null
           quantity?: number
           sort_order?: number
+          source_transaction_id?: string | null
           unit?: string | null
           unit_price?: number
           updated_at?: string
@@ -4716,6 +4718,7 @@ export type Database = {
           nominal_code?: string | null
           quantity?: number
           sort_order?: number
+          source_transaction_id?: string | null
           unit?: string | null
           unit_price?: number
           updated_at?: string
@@ -4728,6 +4731,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_source_transaction_id_fkey"
+            columns: ["source_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -4812,10 +4822,13 @@ export type Database = {
           sent_at: string | null
           sent_to: string | null
           site_id: string | null
+          source_job_id: string | null
+          source_transaction_id: string | null
           status: string
           status_override: boolean
           updated_at: string
           vat_total: number
+          zero_price_reason: string | null
         }
         Insert: {
           accounting_provider?: string
@@ -4846,10 +4859,13 @@ export type Database = {
           sent_at?: string | null
           sent_to?: string | null
           site_id?: string | null
+          source_job_id?: string | null
+          source_transaction_id?: string | null
           status?: string
           status_override?: boolean
           updated_at?: string
           vat_total?: number
+          zero_price_reason?: string | null
         }
         Update: {
           accounting_provider?: string
@@ -4880,10 +4896,13 @@ export type Database = {
           sent_at?: string | null
           sent_to?: string | null
           site_id?: string | null
+          source_job_id?: string | null
+          source_transaction_id?: string | null
           status?: string
           status_override?: boolean
           updated_at?: string
           vat_total?: number
+          zero_price_reason?: string | null
         }
         Relationships: [
           {
@@ -4898,6 +4917,20 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "customer_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_job_id_fkey"
+            columns: ["source_job_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_transaction_id_fkey"
+            columns: ["source_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "weighbridge_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -8486,6 +8519,45 @@ export type Database = {
         }
         Relationships: []
       }
+      route_one_job_weighings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string
+          weighbridge_transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id: string
+          weighbridge_transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string
+          weighbridge_transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_one_job_weighings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_one_job_weighings_weighbridge_transaction_id_fkey"
+            columns: ["weighbridge_transaction_id"]
+            isOneToOne: true
+            referencedRelation: "weighbridge_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       route_one_jobs: {
         Row: {
           account_code: string | null
@@ -8550,6 +8622,7 @@ export type Database = {
           waste_type: string | null
           weighbridge_ticket_number: string | null
           weighbridge_transaction_id: string | null
+          weighed_at: string | null
           weight_included_t: number | null
         }
         Insert: {
@@ -8615,6 +8688,7 @@ export type Database = {
           waste_type?: string | null
           weighbridge_ticket_number?: string | null
           weighbridge_transaction_id?: string | null
+          weighed_at?: string | null
           weight_included_t?: number | null
         }
         Update: {
@@ -8680,6 +8754,7 @@ export type Database = {
           waste_type?: string | null
           weighbridge_ticket_number?: string | null
           weighbridge_transaction_id?: string | null
+          weighed_at?: string | null
           weight_included_t?: number | null
         }
         Relationships: [
@@ -10559,6 +10634,10 @@ export type Database = {
       can_portal_user_access_data_hub_job: {
         Args: { _job_customer: string; _job_site: string; _user_id: string }
         Returns: boolean
+      }
+      create_invoice_with_lines: {
+        Args: { _header: Json; _lines: Json }
+        Returns: string
       }
       crm_match_customer_by_email: { Args: { _email: string }; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
