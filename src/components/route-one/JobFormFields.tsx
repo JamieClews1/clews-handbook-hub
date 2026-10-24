@@ -617,6 +617,11 @@ export function JobFormFields({
             <Label className="text-xs">Waste Type</Label>
             <Input value={form.waste_type || ""} onChange={(e) => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
           </div>
+          <div className="col-span-2">
+            <Label className="text-xs">EWC Code</Label>
+            <EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} />
+          </div>
+
           <div>
             <Label className="text-xs">Date</Label>
             <Input type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
@@ -740,7 +745,6 @@ export function JobFormFields({
 
       <section className="space-y-3 border-t border-border pt-4">
         <h4 className="text-sm font-semibold">Additional considerations</h4>
-        <div><Label className="text-xs">EWC Code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} /></div>
         <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
         {/* Added items */}
         <div className="space-y-2">
