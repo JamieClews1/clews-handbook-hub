@@ -20,6 +20,7 @@ import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
 import { BookingFuelSurcharge } from "./BookingFuelSurcharge";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
+import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
 
@@ -411,7 +412,10 @@ export function JobFormFields({
 
 
   /** Prefill the form from a previous job, defaulting to an exchange. */
-  const applyPrevious = (j: any) => {
+  const applyPrevious = async (j: any) => {
+    let bookingDate = form.scheduled_date;
+    try { bookingDate = await loadExchangeBookingDate({ container_type: j.container_type, container_size: j.container_size, site_postcode: j.site_postcode || j.postcode || rawText(j.raw, ["Postcode", "Location Postc"]) || form.site_postcode }) || bookingDate; }
+    catch { setSiteLoadError("Booking dates unavailable. Check the exchange date before saving."); }
     if (j._source === "routeone") {
       setForm({
         ...form,
@@ -422,6 +426,7 @@ export function JobFormFields({
         job_type: "exchange",
         container_type: j.container_type || "",
         container_size: j.container_size || "",
+        scheduled_date: bookingDate,
         waste_type: j.waste_type || "",
         po_number: j.po_number || form.po_number,
         haulage_cost: j.haulage_cost ?? "",
@@ -444,6 +449,7 @@ export function JobFormFields({
         job_type: "exchange",
         container_type: j.container_type || "",
         waste_type: j.waste_description || "",
+        scheduled_date: bookingDate,
         ...importedBookingPrices(j.raw || {}),
         notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),
       });

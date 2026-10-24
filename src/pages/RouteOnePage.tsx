@@ -77,6 +77,7 @@ import {
 import { JobPriceSummary } from "@/components/route-one/JobPriceSummary";
 import { newExchangeForm } from "@/lib/route-job-exchange";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
+import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
 import { Save, Repeat2, X } from "lucide-react";
 import { Columns3 } from "lucide-react";
@@ -682,9 +683,13 @@ const RouteOnePage = () => {
     if (JSON.stringify(jobForm) !== newBaseline.current && !window.confirm("Discard this unsaved job?")) return;
     setNewJobOpen(false);
   };
-  const startExchange = (job: any) => {
+  const startExchange = async (job: any) => {
     if (JSON.stringify(editForm) !== editBaseline.current && !window.confirm("Discard unsaved changes and create an exchange from the saved job?")) return;
     const fresh = newExchangeForm(blankForm.current, job, dateStr);
+    setExchangeLoading(true);
+    try { fresh.scheduled_date = await loadExchangeBookingDate(fresh) || fresh.scheduled_date; }
+    catch { toast({ title: "Booking dates unavailable", description: "Check the exchange date before saving.", variant: "destructive" }); }
+    finally { setExchangeLoading(false); }
     setJobForm(fresh);
     newBaseline.current = JSON.stringify(fresh);
     setEditingJob(null);
@@ -704,6 +709,7 @@ const RouteOnePage = () => {
       const details = importedSiteDetails(raw, data.postcode || "");
       const mapped = { ...skiptrakWtnJob(data), ...importedBookingPrices(raw), site_address: details.address, site_area: details.area, site_contact_name: details.contact, site_contact_phone: details.phone, sic_code: details.sic };
       const fresh = newExchangeForm(blankForm.current, mapped, dateStr);
+      fresh.scheduled_date = await loadExchangeBookingDate(fresh) || fresh.scheduled_date;
       fresh.notes = `Exchange from Skiptrak job ${data.job_number}`;
       if (fresh.charge_per_tonne === "") toast({ title: "Previous haulage copied", description: "This Skiptrak upload has no separate per-tonne rate. Check and enter that rate before sending." });
       setJobForm(fresh); newBaseline.current = JSON.stringify(fresh);
@@ -1042,7 +1048,7 @@ const RouteOnePage = () => {
             </div>
           </Tabs>
           <DialogFooter className="flex-row flex-wrap sm:justify-between items-center gap-2 p-4 border-t border-border shrink-0 bg-background">
-            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={printSavedJob}><Printer className="h-4 w-4 mr-2" />Print ticket</Button><Button variant="outline" onClick={() => editingJob && startExchange(editingJob)} disabled={updateJob.isPending}><Repeat2 className="h-4 w-4 mr-2" />New exchange</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={printSavedJob}><Printer className="h-4 w-4 mr-2" />Print ticket</Button><Button variant="outline" onClick={() => editingJob && startExchange(editingJob)} disabled={updateJob.isPending || exchangeLoading}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button></div>
             <div className="flex gap-2"><Button variant="ghost" onClick={closeEditor} disabled={updateJob.isPending}><X className="h-4 w-4 mr-2" />Cancel</Button><Button onClick={saveEditedJob} disabled={!editForm.customer_name || updateJob.isPending}><Save className="h-4 w-4 mr-2" />{updateJob.isPending ? "Saving…" : "Save"}</Button></div>
           </DialogFooter>
         </DialogContent>
