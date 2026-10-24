@@ -50,7 +50,8 @@ import DriverTrackingMap from "@/components/route-one/DriverTrackingMap";
 import { JobFormFields, computeJobTotals } from "@/components/route-one/JobFormFields";
 import { BookingWindowsPanel } from "@/components/route-one/BookingWindowsPanel";
 import { downloadWtnPdf, printWtnPdf } from "@/lib/route-one-wtn";
-import { FileDown, Printer, Send, Radio } from "lucide-react";
+import { FileDown, Printer, Send, Radio, PoundSterling } from "lucide-react";
+import { invoiceFromSource } from "@/components/finance/ReadyToInvoiceTab";
 import { TicketSendDialog } from "@/components/route-one/TicketSendDialog";
 import { PermitBadge } from "@/components/permits/PermitBadge";
 
@@ -1305,6 +1306,7 @@ const RouteOnePage = () => {
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setTicketJob(job); }}><Send className="h-3 w-3 mr-2" /> Print / Send ticket</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { is_live: !job.is_live } }); }}><Radio className="h-3 w-3 mr-2" /> {job.is_live ? "Take off live" : "Make live"}</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "completed" } }); }}>Mark Complete</DropdownMenuItem>
+                            {job.status === "completed" && <DropdownMenuItem onClick={(e) => { e.stopPropagation(); invoiceFromSource({ jobId: job.id }); }}><PoundSterling className="h-3 w-3 mr-2" /> Create invoice</DropdownMenuItem>}
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); updateJob.mutate({ id: job.id, updates: { status: "query" } }); }}>Flag as Query</DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteJob.mutate(job.id); }} className="text-destructive">Delete</DropdownMenuItem>
                           </DropdownMenuContent>
@@ -1618,6 +1620,11 @@ function JobCard({
               )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
+              {job.status === "completed" && job.job_type !== "waste_out_skip" && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); invoiceFromSource({ jobId: job.id }); }}>
+                  <PoundSterling className="h-3 w-3 mr-2" /> Create invoice
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">Delete Job</DropdownMenuItem>
             </DropdownMenuContent>
