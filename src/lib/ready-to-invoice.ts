@@ -57,11 +57,15 @@ export async function fetchReadyToInvoice(opts: { days?: number; jobId?: string;
   const invoicedTx = new Set((invoiced ?? []).map((i: any) => i.source_transaction_id).filter(Boolean));
 
   let jq = sb.from("route_one_jobs")
-    .select("*, route_one_job_weighings(weighbridge_transactions(id, ticket_number, net_weight_kg, status, weighbridge_additional_items(description, cost))), contamination_queries:contamination_query_id(status)")
+    .select("*, route_one_job_weighings(weighbridge_transactions(id, ticket_number, net_weight_kg, status, weighbridge_additional_items(description, cost)))")
     .eq("status", "completed").neq("job_type", "waste_out_skip");
   jq = opts.jobId ? jq.eq("id", opts.jobId) : jq.gte("scheduled_date", since);
   const { data: jobs, error } = opts.transactionId ? { data: [], error: null } : await jq.order("scheduled_date", { ascending: false }).limit(500);
   if (error) throw error;
+
+  const cqIds = (jobs ?? []).map((j: any) => j.contamination_query_id).filter(Boolean);
+  const { data: cqs } = cqIds.length ? await sb.from("contamination_queries").select("id, status").in("id", cqIds) : { data: [] };
+  const cqStatus = new Map<string, string>((cqs ?? []).map((c: any) => [c.id, c.status]));
 
   const items: ReadyItem[] = [];
   const linkedTx = new Set<string>();
@@ -75,7 +79,7 @@ export async function fetchReadyToInvoice(opts: { days?: number; jobId?: string;
     const blockers = invoiceBlockers({
       jobCompleted: true, hasCustomer: !!match, financeMissing: missingFinanceFields(match?.finance),
       poRequired: !!match?.finance?.po_required, po: j.po_number, lines,
-      pendingContamination: (j.contamination_queries?.status ?? "") === "query",
+      pendingContamination: cqStatus.get(j.contamination_query_id) === "query",
     });
     if (txs.some((t: any) => t.status === "first_weigh")) blockers.push("Vehicle still on site (second weigh missing)");
     if (Number(j.charge_per_tonne) > 0 && done.length === 0) blockers.push("No weigh ticket linked yet");
